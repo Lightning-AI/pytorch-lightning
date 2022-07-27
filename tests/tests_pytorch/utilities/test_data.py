@@ -305,6 +305,7 @@ def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, c
     assert dataloader.__pl_saved_args == args
     assert dataloader.__pl_saved_kwargs == kwargs
     assert dataloader.__pl_saved_arg_names == arg_names
+    assert dataloader.__pl_saved_default_kwargs == {}
     assert dataloader.__dataset == dataset
 
     assert dataloader.dataset == dataset
@@ -322,6 +323,7 @@ def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, c
     assert not hasattr(dataloader, "__pl_saved_kwargs")
     assert not hasattr(dataloader, "__pl_saved_arg_names")
     assert not hasattr(dataloader, "__pl_saved_args")
+    assert not hasattr(dataloader, "__pl_saved_default_kwargs")
     assert not hasattr(dataloader, "__dataset")
 
     assert dataloader.dataset == dataset
@@ -343,8 +345,9 @@ def test_replace_init_method_extra_kwargs():
         dataloader = LoaderSubclass(range(10))
 
     assert dataloader.__pl_saved_args == (range(10),)
-    assert dataloader.__pl_saved_kwargs == {"batch_size": 10}
+    assert dataloader.__pl_saved_kwargs == {}
     assert dataloader.__pl_saved_arg_names == ("dataset",)
+    assert dataloader.__pl_saved_default_kwargs == {"batch_size": 10}
     assert dataloader.__dataset == range(10)
 
 
@@ -372,8 +375,9 @@ def test_custom_batch_sampler(predicting):
 
     # assert that passed information got saved
     assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
-    assert dataloader.batch_sampler.__pl_saved_kwargs == {"drop_last": True}
+    assert dataloader.batch_sampler.__pl_saved_kwargs == {}
     assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
+    assert dataloader.batch_sampler.__pl_saved_default_kwargs == {"drop_last": True}
 
     # updating dataloader, what happens on access of the dataloaders.
     # This should not fail, and would fail before support for custom args.
@@ -395,6 +399,7 @@ def test_custom_batch_sampler(predicting):
     assert not hasattr(batch_sampler, "__pl_saved_kwargs")
     assert not hasattr(batch_sampler, "__pl_saved_arg_names")
     assert not hasattr(batch_sampler, "__pl_saved_args")
+    assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
 
 def test_custom_batch_sampler_no_drop_last():
@@ -418,6 +423,7 @@ def test_custom_batch_sampler_no_drop_last():
     assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
     assert dataloader.batch_sampler.__pl_saved_kwargs == {}
     assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
+    assert dataloader.batch_sampler.__pl_saved_default_kwargs == {}
 
     # Assert that warning is raised
     with pytest.warns(UserWarning, match="drop_last=False"):
@@ -443,6 +449,7 @@ def test_custom_batch_sampler_no_sampler():
     assert dataloader.batch_sampler.__pl_saved_args == ("random_str",)
     assert dataloader.batch_sampler.__pl_saved_kwargs == {}
     assert dataloader.batch_sampler.__pl_saved_arg_names == ("extra_arg",)
+    assert dataloader.batch_sampler.__pl_saved_default_kwargs == {}
 
     # Assert that error is raised
     with pytest.raises(TypeError, match="sampler into the batch sampler"):
@@ -453,6 +460,7 @@ def test_custom_batch_sampler_no_sampler():
     [
         "args",
         "kwargs",
+        "default_kwargs",
         "arg_names",
         "replace_key",
         "replace_value",
@@ -461,16 +469,28 @@ def test_custom_batch_sampler_no_sampler():
         "expected_kwargs",
     ],
     [
-        pytest.param((), {}, [], "a", 1, False, (), {}, id="empty"),
-        pytest.param((1,), {}, ["a"], "a", 2, True, (2,), {}, id="simple1"),
-        pytest.param((1, 2, 3), {}, ["a", "b", "c"], "b", False, True, (1, False, 3), {}, id="simple2"),
-        pytest.param((1, 2, 3), {"a": 1}, ["b", "c", "d"], "a", 2, True, (1, 2, 3), {"a": 2}, id="simple_kwargs"),
+        pytest.param((), {}, {}, [], "a", 1, False, (), {}, id="empty"),
+        pytest.param((1,), {}, {}, ["a"], "a", 2, True, (2,), {}, id="simple1"),
+        pytest.param((1, 2, 3), {}, {}, ["a", "b", "c"], "b", False, True, (1, False, 3), {}, id="simple2"),
+        pytest.param((1, 2, 3), {"a": 1}, {}, ["b", "c", "d"], "a", 2, True, (1, 2, 3), {"a": 2}, id="simple_kwargs"),
+        pytest.param(
+            (1, 2, 3),
+            {"a": 1},
+            {"e": 5},
+            ["b", "c", "d"],
+            "e",
+            2,
+            True,
+            (1, 2, 3),
+            {"a": 1, "e": 2},
+            id="default_kwargs",
+        ),
     ],
 )
 def test_replace_value_in_args(
-    args, kwargs, arg_names, replace_key, replace_value, expected_status, expected_args, expected_kwargs
+    args, kwargs, default_kwargs, arg_names, replace_key, replace_value, expected_status, expected_args, expected_kwargs
 ):
-    assert _replace_value_in_saved_args(replace_key, replace_value, args, kwargs, arg_names) == (
+    assert _replace_value_in_saved_args(replace_key, replace_value, args, kwargs, default_kwargs, arg_names) == (
         expected_status,
         expected_args,
         expected_kwargs,

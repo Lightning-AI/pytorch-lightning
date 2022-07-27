@@ -349,10 +349,13 @@ def _dataloader_init_kwargs_resolve_sampler(
             if hasattr(batch_sampler, "__pl_saved_args"):
                 args = batch_sampler.__pl_saved_args
                 kwargs = batch_sampler.__pl_saved_kwargs
+                default_kwargs = batch_sampler.__pl_saved_default_kwargs
                 arg_names = batch_sampler.__pl_saved_arg_names
 
                 if is_predicting:
-                    success, args, kwargs = _replace_value_in_saved_args("drop_last", False, args, kwargs, arg_names)
+                    success, args, kwargs = _replace_value_in_saved_args(
+                        "drop_last", False, args, kwargs, default_kwargs, arg_names
+                    )
                     if not success:
                         rank_zero_warn(
                             f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
@@ -361,7 +364,9 @@ def _dataloader_init_kwargs_resolve_sampler(
                             "the `__init__` method of your custom class."
                         )
 
-                success, args, kwargs = _replace_value_in_saved_args("sampler", sampler, args, kwargs, arg_names)
+                success, args, kwargs = _replace_value_in_saved_args(
+                    "sampler", sampler, args, kwargs, default_kwargs, arg_names
+                )
                 if not success:
                     raise TypeError(
                         "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
@@ -416,7 +421,12 @@ def _dataloader_init_kwargs_resolve_sampler(
 
 
 def _replace_value_in_saved_args(
-    replace_key: str, replace_value: Any, args: Tuple[Any, ...], kwargs: Dict[str, Any], arg_names: Tuple[str, ...]
+    replace_key: str,
+    replace_value: Any,
+    args: Tuple[Any, ...],
+    kwargs: Dict[str, Any],
+    default_kwargs: Dict[str, Any],
+    arg_names: Tuple[str, ...],
 ) -> Tuple[bool, Tuple[Any, ...], Dict[str, Any]]:
     """Tries to replace an argument value in a saved list of args and kwargs.
 
@@ -427,7 +437,7 @@ def _replace_value_in_saved_args(
         replace_index = arg_names.index(replace_key)
         args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
         return True, args, kwargs
-    elif replace_key in kwargs:
+    elif replace_key in kwargs or replace_key in default_kwargs:
         kwargs[replace_key] = replace_value
         return True, args, kwargs
 
@@ -463,12 +473,11 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
             if name not in kwargs and name not in param_names and value != inspect.Parameter.empty
         }
 
-        kwargs = {**kwargs, **default_kwargs}
-
         if not hasattr(obj, "__pl_saved_args"):
             obj.__pl_saved_args = args
             obj.__pl_saved_kwargs = kwargs
             obj.__pl_saved_arg_names = param_names
+            obj.__pl_saved_default_kwargs = default_kwargs
 
         # We want to use the latest possible value for explicit argument (i.e. ideally what gets passed to base class)
         # so that we can be sure, that it will not get changed anymore.
