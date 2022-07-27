@@ -647,6 +647,7 @@ class Trainer(
         """
         try:
             if self.strategy.launcher is not None:
+                self._check_torchdistx_support()
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
@@ -1453,15 +1454,7 @@ class Trainer(
             if _module_available("torchdistx.deferred_init"):
                 from torchdistx.deferred_init import materialize_module
 
-                from pytorch_lightning.utilities.meta import _is_deferred
-
-                if _is_deferred(self.lightning_module):
-                    if isinstance(self.strategy, DDPSpawnStrategy):
-                        raise NotImplementedError(
-                            f"The {type(self.strategy).__name__} strategy does not support `torchdistx`'s deferred"
-                            f" initialization."
-                        )
-                    materialize_module(self.lightning_module)
+                materialize_module(self.lightning_module)
 
             self._call_lightning_module_hook("configure_sharded_model")
             self._call_callback_hooks("on_configure_sharded_model")
@@ -1788,6 +1781,15 @@ class Trainer(
             rank_zero_warn(
                 "MPS available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
+            )
+
+    def _check_torchdistx_support(self) -> None:
+        from pytorch_lightning.utilities.meta import _is_deferred
+
+        if _is_deferred(self.lightning_module) and isinstance(self.strategy, DDPSpawnStrategy):
+            raise NotImplementedError(
+                f"The `{type(self.strategy).__name__}` strategy does not support `torchdistx`'s deferred"
+                f" initialization."
             )
 
     """

@@ -18,6 +18,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.utilities.meta import _is_deferred
 from tests_pytorch.helpers.runif import RunIf
 
 _TORCHDISTX_AVAILABLE = _RequirementAvailable("torchdistx")
@@ -38,9 +39,11 @@ def test_deferred_init_with_lightning_module():
     weight = model.layer[0].weight
     assert weight.device.type == "cpu"
     assert is_fake(weight)
+    assert _is_deferred(model)
 
     materialize_module(model)
     materialize_module(model)  # make sure it's idempotent
+    assert not _is_deferred(model)
     weight = model.layer[0].weight
     assert weight.device.type == "cpu"
     assert not is_fake(weight)
@@ -71,5 +74,19 @@ def test_deferred_init_with_trainer(tmpdir, trainer_kwargs):
     trainer.fit(model)
 
 
-def test_deferred_init_ddp_spawn():
-    ...  # FIXME
+@pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
+def test_deferred_init_ddp_spawn(tmpdir):
+    from torchdistx.deferred_init import deferred_init
+
+    model = deferred_init(BoringModel)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        accelerator="auto",
+        devices="1",
+        strategy="ddp_spawn",
+    )
+    with pytest.raises(NotImplementedError, match="DDPSpawnStrategy` strategy does not support.*torchdistx"):
+        trainer.fit(model)
