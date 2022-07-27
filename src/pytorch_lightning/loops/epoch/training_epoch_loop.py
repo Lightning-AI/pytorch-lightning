@@ -269,15 +269,16 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
 
+        trainer = self._trainer
         if (
-            self.trainer is not None
-            and self.trainer.state._fault_tolerant_mode.is_enabled
-            and self.trainer.train_dataloader is not None
+            trainer is not None
+            and trainer.state._fault_tolerant_mode.is_enabled
+            and trainer.train_dataloader is not None
             and not self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             and self.batch_progress.current.ready  # did start
         ):
-            loader: CombinedLoader = self.trainer.train_dataloader
+            loader: CombinedLoader = trainer.train_dataloader
             state = loader.state_dict(has_completed=self._has_completed())
             if state:
                 state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)

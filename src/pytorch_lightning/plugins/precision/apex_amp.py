@@ -59,6 +59,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: "pl.LightningModule",
         closure_loss: Tensor,
         optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -69,14 +70,13 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
         """
-        assert model.trainer is not None
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
-            super().backward(model, closure_loss, optimizer, *args, **kwargs)
+            super().backward(model, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],
