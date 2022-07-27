@@ -331,7 +331,8 @@ class DDPStrategy(ParallelStrategy):
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
-        if isinstance(self.lightning_module, pl.LightningModule) and not self.lightning_module.automatic_optimization:
+        assert self.lightning_module is not None
+        if not self.lightning_module.automatic_optimization:
             assert isinstance(self.model, DistributedDataParallel)
             prepare_for_backward(self.model, closure_loss)
 
@@ -384,7 +385,8 @@ class DDPStrategy(ParallelStrategy):
             return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
-        if isinstance(self.lightning_module, pl.LightningModule) and not self.lightning_module.automatic_optimization:
+        assert self.lightning_module is not None
+        if not self.lightning_module.automatic_optimization:
             assert self.model is not None
             self.model.require_backward_grad_sync = True  # type: ignore[assignment]
 
