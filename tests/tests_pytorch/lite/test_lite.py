@@ -29,7 +29,6 @@ from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests_pytorch.helpers.runif import RunIf
 
@@ -406,8 +405,6 @@ def test_autocast():
     lite._precision_plugin.forward_context().__exit__.assert_called()
 
 
-# https://github.com/microsoft/DeepSpeed/issues/2139
-@pytest.mark.skipif(_RequirementAvailable("deepspeed>=0.6.5"), reason="Lite does not support 0.6.5")
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
     class Lite(LightningLite):
