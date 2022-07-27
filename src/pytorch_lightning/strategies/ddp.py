@@ -40,6 +40,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
@@ -314,7 +315,7 @@ class DDPStrategy(ParallelStrategy):
             return None
         return [self.root_device.index]
 
-    def barrier(self, *args, **kwargs) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not distributed_available():
             return
         if torch.distributed.get_backend() == "nccl":
@@ -322,7 +323,7 @@ class DDPStrategy(ParallelStrategy):
         else:
             torch.distributed.barrier()
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         obj = [obj]
         if self.global_rank != src:
             obj = [None]
@@ -331,7 +332,7 @@ class DDPStrategy(ParallelStrategy):
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
-        if not self.lightning_module.automatic_optimization:
+        if isinstance(self.lightning_module, LightningModule) and not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
