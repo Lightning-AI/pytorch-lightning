@@ -38,7 +38,6 @@ Run on multiple IPUs
 --------------------
 To use multiple IPUs set the devices to a number that is a power of 2 (i.e: 2, 4, 8, 16, ...)
 
-
 .. code-block:: python
 
     trainer = pl.Trainer(accelerator="ipu", devices=8)
