@@ -87,6 +87,7 @@ Below is a list of built-in plugins for checkpointing.
     :nosignatures:
     :template: classtemplate.rst
 
+    AsyncCheckpointIO
     CheckpointIO
     HPUCheckpointIO
     TorchCheckpointIO
