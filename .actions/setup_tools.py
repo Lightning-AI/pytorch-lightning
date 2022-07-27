@@ -324,10 +324,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
             body = prune_comments_docstrings([ln.rstrip() for ln in lines])
-            if fname not in (
-                "__init__.py",
-                "__main__.py",
-            ):
+            if fname not in ("__init__.py", "__main__.py"):
                 body = prune_imports_callables(body)
             elif fname in ("__init__.py",):
                 body = prune_func_calls(body)
@@ -361,7 +358,6 @@ def _download_frontend(root: str = _PROJECT_ROOT):
     directory."""
 
     try:
-        build_dir = "build"
         frontend_dir = pathlib.Path(root, "src", "lightning_app", "ui")
         download_dir = tempfile.mkdtemp()
 
@@ -371,7 +367,7 @@ def _download_frontend(root: str = _PROJECT_ROOT):
         file = tarfile.open(fileobj=response, mode="r|gz")
         file.extractall(path=download_dir)
 
-        shutil.move(os.path.join(download_dir, build_dir), frontend_dir)
+        shutil.move(os.path.join(download_dir, "build"), frontend_dir)
         print("The Lightning UI has successfully been downloaded!")
 
     # If installing from source without internet connection, we don't want to break the installation
