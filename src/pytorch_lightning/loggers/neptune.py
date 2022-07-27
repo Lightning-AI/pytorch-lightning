@@ -399,7 +399,7 @@ class NeptuneLogger(Logger):
         state["_run_instance"] = None
         return state
 
-    def __setstate__(self, state: Dict) -> None:
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__ = state
         self._run_instance = neptune.init(**self._neptune_init_args)
 
