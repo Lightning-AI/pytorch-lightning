@@ -13,6 +13,7 @@ git clone https://github.com/Lightning-AI/lightning.git
 cd lightning
 
 # install required depedencies
+export PACKAGE_NAME=pytorch
 python -m pip install ".[dev, examples]"
 # install pre-commit (optional)
 python -m pip install pre-commit
