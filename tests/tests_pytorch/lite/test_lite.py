@@ -467,11 +467,11 @@ def test_deepspeed_multiple_models():
 
     if _RequirementAvailable("deepspeed>=0.6.5"):
         # https://github.com/microsoft/DeepSpeed/issues/2139
-        raise_if_deepspeed_incompatilbe = pytest.raises(
+        raise_if_deepspeed_incompatible = pytest.raises(
             RuntimeError, match="DeepSpeed ZeRO-3 is not supported with this version of Lightning Lite"
         )
     else:
-        raise_if_deepspeed_incompatilbe = contextlib.suppress()
+        raise_if_deepspeed_incompatible = contextlib.suppress()
 
-    with raise_if_deepspeed_incompatilbe:
+    with raise_if_deepspeed_incompatible:
         Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
