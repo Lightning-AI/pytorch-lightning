@@ -25,8 +25,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
-if TYPE_CHECKING:
-    if pl.strategies.deepspeed._DEEPSPEED_AVAILABLE:
+_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
         import deepspeed
 
 warning_cache = WarningCache()
