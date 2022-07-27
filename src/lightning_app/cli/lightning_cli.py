@@ -49,20 +49,39 @@ def main():
 @click.group()
 @click.version_option(ver)
 def _main():
-    register_all_external_components()
+    # register_all_external_components()
+    pass
 
 
 @_main.group()
 def show():
-    """Show info about resource."""
+    """Show given resource."""
     pass
 
 
 @show.command()
 @click.argument("app_name", required=False)
 @click.argument("components", nargs=-1, required=False)
-@click.option("-f", "--follow", required=False, is_flag=True)
+@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def logs(app_name: str, components: List[str], follow: bool) -> None:
+    """Show application logs. By default prints logs for all currently available components. 
+
+    Example uses:
+
+        Print all application logs:
+
+            $ lightning show logs my-application
+        
+
+        Print logs only from the root flow component:
+
+            $ lightning show logs my-application flow
+
+
+        Print logs only from selected components:
+
+            $ lightning show logs my-application root.comp_a root.comp_b
+    """
 
     client = LightningClient()
     project = _get_project(client)
@@ -81,7 +100,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
         )
 
     if app_name not in apps:
-        raise click.ClickException(f"LightningApp '{app_name}' does not exist.")
+        raise click.ClickException(f"LightningApp '{app_name}' does not exist. Please select one of available: [{', '.join(apps.keys())}]")
 
     # Fetch all lightning works from given application
     # 'Flow' component is somewhat implicit, only one for whole app,
