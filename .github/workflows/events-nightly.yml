@@ -38,7 +38,7 @@ jobs:
 
       # We do this, since failures on test.pypi aren't that bad
       - name: Publish to Test PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.1
+        uses: pypa/gh-action-pypi-publish@v1.5.0
         with:
           user: __token__
           password: ${{ secrets.test_pypi_password }}

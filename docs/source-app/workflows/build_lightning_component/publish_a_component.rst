@@ -13,7 +13,7 @@ the default template.
 
 Generate your component template with this command:
 
-.. code:: bash
+.. code:: python
 
     lightning init component your-component-name
 
@@ -36,20 +36,18 @@ Now import your component and use it in an app:
 
     # app.py
     from your_component import TemplateComponent
-    import lightning_app as la
+    import lightning as L
 
-
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self) -> None:
             super().__init__()
             self.your_component = TemplateComponent()
 
         def run(self):
-            print("this is a simple Lightning app to verify your component is working as expected")
+            print('this is a simple Lightning app to verify your component is working as expected')
             self.your_component.run()
 
-
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 and run the app:
 

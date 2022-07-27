@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04, windows-2019, macOS-11]
         python-version: ["3.7", "3.9"]  # minimum, maximum
         requires: ["oldest", "latest"]
         release: ["stable"]
@@ -127,7 +127,7 @@ jobs:
       run: |
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install --requirement ./requirements/pytorch/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install -r ./requirements/pytorch/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
 
