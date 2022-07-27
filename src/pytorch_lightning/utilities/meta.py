@@ -14,7 +14,7 @@
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Set, Type
 
-from torch import Module, nn
+from torch.nn import Module
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 
@@ -58,7 +58,7 @@ def _get_all_subclasses(cls: Type) -> Set[Type]:
     return set(subclass_list)
 
 
-def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module: nn.Module) -> None:
+def recursively_setattr(root_module: Module, prefix: str, materialized_module: Module) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.meta.recursively_setattr` is deprecated in v1.8 and will be removed in v1.9."
         " Please copy its implementation if you have an use for it."
@@ -74,7 +74,7 @@ def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module
         setattr(root_module, name, materialized_module)
 
 
-def materialize_module(root_module: nn.Module) -> None:
+def materialize_module(root_module: Module) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.meta.materialize_module` is deprecated in v1.8 and will be removed in v1.9."
         " The function has become a no-op."
@@ -92,7 +92,7 @@ def init_meta_context() -> Generator:
     yield
 
 
-def is_on_meta_device(module: nn.Module) -> bool:
+def is_on_meta_device(module: Module) -> bool:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.meta.is_on_meta_device` is deprecated in v1.8 and will be removed in v1.9."
         " Please copy its implementation if you have an use for it."
