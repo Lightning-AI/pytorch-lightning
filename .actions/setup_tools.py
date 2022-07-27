@@ -196,6 +196,31 @@ def prune_imports_callables(lines: List[str]) -> List[str]:
     return body
 
 
+def prune_func_calls(lines: List[str]) -> List[str]:
+    """Prune calling functions from a file, even multi-line.
+
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "__init__.py")
+    >>> import_path = ".".join(["pytorch_lightning", "loggers"])
+    >>> with open(py_file, encoding="utf-8") as fp:
+    ...     lines = [ln.rstrip() for ln in fp.readlines()]
+    >>> lines = prune_func_calls(lines)
+    """
+    body, tracking, score = [], False, 0
+    for ln in lines:
+        # catching callable
+        calling = re.match(r"^[\w_\d\.]+ *\(", ln.lstrip())
+        if calling and " import " not in ln:
+            tracking = True
+            score = 0
+        if tracking:
+            score += ln.count("(") - ln.count(")")
+            if score == 0:
+                tracking = False
+        else:
+            body.append(ln)
+    return body
+
+
 def prune_empty_statements(lines: List[str]) -> List[str]:
     """Prune emprty if/else and try/except.
 
@@ -298,12 +323,16 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            body = prune_comments_docstrings(lines)
-            if fname not in ("__main__.py",):
+            body = prune_comments_docstrings([ln.rstrip() for ln in lines])
+            if fname not in (
+                "__init__.py",
+                "__main__.py",
+            ):
                 body = prune_imports_callables(body)
-            body = replace_block_with_imports([ln.rstrip() for ln in body], import_path, "class")
-            body = replace_block_with_imports(body, import_path, "def")
-            body = replace_block_with_imports(body, import_path, "async def")
+            elif fname in ("__init__.py",):
+                body = prune_func_calls(body)
+            for key_word in ("class", "def", "async def"):
+                body = replace_block_with_imports(body, import_path, key_word)
             body = replace_vars_with_imports(body, import_path)
             body_len = -1
             # in case of several in-depth statements

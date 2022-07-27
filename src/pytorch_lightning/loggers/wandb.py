@@ -15,6 +15,7 @@
 Weights and Biases Logger
 -------------------------
 """
+import operator
 import os
 from argparse import Namespace
 from pathlib import Path
@@ -26,9 +27,13 @@ import torch.nn as nn
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _WANDB_GREATER_EQUAL_0_10_22, _WANDB_GREATER_EQUAL_0_12_10
+from pytorch_lightning.utilities.imports import _compare_version, _package_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+
+_WANDB_AVAILABLE = _package_available("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
 
 try:
     import wandb
