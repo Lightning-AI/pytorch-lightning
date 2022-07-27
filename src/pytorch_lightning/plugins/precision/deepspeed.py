@@ -71,14 +71,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self.amp_type = amp_type
         self.amp_level = amp_level
 
-    def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
+    def backward(self, model: "pl.LightningModule", closure_loss: Tensor, optimizer: Optional[Optimizer], *args: Any, **kwargs: Any) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
                 " the backward logic internally."
             )
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
-        deepspeed_engine.backward(closure_loss)
+        deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
     def _run_backward(
         self, tensor: Tensor, model: Optional["deepspeed.DeepSpeedEngine"], *args: Any, **kwargs: Any

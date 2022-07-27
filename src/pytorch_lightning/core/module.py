@@ -1389,7 +1389,7 @@ class LightningModule(
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
         self._verify_is_manual_optimization("manual_backward")
-        self.trainer.strategy.backward(loss, None, *args, **kwargs)
+        self.trainer.strategy.backward(loss, *args, **kwargs)
 
     def backward(
         self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
