@@ -187,7 +187,7 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode=mode)
+    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
     dl_cls = type(dataloader)
     try:
         dataloader = dl_cls(*dl_args, **dl_kwargs)
@@ -213,7 +213,10 @@ def _update_dataloader(
 
 
 def _get_dataloader_init_args_and_kwargs(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader,
+    sampler: Optional[Sampler],
+    mode: Optional[RunningStage] = None,
+    disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -265,7 +268,7 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode, disallow_batch_sampler))
 
     required_args = {
         p.name
@@ -310,7 +313,10 @@ def _get_dataloader_init_args_and_kwargs(
 
 
 def _dataloader_init_kwargs_resolve_sampler(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader,
+    sampler: Optional[Sampler],
+    mode: Optional[RunningStage] = None,
+    disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
@@ -322,69 +328,82 @@ def _dataloader_init_kwargs_resolve_sampler(
     fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
-    # checking the batch sampler type is different than PyTorch default.
-    batch_sampler_cls = type(batch_sampler)
-    if batch_sampler is not None and (batch_sampler_cls is not BatchSampler or is_predicting):
-        if hasattr(batch_sampler, "__pl_saved_args"):
-            args = batch_sampler.__pl_saved_args
-            kwargs = batch_sampler.__pl_saved_kwargs
-            arg_names = batch_sampler.__pl_saved_arg_names
 
-            if is_predicting:
-                success, args, kwargs = _replace_value_in_saved_args("drop_last", False, args, kwargs, arg_names)
+    if batch_sampler is not None:
+        if disallow_batch_sampler:
+            # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
+            if not (
+                type(batch_sampler) is BatchSampler
+                and batch_sampler.sampler == sampler
+                and dataloader.batch_size == batch_sampler.batch_size
+            ):
+                raise MisconfigurationException(
+                    "It is not possible to have a batch sampler in your dataloader, "
+                    "when running on multiple IPU devices."
+                )
+        elif type(batch_sampler) is not BatchSampler or is_predicting:
+            batch_sampler_cls = type(batch_sampler)
+            if hasattr(batch_sampler, "__pl_saved_args"):
+                args = batch_sampler.__pl_saved_args
+                kwargs = batch_sampler.__pl_saved_kwargs
+                arg_names = batch_sampler.__pl_saved_arg_names
+
+                if is_predicting:
+                    success, args, kwargs = _replace_value_in_saved_args("drop_last", False, args, kwargs, arg_names)
+                    if not success:
+                        rank_zero_warn(
+                            f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
+                            f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
+                            "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
+                            "the `__init__` method of your custom class."
+                        )
+
+                success, args, kwargs = _replace_value_in_saved_args("sampler", sampler, args, kwargs, arg_names)
                 if not success:
-                    rank_zero_warn(
-                        f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however it "
-                        f"seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
-                        "Your predictions might be incomplete. To mitigate this, expose `drop_last` in the `__init__` "
-                        "method of your custom class."
+                    raise TypeError(
+                        "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
+                        f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
+                        "this, expose an argument `sampler` in the `__init__` method of your custom class."
                     )
 
-            success, args, kwargs = _replace_value_in_saved_args("sampler", sampler, args, kwargs, arg_names)
-            if not success:
-                raise TypeError(
-                    "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
-                    f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate this, "
-                    "expose an argument `sampler` in the `__init__` method of your custom class."
-                )
+                batch_sampler = batch_sampler_cls(*args, **kwargs)
+            else:
+                try:
+                    batch_sampler = batch_sampler_cls(
+                        sampler,
+                        batch_size=batch_sampler.batch_size,
+                        drop_last=(False if is_predicting else batch_sampler.drop_last),
+                    )
+                except TypeError as e:
+                    import re
 
-            batch_sampler = batch_sampler_cls(*args, **kwargs)
-        else:
-            try:
-                batch_sampler = batch_sampler_cls(
-                    sampler,
-                    batch_size=batch_sampler.batch_size,
-                    drop_last=(False if is_predicting else batch_sampler.drop_last),
-                )
-            except TypeError as e:
-                import re
+                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
+                    if not match:
+                        # an unexpected `TypeError`, continue failure
+                        raise
 
-                match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
-                if not match:
-                    # an unexpected `TypeError`, continue failure
-                    raise
+                    # There could either be too few or too many arguments. Customizing the message based on this doesn't
+                    # make much sense since our MisconfigurationException is going to be raised from the original one.
+                    raise MisconfigurationException(
+                        "We tried to re-instantiate your custom batch sampler and failed. "
+                        "To mitigate this, either follow the API of `BatchSampler` or instantiate "
+                        "your custom batch sampler inside `*_dataloader` hooks of your module."
+                    ) from e
 
-                # There could either be too few or too many arguments. Customizing the message based on this doesn't
-                # make much sense since our MisconfigurationException is going to be raised from the original one.
-                raise MisconfigurationException(
-                    "We tried to re-instantiate your custom batch sampler and failed. "
-                    "To mitigate this, either follow the API of `BatchSampler` or instantiate "
-                    "your custom batch sampler inside `*_dataloader` hooks of your module."
-                ) from e
-        if is_predicting:
-            batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+            if is_predicting:
+                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-        if fault_tolerant_mode.is_automatic:
-            fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-            fast_forward_sampler.setup(dataloader_batch_size=1)
+            if fault_tolerant_mode.is_automatic:
+                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+                fast_forward_sampler.setup(dataloader_batch_size=1)
 
-        return {
-            "sampler": None,
-            "shuffle": False,
-            "batch_sampler": batch_sampler,
-            "batch_size": 1,
-            "drop_last": False,
-        }
+            return {
+                "sampler": None,
+                "shuffle": False,
+                "batch_sampler": batch_sampler,
+                "batch_size": 1,
+                "drop_last": False,
+            }
 
     if fault_tolerant_mode.is_automatic:
         fast_forward_sampler = sampler = FastForwardSampler(sampler)

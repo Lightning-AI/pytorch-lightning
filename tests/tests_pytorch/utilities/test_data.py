@@ -3,13 +3,14 @@ from dataclasses import dataclass
 import pytest
 import torch
 from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
+    _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
     _replace_init_method,
     _replace_value_in_saved_args,
@@ -474,6 +475,23 @@ def test_replace_value_in_args(
         expected_args,
         expected_kwargs,
     )
+
+
+def test_dataloader_disallow_batch_sampler():
+    dataset = RandomDataset(5, 100)
+    dataloader = DataLoader(dataset, batch_size=10)
+
+    # This should not raise
+    _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
+
+    dataset = RandomDataset(5, 100)
+    sampler = SequentialSampler(dataset)
+    batch_sampler = BatchSampler(sampler, batch_size=10, drop_last=False)
+    dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
+
+    # this should raise - using batch sampler, that was not automatically instantiated by DataLoader
+    with pytest.raises(MisconfigurationException, match="when running on multiple IPU devices"):
+        _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
