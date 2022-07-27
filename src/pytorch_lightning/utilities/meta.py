@@ -38,7 +38,7 @@ if _TORCH_GREATER_EQUAL_1_10:
 
     ####################################################################
     # BELOW: TAKEN FROM https://github.com/pytorch/pytorch/pull/66317. #
-    # TODO: Removed once merged and released on PyTorch side           #
+    # TODO: Remove once merged and released on PyTorch side            #
     ####################################################################
 
     class _MetaContext(Tensor):
