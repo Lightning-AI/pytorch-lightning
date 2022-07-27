@@ -27,7 +27,12 @@ def test_boring_app_example_cloud() -> None:
 
         runner = CliRunner()
         result = runner.invoke(logs, [name])
+        lines = result.output.splitlines()
 
         assert result.exit_code == 0
         assert result.exception is None
-        assert len(result.output.splitlines()) > 1, result.output
+        assert len(lines) > 1, result.output
+        # We know that at some point we need to intstall lightning, so we check for that
+        assert any(
+            "Successfully built lightning" in line for line in lines
+        ), f"Did not find logs with lightning installation: {result.output}"
