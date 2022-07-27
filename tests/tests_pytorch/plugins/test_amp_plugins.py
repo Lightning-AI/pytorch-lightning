@@ -110,7 +110,7 @@ class TestPrecisionModel(BoringModel):
         parameters = list(self.parameters())
         assert len(parameters) == len(self.clipped_parameters)
         for actual, expected in zip(parameters, self.clipped_parameters):
-            torch_test_assert_close(actual.grad, expected.grad)
+            torch_test_assert_close(actual.grad, expected.grad, equal_nan=True)
 
     def on_before_optimizer_step(self, optimizer, *_):
         self.check_grads_unscaled(optimizer)
