@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Optional, Set, Type
+from typing import Any, Callable, Generator, Mapping, Optional, Set, Type, Union
 
 from torch import Tensor
-from torch.nn import Module
+from torch.nn import Module, Parameter
 
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.imports import _module_available
@@ -50,7 +50,7 @@ def get_all_subclasses(cls: Type) -> Set[Type]:
 def _get_all_subclasses(cls: Type) -> Set[Type]:
     subclass_list = []
 
-    def recurse(cl):
+    def recurse(cl: Type) -> None:
         for subclass in cl.__subclasses__():
             subclass_list.append(subclass)
             recurse(subclass)
@@ -60,7 +60,7 @@ def _get_all_subclasses(cls: Type) -> Set[Type]:
     return set(subclass_list)
 
 
-def recursively_setattr(root_module: Module, prefix: str, materialized_module: Module) -> None:
+def recursively_setattr(root_module: Any, prefix: str, materialized_module: Module) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.meta.recursively_setattr` is deprecated in v1.8 and will be removed in v1.9."
         " Please copy its implementation if you have an use for it."
@@ -111,7 +111,7 @@ def _is_deferred(module: Module) -> bool:
         return False
     from torchdistx.fake import is_fake
 
-    def any_fake(tensors: Dict[str, Optional[Tensor]]) -> bool:
+    def any_fake(tensors: Mapping[str, Optional[Union[Tensor, Parameter]]]) -> bool:
         return any(is_fake(t) for t in tensors.values() if t is not None)
 
     is_deferred = any(_is_deferred(m) for m in module.children())
