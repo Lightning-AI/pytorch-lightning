@@ -51,7 +51,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT, ValidationStep, TestStep, PredictStep
 
 log = logging.getLogger(__name__)
 
@@ -293,16 +293,17 @@ class DDPSpawnStrategy(ParallelStrategy):
                 return self.model(*args, **kwargs)
             else:
                 # used when calling `trainer.validate`
-                return self.model.validation_step(*args, **kwargs)  # type: ignore[operator]
+                assert isinstance(self.model, ValidationStep)
+                return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
         with self.precision_plugin.test_step_context():
-            return self.model.test_step(*args, **kwargs)  # type: ignore[operator]
+            assert isinstance(self.model, TestStep)
+            return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
         with self.precision_plugin.predict_step_context():
+            assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)  # type: ignore[operator]
 
     def post_training_step(self) -> None:
