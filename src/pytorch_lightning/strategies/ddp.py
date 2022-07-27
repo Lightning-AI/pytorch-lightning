@@ -30,8 +30,9 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides import LightningDistributedModule, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -83,12 +84,12 @@ class DDPStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
-        ddp_comm_hook: Optional[callable] = None,
-        ddp_comm_wrapper: Optional[callable] = None,
+        ddp_comm_hook: Optional[Callable] = None,
+        ddp_comm_wrapper: Optional[Callable] = None,
         model_averaging_period: Optional[int] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
-        **kwargs: Union[Any, Dict[str, Any]],
+        **kwargs: Any,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
@@ -117,6 +118,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def root_device(self) -> torch.device:
+        assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
 
     @property
@@ -129,11 +131,11 @@ class DDPStrategy(ParallelStrategy):
         self._num_nodes = num_nodes
 
     @property
-    def num_processes(self):
+    def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -146,6 +148,7 @@ class DDPStrategy(ParallelStrategy):
         return self._process_group_backend
 
     def _configure_launcher(self) -> None:
+        assert self.cluster_environment is not None
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
@@ -156,10 +159,11 @@ class DDPStrategy(ParallelStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # share ddp pids to all processes
-        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
+        self._rank_0_will_call_children_scripts = bool(self.broadcast(self._rank_0_will_call_children_scripts))
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
         # move the model to the correct device
@@ -170,6 +174,7 @@ class DDPStrategy(ParallelStrategy):
 
         if trainer_fn == TrainerFn.FITTING:
             if self._layer_sync:
+                assert self.model is not None
                 self.model = self._layer_sync.apply(self.model)
 
         self.setup_precision_plugin()
@@ -193,7 +198,7 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
-    def setup_distributed(self):
+    def setup_distributed(self) -> None:
         log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
@@ -204,6 +209,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
 
         self._process_group_backend = self._get_process_group_backend()
+        assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
@@ -230,6 +236,7 @@ class DDPStrategy(ParallelStrategy):
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
         if self.root_device.type == "cuda" and self._is_single_process_single_device:
+            assert isinstance(self.model, DistributedDataParallel)
             register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -262,6 +269,8 @@ class DDPStrategy(ParallelStrategy):
                     f"{optimizer.__class__.__name__}."
                 )
 
+        assert self._ddp_comm_state is not None
+        # assert isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
         self._model_averager = torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager(
             period=self._model_averaging_period, warmup_steps=self._ddp_comm_state.start_localSGD_iter
         )
@@ -296,10 +305,11 @@ class DDPStrategy(ParallelStrategy):
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         self.pre_configure_ddp()
+        assert isinstance(self.model, (LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
-    def determine_ddp_device_ids(self):
+    def determine_ddp_device_ids(self) -> Optional[List[int]]:
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
