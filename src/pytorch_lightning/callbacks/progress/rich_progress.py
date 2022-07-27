@@ -324,16 +324,9 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_train_epoch_start(self, trainer, pl_module):
-        total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
-        if total_train_batches != float("inf"):
-            # val can be checked multiple times per epoch
-            val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            total_val_batches = total_val_batches * val_checks_per_epoch
-
-        total_batches = total_train_batches + total_val_batches
-
+        total_batches = self.total_batches_current_epoch
         train_description = self._get_train_description(trainer.current_epoch)
+
         if self.main_progress_bar_id is not None and self._leave:
             self._stop_progress()
             self._init_progress(trainer)
@@ -343,6 +336,7 @@ class RichProgressBar(ProgressBarBase):
             self.progress.reset(
                 self.main_progress_bar_id, total=total_batches, description=train_description, visible=True
             )
+
         self.refresh()
 
     def on_validation_batch_start(
