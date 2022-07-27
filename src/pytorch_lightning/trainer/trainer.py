@@ -69,7 +69,7 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.strategies import DDPSpawnStrategy, ParallelStrategy, Strategy
+from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
@@ -647,7 +647,6 @@ class Trainer(
         """
         try:
             if self.strategy.launcher is not None:
-                self._check_torchdistx_support()
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
@@ -1781,15 +1780,6 @@ class Trainer(
             rank_zero_warn(
                 "MPS available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
-            )
-
-    def _check_torchdistx_support(self) -> None:
-        from pytorch_lightning.utilities.meta import _is_deferred
-
-        if _is_deferred(self.lightning_module) and isinstance(self.strategy, DDPSpawnStrategy):
-            raise NotImplementedError(
-                f"The `{type(self.strategy).__name__}` strategy does not support `torchdistx`'s deferred"
-                f" initialization."
             )
 
     """
