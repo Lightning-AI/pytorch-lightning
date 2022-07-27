@@ -6,9 +6,9 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import (
     Body8,
-    V1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
+    V1ImageSpec,
     V1LightningappInstanceState,
     V1LightningworkSpec,
     V1ListLightningappInstancesResponse,
