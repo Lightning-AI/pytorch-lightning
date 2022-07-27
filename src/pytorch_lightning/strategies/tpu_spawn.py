@@ -39,6 +39,7 @@ from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
+from pytorch_lightning.utilities.types import PredictStep, TestStep, TrainingStep, ValidationStep
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -210,17 +211,17 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model
+        assert isinstance(self.model, ValidationStep)
         with self.precision_plugin.val_step_context():
             return self.model(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model
+        assert isinstance(self.model, TestStep)
         with self.precision_plugin.test_step_context():
             return self.model(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model
+        assert isinstance(self.model, PredictStep)
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
