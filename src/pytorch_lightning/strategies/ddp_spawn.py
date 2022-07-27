@@ -295,12 +295,12 @@ class DDPSpawnStrategy(ParallelStrategy):
                 return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         with self.precision_plugin.test_step_context():
             return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
 
