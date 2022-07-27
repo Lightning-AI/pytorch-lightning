@@ -62,7 +62,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
                 pointing to a LightningModule reference.
         """
         super().__init__()
-        if not isinstance(forward_module, pl.LightningModule) or (
+        if not isinstance(forward_module, pl.LightningModule) and (
             not isinstance(getattr(forward_module, "module", None), pl.LightningModule)
         ):
             raise ValueError(
