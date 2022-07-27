@@ -215,7 +215,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
@@ -286,8 +286,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
             assert self.lightning_module is not None
-            assert self.model is not None
-            assert callable(self.model.validation_step)
+            assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
@@ -296,12 +295,12 @@ class DDPSpawnStrategy(ParallelStrategy):
                 return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
         with self.precision_plugin.test_step_context():
             return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
         with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
 
