@@ -74,7 +74,8 @@ else:
 
 
 def test_trainer_error_when_input_not_lightning_module():
-    """Test that a useful error gets raised when the Trainer methods receive something other than a LightningModule."""
+    """Test that a useful error gets raised when the Trainer methods receive something other than a
+    LightningModule."""
     trainer = Trainer()
 
     for method in ("fit", "validate", "test", "predict"):
