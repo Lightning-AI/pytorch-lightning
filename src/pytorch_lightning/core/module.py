@@ -157,7 +157,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion], LRSchedulerPLType]]:
+    def lr_schedulers(self) -> Union[None, List[LRSchedulerPLType], LRSchedulerPLType]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
@@ -169,7 +169,7 @@ class LightningModule(
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers = [config.scheduler for config in self.trainer.lr_scheduler_configs]
+        lr_schedulers: List[LRSchedulerPLType] = [config.scheduler for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -1803,14 +1803,14 @@ class LightningModule(
             self_arguments: arguments dictionary of the first instance
             parents_arguments: arguments dictionary of the parent's instances
         """
+
         if not frame:
             frame = inspect.currentframe()
 
-        frame_args = collect_init_args(frame.f_back, [])
-        self_arguments = frame_args[-1]
+        frame_args = collect_init_args(frame.f_back, [])  # type: ignore[union-attr, arg-type]
 
         # set hyper_parameters in child
-        self_arguments = self_arguments
+        self_arguments = frame_args[-1]
         parents_arguments = {}
 
         # add all arguments from parents

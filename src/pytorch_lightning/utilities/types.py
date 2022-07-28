@@ -167,9 +167,7 @@ class DistributedDataParallel(Protocol):
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
-LRSchedulerPLType = Union[
-    _LRScheduler, ReduceLROnPlateau, List[Union[_LRScheduler, ReduceLROnPlateau], _LRScheduler, ReduceLROnPlateau, None]
-]
+LRSchedulerPLType = Union[_LRScheduler, ReduceLROnPlateau]
 
 
 @dataclass
