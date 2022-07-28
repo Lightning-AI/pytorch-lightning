@@ -1,10 +1,9 @@
 import click
 
 from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, _default_instance_types, AWSClusterManager
-from lightning_app.cli.lightning_cli import _main
 
 
-@_main.group("create")
+@click.group("create")
 def create():
     """Create Lightning AI BYOC managed resources."""
     pass

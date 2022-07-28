@@ -12,6 +12,9 @@ from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.lightning_cli_create import create
+from lightning_app.cli.lightning_cli_delete import delete
+from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
@@ -204,6 +207,11 @@ def fork():
 def stop():
     """Stop your application."""
     pass
+
+
+_main.add_command(get_list)
+_main.add_command(delete)
+_main.add_command(create)
 
 
 @_main.group()
