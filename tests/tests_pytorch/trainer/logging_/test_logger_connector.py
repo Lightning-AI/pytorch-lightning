@@ -700,3 +700,18 @@ def test_result_collection_no_batch_size_extraction():
     assert results["training_step.epoch_log_val"].value == log_val * batch_size
     assert results["training_step.epoch_log_val"].cumulated_batch_size == batch_size
     assert results["training_step.epoch_sum_log_val"].value == log_val
+
+
+def test_sync_dist_with_torchmetrics():
+    acc = Accuracy()
+    target = torch.tensor([0, 1, 2, 3])
+    preds = torch.tensor([0, 2, 1, 3])
+    acc.update(preds, target)
+
+    results = _ResultCollection(True)
+
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"Setting `self.log\(..., sync_dist=, reduce_fx=, sync_dist_group=\)` won't have any effect",
+    ):
+        results.log("foo", "bar", acc, sync_dist=True)

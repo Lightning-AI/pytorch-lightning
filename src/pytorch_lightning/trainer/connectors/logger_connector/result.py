@@ -452,6 +452,18 @@ class _ResultCollection(dict):
     ) -> None:
         """See :meth:`~pytorch_lightning.core.module.LightningModule.log`"""
         # no metrics should be logged with graphs
+        if (
+            sync_dist
+            and not isinstance(value, Tensor)
+            and (isinstance(value, Metric) or any(isinstance(v, Metric) for v in value.values()))
+        ):
+            raise MisconfigurationException(
+                "Setting `self.log(..., sync_dist=, reduce_fx=, sync_dist_group=)` won't have any effect if you are"
+                " logging a `torchmetrics` instance. Refer to"
+                " `https://torchmetrics.readthedocs.io/en/latest/pages/lightning.html` to configure distributed sync"
+                " across processed with `torchmetrics`."
+            )
+
         if not enable_graph:
             value = recursive_detach(value)
 
