@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import glob
-import logging
 import os
 import pathlib
 import re
@@ -22,8 +21,11 @@ import tempfile
 import urllib.request
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import groupby
+from pathlib import Path
 from types import ModuleType
-from typing import List
+from typing import Any, Iterable, Iterator, List, Optional
+
+import pkg_resources
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
@@ -41,33 +43,56 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def load_requirements(
-    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
-) -> List[str]:
+class _RequirementWithComment(pkg_resources.Requirement):
+    def __init__(self, *args: Any, comment: str = "", pip_argument: Optional[str] = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.comment = comment
+        assert pip_argument is None or pip_argument  # sanity check that it's not an empty str
+        self.pip_argument = pip_argument
+        self.strict = "# strict" in comment.lower()
+
+    def clean_str(self, unfreeze: bool) -> str:
+        # remove version restrictions unless they are strict
+        return self.project_name if unfreeze and not self.strict else str(self)
+
+
+def _parse_requirements(strs: Iterable) -> Iterator[_RequirementWithComment]:
+    """Adapted from `pkg_resources.parse_requirements` to include comments."""
+    lines = pkg_resources.yield_lines(strs)
+    pip_argument = None
+    for line in lines:
+        # Drop comments -- a hash without a space may be in a URL.
+        if " #" in line:
+            comment_pos = line.find(" #")
+            line, comment = line[:comment_pos], line[comment_pos:]
+        else:
+            comment = ""
+        # If there is a line continuation, drop it, and append the next line.
+        if line.endswith("\\"):
+            line = line[:-2].strip()
+            try:
+                line += next(lines)
+            except StopIteration:
+                return
+        # If there's a pip argument, save it
+        if line.startswith("--"):
+            pip_argument = line
+            continue
+        yield _RequirementWithComment(line, comment=comment, pip_argument=pip_argument)
+        pip_argument = None
+
+
+def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: bool = True) -> List[str]:
     """Load requirements from a file.
 
-    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
+    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements", "pytorch")
     >>> load_requirements(path_req)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['numpy...', 'torch...', ...]
     """
-    with open(os.path.join(path_dir, file_name)) as file:
-        lines = [ln.strip() for ln in file.readlines()]
-    reqs = []
-    for ln in lines:
-        # filer all comments
-        comment = ""
-        if comment_char in ln:
-            comment = ln[ln.index(comment_char) :]
-            ln = ln[: ln.index(comment_char)]
-        req = ln.strip()
-        # skip directly installed dependencies
-        if not req or req.startswith("http") or "@http" in req:
-            continue
-        # remove version restrictions unless they are strict
-        if unfreeze and "<" in req and "strict" not in comment:
-            req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
-        reqs.append(req)
-    return reqs
+    path = Path(path_dir) / file_name
+    assert path.exists(), (path_dir, file_name, path)
+    text = path.read_text()
+    return [req.clean_str(unfreeze) for req in _parse_requirements(text)]
 
 
 def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
@@ -294,9 +319,8 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
         if fname in ("__about__.py", "__version__.py"):
             body = lines
         else:
-            if fname.startswith("_") and fname not in ("__init__.py", "__main__.py"):
-                logging.warning(f"unsupported file: {local_path}")
-                continue
+            if fname.startswith("_") and fname not in ("__init__.py", "__main__.py", "__setup__.py"):
+                raise ValueError(f"Unsupported file: {fname}")
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
             body = prune_comments_docstrings(lines)
             if fname not in ("__init__.py", "__main__.py"):
