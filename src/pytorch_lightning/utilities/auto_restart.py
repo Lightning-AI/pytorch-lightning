@@ -15,7 +15,8 @@ from collections.abc import Sized
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Callable, cast, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing_extensions import TypedDict
 
 from torch.utils.data import Dataset, DistributedSampler, get_worker_info, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import (
