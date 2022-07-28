@@ -28,7 +28,7 @@ MAX_CLUSTER_WAIT_TIME = 5400
 
 class AWSClusterManager:
     """AWSClusterManager implements API calls specific to Lightning AI BYOC compute clusters when the AWS provider
-    is selected as compute backend."""
+    is selected as the backend compute."""
 
     def __init__(self):
         self.api_client = LightningClient()
