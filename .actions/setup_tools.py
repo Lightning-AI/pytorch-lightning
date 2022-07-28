@@ -334,8 +334,8 @@ def set_version_today(fpath: str) -> None:
         lines = fp.readlines()
 
     def _replace_today(ln):
-        today = datetime.today().strftime("%Y.%-m.%-d")
-        return ln.replace("YYYY.-M.-D", today)
+        today = datetime.now()
+        return ln.replace("YYYY.-M.-D", f'{today.year}.{today.month}.{today.day}')
 
     lines = list(map(_replace_today, lines))
     with open(fpath, "w") as fp:
