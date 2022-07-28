@@ -295,6 +295,15 @@ def prune_comments_docstrings(lines: List[str]) -> List[str]:
     return body
 
 
+def prune_duplicate_lines(body):
+    body_ = []
+    # drop duplicated lines
+    for ln in body:
+        if ln.lstrip() not in body_ or ln in (")", ""):
+            body_.append(ln)
+    return body_
+
+
 def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
     """Parse the real python package and for each module create a mirroe version with repalcing all function and
     class implementations by cross-imports to the true package.
@@ -326,31 +335,30 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             body = prune_comments_docstrings([ln.rstrip() for ln in lines])
             if fname not in ("__init__.py", "__main__.py"):
                 body = prune_imports_callables(body)
-            elif fname in ("__init__.py",):
-                body = prune_func_calls(body)
             for key_word in ("class", "def", "async def"):
                 body = replace_block_with_imports(body, import_path, key_word)
             body = replace_vars_with_imports(body, import_path)
+            if fname in ("__init__.py",):
+                body = prune_func_calls(body)
             body_len = -1
             # in case of several in-depth statements
             while body_len != len(body):
                 body_len = len(body)
+                body = prune_duplicate_lines(body)
                 body = prune_empty_statements(body)
             # TODO: add try/catch wrapper for whole body,
             #  so when import fails it tells you what is the package version this meta package was generated for...
 
         # todo: apply pre-commit formatting
+        # clean to many empty lines
         body = [ln for ln, _group in groupby(body)]
-        lines = []
         # drop duplicated lines
-        for ln in body:
-            if ln + os.linesep not in lines or ln in (")", ""):
-                lines.append(ln + os.linesep)
+        body = prune_duplicate_lines(body)
         # compose the target file name
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fp:
-            fp.writelines(lines)
+            fp.writelines([ln + os.linesep for ln in body])
 
 
 def _download_frontend(root: str = _PROJECT_ROOT):
