@@ -35,7 +35,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def __init__(self, amp_level: str = "O2") -> None:
         if not _APEX_AVAILABLE:
             raise MisconfigurationException(
-                "You have asked for Apex AMP but you have not installed it."
+                "You have asked for Apex AMP but `apex` is not installed."
                 " Install `apex` using this guide: https://github.com/NVIDIA/apex"
             )
         super().__init__()

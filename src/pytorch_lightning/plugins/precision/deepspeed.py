@@ -54,7 +54,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         if amp_type == AMPType.APEX:
             if not _APEX_AVAILABLE:
                 raise MisconfigurationException(
-                    "You have asked for Apex AMP but you have not installed it."
+                    "You have asked for Apex AMP but `apex` is not installed."
                     " Install `apex` using this guide: https://github.com/NVIDIA/apex"
                 )
 
