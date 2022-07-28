@@ -47,7 +47,7 @@ class AWSClusterManager:
         """request Lightning AI BYOC compute cluster creation.
 
         Args:
-            cost_savings: flag indicating if the cluster should utilize cost savings mode
+            cost_savings: Specifies if the cluster uses cost savings mode
             cluster_name: the name of the cluster to be created
             role_arn: AWS IAM Role ARN used to provision resources
             region: AWS region containing compute resources
