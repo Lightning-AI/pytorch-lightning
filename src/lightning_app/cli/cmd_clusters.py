@@ -170,7 +170,7 @@ def _wait_for_cluster_state(
 
     :param api_client: LightningClient used for polling
     :param cluster_id: Specifies the cluster to wait for
-    :param target_state: desired state to be reached
+    :param target_state: Specifies the desired state the target cluster needs to meet
     :param max_wait_time: maximum duration in seconds to wait
     :param check_timeout: duration in seconds between polling for cluster state
     :return:
