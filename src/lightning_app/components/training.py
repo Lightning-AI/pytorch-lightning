@@ -36,6 +36,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         self.num_nodes = num_nodes
         self.best_model_path = None
         self.best_model_score = None
+        self.monitor = None
         self.sanity_serving = sanity_serving
         self.has_finished = False
         self.env = env
@@ -47,11 +48,11 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
         return tracer
 
-    def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None, **kwargs):
+    def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None, **kwargs) -> None:
         if not internal_urls:
             # Note: This is called only once.
             _logger.info(f"The node {self.node_rank} started !")
-            return
+            return None
 
         if self.env:
             os.environ.update(self.env)
@@ -82,9 +83,13 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         else:
             raise RuntimeError("No trainer instance found.")
 
+        self.monitor = trainer.checkpoint_callback.monitor
+
         if trainer.checkpoint_callback.best_model_score:
             self.best_model_path = Path(trainer.checkpoint_callback.best_model_path)
             self.best_model_score = float(trainer.checkpoint_callback.best_model_score)
+        else:
+            self.best_model_path = Path(trainer.checkpoint_callback.last_model_path)
 
         self.has_finished = True
 
@@ -114,7 +119,7 @@ class LightningTrainingComponent(LightningFlow):
         cloud_compute: CloudCompute = CloudCompute("default"),
         sanity_serving: bool = False,
         script_runner: Type[TracerPythonScript] = PyTorchLightningScriptRunner,
-        **kwargs,
+        **script_runner_kwargs,
     ):
         """This component enables to perform distributed multi-node multi-devices training.
 
@@ -149,9 +154,9 @@ class LightningTrainingComponent(LightningFlow):
         self._cloud_compute = cloud_compute  # TODO: Add support for cloudCompute
         self.sanity_serving = sanity_serving
         self._script_runner = script_runner
-        self._kwargs = kwargs
+        self._script_runner_kwargs = script_runner_kwargs
 
-    def run(self, **kwargs):
+    def run(self, **run_kwargs):
         if not self.has_initialized:
             for node_rank in range(self.num_nodes):
                 self.ws.append(
@@ -162,7 +167,7 @@ class LightningTrainingComponent(LightningFlow):
                         node_rank=node_rank,
                         sanity_serving=self.sanity_serving,
                         num_nodes=self.num_nodes,
-                        **self._kwargs,
+                        **self._script_runner_kwargs,
                     )
                 )
 
@@ -171,7 +176,7 @@ class LightningTrainingComponent(LightningFlow):
         for work in self.ws:
             if all(w.internal_ip for w in self.ws):
                 internal_urls = [(w.internal_ip, w.port) for w in self.ws]
-                work.run(internal_urls=internal_urls, **kwargs)
+                work.run(internal_urls=internal_urls, **run_kwargs)
                 if all(w.has_finished for w in self.ws):
                     for w in self.ws:
                         w.stop()

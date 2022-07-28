@@ -408,8 +408,9 @@ class WorkRunner:
         persist_artifacts(work=self.work)
 
         # 15. Destroy the state observer.
-        self.state_observer.join(0)
-        self.state_observer = None
+        if self.state_observer:
+            self.state_observer.join(0)
+            self.state_observer = None
 
         # 15. An asynchronous work shouldn't return a return value.
         if ret is not None:

@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import sys
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from lightning_app import LightningWork
@@ -38,6 +39,7 @@ class TracerPythonScript(LightningWork):
         script_args: Optional[Union[list, str]] = None,
         outputs: Optional[List[str]] = None,
         env: Optional[Dict] = None,
+        code: Optional[Code] = None,
         **kwargs,
     ):
         """The TracerPythonScript class enables to easily run a python script.
@@ -104,29 +106,37 @@ class TracerPythonScript(LightningWork):
         if isinstance(script_args, str):
             script_args = script_args.split(" ")
         self.script_args = script_args if script_args else []
+        self.original_args = deepcopy(self.script_args)
         self.env = env
         self.outputs = outputs or []
         for name in self.outputs:
             setattr(self, name, None)
         self.params = None
+        self._code = code
+        self.restart_count = 0
 
-    def run(self, params: Optional[Dict[str, Any]] = None, code: Optional[Code] = None, **kwargs):
+    def run(self, params: Optional[Dict[str, Any]] = None, restart_count: Optional[int] = None, **kwargs):
         """
         Arguments:
             params: A dictionary of arguments to be be added to script_args
-            code: A dictionary with a drive and a file name to get retrieve
+            code: A dictionary with a drive and a file name to retrieve
         """
+        if restart_count:
+            self.restart_count = restart_count
 
         if params:
             self.params = params
-            self.script_args.extend([f"--{k}={v}" for k, v in params.items()])
+            self.script_args = self.original_args + [self._to_script_args(k, v) for k, v in params.items()]
 
-        if code:
-            raise Exception(code)
-            clean_tarfile(code["name"], "r:gz")
-            code["drive"].get(code["name"])
-            extract_tarfile(code["name"], ".", "r:gz")
-            os.remove(code["name"])
+        if self._code:
+            drive = self._code["drive"]
+            name = self._code["name"]
+            if os.path.exists(name):
+                clean_tarfile(name, "r:gz")
+
+            if name in drive.list():
+                drive.get(name)
+                extract_tarfile(name, ".", "r:gz")
 
         if not os.path.exists(self.script_path):
             raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
@@ -152,6 +162,12 @@ class TracerPythonScript(LightningWork):
     def on_exit(self):
         for child_pid in _collect_child_process_pids(os.getpid()):
             os.kill(child_pid, signal.SIGTERM)
+
+    @staticmethod
+    def _to_script_args(k: str, v: str) -> str:
+        if k.startswith("--"):
+            return f"{k}={v}"
+        return f"--{k}={v}"
 
 
 __all__ = ["TracerPythonScript"]
