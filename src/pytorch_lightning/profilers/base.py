@@ -13,7 +13,8 @@
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, Union
+from pathlib import Path
 
 from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -57,11 +58,11 @@ class BaseProfiler(Profiler):
         Please use `Profiler` instead.
     """
 
-    def __init__(self, *args: Optional[str], **kwargs: Optional[str]):
+    def __init__(self, dirpath: Optional[Union[str, Path]], filename: Optional[str]):
         rank_zero_deprecation(
             "`BaseProfiler` was deprecated in v1.6 and will be removed in v1.8. Please use `Profiler` instead."
         )
-        super().__init__(*args, **kwargs)
+        super().__init__(dirpath=dirpath, filename=filename)
 
 
 class PassThroughProfiler(Profiler):
