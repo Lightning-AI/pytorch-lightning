@@ -93,7 +93,11 @@ class LayerSummary:
 
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            handle = self._module.register_forward_hook(hook)
+            try:
+                handle = self._module.register_forward_hook(hook)
+            except:
+                # If type of _module is torch.nn.Parameter, we can't register hook
+                return None
         return handle
 
     def detach_hook(self) -> None:
@@ -120,9 +124,16 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(
-            cast(int, np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
-        )
+        try:
+            return sum(
+                cast(int, np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
+            )
+        except:
+            try:
+                # If type of _module is torch.nn.Parameter, process the below.
+                return cast(int, np.prod(self._module.shape))
+            except:
+                raise NotImplementedError
 
 
 class ModelSummary:
@@ -206,6 +217,21 @@ class ModelSummary:
         return mods
 
     @property
+    def named_parameters(self) -> List[Tuple[str, nn.Module]]:
+        """ List named parameters which is not in Torch.nn.Module class.
+            Torch.nn.Module class has members named weight and bias. """
+        mods: List[Tuple[str, nn.Module]]
+        if self._max_depth == 0:
+            mods = []
+        else:
+            mods = list(self._model.named_parameters())
+        for mod in reversed(mods):
+            if '.weight' in mod[0] or '.bias' in mod[0]:
+                mods.remove(mod)
+                # Remove mod if mod is the information of Torch.nn.Module.
+        return mods
+
+    @property
     def layer_names(self) -> List[str]:
         return list(self._layer_summary.keys())
 
@@ -241,7 +267,7 @@ class ModelSummary:
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
-        summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
+        summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_parameters + self.named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
         for layer in summary.values():
