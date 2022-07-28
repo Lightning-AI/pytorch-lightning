@@ -256,12 +256,17 @@ class IPUStrategy(ParallelStrategy):
         return args
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        # This override is necessary because the cast must occur before the data
+        # is moved to the device to prevent wasteful host->device copies.
         if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
 
             def to_half(data: Tensor) -> Tensor:
                 return data.half()
 
             batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=to_half)
+        # We don't call `super().batch_to_device` because `data.to(device)` is not
+        # currently necessary for IPUs. The movement of data from host<->IPU is
+        # currently handled by PopTorch.
         return batch
 
     def _disable_zero_grad(self) -> None:
