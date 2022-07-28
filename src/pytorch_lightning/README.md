@@ -132,10 +132,10 @@ The actual status of stable is the following:
 
 [![Test PyTorch full](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-full.yml/badge.svg?branch=release%2Fpytorch&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-full.yml)
 [![Test PyTorch with Conda](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml/badge.svg?branch=release%2Fpytorch&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml)
-[![GPU](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(GPUs)?branchName=release%2Fpytorch)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=release%2Fpytorch)
+[![GPU](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(GPUs)?branchName=release%2Fpytorch>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=release%2Fpytorch)
 [![TPU](https://dl.circleci.com/status-badge/img/gh/Lightning-AI/lightning/tree/release%2Fpytorch.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Lightning-AI/lightning/tree/release%2Fpytorch)
-[![IPU](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(IPUs)?branchName=release%2Fpytorch)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=25&branchName=release%2Fpytorch)
-[![HPU](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(HPUs)?branchName=release%2Fpytorch)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=release%2Fpytorch)
+[![IPU](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(IPUs)?branchName=release%2Fpytorch>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=25&branchName=release%2Fpytorch)
+[![HPU](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(HPUs)?branchName=release%2Fpytorch>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=release%2Fpytorch)
 
 Install future release from the source
 
