@@ -120,7 +120,7 @@ class TracerPythonScript(LightningWork):
         """
         Arguments:
             params: A dictionary of arguments to be be added to script_args.
-            restart_count: Pass an incrementing counter to enable re-execution the work.
+            restart_count: Passes an incrementing counter to enable the re-execution of LightningWorks.
         """
         if restart_count:
             self.restart_count = restart_count
