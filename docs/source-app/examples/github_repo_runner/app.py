@@ -26,8 +26,8 @@ class GithubRepoRunner(TracerPythonScript):
         cloud_compute: Optional[CloudCompute] = None,
         **kwargs,
     ):
-        """The GithubRepoRunner Component clones a repo, runs a specific script with provided arguments and collect
-        logs.
+        """The GithubRepoRunner Component clones a repo,
+        runs a specific script with provided arguments and collect logs.
 
         Arguments:
             id: Identified of the component.
@@ -42,10 +42,10 @@ class GithubRepoRunner(TracerPythonScript):
             script_args=script_args,
             cloud_compute=cloud_compute,
             cloud_build_config=BuildConfig(requirements=requirements),
+            **kwargs,
         )
         self.id = id
         self.github_repo = github_repo
-        self.kwargs = kwargs
         self.logs = []
 
     def run(self, *args, **kwargs):

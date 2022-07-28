@@ -7,7 +7,7 @@ Step 1: Implement the FileServer general structure
 Let’s dive in on how to develop the component with the following code:
 
 .. literalinclude:: ./app.py
-    :lines: 1-44, 132-158
+    :lines: 1-41, 132-158
     :emphasize-lines: 16, 51-
 
 ********

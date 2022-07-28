@@ -16,7 +16,12 @@ Here is a recording of the final App built in this example, tested with pytest.
 
 .. raw:: html
 
-   <iframe width="100%" height="290" src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/file_server.mp4" frameborder="0" allowfullscreen></iframe>
+    <br />
+    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/file_server.png" width="100%">
+        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/file_server.mp4" type="video/mp4" width="100%">
+    </video>
+    <br />
+    <br />
 
 ----
 

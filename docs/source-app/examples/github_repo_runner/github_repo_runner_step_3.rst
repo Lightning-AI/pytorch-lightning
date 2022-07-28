@@ -10,7 +10,7 @@ Now, we are going to develop a component to dynamically handle user requests.
 Let's dive in on how to develop the component with the following code:
 
 .. literalinclude:: ./app.py
-    :lines: 138-187
+    :lines: 142-190
 
 ----
 

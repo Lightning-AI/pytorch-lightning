@@ -7,7 +7,7 @@ Step 5: Put it all together
 Let's dive in on how to develop the component with the following code:
 
 .. literalinclude:: ./app.py
-    :lines: 277-
+    :lines: 287-
 
 Run the application
 ^^^^^^^^^^^^^^^^^^^
@@ -18,7 +18,7 @@ Clone the Lightning repo and run the following command:
 
    lightning run app docs/source-app/examples/github_repo_runner/app.py
 
-Add **--cloud** to run this application in the cloud.
+Add ``--cloud`` to run this application in the cloud.
 
 .. code-block:: bash
 

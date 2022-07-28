@@ -19,23 +19,23 @@ Render All Pages
 ^^^^^^^^^^^^^^^^
 
 .. literalinclude:: ./app.py
-    :lines: 263-274
+    :lines: 274-284
 
 **Page 1**
 
 .. literalinclude:: ./app.py
-    :lines: 189-231
+    :lines: 193-241
     :emphasize-lines: 43
 
 **Page 2**
 
 .. literalinclude:: ./app.py
-    :lines: 233-255
+    :lines: 244-264
 
 **Page 3**
 
 .. literalinclude:: ./app.py
-    :lines: 257-261
+    :lines: 267-271
 
 ----
 

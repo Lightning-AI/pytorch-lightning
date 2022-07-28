@@ -13,7 +13,7 @@ This component needs to test two things:
 * The **/** endpoint listing files, by validating the that previously uploaded file is present in the response.
 
 .. literalinclude:: ./app.py
-    :lines: 161-183
+   :lines: 165-182
 
 ********
 Tutorial
