@@ -20,9 +20,9 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.enums import PrecisionType
+from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.utilities.imports import _APEX_AVAILABLE, _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -51,6 +51,15 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
+        if amp_type == AMPType.APEX:
+            if not _APEX_AVAILABLE:
+                raise MisconfigurationException(
+                    "You have asked for Apex AMP but you have not installed it."
+                    " Install `apex` using this guide: https://github.com/NVIDIA/apex"
+                )
+
+            amp_level = amp_level or "O2"
+
         supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT, PrecisionType.MIXED)
         if precision not in supported_precision:
             raise ValueError(
