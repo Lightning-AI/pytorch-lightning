@@ -121,7 +121,7 @@ class LightningTrainingComponent(LightningFlow):
         script_runner: Type[TracerPythonScript] = PyTorchLightningScriptRunner,
         **script_runner_kwargs,
     ):
-        """This component enables to perform distributed multi-node multi-devices training.
+        """This component enables performing distributed multi-node multi-device training.
 
         Example::
 
