@@ -19,6 +19,7 @@ import pytest
 import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.strategies.ipu import LightningIPUModule
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
 from tests_pytorch.helpers.runif import RunIf
 
@@ -49,6 +50,11 @@ def test_v2_0_0_deprecated_ipus(_, monkeypatch):
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(ipus=4)
 
+@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+def test_v2_0_0_deprecated_lightning_ipu_module(_, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", True)
+    with pytest.deprecated_call(match=r"is deprecated in v1.8 and will be removed in v2.0."):
+        _ = LightningIPUModule(BoringModel(), 32)
 
 def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     # test resume_from_checkpoint still works until v2.0 deprecation

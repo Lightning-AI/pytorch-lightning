@@ -33,12 +33,36 @@ from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwarg
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
 else:
     poptorch = None
+
+
+class LightningIPUModule(_LightningModuleWrapperBase):
+    def __init__(
+        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+    ) -> None:
+        rank_zero_deprecation('`LightningIPUModule` is deprecated in v1.8 and will be removed in v2.0.0')
+        super().__init__(pl_module)
+        self.precision = precision
+
+    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
+        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+            inputs = self._move_float_tensors_to_half(inputs)
+
+        return super().forward(*inputs, **kwargs)
+
+    @staticmethod
+    def batch_to(data: Tensor) -> Tensor:
+        return data.half()
+
+    def _move_float_tensors_to_half(self, batch: Any) -> Any:
+        batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
+        return batch
 
 
 class IPUStrategy(ParallelStrategy):
