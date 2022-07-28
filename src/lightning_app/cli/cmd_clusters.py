@@ -54,7 +54,7 @@ class AWSClusterManager:
             external_id: AWS IAM Role external ID
             instance_types: AWS instance types supported by the cluster
             edit_before_creation: enable interactive editing of request before submitting it to Lightning AI
-            wait: wait for cluster to reach RUNNING state. use for debugging only
+            wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
         """
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
         if cost_savings:
