@@ -168,7 +168,7 @@ class AppState:
         # The state needs to be fetched on access if it doesn't exist.
         self._request_state()
 
-        if name in self._state["vars"]:
+        if name in self._state.get("vars", {}):
             value = self._state["vars"][name]
             if isinstance(value, dict):
                 return _maybe_create_drive("root." + ".".join(self._my_affiliation), value)
@@ -187,11 +187,22 @@ class AppState:
                 state=self._state["flows"][name],
             )
 
+        elif name in self._state.get("structures", {}):
+            return AppState(
+                self._host,
+                self._port,
+                last_state=self._last_state["structures"][name],
+                state=self._state["structures"][name],
+            )
+
         raise AttributeError(
             f"Failed to access '{name}' through `AppState`. The state provides:"
             f" Variables: {list(self._state['vars'].keys())},"
             f" Components: {list(self._state.get('flows', {}).keys()) + list(self._state.get('works', {}).keys())}",
         )
+
+    def __getitem__(self, key: str):
+        return self.__getattr__(key)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name in self._APP_PRIVATE_KEYS:
