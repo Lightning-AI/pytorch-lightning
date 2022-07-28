@@ -150,6 +150,7 @@ def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
     ...     lines = [ln.rstrip() for ln in fp.readlines()]
     >>> lines = replace_vars_with_imports(lines, import_path)
     """
+    copied = []
     body, tracking, skip_offset = [], False, 0
     for ln in lines:
         offset = len(ln) - len(ln.lstrip())
@@ -160,8 +161,9 @@ def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
         if var:
             name = var.groups()[0]
             # skip private or apply white-list for allowed vars
-            if not name.startswith("__") or name in ("__all__",):
+            if name not in copied and (not name.startswith("__") or name in ("__all__",)):
                 body.append(f"{' ' * offset}from {import_path} import {name}  # noqa: F401")
+                copied.append(name)
             tracking, skip_offset = True, offset
             continue
         if not tracking:
