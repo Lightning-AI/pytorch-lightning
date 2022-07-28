@@ -257,8 +257,10 @@ class IPUStrategy(ParallelStrategy):
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+
             def to_half(data: Tensor) -> Tensor:
                 return data.half()
+
             batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=to_half)
         return batch
 
