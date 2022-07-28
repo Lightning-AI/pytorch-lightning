@@ -142,7 +142,7 @@ class LightningTrainingComponent(LightningFlow):
             script_args: The arguments to be pass to the script.
             num_nodes: Number of nodes.
             cloud_compute: The cloud compute object used in the cloud.
-            sanity_serving: Whether to validate the model correctly implements
+            sanity_serving: Whether to validate that the model correctly implements
                 the ServableModule API
         """
         super().__init__()
