@@ -287,7 +287,17 @@ class FlowStructures(LightningFlow):
     def __init__(self):
         super().__init__()
         self.w_list = List(Work(), Work())
-        self.w_dict = Dict(**{"0": Work(), "1": Work()})
+        self.w_dict = Dict(**{"toto": Work(), "toto_2": Work()})
+
+    def run(self):
+        self._exit()
+
+
+class FlowStructuresEmpty(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w_list = List()
+        self.w_dict = Dict()
 
     def run(self):
         self._exit()
@@ -299,4 +309,13 @@ def test_app_state_with_structures():
     state._last_state = app.state
     state._state = app.state
     assert state.w_list["0"].counter == 0
-    assert state.w_dict["0"].counter == 0
+    assert len(state.w_list) == 2
+    assert state.w_dict["toto"].counter == 0
+    assert [k for k, _ in state.w_dict.items()] == ["toto", "toto_2"]
+    assert [k for k, _ in state.w_list.items()] == ["0", "1"]
+
+    app = LightningApp(FlowStructuresEmpty())
+    state = AppState()
+    state._last_state = app.state
+    state._state = app.state
+    assert state.w_list
