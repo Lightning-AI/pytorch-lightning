@@ -24,7 +24,7 @@ import os
 import warnings
 from argparse import Namespace
 from functools import reduce
-from typing import Any, Callable, Dict, Generator, Mapping, Optional, Sequence, Set, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
 import torch
@@ -601,10 +601,10 @@ class NeptuneLogger(Logger):
         return filepath
 
     @classmethod
-    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
+    def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict, namespace: str) -> Set[str]:
         """Returns all paths to properties which were already logged in `namespace`"""
-        structure_keys: list = namespace.split(cls.LOGGER_JOIN_CHAR)
-        uploaded_models_dict: dict = reduce(lambda d, k: d[k], [exp_structure, *structure_keys])
+        structure_keys: List = namespace.split(cls.LOGGER_JOIN_CHAR)
+        uploaded_models_dict: Dict = reduce(lambda d, k: d[k], [exp_structure, *structure_keys])
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
