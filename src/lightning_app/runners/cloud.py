@@ -231,7 +231,10 @@ class CloudRuntime(Runtime):
                         lightning_app.id,
                         lightning_app_release.id,
                         Body9(
-                            desired_state=V1LightningappInstanceState.RUNNING, name=lightning_app.name, env=v1_env_vars
+                            cluster_id=cluster_id,
+                            desired_state=V1LightningappInstanceState.RUNNING,
+                            name=lightning_app.name,
+                            env=v1_env_vars,
                         ),
                     )
                 )
