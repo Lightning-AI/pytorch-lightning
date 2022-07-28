@@ -20,6 +20,7 @@ import shutil
 import tarfile
 import tempfile
 import urllib.request
+from datetime import datetime
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import groupby
 from types import ModuleType
@@ -325,6 +326,20 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fp:
             fp.writelines(lines)
+
+
+def set_version_today(fpath: str) -> None:
+    """Replace the template date with today."""
+    with open(fpath) as fp:
+        lines = fp.readlines()
+
+    def _replace_today(ln):
+        today = datetime.today().strftime("%Y.%-m.%-d")
+        return ln.replace("YYYY.-M.-D", today)
+
+    lines = list(map(_replace_today, lines))
+    with open(fpath, "w") as fp:
+        fp.writelines(lines)
 
 
 def _download_frontend(root: str = _PROJECT_ROOT):
