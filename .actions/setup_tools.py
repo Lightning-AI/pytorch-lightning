@@ -342,7 +342,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             # TODO: fix reimporting which is artefact after replacing var assignment with import;
             #  after fixing , update CI by remove F811 from CI/check pkg
             body = replace_vars_with_imports(body, import_path)
-            if fname not in ("__main__.py", ):
+            if fname not in ("__main__.py",):
                 body = prune_func_calls(body)
             body_len = -1
             # in case of several in-depth statements
