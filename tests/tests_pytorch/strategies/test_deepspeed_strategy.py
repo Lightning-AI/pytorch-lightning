@@ -1232,7 +1232,7 @@ def test_specific_gpu_device_id(tmpdir):
     trainer.test(model)
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.10.0", standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.10.0", max_torch="1.12.0", standalone=True, deepspeed=True)
 def test_deepspeed_with_meta_device(tmpdir):
     with init_meta_context():
         model = BoringModel()
