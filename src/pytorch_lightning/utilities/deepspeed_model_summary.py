@@ -16,6 +16,7 @@
 from collections import OrderedDict
 from typing import Dict, List, Tuple
 
+import numpy as np
 import torch
 
 from pytorch_lightning.utilities.model_summary import (
@@ -35,13 +36,23 @@ class DeepSpeedLayerSummary(LayerSummary):
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        if isinstance(self._module, torch.nn.Module):
+            return sum(
+                deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        elif isinstance(self._module, torch.nn.Parameter):
+            return int(np.prod(self._module.shape))
+        else:
+            raise NotImplementedError
 
     @property
     def average_shard_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(p.partitioned_size() if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
-
+        if isinstance(self._module, torch.nn.Module):
+            return sum(p.partitioned_size() if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        elif isinstance(self._module, torch.nn.Parameter):
+            return int(np.prod(self._module.shape))
+        else:
+            raise NotImplementedError
 
 class DeepSpeedSummary(ModelSummary):
     def summarize(self) -> Dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]

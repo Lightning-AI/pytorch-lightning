@@ -63,7 +63,7 @@ class LayerSummary:
         module: A module to summarize
     """
 
-    def __init__(self, module: nn.Module) -> None:
+    def __init__(self, module: Union[nn.Module, nn.Parameter]) -> None:
         super().__init__()
         self._module = module
         self._hook_handle = self._register_hook()
@@ -93,11 +93,13 @@ class LayerSummary:
 
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            try:
+            if isinstance(self._module, nn.Module):
                 handle = self._module.register_forward_hook(hook)
-            except:
+            elif isinstance(self._module, nn.Parameter):
                 # If type of _module is torch.nn.Parameter, we can't register hook
                 return None
+            else:
+                raise NotImplementedError
         return handle
 
     def detach_hook(self) -> None:
@@ -124,16 +126,15 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        try:
+        if isinstance(self._module, nn.Module):
             return sum(
-                cast(int, np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
+                int(np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
             )
-        except:
-            try:
-                # If type of _module is torch.nn.Parameter, process the below.
-                return cast(int, np.prod(self._module.shape))
-            except:
-                raise NotImplementedError
+        elif isinstance(self._module, nn.Parameter):
+            # If type of _module is torch.nn.Parameter, process the below.
+            return int(np.prod(self._module.shape))
+        else:
+            raise NotImplementedError
 
 
 class ModelSummary:
@@ -217,12 +218,12 @@ class ModelSummary:
         return mods
 
     @property
-    def named_parameters(self) -> List[Tuple[str, nn.Module]]:
+    def named_parameters(self) -> List[Tuple[str, nn.Parameter]]:
         """List named parameters which is not in Torch.nn.Module class.
 
         Torch.nn.Module class has members named weight and bias.
         """
-        mods: List[Tuple[str, nn.Module]]
+        mods: List[Tuple[str, nn.Parameter]]
         if self._max_depth == 0:
             mods = []
         else:
@@ -269,9 +270,12 @@ class ModelSummary:
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
-        summary = OrderedDict(
-            (name, LayerSummary(module)) for name, module in self.named_parameters + self.named_modules
-        )
+        all_parameter: List[Tuple[str, Union[nn.Module, nn.Parameter]]]
+        all_parameter = []
+        all_parameter.extend(self.named_modules)
+        all_parameter.extend(self.named_parameters)
+
+        summary = OrderedDict((name, LayerSummary(module)) for name, module in all_parameter)
         if self._model.example_input_array is not None:
             self._forward_example_input()
         for layer in summary.values():
