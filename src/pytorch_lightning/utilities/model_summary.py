@@ -218,15 +218,17 @@ class ModelSummary:
 
     @property
     def named_parameters(self) -> List[Tuple[str, nn.Module]]:
-        """ List named parameters which is not in Torch.nn.Module class.
-            Torch.nn.Module class has members named weight and bias. """
+        """List named parameters which is not in Torch.nn.Module class.
+
+        Torch.nn.Module class has members named weight and bias.
+        """
         mods: List[Tuple[str, nn.Module]]
         if self._max_depth == 0:
             mods = []
         else:
             mods = list(self._model.named_parameters())
         for mod in reversed(mods):
-            if '.weight' in mod[0] or '.bias' in mod[0]:
+            if ".weight" in mod[0] or ".bias" in mod[0]:
                 mods.remove(mod)
                 # Remove mod if mod is the information of Torch.nn.Module.
         return mods
@@ -267,7 +269,9 @@ class ModelSummary:
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
-        summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_parameters + self.named_modules)
+        summary = OrderedDict(
+            (name, LayerSummary(module)) for name, module in self.named_parameters + self.named_modules
+        )
         if self._model.example_input_array is not None:
             self._forward_example_input()
         for layer in summary.values():
