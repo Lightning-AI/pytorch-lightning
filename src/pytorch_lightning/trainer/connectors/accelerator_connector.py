@@ -188,6 +188,12 @@ class AcceleratorConnector:
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
+        if amp_level is not None:
+            rank_zero_deprecation(
+                "Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0 and will be removed"
+                " in v2.0.0. Please set it inside the specific precision plugin and pass it to the `Trainer`."
+            )
+
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,

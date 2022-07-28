@@ -88,3 +88,8 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
         trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
     with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
         trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
+
+
+def test_deprecated_amp_level():
+    with pytest.deprecated_call(match="Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0"):
+        Trainer(amp_level="O3", amp_backend="apex")
