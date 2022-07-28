@@ -76,7 +76,7 @@ def test_tracer_python_script_with_kwargs():
 
 
 def test_tracer_component_with_code():
-    """This test ensures the Tracer Component gets the latest code from the code object is provided and arguments
+    """This test ensures the Tracer Component gets the latest code from the code object that is provided and arguments
     are cleaned."""
 
     drive = Drive("lit://code")
