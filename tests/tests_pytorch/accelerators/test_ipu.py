@@ -40,16 +40,19 @@ if _IPU_AVAILABLE:
 
 class IPUModel(BoringModel):
     def training_step(self, batch, batch_idx):
+        assert self.precision == torch.finfo(batch.dtype).bits
         output = self(batch)
         loss = self.loss(batch, output)
         return loss
 
     def validation_step(self, batch, batch_idx):
+        assert self.precision == torch.finfo(batch.dtype).bits
         output = self(batch)
         loss = self.loss(batch, output)
         return loss
 
     def test_step(self, batch, batch_idx):
+        assert self.precision == torch.finfo(batch.dtype).bits
         output = self(batch)
         loss = self.loss(batch, output)
         return loss
