@@ -390,7 +390,7 @@ def test_accuracy_metric_horovod():
         trainer = Trainer(fast_dev_run=True, strategy="horovod", logger=False)
 
         assert isinstance(trainer.accelerator, CPUAccelerator)
-        # TODO: test that we selected the correct training_type_plugin based on horovod flags
+        # TODO: test that we selected the correct strategy based on horovod flags
 
         metric = Accuracy(
             compute_on_step=True,
