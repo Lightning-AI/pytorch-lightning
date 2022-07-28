@@ -25,8 +25,7 @@ import torch
 from torch import Tensor
 from torch._C._distributed_c10d import ProcessGroup
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, Dataset
-from torch.utils.data.dataloader import _BaseDataLoaderIter
+from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
