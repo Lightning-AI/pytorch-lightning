@@ -335,7 +335,7 @@ def set_version_today(fpath: str) -> None:
 
     def _replace_today(ln):
         today = datetime.now()
-        return ln.replace("YYYY.-M.-D", f'{today.year}.{today.month}.{today.day}')
+        return ln.replace("YYYY.-M.-D", f"{today.year}.{today.month}.{today.day}")
 
     lines = list(map(_replace_today, lines))
     with open(fpath, "w") as fp:
