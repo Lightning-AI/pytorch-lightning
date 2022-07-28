@@ -26,7 +26,6 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
-import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
@@ -654,8 +653,8 @@ class NeptuneLogger(Logger):
     def log_metric(self, metric_name: str, metric_value: Union[Tensor, float, str], step: Optional[int] = None) -> None:
         key = f"{self._prefix}/{metric_name}"
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
-        if torch.is_tensor(metric_value):
-            metric_value = metric_value.cpu().detach()  # type: ignore[union-attr]
+        if isinstance(metric_value, Tensor):
+            metric_value = metric_value.cpu().detach()
 
         self.run[key].log(metric_value, step=step)
 
