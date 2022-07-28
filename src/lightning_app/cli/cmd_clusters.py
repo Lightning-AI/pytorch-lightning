@@ -172,7 +172,7 @@ def _wait_for_cluster_state(
     :param cluster_id: Specifies the cluster to wait for
     :param target_state: Specifies the desired state the target cluster needs to meet
     :param max_wait_time: Maximum duration to wait (in seconds)
-    :param check_timeout: duration in seconds between polling for cluster state
+    :param check_timeout: duration between polling for the cluster state (in seconds) 
     :return:
     """
     start = time.time()
