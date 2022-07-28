@@ -112,14 +112,15 @@ class TracerPythonScript(LightningWork):
         for name in self.outputs:
             setattr(self, name, None)
         self.params = None
-        self._code = code
+        self.drive = code.get("drive") if code else None
+        self.code_name = code.get("name") if code else None
         self.restart_count = 0
 
     def run(self, params: Optional[Dict[str, Any]] = None, restart_count: Optional[int] = None, **kwargs):
         """
         Arguments:
-            params: A dictionary of arguments to be be added to script_args
-            code: A dictionary with a drive and a file name to retrieve
+            params: A dictionary of arguments to be be added to script_args.
+            restart_count: Pass an incrementing counter to enable re-execution the work.
         """
         if restart_count:
             self.restart_count = restart_count
@@ -128,15 +129,14 @@ class TracerPythonScript(LightningWork):
             self.params = params
             self.script_args = self.original_args + [self._to_script_args(k, v) for k, v in params.items()]
 
-        if self._code:
-            drive = self._code["drive"]
-            name = self._code["name"]
-            if os.path.exists(name):
-                clean_tarfile(name, "r:gz")
+        if self.drive:
+            assert self.code_name
+            if os.path.exists(self.code_name):
+                clean_tarfile(self.code_name, "r:gz")
 
-            if name in drive.list():
-                drive.get(name)
-                extract_tarfile(name, ".", "r:gz")
+            if self.code_name in self.drive.list():
+                self.drive.get(self.code_name)
+                extract_tarfile(self.code_name, ".", "r:gz")
 
         if not os.path.exists(self.script_path):
             raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
