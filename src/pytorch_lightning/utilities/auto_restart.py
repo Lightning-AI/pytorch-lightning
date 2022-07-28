@@ -323,10 +323,11 @@ class CaptureIterableDataset(IterableDataset):
         # it will be wrapped into a `FastForwardSampler`.
         for (generator_attr_name, generator) in dataset_sampler_generators.items():
 
-            if not isinstance(generator, Sampler):
+            if isinstance(generator, Sampler):
                 continue
 
             # wrap the generator into a `FastForwardSampler`
+            assert isinstance(generator, (Sampler, Generator))
             sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
             # if `CaptureIterableDataset` was available, the sampler should reload its own state.
