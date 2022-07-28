@@ -53,7 +53,7 @@ class AWSClusterManager:
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
             instance_types: AWS instance types supported by the cluster
-            edit_before_creation: enable interactive editing of request before submitting it to Lightning AI
+            edit_before_creation: Enables interactive editing of requests before submitting it to Lightning AI.
             wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
         """
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
