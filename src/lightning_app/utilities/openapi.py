@@ -20,7 +20,7 @@ def string2dict(text):
         js = json.loads(text, object_pairs_hook=_duplicate_checker)
         return js
     except ValueError as e:
-        raise ValueError(f"Failed to load JSON: {str(e)}.")
+        raise ValueError(f"Unable to load JSON: {str(e)}.")
 
 
 def is_openapi(obj):
