@@ -255,13 +255,11 @@ class IPUStrategy(ParallelStrategy):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
-    @staticmethod
-    def batch_to(data: Tensor) -> Tensor:
-        return data.half()
-
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
-            batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
+            def to_half(data: Tensor) -> Tensor:
+                return data.half()
+            batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=to_half)
         return batch
 
     def _disable_zero_grad(self) -> None:
