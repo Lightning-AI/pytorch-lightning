@@ -48,7 +48,7 @@ class AWSClusterManager:
 
         Args:
             cost_savings: Specifies if the cluster uses cost savings mode
-            cluster_name: the name of the cluster to be created
+            cluster_name: The name of the cluster to be created
             role_arn: AWS IAM Role ARN used to provision resources
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
