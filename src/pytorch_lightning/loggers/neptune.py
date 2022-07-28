@@ -290,7 +290,7 @@ class NeptuneLogger(Logger):
         self._api_key = api_key
         self._run_instance = run
         self._neptune_run_kwargs = neptune_run_kwargs
-        self._run_short_id = None
+        self._run_short_id: Optional[str] = None
 
         if self._run_instance is not None:
             self._retrieve_run_data()
@@ -300,9 +300,10 @@ class NeptuneLogger(Logger):
 
     def _retrieve_run_data(self) -> None:
         try:
-            self._run_instance.wait()
-            self._run_short_id = self._run_instance["sys/id"].fetch()
-            self._run_name = self._run_instance["sys/name"].fetch()
+            if self._run_instance is not None:
+                self._run_instance.wait()
+                self._run_short_id = self._run_instance["sys/id"].fetch()
+                self._run_name = self._run_instance["sys/name"].fetch()
         except NeptuneOfflineModeFetchException:
             self._run_short_id = "OFFLINE"
             self._run_name = "offline-name"
@@ -334,7 +335,7 @@ class NeptuneLogger(Logger):
 
         return args
 
-    def _construct_path_with_prefix(self, *keys) -> str:
+    def _construct_path_with_prefix(self, *keys: str) -> str:
         """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with `_prefix` if defined."""
         if self._prefix:
             return self.LOGGER_JOIN_CHAR.join([self._prefix, *keys])
@@ -602,8 +603,8 @@ class NeptuneLogger(Logger):
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
         """Returns all paths to properties which were already logged in `namespace`"""
-        structure_keys = namespace.split(cls.LOGGER_JOIN_CHAR)
-        uploaded_models_dict = reduce(lambda d, k: d[k], [exp_structure, *structure_keys])
+        structure_keys: list = namespace.split(cls.LOGGER_JOIN_CHAR)
+        uploaded_models_dict: dict = reduce(lambda d, k: d[k], [exp_structure, *structure_keys])
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
@@ -618,7 +619,7 @@ class NeptuneLogger(Logger):
     @property
     def name(self) -> str:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
-        return self._run_name
+        return self._run_name  # type: ignore[return-value]
 
     @property
     def version(self) -> str:
@@ -626,7 +627,7 @@ class NeptuneLogger(Logger):
 
         It's Neptune Run's short_id
         """
-        return self._run_short_id
+        return self._run_short_id  # type: ignore[return-value]
 
     @staticmethod
     def _signal_deprecated_api_usage(f_name: str, sample_code: str, raise_exception: bool = False) -> None:
@@ -653,7 +654,7 @@ class NeptuneLogger(Logger):
         key = f"{self._prefix}/{metric_name}"
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
         if torch.is_tensor(metric_value):
-            metric_value = metric_value.cpu().detach()
+            metric_value = metric_value.cpu().detach()  # type: ignore[union-attr]
 
         self.run[key].log(metric_value, step=step)
 
