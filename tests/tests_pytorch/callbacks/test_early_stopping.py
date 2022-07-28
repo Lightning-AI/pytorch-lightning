@@ -270,8 +270,8 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
     [
         # IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being
         # triggered, THEN the trainer should continue until reaching `trainer.global_step == min_steps` and stop
-        # (3, 0, 10, 10),
-        # (5, 0, 10, 10),
+        (3, 0, 10, 10),
+        (5, 0, 10, 10),
         # IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is
         # being triggered, THEN the trainer should continue until reaching
         # `trainer.global_step` == `min_epochs * len(train_dataloader)`

@@ -1766,28 +1766,53 @@ should_stop
 ***********
 
 If you want to terminate the training during ``.fit``, you can set ``trainer.should_stop=True`` and Lightning will terminate the training
-immediately. Note that, it will respect the arguments ``min_steps`` and ``min_epochs`` to check whether to stop it or not. If these
+as soon as possible. Note that, it will respect the arguments ``min_steps`` and ``min_epochs`` to check whether to stop it or not. If these
 arguments are set and the ``current_epoch`` or ``global_step`` doesn't meet these minimum conditions, training will continue until
 both conditions are met. If any of these arguments is not set, it won't be considered for the final decision.
 
 
 .. code-block:: python
 
+    # setting `trainer.should_stop` at any point of training will terminate
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            self.should_stop = True
+
+
     trainer = Trainer()
-    # setting `trainer.should_stop`` at any point of training will terminate
-    trainer.should_stop = True
+    model = LitModel()
+    trainer.fit(model)
+
+    # setting `trainer.should_stop` will stop training only after at least 5 epochs have run
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.current_epoch == 2:
+                self.should_stop = True
+
 
     trainer = Trainer(min_epochs=5, max_epochs=100)
-    # setting `trainer.should_stop`` at any point before 5th epoch is completed
-    # will not terminate the training until 5th epoch is completed
-    trainer.should_stop = True
+    model = LitModel()
+    trainer.fit(model)
+
+    # setting `trainer.should_stop` will stop training only after at least 5 steps have run
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.global_step == 2:
+                self.should_stop = True
+
 
     trainer = Trainer(min_steps=5, max_epochs=100)
-    # setting `trainer.should_stop`` at any point before 5th step is completed
-    # will not terminate the training until 5th step is completed
-    trainer.should_stop = True
+    model = LitModel()
+    trainer.fit(model)
+
+    # setting `trainer.should_stop` at any point before/after 5th step
+    # will not terminate the training until 5th epoch is completed
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.global_step == 7:
+                self.should_stop = True
+
 
     trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100, limit_train_batches=10)
-    # setting `trainer.should_stop`` at any point before/after 5th step is completed
-    # will not terminate the training until 5th epoch is completed
-    trainer.should_stop = True
+    model = LitModel()
+    trainer.fit(model)
