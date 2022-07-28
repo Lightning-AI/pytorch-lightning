@@ -42,12 +42,12 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
+BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore
 
 warning_cache = WarningCache()
 
 
-def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
+def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
     if isinstance(batch, Tensor):
         if batch.ndim == 0:
             yield 1
@@ -100,12 +100,12 @@ def has_iterable_dataset(dataloader: DataLoader) -> bool:
     return hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset)
 
 
-def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
+def has_len(dataloader: Union[DataLoader, Dataset, Iterable]) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
         # try getting the length
-        if len(dataloader) == 0:
+        if isinstance(dataloader, DataLoader) and len(dataloader) == 0:
             rank_zero_warn(
                 f"`{dataloader.__class__.__name__}` returned 0 length. Please make sure this was your intention."
             )
@@ -115,7 +115,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
     except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
         has_len = False
 
-    if has_len and has_iterable_dataset(dataloader):
+    if has_len and isinstance(dataloader, DataLoader) and has_iterable_dataset(dataloader):
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
@@ -127,14 +127,16 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
 
 def has_len_all_ranks(
     dataloader: DataLoader,
-    training_type: "pl.Strategy",
+    training_type: "pl.Strategy",  # type: ignore
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
         local_length = len(dataloader)
-        total_length = training_type.reduce(torch.tensor(local_length).to(model.device), reduce_op="sum")
+        total_length = training_type.reduce(
+            torch.tensor(local_length).to(model.device), reduce_op="sum"
+        )  # type: ignore
 
         if total_length == 0:
             rank_zero_warn(
@@ -171,13 +173,13 @@ def has_len_all_ranks(
     return has_len
 
 
-def get_len(dataloader: DataLoader) -> Union[int, float]:
+def get_len(dataloader: Union[DataLoader, Dataset]) -> Union[int, float]:
     """Return the length of the given DataLoader.
 
     If ``__len__`` method is not implemented, return float('inf').
     """
 
-    if has_len(dataloader):
+    if has_len(dataloader) and isinstance(dataloader, DataLoader):
         return len(dataloader)
 
     return float("inf")
@@ -186,7 +188,7 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode=mode)
+    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode=mode)  # type: ignore
     dl_cls = type(dataloader)
     try:
         dataloader = dl_cls(*dl_args, **dl_kwargs)
@@ -234,7 +236,7 @@ def _get_dataloader_init_args_and_kwargs(
         arg_names = ()
 
     # get the dataloader instance `__init__` parameters
-    params = dict(inspect.signature(dataloader.__init__).parameters)
+    params = dict(inspect.signature(dataloader.__init__).parameters)  # type: ignore
     has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
     if has_variadic_kwargs:
         # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
@@ -264,9 +266,9 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))  # type: ignore
 
-    required_args = {
+    required_args: Union[list[str], set[str]] = {
         p.name
         for p in params.values()
         if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
@@ -289,7 +291,7 @@ def _get_dataloader_init_args_and_kwargs(
 
     if not has_variadic_kwargs:
         # the dataloader signature does not allow keyword arguments that need to be passed
-        missing_kwargs = (set(dl_kwargs) | set(arg_names)) - params.keys()
+        missing_kwargs: Union[list[str], set[str]] = (set(dl_kwargs) | set(arg_names)) - params.keys()
         if missing_kwargs:
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
@@ -309,7 +311,7 @@ def _get_dataloader_init_args_and_kwargs(
 
 
 def _dataloader_init_kwargs_resolve_sampler(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader, sampler: Union[Sampler, Generator], mode: Optional[RunningStage] = None
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
@@ -408,15 +410,15 @@ def _replace_dataloader_init_method() -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of
     :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
     classes = _get_all_subclasses(DataLoader) | {DataLoader}
-    wrapped = set()
+    wrapped: set[Any] = set()
     for cls in classes:
-        if cls.__init__ not in wrapped:
+        if cls.__init__ not in wrapped and isinstance(cls, DataLoader):
             cls._old_init = cls.__init__
             cls.__init__ = _wrap_dataloader_init(cls.__init__)
             wrapped.add(cls.__init__)
     yield
     for cls in classes:
-        if hasattr(cls, "_old_init"):
+        if hasattr(cls, "_old_init") and isinstance(cls, DataLoader):
             cls.__init__ = cls._old_init
             del cls._old_init
 
