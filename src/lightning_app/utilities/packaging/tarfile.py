@@ -27,7 +27,7 @@ def clean_tarfile(file_path: str, mode: str) -> None:
 
 
 def extract_tarfile(file_path: str, extract_path: str, mode: str) -> None:
-    """This utility extract all files from a tarfile."""
+    """This utility extracts all files from a tarfile."""
     if not os.path.exists(file_path):
         return None
 
