@@ -645,15 +645,15 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
 class _StatefulDataLoaderIter(_BaseLoaderIter):
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
-    def __accumulate_state(self, sampler_state: Dict[int, Any]) -> None:
+    def __accumulate_state(self, sampler_state: Dict[Union[int, str], Any]) -> None:
         # store sampler state within a queue alongside its idx.
-        self._sampler_state_idx = getattr(self, "_sampler_state_idx", 0) + 1
+        self._sampler_state_idx: int = getattr(self, "_sampler_state_idx", 0) + 1
         self._sampler_state.append((sampler_state, self._sampler_state_idx))
 
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
-        sampler_state = {
-            int(k): v.state_dict()
+        sampler_state: Dict[Union[int, str], Any] = {
+            k: v.state_dict()
             for k, v in self._loader.__dict__.items()
             if isinstance(v, _Stateful) and k != "dataset"
         }
@@ -669,7 +669,7 @@ class _StatefulDataLoaderIter(_BaseLoaderIter):
         self._loader = loader
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0
-        self._sampler_state: List[Tuple[Dict[int, Any], int]] = []
+        self._sampler_state: List[Tuple[Dict[Union[int, str], Any], int]] = []
         self._sampler_state_idx = 0
 
     def __del__(self) -> None:
@@ -687,6 +687,7 @@ class _StatefulDataLoaderIter(_BaseLoaderIter):
         # there is no workers within the samplers
         worker_id = list(state.keys())[0]
 
+        sampler_state = cast(Dict[int, Any], sampler_state)
         state = [
             IteratorState(
                 num_workers=self._loader.num_workers,
