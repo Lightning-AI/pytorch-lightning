@@ -25,7 +25,8 @@ import torch
 from torch import Tensor
 from torch._C._distributed_c10d import ProcessGroup
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.dataloader import _BaseDataLoaderIter
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
@@ -95,6 +96,17 @@ class _Stateful(Protocol):
         ...
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        ...
+
+
+@runtime_checkable
+class _IntStateful(Protocol):
+    """This class is used to detect if an object is stateful, whose states are integers, using `isinstance(obj, _Stateful)`."""
+
+    def state_dict(self) -> Dict[int, Any]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
         ...
 
 
