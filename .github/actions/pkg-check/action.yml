@@ -14,13 +14,19 @@ runs:
     run: pip install "twine==4.0.1" setuptools wheel flake8
     shell: bash
 
-  - name: Create package
+  - name: Source check
     env:
       PACKAGE_NAME: ${{ inputs.pkg-name }}
     run: |
       python setup.py check --metadata --strict
-      flake8 src/lightning/ --ignore E402,F401,E501,W391,E303
-      python setup.py sdist bdist_wheel
+      # TODO: fix reimporting (F811) which is aftefact after rplacing var assigne with import in meta package
+      flake8 src/lightning/ --ignore E402,F401,E501,W391,E303,F811
+    shell: bash
+
+  - name: Create package
+    env:
+      PACKAGE_NAME: ${{ inputs.pkg-name }}
+    run: python setup.py sdist bdist_wheel
     shell: bash
 
   - name: Check package

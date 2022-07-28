@@ -210,7 +210,7 @@ def prune_func_calls(lines: List[str]) -> List[str]:
     body, tracking, score = [], False, 0
     for ln in lines:
         # catching callable
-        calling = re.match(r"^[\w_\d\.]+ *\(", ln.lstrip())
+        calling = re.match(r"^@?[\w_\d\.]+ *\(", ln.lstrip())
         if calling and " import " not in ln:
             tracking = True
             score = 0
@@ -339,8 +339,10 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
                 body = prune_imports_callables(body)
             for key_word in ("class", "def", "async def"):
                 body = replace_block_with_imports(body, import_path, key_word)
+            # TODO: fix reimporting which is artefact after replacing var assignment with import;
+            #  after fixing , update CI by remove F811 from CI/check pkg
             body = replace_vars_with_imports(body, import_path)
-            if fname in ("__init__.py",):
+            if fname not in ("__main__.py", ):
                 body = prune_func_calls(body)
             body_len = -1
             # in case of several in-depth statements
