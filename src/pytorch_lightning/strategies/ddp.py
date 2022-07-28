@@ -333,7 +333,7 @@ class DDPStrategy(ParallelStrategy):
         """Run before precision plugin executes backward."""
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
-            assert self.model is not None
+            assert isinstance(self.model, DistributedDataParallel)
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self) -> None:
