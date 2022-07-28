@@ -327,7 +327,7 @@ class CaptureIterableDataset(IterableDataset):
                 continue
 
             # wrap the generator into a `FastForwardSampler`
-            assert isinstance(generator, (Sampler, Generator))
+            assert isinstance(generator, Generator)
             sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
             # if `CaptureIterableDataset` was available, the sampler should reload its own state.
