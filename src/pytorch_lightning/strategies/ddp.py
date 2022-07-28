@@ -59,7 +59,7 @@ from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUA
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
+from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -333,7 +333,7 @@ class DDPStrategy(ParallelStrategy):
         """Run before precision plugin executes backward."""
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
-            assert isinstance(self.model, DistributedDataParallel)
+            assert self.model is not None
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self) -> None:
@@ -360,18 +360,20 @@ class DDPStrategy(ParallelStrategy):
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        assert self.model is not None
         with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
             return self.model(*args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
+            assert self.lightning_module is not None
+            assert self.model is not None
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
             else:
                 # used when calling `trainer.validate`
+                assert isinstance(self.model, ValidationStep)
                 return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
