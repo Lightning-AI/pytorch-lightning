@@ -161,6 +161,7 @@ class CloudRuntime(Runtime):
                 enable_app_server=app_spec.enable_app_server,
                 flow_servers=app_spec.flow_servers,
                 image_spec=app_spec.image_spec,
+                cluster_id=cluster_id,
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
@@ -251,6 +252,8 @@ class CloudRuntime(Runtime):
         cluster_bindings = self.backend.client.projects_service_list_project_cluster_bindings(project_id=project_id)
 
         for cluster_binding in cluster_bindings.clusters:
+            if cluster_binding.cluster_id != cluster_id:
+                continue
             if cluster_binding.project_id == project_id:
                 return
 
