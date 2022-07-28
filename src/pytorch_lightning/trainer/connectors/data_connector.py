@@ -497,7 +497,7 @@ class _DataLoaderSource:
     instance: INSTANCE
     name: str
 
-    def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+    def dataloader(self) -> Union[INSTANCE, TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
