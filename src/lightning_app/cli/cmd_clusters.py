@@ -46,15 +46,15 @@ class AWSClusterManager:
     ):
         """request Lightning AI BYOC compute cluster creation.
 
-        :param cost_savings: flag indicating if the cluster should utilize cost savings mode
-        :param cluster_name: the name of the cluster to be created
-        :param role_arn: AWS IAM Role ARN used to provision resources
-        :param region: AWS region containing compute resources
-        :param external_id: AWS IAM Role external ID
-        :param instance_types: AWS instance types supported by the cluster
-        :param edit_before_creation: enable interactive editing of request before submitting it to Lightning AI
-        :param wait: wait for cluster to reach RUNNING state. use for debugging only
-        :return:
+        Args:
+            cost_savings: flag indicating if the cluster should utilize cost savings mode
+            cluster_name: the name of the cluster to be created
+            role_arn: AWS IAM Role ARN used to provision resources
+            region: AWS region containing compute resources
+            external_id: AWS IAM Role external ID
+            instance_types: AWS instance types supported by the cluster
+            edit_before_creation: enable interactive editing of request before submitting it to Lightning AI
+            wait: wait for cluster to reach RUNNING state. use for debugging only
         """
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
         if cost_savings:
@@ -91,7 +91,7 @@ class AWSClusterManager:
         if wait:
             _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
-        click.echo(f"""${resp.id} cluster is ${resp.status.phase}""")
+        click.echo(f"${resp.id} cluster is ${resp.status.phase}")
 
     def list(self):
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
@@ -206,33 +206,35 @@ def _check_cluster_name_is_valid(_ctx, _param, value):
     return value
 
 
-_default_instance_types = [
-    "g2.8xlarge",
-    "g3.16xlarge",
-    "g3.4xlarge",
-    "g3.8xlarge",
-    "g3s.xlarge",
-    "g4dn.12xlarge",
-    "g4dn.16xlarge",
-    "g4dn.2xlarge",
-    "g4dn.4xlarge",
-    "g4dn.8xlarge",
-    "g4dn.metal",
-    "g4dn.xlarge",
-    "p2.16xlarge",
-    "p2.8xlarge",
-    "p2.xlarge",
-    "p3.16xlarge",
-    "p3.2xlarge",
-    "p3.8xlarge",
-    "p3dn.24xlarge",
-    # "p4d.24xlarge",  # currently not supported
-    "t2.large",
-    "t2.medium",
-    "t2.xlarge",
-    "t2.2xlarge",
-    "t3.large",
-    "t3.medium",
-    "t3.xlarge",
-    "t3.2xlarge",
-]
+_default_instance_types = frozenset(
+    [
+        "g2.8xlarge",
+        "g3.16xlarge",
+        "g3.4xlarge",
+        "g3.8xlarge",
+        "g3s.xlarge",
+        "g4dn.12xlarge",
+        "g4dn.16xlarge",
+        "g4dn.2xlarge",
+        "g4dn.4xlarge",
+        "g4dn.8xlarge",
+        "g4dn.metal",
+        "g4dn.xlarge",
+        "p2.16xlarge",
+        "p2.8xlarge",
+        "p2.xlarge",
+        "p3.16xlarge",
+        "p3.2xlarge",
+        "p3.8xlarge",
+        "p3dn.24xlarge",
+        # "p4d.24xlarge",  # currently not supported
+        "t2.large",
+        "t2.medium",
+        "t2.xlarge",
+        "t2.2xlarge",
+        "t3.large",
+        "t3.medium",
+        "t3.xlarge",
+        "t3.2xlarge",
+    ]
+)
