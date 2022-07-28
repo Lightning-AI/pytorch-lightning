@@ -20,7 +20,7 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
 import torch
@@ -171,10 +171,10 @@ class ModelIO:
 
 
 def _load_from_checkpoint(
-    cls: Union["pl.LightningModule", "pl.LightningDataModule"],
-    checkpoint_path: Union[str, IO],
+    cls: Union["pl.LightningModule", Type["pl.LightningDataModule"]],
+    checkpoint_path: Union[_PATH, IO],
     map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-    hparams_file: Optional[str] = None,
+    hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Any:
