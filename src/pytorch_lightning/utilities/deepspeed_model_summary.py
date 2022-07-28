@@ -38,7 +38,8 @@ class DeepSpeedLayerSummary(LayerSummary):
         """Returns the number of parameters in this module."""
         if isinstance(self._module, torch.nn.Module):
             return sum(
-                deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+                deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
+            )
         elif isinstance(self._module, torch.nn.Parameter):
             return int(np.prod(self._module.shape))
         else:
@@ -53,6 +54,7 @@ class DeepSpeedLayerSummary(LayerSummary):
             return int(np.prod(self._module.shape))
         else:
             raise NotImplementedError
+
 
 class DeepSpeedSummary(ModelSummary):
     def summarize(self) -> Dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]

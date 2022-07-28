@@ -127,9 +127,7 @@ class LayerSummary:
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
         if isinstance(self._module, nn.Module):
-            return sum(
-                int(np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
-            )
+            return sum(int(np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
         elif isinstance(self._module, nn.Parameter):
             # If type of _module is torch.nn.Parameter, process the below.
             return int(np.prod(self._module.shape))
