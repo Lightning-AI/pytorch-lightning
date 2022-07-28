@@ -15,7 +15,21 @@ from collections.abc import Sized
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING, TypedDict, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    Generator,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TYPE_CHECKING,
+    TypedDict,
+    Union,
+)
 
 from torch.utils.data import Dataset, DistributedSampler, get_worker_info, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import (
@@ -34,11 +48,11 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
 from pytorch_lightning.utilities.types import _IntStateful, _Stateful
 
-
 if TYPE_CHECKING:
     _BaseLoaderIter = _BaseDataLoaderIter
 else:
     _BaseLoaderIter = object
+
 
 class IteratorStateDict(TypedDict):
     dataset_state: Dict[int, Any]
@@ -48,10 +62,12 @@ class IteratorStateDict(TypedDict):
     num_batches_fetched: int
     name: Optional[str]
 
+
 class MergedIteratorStateDict(TypedDict):
     state: dict
     latest_worker_id: int
     represent_map_dataset: Optional[bool]
+
 
 class FastForwardSampler(Sampler):
     """This FastForwardSampler wraps a :class:`torch.utils.data.Sampler` and records the number of iterations
@@ -650,7 +666,9 @@ class _StatefulDataLoaderIter(_BaseLoaderIter):
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
         sampler_state = {
-            int(k): v.state_dict() for k, v in self._loader.__dict__.items() if isinstance(v, _Stateful) and k != "dataset"
+            int(k): v.state_dict()
+            for k, v in self._loader.__dict__.items()
+            if isinstance(v, _Stateful) and k != "dataset"
         }
         self.__accumulate_state(sampler_state)
 
