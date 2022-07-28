@@ -41,7 +41,7 @@ def init_meta(module_fn: Callable[..., Module], *args: Any, **kwargs: Any) -> No
 def get_all_subclasses(cls: Type) -> Set[Type]:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.meta.get_all_subclasses` is deprecated in v1.8 and will be removed in v1.9."
-        " Please copy its implementation if you have an use for it."
+        " Please copy its implementation if you have a use for it."
     )
     return _get_all_subclasses(cls)
 
@@ -63,7 +63,7 @@ def _get_all_subclasses(cls: Type) -> Set[Type]:
 def recursively_setattr(root_module: Any, prefix: str, materialized_module: Module) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.meta.recursively_setattr` is deprecated in v1.8 and will be removed in v1.9."
-        " Please copy its implementation if you have an use for it."
+        " Please copy its implementation if you have a use for it."
     )
     *path, name = prefix.split(".")
     for p in path:
@@ -97,7 +97,7 @@ def init_meta_context() -> Generator:
 def is_on_meta_device(module: Module) -> bool:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.meta.is_on_meta_device` is deprecated in v1.8 and will be removed in v1.9."
-        " Please copy its implementation if you have an use for it."
+        " Please copy its implementation if you have a use for it."
     )
     try:
         param = next(module.parameters())
@@ -106,8 +106,8 @@ def is_on_meta_device(module: Module) -> bool:
         return False
 
 
-def _is_deferred(module: Module) -> bool:
-    if not _module_available("torchdistx.fake"):
+def _is_deferred(module: Optional[Module]) -> bool:
+    if module is None or not _module_available("torchdistx.fake"):
         return False
     from torchdistx.fake import is_fake
 
