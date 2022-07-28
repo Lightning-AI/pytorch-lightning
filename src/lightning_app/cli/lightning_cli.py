@@ -19,11 +19,11 @@ from lightning_app.utilities.cli_helpers import (
     _format_input_env_variables,
     _retrieve_application_url_and_available_commands,
 )
+from lightning_app.utilities.cloud import _get_project, stop_app_cloud
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
-from lightning_app.utilities.state import headers_for
 from lightning_app.utilities.network import LightningClient
-from lightning_app.utilities.cloud import stop_app_cloud, _get_project
+from lightning_app.utilities.state import headers_for
 
 logger = logging.getLogger(__name__)
 

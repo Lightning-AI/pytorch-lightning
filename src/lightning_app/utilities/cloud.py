@@ -1,7 +1,7 @@
 import warnings
 
+from lightning_cloud.openapi import Body3, V1LightningappInstanceSpec, V1LightningappInstanceState, V1Membership
 from lightning_cloud.openapi.rest import ApiException
-from lightning_cloud.openapi import V1Membership, Body3, V1LightningappInstanceSpec, V1LightningappInstanceState
 
 import lightning_app
 from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
