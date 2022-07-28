@@ -187,14 +187,6 @@ class AppState:
                 state=self._state["flows"][name],
             )
 
-        elif name in self._state.get("structures", {}):
-            return AppState(
-                self._host,
-                self._port,
-                last_state=self._last_state["structures"][name],
-                state=self._state["structures"][name],
-            )
-
         raise AttributeError(
             f"Failed to access '{name}' through `AppState`. The state provides:"
             f" Variables: {list(self._state['vars'].keys())},"

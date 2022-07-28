@@ -75,7 +75,9 @@ def test_tracer_python_script_with_kwargs():
     assert python_script.has_failed
 
 
-def test_tracer_with_code():
+def test_tracer_component_with_code():
+    """This test ensures the Tracer Component gets the latest code from the code object is provided and arguments
+    are cleaned."""
 
     drive = Drive("lit://code")
     drive.component_name = "something"
