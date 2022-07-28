@@ -67,7 +67,7 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(self, sampler: Union[Sampler, Generator], attr_name: Optional[str] = None) -> None:
+    def __init__(self, sampler: Iterator, attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False
@@ -327,8 +327,6 @@ class CaptureIterableDataset(IterableDataset):
                 continue
 
             # wrap the generator into a `FastForwardSampler`
-            print(type(generator))
-            assert isinstance(generator, Generator)
             sampler = FastForwardSampler(generator, attr_name=generator_attr_name)
 
             # if `CaptureIterableDataset` was available, the sampler should reload its own state.
