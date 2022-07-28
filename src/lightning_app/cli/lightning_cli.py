@@ -22,6 +22,8 @@ from lightning_app.utilities.cli_helpers import (
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.state import headers_for
+from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.cloud import stop_app_cloud, _get_project
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +208,24 @@ def stop():
     pass
 
 
-@_main.group(hidden=True)
+@stop.command("app")
+@click.argument("id", type=str)
+def stop_app(id: str):
+    """Stop app with the given ID."""
+    click.echo(f"Stopping Lightning app with ID: {id}")
+
+    client = LightningClient()
+    project = _get_project(client)
+
+    try:
+        stop_app_cloud(id, project.project_id, client)
+        click.echo(f"Lightning app {id} marked for graceful shutdown. It may take a few minutes for all Works to stop.")
+    except Exception as e:
+        click.echo(f"Unable to stop Lightning app {id}: {e}")
+        exit(1)
+
+
+@main.group(hidden=True)
 def delete():
     """Delete an application."""
     pass
