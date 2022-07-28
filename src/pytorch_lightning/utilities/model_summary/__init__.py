@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.strategies import SingleTPUStrategy
-from pytorch_lightning.utilities import rank_zero_deprecation
-
-
-class SingleTPUPlugin(SingleTPUStrategy):
-    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
-        rank_zero_deprecation(
-            "The `pl.plugins.training_type.single_tpu.SingleTPUPlugin` is deprecated in v1.6 and will be removed in"
-            " v1.8. Use `pl.strategies.single_tpu.SingleTPUStrategy` instead."
-        )
-        super().__init__(*args, **kwargs)
+from pytorch_lightning.utilities.model_summary.model_summary import (  # noqa: F401
+    get_formatted_model_size,
+    get_human_readable_count,
+    LayerSummary,
+    ModelSummary,
+    parse_batch_shape,
+    summarize,
+)
+from pytorch_lightning.utilities.model_summary.model_summary_deepspeed import DeepSpeedSummary  # noqa: F401
