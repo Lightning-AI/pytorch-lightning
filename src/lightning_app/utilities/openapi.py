@@ -7,7 +7,9 @@ def _duplicate_checker(js):
     result = {}
     for name, value in js:
         if name in result:
-            raise ValueError(f"Unable to load JSON. A duplicate key {name} was detected. JSON objects must have unique keys.")
+            raise ValueError(
+                f"Unable to load JSON. A duplicate key {name} was detected. JSON objects must have unique keys."
+            )
         result[name] = value
     return result
 
