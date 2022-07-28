@@ -40,19 +40,16 @@ if _IPU_AVAILABLE:
 
 class IPUModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        assert self.precision == torch.finfo(batch.dtype).bits
         output = self(batch)
         loss = self.loss(batch, output)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        assert self.precision == torch.finfo(batch.dtype).bits
         output = self(batch)
         loss = self.loss(batch, output)
         return loss
 
     def test_step(self, batch, batch_idx):
-        assert self.precision == torch.finfo(batch.dtype).bits
         output = self(batch)
         loss = self.loss(batch, output)
         return loss
@@ -222,6 +219,7 @@ def test_pure_half_precision(tmpdir):
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.batch_to_device(torch.zeros((1), dtype=torch.float)).dtype == torch.half
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
