@@ -28,7 +28,7 @@ MAX_CLUSTER_WAIT_TIME = 5400
 
 class AWSClusterManager:
     """AWSClusterManager implements API calls specific to Lightning AI BYOC compute clusters when the AWS provider
-    is selected as compute backend."""
+    is selected as the backend compute."""
 
     def __init__(self):
         self.api_client = LightningClient()
@@ -47,8 +47,8 @@ class AWSClusterManager:
         """request Lightning AI BYOC compute cluster creation.
 
         Args:
-            cost_savings: flag indicating if the cluster should utilize cost savings mode
-            cluster_name: the name of the cluster to be created
+            cost_savings: Specifies if the cluster uses cost savings mode
+            cluster_name: The name of the cluster to be created
             role_arn: AWS IAM Role ARN used to provision resources
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
