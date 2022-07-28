@@ -180,7 +180,6 @@ def test_fit_loop_done_log_messages(caplog):
 
     fit_loop.epoch_loop.min_steps = 100
     assert not fit_loop.done
-    assert "was signaled to stop but" in caplog.text
 
 
 def test_warning_valid_train_step_end(tmpdir):
@@ -225,7 +224,7 @@ def test_should_stop_early_stopping_conditions(
 
     trainer = get_trainer()
     message = "`Trainer.fit` stopped: `trainer.should_stop` was set."
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.loops"):
+    with caplog.at_level(level=logging.DEBUG, logger="pytorch_lightning.utilities.rank_zero"):
         assert trainer.fit_loop.done is fit_loop_done
 
     assert (message in caplog.text) is raise_debug_msg
