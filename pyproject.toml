@@ -56,7 +56,6 @@ module = [
     "pytorch_lightning.demos.boring_classes",
     "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.loggers.neptune",
-    "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
     "pytorch_lightning.profilers.simple",
     "pytorch_lightning.strategies.ddp",
