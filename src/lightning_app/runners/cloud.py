@@ -166,10 +166,7 @@ class CloudRuntime(Runtime):
                 dependency_cache_key=app_spec.dependency_cache_key,
             )
             if cluster_id is not None:
-                self.backend.client.projects_service_create_project_cluster_binding(
-                    project.project_id,
-                    body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project.project_id),
-                )
+                self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project.project_id, lightning_app.id, release_body
@@ -249,6 +246,18 @@ class CloudRuntime(Runtime):
 
         if cleanup_handle:
             cleanup_handle()
+
+    def _ensure_cluster_project_binding(self, project_id: str, cluster_id: str):
+        cluster_bindings = self.backend.client.projects_service_list_project_cluster_bindings(project_id=project_id)
+
+        for cluster_binding in cluster_bindings.clusters:
+            if cluster_binding.project_id == project_id:
+                return
+
+        self.backend.client.projects_service_create_project_cluster_binding(
+            project_id,
+            body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project_id),
+        )
 
     @staticmethod
     def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:

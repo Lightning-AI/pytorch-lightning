@@ -20,7 +20,7 @@ def _get_project(client: LightningClient) -> V1Membership:
                 "Environment variable LIGHTNING_CLOUD_PROJECT_ID is set " "but could not find an associated project."
             )
         return membership
-
+    print(projects)
     if len(projects.memberships) == 0:
         raise ValueError("No valid projects found. Please reach out to lightning.ai team to create a project")
     if len(projects.memberships) > 1:

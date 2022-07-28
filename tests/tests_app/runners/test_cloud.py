@@ -233,6 +233,26 @@ class TestAppCreationClient:
             )
 
 
+@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
+def test_run_on_byoc_cluster(monkeypatch):
+    mock_client = mock.MagicMock()
+    monkeypatch.setattr(cloud, "CloudBackend", mock.MagicMock(return_value=mock_client))
+    mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(name="Default Project", project_id="default-project-id")]
+    )
+
+    app = mock.MagicMock()
+    app.flows = []
+    app.frontend = {}
+
+    runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+    runtime.dispatch(cluster_id="test123")
+
+    mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+        "test-project-id", mock.ANY, ""
+    )
+
+
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
 @mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
 def test_get_project(monkeypatch):

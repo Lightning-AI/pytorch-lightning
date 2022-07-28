@@ -43,6 +43,7 @@ def dispatch(
         on_before_run: Callable to be executed before run.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
+        cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context

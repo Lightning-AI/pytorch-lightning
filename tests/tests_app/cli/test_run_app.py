@@ -70,6 +70,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         _run_app(
             file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
             cloud=True,
+            cluster_id="",
             without_server=False,
             name="",
             blocking=False,
@@ -89,4 +90,5 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         name="",
         no_cache=True,
         env_vars={"FOO": "bar"},
+        cluster_id="",
     )
