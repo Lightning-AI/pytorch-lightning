@@ -15,24 +15,7 @@ from collections.abc import Sized
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-
-
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
-from typing_extensions import TypedDict
-
+from typing import Any, Callable, cast, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from torch.utils.data import Dataset, DistributedSampler, get_worker_info, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import (
@@ -42,6 +25,7 @@ from torch.utils.data.dataloader import (
     DataLoader,
     IterableDataset,
 )
+from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
