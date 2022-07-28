@@ -25,8 +25,10 @@ def test_invalid_precision_with_deepspeed_precision():
         DeepSpeedPrecisionPlugin(precision=64, amp_type="native")
 
 
-@mock.patch("pytorch_lightning.utilities.imports._APEX_AVAILABLE", return_value=False)
-def test_deepspeed_precision_apex_not_installed(_):
+def test_deepspeed_precision_apex_not_installed(monkeypatch):
+    import pytorch_lightning.plugins.precision.deepspeed as deepspeed_apex
+
+    monkeypatch.setattr(deepspeed_apex, "_APEX_AVAILABLE", False)
     with pytest.raises(MisconfigurationException, match="You have asked for Apex AMP but you have not installed it."):
         DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
 
