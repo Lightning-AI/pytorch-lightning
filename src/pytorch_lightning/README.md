@@ -126,15 +126,16 @@ pip install pytorch-lightning['extra']
 conda install pytorch-lightning -c conda-forge
 ```
 
-#### Install stable 1.7.x
+#### Install stable version
 
-The actual status of 1.7 \[stable\] is the following:
+The actual status of stable is the following:
 
-[![CI base testing](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-base.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-base.yml)
-[![CI complete testing](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-full-1.8.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-full-1.8.yml)
-[![PyTorch & Conda](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml)
-[![TPU tests](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-tpu.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-tpu.yml)
-[![Check Docs](https://github.com/Lightning-AI/lightning/actions/workflows/docs-checks.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/docs-checks.yml)
+[![Test PyTorch full](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-full.yml/badge.svg?branch=release%2Fpytorch&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-full.yml)
+[![Test PyTorch with Conda](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml/badge.svg?branch=release%2Fpytorch&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml)
+[![GPU](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(GPUs)?branchName=release%2Fpytorch)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=release%2Fpytorch)
+[![TPU](https://dl.circleci.com/status-badge/img/gh/Lightning-AI/lightning/tree/release%2Fpytorch.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Lightning-AI/lightning/tree/release%2Fpytorch)
+[![IPU](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(IPUs)?branchName=release%2Fpytorch)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=25&branchName=release%2Fpytorch)
+[![HPU](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(HPUs)?branchName=release%2Fpytorch)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=release%2Fpytorch)
 
 Install future release from the source
 
