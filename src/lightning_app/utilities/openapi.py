@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 
 def _duplicate_checker(js):
-    """_duplicate_checker verifies that your json object doesn't contain duplicate keys."""
+    """_duplicate_checker verifies that your JSON object doesn't contain duplicate keys."""
     result = {}
     for name, value in js:
         if name in result:
