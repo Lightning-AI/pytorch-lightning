@@ -27,6 +27,7 @@ from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers,
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
@@ -84,6 +85,8 @@ class Strategy(ABC):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = TorchCheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = TorchCheckpointIO()
 
         return self._checkpoint_io
 
@@ -168,7 +171,14 @@ class Strategy(ABC):
         """
         return optimizer.state_dict()
 
-    def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
+    def backward(
+        self,
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
         """Forwards backward-calls to the precision plugin.
 
         Args:
@@ -178,7 +188,7 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
+        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
 
         closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
         self.post_backward(closure_loss)
@@ -467,6 +477,7 @@ class Strategy(ABC):
         self.precision_plugin.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
+        self.checkpoint_io.teardown()
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
