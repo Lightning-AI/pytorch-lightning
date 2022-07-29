@@ -41,6 +41,10 @@ class LightningWorkException(Exception):
     """Exception used to inform users of misuse with LightningWork."""
 
 
+class LightningPlatformException(Exception):
+    """Exception used to inform users of issues related to platform the LightningApp is running on."""
+
+
 class LightningAppStateException(Exception):
     """Exception to inform users of app state errors."""
 
