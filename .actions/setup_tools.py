@@ -151,6 +151,7 @@ def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
     ...     lines = [ln.rstrip() for ln in fp.readlines()]
     >>> lines = replace_vars_with_imports(lines, import_path)
     """
+    copied = []
     body, tracking, skip_offset = [], False, 0
     for ln in lines:
         offset = len(ln) - len(ln.lstrip())
@@ -161,8 +162,9 @@ def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
         if var:
             name = var.groups()[0]
             # skip private or apply white-list for allowed vars
-            if not name.startswith("__") or name in ("__all__",):
+            if name not in copied and (not name.startswith("__") or name in ("__all__",)):
                 body.append(f"{' ' * offset}from {import_path} import {name}  # noqa: F401")
+                copied.append(name)
             tracking, skip_offset = True, offset
             continue
         if not tracking:
@@ -193,6 +195,31 @@ def prune_imports_callables(lines: List[str]) -> List[str]:
             tracking, skip_offset = True, offset
             continue
         if not tracking:
+            body.append(ln)
+    return body
+
+
+def prune_func_calls(lines: List[str]) -> List[str]:
+    """Prune calling functions from a file, even multi-line.
+
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "__init__.py")
+    >>> import_path = ".".join(["pytorch_lightning", "loggers"])
+    >>> with open(py_file, encoding="utf-8") as fp:
+    ...     lines = [ln.rstrip() for ln in fp.readlines()]
+    >>> lines = prune_func_calls(lines)
+    """
+    body, tracking, score = [], False, 0
+    for ln in lines:
+        # catching callable
+        calling = re.match(r"^@?[\w_\d\.]+ *\(", ln.lstrip())
+        if calling and " import " not in ln:
+            tracking = True
+            score = 0
+        if tracking:
+            score += ln.count("(") - ln.count(")")
+            if score == 0:
+                tracking = False
+        else:
             body.append(ln)
     return body
 
@@ -302,6 +329,15 @@ def parse_version_from_file(pkg_root: str) -> str:
     return ver
 
 
+def prune_duplicate_lines(body):
+    body_ = []
+    # drop duplicated lines
+    for ln in body:
+        if ln.lstrip() not in body_ or ln.lstrip() in (")", ""):
+            body_.append(ln)
+    return body_
+
+
 def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
     """Parse the real python package and for each module create a mirroe version with repalcing all function and
     class implementations by cross-imports to the true package.
@@ -331,34 +367,36 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            body = prune_comments_docstrings(lines)
+            body = prune_comments_docstrings([ln.rstrip() for ln in lines])
             if fname not in ("__init__.py", "__main__.py"):
                 body = prune_imports_callables(body)
-            body = replace_block_with_imports([ln.rstrip() for ln in body], import_path, "class")
-            body = replace_block_with_imports(body, import_path, "def")
-            body = replace_block_with_imports(body, import_path, "async def")
+            for key_word in ("class", "def", "async def"):
+                body = replace_block_with_imports(body, import_path, key_word)
+            # TODO: fix reimporting which is artefact after replacing var assignment with import;
+            #  after fixing , update CI by remove F811 from CI/check pkg
             body = replace_vars_with_imports(body, import_path)
+            if fname not in ("__main__.py",):
+                body = prune_func_calls(body)
             body_len = -1
             # in case of several in-depth statements
             while body_len != len(body):
                 body_len = len(body)
+                body = prune_duplicate_lines(body)
                 body = prune_empty_statements(body)
             # add try/catch wrapper for whole body,
             #  so when import fails it tells you what is the package version this meta package was generated for...
             body = wrap_try_except(body, pkg_name, pkg_ver)
 
         # todo: apply pre-commit formatting
+        # clean to many empty lines
         body = [ln for ln, _group in groupby(body)]
-        lines = []
         # drop duplicated lines
-        for ln in body:
-            if ln + os.linesep not in lines or ln.lstrip() in (")", ""):
-                lines.append(ln + os.linesep)
+        body = prune_duplicate_lines(body)
         # compose the target file name
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fp:
-            fp.writelines(lines)
+            fp.writelines([ln + os.linesep for ln in body])
 
 
 def set_version_today(fpath: str) -> None:
@@ -380,7 +418,6 @@ def _download_frontend(root: str = _PROJECT_ROOT):
     directory."""
 
     try:
-        build_dir = "build"
         frontend_dir = pathlib.Path(root, "src", "lightning_app", "ui")
         download_dir = tempfile.mkdtemp()
 
@@ -390,7 +427,7 @@ def _download_frontend(root: str = _PROJECT_ROOT):
         file = tarfile.open(fileobj=response, mode="r|gz")
         file.extractall(path=download_dir)
 
-        shutil.move(os.path.join(download_dir, build_dir), frontend_dir)
+        shutil.move(os.path.join(download_dir, "build"), frontend_dir)
         print("The Lightning UI has successfully been downloaded!")
 
     # If installing from source without internet connection, we don't want to break the installation
