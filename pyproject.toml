@@ -54,7 +54,6 @@ module = [
     "pytorch_lightning.core.datamodule",
     "pytorch_lightning.core.decorators",
     "pytorch_lightning.core.module",
-    "pytorch_lightning.core.saving",
     "pytorch_lightning.demos.boring_classes",
     "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.loggers.neptune",
