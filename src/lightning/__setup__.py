@@ -33,6 +33,7 @@ def _adjust_manifest(**kwargs: Any) -> None:
     if kwargs["pkg_name"] == "lightning":
         lines += [
             "recursive-include src/lightning *.md",
+            "include requirements/base.txt",
             # fixme: this is strange, this shall work with setup find package - include
             "prune src/lightning_app",
             "prune src/pytorch_lightning",
