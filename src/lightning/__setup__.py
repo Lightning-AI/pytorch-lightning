@@ -3,7 +3,7 @@ import os.path
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from setuptools import find_packages
 
@@ -20,6 +20,9 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
     spec.loader.exec_module(py)
     return py
+
+
+_SETUP_TOOLS = _load_py_module("setup_tools", os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"))
 
 
 def _adjust_manifest(**kwargs: Any) -> None:
@@ -46,30 +49,47 @@ def _adjust_manifest(**kwargs: Any) -> None:
         fp.writelines([ln + os.linesep for ln in lines])
 
 
+def _adjust_require_versions(source_dir: str) -> List[str]:
+    """There are some hard min requirements and then list local version and set them as
+    `pkg>=X1.Y1.Z1,==X2.Y2.*`."""
+    require_min = {"pytorch_lightning": "1.6.5", "lightning_app": "0.5.2"}
+    require = []
+    for pkg, ver in require_min.items():
+        ver_ = _SETUP_TOOLS.parse_version_from_file(os.path.join(source_dir, pkg))
+        ver2 = ".".join(ver_.split(".")[:2] + ["*"])
+        require.append(f"{pkg} >={ver}, =={ver2}")
+    return require
+
+
+def _load_aggregate_requirements() -> List[str]:
+    """Load all base requirements from all particular packages and prune duplicates."""
+    requires = [
+        _SETUP_TOOLS.load_requirements(d, file_name="base.txt", unfreeze=not _FREEZE_REQUIREMENTS)
+        for d in glob.glob(os.path.join("requirements", "*"))
+        if os.path.isdir(d)
+    ]
+    # TODO: add some smarter version aggregation per each package
+    requires = list(chain(*requires))
+    return requires
+
+
 def _setup_args(**kwargs: Any) -> Dict[str, Any]:
-    _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
-    _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     _version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
-    _long_description = _setup_tools.load_readme_description(
+    _long_description = _SETUP_TOOLS.load_readme_description(
         _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
     )
     if kwargs["pkg_name"] == "lightning":
         _include_pkgs = ["lightning", "lightning.*"]
-        # todo: generate this list automatically with parsing feature pkg versions
-        _requires = ["pytorch-lightning>=1.6.5", "lightning-app>=0.5.2"]
+        _requires = _adjust_require_versions(_SOURCE_ROOT)
     else:
         _include_pkgs = ["*"]
-        _requires = [
-            _setup_tools.load_requirements(d, unfreeze=not _FREEZE_REQUIREMENTS)
-            for d in glob.glob(os.path.join("requirements", "*"))
-            if os.path.isdir(d)
-        ]
-        _requires = list(chain(*_requires))
+        _requires = _load_aggregate_requirements()
+
     # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _setup_tools._download_frontend(_PROJECT_ROOT)
+    _SETUP_TOOLS._download_frontend(_PROJECT_ROOT)
 
     return dict(
         name="lightning",
