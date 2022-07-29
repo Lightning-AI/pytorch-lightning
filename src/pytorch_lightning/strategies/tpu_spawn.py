@@ -74,6 +74,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             precision_plugin=precision_plugin,
             start_method="fork",
         )
+        self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
         self._launched = False
 
