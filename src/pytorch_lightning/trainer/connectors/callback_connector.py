@@ -247,7 +247,7 @@ class CallbackConnector:
             input.
         """
         checkpoints = [c for c in callbacks if isinstance(c, Checkpoint and Callback)]
-        not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint and Callback)]
+        not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint)]
         return not_checkpoints + checkpoints
 
 
