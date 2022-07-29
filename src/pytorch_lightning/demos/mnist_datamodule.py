@@ -185,8 +185,6 @@ class MNISTDataModule(LightningDataModule):
         self.normalize = normalize
         self.seed = seed
         self.batch_size = batch_size
-        self.dataset_train = ...
-        self.dataset_val = ...
 
     @property
     def num_classes(self) -> int:
