@@ -14,7 +14,12 @@
 import glob
 import logging
 import os
+import pathlib
 import re
+import shutil
+import tarfile
+import tempfile
+import urllib.request
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import groupby
 from types import ModuleType
@@ -22,6 +27,9 @@ from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
+
+# TODO: remove this once lightning-ui package is ready as a dependency
+_LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -317,3 +325,26 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fp:
             fp.writelines(lines)
+
+
+def _download_frontend(root: str = _PROJECT_ROOT):
+    """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
+    directory."""
+
+    try:
+        build_dir = "build"
+        frontend_dir = pathlib.Path(root, "src", "lightning_app", "ui")
+        download_dir = tempfile.mkdtemp()
+
+        shutil.rmtree(frontend_dir, ignore_errors=True)
+        response = urllib.request.urlopen(_LIGHTNING_FRONTEND_RELEASE_URL)
+
+        file = tarfile.open(fileobj=response, mode="r|gz")
+        file.extractall(path=download_dir)
+
+        shutil.move(os.path.join(download_dir, build_dir), frontend_dir)
+        print("The Lightning UI has successfully been downloaded!")
+
+    # If installing from source without internet connection, we don't want to break the installation
+    except Exception:
+        print("The Lightning UI downloading has failed!")

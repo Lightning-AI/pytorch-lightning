@@ -26,10 +26,9 @@ from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
-_DEEPSPEED_GREATER_EQUAL_0_6 = _RequirementAvailable("deepspeed>=0.6.0")
-if TYPE_CHECKING:
-    if pl.strategies.deepspeed._DEEPSPEED_AVAILABLE:
-        import deepspeed
+_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
+    import deepspeed
 
 warning_cache = WarningCache()
 
@@ -52,12 +51,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
-        if precision == PrecisionType.BFLOAT and not _DEEPSPEED_GREATER_EQUAL_0_6:
-            raise MisconfigurationException(
-                f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported"
-                " with `deepspeed < v0.6`. Please upgrade it using `pip install -U deepspeed`."
-            )
-
         supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT, PrecisionType.MIXED)
         if precision not in supported_precision:
             raise ValueError(
@@ -70,13 +63,20 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self.amp_type = amp_type
         self.amp_level = amp_level
 
-    def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
+    def backward(
+        self,
+        model: "pl.LightningModule",
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
                 " the backward logic internally."
             )
-        assert model.trainer is not None
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
@@ -89,7 +89,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],
@@ -110,7 +110,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         # DeepSpeed handles the optimizer step internally
         deepspeed_engine: "deepspeed.DeepSpeedEngine"
         if isinstance(model, pl.LightningModule):
-            assert model.trainer is not None
             deepspeed_engine = model.trainer.model
         else:
             deepspeed_engine = model
