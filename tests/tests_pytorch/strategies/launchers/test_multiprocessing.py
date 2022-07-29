@@ -15,6 +15,7 @@ from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
+import torch
 
 from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher, _GlobalStateSnapshot
 
@@ -53,3 +54,24 @@ def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
         assert isinstance(function_args[5], _GlobalStateSnapshot)
     else:
         assert len(function_args) == 5
+
+
+def test_global_state_snapshot():
+    """Test the capture() and restore() methods for the global state snapshot."""
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(123)
+
+    # capture the state of globals
+    snapshot = _GlobalStateSnapshot.capture()
+
+    # simulate there is a process boundary and flags get reset here
+    torch.use_deterministic_algorithms(False)
+    torch.backends.cudnn.benchmark = True
+    torch.manual_seed(321)
+
+    # restore the state of globals
+    snapshot.restore()
+    assert torch.are_deterministic_algorithms_enabled()
+    assert not torch.backends.cudnn.benchmark
+    assert torch.initial_seed() == 123

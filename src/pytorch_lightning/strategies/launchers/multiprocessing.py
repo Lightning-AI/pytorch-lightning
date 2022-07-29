@@ -124,7 +124,7 @@ class _MultiProcessingLauncher(_Launcher):
         global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
         if global_states:
-            global_states.apply()
+            global_states.restore()
         self._strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
 
@@ -229,8 +229,18 @@ class _WorkerOutput(NamedTuple):
 class _GlobalStateSnapshot:
     """Captures a hand-selected set of (global) variables in modules and provides a way to restore them.
 
-    It facilitates and encapsulates the transfer globals like PyTorch's deterministic flags or random generator state
+    It facilitates and encapsulates the transfer of globals like PyTorch's deterministic flags or random generator state
     across process boundaries when launching processes with :func:`torch.multiprocessing.spawn`.
+
+    Example:
+
+        .. code-block:: python
+
+            # in main process
+            snapshot = _GlobalStateSnapshot.capture()
+
+            # in worker process
+            snapshot.restore()
     """
 
     use_deterministic_algorithms: bool
@@ -240,6 +250,7 @@ class _GlobalStateSnapshot:
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
+        """Capture a few global states from torch, numpy, etc. that we want to restore in a spawned worker process."""
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
             use_deterministic_algorithms_warn_only=torch.is_deterministic_algorithms_warn_only_enabled()
@@ -249,7 +260,8 @@ class _GlobalStateSnapshot:
             rng_states=_collect_rng_states(),
         )
 
-    def apply(self) -> None:
+    def restore(self) -> None:
+        """Restores all globals to the values captured in the :meth:`capture` method."""
         if _TORCH_GREATER_EQUAL_1_11:
             torch.use_deterministic_algorithms(
                 self.use_deterministic_algorithms, warn_only=self.use_deterministic_algorithms_warn_only
