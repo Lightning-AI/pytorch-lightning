@@ -272,7 +272,10 @@ def prune_comments_docstrings(lines: List[str]) -> List[str]:
 
 def wrap_try_except(body: List[str], pkg: str, ver: str) -> List[str]:
     """Wrap the file with try/except for better traceability of imp0rt misalignment."""
-    body = ["try:"] + [f"    {ln}" for ln in body]
+    not_empty = sum(1 for ln in body if ln)
+    if not_empty == 0:
+        return body
+    body = ["try:"] + [f"    {ln}" if ln else "" for ln in body]
     body += [
         "",
         "except ImportError as err:",
@@ -346,7 +349,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
         lines = []
         # drop duplicated lines
         for ln in body:
-            if ln + os.linesep not in lines or ln in (")", ""):
+            if ln + os.linesep not in lines or ln.lstrip() in (")", ""):
                 lines.append(ln + os.linesep)
         # compose the target file name
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
