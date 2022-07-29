@@ -151,10 +151,10 @@ class CallbackConnector:
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
 
+        model_summary: ModelSummary = ModelSummary()
         if progress_bar_callback is not None and is_progress_bar_rich:
-            model_summary: ModelSummary = RichModelSummary()
-        else:
-            model_summary = ModelSummary()
+            model_summary = RichModelSummary()
+
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
