@@ -168,11 +168,6 @@ class AppState:
         # The state needs to be fetched on access if it doesn't exist.
         self._request_state()
 
-        # import streamlit as st
-
-        # st.write(name)
-        # st.write(self._state)
-
         if name in self._state.get("vars", {}):
             value = self._state["vars"][name]
             if isinstance(value, dict):
