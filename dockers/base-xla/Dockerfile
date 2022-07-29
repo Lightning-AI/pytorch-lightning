@@ -77,7 +77,7 @@ ENV \
 RUN pip --version && \
     pip config set global.cache-dir false && \
     conda remove pytorch torchvision && \
-    # Install Pytorch XLA
+    # Install PyTorch XLA
     py_version=${PYTHON_VERSION/./} && \
     gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
     gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
