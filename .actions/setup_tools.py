@@ -294,8 +294,10 @@ def parse_version_from_file(pkg_root: str) -> str:
     file_about = os.path.join(pkg_root, "__about__.py")
     if os.path.isfile(file_ver):
         ver = _load_py_module("version", file_ver).version
-    else:
+    elif os.path.isfile(file_about):
         ver = _load_py_module("about", file_about).__version__
+    else:  # this covers case you have build only meta-package so not additional source files are present
+        ver = ""
     return ver
 
 
