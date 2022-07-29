@@ -279,7 +279,7 @@ def wrap_try_except(body: List[str], pkg: str, ver: str) -> List[str]:
         "",
         f"    from {pkg} import __version__",
         f"    msg = f'Your meta package was build for `{pkg}={ver}`," + " but you are running {__version__}'",
-        "    raise type(err)(err.message + msg)",
+        "    raise type(err)(err.message + os.linesep + msg)",
     ]
     return body
 
