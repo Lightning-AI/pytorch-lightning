@@ -187,6 +187,7 @@ class ModelSummary:
 
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
+        self._parameter_summary = self.summarize_parameter()
         # 1 byte -> 8 bits
         # TODO: how do we compute precision_megabytes in case of mixed precision?
         precision = self._model.precision if isinstance(self._model.precision, int) else 32
@@ -254,6 +255,19 @@ class ModelSummary:
 
         return summary
 
+
+    def summarize_parameter(self) -> List[Tuple[str, int]]:
+        """Summarizes the number of parameters in the parameter that is specified as a parameter explicitly."""
+        summary: List[Tuple[str, int]] = []
+        for (name, p) in self._model.named_parameters():
+            if any(s in name for s in ['.weight', '.bias']):
+                continue
+            if not _is_lazy_weight_tensor(p):
+                summary.append((name, p.numel()))
+            else:
+                summary.append((name, 0))
+        return summary
+
     def _forward_example_input(self) -> None:
         """Run the example input through each layer to get input- and output sizes."""
         model = self._model
@@ -282,11 +296,20 @@ class ModelSummary:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
         """
+
+        # parameter that is specified as a parameter explicitly
+        param_name: List[str] = []
+        param_num: List[str] = []
+        for (name, num) in self._parameter_summary:
+            param_name.append(name)
+            param_num.append(str(num))
+        param_type: List[str] = ["Parameter"] * len(param_name)
+
         arrays = [
-            (" ", list(map(str, range(len(self._layer_summary))))),
-            ("Name", self.layer_names),
-            ("Type", self.layer_types),
-            ("Params", list(map(get_human_readable_count, self.param_nums))),
+            (" ", list(map(str, range(len(self._layer_summary)+len(self._parameter_summary))))),
+            ("Name", self.layer_names + param_name),
+            ("Type", self.layer_types + param_type),
+            ("Params", list(map(get_human_readable_count, self.param_nums))+ param_num),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
