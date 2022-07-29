@@ -204,7 +204,7 @@ class MNISTDataModule(LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
-        loader = DataLoader(
+        loader: DataLoader = DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
             shuffle=True,
@@ -216,7 +216,7 @@ class MNISTDataModule(LightningDataModule):
 
     def val_dataloader(self) -> DataLoader:
         """MNIST val set uses a subset of the training set for validation."""
-        loader = DataLoader(
+        loader: DataLoader = DataLoader(
             self.dataset_val,
             batch_size=self.batch_size,
             shuffle=False,
