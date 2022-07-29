@@ -271,7 +271,7 @@ def _configure_external_callbacks() -> List[Callback]:
     external_callbacks: List[Callback] = []
     for factory in factories:
         callback_factory = factory.load()
-        callbacks_list: List[Callback] = callback_factory()
+        callbacks_list: Union[List[Callback], Callback] = callback_factory()
         callbacks_list = [callbacks_list] if isinstance(callbacks_list, Callback) else callbacks_list
         _log.info(
             f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
