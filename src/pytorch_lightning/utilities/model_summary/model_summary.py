@@ -255,12 +255,11 @@ class ModelSummary:
 
         return summary
 
-
     def summarize_parameter(self) -> List[Tuple[str, int]]:
         """Summarizes the number of parameters in the parameter that is specified as a parameter explicitly."""
         summary: List[Tuple[str, int]] = []
         for (name, p) in self._model.named_parameters():
-            if any(s in name for s in ['.weight', '.bias']):
+            if any(s in name for s in [".weight", ".bias"]):
                 continue
             if not _is_lazy_weight_tensor(p):
                 summary.append((name, p.numel()))
@@ -306,10 +305,10 @@ class ModelSummary:
         param_type: List[str] = ["Parameter"] * len(param_name)
 
         arrays = [
-            (" ", list(map(str, range(len(self._layer_summary)+len(self._parameter_summary))))),
+            (" ", list(map(str, range(len(self._layer_summary) + len(self._parameter_summary))))),
             ("Name", self.layer_names + param_name),
             ("Type", self.layer_types + param_type),
-            ("Params", list(map(get_human_readable_count, self.param_nums))+ param_num),
+            ("Params", list(map(get_human_readable_count, self.param_nums)) + param_num),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
