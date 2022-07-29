@@ -1,9 +1,9 @@
-"""The AppStateWatcher enables a Frontend to.
+"""The AppStateWatcher enables a Frontend to
 
 - subscribe to app state changes.
 - to access and change the app state.
 
-This is particularly useful for the PanelFrontend but can be used by other Frontends too.
+This is particularly useful for the PanelFrontend, but can be used by other Frontends too.
 """
 # pylint: disable=protected-access
 import os

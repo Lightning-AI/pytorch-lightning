@@ -26,7 +26,7 @@ def test_get_ws_url_when_cloud():
 
 @mock.patch.dict(os.environ, {"LIGHTNING_FLOW_NAME": "FLOW"})
 def test_watch_app_state():
-    """We can watch the app state and run a callback function when it changes."""
+    """We can watch the app state and a callback function will be run when it changes."""
     callback = mock.MagicMock()
     # When
     watch_app_state(callback)
