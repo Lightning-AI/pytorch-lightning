@@ -271,7 +271,7 @@ def prune_comments_docstrings(lines: List[str]) -> List[str]:
 
 
 def wrap_try_except(body: List[str], pkg: str, ver: str) -> List[str]:
-    """Wrap the file with try/except for better traceability of imp0rt misalignment."""
+    """Wrap the file with try/except for better traceability of import misalignment."""
     not_empty = sum(1 for ln in body if ln)
     if not_empty == 0:
         return body
