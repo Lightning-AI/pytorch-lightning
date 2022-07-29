@@ -96,18 +96,18 @@ class CallbackConnector:
     def _configure_accumulated_gradients(
         self, accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None
     ) -> None:
-        grad_accum_callback: List[GradientAccumulationScheduler] = [
+        grad_accum_callbacks: List[Callback] = [
             cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)
         ]
 
-        if grad_accum_callback:
+        if grad_accum_callbacks:
             if accumulate_grad_batches is not None:
                 raise MisconfigurationException(
                     "You have set both `accumulate_grad_batches` and passed an instance of "
                     "`GradientAccumulationScheduler` inside callbacks. Either remove `accumulate_grad_batches` "
                     "from trainer or remove `GradientAccumulationScheduler` from callbacks list."
                 )
-            grad_accum_callback = grad_accum_callback[0]
+            grad_accum_callback: Callback = grad_accum_callbacks[0]
         else:
             if accumulate_grad_batches is None:
                 accumulate_grad_batches = 1
@@ -266,7 +266,7 @@ def _configure_external_callbacks() -> List[Callback]:
     else:
         from pkg_resources import iter_entry_points
 
-        factories = iter_entry_points("pytorch_lightning.callbacks_factory")
+        factories = iter_entry_points("pytorch_lightning.callbacks_factory")  # type: ignore[assignment]
 
     external_callbacks: List[Callback] = []
     for factory in factories:
