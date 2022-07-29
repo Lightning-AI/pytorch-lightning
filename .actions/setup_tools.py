@@ -439,9 +439,7 @@ def _adjust_require_versions(source_dir: str = "src", req_dir: str = "requiremen
     """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`."""
     reqs = load_requirements(req_dir, file_name="base.txt")
     for i, req in enumerate(reqs):
-        if not req:
-            continue
-        pkg_name = req[: min(req.index(c) for c in "<=,")]
+        pkg_name = req[: min(req.index(c) for c in ">=" if c in req)]
         ver_ = parse_version_from_file(os.path.join(source_dir, pkg_name))
         if not ver_:
             continue
