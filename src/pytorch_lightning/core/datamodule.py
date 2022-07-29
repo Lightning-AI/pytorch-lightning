@@ -17,6 +17,7 @@ from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Unio
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import _load_from_checkpoint
@@ -60,7 +61,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 # called on every process in DDP
     """
 
-    name = ...
+    name: Optional[str] = None
     CHECKPOINT_HYPER_PARAMS_KEY = "datamodule_hyper_parameters"
     CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
@@ -131,31 +132,35 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
         """
 
-        def dataloader(ds: Any, shuffle: bool = False) -> DataLoader:
+        def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
             shuffle &= not isinstance(ds, IterableDataset)
             return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
-        def train_dataloader() -> Union[Dict, List, DataLoader]:
+        def train_dataloader() -> Union[Dict[str, DataLoader], List[DataLoader], DataLoader]:
             if isinstance(train_dataset, Mapping):
                 return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
             if isinstance(train_dataset, Sequence):
                 return [dataloader(ds, shuffle=True) for ds in train_dataset]
-            return dataloader(train_dataset, shuffle=True)
+            if isinstance(train_dataset, Dataset):
+                return dataloader(train_dataset, shuffle=True)
 
-        def val_dataloader() -> Union[List, DataLoader]:
+        def val_dataloader() -> Union[List[DataLoader], DataLoader]:
             if isinstance(val_dataset, Sequence):
                 return [dataloader(ds) for ds in val_dataset]
-            return dataloader(val_dataset)
+            if isinstance(val_dataset, Dataset):
+                return dataloader(val_dataset)
 
-        def test_dataloader() -> Union[List, DataLoader]:
+        def test_dataloader() -> Union[List[DataLoader], DataLoader]:
             if isinstance(test_dataset, Sequence):
                 return [dataloader(ds) for ds in test_dataset]
-            return dataloader(test_dataset)
+            if isinstance(test_dataset, Dataset):
+                return dataloader(test_dataset)
 
-        def predict_dataloader() -> Union[List, DataLoader]:
+        def predict_dataloader() -> Union[List[DataLoader], DataLoader]:
             if isinstance(predict_dataset, Sequence):
                 return [dataloader(ds) for ds in predict_dataset]
-            return dataloader(predict_dataset)
+            if isinstance(predict_dataset, Dataset):
+                return dataloader(predict_dataset)
 
         datamodule = cls()
         if train_dataset is not None:
@@ -190,7 +195,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         r"""
         Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
