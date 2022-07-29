@@ -1,6 +1,6 @@
 import click
 
-from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, _default_instance_types, AWSClusterManager
+from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager
 
 
 @click.group("create")
@@ -29,7 +29,7 @@ def create():
     "instance_types",
     type=str,
     required=False,
-    default=",".join(_default_instance_types),
+    default=None,
     help="Instance types that you want to support, for computer jobs within the cluster.",
 )
 @click.option(
