@@ -17,7 +17,7 @@ import platform
 import random
 import time
 import urllib
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple, Union
 from urllib.error import HTTPError
 from warnings import warn
 
@@ -99,7 +99,7 @@ class _MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)
 
     @staticmethod
-    def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
+    def _try_load(path_data: str, trials: int = 30, delta: Union[int, float] = 1.0) -> Tuple[Tensor, Tensor]:
         """Resolving loading from the same time from multiple concurrent processes."""
         res, exception = None, None
         assert trials, "at least some trial has to be set"
@@ -119,7 +119,7 @@ class _MNIST(Dataset):
         return res
 
     @staticmethod
-    def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
+    def normalize_tensor(tensor: Tensor, mean: Union[int, float] = 0.0, std: Union[int, float] = 1.0) -> Tensor:
         mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
         std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
         return tensor.sub(mean).div(std)
