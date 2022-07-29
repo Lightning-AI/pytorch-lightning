@@ -521,7 +521,7 @@ class LightningWork(abc.ABC):
         """Override to add your own logic.
 
         Raises:
-            LightningPlatformException: If resource exceeds platform quotas or other contraints.
+            LightningPlatformException: If resource exceeds platform quotas or other constraints.
         """
         pass
 
