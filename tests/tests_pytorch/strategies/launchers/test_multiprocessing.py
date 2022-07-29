@@ -16,18 +16,18 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher, _GlobalStateSnapshot
 
 
 @mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
-def test_spawn_launcher_forking_on_unsupported_platform(_):
+def test_multiprocessing_launcher_forking_on_unsupported_platform(_):
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
 
 
 @pytest.mark.parametrize("start_method", ["spawn", "fork"])
 @mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp")
-def test_spawn_launcher_start_method(mp_mock, start_method):
+def test_multiprocessing_launcher_start_method(mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
     launcher.launch(function=Mock())
@@ -38,3 +38,18 @@ def test_spawn_launcher_start_method(mp_mock, start_method):
         nprocs=ANY,
         start_method=start_method,
     )
+
+
+@pytest.mark.parametrize("start_method", ["spawn", "fork"])
+@mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp")
+def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
+    """Test that we pass the global state snapshot to the worker function only if we are starting with 'spawn'."""
+    mp_mock.get_all_start_methods.return_value = [start_method]
+    launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
+    launcher.launch(function=Mock())
+    function_args = mp_mock.start_processes.call_args[1]["args"]
+    if start_method == "spawn":
+        assert len(function_args) == 6
+        assert isinstance(function_args[5], _GlobalStateSnapshot)
+    else:
+        assert len(function_args) == 5

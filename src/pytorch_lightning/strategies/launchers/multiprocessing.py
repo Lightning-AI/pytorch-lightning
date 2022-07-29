@@ -227,7 +227,11 @@ class _WorkerOutput(NamedTuple):
 
 @dataclass
 class _GlobalStateSnapshot:
-    """Captures a hand-selected set of (global) variables in modules and provides a way to restore them."""
+    """Captures a hand-selected set of (global) variables in modules and provides a way to restore them.
+
+    It facilitates and encapsulates the transfer globals like PyTorch's deterministic flags or random generator state
+    across process boundaries when launching processes with :func:`torch.multiprocessing.spawn`.
+    """
 
     use_deterministic_algorithms: bool
     use_deterministic_algorithms_warn_only: bool
