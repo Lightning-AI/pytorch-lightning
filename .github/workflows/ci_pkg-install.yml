@@ -129,7 +129,9 @@ jobs:
       - name: Miror source
         run: |
           pip install -q fire requests
+          cat src/pytorch_lightning/__version__.py
           python .actions/assistant.py mirror-pkg2source pypi src
+          cat src/pytorch_lightning/__version__.py
           ls -R src/
 
       - uses: ./.github/actions/pkg-check
