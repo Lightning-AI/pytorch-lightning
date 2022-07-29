@@ -185,7 +185,7 @@ class AcceleratorConnector:
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
-        self._amp_level_flag: str = amp_level
+        self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
         self._check_config_and_set_final_flags(
