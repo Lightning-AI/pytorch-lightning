@@ -21,15 +21,15 @@ via `HoloViews`_, streaming and much more.
 - Panel is used by for example Rapids to power `CuxFilter`_, a CuDF based big data viz framework.
 - Panel can be deployed on your favorite server or cloud including `Lightning`_.
 
-.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-intro.gif
+.. figure:: https://github.com/MarcSkovMadsen/awesome-panel-assets/blob/master/videos/panel-lightning/panel-intro.gif
    :alt: Example Panel App
 
    Example Panel App
 
 Panel is **particularly well suited for lightning.ai apps** that needs to display live progress as the Panel server can react
-to progress and asynchronously push messages from the server to the client via web socket communication.
+to state changes and asynchronously push messages from the server to the client via web socket communication.
 
-.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-streaming.gif
+.. figure:: https://github.com/MarcSkovMadsen/awesome-panel-assets/blob/master/videos/panel-lightning/panel-streaming.gif?raw=true
    :alt: Example Panel Streaming App
 
    Example Panel Streaming App
@@ -110,7 +110,7 @@ Run the app locally to see it!
 
 The app should look like the below
 
-.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/images/panel-lightning/panel-lightning-basic.png
+.. figure:: https://github.com/MarcSkovMadsen/awesome-panel-assets/blob/master/images/panel-lightning/panel-lightning-basic.png
    :alt: Basic Panel Lightning App
 
    Basic Panel Lightning App
@@ -229,7 +229,7 @@ Try running the below
 
     PANEL_AUTORELOAD=yes lightning run app app.py
 
-.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-lightning-autoreload.gif
+.. figure:: https://github.com/MarcSkovMadsen/awesome-panel-assets/blob/master/videos/panel-lightning/panel-lightning-autoreload.gif
    :alt: Basic Panel Lightning App with autoreload
 
    Basic Panel Lightning App with autoreload
@@ -310,7 +310,7 @@ Finally run the app
 
     lightning run app app.py
 
-.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-lightning-theme.gif
+.. figure:: https://github.com/MarcSkovMadsen/awesome-panel-assets/blob/master/videos/panel-lightning/panel-lightning-theme.gif
    :alt: Basic Panel Plotly Lightning App with theming
 
    Basic Panel Plotly Lightning App with theming
