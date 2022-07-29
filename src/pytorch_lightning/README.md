@@ -74,7 +74,7 @@ ______________________________________________________________________
 Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs and against major Python and PyTorch versions.
 
 <details>
-  <summary>Current build statuses in master</summary>
+  <summary>Current build statuses</summary>
 
 <center>
 
