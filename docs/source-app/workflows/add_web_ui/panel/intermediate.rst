@@ -4,7 +4,7 @@ Add a web UI with Panel (intermediate)
 
 **Audience:** Users who want to communicate between the Lightning App and Panel.
 
-**Prereqs:** Must have read the `panel basic <basic.html>`_ guide.
+**Prereqs:** Must have read the `Panel basic <basic.html>`_ guide.
 
 ----
 
@@ -18,7 +18,7 @@ You can modify the state variables of a Lightning component via the ``AppStateWa
 For example, here we increase the ``count`` variable of the Lightning Component every time a user
 presses a button:
 
-.. code:: bash
+.. code:: python
 
     # app_panel.py
 
@@ -46,7 +46,7 @@ presses a button:
 
 
 
-.. code:: bash
+.. code:: python
 
     # app.py
 
@@ -94,12 +94,12 @@ presses a button:
 Interact with Panel from the component
 **************************************
 
-To update the `PanelFrontend` from any Lightning component, update the property in the component. Make sure to call ``run`` method from the
+To update the `PanelFrontend` from any Lightning component, update the property in the component. Make sure to call the ``run`` method from the
 parent component.
 
 In this example we update the value of ``count`` from the component:
 
-.. code:: bash
+.. code:: python
 
     # app_panel.py
 
@@ -117,7 +117,7 @@ In this example we update the value of ``count`` from the component:
 
     pn.panel(last_update).servable()
 
-.. code:: bash
+.. code:: python
 
     # app.py
 
@@ -163,14 +163,14 @@ In this example we update the value of ``count`` from the component:
 
    Panel Lightning App updating a counter from the component
 
-*******************
-Panel Tips & Tricks
-*******************
+*************
+Tips & Tricks
+*************
 
-- Caching: Panel provides the easy to use ```pn.state.cache` memory based, ``dict`` caching. If you are looking for something persistent try `DiskCache <https://grantjenks.com/docs/diskcache/>`_ its really powerful and simple to use. You can use it to communicate large amounts of data between the components and frontend(s).
-- Notifactions: Panel provides easy to use `notifications <https://blog.holoviz.org/panel_0.13.0.html#Notifications>`_. You can for example use them to provide notifications about runs starting or ending.
+- Caching: Panel provides the easy to use ``pn.state.cache`` memory based, ``dict`` caching. If you are looking for something persistent try `DiskCache <https://grantjenks.com/docs/diskcache/>`_ its really powerful and simple to use. You can use it to communicate large amounts of data between the components and frontend(s).
+- Notifications: Panel provides easy to use `notifications <https://blog.holoviz.org/panel_0.13.0.html#Notifications>`_. You can for example use them to provide notifications about runs starting or ending.
 - Tabulator Table: Panel provides the `Tabulator table <https://blog.holoviz.org/panel_0.13.0.html#Expandable-rows>`_ which features expandable rows. The table is useful to provide for example an overview of you runs. But you can dig into the details by clicking and expanding the row.
-- Task Scheduling: Panel provides easy to use `task scheduling <https://blog.holoviz.org/panel_0.13.0.html#Task-scheduling>`. You can use this to for example read and display files created by your components on a schedule basis.
+- Task Scheduling: Panel provides easy to use `task scheduling <https://blog.holoviz.org/panel_0.13.0.html#Task-scheduling>`_. You can use this to for example read and display files created by your components on a scheduled basis.
 - Terminal: Panel provides the `Xterm.js terminal <https://panel.holoviz.org/reference/widgets/Terminal.html>`_ which can be used to display live logs from your components and allow you to provide a terminal interface to your component.
 
 .. figure:: https://raw.githubusercontent.com/MarcSkovMadsen/awesome-panel-assets/master/videos/panel-lightning/panel-lightning-github-runner.gif
@@ -178,4 +178,4 @@ Panel Tips & Tricks
 
    Panel Lightning App running models on github
 
-# Todo: Add link to the code and running app.
+# Todo: Add link to the code and running app. Where can I put this?
