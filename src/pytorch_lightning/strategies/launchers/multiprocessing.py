@@ -96,9 +96,9 @@ class _MultiProcessingLauncher(_Launcher):
 
         if self._start_method == "spawn":
             global_states = _GlobalStateSnapshot.capture()
-            process_args = (trainer, function, args, kwargs, return_queue, global_states)
+            process_args = [trainer, function, args, kwargs, return_queue, global_states]
         else:
-            process_args = (trainer, function, args, kwargs, return_queue)
+            process_args = [trainer, function, args, kwargs, return_queue]
 
         mp.start_processes(
             self._wrapping_function,
@@ -143,7 +143,7 @@ class _MultiProcessingLauncher(_Launcher):
         # load last weights
         if worker_output.weights_path is not None:
             ckpt = self._strategy.checkpoint_io.load_checkpoint(worker_output.weights_path)
-            trainer.lightning_module.load_state_dict(ckpt)  # type: ignore[arg-type]
+            trainer.lightning_module.load_state_dict(ckpt)
             self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
 
         trainer.state = worker_output.trainer_state
