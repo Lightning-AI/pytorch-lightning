@@ -60,7 +60,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 # called on every process in DDP
     """
 
-    name: Union[str, Any] = ...
+    name = ...
     CHECKPOINT_HYPER_PARAMS_KEY = "datamodule_hyper_parameters"
     CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
     CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
