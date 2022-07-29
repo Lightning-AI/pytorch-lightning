@@ -277,9 +277,10 @@ def wrap_try_except(body: List[str], pkg: str, ver: str) -> List[str]:
         "",
         "except ImportError as err:",
         "",
+        "    from os import linesep",
         f"    from {pkg} import __version__",
         f"    msg = f'Your meta package was build for `{pkg}={ver}`," + " but you are running {__version__}'",
-        "    raise type(err)(err.message + os.linesep + msg)",
+        "    raise type(err)(err.message + linesep + msg)",
     ]
     return body
 
