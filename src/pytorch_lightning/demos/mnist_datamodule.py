@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import os
-import platform
 import random
 import time
 import urllib
@@ -26,7 +25,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from pytorch_lightning import LightningDataModule
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
@@ -172,7 +171,7 @@ class MNISTDataModule(LightningDataModule):
             batch_size: desired batch size.
         """
         super().__init__(*args, **kwargs)
-        if num_workers and platform.system() == "Windows":
+        if num_workers and _IS_WINDOWS:
             # see: https://stackoverflow.com/a/59680818
             warn(
                 f"You have requested num_workers={num_workers} on Windows,"
