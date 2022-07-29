@@ -242,7 +242,7 @@ class LightningModule(
 
         Useful to set flags around the LightningModule for different CPU vs GPU behavior.
         """
-        return self.device.type == "cuda"  # type: ignore[union-attr]
+        return self.device.type == "cuda"
 
     @property
     def automatic_optimization(self) -> bool:
