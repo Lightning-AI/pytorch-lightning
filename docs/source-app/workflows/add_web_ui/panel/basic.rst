@@ -134,7 +134,7 @@ In this section, we explain each part of this code in detail.
 ----
 
 0. Define a Panel app
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 First, find the Panel app you want to integrate. In this example, that app looks like:
 
@@ -144,7 +144,7 @@ First, find the Panel app you want to integrate. In this example, that app looks
 
     pn.panel("Hello **Panel ⚡** World").servable()
 
-Refer to the `Panel documentation <https://docs.Panel.io/>`_ or `awesome-panel.org <https://awesome-panel.org>`_ for more complex examples.
+Refer to the `Panel documentation <https://docs.Panel.io/>`_ and `awesome-panel.org <https://awesome-panel.org>`_ for more complex examples.
 
 ----
 
@@ -216,9 +216,12 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the applicati
         def configure_layout(self):
             return {"name": "home", "content": self.lit_panel}
 
-**********
-Autoreload
-**********
+*************
+Tips & Tricks
+*************
+
+0. Use autoreload while developing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To speed up your development workflow, you can run your lightning app with Panel **autoreload** by
 setting the environment variable ``PANEL_AUTORELOAD`` to ``yes``.
@@ -234,9 +237,8 @@ Try running the below
 
    Basic Panel Lightning App with autoreload
 
-*******
-Theming
-*******
+1. Theme your app
+^^^^^^^^^^^^^^^^^
 
 To theme your app you, can use the lightning accent color #792EE5 with the `FastListTemplate`_.
 
