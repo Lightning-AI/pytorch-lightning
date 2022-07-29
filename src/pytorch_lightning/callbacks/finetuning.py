@@ -141,7 +141,7 @@ class BaseFinetuning(Callback):
 
         Args:
             modules: A given module or an iterable of modules
-            train_bn: Whether to train BatchNorm module
+            train_bn: Whether not to train the BatchNorm module
             requires_grad: Whether to create a generator for trainable or non-trainable parameters.
         Returns:
             Generator
