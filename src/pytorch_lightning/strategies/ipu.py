@@ -20,7 +20,8 @@ from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase, unwrap_lightning_module
+
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -138,6 +139,7 @@ class IPUStrategy(ParallelStrategy):
 
         super().setup(trainer)
 
+        assert self.lightning_module is not None
         assert self.lightning_module.trainer is not None
 
         # disable the `optimizer_zero_grad` function by setting it to `None`.
@@ -227,9 +229,7 @@ class IPUStrategy(ParallelStrategy):
     @property
     def lightning_module(self) -> "pl.LightningModule":
         model = self.model.module if isinstance(self.model, LightningIPUModule) else self.model
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
-        return model
+        return unwrap_lightning_module(model)
 
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
