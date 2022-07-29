@@ -148,7 +148,7 @@ class MNISTDataModule(LightningDataModule):
     <...mnist_datamodule.MNISTDataModule object at ...>
     """
 
-    name = "mnist"
+    name: str = "mnist"
 
     def __init__(
         self,
