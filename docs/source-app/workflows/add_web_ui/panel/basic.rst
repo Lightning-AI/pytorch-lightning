@@ -29,7 +29,7 @@ via `HoloViews`_, streaming and much more.
 Panel is **particularly well suited for lightning.ai apps** that needs to display live progress as the Panel server can react
 to state changes and asynchronously push messages from the server to the client via web socket communication.
 
-.. figure:: https://raw.githubusercontent.com/MarcSkovMadsen/awesome-panel-assets/master/videos/panel-lightning/panel-streaming.gif
+.. figure:: https://raw.githubusercontent.com/MarcSkovMadsen/awesome-panel-assets/master/videos/panel-lightning/panel-streaming-intro.gif
    :alt: Example Panel Streaming App
 
    Example Panel Streaming App
