@@ -1071,6 +1071,13 @@ class Trainer(
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            min_epochs, max_epochs = _parse_loop_limits(
+                self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
+            )
+            self.fit_loop.min_epochs = min_epochs
+            self.fit_loop.max_epochs = max_epochs
+
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -1132,13 +1139,6 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
-        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-            min_epochs, max_epochs = _parse_loop_limits(
-                self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
-            )
-            self.fit_loop.min_epochs = min_epochs
-            self.fit_loop.max_epochs = max_epochs
-
         # reset logger connector
         self._logger_connector.reset_results()
         self._logger_connector.reset_metrics()
