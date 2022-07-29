@@ -227,6 +227,7 @@ class _WorkerOutput(NamedTuple):
 
 @dataclass
 class _GlobalStateSnapshot:
+    """Captures a hand-selected set of (global) variables in modules and provides a way to restore them."""
     use_deterministic_algorithms: bool
     use_deterministic_algorithms_warn_only: bool
     cudnn_benchmark: bool
