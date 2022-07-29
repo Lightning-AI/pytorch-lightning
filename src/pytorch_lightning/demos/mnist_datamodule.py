@@ -199,7 +199,7 @@ class MNISTDataModule(LightningDataModule):
         """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
-        train_length = len(dataset)
+        train_length = len(dataset.data)
         self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
 
     def train_dataloader(self) -> DataLoader:
