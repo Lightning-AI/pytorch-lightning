@@ -101,13 +101,14 @@ class CallbackConnector:
         ]
 
         if grad_accum_callbacks:
+            grad_accum_callback: Callback
             if accumulate_grad_batches is not None:
                 raise MisconfigurationException(
                     "You have set both `accumulate_grad_batches` and passed an instance of "
                     "`GradientAccumulationScheduler` inside callbacks. Either remove `accumulate_grad_batches` "
                     "from trainer or remove `GradientAccumulationScheduler` from callbacks list."
                 )
-            grad_accum_callback: Callback = grad_accum_callbacks[0]
+            grad_accum_callback = grad_accum_callbacks[0]
         else:
             if accumulate_grad_batches is None:
                 accumulate_grad_batches = 1
@@ -151,10 +152,11 @@ class CallbackConnector:
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
 
-        model_summary: ModelSummary = ModelSummary()
+        model_summary: ModelSummary
         if progress_bar_callback is not None and is_progress_bar_rich:
             model_summary = RichModelSummary()
-
+        else:
+            model_summary = ModelSummary()
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
