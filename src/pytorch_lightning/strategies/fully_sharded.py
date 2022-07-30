@@ -138,6 +138,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         super().setup_distributed()
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.accelerator
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING:
