@@ -16,7 +16,6 @@ import logging
 from typing import Dict, Generator, List, Optional, Any
 
 import torch
-from torch.nn import Module
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
