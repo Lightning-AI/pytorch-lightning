@@ -24,6 +24,7 @@ class _HttpMethod:
         self.component_name = method.__self__.name
         self.method_name = method.__name__
         self.method_annotations = method.__annotations__
+        # TODO: Validate the signature contains only pydantic models.
         self.method_signature = inspect.signature(method)
         self.timeout = timeout
         self.kwargs = kwargs
@@ -31,16 +32,18 @@ class _HttpMethod:
         self.response_queue = None
 
     def add_route(self, app, request_queue, commands_response_store):
-        # 1: Create a proxy function with the same signature for FastAPI
-        # swagger UI.
+        # 1: Create a proxy function with the signature of the wrapped method.
         fn = deepcopy(_signature_proxy_function)
         fn.__annotations__ = self.method_annotations
         fn.__name__ = self.method_name
         setattr(fn, "__signature__", self.method_signature)
+
+        # 2: Get the route associated with the http method.
         route = getattr(app, self.__class__.__name__.lower())
 
+        # 3: Define the request handler.
         @wraps(_signature_proxy_function)
-        async def handle_request(*args, **kwargs):
+        async def _handle_request(*args, **kwargs):
             async def fn(*args, **kwargs):
                 request_id = str(uuid4()).split("-")[0]
                 request_queue.put(
@@ -64,7 +67,8 @@ class _HttpMethod:
 
             return await asyncio.create_task(fn(*args, **kwargs))
 
-        route(self.route, **self.kwargs)(handle_request)
+        # 4: Register the user provided route to the app.
+        route(self.route, **self.kwargs)(_handle_request)
 
 
 class Post(_HttpMethod):
