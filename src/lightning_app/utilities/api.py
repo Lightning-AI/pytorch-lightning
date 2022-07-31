@@ -24,8 +24,10 @@ class Protocol:
             timeout: The time taken before raising a timeout exception.
         """
         self.route = route
-        self.method = method
-        self.flow_name = method.__self__.name
+        self.component_name = method.__self__.name
+        self.method_name = method.__name__
+        self.method_annotations = method.__annotations__
+        self.method_signature = inspect.signature(method)
         self.timeout = timeout
         self.kwargs = kwargs
         self.request_queue = None
@@ -36,9 +38,9 @@ class Protocol:
         # 1: Create a proxy function with the same signature for FastAPI
         # swagger UI.
         fn = deepcopy(signature_proxy_function)
-        fn.__annotations__ = self.method.__annotations__
-        fn.__name__ = self.method.__name__
-        setattr(fn, "__signature__", inspect.signature(self.method))
+        fn.__annotations__ = self.method_annotations
+        fn.__name__ = self.method_name
+        setattr(fn, "__signature__", self.method_signature)
         route = getattr(app, self.name)
 
         @wraps(signature_proxy_function)
@@ -48,8 +50,8 @@ class Protocol:
                 request_queue.put(
                     {
                         "__type__": "request",
-                        "name": self.flow_name,
-                        "method_name": self.method.__name__,
+                        "name": self.component_name,
+                        "method_name": self.method_name,
                         "args": args,
                         "kwargs": kwargs,
                         "id": request_id,

@@ -7,6 +7,7 @@ from lightning_app.core.api import start_server
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
+from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
 from lightning_app.utilities.load_app import extract_metadata_from_app
 from lightning_app.utilities.network import find_free_network_port
@@ -60,8 +61,13 @@ class MultiProcessRuntime(Runtime):
             if self.start_server:
                 self.app.should_publish_changes_to_api = True
                 has_started_queue = self.backend.queues.get_has_server_started_queue()
+
+                apis = []
+                if is_overridden("configure_api", self.app.root):
+                    apis = self.app.root.configure_api()
+
                 kwargs = dict(
-                    apis=self.app.root.configure_api(),
+                    apis=apis,
                     host=self.host,
                     port=self.port,
                     api_publish_state_queue=self.app.api_publish_state_queue,
