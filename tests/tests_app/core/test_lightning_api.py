@@ -7,6 +7,7 @@ from unittest import mock
 import pytest
 from deepdiff import DeepDiff, Delta
 from httpx import AsyncClient
+from pydantic import BaseModel
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.core import api
@@ -14,6 +15,7 @@ from lightning_app.core.api import fastapi_service, global_app_state_store, star
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import MockQueue
+from lightning_app.utilities.api import Post
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
@@ -395,3 +397,28 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
 
     ui_refresher.assert_called_once()
     uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY)
+
+
+class Model(BaseModel):
+    name: str
+
+
+class FlowAPI(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+    def request(self, config: Model):
+        return {"counter": config.name}
+
+    def configure_api(self):
+        return [Post("/api/v1/request", self.request)]
+
+
+def test_configure_api():
+
+    app = LightningApp(FlowAPI())
+    MultiProcessRuntime(app).dispatch()

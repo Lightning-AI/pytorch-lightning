@@ -634,3 +634,6 @@ class LightningFlow:
             lightning my_command_name --args name=my_own_name
         """
         raise NotImplementedError
+
+    def configure_api(self):
+        raise NotImplementedError

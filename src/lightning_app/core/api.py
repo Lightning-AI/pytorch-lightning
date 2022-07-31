@@ -23,6 +23,7 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.core.constants import FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
+from lightning_app.utilities.api import Protocol
 from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
 
@@ -307,8 +308,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.close()
 
 
-# Catch-all for nonexistent API routes (since we define a catch-all for client-side routing)
-@fastapi_service.get("/api{full_path:path}", response_class=JSONResponse)
 async def api_catch_all(request: Request, full_path: str):
     raise HTTPException(status_code=404, detail="Not found")
 
@@ -317,8 +316,7 @@ async def api_catch_all(request: Request, full_path: str):
 fastapi_service.mount("/static", StaticFiles(directory=frontend_static_dir, check_dir=False), name="static")
 
 
-# Catch-all for frontend routes, must be defined after all other routes
-@fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)
+# @fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)
 async def frontend_route(request: Request, full_path: str):
     if "pytest" in sys.modules:
         return ""
@@ -344,6 +342,7 @@ class LightningUvicornServer(uvicorn.Server):
 
 
 def start_server(
+    apis: List[Protocol],
     api_publish_state_queue,
     api_delta_queue,
     commands_requests_queue,
@@ -384,6 +383,15 @@ def start_server(
             LightningUvicornServer.has_started_queue = has_started_queue
             # uvicorn is doing some uglyness by replacing uvicorn.main by click command.
             sys.modules["uvicorn.main"].Server = LightningUvicornServer
+
+        for api in apis:
+            api.add_route(fastapi_service, commands_requests_queue, commands_response_store)
+
+        # Catch-all for nonexistent API routes (since we define a catch-all for client-side routing)
+        fastapi_service.get("/api{full_path:path}", response_class=JSONResponse)(api_catch_all)
+
+        fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)(frontend_route)
+
         uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
 
     return refresher

@@ -227,19 +227,25 @@ def _populate_commands_endpoint(app):
 
 
 def _process_command_requests(app):
-    if not is_overridden("configure_commands", app.root):
-        return
+    # if not is_overridden("configure_commands", app.root):
+    #     return
 
-    # 1: Populate commands metadata
+    # # 1: Populate commands metadata
     commands = app.commands
 
     # 2: Collect requests metadata
     command_query = app.get_state_changed_from_queue(app.commands_requests_queue)
     if command_query:
-        for command in commands:
-            for command_name, method in command.items():
-                if command_query["command_name"] == command_name:
-                    # 2.1: Evaluate the method associated to a specific command.
-                    # Validation is done on the CLI side.
-                    response = method(**command_query["command_arguments"])
-                    app.commands_responses_queue.put({"response": response, "id": command_query["id"]})
+        if "type" in command_query:
+            flow = app.get_component_by_name(command_query["name"])
+            method = getattr(flow, command_query["method_name"])
+            response = method(*command_query["args"], **command_query["kwargs"])
+            app.commands_responses_queue.put({"response": response, "id": command_query["id"]})
+        else:
+            for command in commands:
+                for command_name, method in command.items():
+                    if command_query["command_name"] == command_name:
+                        # 2.1: Evaluate the method associated to a specific command.
+                        # Validation is done on the CLI side.
+                        response = method(**command_query["command_arguments"])
+                        app.commands_responses_queue.put({"response": response, "id": command_query["id"]})

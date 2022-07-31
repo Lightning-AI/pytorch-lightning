@@ -61,6 +61,7 @@ class MultiProcessRuntime(Runtime):
                 self.app.should_publish_changes_to_api = True
                 has_started_queue = self.backend.queues.get_has_server_started_queue()
                 kwargs = dict(
+                    apis=self.app.root.configure_api(),
                     host=self.host,
                     port=self.port,
                     api_publish_state_queue=self.app.api_publish_state_queue,
