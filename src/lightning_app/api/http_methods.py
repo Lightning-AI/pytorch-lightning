@@ -12,9 +12,6 @@ def _signature_proxy_function():
 
 
 class HttpMethod:
-
-    name = None
-
     def __init__(self, route: str, method: Callable, timeout: int = 15, **kwargs):
         """This class is used to inject user defined methods within the App Rest API.
 
@@ -34,14 +31,13 @@ class HttpMethod:
         self.response_queue = None
 
     def add_route(self, app, request_queue, commands_response_store):
-        assert self.name is not None
         # 1: Create a proxy function with the same signature for FastAPI
         # swagger UI.
         fn = deepcopy(_signature_proxy_function)
         fn.__annotations__ = self.method_annotations
         fn.__name__ = self.method_name
         setattr(fn, "__signature__", self.method_signature)
-        route = getattr(app, self.name)
+        route = getattr(app, self.__class__.__name__.lower())
 
         @wraps(_signature_proxy_function)
         async def handle_request(*args, **kwargs):
@@ -72,20 +68,19 @@ class HttpMethod:
 
 
 class Post(HttpMethod):
-
-    name = "post"
+    pass
 
 
 class Get(HttpMethod):
 
-    name = "get"
+    pass
 
 
 class Put(HttpMethod):
 
-    name = "put"
+    pass
 
 
 class Delete(HttpMethod):
 
-    name = "delete"
+    pass
