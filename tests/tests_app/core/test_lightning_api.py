@@ -2,9 +2,12 @@ import logging
 import multiprocessing as mp
 import os
 from copy import deepcopy
+from multiprocessing import Process
+from time import sleep
 from unittest import mock
 
 import pytest
+import requests
 from deepdiff import DeepDiff, Delta
 from httpx import AsyncClient
 from pydantic import BaseModel
@@ -12,6 +15,7 @@ from pydantic import BaseModel
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.core import api
 from lightning_app.core.api import fastapi_service, global_app_state_store, start_server, UIRefresher
+from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import MockQueue
@@ -414,16 +418,47 @@ class FlowAPI(LightningFlow):
         self.counter = 0
 
     def run(self):
-        self.counter += 1
+        if self.counter == 2:
+            sleep(0.5)
+            self._exit()
 
     def request(self, config: InputRequestModel) -> OutputRequestModel:
+        self.counter += 1
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
         return [Post("/api/v1/request", self.request)]
 
 
-def test_configure_api():
-
+def target():
     app = LightningApp(FlowAPI())
     MultiProcessRuntime(app).dispatch()
+
+
+def test_configure_api():
+
+    process = Process(target=target)
+    process.start()
+    time_left = 15
+    while time_left > 0:
+        try:
+            requests.get(f"http://localhost:{APP_SERVER_PORT}/healthz")
+            break
+        except requests.exceptions.ConnectionError:
+            sleep(0.1)
+            time_left -= 0.1
+    response = requests.post(
+        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
+    )
+    assert response.json() == {"name": "hello", "counter": 1}
+    response = requests.post(
+        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
+    )
+    assert response.json() == {"name": "hello", "counter": 2}
+    time_left = 15
+    while time_left > 0:
+        if process.exitcode == 0:
+            break
+        sleep(0.1)
+        time_left -= 0.1
+    assert process.exitcode == 0
