@@ -67,7 +67,7 @@ class _HttpMethod:
 
             return await asyncio.create_task(fn(*args, **kwargs))
 
-        # 4: Register the user provided route to the app.
+        # 4: Register the user provided route to the Rest API.
         route(self.route, **self.kwargs)(_handle_request)
 
 
