@@ -21,9 +21,9 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from websockets.exceptions import ConnectionClosed
 
+from lightning_app.api.api import Protocol
 from lightning_app.core.constants import FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
-from lightning_app.utilities.api import Protocol
 from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
 

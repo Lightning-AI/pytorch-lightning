@@ -7,7 +7,7 @@ from typing import Callable
 from uuid import uuid4
 
 
-def signature_proxy_function():
+def _signature_proxy_function():
     pass
 
 
@@ -37,13 +37,13 @@ class Protocol:
         assert self.name is not None
         # 1: Create a proxy function with the same signature for FastAPI
         # swagger UI.
-        fn = deepcopy(signature_proxy_function)
+        fn = deepcopy(_signature_proxy_function)
         fn.__annotations__ = self.method_annotations
         fn.__name__ = self.method_name
         setattr(fn, "__signature__", self.method_signature)
         route = getattr(app, self.name)
 
-        @wraps(signature_proxy_function)
+        @wraps(_signature_proxy_function)
         async def handle_request(*args, **kwargs):
             async def fn(*args, **kwargs):
                 request_id = str(uuid4()).split("-")[0]
