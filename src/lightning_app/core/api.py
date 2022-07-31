@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from websockets.exceptions import ConnectionClosed
 
-from lightning_app.api.http_methods import HttpMethod
+from lightning_app.api.http_methods import _HttpMethod
 from lightning_app.core.constants import FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
 from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
@@ -357,7 +357,7 @@ def start_server(
     port=8000,
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
-    apis: Optional[List[HttpMethod]] = None,
+    apis: Optional[List[_HttpMethod]] = None,
     app_state_store: Optional[StateStore] = None,
 ):
     global api_app_delta_queue
