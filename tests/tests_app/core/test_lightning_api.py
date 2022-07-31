@@ -399,8 +399,13 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY)
 
 
-class Model(BaseModel):
+class InputRequestModel(BaseModel):
     name: str
+
+
+class OutputRequestModel(BaseModel):
+    name: str
+    counter: int
 
 
 class FlowAPI(LightningFlow):
@@ -411,8 +416,8 @@ class FlowAPI(LightningFlow):
     def run(self):
         self.counter += 1
 
-    def request(self, config: Model):
-        return {"counter": config.name}
+    def request(self, config: InputRequestModel) -> OutputRequestModel:
+        return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
         return [Post("/api/v1/request", self.request)]

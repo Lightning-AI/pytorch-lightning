@@ -226,26 +226,33 @@ def _populate_commands_endpoint(app):
     app.commands = commands
 
 
-def _process_command_requests(app):
-    # if not is_overridden("configure_commands", app.root):
-    #     return
+def _process_api_request(app, request):
+    flow = app.get_component_by_name(request["name"])
+    method = getattr(flow, request["method_name"])
+    response = method(*request["args"], **request["kwargs"])
+    app.commands_responses_queue.put({"response": response, "id": request["id"]})
 
-    # # 1: Populate commands metadata
-    commands = app.commands
 
-    # 2: Collect requests metadata
-    command_query = app.get_state_changed_from_queue(app.commands_requests_queue)
-    if command_query:
-        if "type" in command_query:
-            flow = app.get_component_by_name(command_query["name"])
-            method = getattr(flow, command_query["method_name"])
-            response = method(*command_query["args"], **command_query["kwargs"])
-            app.commands_responses_queue.put({"response": response, "id": command_query["id"]})
-        else:
-            for command in commands:
-                for command_name, method in command.items():
-                    if command_query["command_name"] == command_name:
-                        # 2.1: Evaluate the method associated to a specific command.
-                        # Validation is done on the CLI side.
-                        response = method(**command_query["command_arguments"])
-                        app.commands_responses_queue.put({"response": response, "id": command_query["id"]})
+def _process_command_requests(app, request):
+    for command in app.commands:
+        for command_name, method in command.items():
+            if request["command_name"] == command_name:
+                # 2.1: Evaluate the method associated to a specific command.
+                # Validation is done on the CLI side.
+                response = method(**request["command_arguments"])
+                app.commands_responses_queue.put({"response": response, "id": request["id"]})
+
+
+def _process_requests(app) -> None:
+    if not is_overridden("configure_commands", app.root) and not is_overridden("configure_api", app.root):
+        return
+
+    request = app.get_state_changed_from_queue(app.commands_requests_queue)
+
+    if not request:
+        return
+
+    if "__type__" in request:
+        _process_api_request(app, request)
+    else:
+        _process_command_requests(app, request)

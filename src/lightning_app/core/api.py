@@ -202,7 +202,7 @@ async def run_remote_command(
             if (time.time() - t0) > 15:
                 raise Exception("The response was never received.")
 
-        return commands_response_store[request_id]
+        return commands_response_store.pop(request_id)
 
     return await asyncio.create_task(fn(data))
 
@@ -316,7 +316,6 @@ async def api_catch_all(request: Request, full_path: str):
 fastapi_service.mount("/static", StaticFiles(directory=frontend_static_dir, check_dir=False), name="static")
 
 
-# @fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)
 async def frontend_route(request: Request, full_path: str):
     if "pytest" in sys.modules:
         return ""
@@ -342,7 +341,6 @@ class LightningUvicornServer(uvicorn.Server):
 
 
 def start_server(
-    apis: List[Protocol],
     api_publish_state_queue,
     api_delta_queue,
     commands_requests_queue,
@@ -353,6 +351,7 @@ def start_server(
     port=8000,
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
+    apis: Optional[List[Protocol]] = None,
     app_state_store: Optional[StateStore] = None,
 ):
     global api_app_delta_queue
@@ -384,8 +383,10 @@ def start_server(
             # uvicorn is doing some uglyness by replacing uvicorn.main by click command.
             sys.modules["uvicorn.main"].Server = LightningUvicornServer
 
-        for api in apis:
-            api.add_route(fastapi_service, commands_requests_queue, commands_response_store)
+        # Register the user API.
+        if apis:
+            for api in apis:
+                api.add_route(fastapi_service, commands_requests_queue, commands_response_store)
 
         # Catch-all for nonexistent API routes (since we define a catch-all for client-side routing)
         fastapi_service.get("/api{full_path:path}", response_class=JSONResponse)(api_catch_all)
