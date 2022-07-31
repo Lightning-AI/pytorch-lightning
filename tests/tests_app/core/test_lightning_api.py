@@ -15,7 +15,13 @@ from pydantic import BaseModel
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.api.api import Post
 from lightning_app.core import api
-from lightning_app.core.api import fastapi_service, global_app_state_store, start_server, UIRefresher
+from lightning_app.core.api import (
+    fastapi_service,
+    global_app_state_store,
+    register_global_routes,
+    start_server,
+    UIRefresher,
+)
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.drive import Drive
@@ -25,6 +31,8 @@ from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
 from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.state import AppState, headers_for
+
+register_global_routes()
 
 
 class WorkA(LightningWork):

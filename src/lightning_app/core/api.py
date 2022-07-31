@@ -322,6 +322,12 @@ async def frontend_route(request: Request, full_path: str):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+def register_global_routes():
+    # Catch-all for nonexistent API routes (since we define a catch-all for client-side routing)
+    fastapi_service.get("/api{full_path:path}", response_class=JSONResponse)(api_catch_all)
+    fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)(frontend_route)
+
+
 class LightningUvicornServer(uvicorn.Server):
 
     has_started_queue = None
@@ -388,10 +394,7 @@ def start_server(
             for api in apis:
                 api.add_route(fastapi_service, commands_requests_queue, commands_response_store)
 
-        # Catch-all for nonexistent API routes (since we define a catch-all for client-side routing)
-        fastapi_service.get("/api{full_path:path}", response_class=JSONResponse)(api_catch_all)
-
-        fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)(frontend_route)
+        register_global_routes()
 
         uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
 
