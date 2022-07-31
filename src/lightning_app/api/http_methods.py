@@ -11,7 +11,7 @@ def _signature_proxy_function():
     pass
 
 
-class Protocol:
+class HttpMethod:
 
     name = None
 
@@ -71,21 +71,21 @@ class Protocol:
         route(self.route, **self.kwargs)(handle_request)
 
 
-class Post(Protocol):
+class Post(HttpMethod):
 
     name = "post"
 
 
-class Get(Protocol):
+class Get(HttpMethod):
 
     name = "get"
 
 
-class Put(Protocol):
+class Put(HttpMethod):
 
     name = "put"
 
 
-class Delete(Protocol):
+class Delete(HttpMethod):
 
     name = "delete"

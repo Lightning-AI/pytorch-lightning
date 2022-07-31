@@ -13,7 +13,7 @@ from httpx import AsyncClient
 from pydantic import BaseModel
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.api.api import Post
+from lightning_app.api.http_methods import Post
 from lightning_app.core import api
 from lightning_app.core.api import (
     fastapi_service,
