@@ -64,7 +64,7 @@ class TracerPythonScript(LightningWork):
         It works by executing the python script with python built-in `runpy
         <https://docs.python.org/3/library/runpy.html>`_ run_path method.
         This method takes any python globals before executing the script,
-        e.g. you can modify classes or function from the script.
+        e.g., you can modify classes or function from the script.
 
         .. doctest::
 
