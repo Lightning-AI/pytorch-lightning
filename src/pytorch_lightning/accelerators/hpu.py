@@ -41,16 +41,16 @@ class HPUAccelerator(Accelerator):
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Returns a map of the following metrics with their values:
 
-        Limit,
-        InUse,
-        MaxInUse,
-        NumAllocs,
-        NumFrees,
-        ActiveAllocs,
-        MaxAllocSize,
-        TotalSystemAllocs,
-        TotalSystemFrees,
-        TotalActiveAllocs
+        - Limit
+        - InUse
+        - MaxInUse
+        - NumAllocs
+        - NumFrees
+        - ActiveAllocs
+        - MaxAllocSize
+        - TotalSystemAllocs
+        - TotalSystemFrees
+        - TotalActiveAllocs
         """
         try:
             return torch_hpu.hpu.memory_stats(device)
