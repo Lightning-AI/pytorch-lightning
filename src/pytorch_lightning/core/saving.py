@@ -267,11 +267,13 @@ def _load_state(
         return obj
 
     # load the state_dict on the model automatically
-    if strict:
+    if strict is None:
+        keys = obj.load_state_dict(checkpoint["state_dict"])
+
+    if strict is not None:
         keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:
-        keys = obj.load_state_dict(checkpoint["state_dict"])
         if keys.missing_keys:
             rank_zero_warn(
                 f"Found keys that are in the model state dict but not in the checkpoint: {keys.missing_keys}"
