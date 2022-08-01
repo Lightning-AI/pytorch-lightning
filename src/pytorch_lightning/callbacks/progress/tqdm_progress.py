@@ -254,6 +254,7 @@ class TQDMProgressBar(ProgressBarBase):
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
         total_batches = self.total_batches_current_epoch
         self.main_progress_bar.reset(convert_inf(total_batches))
+        self.main_progress_bar.initial = 0
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", *_: Any) -> None:
