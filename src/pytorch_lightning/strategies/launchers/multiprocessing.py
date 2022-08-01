@@ -254,11 +254,10 @@ class _GlobalStateSnapshot:
 
         that we want to restore in a spawned worker process.
         """
+        warn_only = torch.is_deterministic_algorithms_warn_only_enabled() if _TORCH_GREATER_EQUAL_1_11 else False
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
-            use_deterministic_algorithms_warn_only=torch.is_deterministic_algorithms_warn_only_enabled()
-            if _TORCH_GREATER_EQUAL_1_11
-            else False,
+            use_deterministic_algorithms_warn_only=warn_only,
             cudnn_benchmark=torch.backends.cudnn.benchmark,
             rng_states=_collect_rng_states(),
         )
