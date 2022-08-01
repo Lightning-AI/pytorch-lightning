@@ -213,7 +213,7 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
         batch = batch + 1
         return batch
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=7, **trainer_kwargs)
+    trainer = Trainer(default_root_dir=tmpdir, **trainer_kwargs)
 
     model = BoringModel()
     setattr(model, hook, custom_method)

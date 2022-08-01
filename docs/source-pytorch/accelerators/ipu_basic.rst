@@ -68,5 +68,5 @@ Please see the `MNIST example <https://github.com/Lightning-AI/lightning/blob/ma
 * Clipping gradients is not supported.
 * It is not possible to use :class:`torch.utils.data.BatchSampler` in your dataloaders if you are using multiple IPUs.
 * IPUs handles the data transfer to the device on the host, hence the hooks :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_batch_transfer`,
-  :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device`, :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer`
-  does not apply here and if you have overridden it, it will raise an exception.
+  :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` and :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer`
+  do not apply here and if you have overridden any of them, an exception will be raised.

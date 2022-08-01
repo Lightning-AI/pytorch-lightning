@@ -48,8 +48,8 @@ after which the root node will aggregate the results.
 
 .. warning:: DP only supports scattering and gathering primitive collections of tensors like lists, dicts, etc.
     Therefore the hooks :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_batch_transfer`,
-    :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device`, :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer`
-    does not apply in this mode and if you have overridden it, it will raise an exception.
+    :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` and :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer`
+    do not apply in this mode and if you have overridden any of them, an exception will be raised.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
