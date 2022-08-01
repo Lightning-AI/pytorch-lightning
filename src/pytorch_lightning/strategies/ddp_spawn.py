@@ -256,9 +256,10 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
+        if not isinstance(self.model, DistributedDataParallel):
+            return
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
-            assert isinstance(self.model, DistributedDataParallel)
             prepare_for_backward(self.model, closure_loss)
 
     def reduce(
