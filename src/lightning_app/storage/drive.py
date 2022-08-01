@@ -13,7 +13,8 @@ from lightning_app.utilities.component import _is_flow_context
 class Drive:
 
     __IDENTIFIER__ = "__drive__"
-    __PROTOCOLS__ = ["lit://"]
+    __PROTOCOLS__ = ["lit://", "s3://"]
+    __PROTOCOLS_OPTIMIZATIONS__ = {"lit://": [], "s3://": ["indexed-s3"]}
 
     def __init__(
         self,
@@ -21,6 +22,7 @@ class Drive:
         allow_duplicates: bool = False,
         component_name: Optional[str] = None,
         root_folder: Optional[str] = None,
+        optimization: Optional[str] = None,
     ):
         """The Drive object provides a shared space to write and read files from.
 
@@ -33,6 +35,8 @@ class Drive:
             component_name: The component name which owns this drive.
                 When not provided, it is automatically inferred by Lightning.
             root_folder: This is the folder from where the Drive perceives the data (e.g this acts as a mount dir).
+            optimization: Whether to optimize the drive with a given option. This also defines if the drive will be
+                mounted to the component and accessible via normal file system operations.
         """
         self.id = None
         for protocol in self.__PROTOCOLS__:
@@ -45,6 +49,10 @@ class Drive:
 
         if "/" in self.id:
             raise Exception(f"The id should be unique to identify your drive. Found `{self.id}`.")
+
+        if optimization and optimization not in self.__PROTOCOLS_OPTIMIZATIONS__[self.protocol]:
+            raise Exception(f"This Drive protocol is not compatible with the {optimization} optimization. Available "
+                            f"optimizations for this protocol are: {self.__PROTOCOLS_OPTIMIZATIONS__[self.protocol]}")
 
         self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else os.getcwd()
         if not os.path.isdir(self.root_folder):
