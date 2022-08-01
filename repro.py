@@ -27,6 +27,7 @@ class BoringModel(LightningModule):
         self.layer = torch.nn.Linear(32, 2)
 
     def forward(self, x):
+        sleep(1)
         return self.layer(x)
 
     def training_step(self, batch, batch_idx):
@@ -40,7 +41,7 @@ class BoringModel(LightningModule):
 
 
 def run():
-    train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    train_data = DataLoader(RandomDataset(32, 10), batch_size=2)
 
     if os.path.exists("lightning_logs"):
         shutil.rmtree("lightning_logs")
@@ -51,20 +52,18 @@ def run():
         max_epochs=1,
         enable_model_summary=False,
         enable_progress_bar=False,
-        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1),
+        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1)
     )
     trainer.fit(model, train_dataloaders=train_data)
 
     trainer = Trainer(
         default_root_dir=os.getcwd(),
-        max_epochs=1,
+        max_epochs=3,
         enable_model_summary=False,
         enable_progress_bar=True,
-        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1),
+        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1)
     )
-    trainer.fit(
-        model, train_dataloaders=train_data, ckpt_path="lightning_logs/version_0/checkpoints/epoch=0-step=3.ckpt"
-    )
+    trainer.fit(model, train_dataloaders=train_data, ckpt_path="lightning_logs/version_0/checkpoints/epoch=0-step=3.ckpt")
 
 
 if __name__ == "__main__":
