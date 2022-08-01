@@ -89,7 +89,8 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 # engineer specific practices
 if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
-    _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
+    if _PACKAGE_NAME not in _PACKAGE_MAPPING:
+        _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
     for lit_name, pkg_name in _PACKAGE_MAPPING.items():
         # fixme: if we run creation of meta pkg against stable we shall pull the source
         _SETUP_TOOLS.create_meta_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)

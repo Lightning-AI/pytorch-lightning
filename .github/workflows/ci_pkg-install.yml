@@ -139,3 +139,4 @@ jobs:
       - uses: ./.github/actions/pkg-install
         with:
           pkg-name: "lightning"
+          pip-flags: "-U --pre --find-links ../pypi/"
