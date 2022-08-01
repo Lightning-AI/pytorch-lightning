@@ -25,6 +25,13 @@ def find_free_network_port() -> int:
     return port
 
 
+def is_free_network_port(port: int) -> bool:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(("", port))
+    sock.close()
+    return result != 0
+
+
 _CONNECTION_RETRY_TOTAL = 5
 _CONNECTION_RETRY_BACKOFF_FACTOR = 0.5
 _DEFAULT_BACKOFF_MAX = 5 * 60

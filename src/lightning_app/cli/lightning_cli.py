@@ -12,7 +12,7 @@ from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
-from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
+from lightning_app.core.constants import APP_SERVER_PORT, get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.cli_helpers import (
@@ -31,7 +31,11 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
         lightning_app = args[0]
         return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}"
     else:
-        return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
+        return (
+            f"http://127.0.0.1:{APP_SERVER_PORT}/admin"
+            if LOCAL_LAUNCH_ADMIN_VIEW
+            else f"http://127.0.0.1:{APP_SERVER_PORT}/view"
+        )
 
 
 def main():

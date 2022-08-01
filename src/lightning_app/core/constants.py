@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import lightning_app
+from lightning_app.utilities.network import find_free_network_port, is_free_network_port
 
 SUPPORTED_PRIMITIVE_TYPES = (type(None), str, int, float, bool)
 STATE_UPDATE_TIMEOUT = 0.001
@@ -13,7 +14,12 @@ FLOW_DURATION_THRESHOLD = 1.0
 FLOW_DURATION_SAMPLES = 5
 
 APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
-APP_SERVER_PORT = 7501
+APP_SERVER_PORT = int(
+    os.getenv("LIGHTNING_APP_SERVER_PORT", 7501 if is_free_network_port(7501) else find_free_network_port())
+)
+os.environ["LIGHTNING_APP_SERVER_PORT"] = str(
+    APP_SERVER_PORT
+)  # We set this to allow child processes (like streamlit server) to know where the app_server is actually is.
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
