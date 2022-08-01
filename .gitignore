@@ -109,6 +109,7 @@ celerybeat-schedule
 
 # dotenv
 .env
+.env_stagging
 
 # virtualenv
 .venv
@@ -158,10 +159,8 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
-
-# Lightning StreamlitFrontend or PanelFrontend
-.storage
-
-# Personal scripts
-script.*
-docs/source-app/workflows/add_web_ui/panel/examples/
+src/lightning_app/ui/*
+*examples/template_react_ui*
+hars*
+artifacts/*
+*docs/examples*
