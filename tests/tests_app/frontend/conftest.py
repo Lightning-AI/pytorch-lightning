@@ -1,6 +1,5 @@
 """Test configuration."""
 # pylint: disable=protected-access
-import os
 from unittest import mock
 
 import pytest
@@ -72,19 +71,3 @@ def app_state_state():
 def flow_state_state():
     """Returns an AppState dict scoped to the flow."""
     return FLOW_STATE.copy()
-
-
-# @pytest.fixture()
-# def mock_settings_env_vars_fn():
-#     """Set the LIGHTNING environment variables."""
-#     with mock.patch.dict(
-#         os.environ,
-#         {
-#             "LIGHTNING_FLOW_NAME": FLOW,
-#             "LIGHTNING_RENDER_ADDRESS": "localhost",
-#             "LIGHTNING_RENDER_FUNCTION": "render_fn",
-#             "LIGHTNING_RENDER_MODULE_FILE": __file__,
-#             "LIGHTNING_RENDER_PORT": f"{PORT}",
-#         },
-#     ):
-#         yield

@@ -23,17 +23,18 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.environments import XLAEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla_spawn import _XLASpawnLauncher
+from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
@@ -59,26 +60,39 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any,
     ) -> None:
-        checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
+            start_method="fork",
         )
         self.debug = debug
-        self.tpu_local_core_rank = 0
-        self.tpu_global_core_rank = 0
-        self.start_method = "fork"
+        self._launched = False
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = XLACheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
+
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     @property
     def root_device(self) -> torch.device:
+        if not self._launched:
+            raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
         return xm.xla_device()
 
     @staticmethod
@@ -113,22 +127,17 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return super().connect(model)
 
     def _configure_launcher(self):
-        self._launcher = _XLASpawnLauncher(self)
+        self._launcher = _XLALauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.start_method = "fork"
         self.accelerator.setup(trainer)
 
         if self.debug:
-            os.environ["PT_XLA_DEBUG"] = str(1)
+            os.environ["PT_XLA_DEBUG"] = "1"
 
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
-        if is_overridden("on_post_move_to_device", self.lightning_module):
-            self.model.module.on_post_move_to_device()
-        else:
-            set_shared_parameters(self.model.module, shared_params)
-
+        set_shared_parameters(self.model.module, shared_params)
         self.setup_precision_plugin()
 
         if trainer.state.fn == TrainerFn.FITTING:
@@ -144,8 +153,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def is_distributed(self) -> bool:
-        # HOST_WORLD_SIZE is None outside the xmp.spawn process
-        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
+        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
+        return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnStrategy._validate_dataloader(dataloader)
@@ -155,12 +164,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return dataloader
 
     def configure_ddp(self) -> None:
-        pass
-
-    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
-        pass
-
-    def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
     def model_to_device(self) -> None:
@@ -182,21 +185,16 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         obj = torch.load(buffer)
         return obj
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.root_device)
-        decision = self.reduce(decision, reduce_op="sum")
-        decision = bool(decision == self.world_size)
-        return decision
-
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
 
-        _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
-        _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
-        if _invalid_reduce_op or _invalid_reduce_op_str:
-            raise MisconfigurationException(
-                "Currently, TPUSpawn Strategy only support `sum`, `mean`, `avg` reduce operation."
+        invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
+        invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
+        if invalid_reduce_op or invalid_reduce_op_str:
+            raise ValueError(
+                "Currently, the TPUSpawnStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                f" {reduce_op}"
             )
 
         output = xm.mesh_reduce("reduce", output, sum)
@@ -207,9 +205,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return output
 
     def _worker_setup(self, process_idx: int):
+        self._launched = True
         reset_seed()
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
+        self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -241,7 +239,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
-        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
     def save_checkpoint(
@@ -280,6 +278,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
 
+    def teardown(self) -> None:
+        super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -291,7 +293,3 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-    def teardown(self) -> None:
-        super().teardown()
-        os.environ.pop("PT_XLA_DEBUG", None)

@@ -20,3 +20,4 @@ ___________________
     ~frontend.Frontend
     ~web.StaticWebFrontend
     ~stream_lit.StreamlitFrontend
+    ~panel.PanelFrontend

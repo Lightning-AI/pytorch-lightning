@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -31,7 +31,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],

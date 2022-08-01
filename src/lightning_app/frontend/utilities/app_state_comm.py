@@ -61,7 +61,7 @@ def _target_fn():
 def _start_websocket():
     global _THREAD  # pylint: disable=global-statement
     if not _THREAD:
-        _logger.debug("starting thread")
+        _logger.debug("Starting the watch_app_state thread.")
         _THREAD = threading.Thread(target=_target_fn)
         _THREAD.setDaemon(True)
         _THREAD.start()
@@ -79,10 +79,8 @@ def watch_app_state(callback: Callable):
         .. code-block:: python
 
             def handle_state_change():
-                print("The App State Changed")
+                print("The App State changed.")
                 watch_app_state(handle_state_change)
     """
-
     _CALLBACKS.append(callback)
-
     _start_websocket()

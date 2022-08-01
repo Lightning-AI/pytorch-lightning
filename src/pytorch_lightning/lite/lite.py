@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
@@ -35,11 +35,12 @@ from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_da
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
-    _replace_dataloader_init_method,
+    _replace_init_method,
     _update_dataloader,
     has_iterable_dataset,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.seed import seed_everything
 
 
@@ -54,7 +55,8 @@ class LightningLite(ABC):
     - Multi-node support.
 
     Args:
-        accelerator: The hardware to run on. Possible choices are: ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
+        accelerator: The hardware to run on. Possible choices are:
+            ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
             ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
@@ -103,6 +105,8 @@ class LightningLite(ABC):
         self._accelerator = self._strategy.accelerator
         self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
+
+        self._check_deepspeed_support()
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
@@ -223,13 +227,6 @@ class LightningLite(ABC):
         """
         sampler = dataloader.sampler
         if replace_sampler and self._requires_distributed_sampler(dataloader):
-            if not isinstance(sampler, (SequentialSampler, RandomSampler)):
-                raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                    " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `replace_sampler=False` if you want to use your custom sampler."
-                )
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
@@ -409,7 +406,9 @@ class LightningLite(ABC):
 
     def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
-        with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
+        with self._strategy.model_sharded_context(), _replace_init_method(DataLoader, "dataset"), _replace_init_method(
+            BatchSampler
+        ):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -443,7 +442,7 @@ class LightningLite(ABC):
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
-        supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
+        supported = [t.value.lower() for t in self._supported_device_types()] + ["gpu", "auto"]
         valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
         if not valid:
             raise MisconfigurationException(
@@ -460,11 +459,23 @@ class LightningLite(ABC):
                 f" Choose one of {supported} or pass in a `Strategy` instance."
             )
 
+    def _check_deepspeed_support(self) -> None:
+        if (
+            isinstance(self._strategy, DeepSpeedStrategy)
+            and self._strategy.zero_stage_3
+            and _RequirementAvailable("deepspeed>=0.6.5")
+        ):
+            # https://github.com/microsoft/DeepSpeed/issues/2139
+            raise RuntimeError(
+                "DeepSpeed ZeRO-3 is not supported with this version of Lightning Lite and `deepspeed>=0.6.5`."
+                " Please downgrade deepspeed to 0.6.4 or check if a newer version of Lightning is available."
+            )
+
     @staticmethod
     def _supported_device_types() -> Sequence[_AcceleratorType]:
         return (
             _AcceleratorType.CPU,
-            _AcceleratorType.GPU,
+            _AcceleratorType.CUDA,
             _AcceleratorType.TPU,
             _AcceleratorType.MPS,
         )
@@ -475,6 +486,7 @@ class LightningLite(ABC):
             _StrategyType.DP,
             _StrategyType.DDP,
             _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP_FORK,
             _StrategyType.DEEPSPEED,
             _StrategyType.DDP_SHARDED,
             _StrategyType.DDP_SHARDED_SPAWN,

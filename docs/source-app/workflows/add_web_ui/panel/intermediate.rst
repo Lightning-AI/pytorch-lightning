@@ -1,3 +1,5 @@
+:orphan:
+
 ######################################
 Add a web UI with Panel (intermediate)
 ######################################
@@ -23,7 +25,7 @@ presses a button:
     # app_panel.py
 
     import panel as pn
-    from lightning_app.frontend.panel import AppStateWatcher
+    from lightning.app.frontend.panel import AppStateWatcher
 
     pn.extension(sizing_mode="stretch_width")
 
@@ -51,22 +53,21 @@ presses a button:
     # app.py
 
     import lightning as L
-    from lightning_app.frontend.panel import PanelFrontend
+    from lightning.app.frontend.panel import PanelFrontend
 
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("app_panel.py")
             self.count = 0
-            self._last_count=0
-
-        def configure_layout(self):
-            return self._frontend
+            self.last_count = 0
 
         def run(self):
-            if self.count != self._last_count:
-                self._last_count=self.count
+            if self.count != self.last_count:
+                self.last_count = self.count
                 print("Count changed to: ", self.count)
+
+        def configure_layout(self):
+            return PanelFrontend("app_panel.py")
 
 
     class LitApp(L.LightningFlow):
@@ -90,23 +91,23 @@ presses a button:
 
 ----
 
-**************************************
-Interact with Panel from the component
-**************************************
+************************************
+Interact with Panel from a component
+************************************
 
-To update the `PanelFrontend` from any Lightning component, update the property in the component. Make sure to call the ``run`` method from the
-parent component.
+To update the `PanelFrontend` from any Lightning component, update the property in the component.
+Make sure to call the ``run`` method from the parent component.
 
-In this example we update the value of ``count`` from the component:
+In this example, we update the ``count`` value of the component:
 
 .. code:: python
 
     # app_panel.py
 
     import panel as pn
-    from lightning_app.frontend.panel import AppStateWatcher
+    from lightning.app.frontend.panel import AppStateWatcher
 
-    app=AppStateWatcher()
+    app = AppStateWatcher()
 
     pn.extension(sizing_mode="stretch_width")
 
@@ -122,27 +123,27 @@ In this example we update the value of ``count`` from the component:
     # app.py
 
     from datetime import datetime as dt
-    from lightning_app.frontend.panel import PanelFrontend
+    from lightning.app.frontend.panel import PanelFrontend
 
-    import lightning_app as L
+    import lightning as L
 
 
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("app_panel.py")
             self.count = 0
-            self._last_update=dt.now()
-
-        def configure_layout(self):
-            return self._frontend
+            self._last_update = dt.now()
 
         def run(self):
             now = dt.now()
-            if (now-self._last_update).microseconds>=250:
+            if (now - self._last_update).microseconds >= 250:
                 self.count += 1
                 self._last_update = now
                 print("Counter changed to: ", self.count)
+
+        def configure_layout(self):
+            return PanelFrontend("app_panel.py")
+
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -163,6 +164,8 @@ In this example we update the value of ``count`` from the component:
 
    Panel Lightning App updating a counter from the component
 
+----
+
 *************
 Tips & Tricks
 *************
@@ -178,4 +181,26 @@ Tips & Tricks
 
    Panel Lightning App running models on github
 
-# Todo: Add link to the code and running app. Where can I put this?
+----
+
+**********
+Next Steps
+**********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Add a web user interface (UI)
+   :description: Users who want to add a UI to their Lightning Apps
+   :col_css: col-md-6
+   :button_link: ../index.html
+   :height: 150
+   :tag: intermediate
+
+.. raw:: html
+
+        </div>
+    </div>

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=22.04
+ARG PYTORCH_VERSION=22.06
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
@@ -23,29 +23,29 @@ ARG LIGHTNING_VERSION=""
 
 RUN python -c "import torch ; print(torch.__version__)" >> torch_version.info
 
-COPY ./ /workspace/pytorch-lightning/
+COPY ./ /workspace/lightning/
 
 RUN \
     cd /workspace  && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
-        rm -rf pytorch-lightning ; \
+        rm -rf lightning ; \
         git clone https://github.com/Lightning-AI/lightning.git ; \
-        cd pytorch-lightning ; \
+        cd lightning ; \
         git checkout ${LIGHTNING_VERSION} ; \
         git submodule update --init --recursive ; \
         cd .. ; \
     fi && \
-# save the examples
-    mv pytorch-lightning/_notebooks/.notebooks/ notebooks && \
-    mv pytorch-lightning/examples . && \
+# save the examples \
+    ls -lh lightning/ && \
+    mv lightning/_notebooks/.notebooks/ notebooks && \
+    cp -r lightning/*examples . && \
 
 # Installations \
     pip install -q fire && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir && \
-    pip install ./pytorch-lightning["extra","loggers","strategies"] --no-cache-dir && \
-    pip install -r ./pytorch-lightning/requirements/pytorch/examples.txt --no-cache-dir && \
-    rm -rf pytorch-lightning && \
+    pip install ./lightning["extra","loggers","strategies","examples"] --no-cache-dir && \
+    rm -rf lightning && \
     pip list
 
 RUN pip install jupyterlab[all] -U
@@ -58,6 +58,7 @@ ENV PYTHONPATH="/workspace"
 RUN \
     TORCH_VERSION=$(cat torch_version.info) && \
     rm torch_version.info && \
+    ls -lh . && \
     python --version && \
     pip --version && \
     pip list | grep torch && \

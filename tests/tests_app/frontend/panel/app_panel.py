@@ -1,4 +1,5 @@
-"""Test App."""
-import panel as pn
+if __name__ == "__main__":
 
-pn.pane.Markdown("# Panel App").servable()
+    import panel as pn
+
+    pn.pane.Markdown("# Panel App").servable()

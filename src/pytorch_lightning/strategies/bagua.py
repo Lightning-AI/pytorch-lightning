@@ -157,6 +157,7 @@ class BaguaStrategy(DDPStrategy):
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
         # move the model to the correct device
@@ -220,7 +221,6 @@ class BaguaStrategy(DDPStrategy):
     def teardown(self) -> None:
         # abort the background communication for async algorithm
         assert self.lightning_module is not None
-        assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)  # type: ignore
 

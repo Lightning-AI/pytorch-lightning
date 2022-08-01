@@ -15,6 +15,8 @@ import os
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
@@ -33,21 +35,30 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         self,
         device: int,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
     ):
-        checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
             accelerator=accelerator,
             device=xm.xla_device(device),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-
         self.debug = debug
-        self.tpu_local_core_rank = 0
-        self.tpu_global_core_rank = 0
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = XLACheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
+
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     @property
     def is_distributed(self) -> bool:
@@ -62,9 +73,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
-
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

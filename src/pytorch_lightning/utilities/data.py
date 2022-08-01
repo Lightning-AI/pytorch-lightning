@@ -14,6 +14,7 @@
 import functools
 import inspect
 import os
+from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
@@ -186,7 +187,7 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode=mode)
+    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
     dl_cls = type(dataloader)
     try:
         dataloader = dl_cls(*dl_args, **dl_kwargs)
@@ -212,16 +213,19 @@ def _update_dataloader(
 
 
 def _get_dataloader_init_args_and_kwargs(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader,
+    sampler: Optional[Sampler],
+    mode: Optional[RunningStage] = None,
+    disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
-    was_wrapped = hasattr(dataloader, "__pl_dl_args")
+    was_wrapped = hasattr(dataloader, "__pl_saved_args")
     if was_wrapped:
-        dl_args = dataloader.__pl_dl_args
-        dl_kwargs = dataloader.__pl_dl_kwargs
-        arg_names = dataloader.__pl_dl_arg_names
+        dl_args = dataloader.__pl_saved_args
+        dl_kwargs = dataloader.__pl_saved_kwargs
+        arg_names = dataloader.__pl_saved_arg_names
         original_dataset = dataloader.__dataset  # we have this saved from _wrap_init
     else:
         # get the dataloader instance attributes
@@ -264,7 +268,7 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode, disallow_batch_sampler))
 
     required_args = {
         p.name
@@ -309,7 +313,10 @@ def _get_dataloader_init_args_and_kwargs(
 
 
 def _dataloader_init_kwargs_resolve_sampler(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader,
+    sampler: Optional[Sampler],
+    mode: Optional[RunningStage] = None,
+    disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
@@ -317,31 +324,94 @@ def _dataloader_init_kwargs_resolve_sampler(
     If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
     Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
     `FastForwardSampler`.
+
+    If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
+    automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
     fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
-    # checking the batch sampler type is different than PyTorch default.
-    if batch_sampler is not None and (type(batch_sampler) is not BatchSampler or is_predicting):
-        batch_sampler = type(batch_sampler)(
-            sampler,
-            batch_size=batch_sampler.batch_size,
-            drop_last=(False if is_predicting else batch_sampler.drop_last),
-        )
-        if is_predicting:
-            batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-        if fault_tolerant_mode.is_automatic:
-            fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-            fast_forward_sampler.setup(dataloader_batch_size=1)
+    if batch_sampler is not None:
+        if disallow_batch_sampler:
+            # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
+            if not (
+                type(batch_sampler) is BatchSampler
+                and batch_sampler.sampler == sampler
+                and dataloader.batch_size == batch_sampler.batch_size
+            ):
+                raise MisconfigurationException(
+                    "It is not possible to have a batch sampler in your dataloader, "
+                    "when running on multiple IPU devices."
+                )
+        elif type(batch_sampler) is not BatchSampler or is_predicting:
+            batch_sampler_cls = type(batch_sampler)
+            if hasattr(batch_sampler, "__pl_saved_args"):
+                args = batch_sampler.__pl_saved_args
+                kwargs = batch_sampler.__pl_saved_kwargs
+                default_kwargs = batch_sampler.__pl_saved_default_kwargs
+                arg_names = batch_sampler.__pl_saved_arg_names
 
-        return {
-            "sampler": None,
-            "shuffle": False,
-            "batch_sampler": batch_sampler,
-            "batch_size": 1,
-            "drop_last": False,
-        }
+                if is_predicting:
+                    success, args, kwargs = _replace_value_in_saved_args(
+                        "drop_last", False, args, kwargs, default_kwargs, arg_names
+                    )
+                    if not success:
+                        rank_zero_warn(
+                            f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
+                            f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
+                            "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
+                            "the `__init__` method of your custom class."
+                        )
+
+                success, args, kwargs = _replace_value_in_saved_args(
+                    "sampler", sampler, args, kwargs, default_kwargs, arg_names
+                )
+                if not success:
+                    raise TypeError(
+                        "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
+                        f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
+                        "this, expose an argument `sampler` in the `__init__` method of your custom class."
+                    )
+
+                batch_sampler = batch_sampler_cls(*args, **kwargs)
+            else:
+                try:
+                    batch_sampler = batch_sampler_cls(
+                        sampler,
+                        batch_size=batch_sampler.batch_size,
+                        drop_last=(False if is_predicting else batch_sampler.drop_last),
+                    )
+                except TypeError as e:
+                    import re
+
+                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
+                    if not match:
+                        # an unexpected `TypeError`, continue failure
+                        raise
+
+                    # There could either be too few or too many arguments. Customizing the message based on this doesn't
+                    # make much sense since our MisconfigurationException is going to be raised from the original one.
+                    raise MisconfigurationException(
+                        "We tried to re-instantiate your custom batch sampler and failed. "
+                        "To mitigate this, either follow the API of `BatchSampler` or instantiate "
+                        "your custom batch sampler inside `*_dataloader` hooks of your module."
+                    ) from e
+
+            if is_predicting:
+                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+
+            if fault_tolerant_mode.is_automatic:
+                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+                fast_forward_sampler.setup(dataloader_batch_size=1)
+
+            return {
+                "sampler": None,
+                "shuffle": False,
+                "batch_sampler": batch_sampler,
+                "batch_size": 1,
+                "drop_last": False,
+            }
 
     if fault_tolerant_mode.is_automatic:
         fast_forward_sampler = sampler = FastForwardSampler(sampler)
@@ -350,39 +420,73 @@ def _dataloader_init_kwargs_resolve_sampler(
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
 
+def _replace_value_in_saved_args(
+    replace_key: str,
+    replace_value: Any,
+    args: Tuple[Any, ...],
+    kwargs: Dict[str, Any],
+    default_kwargs: Dict[str, Any],
+    arg_names: Tuple[str, ...],
+) -> Tuple[bool, Tuple[Any, ...], Dict[str, Any]]:
+    """Tries to replace an argument value in a saved list of args and kwargs.
+
+    Returns a tuple indicating success of the operation and modified saved args and kwargs
+    """
+
+    if replace_key in arg_names:
+        replace_index = arg_names.index(replace_key)
+        args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
+        return True, args, kwargs
+    elif replace_key in kwargs or replace_key in default_kwargs:
+        kwargs[replace_key] = replace_value
+        return True, args, kwargs
+
+    return False, args, kwargs
+
+
 def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
     if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
 
-def _wrap_dataloader_init(init: Callable) -> Callable:
-    """Wraps the ``__init__`` method of :class:`~torch.utils.data.DataLoader` in order to enable re-instantiation
-    of custom subclasses."""
+def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) -> Callable:
+    """Wraps the ``__init__`` method of classes (currently :class:`~torch.utils.data.DataLoader` and
+    :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
 
     @functools.wraps(init)
-    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
+    def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
         # We need to inspect `init`, as inspecting `obj.__init__`
         # can lead to inspecting the wrong function with multiple inheritance
         params = inspect.signature(init).parameters
-        param_names = tuple(
-            param.name
+
+        parameters_defaults = OrderedDict(
+            (param.name, param.default)
             for param in params.values()
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         )
-        param_names = param_names[: len(args)]
 
-        if not hasattr(obj, "__pl_dl_args"):
-            obj.__pl_dl_args = args
-            obj.__pl_dl_kwargs = kwargs
-            obj.__pl_dl_arg_names = param_names
+        param_names = tuple(parameters_defaults)[: len(args)]
 
-        # We want to use the latest possible value for dataset argument (i.e. ideally what gets passed to DataLoader)
+        default_kwargs = {
+            name: value
+            for name, value in parameters_defaults.items()
+            if name not in kwargs and name not in param_names and value != inspect.Parameter.empty
+        }
+
+        if not hasattr(obj, "__pl_saved_args"):
+            obj.__pl_saved_args = args
+            obj.__pl_saved_kwargs = kwargs
+            obj.__pl_saved_arg_names = param_names
+            obj.__pl_saved_default_kwargs = default_kwargs
+
+        # We want to use the latest possible value for explicit argument (i.e. ideally what gets passed to base class)
         # so that we can be sure, that it will not get changed anymore.
         # That is why we are setting this in every `__init__`
-        if "dataset" in param_names:
-            setattr(obj, "__dataset", args[param_names.index("dataset")])
-        elif "dataset" in kwargs:
-            setattr(obj, "__dataset", kwargs["dataset"])
+        if store_explicit_arg is not None:
+            if store_explicit_arg in param_names:
+                setattr(obj, f"__{store_explicit_arg}", args[param_names.index(store_explicit_arg)])
+            elif store_explicit_arg in kwargs:
+                setattr(obj, f"__{store_explicit_arg}", kwargs[store_explicit_arg])
 
         init(obj, *args, **kwargs)
 
@@ -404,15 +508,17 @@ def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
 
 
 @contextmanager
-def _replace_dataloader_init_method() -> Generator[None, None, None]:
-    """This context manager is used to add support for re-instantiation of custom (subclasses) of
-    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
-    classes = _get_all_subclasses(DataLoader) | {DataLoader}
+def _replace_init_method(base_cls: Type, store_explicit_arg: Optional[str] = None) -> Generator[None, None, None]:
+    """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
+
+    It patches the ``__init__`` method.
+    """
+    classes = _get_all_subclasses(base_cls) | {base_cls}
     wrapped = set()
     for cls in classes:
         if cls.__init__ not in wrapped:
             cls._old_init = cls.__init__
-            cls.__init__ = _wrap_dataloader_init(cls.__init__)
+            cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)
             wrapped.add(cls.__init__)
     yield
     for cls in classes:
@@ -457,13 +563,13 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
 
 
 def _is_dataloader_shuffled(dataloader: object) -> bool:
-    if hasattr(dataloader, "__pl_dl_kwargs"):
+    if hasattr(dataloader, "__pl_saved_kwargs"):
         # this attribute is not part of PyTorch's DataLoader, but could have been set by
-        # our `_replace_dataloader_init_method` context manager
-        if "shuffle" in dataloader.__pl_dl_kwargs:
-            return dataloader.__pl_dl_kwargs["shuffle"]
-        if "shuffle" in dataloader.__pl_dl_arg_names:
-            return dataloader.__pl_dl_args[dataloader.__pl_dl_arg_names.index("shuffle")]
+        # our `_replace_init_method` context manager
+        if "shuffle" in dataloader.__pl_saved_kwargs:
+            return dataloader.__pl_saved_kwargs["shuffle"]
+        if "shuffle" in dataloader.__pl_saved_arg_names:
+            return dataloader.__pl_saved_args[dataloader.__pl_saved_arg_names.index("shuffle")]
     if isinstance(dataloader.dataset, IterableDataset):
         # shuffling is useless with iterable datasets
         return False

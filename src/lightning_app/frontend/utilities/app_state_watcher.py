@@ -13,7 +13,7 @@ import os
 import param
 
 from lightning_app.frontend.utilities.app_state_comm import watch_app_state
-from lightning_app.frontend.utilities.other import get_flow_state
+from lightning_app.frontend.utilities.utils import get_flow_state
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.state import AppState
 
@@ -21,13 +21,13 @@ _logger = logging.getLogger(__name__)
 
 
 class AppStateWatcher(param.Parameterized):
-    """The AppStateWatcher enables a Frontend to.
+    """The AppStateWatcher enables a Frontend to:
 
-    - subscribe to app state changes
-    - to access and change the app state.
+    - Subscribe to any app state changes.
+    - To access and change the app state from the UI.
 
     This is particularly useful for the PanelFrontend, but can be used by
-    other Frontends too.
+    other Frontend's too.
 
     Example:
 
@@ -47,7 +47,7 @@ class AppStateWatcher(param.Parameterized):
 
         app.state.counter += 1
 
-    This would print 'The counter was updated to 2'.
+    This would print ``The counter was updated to 2``.
 
     The AppStateWatcher is build on top of Param which is a framework like dataclass, attrs and
     Pydantic which additionally provides powerful and unique features for building reactive apps.
@@ -58,8 +58,7 @@ class AppStateWatcher(param.Parameterized):
     state: AppState = param.ClassSelector(
         class_=AppState,
         constant=True,
-        doc="""
-    The AppState holds the state of the app reduced to the scope of the Flow""",
+        doc="The AppState holds the state of the app reduced to the scope of the Flow",
     )
 
     def __new__(cls):
@@ -73,11 +72,11 @@ class AppStateWatcher(param.Parameterized):
     def __init__(self):
         # Its critical to initialize only once
         # See https://github.com/holoviz/param/issues/643
-        if not hasattr(self, "_initilized"):
+        if not hasattr(self, "_initialized"):
             super().__init__(name="singleton")
             self._start_watching()
             self.param.state.allow_None = False
-            self._initilized = True
+            self._initialized = True
 
         # The below was observed when using mocks during testing
         if not self.state:
@@ -86,6 +85,7 @@ class AppStateWatcher(param.Parameterized):
             raise Exception(".state._state has not been set.")
 
     def _start_watching(self):
+        # Create a thread listening to state changes.
         watch_app_state(self._update_flow_state)
         self._update_flow_state()
 
@@ -95,7 +95,7 @@ class AppStateWatcher(param.Parameterized):
 
     def _update_flow_state(self):
         # Todo: Consider whether to only update if ._state changed
-        # this might be much more performent
+        # This might be much more performant.
         with param.edit_constant(self):
             self.state = self._get_flow_state()
-        _logger.debug("Request app state")
+        _logger.debug("Requested App State.")

@@ -2,14 +2,22 @@ import logging
 import os
 import signal
 import sys
-from typing import Any, Dict, List, Optional, Union
+from copy import deepcopy
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from lightning_app import LightningWork
+from lightning_app.storage.drive import Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _collect_child_process_pids
+from lightning_app.utilities.packaging.tarfile import clean_tarfile, extract_tarfile
 from lightning_app.utilities.tracer import Tracer
 
 logger = logging.getLogger(__name__)
+
+
+class Code(TypedDict):
+    drive: Drive
+    name: str
 
 
 class TracerPythonScript(LightningWork):
@@ -31,6 +39,7 @@ class TracerPythonScript(LightningWork):
         script_args: Optional[Union[list, str]] = None,
         outputs: Optional[List[str]] = None,
         env: Optional[Dict] = None,
+        code: Optional[Code] = None,
         **kwargs,
     ):
         """The TracerPythonScript class enables to easily run a python script.
@@ -79,7 +88,7 @@ class TracerPythonScript(LightningWork):
         This callback has a reference to the work and on every batch end, we are capturing the
         trainer ``global_step`` and ``best_model_path``.
 
-        Even more interesting, this component works for ANY Pytorch Lightning script and
+        Even more interesting, this component works for ANY PyTorch Lightning script and
         its state can be used in real time in a UI.
 
         .. literalinclude:: ../../../../examples/app_components/python/component_tracer.py
@@ -93,21 +102,50 @@ class TracerPythonScript(LightningWork):
             :language: python
         """
         super().__init__(**kwargs)
-        if not os.path.exists(script_path):
-            raise FileNotFoundError(f"The provided `script_path` {script_path}` wasn't found.")
         self.script_path = str(script_path)
         if isinstance(script_args, str):
             script_args = script_args.split(" ")
         self.script_args = script_args if script_args else []
+        self.original_args = deepcopy(self.script_args)
         self.env = env
         self.outputs = outputs or []
         for name in self.outputs:
             setattr(self, name, None)
+        self.params = None
+        self.drive = code.get("drive") if code else None
+        self.code_name = code.get("name") if code else None
+        self.restart_count = 0
 
-    def run(self, **kwargs):
+    def run(self, params: Optional[Dict[str, Any]] = None, restart_count: Optional[int] = None, **kwargs):
+        """
+        Arguments:
+            params: A dictionary of arguments to be be added to script_args.
+            restart_count: Passes an incrementing counter to enable the re-execution of LightningWorks.
+        """
+        if restart_count:
+            self.restart_count = restart_count
+
+        if params:
+            self.params = params
+            self.script_args = self.original_args + [self._to_script_args(k, v) for k, v in params.items()]
+
+        if self.drive:
+            assert self.code_name
+            if os.path.exists(self.code_name):
+                clean_tarfile(self.code_name, "r:gz")
+
+            if self.code_name in self.drive.list():
+                self.drive.get(self.code_name)
+                extract_tarfile(self.code_name, ".", "r:gz")
+
+        if not os.path.exists(self.script_path):
+            raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
+
         kwargs = {k: v.value if isinstance(v, Payload) else v for k, v in kwargs.items()}
+
         init_globals = globals()
         init_globals.update(kwargs)
+
         self.on_before_run()
         env_copy = os.environ.copy()
         if self.env:
@@ -124,6 +162,12 @@ class TracerPythonScript(LightningWork):
     def on_exit(self):
         for child_pid in _collect_child_process_pids(os.getpid()):
             os.kill(child_pid, signal.SIGTERM)
+
+    @staticmethod
+    def _to_script_args(k: str, v: str) -> str:
+        if k.startswith("--"):
+            return f"{k}={v}"
+        return f"--{k}={v}"
 
 
 __all__ = ["TracerPythonScript"]
