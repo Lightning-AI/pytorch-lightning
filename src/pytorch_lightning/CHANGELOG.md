@@ -399,6 +399,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed default `amp_level` for `DeepSpeedPrecisionPlugin` to `O2` ([#13897](https://github.com/PyTorchLightning/pytorch-lightning/pull/13897))
 
 
+- Fixed `TQDMProgressBar` reset and update to show correct time estimation (2/2) ([#13962](https://github.com/Lightning-AI/lightning/pull/13962))
+
+
 
 ## [1.6.5] - 2022-07-13
 
@@ -454,7 +457,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `fuse_modules` to be qat-aware for `torch>=1.11` ([#12891](https://github.com/Lightning-AI/lightning/pull/12891))
 - Enforced eval shuffle warning only for default samplers in DataLoader ([#12653](https://github.com/Lightning-AI/lightning/pull/12653))
 - Enable mixed precision in `DDPFullyShardedStrategy` when `precision=16` ([#12965](https://github.com/Lightning-AI/lightning/pull/12965))
-- Fixed `TQDMProgressBar` reset and update to show correct time estimation ([#12889](https://github.com/Lightning-AI/lightning/pull/12889))
+- Fixed `TQDMProgressBar` reset and update to show correct time estimation (1/2) ([#12889](https://github.com/Lightning-AI/lightning/pull/12889))
 - Fixed fit loop restart logic to enable resume using the checkpoint ([#12821](https://github.com/Lightning-AI/lightning/pull/12821))
 
 
