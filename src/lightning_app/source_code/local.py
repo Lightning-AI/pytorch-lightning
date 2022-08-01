@@ -94,6 +94,7 @@ class LocalSourceCodeDir:
             raise OSError(
                 "cannot upload directory code whose total fize size is greater than 2GB (2e9 bytes)"
             ) from None
+
         uploader = FileUploader(
             presigned_url=url,
             source_file=str(self.package_path),
