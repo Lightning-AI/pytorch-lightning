@@ -27,12 +27,12 @@ import torch
 import yaml
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
-from pytorch_lightning.utilities.parsing import AttributeDict, parse_class_init_keys
+from pytorch_lightning.utilities.parsing import parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import _PATH
 
