@@ -21,7 +21,12 @@ import torch.multiprocessing as mp
 from torch.multiprocessing import ProcessContext
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.multiprocessing import _FakeQueue, _MultiProcessingLauncher, _WorkerOutput
+from pytorch_lightning.strategies.launchers.multiprocessing import (
+    _FakeQueue,
+    _GlobalStateSnapshot,
+    _MultiProcessingLauncher,
+    _WorkerOutput,
+)
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -96,6 +101,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         args: Any,
         kwargs: Any,
         return_queue: SimpleQueue,
+        global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
         self._strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
