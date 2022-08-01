@@ -44,7 +44,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = precision
 
-    def backward(self, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(self, model: "pl.LightningModule", *_: Any, **__: Any) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since IPUs handle"
