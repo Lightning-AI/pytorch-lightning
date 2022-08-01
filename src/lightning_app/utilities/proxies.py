@@ -215,7 +215,7 @@ class WorkStateObserver(Thread):
             self._delta_memory.clear()
 
             # The remaining delta is the result of state updates triggered outside the setattr, e.g, by a list append
-            delta = Delta(DeepDiff(self._last_state, self._work.state))
+            delta = Delta(DeepDiff(self._last_state, self._work.state, verbose_level=2))
             if not delta.to_dict():
                 return
             self._last_state = deepcopy(self._work.state)
@@ -250,7 +250,7 @@ class LightningWorkSetAttrProxy:
         with _state_observer_lock:
             state = deepcopy(self.work.state)
             self.work._default_setattr(name, value)
-            delta = Delta(DeepDiff(state, self.work.state))
+            delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
             if not delta.to_dict():
                 return
 
@@ -374,7 +374,9 @@ class WorkRunner:
         state = deepcopy(self.work.state)
         self.work._calls["latest_call_hash"] = call_hash
         self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.RUNNING))
-        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+        self.delta_queue.put(
+            ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
+        )
 
         # 9. Start the state observer thread. It will look for state changes and send them back to the Flow
         # The observer has to be initialized here, after the set_state call above so that the thread can start with
@@ -397,7 +399,9 @@ class WorkRunner:
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.FAILED, message=str(e), reason=WorkFailureReasons.USER_EXCEPTION)
             )
-            self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+            self.delta_queue.put(
+                ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
+            )
             self.work.on_exception(e)
             print("########## CAPTURED EXCEPTION ###########")
             print(traceback.print_exc())
@@ -425,7 +429,9 @@ class WorkRunner:
         state = deepcopy(self.work.state)
         self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.SUCCEEDED))
         self.work._calls[call_hash]["ret"] = ret
-        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+        self.delta_queue.put(
+            ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
+        )
 
         # 17. Update the work for the next delta if any.
         self._proxy_setattr(cleanup=True)
@@ -439,7 +445,7 @@ class WorkRunner:
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.SIGTERM_SIGNAL_HANDLER)
             )
-            delta = Delta(DeepDiff(state, self.work.state))
+            delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
             self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
         # kill the thread as the job is going to be terminated.
