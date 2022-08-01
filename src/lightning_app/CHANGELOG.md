@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [0.5.4] - 2022-08-01
+
+### Changed
+
+- Wrapped imports for traceability ([#13924](https://github.com/Lightning-AI/lightning/pull/13924))
+- Set version as today ([#13906](https://github.com/Lightning-AI/lightning/pull/13906))
+
+### Fixed
+
+- Included app templates to the lightning and app packages ([#13731](https://github.com/Lightning-AI/lightning/pull/13731))
+- Added UI for install all ([#13732](https://github.com/Lightning-AI/lightning/pull/13732))
+- Fixed build meta pkg flow ([#13926](https://github.com/Lightning-AI/lightning/pull/13926))
+
 ## [0.5.3] - 2022-07-25
 
 ### Changed
