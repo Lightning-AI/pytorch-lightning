@@ -630,12 +630,11 @@ class Trainer(
         self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.num_val_batches = []
+        self.num_predict_batches = []
         self.test_dataloaders = None
         self.val_dataloaders = None
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
-
-        self.num_predict_batches = []
+        self.predict_dataloaders = None
+        self._last_val_dl_reload_epoch = -1
 
     def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
         r"""
@@ -715,8 +714,7 @@ class Trainer(
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
+        self._last_val_dl_reload_epoch = -1
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
@@ -1851,9 +1849,6 @@ class Trainer(
         if orig_train_batches == 0:
             return
 
-        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        self._last_train_dl_reload_epoch = self.current_epoch
-
         if isinstance(self.limit_train_batches, int):
             self.num_training_batches = min(orig_train_batches, self.limit_train_batches)
         elif self.num_training_batches != float("inf"):
@@ -1920,12 +1915,14 @@ class Trainer(
         has_step = is_overridden("validation_step", pl_module)
         enable_validation = self.limit_val_batches > 0
         if source.is_defined() and has_step and enable_validation:
+            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+            # it should not reload again if it has already reloaded during sanity_check
+            if (self.sanity_checking and self.reload_dataloaders_every_n_epochs == 1) or not self.sanity_checking:
+                self._last_val_dl_reload_epoch = self.current_epoch
+
             self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
-
-            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-            self._last_val_dl_reload_epoch = self.current_epoch
 
     def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.

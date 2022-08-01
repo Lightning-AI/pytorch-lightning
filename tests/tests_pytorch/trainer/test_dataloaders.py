@@ -996,8 +996,8 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
         assert train_reload_epochs == [0, 1, 2, 3, 4]
         assert val_reload_epochs == [0, 1, 2, 3, 4]
     elif n == 2:
-        assert train_reload_epochs == [0, 2, 4]
-        assert val_reload_epochs == [0, 2, 4]
+        assert train_reload_epochs == [0, 1, 3]
+        assert val_reload_epochs == [0, 1, 3]
 
 
 @pytest.mark.parametrize(
@@ -1005,8 +1005,9 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
     [
         # Sanity check at epoch 0 creates a validation dataloader, but validation is
         # checked (and in this case reloaded) every n epochs starting from epoch n-1
-        (3, [0, 2, 4, 6, 8], [0, 2, 5, 8]),
-        (5, [0, 2, 4, 6, 8], [0, 4, 9]),
+        (2, [0, 1, 3, 5, 7, 9], [0, 1, 3, 5, 7, 9]),
+        (3, [0, 1, 3, 5, 7, 9], [0, 2, 5, 8]),
+        (5, [0, 1, 3, 5, 7, 9], [0, 4, 9]),
     ],
 )
 def test_dataloaders_load_every_n_epochs_infrequent_val(
