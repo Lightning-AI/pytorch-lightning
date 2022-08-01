@@ -250,7 +250,8 @@ class _GlobalStateSnapshot:
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
-        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker process."""
+        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
+        process."""
         warn_only = torch.is_deterministic_algorithms_warn_only_enabled() if _TORCH_GREATER_EQUAL_1_11 else False
         return cls(
             use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
