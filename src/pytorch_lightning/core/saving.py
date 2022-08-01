@@ -39,6 +39,9 @@ from pytorch_lightning.utilities.types import _PATH
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
+MAP_LOCATION_TYPE = Optional[
+    Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
+]
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
@@ -175,9 +178,7 @@ class ModelIO:
 def _load_from_checkpoint(
     cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint_path: Union[str, IO],
-    map_location: Optional[
-        Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
-    ] = None,
+    map_location: MAP_LOCATION_TYPE = None,
     hparams_file: Optional[str] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
