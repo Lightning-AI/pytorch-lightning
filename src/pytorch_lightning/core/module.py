@@ -186,7 +186,7 @@ class LightningModule(
             return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: Optional["pl.Trainer"] = None) -> None:
+    def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
                 if trainer is not None:
