@@ -205,7 +205,7 @@ def test_mixed_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.strategy.precision_plugin.precision == 16
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
@@ -219,6 +219,7 @@ def test_pure_half_precision(tmpdir):
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.batch_to_device(torch.zeros((1), dtype=torch.float)).dtype == torch.half
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -602,7 +603,7 @@ def test_strategy_choice_ipu_plugin(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_device_type_when_training_plugin_ipu_passed(tmpdir):
+def test_device_type_when_ipu_strategy_passed(tmpdir):
     trainer = Trainer(strategy=IPUStrategy(), accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)

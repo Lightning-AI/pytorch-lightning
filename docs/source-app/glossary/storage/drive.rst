@@ -1,5 +1,7 @@
 :orphan:
 
+.. _drive_storage:
+
 #############
 Drive Storage
 #############

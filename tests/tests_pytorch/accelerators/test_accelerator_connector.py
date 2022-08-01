@@ -671,7 +671,7 @@ def test_devices_auto_choice_mps():
 
 @pytest.mark.parametrize(
     ["parallel_devices", "accelerator"],
-    [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], ("tpu"))],
+    [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], "tpu")],
 )
 def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
     with pytest.raises(MisconfigurationException, match=r"parallel_devices set through"):
