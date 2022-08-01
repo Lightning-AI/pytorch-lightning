@@ -22,7 +22,7 @@ jobs:
       pull-pkgs: ${{ steps.download.outputs.pkgs }}
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
     - run: |
@@ -65,7 +65,7 @@ jobs:
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -99,7 +99,7 @@ jobs:
       with:
         name: pypi-packages-${{ github.sha }}
         path: pypi
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -129,7 +129,7 @@ jobs:
         name: pypi-packages-${{ github.sha }}
         path: pypi
     - run: ls -lh pypi/
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -222,7 +222,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
