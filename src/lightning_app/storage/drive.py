@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import shutil
@@ -231,6 +232,8 @@ class Drive:
     def _collect_component_names(self) -> List[str]:
         sep = "/"
         if self.fs.exists(self.drive_root):
+            # Invalidate cache before running ls in case new directories have been added
+            self.fs.invalidate_cache()
             return [str(p.split(sep)[-1]) for p in self.fs.ls(self.drive_root)]
         return []
 
