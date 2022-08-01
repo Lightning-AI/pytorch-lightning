@@ -265,8 +265,8 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_run_status_failed(client, mlflow):
     class CustomModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            super().training_step(batch, batch_idx)
+        def on_fit_start(self):
+            super().on_fit_start()
             raise BaseException
 
     model = CustomModel()

@@ -267,10 +267,9 @@ class TensorBoardLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        if status != "failed":
-            self.experiment.flush()
-            self.experiment.close()
-            self.save()
+        self.experiment.flush()
+        self.experiment.close()
+        self.save()
 
     @property
     def name(self) -> str:
