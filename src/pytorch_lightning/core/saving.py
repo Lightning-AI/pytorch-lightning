@@ -182,7 +182,7 @@ def _load_from_checkpoint(
     hparams_file: Optional[str] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
-) -> Union["ModelIO", "pl.LightningModule", "pl.LightningDataModule"]:
+) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
         map_location = lambda storage, loc: storage
     with pl_legacy_patch():
@@ -207,15 +207,18 @@ def _load_from_checkpoint(
 
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
-    return _load_state(cls, checkpoint, strict=strict, **kwargs)
+    # allow cls to be evaluated as subclassed LightningModule or,
+    # as LightningModule for internal tests
+    if issubclass(cls, pl.LightningModule) or isinstance(cls, pl.LightningModule):
+        return _load_state(cls, checkpoint, strict=strict, **kwargs)
 
 
 def _load_state(
-    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
+    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
     strict: Optional[bool] = None,
     **cls_kwargs_new: Any,
-) -> Union["ModelIO", "pl.LightningModule", "pl.LightningDataModule"]:
+) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
     cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
@@ -264,7 +267,8 @@ def _load_state(
         return obj
 
     # load the state_dict on the model automatically
-    keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
+    if strict:
+        keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:
         if keys.missing_keys:
