@@ -75,16 +75,16 @@ Enabling DeviceStatsMonitor with HPUs
 :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor` is a callback that automatically monitors and logs device stats during the training stage.
 This callback can be passed for training with HPUs. It returns a map of the following metrics with their values:
 
-- **Limit** : amount of total memory on HPU device.
-- **InUse** : amount of allocated memory at any instance.
-- **MaxInUse** : amount of total active memory allocated.
-- **NumAllocs** : number of allocations.
-- **NumFrees** : number of freed chunks.
-- **ActiveAllocs** : number of active allocations.
-- **MaxAllocSize** : maximum allocated size.
-- **TotalSystemAllocs** : total number of system allocations.
-- **TotalSystemFrees** : total number of system frees.
-- **TotalActiveAllocs** : total number of active allocations.
+- **Limit**: amount of total memory on HPU device.
+- **InUse**: amount of allocated memory at any instance.
+- **MaxInUse**: amount of total active memory allocated.
+- **NumAllocs**: number of allocations.
+- **NumFrees**: number of freed chunks.
+- **ActiveAllocs**: number of active allocations.
+- **MaxAllocSize**: maximum allocated size.
+- **TotalSystemAllocs**: total number of system allocations.
+- **TotalSystemFrees**: total number of system frees.
+- **TotalActiveAllocs**: total number of active allocations.
 
 The below snippet shows how DeviceStatsMonitor can be enabled.
 
