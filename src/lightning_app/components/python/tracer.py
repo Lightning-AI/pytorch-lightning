@@ -45,9 +45,9 @@ class TracerPythonScript(LightningWork):
         """The TracerPythonScript class enables to easily run a python script.
 
         When subclassing this class, you can configure your own :class:`~lightning_app.utilities.tracer.Tracer`
-        by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method
+        by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method.
 
-        The tracer is quite a magical class. It enables you to inject core into a script execution without changing it.
+        The tracer is quite a magical class. It enables you to inject code into a script execution without changing it.
 
         Arguments:
             script_path: Path of the python script to run.
@@ -59,12 +59,12 @@ class TracerPythonScript(LightningWork):
         Raises:
             FileNotFoundError: If the provided `script_path` doesn't exists.
 
-        **How does it works ?**
+        **How does it work?**
 
         It works by executing the python script with python built-in `runpy
         <https://docs.python.org/3/library/runpy.html>`_ run_path method.
         This method takes any python globals before executing the script,
-        e.g you can modify classes or function from the script.
+        e.g., you can modify classes or function from the script.
 
         .. doctest::
 
