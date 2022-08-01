@@ -170,6 +170,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Disallowed using `BatchSampler` when running on multiple IPUs ([#13854](https://github.com/Lightning-AI/lightning/pull/13854))
 
 
+- Raised a `MisconfigurationException` if batch transfer hooks are overriden with `IPUAccelerator` ([13961](https://github.com/Lightning-AI/lightning/pull/13961))
+
+
 ### Deprecated
 
 - Deprecated `pytorch_lightning.accelerators.gpu.GPUAccelerator` in favor of `pytorch_lightning.accelerators.cuda.CUDAAccelerator` ([#13636](https://github.com/Lightning-AI/lightning/pull/13636))
