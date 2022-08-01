@@ -52,7 +52,7 @@ def run():
         max_epochs=1,
         enable_model_summary=False,
         enable_progress_bar=False,
-        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1)
+        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1),
     )
     trainer.fit(model, train_dataloaders=train_data)
 
@@ -61,9 +61,11 @@ def run():
         max_epochs=3,
         enable_model_summary=False,
         enable_progress_bar=True,
-        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1)
+        callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1),
     )
-    trainer.fit(model, train_dataloaders=train_data, ckpt_path="lightning_logs/version_0/checkpoints/epoch=0-step=3.ckpt")
+    trainer.fit(
+        model, train_dataloaders=train_data, ckpt_path="lightning_logs/version_0/checkpoints/epoch=0-step=3.ckpt"
+    )
 
 
 if __name__ == "__main__":
