@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -158,6 +159,10 @@ def __verify_dp_batch_transfer_support(trainer: "pl.Trainer", model: "pl.Lightni
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
         ):
             raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
+        if isinstance(trainer.accelerator, IPUAccelerator) and (
+            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
+        ):
+            raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
 
 
 def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
