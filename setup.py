@@ -92,12 +92,13 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
 
-    _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
-
     if _PACKAGE_NAME == "lightning":  # install just the meta package
         _SETUP_TOOLS._adjust_require_versions(_PATH_SRC, _PATH_REQUIRE)
     elif _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
         _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+
+    if _PACKAGE_NAME not in _PACKAGE_MAPPING:
+        _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
 
     for lit_name, pkg_name in _PACKAGE_MAPPING.items():
         # fixme: if we run creation of meta pkg against stable we shall pull the source
