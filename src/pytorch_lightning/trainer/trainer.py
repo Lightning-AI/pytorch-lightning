@@ -256,7 +256,7 @@ class Trainer(
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
-                that don't support deterministic mode (requires Pytorch 1.11+). If not set, defaults to ``False``.
+                that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
                 Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,

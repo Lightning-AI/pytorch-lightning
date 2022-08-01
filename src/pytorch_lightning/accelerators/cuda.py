@@ -97,12 +97,6 @@ class CUDAAccelerator(Accelerator):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-        # temporarily enable "gpu" to point to the CUDA Accelerator
-        accelerator_registry.register(
-            "gpu",
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
 
     def teardown(self) -> None:
         # clean up memory

@@ -20,7 +20,7 @@ import os
 import re
 from argparse import Namespace
 from time import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _module_available
@@ -230,7 +230,7 @@ class MLFlowLogger(Logger):
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
