@@ -20,7 +20,7 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
 import torch
@@ -58,11 +58,13 @@ class ModelIO:
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[str, IO],
-        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        map_location: Optional[
+            Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
+        ] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Union["ModelIO", "pl.LightningModule", "pl.LightningDataModule"]:
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
@@ -171,13 +173,15 @@ class ModelIO:
 
 
 def _load_from_checkpoint(
-    cls: Union["pl.LightningModule", "pl.LightningDataModule"],
+    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint_path: Union[str, IO],
-    map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+    map_location: Optional[
+        Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
+    ] = None,
     hparams_file: Optional[str] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
-) -> Any:
+) -> Union["ModelIO", "pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
         map_location = lambda storage, loc: storage
     with pl_legacy_patch():
@@ -206,11 +210,11 @@ def _load_from_checkpoint(
 
 
 def _load_state(
-    cls: Union["pl.LightningModule", "pl.LightningDataModule"],
+    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
     strict: Optional[bool] = None,
     **cls_kwargs_new: Any,
-) -> Any:
+) -> Union["ModelIO", "pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
     cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
@@ -229,7 +233,9 @@ def _load_state(
 
         # 2. Try to restore model hparams from checkpoint using the new key
         _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-        cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
+        _new_hparam = checkpoint.get(_new_hparam_key)
+        if _new_hparam is not None:
+            cls_kwargs_loaded.update(_new_hparam)
 
         # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
         cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
@@ -250,7 +256,8 @@ def _load_state(
     obj = cls(**_cls_kwargs)
 
     # give model a chance to load something
-    obj.on_load_checkpoint(checkpoint)
+    if not isinstance(obj, ModelIO):
+        obj.on_load_checkpoint(checkpoint)
 
     if isinstance(obj, pl.LightningDataModule):
         return obj
@@ -271,7 +278,7 @@ def _load_state(
     return obj
 
 
-def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Callable, str]] = None) -> object:
+def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Callable, str]] = None) -> Dict[str, Any]:
     """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:

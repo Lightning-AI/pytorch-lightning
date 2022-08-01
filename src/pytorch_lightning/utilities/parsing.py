@@ -25,6 +25,7 @@ from torch import nn
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
@@ -108,7 +109,9 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
         del hparams_dict[k]
 
 
-def parse_class_init_keys(cls: Type["pl.LightningModule"]) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(
+    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]]
+) -> Tuple[str, Optional[str], Optional[str]]:
     """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
     Examples:
