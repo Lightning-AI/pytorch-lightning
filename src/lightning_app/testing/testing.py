@@ -155,7 +155,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
     # 3. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
-        env_copy["PREPARE_LIGHTING"] = "1"
+        env_copy["PACKAGE_LIGHTNING"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
@@ -195,7 +195,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
             record_har_path=Config.har_location,
         )
         admin_page = context.new_page()
-        res = requests.post(Config.url + "/v1/auth/login", data=json.dumps(payload))
+        url = Config.url
+        if url.endswith("/"):
+            url = url[:-1]
+        res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
         token = res.json()["token"]
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")
