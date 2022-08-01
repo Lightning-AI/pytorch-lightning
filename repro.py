@@ -36,6 +36,11 @@ class BoringModel(LightningModule):
         print()
         return {"loss": loss}
 
+    def validation_step(self, batch, batch_idx):
+        loss = self(batch).sum()
+        self.log("val_loss", loss)
+        print()
+
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
@@ -54,7 +59,7 @@ def run():
         enable_progress_bar=False,
         callbacks=ModelCheckpoint(monitor="train_loss", save_top_k=-1, every_n_train_steps=1),
     )
-    trainer.fit(model, train_dataloaders=train_data)
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=train_data)
 
     trainer = Trainer(
         default_root_dir=os.getcwd(),
