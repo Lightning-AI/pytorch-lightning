@@ -135,7 +135,11 @@ class Runtime:
     def _add_stopped_status_to_work(self, work: "lightning_app.LightningWork") -> None:
         if work.status.stage == WorkStageStatus.STOPPED:
             return
+
         latest_hash = work._calls["latest_call_hash"]
+
         if latest_hash is None:
             return
-        work._calls[latest_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+
+        if latest_hash in work._calls and "statuses" in work._calls[latest_hash]:
+            work._calls[latest_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))

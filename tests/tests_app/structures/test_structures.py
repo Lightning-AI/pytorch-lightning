@@ -49,7 +49,8 @@ def test_dict():
         for k in ("a", "b", "c", "d")
     )
     assert all(
-        flow.state["structures"]["dict"]["works"][f"work_{k}"]["calls"] == {"latest_call_hash": None}
+        flow.state["structures"]["dict"]["works"][f"work_{k}"]["calls"]
+        == {"latest_call_hash": None, "call_hashes": set()}
         for k in ("a", "b", "c", "d")
     )
     assert all(flow.state["structures"]["dict"]["works"][f"work_{k}"]["changes"] == {} for k in ("a", "b", "c", "d"))
@@ -95,7 +96,8 @@ def test_dict():
         for k in ("a", "b", "c", "d")
     )
     assert all(
-        flow.state_with_changes["structures"]["dict"]["works"][f"work_{k}"]["calls"] == {"latest_call_hash": None}
+        flow.state_with_changes["structures"]["dict"]["works"][f"work_{k}"]["calls"]
+        == {"latest_call_hash": None, "call_hashes": set()}
         for k in ("a", "b", "c", "d")
     )
     assert all(
@@ -169,7 +171,8 @@ def test_list():
         for i in range(4)
     )
     assert all(
-        flow.state["structures"]["list"]["works"][str(i)]["calls"] == {"latest_call_hash": None} for i in range(4)
+        flow.state["structures"]["list"]["works"][str(i)]["calls"] == {"latest_call_hash": None, "call_hashes": set()}
+        for i in range(4)
     )
     assert all(flow.state["structures"]["list"]["works"][str(i)]["changes"] == {} for i in range(4))
 
@@ -209,7 +212,8 @@ def test_list():
         for i in range(4)
     )
     assert all(
-        flow.state_with_changes["structures"]["list"]["works"][str(i)]["calls"] == {"latest_call_hash": None}
+        flow.state_with_changes["structures"]["list"]["works"][str(i)]["calls"]
+        == {"latest_call_hash": None, "call_hashes": set()}
         for i in range(4)
     )
     assert all(flow.state_with_changes["structures"]["list"]["works"][str(i)]["changes"] == {} for i in range(4))

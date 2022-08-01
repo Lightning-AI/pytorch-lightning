@@ -114,7 +114,10 @@ def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
     ).dispatch()
     # pop the stopped status.
     call_hash = work._calls["latest_call_hash"]
-    work._calls[call_hash]["statuses"].pop(-1)
+
+    if call_hash in work._calls:
+        work._calls[call_hash]["statuses"].pop(-1)
+
     if isinstance(work.run, ProxyWorkRun):
         work.run = work.run.work_run
 

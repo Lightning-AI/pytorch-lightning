@@ -320,7 +320,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {"latest_call_hash": None},
+                "calls": {"latest_call_hash": None, "call_hashes": set()},
                 "changes": {},
             },
             "work_a": {
@@ -334,7 +334,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {"latest_call_hash": None},
+                "calls": {"latest_call_hash": None, "call_hashes": set()},
                 "changes": {},
             },
         },
@@ -364,7 +364,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {"latest_call_hash": None},
+                "calls": {"latest_call_hash": None, "call_hashes": set()},
                 "changes": {},
             },
             "work_a": {
@@ -380,11 +380,10 @@ def test_lightning_flow_and_work():
                 },
                 "calls": {
                     "latest_call_hash": None,
-                    "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c": {
-                        "name": "run",
-                        "call_hash": "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c",
+                    "fe3fa0f": {
                         "ret": None,
                     },
+                    "call_hashes": set(),
                 },
                 "changes": {},
             },

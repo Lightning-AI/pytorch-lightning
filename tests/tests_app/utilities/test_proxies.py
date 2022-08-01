@@ -240,7 +240,7 @@ class WorkRunnerPatch(WorkRunner):
     counter = 0
 
     def __call__(self):
-        call_hash = "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c"
+        call_hash = "fe3fa0f"
         while True:
             try:
                 called = self.caller_queue.get()
@@ -361,7 +361,7 @@ def test_path_argument_to_transfer(*_):
     ],
 )
 @mock.patch("lightning_app.utilities.proxies.Copier")
-def test_path_attributes_to_transfer(_, monkeypatch, origin, exists_remote, expected_get):
+def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
     """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
     exist)."""
     path_mock = Mock()
@@ -537,6 +537,7 @@ def test_work_state_observer():
         delta_queue=delta_queue,
         state_observer=observer,
     )
+    observer._last_state = work.state
     work._setattr_replacement = setattr_proxy
 
     ##############################
@@ -548,9 +549,10 @@ def test_work_state_observer():
     ############################
     # 2. Simulate a setattr call
     ############################
+    observer._last_state = work.state
     work.run(use_setattr=True, use_containers=False)
 
-    # this is necessary only in this test where we siumulate the calls
+    # this is necessary only in this test where we simulate the calls
     work._calls.clear()
     work._calls.update({"latest_call_hash": None})
 
@@ -560,6 +562,7 @@ def test_work_state_observer():
 
     # The observer should not trigger any deltas being sent and only consume the delta memory
     assert not delta_queue
+    observer._last_state = work.state
     observer.run_once()
     assert not delta_queue
     assert not observer._delta_memory

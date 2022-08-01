@@ -45,17 +45,13 @@ def unwrap(fn):
     return fn
 
 
-def _send_data_to_caller_queue(
-    work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str, work_run: Callable, use_args: bool
-) -> Dict:
+def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str) -> Dict:
+
     if work._calls["latest_call_hash"] is None:
         work._calls["latest_call_hash"] = call_hash
 
     if call_hash not in work._calls:
         work._calls[call_hash] = {
-            "name": work_run.__name__,
-            "call_hash": call_hash,
-            "use_args": use_args,
             "statuses": [],
         }
     else:
@@ -65,9 +61,14 @@ def _send_data_to_caller_queue(
     work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.PENDING))
 
     work_state = work.state
+    # There is no need to send the call_hashes to the work.
+    call_hashes = work_state["calls"].pop("call_hashes")
     data.update({"state": work_state})
     logger.debug(f"Sending to {work.name}: {data}")
     caller_queue.put(data)
+
+    # Reset the call_hashes.
+    work_state["calls"]["call_hashes"] = call_hashes
     work._restarting = False
     return work_state
 
@@ -85,15 +86,13 @@ class ProxyWorkRun:
         self.work_state = None
 
     def __call__(self, *args, **kwargs):
-        provided_none = len(args) == 1 and args[0] is None
-        use_args = len(kwargs) > 0 or (len(args) > 0 and not provided_none)
-
         self._validate_call_args(args, kwargs)
         args, kwargs = self._process_call_args(args, kwargs)
 
         call_hash = self.work._call_hash(self.work_run, args, kwargs)
-        entered = call_hash in self.work._calls
-        returned = entered and "ret" in self.work._calls[call_hash]
+        succeeded = call_hash in self.work._calls["call_hashes"]
+        entered = call_hash in self.work._calls or succeeded
+        returned = entered and (True if succeeded else "ret" in self.work._calls[call_hash])
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
         stopped_on_sigterm = self.work._restarting and self.work.status.reason == WorkStopReasons.SIGTERM_SIGNAL_HANDLER
 
@@ -103,18 +102,18 @@ class ProxyWorkRun:
         # for the readers.
         if self.cache_calls:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash, self.work_run, use_args)
+                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
             else:
                 if returned:
                     return
         else:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash, self.work_run, use_args)
+                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
             else:
                 if returned or stopped_on_sigterm:
                     # the previous task has completed and we can re-queue the next one.
                     # overriding the return value for next loop iteration.
-                    _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash, self.work_run, use_args)
+                    _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
         if not self.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
@@ -191,35 +190,51 @@ class WorkStateObserver(Thread):
                 self.list.append(1)
     """
 
-    def __init__(self, work: "LightningWork", delta_queue: "BaseQueue", interval: float = 5) -> None:
+    def __init__(self, work, delta_queue: "BaseQueue", interval: float = 0.1) -> None:
         super().__init__(daemon=True)
         self._work = work
         self._delta_queue = delta_queue
         self._interval = interval
         self._exit_event = Event()
         self._delta_memory = []
-        self._last_state = deepcopy(self._work.state)
+        self._last_state = None
+        self._work_state = []
+        self._processing = False
 
     def run(self) -> None:
         while not self._exit_event.is_set():
+            if self._work_state:
+                state = self._work_state.pop(0)
+                if state:
+                    self._last_state = state
+                    self._processing = True
+                else:
+                    self._last_state = None
+                    self._delta_memory.clear()
+                    self._processing = False
+
             time.sleep(self._interval)
-            # Run the thread only if active
-            self.run_once()
+
+            with _state_observer_lock:
+                if self._last_state and self._delta_memory:
+                    self.run_once()
 
     def run_once(self) -> None:
-        with _state_observer_lock:
-            # Add all deltas the LightningWorkSetAttrProxy has processed and sent to the Flow already while
-            # the WorkStateObserver was sleeping
-            for delta in self._delta_memory:
-                self._last_state += delta
-            self._delta_memory.clear()
+        # Add all deltas the LightningWorkSetAttrProxy has processed and sent to the Flow already while
+        # the WorkStateObserver was sleeping
+        for delta in self._delta_memory:
+            self._last_state += delta
 
-            # The remaining delta is the result of state updates triggered outside the setattr, e.g, by a list append
-            delta = Delta(DeepDiff(self._last_state, self._work.state))
-            if not delta.to_dict():
-                return
-            self._last_state = deepcopy(self._work.state)
-            self._delta_queue.put(ComponentDelta(id=self._work.name, delta=delta))
+        self._delta_memory.clear()
+
+        # The remaining delta is the result of state updates triggered outside the setattr, e.g, by a list append
+        delta = Delta(DeepDiff(self._last_state, self._work.state))
+        if not delta.to_dict():
+            return
+
+        self._last_state = deepcopy(self._work.state)
+        delta = ComponentDelta(id=self._work.name, delta=delta)
+        self._delta_queue.put(delta)
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -336,6 +351,14 @@ class WorkRunner:
         # 5. Inform the flow that the work is ready to receive data through the caller queue.
         self.readiness_queue.put(True)
 
+        # 6. Create the state observer thread.
+        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
+
+        # 7. Start the state observer thread. It will look for state changes and send them back to the Flow
+        # The observer has to be initialized here, after the set_state call above so that the thread can start with
+        # the proper initial state of the work
+        self.state_observer.start()
+
     def run_once(self):
         # 1. Wait for the caller queue data.
         called: Dict[str, Any] = self.caller_queue.get()
@@ -358,9 +381,6 @@ class WorkRunner:
         # 5. Transfer all paths in the state automatically if they have an origin and exist
         self._transfer_path_attributes()
 
-        # 6. Create the state observer thread.
-        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
-
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
@@ -372,19 +392,24 @@ class WorkRunner:
 
         # 8. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
         state = deepcopy(self.work.state)
+
+        # 9. Inform the flow the work is running and add the delta to the deepcopy.
         self.work._calls["latest_call_hash"] = call_hash
         self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.RUNNING))
-        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+        delta = Delta(DeepDiff(state, self.work.state))
+        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
-        # 9. Start the state observer thread. It will look for state changes and send them back to the Flow
-        # The observer has to be initialized here, after the set_state call above so that the thread can start with
-        # the proper initial state of the work
-        self.state_observer.start()
+        state += delta
 
         # 10. Unwrap the run method if wrapped.
         work_run = self.work.run
         if hasattr(work_run, "__wrapped__"):
             work_run = work_run.__wrapped__
+
+        # 11. Add the work state to the state observer and wait until it is ready.
+        self.state_observer._work_state.append(state)
+        while not self.state_observer._processing:
+            time.sleep(0.01)
 
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
@@ -404,12 +429,11 @@ class WorkRunner:
             print("########## CAPTURED EXCEPTION ###########")
             return
 
+        # 13. Inform the state observer its work is done.
+        self.state_observer._work_state.append(None)
+
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
         persist_artifacts(work=self.work)
-
-        # 15. Destroy the state observer.
-        self.state_observer.join(0)
-        self.state_observer = None
 
         # 15. An asynchronous work shouldn't return a return value.
         if ret is not None:
@@ -417,6 +441,11 @@ class WorkRunner:
                 f"Your work {self.work} shouldn't have a return value. Found {ret}."
                 "HINT: Use the Payload API instead."
             )
+
+        # 16. Wait for the state observer to have finished to send all its deltas
+        # and set processing to False.
+        while self.state_observer._processing:
+            time.sleep(0.1)
 
         # 16. DeepCopy the state and send the latest delta to the flow.
         # use the latest state as we have already sent delta

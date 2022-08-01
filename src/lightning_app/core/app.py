@@ -431,15 +431,7 @@ class LightningApp:
         return False
 
     def _collect_work_finish_status(self) -> dict:
-        work_finished_status = {}
-        for work in self.works:
-            work_finished_status[work.name] = False
-            for key in work._calls:
-                if key == "latest_call_hash":
-                    continue
-                fn_metadata = work._calls[key]
-                work_finished_status[work.name] = fn_metadata["name"] == "run" and "ret" in fn_metadata
-
+        work_finished_status = {work.name: len(work._calls) == 2 for work in self.works}
         assert len(work_finished_status) == len(self.works)
         return work_finished_status
 

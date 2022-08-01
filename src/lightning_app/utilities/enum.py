@@ -59,9 +59,12 @@ class WorkStatus:
 
 
 def make_status(stage: str, message: Optional[str] = None, reason: Optional[str] = None):
-    return {
+    status = {
         "stage": stage,
-        "message": message,
-        "reason": reason,
         "timestamp": datetime.now(tz=timezone.utc).timestamp(),
     }
+    if message:
+        status["message"] = message
+    if reason:
+        status["reason"] = reason
+    return status
