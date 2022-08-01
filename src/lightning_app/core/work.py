@@ -52,6 +52,7 @@ class LightningWork(abc.ABC):
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
+        drives: Optional[List[Drive]] = None,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
@@ -140,6 +141,7 @@ class LightningWork(abc.ABC):
         self._cloud_compute = cloud_compute or CloudCompute()
         self._backend: Optional[Backend] = None
         self._on_init_end()
+        self._drives = drives
 
     @property
     def url(self) -> str:
@@ -223,6 +225,10 @@ class LightningWork(abc.ABC):
 
     @property
     def cloud_compute(self) -> CloudCompute:
+        return self._cloud_compute
+
+    @property
+    def drives(self) -> List[Drive]:
         return self._cloud_compute
 
     @cloud_compute.setter
