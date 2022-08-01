@@ -22,7 +22,7 @@ import tempfile
 import urllib.request
 from datetime import datetime
 from importlib.util import module_from_spec, spec_from_file_location
-from itertools import groupby
+from itertools import chain, groupby
 from types import ModuleType
 from typing import List
 
@@ -45,7 +45,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 def load_requirements(
     path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
 ) -> List[str]:
-    """Load requirements from a file.
+    """Loading requirements from a file.
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
     >>> load_requirements(path_req)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
@@ -438,3 +438,33 @@ def _download_frontend(root: str = _PROJECT_ROOT):
     # If installing from source without internet connection, we don't want to break the installation
     except Exception:
         print("The Lightning UI downloading has failed!")
+
+
+def _adjust_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
+    """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`."""
+    reqs = load_requirements(req_dir, file_name="base.txt")
+    for i, req in enumerate(reqs):
+        pkg_name = req[: min(req.index(c) for c in ">=" if c in req)]
+        ver_ = parse_version_from_file(os.path.join(source_dir, pkg_name))
+        if not ver_:
+            continue
+        ver2 = ".".join(ver_.split(".")[:2] + ["*"])
+        reqs[i] = f"{req}, =={ver2}"
+
+    with open(os.path.join(req_dir, "base.txt"), "w") as fp:
+        fp.writelines([ln + os.linesep for ln in reqs])
+
+
+def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
+    """Load all base requirements from all particular packages and prune duplicates."""
+    requires = [
+        load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
+        for d in glob.glob(os.path.join(req_dir, "*"))
+        if os.path.isdir(d)
+    ]
+    if not requires:
+        return None
+    # TODO: add some smarter version aggregation per each package
+    requires = list(chain(*requires))
+    with open(os.path.join(req_dir, "base.txt"), "w") as fp:
+        fp.writelines([ln + os.linesep for ln in requires])
