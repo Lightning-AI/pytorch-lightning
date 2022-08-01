@@ -75,7 +75,7 @@ jobs:
 # TODO: Enable cache
 #      - name: Cache virtualenv
 #        id: cache-venv
-#        uses: actions/cache@v2
+#        uses: actions/cache@v3
 #        with:
 #          path: ./.venv/
 #          key: ${{ runner.os }}-pip-${{ matrix.app_name }}-${{ hashFiles('requirements/app/base.txt', 'requirements/app/*.txt', 'src/lightning_app/__version__.py') }}
@@ -90,7 +90,7 @@ jobs:
 
       - name: Cache Playwright dependencies
         id: playwright-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ matrix.app_name }}-${{ hashFiles('requirements/app/base.txt', 'requirements/app/*.txt', 'src/lightning_app/__version__.py') }}
