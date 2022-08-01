@@ -281,6 +281,7 @@ class TQDMProgressBar(ProgressBarBase):
             return
 
         self.val_progress_bar.reset(convert_inf(self.total_val_batches_current_dataloader))
+        self.val_progress_bar.initial = 0
         desc = self.sanity_check_description if trainer.sanity_checking else self.validation_description
         self.val_progress_bar.set_description(f"{desc} DataLoader {dataloader_idx}")
 
@@ -308,6 +309,7 @@ class TQDMProgressBar(ProgressBarBase):
             return
 
         self.test_progress_bar.reset(convert_inf(self.total_test_batches_current_dataloader))
+        self.test_progress_bar.initial = 0
         self.test_progress_bar.set_description(f"{self.test_description} DataLoader {dataloader_idx}")
 
     def on_test_batch_end(self, *_: Any) -> None:
@@ -328,6 +330,7 @@ class TQDMProgressBar(ProgressBarBase):
             return
 
         self.predict_progress_bar.reset(convert_inf(self.total_predict_batches_current_dataloader))
+        self.predict_progress_bar.initial = 0
         self.predict_progress_bar.set_description(f"{self.predict_description} DataLoader {dataloader_idx}")
 
     def on_predict_batch_end(self, *_: Any) -> None:
