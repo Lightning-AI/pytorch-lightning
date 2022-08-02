@@ -13,7 +13,7 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any, cast, Union
+from typing import Any, cast, Optional, Union
 
 import torch
 from torch import Tensor
@@ -21,7 +21,7 @@ from torch import Tensor
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 
 def _ignore_scalar_return_in_dp() -> None:
@@ -52,12 +52,23 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         )
 
     Args:
+        pl_module: The module to wrap. See description for `forward_module`.
+
+            .. deprecated:: v1.6
+                The argument `pl_module` is deprecated in v1.8 and will be removed in v1.10. Please use
+                `forward_module` instead.
+
         forward_module: The module to wrap. If it's not a LightningModule, it must have an attribute ``.module``
             pointing to a LightningModule reference.
     """
 
-    def __init__(self, forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
-        super().__init__(forward_module)
+    def __init__(
+        self,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+    ) -> None:
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         _ignore_scalar_return_in_dp()
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:

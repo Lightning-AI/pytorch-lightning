@@ -45,7 +45,7 @@ def test_lightning_wrapper_module_methods(wrapper_class, stage):
     pl_module = Mock(spec=LightningModule)
     trainer = Mock()
     pl_module._trainer = trainer
-    wrapped_module = wrapper_class(pl_module)
+    wrapped_module = wrapper_class(forward_module=pl_module)
 
     batch = torch.rand(5)
     batch_idx = 3
@@ -171,7 +171,7 @@ def test_lightning_parallel_module_device_access(nest, unnest):
     trainer.state.stage = RunningStage.TRAINING
 
     root_device = torch.device("cuda", 0)
-    wrapped_module = LightningParallelModule(pl_module).to(root_device)
+    wrapped_module = LightningParallelModule(forward_module=pl_module).to(root_device)
     model = DataParallel(wrapped_module, device_ids=[0, 1])
 
     data = torch.tensor([0.0, 1.0], device=root_device).view(2, 1)  # one value per gpu
@@ -197,7 +197,7 @@ def test_lightning_parallel_module_device_access_warning():
     pl_module.trainer = trainer
     trainer.state.stage = RunningStage.TRAINING
 
-    wrapped_module = LightningParallelModule(pl_module).cuda()
+    wrapped_module = LightningParallelModule(forward_module=pl_module).cuda()
     model = DataParallel(wrapped_module, device_ids=[0, 1])
 
     data = dict(x=1)  # contains no tensors

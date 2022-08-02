@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
@@ -102,3 +103,18 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             if trainer.predicting:
                 return self._forward_module.predict_step(*inputs, **kwargs)
         return self._forward_module(*inputs, **kwargs)
+
+    @classmethod
+    def _validate_init_arguments(
+        cls,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+    ):
+        # TODO: In v1.10, remove this method and mark the forward_module init argument in all subclasses as required
+        if pl_module is not None:
+            rank_zero_deprecation(
+                f"The argument `pl_module` in `{cls.__name__}` is deprecated in v1.8 and will be removed in"
+                " v1.10. Please use `forward_module` instead."
+            )
+        elif forward_module is None:
+            raise ValueError("Argument `forward_module` is required.")
