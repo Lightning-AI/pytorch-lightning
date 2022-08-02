@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
@@ -44,7 +44,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = precision
 
-    def backward(self, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(self, model: "pl.LightningModule", *_: Any, **__: Any) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since IPUs handle"
@@ -53,7 +53,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],

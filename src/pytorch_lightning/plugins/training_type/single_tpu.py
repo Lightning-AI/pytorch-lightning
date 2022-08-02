@@ -18,7 +18,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 class SingleTPUPlugin(SingleTPUStrategy):
     def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         rank_zero_deprecation(
-            "The `pl.plugins.training_type.single_tpu.SingleTPUPlugin` is deprecated in v1.6 and will be removed in."
+            "The `pl.plugins.training_type.single_tpu.SingleTPUPlugin` is deprecated in v1.6 and will be removed in"
             " v1.8. Use `pl.strategies.single_tpu.SingleTPUStrategy` instead."
         )
         super().__init__(*args, **kwargs)

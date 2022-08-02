@@ -37,7 +37,7 @@ jobs:
       shell: bash -l {0}
       run: echo "::set-output name=continue::1"
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       if: ${{ (steps.skip.outputs.continue == '1') }}
       with:
         python-version: ${{ matrix.python-version }}

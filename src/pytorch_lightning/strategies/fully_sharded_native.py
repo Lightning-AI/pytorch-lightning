@@ -85,7 +85,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         `For more information: https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/`.
 
         .. warning:: ``DDPFullyShardedNativeStrategy`` is in beta and subject to change. The interface can
-        bring breaking changes and new features with the next release of Pytorch.
+        bring breaking changes and new features with the next release of PyTorch.
 
         Defaults have been set and options have been exposed, but may require configuration
         based on your level of memory/speed efficiency. We suggest having a look at this tutorial for
@@ -201,6 +201,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self._rank_0_will_call_children_scripts = True
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
         # share ddp pids to all processes
         self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
@@ -290,6 +291,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         assert self.cluster_environment is not None
+        assert self.accelerator is not None
         self.cluster_environment.teardown()
         self.precision_plugin.teardown()
         self.accelerator.teardown()
