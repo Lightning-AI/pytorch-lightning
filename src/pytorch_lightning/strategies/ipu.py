@@ -207,6 +207,7 @@ class IPUStrategy(ParallelStrategy):
         return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
+        assert self.lightning_module is not None
         assert self.lightning_module.trainer is not None
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
@@ -231,10 +232,9 @@ class IPUStrategy(ParallelStrategy):
         return self._inference_opts
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
-        model = self.model.module if isinstance(self.model, LightningIPUModule) else self.model
-        assert model is not None
-        return unwrap_lightning_module(model)
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        if self.model is not None:
+            return unwrap_lightning_module(self.model)
 
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
@@ -256,6 +256,7 @@ class IPUStrategy(ParallelStrategy):
 
         ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
         """
+        assert self.lightning_module is not None
         assert self.lightning_module.trainer is not None
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
@@ -269,6 +270,7 @@ class IPUStrategy(ParallelStrategy):
 
     @property
     def _n_replicate(self) -> int:
+        assert self.lightning_module is not None
         opts = self.training_opts if self.lightning_module.training else self.inference_opts
         accumulate_grad_batches = opts.Training.gradient_accumulation
         device_iterations = opts.device_iterations
@@ -298,6 +300,7 @@ class IPUStrategy(ParallelStrategy):
 
     def _disable_zero_grad(self) -> None:
         lightning_module = self.lightning_module
+        assert lightning_module is not None
         if is_overridden("optimizer_zero_grad", lightning_module):
             assert lightning_module is not None  # `is_overridden` returns False otherwise
             rank_zero_warn(
@@ -308,6 +311,7 @@ class IPUStrategy(ParallelStrategy):
 
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         args = self._prepare_input(args)
+        assert self.lightning_module is not None
         poptorch_model = self.poptorch_models[stage]
         self.lightning_module._running_torchscript = True
         out = poptorch_model(*args, **kwargs)
@@ -335,7 +339,7 @@ class IPUStrategy(ParallelStrategy):
             # undo dataloader patching
             pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
-        if self._optimizer_zero_grad_original is not None:
+        if self._optimizer_zero_grad_original is not None and self.lightning_module is not None:
             # re-enable `optimizer_zero_grad`
             self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
 
