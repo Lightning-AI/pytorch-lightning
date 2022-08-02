@@ -399,8 +399,8 @@ class LightningApp:
         if self.should_publish_changes_to_api and self.api_publish_state_queue:
             logger.debug("Publishing the state with changes")
             # Push two states to optimize start in the cloud.
-            self.api_publish_state_queue.put(self.state)
-            self.api_publish_state_queue.put(self.state)
+            self.api_publish_state_queue.put(self.state_vars)
+            self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
 
@@ -412,7 +412,7 @@ class LightningApp:
             self._update_run_time_monitor()
 
             if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
-                self.api_publish_state_queue.put(self.state)
+                self.api_publish_state_queue.put(self.state_vars)
 
         return True
 
