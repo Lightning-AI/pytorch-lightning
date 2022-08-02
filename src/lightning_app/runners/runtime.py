@@ -137,10 +137,5 @@ class Runtime:
         if work.status.stage == WorkStageStatus.STOPPED:
             return
 
-        latest_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
-
-        if latest_hash is None:
-            return
-
-        if latest_hash in work._calls and "statuses" in work._calls[latest_hash]:
-            work._calls[latest_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+        if work._calls[CacheCallsKeys.LATEST_CALL_HASH] in work._calls:
+            work._calls[CacheCallsKeys.LATEST_CALL_HASH]["statuses"].append(make_status(WorkStageStatus.STOPPED))
