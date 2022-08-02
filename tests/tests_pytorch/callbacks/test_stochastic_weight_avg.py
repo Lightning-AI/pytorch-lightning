@@ -49,7 +49,7 @@ class SwaTestModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         if self.crash_on_epoch and self.trainer.current_epoch >= self.crash_on_epoch:
-            raise DummyError()
+            raise Exception("SWA crash test")
         output = self.forward(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -126,13 +126,6 @@ class SwaTestCallback(StochasticWeightAveraging):
         first_swa_epoch = max(self.first_epoch, self.swa_start)
         assert self.update_parameters_calls == trainer.max_epochs - first_swa_epoch
         assert self.transfer_weights_calls == 1
-
-
-class DummyError(Exception):
-    """Dummy error used to simulate a crash during training."""
-
-    def __init__(self):
-        super().__init__("Crash test")
 
 
 def train_with_swa(
@@ -298,7 +291,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
     }
     trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
-    with _backward_patch(trainer), pytest.raises(Exception if ddp else DummyError):
+    with _backward_patch(trainer), pytest.raises(Exception, match="SWA crash test"):
         trainer.fit(model)
 
     checkpoint_dir = Path(tmpdir) / "lightning_logs" / "version_0" / "checkpoints"
