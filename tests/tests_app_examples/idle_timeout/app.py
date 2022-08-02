@@ -40,13 +40,16 @@ class RootFlow(LightningFlow):
             and self.work.status.reason == WorkStopReasons.SIGTERM_SIGNAL_HANDLER
             and self.make_check
         ):
+            succeeded_status = self.work.statuses[-3]
             stopped_status_pending = self.work.statuses[-2]
             stopped_status_sigterm = self.work.statuses[-1]
+            assert succeeded_status.stage == WorkStageStatus.SUCCEEDED
             assert stopped_status_pending.stage == WorkStageStatus.STOPPED
             assert stopped_status_pending.reason == WorkStopReasons.PENDING
             assert stopped_status_sigterm.stage == WorkStageStatus.STOPPED
             assert stopped_status_sigterm.reason == WorkStopReasons.SIGTERM_SIGNAL_HANDLER
             # Note: Account for the controlplane, k8s, SIGTERM handler delays.
+            assert (stopped_status_pending.timestamp - succeeded_status.timestamp) < 10
             assert (stopped_status_sigterm.timestamp - stopped_status_pending.timestamp) < 120
             fs = filesystem()
             destination_path = artifacts_path(self.work) / pathlib.Path(*self.work.path.resolve().parts[1:])
