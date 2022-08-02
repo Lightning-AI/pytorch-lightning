@@ -177,6 +177,8 @@ class RunIf:
         if tpu:
             conditions.append(not _TPU_AVAILABLE)
             reasons.append("TPU")
+            # used in conftest.py::pytest_collection_modifyitems
+            kwargs["tpu"] = True
 
         if ipu:
             conditions.append(not _IPU_AVAILABLE)

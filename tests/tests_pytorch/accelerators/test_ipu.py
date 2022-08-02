@@ -205,7 +205,7 @@ def test_mixed_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.strategy.precision_plugin.precision == 16
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
@@ -219,6 +219,7 @@ def test_pure_half_precision(tmpdir):
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.batch_to_device(torch.zeros((1), dtype=torch.float)).dtype == torch.half
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
@@ -619,7 +620,11 @@ def test_poptorch_models_at_different_stages(tmpdir):
     trainer.optimizers = model.configure_optimizers()[0]
     trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.setup(trainer)
-    assert list(trainer.strategy.poptorch_models) == [RunningStage.TRAINING, RunningStage.VALIDATING]
+    assert list(trainer.strategy.poptorch_models) == [
+        RunningStage.TRAINING,
+        RunningStage.VALIDATING,
+        RunningStage.SANITY_CHECKING,
+    ]
 
     for fn, stage in (
         (TrainerFn.VALIDATING, RunningStage.VALIDATING),
