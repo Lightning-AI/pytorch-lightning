@@ -326,7 +326,7 @@ class StochasticWeightAveraging(Callback):
         self._init_n_averaged = state_dict["n_averaged"]
         self._latest_update_epoch = state_dict["latest_update_epoch"]
         self._scheduler_state = state_dict["scheduler_state"]
-        self._load_average_model_state(state_dict["average_model_parameters"])
+        self._load_average_model_state(state_dict["average_model_state"])
 
     @staticmethod
     def _clear_schedulers(trainer: "pl.Trainer") -> None:
