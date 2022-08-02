@@ -619,8 +619,10 @@ class NeptuneLogger(Logger):
     @property
     def name(self) -> str:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
-        if self._run_name is not None:
-            return self._run_name
+        if self._run_name is None:
+            _ = self.run
+        assert self._run_name is not None
+        return self._run_name
 
     @property
     def version(self) -> str:
@@ -628,8 +630,10 @@ class NeptuneLogger(Logger):
 
         It's Neptune Run's short_id
         """
-        if self._run_short_id is not None:
-            return self._run_short_id
+        if self._run_short_id is None:
+            _ = self.run
+        assert self._run_short_id is not None
+        return self._run_short_id
 
     @staticmethod
     def _signal_deprecated_api_usage(f_name: str, sample_code: str, raise_exception: bool = False) -> None:
