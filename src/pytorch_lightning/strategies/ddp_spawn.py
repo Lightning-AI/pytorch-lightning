@@ -50,7 +50,6 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 log = logging.getLogger(__name__)
@@ -175,7 +174,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def _worker_setup(self, process_idx: int) -> None:
-        reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
