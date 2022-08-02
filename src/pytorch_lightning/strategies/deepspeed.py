@@ -46,10 +46,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _LRScheduler, _PATH, LRSchedulerConfig, ReduceLROnPlateau, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 
@@ -73,6 +73,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
     def __init__(
         self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
     ) -> None:
+        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.8.0 and will be removed in v1.9.0")
         super().__init__(pl_module)
         self.precision = precision
 
@@ -478,7 +479,7 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision_plugin.precision)
+        model = _LightningModuleWrapperBase(pl_module=self.model)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -606,9 +607,9 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
-        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
+        # the model may not be wrapped with DeepEngine & _LightningModuleWrapperBase if calling this too early
         module = getattr(self.model, "module", self.model)
-        module = module.module if isinstance(module, LightningDeepSpeedModule) else module
+        module = module.module if isinstance(module, _LightningModuleWrapperBase) else module
         assert isinstance(module, pl.LightningModule) or module is None
         return module
 
@@ -943,6 +944,19 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
+
+    def batch_to_device(self, batch: Any, *args: Any, **kwargs: Any) -> Any:
+        def fp_to_half(tensor: Tensor):
+            if torch.is_floating_point(tensor):
+                if self.precision_plugin.precision == PrecisionType.HALF:
+                    return tensor.half()
+                elif self.precision_plugin.precision == PrecisionType.BFLOAT:
+                    return tensor.bfloat16()
+
+            return tensor
+
+        batch = apply_to_collection(batch, Tensor, function=fp_to_half)
+        return super().batch_to_device(batch, *args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None

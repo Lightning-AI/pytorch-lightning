@@ -278,7 +278,7 @@ class IPUStrategy(ParallelStrategy):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+    def batch_to_device(self, batch: Any, *_: Any, **__: Any) -> Any:
         # This override is necessary because the cast must occur before the data
         # is moved to the device to prevent wasteful host->device copies.
         def fp_to_half(tensor: Tensor) -> Tensor:

@@ -948,9 +948,7 @@ def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
         trainer.ipus == expected_ipus
 
 
-@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_v1_8_0_deprecated_lightning_ipu_module(_, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", True)
+def test_v1_8_0_deprecated_lightning_ipu_module():
     with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
         _ = LightningIPUModule(BoringModel(), 32)
 
