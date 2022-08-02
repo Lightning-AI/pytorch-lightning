@@ -37,8 +37,8 @@ from tests_pytorch.helpers.utils import no_warning_call
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
     with no_warning_call(
-            DeprecationWarning,
-            match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8"):
+        DeprecationWarning, match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8"
+    ):
         wrapper_class(BoringModel())
 
     with pytest.deprecated_call(match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8"):
