@@ -14,7 +14,7 @@ A bit of background
 BYOC - Bring Your Own Cloud, is an alternate deployment model to Lightning Cloud (fully managed SaaS).
 BYOC separates the control and data plane. The data plane, that includes
 Lightning clusters, services and Lightning Apps, reside inside the user’s VPC.
-The control plane resides on Lightning Cloud. 
+The control plane resides on Lightning Cloud.
 
 Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with credentials for
 delegated access and an identity provider for secure access to the data plane.
