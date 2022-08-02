@@ -46,12 +46,14 @@ class AppList(Formatable):
     def as_table(self) -> Table:
         table = Table("id", "name", "status", "cluster", "created", show_header=True, header_style="bold green")
         phases = {
+            V1LightningappInstanceState.IMAGE_BUILDING: Text("building image", style="bold yellow"),
             V1LightningappInstanceState.PENDING: Text("pending", style="bold yellow"),
             V1LightningappInstanceState.RUNNING: Text("running", style="bold green"),
             V1LightningappInstanceState.FAILED: Text("failed", style="bold red"),
             V1LightningappInstanceState.STOPPED: Text("stopped"),
             V1LightningappInstanceState.NOT_STARTED: Text("not started"),
             V1LightningappInstanceState.DELETED: Text("deleted", style="bold red"),
+            V1LightningappInstanceState.UNSPECIFIED: Text("unspecified", style="bold red"),
         }
 
         for app in self.apps:
