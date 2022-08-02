@@ -72,10 +72,12 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
     def __init__(
         self,
-        forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase],
-        precision: Union[str, int],
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        precision: Union[str, int] = 32,
     ) -> None:
-        super().__init__(forward_module)
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:

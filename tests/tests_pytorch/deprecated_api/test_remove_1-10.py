@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.10.0."""
-from unittest.mock import Mock
 
 import pytest
 
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
+from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 
 
 @pytest.mark.parametrize(
@@ -27,6 +27,7 @@ from pytorch_lightning.strategies.bagua import LightningBaguaModule
         LightningParallelModule,
         LightningDistributedModule,
         LightningBaguaModule,
+        LightningDeepSpeedModule,
     ],
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
