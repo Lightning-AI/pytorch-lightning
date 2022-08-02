@@ -5,7 +5,7 @@ import sys
 from copy import deepcopy
 from functools import partial
 from subprocess import Popen
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from lightning import BuildConfig, CloudCompute, LightningApp, LightningFlow
 from lightning.app import structures
@@ -24,7 +24,7 @@ class GithubRepoRunner(TracerPythonScript):
         script_args: List[str],
         requirements: List[str],
         cloud_compute: Optional[CloudCompute] = None,
-        **kwargs: Any,
+        **kwargs,
     ):
         """The GithubRepoRunner Component clones a repo, runs a specific script with provided arguments and collect
         logs.
@@ -56,7 +56,8 @@ class GithubRepoRunner(TracerPythonScript):
         # 2: Use git command line to clone the repo.
         repo_name = self.github_repo.split("/")[-1].replace(".git", "")
         cwd = os.path.dirname(__file__)
-        subprocess.Popen(f"git clone {self.github_repo}", cwd=cwd, shell=True).wait()
+        subprocess.Popen(
+            f"git clone {self.github_repo}", cwd=cwd, shell=True).wait()
 
         # 3: Execute the parent run method of the TracerPythonScript class.
         os.chdir(os.path.join(cwd, repo_name))
@@ -72,6 +73,7 @@ class GithubRepoRunner(TracerPythonScript):
 
 
 class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.best_model_path = None
@@ -103,7 +105,8 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
 
         # 5. Patch the `__init__` method of the Trainer
         # to inject our callback with a reference to the work.
-        tracer.add_traced(Trainer, "__init__", pre_fn=partial(trainer_pre_fn, work=self))
+        tracer.add_traced(
+            Trainer, "__init__", pre_fn=partial(trainer_pre_fn, work=self))
         return tracer
 
     def on_after_run(self, end_script_globals):
@@ -210,7 +213,9 @@ def page_1__create_new_run(state):
     script_path = st.text_input("Enter your script to run", value="train_script.py")
     script_args = st.text_input("Enter your base script arguments", value=default_script_args)
     requirements = st.text_input("Enter your requirements", value=default_requirements)
-    ml_framework = st.radio("Select your ML Training Frameworks", options=["PyTorch Lightning", "Keras", "Tensorflow"])
+    ml_framework = st.radio(
+        "Select your ML Training Frameworks", options=["PyTorch Lightning", "Keras", "Tensorflow"]
+    )
 
     if ml_framework not in ("PyTorch Lightning"):
         st.write(f"{ml_framework} isn't supported yet.")
@@ -274,7 +279,8 @@ def render_fn(state: AppState):
         "View your Runs": partial(page_2__view_run_lists, state=state),
         "View the App state": partial(page_3__view_app_state, state=state),
     }
-    selected_page = st.sidebar.selectbox("Select a page", page_names_to_funcs.keys())
+    selected_page = st.sidebar.selectbox(
+        "Select a page", page_names_to_funcs.keys())
     page_names_to_funcs[selected_page]()
 
 
@@ -290,12 +296,10 @@ class RootFlow(LightningFlow):
 
     def configure_layout(self):
         # 1: Add the main StreamLit UI
-        selection_tab = [
-            {
-                "name": "Run your Github Repo",
-                "content": self.flow,
-            }
-        ]
+        selection_tab = [{
+            "name": "Run your Github Repo",
+            "content": self.flow,
+        }]
         # 2: Add a new tab whenever a new work is dynamically created
         run_tabs = [e.configure_layout() for e in self.flow.ws.values()]
         # 3: Returns the list of tabs.
