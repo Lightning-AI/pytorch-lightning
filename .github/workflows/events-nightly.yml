@@ -16,7 +16,7 @@ jobs:
     steps:
       # does nightly releases from feature branch
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
