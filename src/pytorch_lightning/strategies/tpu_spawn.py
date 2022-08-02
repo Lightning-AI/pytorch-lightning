@@ -215,7 +215,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def _worker_setup(self, process_idx: int) -> None:
         self._launched = True
-        reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
 
