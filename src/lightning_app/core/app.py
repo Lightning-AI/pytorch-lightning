@@ -18,7 +18,7 @@ from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
 from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_command_requests
 from lightning_app.utilities.component import _convert_paths_after_init
-from lightning_app.utilities.enum import AppStage
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.layout import _collect_layout
 from lightning_app.utilities.proxies import ComponentDelta
@@ -431,9 +431,8 @@ class LightningApp:
         return False
 
     def _has_work_finished(self, work):
-        # Note: There are 2 main keys inside _calls
-        # described with CacheCallsKeys.
-        return len(work._calls) == 2
+        latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        return "ret" in work._calls[latest_call_hash]
 
     def _collect_work_finish_status(self) -> dict:
         work_finished_status = {work.name: self._has_work_finished(work) for work in self.works}

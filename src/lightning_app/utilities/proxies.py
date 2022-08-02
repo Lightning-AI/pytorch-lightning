@@ -65,14 +65,19 @@ def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue",
     work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.PENDING))
 
     work_state = work.state
-    # There is no need to send the call_hashes to the work.
-    call_hashes = work_state["calls"].pop(CacheCallsKeys.SUCCEEDED_CALL_HASHES)
+
+    # There is no need to send all call hashes to the work.
+    calls = deepcopy(work_state["calls"])
+    work_state["calls"] = {
+        k: v for k, v in work_state["calls"].items() if k in (call_hash, CacheCallsKeys.LATEST_CALL_HASH)
+    }
+
     data.update({"state": work_state})
     logger.debug(f"Sending to {work.name}: {data}")
     caller_queue.put(data)
 
-    # Reset the call_hashes.
-    work_state["calls"][CacheCallsKeys.SUCCEEDED_CALL_HASHES] = call_hashes
+    # Reset the calls entry.
+    work_state["calls"] = calls
     work._restarting = False
     return work_state
 
@@ -95,9 +100,9 @@ class ProxyWorkRun:
 
         call_hash = self.work._call_hash(self.work_run, args, kwargs)
         # TODO: This needs more verification. There might be edge cases.
-        has_succeeded = call_hash in self.work._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]
-        entered = call_hash in self.work._calls or has_succeeded
-        returned = entered and (True if has_succeeded else "ret" in self.work._calls[call_hash])
+        # has_succeeded = call_hash in self.work._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]
+        entered = call_hash in self.work._calls
+        returned = entered and "ret" in self.work._calls[call_hash]
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
         stopped_on_sigterm = self.work._restarting and self.work.status.reason == WorkStopReasons.SIGTERM_SIGNAL_HANDLER
 

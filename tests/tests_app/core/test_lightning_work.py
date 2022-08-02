@@ -289,7 +289,7 @@ def test_lightning_work_calls():
             pass
 
     w = W()
-    assert len(w._calls) == 2
+    assert len(w._calls) == 1
     w.run(1, [2], (3, 4), {"1": "3"})
-    assert len(w._calls) == 3
+    assert len(w._calls) == 2
     assert w._calls["0d824f7"] == {"ret": None}

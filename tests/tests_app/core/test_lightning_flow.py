@@ -321,7 +321,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: {}},
+                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
             },
             "work_a": {
@@ -335,7 +335,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: {}},
+                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
             },
         },
@@ -365,7 +365,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: {}},
+                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
             },
             "work_a": {
@@ -384,7 +384,6 @@ def test_lightning_flow_and_work():
                     "fe3fa0f": {
                         "ret": None,
                     },
-                    CacheCallsKeys.SUCCEEDED_CALL_HASHES: {},
                 },
                 "changes": {},
             },

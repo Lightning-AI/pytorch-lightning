@@ -72,4 +72,3 @@ def make_status(stage: str, message: Optional[str] = None, reason: Optional[str]
 
 class CacheCallsKeys:
     LATEST_CALL_HASH = "latest_call_hash"
-    SUCCEEDED_CALL_HASHES = "succeeded_call_hashes"
