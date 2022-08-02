@@ -27,6 +27,11 @@ class AppManager:
             args["cluster_id"] = cluster_id
 
         resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**args)
+        apps = resp.lightningapps
+        while resp.next_page_token is not None and resp.next_page_token != "":
+            args["page_token"] = resp.next_page_token
+            resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**args)
+            apps = apps + resp.lightningapps
         console = Console()
         console.print(AppList(resp.lightningapps).as_table())
 
