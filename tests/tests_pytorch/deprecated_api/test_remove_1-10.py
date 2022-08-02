@@ -18,8 +18,10 @@ import pytest
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
@@ -29,6 +31,7 @@ from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
         LightningDistributedModule,
         LightningBaguaModule,
         LightningDeepSpeedModule,
+        pytest.param(LightningShardedDataParallel, marks=RunIf(fairscale=True)),
     ],
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
@@ -42,3 +45,9 @@ def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
 def test_v1_10_deprecated_unwrap_lightning_module():
     with pytest.deprecated_call(match=r"The function `unwrap_lightning_module` is deprecated in v1.8"):
         unwrap_lightning_module(BoringModel())
+
+
+@RunIf(fairscale=True)
+def test_v1_10_deprecated_unwrap_lightning_module_sharded():
+    with pytest.deprecated_call(match=r"The function `unwrap_lightning_module_sharded` is deprecated in v1.8"):
+        unwrap_lightning_module_sharded(BoringModel())

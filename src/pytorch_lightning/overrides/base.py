@@ -116,7 +116,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         cls,
         pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
         forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-    ):
+    ) -> None:
         # TODO: In v1.10, remove this method and mark the forward_module init argument in all subclasses as required
         if pl_module is not None:
             rank_zero_deprecation(
@@ -127,7 +127,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             raise ValueError("Argument `forward_module` is required.")
 
 
-def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
+def unwrap_lightning_module(wrapped_model: nn.Module, _suppress_warning: bool = False) -> "pl.LightningModule":
     """Recursively unwraps a :class:`~pytorch_lightning.core.module.LightningModule` by following the ``.module``
     attributes on the wrapper.
 
@@ -139,10 +139,11 @@ def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
         TypeError: If the unwrapping leads to a module that is not a LightningModule and that cannot be unwrapped
             further.
     """
-    rank_zero_deprecation(
-        "The function `unwrap_lightning_module` is deprecated in v1.8 and will be removed in v1.10. Access the"
-        " `LightningModule` directly through the strategy attribute `Strategy.lightning_module`."
-    )
+    if not _suppress_warning:
+        rank_zero_deprecation(
+            "The function `unwrap_lightning_module` is deprecated in v1.8 and will be removed in v1.10. Access the"
+            " `LightningModule` directly through the strategy attribute `Strategy.lightning_module`."
+        )
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = unwrap_lightning_module(model.module)
