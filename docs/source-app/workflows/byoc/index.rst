@@ -16,7 +16,7 @@ BYOC separates the control and data plane. The data plane, that includes
 Lightning clusters, services and Lightning Apps, reside inside the user’s VPC.
 The control plane resides on Lightning Cloud.
 
-Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with credentials for
+Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
 delegated access and an identity provider for secure access to the data plane.
 
 Next, as part of the environment creation process, users configure networking,
