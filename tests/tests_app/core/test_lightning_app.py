@@ -914,29 +914,29 @@ class SizeFlow(LightningFlow):
             self._exit()
 
 
-def test_state_size_is_bounded():
+def test_state_size_isn_t_growing_quickly():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root._state_sizes == {
-        0: 5896,
-        1: 5440,
-        2: 5496,
-        3: 5552,
-        4: 6120,
-        5: 6176,
-        6: 6232,
-        7: 6288,
-        8: 6344,
-        9: 6400,
-        10: 6456,
-        11: 6512,
-        12: 6568,
-        13: 6624,
-        14: 6680,
-        15: 6736,
-        16: 6792,
-        17: 6848,
-        18: 8440,
-        19: 8496,
-        20: 9128,
+        0: 5904,
+        1: 5448,
+        2: 5504,
+        3: 5560,
+        4: 6128,
+        5: 6184,
+        6: 6240,
+        7: 6296,
+        8: 6352,
+        9: 6408,
+        10: 6464,
+        11: 6520,
+        12: 6576,
+        13: 6632,
+        14: 6688,
+        15: 6744,
+        16: 6800,
+        17: 6856,
+        18: 8448,
+        19: 8504,
+        20: 9136,
     }

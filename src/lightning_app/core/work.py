@@ -13,7 +13,14 @@ from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
-from lightning_app.utilities.enum import make_status, WorkFailureReasons, WorkStageStatus, WorkStatus, WorkStopReasons
+from lightning_app.utilities.enum import (
+    CacheCallsKeys,
+    make_status,
+    WorkFailureReasons,
+    WorkStageStatus,
+    WorkStatus,
+    WorkStopReasons,
+)
 from lightning_app.utilities.exceptions import LightningWorkException
 from lightning_app.utilities.introspection import _is_init_context
 from lightning_app.utilities.network import find_free_network_port
@@ -107,7 +114,21 @@ class LightningWork(abc.ABC):
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
         self._name = ""
-        self._calls = {"latest_call_hash": None, "call_hashes": set()}
+        # The ``self._calls`` is used to track whether the run
+        # method with a given set of input arguments has already been called.
+        # Example of its usage:
+        # {
+        #   'latest_call_hash': '167fe2e',
+        #   'succeeded_call_hashes': {'957ad72', '4beee16', ..., '894c5d8'},
+        #   '167fe2e': {
+        #       'statuses': [
+        #           {'stage': 'pending', 'timestamp': 1659433519.851271},
+        #           {'stage': 'running', 'timestamp': 1659433519.956482},
+        #           {'stage': 'stopped', 'timestamp': 1659433520.055768}]}
+        #        ]
+        #    }
+        # }
+        self._calls = {CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: set()}
         self._changes = {}
         self._raise_exception = raise_exception
         self._paths = {}
@@ -215,7 +236,7 @@ class LightningWork(abc.ABC):
 
         All statuses are stored in the state.
         """
-        call_hash = self._calls["latest_call_hash"]
+        call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if call_hash in self._calls and self._calls[call_hash] is not None:
             statuses = self._calls[call_hash].get("statuses", [])
             # deltas aren't necessarily coming in the expected order.
@@ -224,14 +245,14 @@ class LightningWork(abc.ABC):
             if latest_status.get("reason") == WorkFailureReasons.TIMEOUT:
                 return self._aggregate_status_timeout(statuses)
             return WorkStatus(**latest_status)
-        elif call_hash in self._calls["call_hashes"]:
+        elif call_hash in self._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]:
             return WorkStatus(stage=WorkStageStatus.SUCCEEDED, timestamp=time.time())
         return WorkStatus(stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
 
     @property
     def statuses(self) -> List[WorkStatus]:
         """Return all the status of the work."""
-        call_hash = self._calls["latest_call_hash"]
+        call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if call_hash:
             statuses = self._calls[call_hash]["statuses"]
             # deltas aren't necessarily coming in the expected order.
@@ -462,29 +483,32 @@ class LightningWork(abc.ABC):
 
         self._changes = provided_state["changes"]
 
+        # Note, this is handled by the flow only.
         if _is_flow_context():
-            if "call_hashes" not in provided_state["calls"]:
-                provided_state["calls"]["call_hashes"] = set()
-
-            for call_hash in list(provided_state["calls"]):
-                if call_hash == "latest_call_hash":
-                    continue
-
-                if call_hash in provided_state["calls"]["call_hashes"]:
-                    continue
-
-                if "statuses" not in provided_state["calls"][call_hash]:
-                    continue
-
-                statuses = sorted(provided_state["calls"][call_hash]["statuses"], key=lambda x: x["timestamp"])
-
-                if statuses[-1]["stage"] == "succeeded":
-                    provided_state["calls"].pop(call_hash)
-                    provided_state["calls"]["call_hashes"].add(call_hash)
-                else:
-                    provided_state["calls"][call_hash]["statuses"] = statuses
+            self._cleanup_calls(provided_state["calls"])
 
         self._calls = provided_state["calls"]
+
+    @staticmethod
+    def _cleanup_calls(calls: Dict[str, Any]):
+        # 1: Collect all the in_progress call hashes
+        in_progress_call_hash = [
+            k for k in list(calls) if k not in (CacheCallsKeys.LATEST_CALL_HASH, CacheCallsKeys.SUCCEEDED_CALL_HASHES)
+        ]
+
+        for call_hash in in_progress_call_hash:
+            # 2: Filter the statuses by timestamp
+            statuses = sorted(calls[call_hash]["statuses"], key=lambda x: x["timestamp"])
+
+            # If the latest status is succeeded, let's drop entirely
+            # the statuses collection associated to this call_hash
+            # and store the call_hash inside the `SUCCEEDED_CALL_HASHES` set.
+            # TODO: Store the statuses within a database in the future
+            if statuses[-1]["stage"] == WorkStageStatus.SUCCEEDED:
+                calls.pop(call_hash)
+                calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES].add(call_hash)
+            else:
+                calls[call_hash]["statuses"] = statuses
 
     @abc.abstractmethod
     def run(self, *args, **kwargs):
@@ -527,7 +551,7 @@ class LightningWork(abc.ABC):
             )
         if self.status.stage == WorkStageStatus.STOPPED:
             return
-        latest_hash = self._calls["latest_call_hash"]
+        latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
         self._calls[latest_hash]["statuses"].append(
             make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.PENDING)
         )

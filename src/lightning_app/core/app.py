@@ -430,8 +430,14 @@ class LightningApp:
         self.stage = AppStage.BLOCKING
         return False
 
+    def _has_work_finished(self, work):
+        # Note: There is 2 main keys inside _calls
+        # described with CacheCallsKeys.
+        # If there is more than 2, it means a run is currently performed.
+        return len(work._calls) == 2
+
     def _collect_work_finish_status(self) -> dict:
-        work_finished_status = {work.name: len(work._calls) == 2 for work in self.works}
+        work_finished_status = {work.name: self._has_work_finished(work) for work in self.works}
         assert len(work_finished_status) == len(self.works)
         return work_finished_status
 

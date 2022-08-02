@@ -10,7 +10,7 @@ import lightning_app
 from lightning_app import LightningApp
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
-from lightning_app.utilities.enum import AppStage, make_status, WorkStageStatus
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
 from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
@@ -133,10 +133,11 @@ class Runtime:
         raise NotImplementedError
 
     def _add_stopped_status_to_work(self, work: "lightning_app.LightningWork") -> None:
+
         if work.status.stage == WorkStageStatus.STOPPED:
             return
 
-        latest_hash = work._calls["latest_call_hash"]
+        latest_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
 
         if latest_hash is None:
             return

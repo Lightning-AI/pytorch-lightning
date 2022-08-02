@@ -281,3 +281,15 @@ def test_work_state_change_with_path():
     assert flow.work.state["vars"]["none_to_path"] == Path("lit://none/to/path")
     assert flow.work.state["vars"]["path_to_none"] is None
     assert flow.work.state["vars"]["path_to_path"] == Path("lit://path/to/path")
+
+
+def test_lightning_work_calls():
+    class W(LightningWork):
+        def run(self, *args, **kwargs):
+            pass
+
+    w = W()
+    assert len(w._calls) == 2
+    w.run(1, [2], (3, 4), {"1": "3"})
+    assert len(w._calls) == 3
+    assert w._calls["0d824f7"] == {"ret": None}

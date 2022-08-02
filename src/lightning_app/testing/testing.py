@@ -21,6 +21,7 @@ from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning_app.runners.multiprocess import MultiProcessRuntime
 from lightning_app.testing.config import Config
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
 from lightning_app.utilities.network import _configure_session, LightningClient
 from lightning_app.utilities.proxies import ProxyWorkRun
@@ -113,7 +114,7 @@ def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
         start_server=start_server,
     ).dispatch()
     # pop the stopped status.
-    call_hash = work._calls["latest_call_hash"]
+    call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
 
     if call_hash in work._calls:
         work._calls[call_hash]["statuses"].pop(-1)

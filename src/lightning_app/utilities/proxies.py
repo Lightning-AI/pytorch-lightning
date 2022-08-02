@@ -23,7 +23,13 @@ from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import affiliation
 from lightning_app.utilities.apply_func import apply_to_collection
 from lightning_app.utilities.component import _set_work_context
-from lightning_app.utilities.enum import make_status, WorkFailureReasons, WorkStageStatus, WorkStopReasons
+from lightning_app.utilities.enum import (
+    CacheCallsKeys,
+    make_status,
+    WorkFailureReasons,
+    WorkStageStatus,
+    WorkStopReasons,
+)
 from lightning_app.utilities.exceptions import CacheMissException, LightningSigtermStateException
 
 if TYPE_CHECKING:
@@ -47,8 +53,8 @@ def unwrap(fn):
 
 def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str) -> Dict:
 
-    if work._calls["latest_call_hash"] is None:
-        work._calls["latest_call_hash"] = call_hash
+    if work._calls[CacheCallsKeys.LATEST_CALL_HASH] is None:
+        work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
 
     if call_hash not in work._calls:
         work._calls[call_hash] = {
@@ -62,13 +68,13 @@ def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue",
 
     work_state = work.state
     # There is no need to send the call_hashes to the work.
-    call_hashes = work_state["calls"].pop("call_hashes")
+    call_hashes = work_state["calls"].pop(CacheCallsKeys.SUCCEEDED_CALL_HASHES)
     data.update({"state": work_state})
     logger.debug(f"Sending to {work.name}: {data}")
     caller_queue.put(data)
 
     # Reset the call_hashes.
-    work_state["calls"]["call_hashes"] = call_hashes
+    work_state["calls"][CacheCallsKeys.SUCCEEDED_CALL_HASHES] = call_hashes
     work._restarting = False
     return work_state
 
@@ -90,7 +96,7 @@ class ProxyWorkRun:
         args, kwargs = self._process_call_args(args, kwargs)
 
         call_hash = self.work._call_hash(self.work_run, args, kwargs)
-        succeeded = call_hash in self.work._calls["call_hashes"]
+        succeeded = call_hash in self.work._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]
         entered = call_hash in self.work._calls or succeeded
         returned = entered and (True if succeeded else "ret" in self.work._calls[call_hash])
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
@@ -190,10 +196,11 @@ class WorkStateObserver(Thread):
                 self.list.append(1)
     """
 
-    def __init__(self, work, delta_queue: "BaseQueue", interval: float = 0.1) -> None:
+    def __init__(self, work: "LightningWork", delta_queue: "BaseQueue", interval: float = 1.0) -> None:
         super().__init__(daemon=True)
         self._work = work
         self._delta_queue = delta_queue
+        self._original_internal = interval
         self._interval = interval
         self._exit_event = Event()
         self._delta_memory = []
@@ -208,10 +215,12 @@ class WorkStateObserver(Thread):
                 if state:
                     self._last_state = state
                     self._processing = True
+                    self._internal = self._original_internal
                 else:
                     self._last_state = None
                     self._delta_memory.clear()
                     self._processing = False
+                    self._internal = 0.1  # Finish and restart quicker.
 
             time.sleep(self._interval)
 
@@ -239,6 +248,13 @@ class WorkStateObserver(Thread):
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
         super().join(timeout)
+
+    def wait_for_desired_processing(self, desired_processing: bool, timeout: float = 15.0, wait_interval: float = 0.01):
+        while self._processing != desired_processing:
+            time.sleep(wait_interval)
+            timeout -= wait_interval
+            if timeout < 0:
+                raise TimeoutError("The WorkStateObserver thread didn't switch the desired processing state.")
 
 
 @dataclass
@@ -391,15 +407,13 @@ class WorkRunner:
         self._proxy_setattr()
 
         # 8. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
-        state = deepcopy(self.work.state)
+        reference_state = deepcopy(self.work.state)
 
         # 9. Inform the flow the work is running and add the delta to the deepcopy.
-        self.work._calls["latest_call_hash"] = call_hash
+        self.work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
         self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.RUNNING))
-        delta = Delta(DeepDiff(state, self.work.state))
+        delta = Delta(DeepDiff(reference_state, self.work.state))
         self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
-
-        state += delta
 
         # 10. Unwrap the run method if wrapped.
         work_run = self.work.run
@@ -407,9 +421,9 @@ class WorkRunner:
             work_run = work_run.__wrapped__
 
         # 11. Add the work state to the state observer and wait until it is ready.
-        self.state_observer._work_state.append(state)
-        while not self.state_observer._processing:
-            time.sleep(0.01)
+        self.state_observer._work_state.append(self.work.state)
+
+        self.state_observer.wait_for_desired_processing(True)
 
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
@@ -419,10 +433,13 @@ class WorkRunner:
             raise e
         except BaseException as e:
             # 10.2 Send failed delta to the flow.
+            reference_state = deepcopy(self.work.state)
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.FAILED, message=str(e), reason=WorkFailureReasons.USER_EXCEPTION)
             )
-            self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+            self.delta_queue.put(
+                ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state)))
+            )
             self.work.on_exception(e)
             print("########## CAPTURED EXCEPTION ###########")
             print(traceback.print_exc())
@@ -444,19 +461,18 @@ class WorkRunner:
 
         # 16. Wait for the state observer to have finished to send all its deltas
         # and set processing to False.
-        while self.state_observer._processing:
-            time.sleep(0.1)
+        self.state_observer.wait_for_desired_processing(False)
 
-        # 16. DeepCopy the state and send the latest delta to the flow.
+        # 17. DeepCopy the state and send the latest delta to the flow.
         # use the latest state as we have already sent delta
         # during its execution.
         # inform the task has completed
-        state = deepcopy(self.work.state)
+        reference_state = deepcopy(self.work.state)
         self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.SUCCEEDED))
         self.work._calls[call_hash]["ret"] = ret
-        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state))))
 
-        # 17. Update the work for the next delta if any.
+        # 18. Update the work for the next delta if any.
         self._proxy_setattr(cleanup=True)
 
     def _sigterm_signal_handler(self, signum, frame, call_hash: str) -> None:
