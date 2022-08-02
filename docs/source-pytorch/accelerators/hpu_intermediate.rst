@@ -73,7 +73,7 @@ Enabling DeviceStatsMonitor with HPUs
 ----------------------------------------
 
 :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor` is a callback that automatically monitors and logs device stats during the training stage.
-This callback can be passed for training with HPUs. It returns a map of the following metrics with their values:
+This callback can be passed for training with HPUs. It returns a map of the following metrics with their values in bytes of type uint64:
 
 - **Limit**: amount of total memory on HPU device.
 - **InUse**: amount of allocated memory at any instance.
