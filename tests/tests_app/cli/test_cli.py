@@ -9,7 +9,7 @@ from lightning_cloud.openapi import Externalv1LightningappInstance
 from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
 from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
-from lightning_app.cli.lightning_cli_list import get_list, list_clusters
+from lightning_app.cli.lightning_cli_list import get_list, list_apps, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
 
 
@@ -100,12 +100,21 @@ def test_create_cluster(create: mock.MagicMock):
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.cli.cmd_clusters.AppManager.list")
+def test_list_apps(list: mock.MagicMock):
+    runner = CliRunner()
+    runner.invoke(list_apps)
+
+    list.assert_called_once_with()
+
+
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.list")
-def test_list_clusters(list: mock.MagicMock):
+def test_list_clusters(list_apps: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(list_clusters)
 
-    list.assert_called_once_with()
+    list_apps.assert_called_once_with()
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
