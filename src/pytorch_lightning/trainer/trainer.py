@@ -509,7 +509,7 @@ class Trainer(
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
 
         if gradient_clip_algorithm is not None and not GradClipAlgorithmType.supported_type(
-                gradient_clip_algorithm.lower()
+            gradient_clip_algorithm.lower()
         ):
             raise MisconfigurationException(
                 f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
@@ -518,7 +518,7 @@ class Trainer(
 
         # gradient norm tracking
         if track_grad_norm != -1 and not (
-                (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
+            (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
         ):
             raise MisconfigurationException(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
