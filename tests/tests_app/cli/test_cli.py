@@ -1,11 +1,15 @@
 import os
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
 
 from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
+from lightning_app.cli.lightning_cli_create import create, create_cluster
+from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
+from lightning_app.cli.lightning_cli_list import get_list, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
 
 
@@ -37,7 +41,7 @@ def test_start_target_url(runtime_type, extra_args, lightning_cloud_url, expecte
         assert get_app_url(runtime_type, *extra_args) == expected_url
 
 
-@pytest.mark.parametrize("command", [_main, run])
+@pytest.mark.parametrize("command", [_main, run, get_list, create, delete])
 def test_commands(command):
     runner = CliRunner()
     result = runner.invoke(command)
@@ -50,6 +54,9 @@ def test_main_lightning_cli_help():
     assert "login   " in res
     assert "logout  " in res
     assert "run     " in res
+    assert "list    " in res
+    assert "delete  " in res
+    assert "create  " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
@@ -59,6 +66,55 @@ def test_main_lightning_cli_help():
     assert "flow" not in res
     assert "work" not in res
     assert "frontend" not in res
+
+
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
+def test_create_cluster(create: mock.MagicMock):
+    runner = CliRunner()
+    runner.invoke(
+        create_cluster,
+        [
+            "test-7",
+            "--provider",
+            "aws",
+            "--external-id",
+            "dummy",
+            "--role-arn",
+            "arn:aws:iam::1234567890:role/lai-byoc",
+            "--instance-types",
+            "t2.small",
+        ],
+    )
+
+    create.assert_called_once_with(
+        cluster_name="test-7",
+        region="us-east-1",
+        role_arn="arn:aws:iam::1234567890:role/lai-byoc",
+        external_id="dummy",
+        instance_types=["t2.small"],
+        edit_before_creation=False,
+        cost_savings=False,
+        wait=False,
+    )
+
+
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.list")
+def test_list_clusters(list: mock.MagicMock):
+    runner = CliRunner()
+    runner.invoke(list_clusters)
+
+    list.assert_called_once_with()
+
+
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.delete")
+def test_delete_cluster(delete: mock.MagicMock):
+    runner = CliRunner()
+    runner.invoke(delete_cluster, ["test-7"])
+
+    delete.assert_called_once_with(cluster_id="test-7", force=False, wait=False)
 
 
 @mock.patch("lightning_app.utilities.login.Auth._run_server")
