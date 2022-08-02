@@ -117,7 +117,7 @@ class IPUStrategy(ParallelStrategy):
         self.device_iterations = device_iterations
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
-        self.poptorch_models: Dict[Union[RunningStage, str], "poptorch.PoplarExecutor"] = {}
+        self.poptorch_models: Dict[RunningStage, "poptorch.PoplarExecutor"] = {}
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
@@ -358,7 +358,7 @@ class IPUStrategy(ParallelStrategy):
             if self._compiled(model) and model.isAttachedToDevice():
                 model.detachFromDevice()
 
-    def _load_model(self, stage: str) -> None:
+    def _load_model(self, stage: RunningStage) -> None:
         """Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
 
         Args:
