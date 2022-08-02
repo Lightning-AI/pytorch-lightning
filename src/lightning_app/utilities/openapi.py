@@ -3,24 +3,26 @@ from typing import Any, Dict
 
 
 def _duplicate_checker(js):
-    """_duplicate_checker verifies that your json object doesn't contain duplicate keys."""
+    """_duplicate_checker verifies that your JSON object doesn't contain duplicate keys."""
     result = {}
     for name, value in js:
         if name in result:
-            raise ValueError(f"Failed to load JSON: duplicate key {name}.")
+            raise ValueError(
+                f"Unable to load JSON. A duplicate key {name} was detected. JSON objects must have unique keys."
+            )
         result[name] = value
     return result
 
 
 def string2dict(text):
-    """string2dict parses a json string into a dictionary, ensuring no keys are duplicated by accident."""
+    """string2dict parses a JSON string into a dictionary, ensuring no keys are duplicated by accident."""
     if not isinstance(text, str):
         text = text.decode("utf-8")
     try:
         js = json.loads(text, object_pairs_hook=_duplicate_checker)
         return js
     except ValueError as e:
-        raise ValueError(f"Failed to load JSON: {str(e)}.")
+        raise ValueError(f"Unable to load JSON: {str(e)}.")
 
 
 def is_openapi(obj):

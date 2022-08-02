@@ -53,8 +53,8 @@ class AWSClusterManager:
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
             instance_types: AWS instance types supported by the cluster
-            edit_before_creation: enable interactive editing of request before submitting it to Lightning AI
-            wait: wait for cluster to reach RUNNING state. use for debugging only
+            edit_before_creation: Enables interactive editing of requests before submitting it to Lightning AI.
+            wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
         """
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
         if cost_savings:
@@ -168,12 +168,12 @@ def _wait_for_cluster_state(
 ):
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
-    :param api_client: LightningClient used for polling
-    :param cluster_id: cluster to wait for
-    :param target_state: desired state to be reached
-    :param max_wait_time: maximum duration in seconds to wait
-    :param check_timeout: duration in seconds between polling for cluster state
-    :return:
+    Args:
+        api_client: LightningClient used for polling
+        cluster_id: Specifies the cluster to wait for
+        target_state: Specifies the desired state the target cluster needs to meet
+        max_wait_time: Maximum duration to wait (in seconds)
+        check_timeout: duration between polling for the cluster state (in seconds)
     """
     start = time.time()
     elapsed = 0
@@ -204,37 +204,3 @@ def _check_cluster_name_is_valid(_ctx, _param, value):
             Provide a cluster name using valid characters and try again."""
         )
     return value
-
-
-_default_instance_types = frozenset(
-    [
-        "g2.8xlarge",
-        "g3.16xlarge",
-        "g3.4xlarge",
-        "g3.8xlarge",
-        "g3s.xlarge",
-        "g4dn.12xlarge",
-        "g4dn.16xlarge",
-        "g4dn.2xlarge",
-        "g4dn.4xlarge",
-        "g4dn.8xlarge",
-        "g4dn.metal",
-        "g4dn.xlarge",
-        "p2.16xlarge",
-        "p2.8xlarge",
-        "p2.xlarge",
-        "p3.16xlarge",
-        "p3.2xlarge",
-        "p3.8xlarge",
-        "p3dn.24xlarge",
-        # "p4d.24xlarge",  # currently not supported
-        "t2.large",
-        "t2.medium",
-        "t2.xlarge",
-        "t2.2xlarge",
-        "t3.large",
-        "t3.medium",
-        "t3.xlarge",
-        "t3.2xlarge",
-    ]
-)
