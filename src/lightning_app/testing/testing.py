@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -132,6 +133,29 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
         },
         "ignore_https_errors": True,
     }
+
+
+@contextmanager
+def run_cli(args) -> Generator:
+    """This utility is used to automate end-to-end testing of the Lightning AI CLI."""
+    cmd = [
+        sys.executable,
+        "-m",
+        "lightning",
+    ] + args
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_copy = os.environ.copy()
+        process = Popen(
+            cmd,
+            cwd=tmpdir,
+            env=env_copy,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        process.wait()
+
+    yield process.stdout.read().decode("UTF-8"), process.stderr.read().decode("UTF-8")
 
 
 @requires("playwright")
