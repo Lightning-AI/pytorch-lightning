@@ -272,8 +272,13 @@ class IPUStrategy(ParallelStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         # This override is necessary because the cast must occur before the data
         # is moved to the device to prevent wasteful host->device copies.
+        def fp_to_half(tensor):
+            if torch.is_floating_point(tensor):
+                return tensor.half()
+            return tensor
+
         if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
-            batch = apply_to_collection(batch, Tensor, function=Tensor.half)
+            batch = apply_to_collection(batch, Tensor, function=fp_to_half)
         # We don't call `super().batch_to_device` because `data.to(device)` is not
         # currently necessary for IPUs. The movement of data from host<->IPU is
         # currently handled by PopTorch.

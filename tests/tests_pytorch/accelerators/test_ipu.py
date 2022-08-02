@@ -219,7 +219,16 @@ def test_pure_half_precision(tmpdir):
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
-    assert trainer.strategy.batch_to_device(torch.zeros((1), dtype=torch.float)).dtype == torch.half
+
+    changed_dtypes = [torch.float, torch.float64]
+    data = {torch.zeros((1), dtype=dtype) for dtype in changed_dtypes}
+    new_data = trainer.strategy.batch_to_device(data)
+    assert all(val.dtype == torch.half for val in new_data.values())
+
+    not_changed_dtypes = [torch.uint8, torch.int8, torch.int32, torch.int64]
+    data = {torch.zeros((1), dtype=dtype) for dtype in not_changed_dtypes}
+    new_data = trainer.strategy.batch_to_device(data)
+    assert all(val.dtype == dtype for val, dtype in zip(new_data.values(), not_changed_dtypes))
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
