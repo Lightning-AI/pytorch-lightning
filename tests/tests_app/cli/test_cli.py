@@ -100,21 +100,21 @@ def test_create_cluster(create: mock.MagicMock):
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.cli.cmd_clusters.AppManager.list")
-def test_list_apps(list: mock.MagicMock):
+@mock.patch("lightning_app.cli.cmd_apps.AppManager.list")
+def test_list_apps(list_command: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(list_apps)
 
-    list.assert_called_once_with()
+    list_command.assert_called_once_with(cluster_id=None)
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.list")
-def test_list_clusters(list_apps: mock.MagicMock):
+def test_list_clusters(list_command: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(list_clusters)
 
-    list_apps.assert_called_once_with()
+    list_command.assert_called_once_with()
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
