@@ -20,8 +20,11 @@ from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase, unwrap_lightning_module
-
+from pytorch_lightning.overrides.base import (
+    _LightningModuleWrapperBase,
+    _LightningPrecisionModuleWrapperBase,
+    unwrap_lightning_module,
+)
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -35,6 +38,7 @@ from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwarg
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
@@ -47,6 +51,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
     def __init__(
         self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
     ) -> None:
+        rank_zero_deprecation("`LightningIPUModule` has been deprecated in v1.7.0 and will be removed in v1.8.0")
         super().__init__(pl_module)
         self.precision = precision
 
@@ -147,8 +152,7 @@ class IPUStrategy(ParallelStrategy):
         self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
         self._disable_zero_grad()
 
-        model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
-        self.model = model
+        self.model = _LightningModuleWrapperBase(self.lightning_module)
 
         # reset the backup
         self.poptorch_models = {}
@@ -161,22 +165,22 @@ class IPUStrategy(ParallelStrategy):
             training_opts = self.training_opts
             inference_opts = self.inference_opts
             optimizer = self.lightning_module.trainer.optimizers[0]
-            model = poptorch.trainingModel(model=model, options=training_opts, optimizer=optimizer)
+            model = poptorch.trainingModel(model=self.model, options=training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
 
             if self.lightning_module.trainer.enable_validation:
-                model = poptorch.inferenceModel(model=model, options=inference_opts)
+                model = poptorch.inferenceModel(model=self.model, options=inference_opts)
                 self.poptorch_models[RunningStage.VALIDATING] = model
                 if self.lightning_module.trainer.num_sanity_val_steps > 0:
                     self.poptorch_models[RunningStage.SANITY_CHECKING] = model
         elif trainer_fn == TrainerFn.VALIDATING:
-            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            model = poptorch.inferenceModel(model=self.model, options=self.inference_opts)
             self.poptorch_models[RunningStage.VALIDATING] = model
         elif trainer_fn == TrainerFn.TESTING:
-            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            model = poptorch.inferenceModel(model=self.model, options=self.inference_opts)
             self.poptorch_models[RunningStage.TESTING] = model
         elif trainer_fn == TrainerFn.PREDICTING:
-            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            model = poptorch.inferenceModel(model=self.model, options=self.inference_opts)
             self.poptorch_models[RunningStage.PREDICTING] = model
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -280,6 +284,16 @@ class IPUStrategy(ParallelStrategy):
         args = apply_to_collection(args, dtype=list, function=to_tuple)
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        # This override is necessary because the cast must occur before the data
+        # is moved to the device to prevent wasteful host->device copies.
+        if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+            batch = apply_to_collection(batch, Tensor, function=Tensor.half)
+        # We don't call `super().batch_to_device` because `data.to(device)` is not
+        # currently necessary for IPUs. The movement of data from host<->IPU is
+        # currently handled by PopTorch.
+        return batch
 
     def _disable_zero_grad(self) -> None:
         lightning_module = self.lightning_module
