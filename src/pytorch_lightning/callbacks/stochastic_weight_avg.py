@@ -123,7 +123,7 @@ class StochasticWeightAveraging(Callback):
         self._model_contains_batch_norm: Optional[bool] = None
         self._average_model: "pl.LightningModule"
         self._initialized = False
-        self._swa_scheduler: Optional[SWALR] = None
+        self._swa_scheduler: Optional[_LRScheduler] = None
         self._scheduler_state: Optional[Dict] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
@@ -228,6 +228,7 @@ class StochasticWeightAveraging(Callback):
         if (self.swa_start <= trainer.current_epoch <= self.swa_end) and (
             trainer.current_epoch > self._latest_update_epoch
         ):
+            assert self.n_averaged is not None
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self._avg_fn)
             self._latest_update_epoch = trainer.current_epoch
 
@@ -293,6 +294,7 @@ class StochasticWeightAveraging(Callback):
 
     def reset_momenta(self) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
+        assert self.momenta is not None
         for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]
 
