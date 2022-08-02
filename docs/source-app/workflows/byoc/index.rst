@@ -34,6 +34,8 @@ You must have your cloud configured before you try and create a BYOC cluster.
 
 Create a Lightning BYOC cluster using the following command:
 
+PLEASE PROVIDE AN EXAMPLE WITH CLOUD PROVIDER PARAMETERS
+
 .. code:: python
 
    lightning create cluster <cluster-name> <cloud-provider-parameters>
@@ -43,14 +45,23 @@ Cluster names can only contain lowercase letters, numbers, and periodic hyphens 
 .. note:: AWS is supported today, but support for other cloud providers is coming soon.
 
 Args:
+
 * cost_savings: Specifies if the cluster uses cost savings mode.
-In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters with low utilization.
+
+.. note:: In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters with low utilization.
+
 * cluster_name: The name of the cluster to be created
+
 * role_arn: AWS IAM Role ARN used to provision resources
+
 * region: AWS region containing compute resources
+
 * external_id: AWS IAM Role external ID
+
 * instance_types: AWS instance types supported by the cluster
+
 * edit_before_creation: Enables interactive editing of requests before submitting it to Lightning AI.
+
 * wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
 
 ----
