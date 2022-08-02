@@ -351,7 +351,11 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
     _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=True)
 
 
-def _test_misconfiguration_error_with_sharded_model(tmpdir, strategy):
+@pytest.mark.parametrize("strategy", [
+    pytest.param("fsdp", marks=RunIf(fairscale_fully_sharded=True, min_cuda_gpus=1)),
+    pytest.param("deepspeed", marks=RunIf(deepspeed=True, min_cuda_gpus=1)),
+])
+def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):
     model = SwaTestModel()
     swa_callback = SwaTestCallback(swa_epoch_start=2, swa_lrs=0.1)
     trainer = Trainer(
@@ -365,16 +369,6 @@ def _test_misconfiguration_error_with_sharded_model(tmpdir, strategy):
     )
     with pytest.raises(MisconfigurationException, match="SWA does not currently support sharded models"):
         trainer.fit(model)
-
-
-@RunIf(fairscale_fully_sharded=True, min_cuda_gpus=1)
-def test_misconfiguration_error_with_ddp_fully_sharded(tmpdir):
-    _test_misconfiguration_error_with_sharded_model(tmpdir, "fsdp")
-
-
-@RunIf(deepspeed=True, min_cuda_gpus=1)
-def test_misconfiguration_error_with_deep_speed(tmpdir):
-    _test_misconfiguration_error_with_sharded_model(tmpdir, "deepspeed")
 
 
 def _backward_patch(trainer: Trainer) -> ContextManager:
