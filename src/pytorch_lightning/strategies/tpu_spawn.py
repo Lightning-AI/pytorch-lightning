@@ -124,7 +124,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
                 assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
                 TPUSpawnStrategy._validate_dataloader(source.instance)
 
-    def connect(self, model: "pl.LightningModule") -> None:  # type: ignore
+    def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnStrategy._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
