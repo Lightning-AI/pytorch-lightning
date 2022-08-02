@@ -145,6 +145,8 @@ class TestNeptuneLogger(unittest.TestCase):
         logger._run_instance.__getitem__.return_value.fetch.return_value = "exp-name"
         run_attr_mock = MagicMock()
         logger._run_instance.__getitem__.return_value = run_attr_mock
+        logger._run_name = "exp-name"
+        logger._run_short_id = "short"
 
         return logger, run_instance_mock, run_attr_mock
 
