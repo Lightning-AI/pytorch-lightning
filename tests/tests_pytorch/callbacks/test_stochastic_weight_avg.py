@@ -344,10 +344,8 @@ def test_swa_resume_training_from_checkpoint_custom_scheduler(tmpdir, crash_on_e
     _swa_resume_training_from_checkpoint(tmpdir, model, resume_model)
 
 
-@RunIf(skip_windows=True, min_torch="1.8")
+@RunIf(skip_windows=True)
 def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
-    # Requires PyTorch >= 1.8 to include this segfault fix:
-    # https://github.com/pytorch/pytorch/pull/50998
     model = SwaTestModel(crash_on_epoch=3)
     resume_model = SwaTestModel()
     _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=True)
