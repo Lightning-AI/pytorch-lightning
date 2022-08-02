@@ -247,7 +247,7 @@ class LightningWork(abc.ABC):
             return WorkStatus(**latest_status)
         elif call_hash in self._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]:
             # The timestamp was dropped to minimize the state size.
-            return WorkStatus(stage=WorkStageStatus.SUCCEEDED)
+            return WorkStatus(stage=WorkStageStatus.SUCCEEDED, timestamp=time.time())
         return WorkStatus(stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
 
     @property

@@ -177,84 +177,53 @@ class ProxyWorkRun:
 
 class WorkStateObserver(Thread):
     """This thread runs alongside LightningWork and periodically checks for state changes.
-
     If the state changed from one interval to the next, it will compute the delta and add it to the queue which is
     connected to the Flow. This enables state changes to be captured that are not triggered through a setattr call.
-
     Args:
         work: The LightningWork for which the state should be monitored
         delta_queue: The queue to send deltas to when state changes occur
         interval: The interval at which to check for state changes.
-
     Example:
-
         class Work(LightningWork):
             ...
-
             def run(self):
                 # This update gets sent to the Flow once the thread compares the new state with the previous one
                 self.list.append(1)
     """
 
-    def __init__(self, work: "LightningWork", delta_queue: "BaseQueue", interval: float = 1.0) -> None:
+    def __init__(self, work: "LightningWork", delta_queue: "BaseQueue", interval: float = 5) -> None:
         super().__init__(daemon=True)
         self._work = work
         self._delta_queue = delta_queue
-        self._original_internal = interval
         self._interval = interval
         self._exit_event = Event()
         self._delta_memory = []
-        self._last_state = None
-        self._work_state = []
-        self._processing = False
+        self._last_state = deepcopy(self._work.state)
 
     def run(self) -> None:
         while not self._exit_event.is_set():
-            if self._work_state:
-                state = self._work_state.pop(0)
-                if state:
-                    self._last_state = state
-                    self._processing = True
-                    self._internal = self._original_internal
-                else:
-                    self._last_state = None
-                    self._delta_memory.clear()
-                    self._processing = False
-                    self._internal = 0.1  # Finish and restart quicker.
-
             time.sleep(self._interval)
-
-            with _state_observer_lock:
-                if self._last_state and self._delta_memory:
-                    self.run_once()
+            # Run the thread only if active
+            self.run_once()
 
     def run_once(self) -> None:
-        # Add all deltas the LightningWorkSetAttrProxy has processed and sent to the Flow already while
-        # the WorkStateObserver was sleeping
-        for delta in self._delta_memory:
-            self._last_state += delta
+        with _state_observer_lock:
+            # Add all deltas the LightningWorkSetAttrProxy has processed and sent to the Flow already while
+            # the WorkStateObserver was sleeping
+            for delta in self._delta_memory:
+                self._last_state += delta
+            self._delta_memory.clear()
 
-        self._delta_memory.clear()
-
-        # The remaining delta is the result of state updates triggered outside the setattr, e.g, by a list append
-        delta = Delta(DeepDiff(self._last_state, self._work.state))
-        if not delta.to_dict():
-            return
-
-        self._last_state = deepcopy(self._work.state)
-        delta = ComponentDelta(id=self._work.name, delta=delta)
-        self._delta_queue.put(delta)
+            # The remaining delta is the result of state updates triggered outside the setattr, e.g, by a list append
+            delta = Delta(DeepDiff(self._last_state, self._work.state))
+            if not delta.to_dict():
+                return
+            self._last_state = deepcopy(self._work.state)
+            self._delta_queue.put(ComponentDelta(id=self._work.name, delta=delta))
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
         super().join(timeout)
-
-    def wait_for_desired_processing(self, desired_processing: bool, timeout: float = 15.0, wait_interval: float = 0.01):
-        while self._processing != desired_processing:
-            time.sleep(wait_interval)
-            timeout -= wait_interval
-            if timeout < 0:
-                raise TimeoutError("The WorkStateObserver thread didn't switch the desired processing state.")
 
 
 @dataclass
@@ -367,14 +336,6 @@ class WorkRunner:
         # 5. Inform the flow that the work is ready to receive data through the caller queue.
         self.readiness_queue.put(True)
 
-        # 6. Create the state observer thread.
-        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
-
-        # 7. Start the state observer thread. It will look for state changes and send them back to the Flow
-        # The observer has to be initialized here, after the set_state call above so that the thread can start with
-        # the proper initial state of the work
-        self.state_observer.start()
-
     def run_once(self):
         # 1. Wait for the caller queue data.
         called: Dict[str, Any] = self.caller_queue.get()
@@ -396,6 +357,9 @@ class WorkRunner:
 
         # 5. Transfer all paths in the state automatically if they have an origin and exist
         self._transfer_path_attributes()
+
+        # 6. Create the state observer thread.
+        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
 
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
@@ -420,10 +384,10 @@ class WorkRunner:
         if hasattr(work_run, "__wrapped__"):
             work_run = work_run.__wrapped__
 
-        # 11. Add the work state to the state observer and wait until it is ready.
-        self.state_observer._work_state.append(self.work.state)
-
-        self.state_observer.wait_for_desired_processing(True)
+        # 11. Start the state observer thread. It will look for state changes and send them back to the Flow
+        # The observer has to be initialized here, after the set_state call above so that the thread can start with
+        # the proper initial state of the work
+        self.state_observer.start()
 
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
@@ -446,8 +410,9 @@ class WorkRunner:
             print("########## CAPTURED EXCEPTION ###########")
             return
 
-        # 13. Inform the state observer its work is done.
-        self.state_observer._work_state.append(None)
+        # 13. Destroy the state observer.
+        self.state_observer.join(0)
+        self.state_observer = None
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
         persist_artifacts(work=self.work)
@@ -458,10 +423,6 @@ class WorkRunner:
                 f"Your work {self.work} shouldn't have a return value. Found {ret}."
                 "HINT: Use the Payload API instead."
             )
-
-        # 16. Wait for the state observer to have finished to send all its deltas
-        # and set processing to False.
-        self.state_observer.wait_for_desired_processing(False)
 
         # 17. DeepCopy the state and send the latest delta to the flow.
         # use the latest state as we have already sent delta
