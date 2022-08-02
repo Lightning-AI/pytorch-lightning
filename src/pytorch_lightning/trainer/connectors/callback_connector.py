@@ -100,8 +100,8 @@ class CallbackConnector:
             cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)
         ]
 
+        grad_accum_callback: Callback
         if grad_accum_callbacks:
-            grad_accum_callback: Callback
             if accumulate_grad_batches is not None:
                 raise MisconfigurationException(
                     "You have set both `accumulate_grad_batches` and passed an instance of "
