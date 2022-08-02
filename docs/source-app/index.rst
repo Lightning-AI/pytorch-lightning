@@ -143,7 +143,7 @@ Keep Learning
    :header: API Reference
    :description: Detailed description of each API package
    :col_css: col-md-6
-   :button_link: api_reference/api_references.html
+   :button_link: api_references.html
    :height: 180
 
 .. displayitem::
