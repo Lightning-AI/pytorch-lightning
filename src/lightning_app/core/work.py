@@ -556,8 +556,6 @@ class LightningWork(abc.ABC):
             return
         latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
         stop_status = make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.PENDING)
-        if latest_hash not in self._calls:
-            self._calls[latest_hash] = {"statuses": []}
         self._calls[latest_hash]["statuses"].append(stop_status)
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)
