@@ -497,7 +497,7 @@ class _DataLoaderSource:
     instance: INSTANCE
     name: str
 
-    def dataloader(self) -> Union[INSTANCE, TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+    def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
@@ -505,7 +505,7 @@ class _DataLoaderSource:
         from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
         if not self.name:
-            return self.instance
+            return self.instance  # type: ignore[return-value]
 
         if isinstance(self.instance, LightningModule):
             return self.instance.trainer._call_lightning_module_hook(self.name, pl_module=self.instance)
@@ -514,7 +514,7 @@ class _DataLoaderSource:
             method = getattr(self.instance, self.name)
             return method()
 
-        return self.instance
+        return self.instance  # type: ignore[return-value]
 
     def is_defined(self) -> bool:
         """Returns whether the source dataloader can be retrieved or not.
