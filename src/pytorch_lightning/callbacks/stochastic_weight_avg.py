@@ -309,14 +309,14 @@ class StochasticWeightAveraging(Callback):
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
             "latest_update_epoch": self._latest_update_epoch,
             "scheduler_state": None if self._swa_scheduler is None else self._swa_scheduler.state_dict(),
-            "average_model_parameters": None if self._average_model is None else list(self._average_model.parameters()),
+            "average_model_state": None if self._average_model is None else self._average_model.state_dict(),
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._init_n_averaged = state_dict["n_averaged"]
         self._latest_update_epoch = state_dict["latest_update_epoch"]
         self._scheduler_state = state_dict["scheduler_state"]
-        self._load_average_model_parameters(state_dict["average_model_parameters"])
+        self._load_average_model_state(state_dict["average_model_parameters"])
 
     @staticmethod
     def _clear_schedulers(trainer: "pl.Trainer") -> None:
@@ -331,10 +331,7 @@ class StochasticWeightAveraging(Callback):
             assert len(trainer.lr_scheduler_configs) == 1
             trainer.lr_scheduler_configs.clear()
 
-    def _load_average_model_parameters(self, parameter_state: Any) -> None:
+    def _load_average_model_state(self, model_state: Any) -> None:
         if self._average_model is None:
             return
-        for p_swa, p_checkpoint in zip(self._average_model.parameters(), parameter_state):
-            device = p_swa.device
-            p_swa_ = p_swa.detach()
-            p_swa_.copy_(p_checkpoint.to(device))
+        self._average_model.load_state_dict(model_state)
