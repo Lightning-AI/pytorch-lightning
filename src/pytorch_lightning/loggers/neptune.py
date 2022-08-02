@@ -617,19 +617,17 @@ class NeptuneLogger(Logger):
                 yield from cls._dict_paths(v, path)
 
     @property
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
-        if self._run_name is not None:
-            return self._run_name
+        return self._run_name
 
     @property
-    def version(self) -> str:
+    def version(self) -> Optional[str]:
         """Return the experiment version.
 
         It's Neptune Run's short_id
         """
-        if self._run_short_id is not None:
-            return self._run_short_id
+        return self._run_short_id
 
     @staticmethod
     def _signal_deprecated_api_usage(f_name: str, sample_code: str, raise_exception: bool = False) -> None:
