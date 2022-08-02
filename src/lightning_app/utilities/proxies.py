@@ -57,9 +57,7 @@ def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue",
         work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
 
     if call_hash not in work._calls:
-        work._calls[call_hash] = {
-            "statuses": [],
-        }
+        work._calls[call_hash] = {"statuses": []}
     else:
         # remove ret when relaunching the work.
         work._calls[call_hash].pop("ret", None)
@@ -96,9 +94,10 @@ class ProxyWorkRun:
         args, kwargs = self._process_call_args(args, kwargs)
 
         call_hash = self.work._call_hash(self.work_run, args, kwargs)
-        succeeded = call_hash in self.work._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]
-        entered = call_hash in self.work._calls or succeeded
-        returned = entered and (True if succeeded else "ret" in self.work._calls[call_hash])
+        # TODO: This needs more verification. There might be edge cases.
+        has_succeeded = call_hash in self.work._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]
+        entered = call_hash in self.work._calls or has_succeeded
+        returned = entered and (True if has_succeeded else "ret" in self.work._calls[call_hash])
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
         stopped_on_sigterm = self.work._restarting and self.work.status.reason == WorkStopReasons.SIGTERM_SIGNAL_HANDLER
 
@@ -438,9 +437,10 @@ class WorkRunner:
 
     def _sigterm_signal_handler(self, signum, frame, call_hash: str) -> None:
         """Signal handler used to react when spot instances are being retrived."""
-        logger.debug("Received SIGTERM signal. Gracefully terminating...")
+        logger.info(f"Received SIGTERM signal. Gracefully terminating {self.work.name.replace('root.', '')}...")
         persist_artifacts(work=self.work)
         with _state_observer_lock:
+            self.work._calls[call_hash]["statuses"] = []
             state = deepcopy(self.work.state)
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.SIGTERM_SIGNAL_HANDLER)

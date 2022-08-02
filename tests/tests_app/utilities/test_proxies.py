@@ -552,7 +552,7 @@ def test_work_state_observer():
 
     # this is necessary only in this test where we simulate the calls
     work._calls.clear()
-    work._calls.update({CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: set()})
+    work._calls.update({CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: {}})
 
     delta = delta_queue.get().delta.to_dict()
     assert delta["values_changed"] == {"root['vars']['var']": {"new_value": 2}}
@@ -583,7 +583,7 @@ def test_work_state_observer():
 
     # this is necessary only in this test where we siumulate the calls
     work._calls.clear()
-    work._calls.update({CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: set()})
+    work._calls.update({CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: {}})
 
     delta = delta_queue.get().delta.to_dict()
     assert delta == {"values_changed": {"root['vars']['var']": {"new_value": 3}}}

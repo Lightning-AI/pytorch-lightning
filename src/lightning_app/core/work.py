@@ -128,7 +128,7 @@ class LightningWork(abc.ABC):
         #        ]
         #    }
         # }
-        self._calls = {CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: set()}
+        self._calls = {CacheCallsKeys.LATEST_CALL_HASH: None, CacheCallsKeys.SUCCEEDED_CALL_HASHES: {}}
         self._changes = {}
         self._raise_exception = raise_exception
         self._paths = {}
@@ -237,7 +237,7 @@ class LightningWork(abc.ABC):
         All statuses are stored in the state.
         """
         call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
-        if call_hash in self._calls:
+        if call_hash in self._calls and "statuses" in self._calls[call_hash]:
             statuses = self._calls[call_hash]["statuses"]
             # deltas aren't necessarily coming in the expected order.
             statuses = sorted(statuses, key=lambda x: x["timestamp"])
@@ -246,16 +246,16 @@ class LightningWork(abc.ABC):
                 return self._aggregate_status_timeout(statuses)
             return WorkStatus(**latest_status)
         elif call_hash in self._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]:
-            # The timestamp was dropped to minimize the state size.
             # TODO: Archive all statuses to a database.
-            return WorkStatus(stage=WorkStageStatus.SUCCEEDED, timestamp=time.time())
+            timestamp = self._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES][call_hash]
+            return WorkStatus(stage=WorkStageStatus.SUCCEEDED, timestamp=timestamp)
         return WorkStatus(stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
 
     @property
     def statuses(self) -> List[WorkStatus]:
         """Return all the status of the work."""
         call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
-        if call_hash:
+        if call_hash in self._calls:
             statuses = self._calls[call_hash]["statuses"]
             # deltas aren't necessarily coming in the expected order.
             statuses = sorted(statuses, key=lambda x: x["timestamp"])
@@ -499,6 +499,9 @@ class LightningWork(abc.ABC):
         ]
 
         for call_hash in in_progress_call_hash:
+            if "statuses" not in calls[call_hash]:
+                continue
+
             # 2: Filter the statuses by timestamp
             statuses = sorted(calls[call_hash]["statuses"], key=lambda x: x["timestamp"])
 
@@ -508,9 +511,15 @@ class LightningWork(abc.ABC):
             # TODO: Store the statuses within a database in the future
             if statuses[-1]["stage"] == WorkStageStatus.SUCCEEDED:
                 calls.pop(call_hash)
-                calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES].add(call_hash)
+                calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES][call_hash] = statuses[-1]["timestamp"]
             else:
-                calls[call_hash]["statuses"] = statuses
+                # TODO: Some status are being duplicated,
+                # this seems related to the StateObserver.
+                final_statuses = []
+                for status in statuses:
+                    if status not in final_statuses:
+                        final_statuses.append(status)
+                calls[call_hash]["statuses"] = final_statuses
 
     @abc.abstractmethod
     def run(self, *args, **kwargs):

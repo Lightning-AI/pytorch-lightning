@@ -433,7 +433,6 @@ class LightningApp:
     def _has_work_finished(self, work):
         # Note: There are 2 main keys inside _calls
         # described with CacheCallsKeys.
-        # If there is more than 2, it means a run is currently performed.
         return len(work._calls) == 2
 
     def _collect_work_finish_status(self) -> dict:
