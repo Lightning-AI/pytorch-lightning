@@ -24,6 +24,7 @@ from lightning_app.testing.config import Config
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.imports import _is_playwright_available, requires
 from lightning_app.utilities.network import _configure_session, LightningClient
+from lightning_app.utilities.proxies import ProxyWorkRun
 
 if _is_playwright_available():
     import playwright
@@ -115,6 +116,8 @@ def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
     # pop the stopped status.
     call_hash = work._calls["latest_call_hash"]
     work._calls[call_hash]["statuses"].pop(-1)
+    if isinstance(work.run, ProxyWorkRun):
+        work.run = work.run.work_run
 
 
 def browser_context_args(browser_context_args: Dict) -> Dict:
