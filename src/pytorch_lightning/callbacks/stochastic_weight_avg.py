@@ -337,7 +337,7 @@ class StochasticWeightAveraging(Callback):
             trainer.lr_scheduler_configs.clear()
 
     def _load_average_model_parameters(self, parameter_state: Any) -> None:
-        if self._average_model is None or parameter_state is None:
+        if self._average_model is None:
             return
         for p_swa, p_checkpoint in zip(self._average_model.parameters(), parameter_state):
             device = p_swa.device
