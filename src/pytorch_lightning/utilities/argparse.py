@@ -40,8 +40,10 @@ class ParseArgparserDataType(ABC):
 
 
 def from_argparse_args(
-    cls: FROM_ARGPARSE_ARGS_CLS, args: Union[Namespace, ArgumentParser], **kwargs: Any
-) -> FROM_ARGPARSE_ARGS_RETURN:
+    cls: Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]],
+    args: Union[Namespace, ArgumentParser],
+    **kwargs: Any,
+) -> Union["pl.LightningDataModule", "pl.Trainer"]:
     """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
     ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
@@ -62,7 +64,7 @@ def from_argparse_args(
         >>> trainer = Trainer.from_argparse_args(args, logger=False)
     """
     if isinstance(args, ArgumentParser):
-        args = cls.parse_argparser(args)  # type: ignore[union-attr]
+        args = cls.parse_argparser(args)
 
     params = vars(args)
 
@@ -74,7 +76,9 @@ def from_argparse_args(
     return cls(**trainer_kwargs)
 
 
-def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+def parse_argparser(
+    cls: Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]], arg_parser: Union[ArgumentParser, Namespace]
+) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
@@ -221,7 +225,7 @@ def add_argparse_args(
 
     ignore_arg_names = ["self", "args", "kwargs"]
     if hasattr(cls, "get_deprecated_arg_names"):
-        ignore_arg_names += cls.get_deprecated_arg_names()  # type: ignore[union-attr]
+        ignore_arg_names += cls.get_deprecated_arg_names()
 
     allowed_types = (str, int, float, bool)
 

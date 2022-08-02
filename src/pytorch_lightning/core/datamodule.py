@@ -24,8 +24,8 @@ from pytorch_lightning.core.saving import _load_from_checkpoint
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
-    FROM_ARGPARSE_ARGS_RETURN,
     get_init_arguments_and_types,
+    parse_argparser,
 )
 from pytorch_lightning.utilities.types import _PATH
 
@@ -83,7 +83,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> FROM_ARGPARSE_ARGS_RETURN:
+    def from_argparse_args(
+        cls, args: Union[Namespace, ArgumentParser], **kwargs: Any
+    ) -> Union["pl.LightningDataModule", "pl.Trainer"]:
         """Create an instance from CLI arguments.
 
         Args:
@@ -99,6 +101,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
+    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+        return parse_argparser(cls, arg_parser)
+
+    @classmethod
     def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         r"""Scans the DataModule signature and returns argument names, types and default values.
 
@@ -107,6 +113,15 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             (argument name, set with argument types, argument default value).
         """
         return get_init_arguments_and_types(cls)
+
+    @classmethod
+    def get_deprecated_arg_names(cls) -> List:
+        """Returns a list with deprecated Trainer arguments."""
+        depr_arg_names: List[str] = []
+        for name, val in cls.__dict__.items():
+            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
+                depr_arg_names.extend(val)
+        return depr_arg_names
 
     @classmethod
     def from_datasets(
