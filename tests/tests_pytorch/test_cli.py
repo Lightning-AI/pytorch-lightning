@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import inspect
 import json
 import os
@@ -27,19 +26,12 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
-from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, TensorBoardLogger
-from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.cli import (
+from pytorch_lightning.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
     instantiate_class,
     LightningArgumentParser,
@@ -47,14 +39,18 @@ from pytorch_lightning.utilities.cli import (
     LRSchedulerTypeTuple,
     SaveConfigCallback,
 )
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
+from pytorch_lightning.loggers import _COMET_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
+from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
-
-torchvision_version = version.parse("0")
-if _TORCHVISION_AVAILABLE:
-    torchvision_version = version.parse(__import__("torchvision").__version__)
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import lazy_instance
@@ -201,8 +197,8 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
 )
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
-    monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
-    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
+    monkeypatch.setattr("pytorch_lightning.utilities.device_parser.num_cuda_devices", lambda: 2)
+    monkeypatch.setattr("pytorch_lightning.utilities.device_parser.is_cuda_available", lambda: True)
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
@@ -524,7 +520,7 @@ def test_lightning_cli_submodules(tmpdir):
     assert isinstance(cli.model.submodule2, BoringModel)
 
 
-@pytest.mark.skipif(torchvision_version < version.parse("0.8.0"), reason="torchvision>=0.8.0 is required")
+@pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason="Tests a bug with torchvision, but it's not available")
 def test_lightning_cli_torch_modules(tmpdir):
     class TestModule(BoringModel):
         def __init__(self, activation: torch.nn.Module = None, transform: Optional[List[torch.nn.Module]] = None):
@@ -593,7 +589,7 @@ def test_lightning_cli_link_arguments(tmpdir):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
-    cli_args[-1] = "--model=tests_pytorch.utilities.test_cli.BoringModelRequiredClasses"
+    cli_args[-1] = "--model=tests_pytorch.test_cli.BoringModelRequiredClasses"
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(
@@ -1418,21 +1414,47 @@ def _test_logger_init_args(logger_name, init, unresolved={}):
 
 @pytest.mark.skipif(not _COMET_AVAILABLE, reason="comet-ml is required")
 def test_comet_logger_init_args():
-    _test_logger_init_args("CometLogger", {"save_dir": "comet", "workspace": "comet"})
+    _test_logger_init_args(
+        "CometLogger",
+        {
+            "save_dir": "comet",  # Resolve from CometLogger.__init__
+            "workspace": "comet",  # Resolve from Comet{,Existing,Offline}Experiment.__init__
+        },
+    )
 
 
 @pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
 def test_neptune_logger_init_args():
-    _test_logger_init_args("NeptuneLogger", {"name": "neptune"}, {"description": "neptune"})
+    _test_logger_init_args(
+        "NeptuneLogger",
+        {
+            "name": "neptune",  # Resolve from NeptuneLogger.__init__
+        },
+        {
+            "description": "neptune",  # Unsupported resolving from neptune.new.internal.init.run.init_run
+        },
+    )
 
 
 def test_tensorboard_logger_init_args():
-    _test_logger_init_args("TensorBoardLogger", {"save_dir": "tb", "name": "tb"})
+    _test_logger_init_args(
+        "TensorBoardLogger",
+        {
+            "save_dir": "tb",  # Resolve from TensorBoardLogger.__init__
+            "comment": "tb",  # Resolve from tensorboard.writer.SummaryWriter.__init__
+        },
+    )
 
 
 @pytest.mark.skipif(not _WANDB_AVAILABLE, reason="wandb is required")
 def test_wandb_logger_init_args():
-    _test_logger_init_args("WandbLogger", {"save_dir": "wandb", "notes": "wandb"})
+    _test_logger_init_args(
+        "WandbLogger",
+        {
+            "save_dir": "wandb",  # Resolve from WandbLogger.__init__
+            "notes": "wandb",  # Resolve from wandb.sdk.wandb_init.init
+        },
+    )
 
 
 def test_cli_auto_seeding():
@@ -1516,13 +1538,13 @@ def test_pytorch_profiler_init_args():
     from pytorch_lightning.profilers import Profiler, PyTorchProfiler
 
     init = {
-        "dirpath": "profiler",
-        "row_limit": 10,
-        "group_by_input_shapes": True,
+        "dirpath": "profiler",  # Resolve from PyTorchProfiler.__init__
+        "row_limit": 10,  # Resolve from PyTorchProfiler.__init__
+        "group_by_input_shapes": True,  # Resolve from PyTorchProfiler.__init__
     }
     unresolved = {
-        "profile_memory": True,
-        "record_shapes": True,
+        "profile_memory": True,  # Not possible to resolve parameters from dynamically chosen Type[_PROFILER]
+        "record_shapes": True,  # Resolve from PyTorchProfiler.__init__, gets moved to init_args
     }
     cli_args = ["--trainer.profiler=PyTorchProfiler"]
     cli_args += [f"--trainer.profiler.{k}={v}" for k, v in init.items()]
@@ -1532,5 +1554,6 @@ def test_pytorch_profiler_init_args():
         cli = LightningCLI(TestModel, run=False)
 
     assert isinstance(cli.config_init.trainer.profiler, PyTorchProfiler)
+    init["record_shapes"] = unresolved.pop("record_shapes")  # Test move to init_args
     assert {k: cli.config.trainer.profiler.init_args[k] for k in init} == init
     assert cli.config.trainer.profiler.dict_kwargs == unresolved

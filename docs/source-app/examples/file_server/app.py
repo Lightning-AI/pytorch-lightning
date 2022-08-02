@@ -3,16 +3,20 @@ import os
 import tarfile
 import uuid
 import zipfile
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 import lightning as L
 from lightning.app.storage import Drive
 
 
 class FileServer(L.LightningWork):
-    def __init__(self, drive: Drive, base_dir: str = "file_server", chunk_size=10240, **kwargs):
+    def __init__(
+        self,
+        drive: Drive,
+        base_dir: str = "file_server",
+        chunk_size=10240,
+        **kwargs
+    ):
         """This component uploads, downloads files to your application.
 
         Arguments:
@@ -50,7 +54,9 @@ class FileServer(L.LightningWork):
         filename = file.filename
         uploaded_file = self.get_random_filename()
         meta_file = uploaded_file + ".meta"
-        self.uploaded_files[filename] = {"progress": (0, None), "done": False}
+        self.uploaded_files[filename] = {
+            "progress": (0, None), "done": False
+        }
 
         # 2: Create a stream and write bytes of
         # the file to the disk under `uploaded_file` path.
@@ -151,12 +157,13 @@ class FileServer(L.LightningWork):
         return self.url != ""
 
 
-import requests
+import requests  # noqa: E402
 
-from lightning import LightningWork
+from lightning import LightningWork  # noqa: E402
 
 
 class TestFileServer(LightningWork):
+
     def __init__(self, drive: Drive):
         super().__init__(cache_calls=True)
         self.drive = drive
@@ -166,7 +173,10 @@ class TestFileServer(LightningWork):
             with open("test.txt", "w") as f:
                 f.write("Some text.")
 
-            response = requests.post(file_server_url + "/upload_file/", files={"file": open("test.txt", "rb")})
+            response = requests.post(
+                file_server_url + "/upload_file/",
+                files={'file': open("test.txt", 'rb')}
+            )
             assert response.status_code == 200
         else:
             response = requests.get(file_server_url)
@@ -174,10 +184,11 @@ class TestFileServer(LightningWork):
             assert response.json() == {"asset_names": ["test.txt"]}
 
 
-from lightning import LightningApp, LightningFlow
+from lightning import LightningApp, LightningFlow  # noqa: E402
 
 
 class Flow(LightningFlow):
+
     def __init__(self):
         super().__init__()
         # 1: Create a drive to share data between works
@@ -207,7 +218,7 @@ class Flow(LightningFlow):
         return {"name": "File Server", "content": self.file_server}
 
 
-from lightning.app.runners import MultiProcessRuntime
+from lightning.app.runners import MultiProcessRuntime  # noqa: E402
 
 
 def test_file_server():
@@ -215,7 +226,7 @@ def test_file_server():
     MultiProcessRuntime(app).dispatch()
 
 
-from lightning.app.testing.testing import run_app_in_cloud
+from lightning.app.testing.testing import run_app_in_cloud  # noqa: E402
 
 
 def test_file_server_in_cloud():

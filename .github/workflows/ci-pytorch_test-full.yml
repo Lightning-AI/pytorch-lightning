@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04, windows-2019, macOS-11]
         python-version: ["3.7", "3.9"]  # minimum, maximum
         requires: ["oldest", "latest"]
         release: ["stable"]
@@ -55,7 +55,7 @@ jobs:
 
     - name: Set up Python ${{ matrix.python-version }}
       if: ${{ (steps.skip.outputs.continue == '1') }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 

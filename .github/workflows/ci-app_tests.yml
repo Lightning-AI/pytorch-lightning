@@ -3,8 +3,7 @@ name: Test App
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on: # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches:
-      - "master"
+    branches: [master, "release/*"]
   pull_request:
     paths:
       - "src/lightning_app/**"
@@ -22,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macOS-10.15, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2019]
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
@@ -32,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
