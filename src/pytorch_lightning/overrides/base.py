@@ -14,6 +14,9 @@
 from typing import Any, Optional, Union
 
 import torch
+import torch.nn as nn
+from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
@@ -122,3 +125,29 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             )
         elif forward_module is None:
             raise ValueError("Argument `forward_module` is required.")
+
+
+def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
+    """Recursively unwraps a :class:`~pytorch_lightning.core.module.LightningModule` by following the ``.module``
+    attributes on the wrapper.
+
+    .. deprecated:: v1.8
+        The function `unwrap_lightning_module` is deprecated in v1.8 and will be removed in v1.10. Access the
+        `LightningModule` directly through the strategy attribute `Strategy.lightning_module`.
+
+    Raises:
+        TypeError: If the unwrapping leads to a module that is not a LightningModule and that cannot be unwrapped
+            further.
+    """
+    rank_zero_deprecation(
+        "The function `unwrap_lightning_module` is deprecated in v1.8 and will be removed in v1.10. Access the"
+        " `LightningModule` directly through the strategy attribute `Strategy.lightning_module`."
+    )
+    model = wrapped_model
+    if isinstance(model, (DistributedDataParallel, DataParallel)):
+        model = unwrap_lightning_module(model.module)
+    if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):
+        model = unwrap_lightning_module(model.module)
+    if not isinstance(model, pl.LightningModule):
+        raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
+    return model

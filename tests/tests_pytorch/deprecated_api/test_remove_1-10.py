@@ -17,6 +17,7 @@ import pytest
 
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 
@@ -36,3 +37,8 @@ def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
 
     with pytest.deprecated_call(match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8"):
         wrapper_class(pl_module=BoringModel())
+
+
+def test_v1_10_deprecated_unwrap_lightning_module():
+    with pytest.deprecated_call(match=r"The function `unwrap_lightning_module` is deprecated in v1.8"):
+        unwrap_lightning_module(BoringModel())

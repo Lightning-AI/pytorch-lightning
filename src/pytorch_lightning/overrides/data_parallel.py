@@ -54,7 +54,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
     Args:
         pl_module: The module to wrap. See description for `forward_module`.
 
-            .. deprecated:: v1.6
+            .. deprecated:: v1.8
                 The argument `pl_module` is deprecated in v1.8 and will be removed in v1.10. Please use
                 `forward_module` instead.
 
