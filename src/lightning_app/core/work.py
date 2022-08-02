@@ -237,8 +237,8 @@ class LightningWork(abc.ABC):
         All statuses are stored in the state.
         """
         call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
-        if call_hash in self._calls and self._calls[call_hash] is not None:
-            statuses = self._calls[call_hash].get("statuses", [])
+        if call_hash in self._calls:
+            statuses = self._calls[call_hash]["statuses"]
             # deltas aren't necessarily coming in the expected order.
             statuses = sorted(statuses, key=lambda x: x["timestamp"])
             latest_status = statuses[-1]
@@ -247,6 +247,7 @@ class LightningWork(abc.ABC):
             return WorkStatus(**latest_status)
         elif call_hash in self._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]:
             # The timestamp was dropped to minimize the state size.
+            # TODO: Archive all statuses to a database.
             return WorkStatus(stage=WorkStageStatus.SUCCEEDED, timestamp=time.time())
         return WorkStatus(stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
 
@@ -553,8 +554,9 @@ class LightningWork(abc.ABC):
         if self.status.stage == WorkStageStatus.STOPPED:
             return
         latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
-        self._calls[latest_hash]["statuses"].append(
-            make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.PENDING)
-        )
+        stop_status = make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.PENDING)
+        if latest_hash not in self._calls:
+            self._calls[latest_hash]["statuses"] = []
+        self._calls[latest_hash]["statuses"].append(stop_status)
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)

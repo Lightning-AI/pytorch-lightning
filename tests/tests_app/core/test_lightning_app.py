@@ -765,7 +765,7 @@ class ProtectedAttributesFlow(LightningFlow):
 
 def test_protected_attributes_not_in_state():
     flow = ProtectedAttributesFlow()
-    MultiProcessRuntime(LightningApp(flow)).dispatch()
+    MultiProcessRuntime(LightningApp(flow), start_server=False).dispatch()
 
 
 class WorkExit(LightningWork):
@@ -791,7 +791,7 @@ class FlowExit(LightningFlow):
 
 def test_lightning_app_exit():
     app = LightningApp(FlowExit())
-    MultiProcessRuntime(app).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.status.stage == WorkStageStatus.STOPPED
 
 
@@ -863,12 +863,12 @@ class SleepyFlowWithWork(LightningFlow):
 def test_slow_flow():
     app0 = LightningApp(SleepyFlow(sleep_interval=0.5 * FLOW_DURATION_THRESHOLD))
 
-    MultiProcessRuntime(app0).dispatch()
+    MultiProcessRuntime(app0, start_server=False).dispatch()
 
     app1 = LightningApp(SleepyFlow(sleep_interval=2 * FLOW_DURATION_THRESHOLD))
 
     with pytest.warns(LightningFlowWarning):
-        MultiProcessRuntime(app1).dispatch()
+        MultiProcessRuntime(app1, start_server=False).dispatch()
 
     app0 = LightningApp(
         SleepyFlowWithWork(
@@ -878,7 +878,7 @@ def test_slow_flow():
         )
     )
 
-    MultiProcessRuntime(app0).dispatch()
+    MultiProcessRuntime(app0, start_server=False).dispatch()
 
     app1 = LightningApp(
         SleepyFlowWithWork(
@@ -886,7 +886,7 @@ def test_slow_flow():
         )
     )
 
-    MultiProcessRuntime(app1).dispatch()
+    MultiProcessRuntime(app1, start_server=False).dispatch()
 
 
 class SizeWork(LightningWork):
@@ -914,29 +914,8 @@ class SizeFlow(LightningFlow):
             self._exit()
 
 
-def test_state_size_isn_t_growing_quickly():
+def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes == {
-        0: 5904,
-        1: 5448,
-        2: 5504,
-        3: 5560,
-        4: 6128,
-        5: 6184,
-        6: 6240,
-        7: 6296,
-        8: 6352,
-        9: 6408,
-        10: 6464,
-        11: 6520,
-        12: 6576,
-        13: 6632,
-        14: 6688,
-        15: 6744,
-        16: 6800,
-        17: 6856,
-        18: 8448,
-        19: 8504,
-        20: 9136,
-    }
+    assert app.root._state_sizes[0] == 5904
+    assert app.root._state_sizes[20] <= 8120
