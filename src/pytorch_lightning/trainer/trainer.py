@@ -455,22 +455,6 @@ class Trainer(
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        # Declare attributes to be set in _callback_connector on_trainer_init
-        self._callback_connector.on_trainer_init(
-            callbacks,
-            enable_checkpointing,
-            enable_progress_bar,
-            default_root_dir,
-            weights_save_path,
-            enable_model_summary,
-            max_time,
-            accumulate_grad_batches,
-        )
-
-        # init logger flags
-        self._loggers: List[Logger]
-        self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
-
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         fit_loop.connect(epoch_loop=training_epoch_loop)
@@ -487,18 +471,6 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        self.val_check_interval: Union[int, float]
-        self._init_debugging_flags(
-            limit_train_batches,
-            limit_val_batches,
-            limit_test_batches,
-            limit_predict_batches,
-            fast_dev_run,
-            overfit_batches,
-            val_check_interval,
-            num_sanity_val_steps,
-        )
-
         # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
         self._ckpt_path: Optional[str] = None
 
@@ -508,13 +480,26 @@ class Trainer(
         self._tested_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
         self._predicted_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
 
+        # init callbacks
+        # Declare attributes to be set in _callback_connector on_trainer_init
+        self._callback_connector.on_trainer_init(
+            callbacks,
+            enable_checkpointing,
+            enable_progress_bar,
+            default_root_dir,
+            weights_save_path,
+            enable_model_summary,
+            max_time,
+            accumulate_grad_batches,
+        )
+
         # hook
         self._call_callback_hooks("on_init_start")
 
         # init data flags
         self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
-            self.val_check_interval,
+            val_check_interval,
             reload_dataloaders_every_n_epochs,
             check_val_every_n_epoch,
         )
@@ -524,7 +509,7 @@ class Trainer(
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
 
         if gradient_clip_algorithm is not None and not GradClipAlgorithmType.supported_type(
-            gradient_clip_algorithm.lower()
+                gradient_clip_algorithm.lower()
         ):
             raise MisconfigurationException(
                 f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
@@ -533,7 +518,7 @@ class Trainer(
 
         # gradient norm tracking
         if track_grad_norm != -1 and not (
-            (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
+                (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
         ):
             raise MisconfigurationException(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
@@ -553,6 +538,23 @@ class Trainer(
 
         # configure profiler
         self.__init_profiler(profiler)
+
+        # init logger flags
+        self._loggers: List[Logger]
+        self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
+
+        # init debugging flags
+        self.val_check_interval: Union[int, float]
+        self._init_debugging_flags(
+            limit_train_batches,
+            limit_val_batches,
+            limit_test_batches,
+            limit_predict_batches,
+            fast_dev_run,
+            overfit_batches,
+            val_check_interval,
+            num_sanity_val_steps,
+        )
 
         # Callback system
         self._call_callback_hooks("on_init_end")
