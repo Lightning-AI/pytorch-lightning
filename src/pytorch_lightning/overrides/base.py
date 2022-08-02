@@ -52,7 +52,9 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(self, forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
+    def __init__(
+        self, forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]]
+    ) -> None:
         """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
         ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``.
 
@@ -70,6 +72,8 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
                 "`forward_module` must be a `LightningModule` instance or have an attribute `.module` pointing to one,"
                 f" got: {forward_module.__class__.__qualname__}"
             )
+        # TODO: In v1.10, remove the Optional type from forward_module and remove the assertion
+        assert forward_module is not None
         self._forward_module = forward_module
 
         # set the parameters_to_ignore from LightningModule.
