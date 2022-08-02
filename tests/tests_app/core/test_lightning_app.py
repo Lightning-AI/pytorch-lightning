@@ -910,7 +910,7 @@ class SizeFlow(LightningFlow):
 
         self._state_sizes[self.work0.counter] = asizeof.asizeof(self.state)
 
-        if self._state_sizes[self.work0.counter] >= 20:
+        if self.work0.counter >= 20:
             self._exit()
 
 
@@ -918,4 +918,4 @@ def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root._state_sizes[0] <= 5904
-    assert app.root._state_sizes[20] <= 23712
+    assert app.root._state_sizes[20] <= 23736
