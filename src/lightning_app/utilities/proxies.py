@@ -99,8 +99,6 @@ class ProxyWorkRun:
         args, kwargs = self._process_call_args(args, kwargs)
 
         call_hash = self.work._call_hash(self.work_run, args, kwargs)
-        # TODO: This needs more verification. There might be edge cases.
-        # has_succeeded = call_hash in self.work._calls[CacheCallsKeys.SUCCEEDED_CALL_HASHES]
         entered = call_hash in self.work._calls
         returned = entered and "ret" in self.work._calls[call_hash]
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
