@@ -52,8 +52,8 @@ log = logging.getLogger(__name__)
 class LightningBaguaModule(_LightningModuleWrapperBase):
     def __init__(
         self,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
         forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
         self._validate_init_arguments(pl_module, forward_module)
         forward_module = pl_module or forward_module

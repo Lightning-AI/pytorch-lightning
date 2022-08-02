@@ -22,6 +22,7 @@ from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, 
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 @pytest.mark.parametrize(
@@ -35,7 +36,9 @@ from tests_pytorch.helpers.runif import RunIf
     ],
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
-    with pytest.deprecated_call(match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8"):
+    with no_warning_call(
+            DeprecationWarning,
+            match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8"):
         wrapper_class(BoringModel())
 
     with pytest.deprecated_call(match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8"):
