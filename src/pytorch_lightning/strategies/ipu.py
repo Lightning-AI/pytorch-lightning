@@ -44,9 +44,7 @@ else:
 
 class LightningIPUModule(_LightningModuleWrapperBase):
     def __init__(
-        self,
-        pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase],
-        precision: Union[str, int],
+        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
     ) -> None:
         rank_zero_deprecation("`LightningIPUModule` has been deprecated in v1.7.0 and will be removed in v1.8.0")
         super().__init__(pl_module)
