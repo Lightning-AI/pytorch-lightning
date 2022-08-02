@@ -125,7 +125,6 @@ class StochasticWeightAveraging(Callback):
         self._initialized = False
         self._swa_scheduler: Optional[SWALR] = None
         self._scheduler_state: Optional[Dict] = None
-        self._scheduler_configs: Optional[List] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
         self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
@@ -205,10 +204,6 @@ class StochasticWeightAveraging(Callback):
             # We assert that there is only one optimizer on fit start, so know opt_idx is always 0
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler, opt_idx=0)
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
-
-            if self._scheduler_configs:
-                trainer.lr_scheduler_configs[:] = self._scheduler_configs
-                self._scheduler_configs = None
 
             if trainer.lr_scheduler_configs:
                 scheduler_cfg = trainer.lr_scheduler_configs[0]
@@ -323,7 +318,8 @@ class StochasticWeightAveraging(Callback):
         self._scheduler_state = state_dict["scheduler_state"]
         self._load_average_model_parameters(state_dict["average_model_parameters"])
 
-    def _clear_schedulers(self, trainer: "pl.Trainer") -> None:
+    @staticmethod
+    def _clear_schedulers(trainer: "pl.Trainer") -> None:
         # If we have scheduler state saved, clear the scheduler configs so that we don't try to
         # load state into the wrong type of schedulers when restoring scheduler checkpoint state.
         # We'll configure the scheduler and re-load its state in on_train_epoch_start.
@@ -333,7 +329,6 @@ class StochasticWeightAveraging(Callback):
         # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
         if trainer.lr_scheduler_configs:
             assert len(trainer.lr_scheduler_configs) == 1
-            self._scheduler_configs = list(trainer.strategy.lr_scheduler_configs)
             trainer.lr_scheduler_configs.clear()
 
     def _load_average_model_parameters(self, parameter_state: Any) -> None:
