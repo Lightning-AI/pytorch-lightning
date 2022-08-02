@@ -111,7 +111,6 @@ class CloudRuntime(Runtime):
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
                     cluster_id=cluster_id,
-                    # lightningapp_instance_id="t3.medium",
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
