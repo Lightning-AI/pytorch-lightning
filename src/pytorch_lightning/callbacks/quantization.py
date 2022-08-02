@@ -41,7 +41,10 @@ else:
 
 
 def wrap_qat_forward_context(
-    quant_cb: Any, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
+    quant_cb: Callback,
+    model: "pl.LightningModule",
+    func: Callable,
+    trigger_condition: Optional[Union[Callable, int]] = None,
 ) -> Callable:
     """Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out
     compatibility Moreover this version has the (de)quantization conditional as it may not be needed for the
