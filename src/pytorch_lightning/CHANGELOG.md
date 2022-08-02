@@ -152,7 +152,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed error handling in learning rate finder when not enough data points are available to give a good suggestion ([#13845](https://github.com/Lightning-AI/lightning/pull/13845))
 - Fixed an issue that caused the learning rate finder to set the model's learning rate to None when no suggestion was possible ([#13845](https://github.com/Lightning-AI/lightning/pull/13845))
 - Fixed an issue causing deterministic algorighms and other globals to get reset in spawned processes ([#13921](https://github.com/Lightning-AI/lightning/pull/13921))
-- Fixed default `amp_level` for `DeepSpeedPrecisionPlugin` to `O2` ([#13897](https://github.com/PyTorchLightning/pytorch-lightning/pull/13897))
+- Fixed default `amp_level` for `DeepSpeedPrecisionPlugin` to `O2` ([#13897](https://github.com/Lightning-AI/lightning/pull/13897))
 
 
 ## [1.6.5] - 2022-07-13
@@ -715,7 +715,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `CombinedLoader` and `max_size_cycle` didn't receive a `DistributedSampler` ([#10374](https://github.com/Lightning-AI/lightning/pull/10374))
 - Fixed an issue where class or init-only variables of dataclasses were passed to the dataclass constructor in `utilities.apply_to_collection` ([#9702](https://github.com/Lightning-AI/lightning/pull/9702))
-- Fixed `isinstance` not working with `init_meta_context`, materialized model not being moved to the device ([#10493](https://github.com/PyTorchLightning/metrics/pull/10493))
+- Fixed `isinstance` not working with `init_meta_context`, materialized model not being moved to the device ([#10493](https://github.com/Lightning-AI/lightning/pull/10493))
 - Fixed an issue that prevented the Trainer to shutdown workers when execution is interrupted due to failure([#10463](https://github.com/Lightning-AI/lightning/pull/10463))
 - Squeeze the early stopping monitor to remove empty tensor dimensions ([#10461](https://github.com/Lightning-AI/lightning/pull/10461))
 - Fixed sampler replacement logic with `overfit_batches` to only replace the sample when `SequentialSampler` is not used ([#10486](https://github.com/Lightning-AI/lightning/pull/10486))
@@ -2734,7 +2734,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Using `.comet.config` file for `CometLogger` ([#1913](https://github.com/Lightning-AI/lightning/pull/1913))
 - Updated hooks arguments - breaking for `setup` and `teardown` ([#2850](https://github.com/Lightning-AI/lightning/pull/2850))
 - Using `gfile` to support remote directories ([#2164](https://github.com/Lightning-AI/lightning/pull/2164))
-- Moved optimizer creation after device placement for DDP backends ([#2904](https://github.com/PyTorchLightning/pytorch-lighting/pull/2904))
+- Moved optimizer creation after device placement for DDP backends ([#2904](https://github.com/Lightning-AI/lighting/pull/2904))
 - Support `**DictConfig` for `hparam` serialization ([#2519](https://github.com/Lightning-AI/lightning/pull/2519))
 - Removed callback metrics from test results obj ([#2994](https://github.com/Lightning-AI/lightning/pull/2994))
 - Re-enabled naming metrics in ckpt name ([#3060](https://github.com/Lightning-AI/lightning/pull/3060))
