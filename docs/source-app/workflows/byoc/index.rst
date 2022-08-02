@@ -19,11 +19,11 @@ The control plane resides on Lightning Cloud.
 Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
 delegated access and an identity provider for secure access to the data plane.
 
-Next, as part of the environment creation process, users configure networking,
-security, and select Lightning cluster configuration options based on their use cases.
+Next, as part of the environment creation process, users can configure networking,
+security, and select among cluster configuration options based on their own use cases.
 
-After submitting the request,the Lightning control plane creates the required cloud infrastructure
-and sets up the environment with the Lightning cluster along with a Lightning Kubernetes operator.
+After submitting a cluster creation request, the Lightning Control Plane creates the required cloud infrastructure on the user account. This
+sets up a new Lightning Cluster along with a Lightning Kubernetes Operator.
 
 
 *******************************
