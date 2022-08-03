@@ -34,8 +34,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
-    _HYDRA_AVAILABLE,
-    _HYDRA_EXPERIMENTAL_AVAILABLE,
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
     _IS_WINDOWS,
