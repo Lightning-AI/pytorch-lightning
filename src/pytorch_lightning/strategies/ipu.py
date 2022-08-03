@@ -195,7 +195,8 @@ class IPUStrategy(ParallelStrategy):
             if self._inference_opts:
                 return self._inference_opts.replication_factor
 
-            return len(self.parallel_devices) if self.parallel_devices else 0
+            assert self.parallel_devices
+            return len(self.parallel_devices)
         stage = self.lightning_module.trainer.state.stage
         assert stage is not None
         return self.poptorch_models[stage]._options.toDict()["replication_factor"]
@@ -326,7 +327,8 @@ class IPUStrategy(ParallelStrategy):
             # undo dataloader patching
             pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
-        if self._optimizer_zero_grad_original is not None and self.lightning_module is not None:
+        assert self.lightning_module is not None
+        if self._optimizer_zero_grad_original is not None:
             # re-enable `optimizer_zero_grad`
             self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
 
