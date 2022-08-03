@@ -244,10 +244,7 @@ class IPUStrategy(ParallelStrategy):
             return dataloader
 
         dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(
-            dataloader, 
-            sampler,  # type: ignore[arg-type]
-            mode, 
-            self.replication_factor > 1
+            dataloader, sampler, mode, self.replication_factor > 1  # type: ignore[arg-type]
         )
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
         dataloader = poptorch.DataLoader(opts, *dl_args, **dl_kwargs)
