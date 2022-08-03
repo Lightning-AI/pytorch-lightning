@@ -14,10 +14,10 @@ or with specific arguments
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:base-cuda-py3.9-pt1.10 \
-    -f dockers/base-cuda/Dockerfile \
+    -t pytorch-lightning:base-cuda-py3.9-pt1.11 \
+    -f dockers/base-rocm/Dockerfile \
     --build-arg PYTHON_VERSION=3.9 \
-    --build-arg PYTORCH_VERSION=1.10 \
+    --build-arg PYTORCH_VERSION=1.11 \
     .
 ```
 
@@ -93,8 +93,12 @@ To build the docker image for ROCm follow these steps:
 
 ```bash
 git clone <git-repository>
-#cd into the newly cloned repository
-docker build -f dockers/for_rocm/Dockerfile .
+docker image build \
+    -t pytorch-lightning:base-rocm-py3.9-pt1.10 \
+    -f dockers/base-cuda/Dockerfile \
+    --build-arg PYTHON_VERSION=3.9 \
+    --build-arg PYTORCH_VERSION=1.10 \
+    .
 ```
 
 To start the container on ROCm drivers run the command: 

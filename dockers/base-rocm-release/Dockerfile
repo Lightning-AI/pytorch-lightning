@@ -12,10 +12,10 @@ ENV PACKAGE_NAME=pytorch
 # install dependencies
 RUN \
     cd /home && \
-    pip install click deepdiff fastapi lightning-cloud Jinja2 starsessions jsonargparse jsonargparse[signatures] torchvision&& \
-    pip uninstall fsspec -y && \ 
-    pip install fsspec==2022.1.0 &&\
-    python -m pip install urllib3 &&\
+    pip install click deepdiff fastapi lightning-cloud Jinja2 starsessions jsonargparse jsonargparse[signatures] && \
+    pip uninstall fsspec -y && \
+    pip install fsspec==2022.1.0 && \
+    python -m pip install urllib3 && \
     pip install protobuf==3.9.2 && \
     mv lightning/_notebooks notebooks && \
     mv lightning/examples . && \
