@@ -22,8 +22,7 @@ from torch.utils.data import DataLoader, Sampler
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import (
     _LightningModuleWrapperBase,
-    _LightningPrecisionModuleWrapperBase,
-    unwrap_lightning_module,
+    _LightningPrecisionModuleWrapperBase
 )
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
