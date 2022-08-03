@@ -2,14 +2,22 @@ import logging
 import os
 import signal
 import sys
-from typing import Any, Dict, List, Optional, Union
+from copy import deepcopy
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from lightning_app import LightningWork
+from lightning_app.storage.drive import Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _collect_child_process_pids
+from lightning_app.utilities.packaging.tarfile import clean_tarfile, extract_tarfile
 from lightning_app.utilities.tracer import Tracer
 
 logger = logging.getLogger(__name__)
+
+
+class Code(TypedDict):
+    drive: Drive
+    name: str
 
 
 class TracerPythonScript(LightningWork):
@@ -31,14 +39,15 @@ class TracerPythonScript(LightningWork):
         script_args: Optional[Union[list, str]] = None,
         outputs: Optional[List[str]] = None,
         env: Optional[Dict] = None,
+        code: Optional[Code] = None,
         **kwargs,
     ):
         """The TracerPythonScript class enables to easily run a python script.
 
         When subclassing this class, you can configure your own :class:`~lightning_app.utilities.tracer.Tracer`
-        by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method
+        by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method.
 
-        The tracer is quite a magical class. It enables you to inject core into a script execution without changing it.
+        The tracer is quite a magical class. It enables you to inject code into a script execution without changing it.
 
         Arguments:
             script_path: Path of the python script to run.
@@ -50,12 +59,12 @@ class TracerPythonScript(LightningWork):
         Raises:
             FileNotFoundError: If the provided `script_path` doesn't exists.
 
-        **How does it works ?**
+        **How does it work?**
 
         It works by executing the python script with python built-in `runpy
         <https://docs.python.org/3/library/runpy.html>`_ run_path method.
         This method takes any python globals before executing the script,
-        e.g you can modify classes or function from the script.
+        e.g., you can modify classes or function from the script.
 
         .. doctest::
 
@@ -82,14 +91,14 @@ class TracerPythonScript(LightningWork):
         Even more interesting, this component works for ANY PyTorch Lightning script and
         its state can be used in real time in a UI.
 
-        .. literalinclude:: ../../../../examples/app_components/python/component_tracer.py
+        .. literalinclude:: ../../../examples/app_components/python/component_tracer.py
             :language: python
 
 
         Once implemented, this component can easily be integrated within a larger app
         to execute a specific python script.
 
-        .. literalinclude:: ../../../../examples/app_components/python/app.py
+        .. literalinclude:: ../../../examples/app_components/python/app.py
             :language: python
         """
         super().__init__(**kwargs)
@@ -97,17 +106,46 @@ class TracerPythonScript(LightningWork):
         if isinstance(script_args, str):
             script_args = script_args.split(" ")
         self.script_args = script_args if script_args else []
+        self.original_args = deepcopy(self.script_args)
         self.env = env
         self.outputs = outputs or []
         for name in self.outputs:
             setattr(self, name, None)
+        self.params = None
+        self.drive = code.get("drive") if code else None
+        self.code_name = code.get("name") if code else None
+        self.restart_count = 0
 
-    def run(self, **kwargs):
+    def run(self, params: Optional[Dict[str, Any]] = None, restart_count: Optional[int] = None, **kwargs):
+        """
+        Arguments:
+            params: A dictionary of arguments to be be added to script_args.
+            restart_count: Passes an incrementing counter to enable the re-execution of LightningWorks.
+        """
+        if restart_count:
+            self.restart_count = restart_count
+
+        if params:
+            self.params = params
+            self.script_args = self.original_args + [self._to_script_args(k, v) for k, v in params.items()]
+
+        if self.drive:
+            assert self.code_name
+            if os.path.exists(self.code_name):
+                clean_tarfile(self.code_name, "r:gz")
+
+            if self.code_name in self.drive.list():
+                self.drive.get(self.code_name)
+                extract_tarfile(self.code_name, ".", "r:gz")
+
         if not os.path.exists(self.script_path):
             raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
+
         kwargs = {k: v.value if isinstance(v, Payload) else v for k, v in kwargs.items()}
+
         init_globals = globals()
         init_globals.update(kwargs)
+
         self.on_before_run()
         env_copy = os.environ.copy()
         if self.env:
@@ -124,6 +162,12 @@ class TracerPythonScript(LightningWork):
     def on_exit(self):
         for child_pid in _collect_child_process_pids(os.getpid()):
             os.kill(child_pid, signal.SIGTERM)
+
+    @staticmethod
+    def _to_script_args(k: str, v: str) -> str:
+        if k.startswith("--"):
+            return f"{k}={v}"
+        return f"--{k}={v}"
 
 
 __all__ = ["TracerPythonScript"]

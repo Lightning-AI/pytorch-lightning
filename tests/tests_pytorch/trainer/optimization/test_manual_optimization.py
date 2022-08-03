@@ -457,7 +457,7 @@ def test_multiple_optimizers_step(tmpdir):
             grads = [p.grad for p in self.parameters()]
             assert len(grads) == len(self.original_grads)
             for actual, expected in zip(grads, self.original_grads):
-                torch.testing.assert_allclose(actual, expected)
+                torch_test_assert_close(actual, expected)
 
         def on_before_optimizer_step(self, optimizer, *_):
             self.check_grads_unscaled(optimizer)

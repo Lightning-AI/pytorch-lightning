@@ -1,48 +1,41 @@
 :orphan:
 
-**********************************
-4. Implement the UI with StreamLit
-**********************************
+***************************************
+Step 4: Implement the UI with StreamLit
+***************************************
 
-In step 3, we have implemented a flow that dynamically creates a Work when a new request is added to the requests list.
+In step 3, we have implemented a Flow which dynamically creates a Work when a new request is added to the requests list.
 
 From the UI, we create 3 pages with `StreamLit <https://streamlit.io/>`_:
 
-* **Page 1**: Create a form to add a new request to the flow state **requests**.
+* **Page 1**: Create a form with add a new request to the Flow state **requests**.
 
-* **Page 2**: Iterate through all the requests and display associated information.
+* **Page 2**: Iterate through all the requests and display the associated information.
 
 * **Page 3**: Display the entire App State.
 
-****************
+
 Render All Pages
-****************
+^^^^^^^^^^^^^^^^
 
 .. literalinclude:: ./app.py
-    :lines: 263-274
+    :lines: 274-284
 
-
-******
-Page 1
-******
+**Page 1**
 
 .. literalinclude:: ./app.py
-    :lines: 189-231
+    :lines: 193-241
     :emphasize-lines: 43
 
-******
-Page 2
-******
+**Page 2**
 
 .. literalinclude:: ./app.py
-    :lines: 233-255
+    :lines: 244-264
 
-******
-Page 3
-******
+**Page 3**
 
 .. literalinclude:: ./app.py
-    :lines: 257-261
+    :lines: 267-271
 
 ----
 
@@ -80,7 +73,7 @@ Tutorial
    :tag: Intermediate
 
 .. displayitem::
-   :header: 5. Putting everything together
+   :header: Step 5: Put it all together
    :description:
    :col_css: col-md-4
    :button_link: github_repo_runner_step_5.html

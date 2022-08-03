@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
 from copy import deepcopy
 from unittest import mock
@@ -29,6 +30,7 @@ from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests_pytorch.helpers.runif import RunIf
 
@@ -478,4 +480,13 @@ def test_deepspeed_multiple_models():
             assert self.broadcast(True)
             assert self.is_global_zero == (self.local_rank == 0)
 
-    Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+    if _RequirementAvailable("deepspeed>=0.6.5"):
+        # https://github.com/microsoft/DeepSpeed/issues/2139
+        raise_if_deepspeed_incompatible = pytest.raises(
+            RuntimeError, match="DeepSpeed ZeRO-3 is not supported with this version of Lightning Lite"
+        )
+    else:
+        raise_if_deepspeed_incompatible = contextlib.suppress()
+
+    with raise_if_deepspeed_incompatible:
+        Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
