@@ -178,13 +178,15 @@ class ProxyWorkRun:
 
 
 class WorkStateObserver(Thread):
-    """This thread runs alongside LightningWork and periodically checks for state changes.
-    If the state changed from one interval to the next, it will compute the delta and add it to the queue which is
-    connected to the Flow. This enables state changes to be captured that are not triggered through a setattr call.
+    """This thread runs alongside LightningWork and periodically checks for state changes. If the state changed
+    from one interval to the next, it will compute the delta and add it to the queue which is connected to the
+    Flow. This enables state changes to be captured that are not triggered through a setattr call.
+
     Args:
         work: The LightningWork for which the state should be monitored
         delta_queue: The queue to send deltas to when state changes occur
         interval: The interval at which to check for state changes.
+
     Example:
         class Work(LightningWork):
             ...

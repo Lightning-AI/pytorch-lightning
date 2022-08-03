@@ -8,7 +8,6 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork, LightningWorkException
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.storage.requests import GetRequest
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
@@ -143,17 +142,6 @@ def test_lightning_status(enable_exception, raise_exception):
             if self.enable_exception:
                 raise Exception("Custom Exception")
 
-    class BlockingQueue(MockQueue):
-        """A Mock for the file copier queues that keeps blocking until we want to end the thread."""
-
-        keep_blocking = False
-
-        def get(self, timeout: int = 0):
-            while BlockingQueue.keep_blocking:
-                pass
-            # A dummy request so the Copier gets something to process without an error
-            return GetRequest(source="src", name="dummy_path", path="test", hash="123", destination="dst")
-
     work = Work(raise_exception, enable_exception=enable_exception)
     work._name = "root.w"
     assert work.status.stage == WorkStageStatus.NOT_STARTED
@@ -163,8 +151,8 @@ def test_lightning_status(enable_exception, raise_exception):
     error_queue = MockQueue("error_queue")
     request_queue = MockQueue("request_queue")
     response_queue = MockQueue("response_queue")
-    copy_request_queue = BlockingQueue("copy_request_queue")
-    copy_response_queue = BlockingQueue("copy_response_queue")
+    copy_request_queue = MockQueue("copy_request_queue")
+    copy_response_queue = MockQueue("copy_response_queue")
     call_hash = "fe3fa0f"
     work._calls[call_hash] = {
         "args": (),
@@ -210,7 +198,6 @@ def test_lightning_status(enable_exception, raise_exception):
         assert res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["stage"] == "succeeded"
 
     # Stop blocking and let the thread join
-    BlockingQueue.keep_blocking = False
     work_runner.copier.join()
 
 
