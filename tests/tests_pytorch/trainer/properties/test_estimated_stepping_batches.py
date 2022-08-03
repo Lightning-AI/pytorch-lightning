@@ -97,11 +97,10 @@ def test_num_stepping_batches_infinite_training():
 
 def test_num_stepping_batches_with_max_steps():
     """Test stepping batches with `max_steps`."""
-    max_steps = 7
+    max_steps = 2
     trainer = Trainer(max_steps=max_steps)
     model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
+    trainer.fit(model)
     assert trainer.estimated_stepping_batches == max_steps
 
 

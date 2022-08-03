@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 import torch
 
@@ -27,7 +27,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -124,7 +124,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self._process_group = None
 
     @property
-    def process_group(self):
+    def process_group(self) -> Any:
         if self._process_group is None:
             self._process_group = torch.distributed.new_group()
         return self._process_group
@@ -137,6 +137,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         super().setup_distributed()
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.accelerator
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING:
@@ -144,6 +145,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             optimizers_to_device(self.optimizers, self.root_device)
 
             if self._layer_sync:
+                assert self.model
                 self.model = self._layer_sync.apply(self.model)
 
         self.setup_precision_plugin()
@@ -155,7 +157,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
         precision = self.precision_plugin.precision
 
-        def wrap_policy(*args, **kwargs):
+        def wrap_policy(*args: Any, **kwargs: Any) -> Any:
             return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
 
         with enable_wrap(
@@ -186,30 +188,36 @@ class DDPFullyShardedStrategy(DDPStrategy):
             self.model_to_device()
 
         # setup optimizers after fully sharded has wrapped the lightning module
+        assert self.lightning_module
         self.setup_optimizers(self.lightning_module.trainer)
 
     def model_to_device(self) -> None:
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         # ensure we update the device type in the lightning module
+        assert self.lightning_module
         self.lightning_module.to(self.root_device)
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
+            assert isinstance(self.model, TrainingStep)
             return self.model.training_step(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
+            assert isinstance(self.model, ValidationStep)
             return self.model.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
+            assert isinstance(self.model, TestStep)
             return self.model.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
+            assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         pass
 
     @classmethod
