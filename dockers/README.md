@@ -87,9 +87,9 @@ Inspiration comes from https://u.group/thinking/how-to-put-jupyter-notebooks-in-
    - copy the generated path e.g. `http://hostname:8888/?token=0719fa7e1729778b0cec363541a608d5003e26d4910983c6`
    - replace the `hostname` by `localhost`
 
-## Build docker image for Lightning on ROCm 
+## Build docker image for Lightning on ROCm
 
-To build the docker image for ROCm follow these steps: 
+To build the docker image for ROCm follow these steps:
 
 ```bash
 git clone <git-repository>
@@ -102,12 +102,12 @@ docker image build \
 
 docker image build \
     -t pytorch_lightning:lightning-rocm-py3.9-torch1.12.0 \
-    -f dockers/release-rocm/Dockerfile \
+    -f dockers/base-rocm/lightning_dockerfile \
     .
 ```
 
-To start the container on ROCm drivers run the command: 
+To start the container on ROCm drivers run the command:
 
-```bash 
+```bash
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it --network=host --ipc=host --device=/dev/kfd --device=/dev/dri --group-add video <docker id>
 ```

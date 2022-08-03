@@ -72,4 +72,3 @@ RUN \
     # Example path - https://download.pytorch.org/whl/rocm5.1.1/torch-1.12.0%2Brocm5.1.1-cp38-cp38-linux_x86_64.whl
     pip install --no-cache-dir https://download.pytorch.org/whl/rocm${ROCM_WHL_VERSION}/torch-${PYTORCH_VERSION}%2Brocm${ROCM_WHL_VERSION}-cp${PYTHON_VERSION_MM}-cp${PYTHON_VERSION_MM}${PYT37M}-linux_x86_64.whl && \
     pip install --no-cache-dir https://download.pytorch.org/whl/rocm${ROCM_WHL_VERSION}/torchvision-${TORCH_VISION_VERSION}%2Brocm${ROCM_WHL_VERSION}-cp${PYTHON_VERSION_MM}-cp${PYTHON_VERSION_MM}${PYT37M}-linux_x86_64.whl
-
