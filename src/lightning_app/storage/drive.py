@@ -51,8 +51,10 @@ class Drive:
             raise Exception(f"The id should be unique to identify your drive. Found `{self.id}`.")
 
         if optimization and optimization not in self.__PROTOCOLS_OPTIMIZATIONS__[self.protocol]:
-            raise Exception(f"This Drive protocol is not compatible with the {optimization} optimization. Available "
-                            f"optimizations for this protocol are: {self.__PROTOCOLS_OPTIMIZATIONS__[self.protocol]}")
+            raise Exception(
+                f"This Drive protocol is not compatible with the {optimization} optimization. Available "
+                f"optimizations for this protocol are: {self.__PROTOCOLS_OPTIMIZATIONS__[self.protocol]}"
+            )
 
         self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else os.getcwd()
         if not os.path.isdir(self.root_folder):
