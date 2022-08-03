@@ -17,6 +17,7 @@ FROM rocm/dev-ubuntu-20.04:latest
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.12.0
+ARG TORCH_VISION_VERSION=0.13.0
 ARG ROCM_WHL_VERSION=5.1.1
 
 SHELL ["/bin/bash", "-c"]
@@ -59,9 +60,6 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-#COPY ./requirements/pytorch/ ./requirements/pytorch/
-#COPY ./.actions/assistant.py assistant.py
-
 ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
 
 RUN \
@@ -72,15 +70,6 @@ RUN \
     PYT37M=$(python3 -c "print('m' if $PYTHON_VERSION==3.7 else '')") && \
     pip config set global.cache-dir false && \
     # Example path - https://download.pytorch.org/whl/rocm5.1.1/torch-1.12.0%2Brocm5.1.1-cp38-cp38-linux_x86_64.whl
-    pip install --no-cache-dir https://download.pytorch.org/whl/rocm${ROCM_WHL_VERSION}/torch-${PYTORCH_VERSION}%2Brocm${ROCM_WHL_VERSION}-cp${PYTHON_VERSION_MM}-cp${PYTHON_VERSION_MM}${PYT37M}-linux_x86_64.whl
-
-RUN \
-    apt-get purge -y cmake && \
-    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-    tar -zxvf cmake-3.20.2.tar.gz && \
-    cd cmake-3.20.2 && \
-    ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-    make && \
-    make install && \
-    cmake  --version
+    pip install --no-cache-dir https://download.pytorch.org/whl/rocm${ROCM_WHL_VERSION}/torch-${PYTORCH_VERSION}%2Brocm${ROCM_WHL_VERSION}-cp${PYTHON_VERSION_MM}-cp${PYTHON_VERSION_MM}${PYT37M}-linux_x86_64.whl && \
+    pip install --no-cache-dir https://download.pytorch.org/whl/rocm${ROCM_WHL_VERSION}/torchvision-${TORCH_VISION_VERSION}%2Brocm${ROCM_WHL_VERSION}-cp${PYTHON_VERSION_MM}-cp${PYTHON_VERSION_MM}${PYT37M}-linux_x86_64.whl
 
