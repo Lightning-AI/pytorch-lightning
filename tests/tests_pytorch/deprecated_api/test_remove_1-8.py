@@ -1104,8 +1104,5 @@ def test_unsupported_ddp2_strategy():
     with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
         DDP2Strategy()
 
-    with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
-        DDP2Plugin()
-
     with pytest.raises(ValueError, match="The DDP2 strategy is no longer supported."):
         Trainer(strategy="ddp2")
