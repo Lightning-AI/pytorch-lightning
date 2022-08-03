@@ -72,7 +72,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         self.trainer = None
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> ADD_ARGPARSE_RETURN:
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> _ADD_ARGPARSE_RETURN:
         """Extends existing argparse by default `LightningDataModule` attributes.
 
         Example::

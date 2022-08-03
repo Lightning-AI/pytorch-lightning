@@ -15,7 +15,6 @@
 
 import inspect
 import os
-from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from ast import literal_eval
 from contextlib import suppress
@@ -26,21 +25,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
 
 _T = TypeVar("_T", bound=Callable[..., Any])
-FROM_ARGPARSE_ARGS_CLS = Union[Type["ParseArgparserDataType"], Type["pl.LightningDataModule"]]
-FROM_ARGPARSE_ARGS_RETURN = Union["ParseArgparserDataType", "pl.LightningDataModule"]
-
-
-class ParseArgparserDataType(ABC):
-    def __init__(self, *_: Any, **__: Any) -> None:
-        pass
-
-    @classmethod
-    def parse_argparser(cls, args: "ArgumentParser") -> Any:
-        pass
+_ARGPARSE_CLS = Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]]
 
 
 def from_argparse_args(
-    cls: Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]],
+    cls: _ARGPARSE_CLS,
     args: Union[Namespace, ArgumentParser],
     **kwargs: Any,
 ) -> Union["pl.LightningDataModule", "pl.Trainer"]:
@@ -76,9 +65,7 @@ def from_argparse_args(
     return cls(**trainer_kwargs)
 
 
-def parse_argparser(
-    cls: Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]], arg_parser: Union[ArgumentParser, Namespace]
-) -> Namespace:
+def parse_argparser(cls: _ARGPARSE_CLS, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
@@ -103,7 +90,7 @@ def parse_argparser(
     return Namespace(**modified_args)
 
 
-def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Examples:
@@ -133,7 +120,7 @@ def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls: Union[_ARGPARSE_CLS, Any]) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
@@ -161,7 +148,7 @@ def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def _get_abbrev_qualified_cls_name(cls: Any) -> str:
+def _get_abbrev_qualified_cls_name(cls: _ARGPARSE_CLS) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
@@ -171,7 +158,7 @@ def _get_abbrev_qualified_cls_name(cls: Any) -> str:
 
 
 def add_argparse_args(
-    cls: Union[Type["pl.Trainer"], Type["pl.LightningDataModule"]],
+    cls: _ARGPARSE_CLS,
     parent_parser: ArgumentParser,
     *,
     use_argument_group: bool = True,
