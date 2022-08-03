@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.types import _PATH
 
-ADD_ARGPARSE_RETURN = Union[ArgumentParser, Union[_ArgumentGroup, ArgumentParser]]
+_ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
