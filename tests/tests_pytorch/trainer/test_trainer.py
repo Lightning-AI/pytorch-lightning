@@ -20,12 +20,14 @@ from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
 import torch
+import torch.nn as nn
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
@@ -69,6 +71,21 @@ if _TORCH_GREATER_EQUAL_1_12:
     torch_test_assert_close = torch.testing.assert_close
 else:
     torch_test_assert_close = torch.testing.assert_allclose
+
+
+def test_trainer_error_when_input_not_lightning_module():
+    """Test that a useful error gets raised when the Trainer methods receive something other than a
+    LightningModule."""
+    trainer = Trainer()
+
+    for method in ("fit", "validate", "test", "predict"):
+        with pytest.raises(TypeError, match=escape(f"`Trainer.{method}()` requires a `LightningModule`, got: Linear")):
+            run_method = getattr(trainer, method)
+            run_method(nn.Linear(2, 2))
+
+    trainer = Trainer(auto_lr_find=True, auto_scale_batch_size=True)
+    with pytest.raises(TypeError, match=escape("`Trainer.tune()` requires a `LightningModule`, got: Linear")):
+        trainer.tune(nn.Linear(2, 2))
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
