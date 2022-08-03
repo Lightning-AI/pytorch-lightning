@@ -188,8 +188,10 @@ class WorkStateObserver(Thread):
         interval: The interval at which to check for state changes.
 
     Example:
+
         class Work(LightningWork):
             ...
+
             def run(self):
                 # This update gets sent to the Flow once the thread compares the new state with the previous one
                 self.list.append(1)
