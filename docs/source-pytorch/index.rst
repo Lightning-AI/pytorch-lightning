@@ -8,11 +8,11 @@ Welcome to ⚡ PyTorch Lightning
 
 .. twocolumns::
    :left:
-      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+      .. image:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
          :alt: Animation showing how to convert a standard training loop to a Lightning loop
    :right:
-      PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
-      Lightning evolves with you as your projects go from idea to paper/production.
+      The `open-source Lightning framework <https://github.com/Lightning-AI/lightning>`_ gives ML Researchers and Data Scientists, the fastest & most flexible
+      way to iterate on ML research ideas and deliver scalable ML systems with the performance enterprises requires at the same time.
 
 .. raw:: html
 
@@ -39,6 +39,8 @@ Welcome to ⚡ PyTorch Lightning
 Install Lightning
 -----------------
 
+These commands install the entire Lightning framework.
+
 
 .. raw:: html
 
@@ -49,7 +51,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install lightning
 
 .. raw:: html
 
@@ -60,14 +62,14 @@ Conda users
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 .. raw:: html
 
       </div>
    </div>
 
-Or read the `advanced install guide <starter/installation.html>`_
+Or read the `advanced install guide <starter/installation.html>`_ to install only the PyTorch Lightning framework.
 
 .. raw:: html
 
@@ -87,6 +89,16 @@ Get Started
    :description: Learn the 7 key steps of a typical Lightning workflow.
    :header: Lightning in 15 minutes
    :button_link:  starter/introduction.html
+
+.. customcalloutitem::
+   :description: Jumpstart from the App Gallery
+   :header: Start from Ready-to-Run Template Apps
+   :button_link: starter/jumpstart_from_app_gallery.html
+
+.. customcalloutitem::
+   :description: Use an existing App template for your model
+   :header: Start with the *Training and Demo* App
+   :button_link: starter/go_beyond_training.html
 
 .. customcalloutitem::
    :description: Learn how to benchmark PyTorch Lightning.
@@ -115,9 +127,14 @@ Current Lightning Users
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn Lightning in small bites at 4 levels of expertise: Introductory, intermediate, advanced and expert.
-   :header: Level Up!
+   :description: Learn Lightning models in small bites at 4 levels of expertise: basic, intermediate, advanced and expert.
+   :header: Level Up Model Skills!
    :button_link:  expertise_levels.html
+
+.. customcalloutitem::
+   :description: Learn Lightning Apps in small bites at 3 levels of expertise: basic, intermediate, and advanced.
+   :header: Level Up App Skills!
+   :button_link:  https://lightning.ai/lightning-docs/levels/basic/
 
 .. customcalloutitem::
    :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
