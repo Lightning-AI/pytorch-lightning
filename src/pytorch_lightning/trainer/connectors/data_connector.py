@@ -47,7 +47,6 @@ warning_cache = WarningCache()
 
 BATCH_DATALOADER = Union[Collection[DataLoader], List[DataLoader], DataLoader[Any]]
 REQUEST_DATALOADER = Union[DataLoader, List[DataLoader], BATCH_DATALOADER]
-INSTANCE = Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
 
 
 class DataConnector:
@@ -494,7 +493,7 @@ class _DataLoaderSource:
             that returns the desired dataloader(s).
     """
 
-    instance: INSTANCE
+    instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
     name: str
 
     def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
