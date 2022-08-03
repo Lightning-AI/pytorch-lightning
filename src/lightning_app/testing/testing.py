@@ -22,6 +22,7 @@ from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning_app.runners.multiprocess import MultiProcessRuntime
 from lightning_app.testing.config import Config
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
 from lightning_app.utilities.network import _configure_session, LightningClient
 from lightning_app.utilities.proxies import ProxyWorkRun
@@ -114,8 +115,11 @@ def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
         start_server=start_server,
     ).dispatch()
     # pop the stopped status.
-    call_hash = work._calls["latest_call_hash"]
-    work._calls[call_hash]["statuses"].pop(-1)
+    call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+
+    if call_hash in work._calls:
+        work._calls[call_hash]["statuses"].pop(-1)
+
     if isinstance(work.run, ProxyWorkRun):
         work.run = work.run.work_run
 
@@ -176,7 +180,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
     # 3. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
-        env_copy["PREPARE_LIGHTING"] = "1"
+        env_copy["PACKAGE_LIGHTNING"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
@@ -216,7 +220,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
             record_har_path=Config.har_location,
         )
         admin_page = context.new_page()
-        res = requests.post(Config.url + "/v1/auth/login", data=json.dumps(payload))
+        url = Config.url
+        if url.endswith("/"):
+            url = url[:-1]
+        res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
         token = res.json()["token"]
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")

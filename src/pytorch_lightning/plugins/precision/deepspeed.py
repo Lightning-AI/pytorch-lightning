@@ -81,6 +81,16 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        r"""Performs back-propagation using DeepSpeed's engine.
+
+        Args:
+            model: the model to be optimized
+            closure_loss: the loss tensor
+            optimizer: ignored for DeepSpeed
+            optimizer_idx: ignored for DeepSpeed
+            \*args: additional positional arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
+            \**kwargs: additional keyword arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
+        """
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
