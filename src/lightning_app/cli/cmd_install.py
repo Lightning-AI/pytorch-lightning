@@ -8,8 +8,7 @@ import sys
 
 import requests
 
-from lightning_app.core.constants import LIGHTNING_COMPONENT_PUBLIC_REGISTRY
-from lightning_app.utilities.network import LightningClient
+from lightning_app.core.constants import LIGHTNING_APPS_PUBLIC_REGISTRY, LIGHTNING_COMPONENT_PUBLIC_REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +44,11 @@ def gallery_app(name, yes_arg, version_arg, cwd=None, overwrite=False):
     # make sure org/app-name syntax is correct
     org, app = _validate_name(name, resource_type="app", example="lightning/quick-start")
 
+    # resolve registry (orgs can have a private registry through their environment variables)
+    registry_url = _resolve_app_registry()
+
     # load the app resource
-    app_entry = _resolve_resource("", name=name, version_arg=version_arg, resource_type="app")
+    app_entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app")
 
     # give the user the chance to do a manual install
     source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
@@ -297,20 +299,13 @@ def _validate_name(name, resource_type, example):
 def _resolve_resource(registry_url, name, version_arg, resource_type):
     gallery_entries = []
     try:
-        if resource_type == "app":
-            client = LightningClient()
-            resources = client.lightningapp_v2_service_list_gallery_lightningapps()
-            for app in resources.apps:
-                # Filter only entries that can be downloaded
-                if app.can_download_source_code:
-                    gallery_entries.append(
-                        {"name": app.name, "version": app.version, "gitUrl": app.git_url, "sourceUrl": app.source_url}
-                    )
+        url = requests.get(registry_url)
+        data = json.loads(url.text)
 
-            # TODO: LightningClient doesn't support components yet
+        if resource_type == "app":
+            gallery_entries = [a for a in data["apps"] if a["canDownloadSourceCode"]]
+
         elif resource_type == "component":
-            url = requests.get(registry_url)
-            data = json.loads(url.text)
             gallery_entries = data["components"]
     except requests.ConnectionError:
         m = f"""
@@ -482,6 +477,11 @@ def _install_component(git_url):
         pip uninstall {uninstall_step}
         """
         logger.info(m)
+
+
+def _resolve_app_registry():
+    registry = os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
+    return registry
 
 
 def _resolve_component_registry():
