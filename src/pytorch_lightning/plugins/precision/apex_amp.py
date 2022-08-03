@@ -35,7 +35,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def __init__(self, amp_level: str = "O2") -> None:
         if not _APEX_AVAILABLE:
             raise MisconfigurationException(
-                "You have asked for Apex AMP but you have not installed it."
+                "You have asked for Apex AMP but `apex` is not installed."
                 " Install `apex` using this guide: https://github.com/NVIDIA/apex"
             )
         super().__init__()
@@ -69,6 +69,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
+            optimizer_idx: the index of the current optimizer. ``None`` if using manual optimization
         """
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
