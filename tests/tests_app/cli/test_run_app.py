@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from unittest import mock
 
+import click
 import pytest
 from click.testing import CliRunner
 from tests_app import _PROJECT_ROOT
@@ -53,6 +54,23 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
         assert result.exit_code == 0
     assert len(caplog.messages) == 2
     assert bool(int(caplog.messages[0])) is open_ui
+
+
+def test_lightning_run_cluster_without_cloud(monkeypatch):
+    """This test validates that running apps only supports --cluster-id if --cloud argument is passed."""
+    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+    with pytest.raises(click.exceptions.ClickException):
+        _run_app(
+            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+            cloud=False,
+            cluster_id="test-cluster",
+            without_server=False,
+            name="",
+            blocking=False,
+            open_ui=False,
+            no_cache=True,
+            env=("FOO=bar",),
+        )
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})

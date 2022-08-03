@@ -85,6 +85,9 @@ def _run_app(
 ):
     file = _prepare_file(file)
 
+    if not cloud and cluster_id is not None:
+        raise click.ClickException("Using the flag --cluster-id in local execution is not supported.")
+
     runtime_type = RuntimeType.CLOUD if cloud else RuntimeType.MULTIPROCESS
 
     # Cloud specific validations
