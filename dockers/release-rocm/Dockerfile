@@ -1,5 +1,5 @@
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.11.0
+ARG PYTORCH_VERSION=1.12.0
 
 FROM pytorchlightning/pytorch_lightning:base-rocm-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
