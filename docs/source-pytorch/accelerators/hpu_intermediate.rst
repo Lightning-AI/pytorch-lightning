@@ -113,8 +113,8 @@ The below snippet shows an example of how to use HPUDataModule.
     import pytorch_lightning as pl
     from pytorch_lightning.utilities.hpu_datamodule import HPUDataModule
 
-    train_dir = ./path/to/train/data
-    val_dir = ./path/to/val/data
+    train_dir = './path/to/train/data'
+    val_dir = './path/to/val/data'
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
