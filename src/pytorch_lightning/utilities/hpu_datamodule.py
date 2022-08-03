@@ -27,8 +27,6 @@ if _HPU_AVAILABLE:
         import habana_dataloader
     except ImportError:
         raise ModuleNotFoundError("habana_dataloader package is not installed.")
-else:
-    raise RuntimeError("Expected device type HPU for running HPUDataModule ...")
 
 _DATASETS_PATH = "./data"
 
