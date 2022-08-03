@@ -3,7 +3,7 @@ codecov>=2.1
 pytest>=5.0
 pytest-timeout
 pytest-cov
-playwright==1.24.1
+playwright>=1.17.0, <=1.24.1
 # pytest-flake8
 flake8>=3.0
 check-manifest
