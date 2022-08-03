@@ -30,7 +30,7 @@ def test_v0_app_example():
     assert result.exit_code == 0
 
 
-def test_v0_app(fetch_logs, view_page):
+def run_v0_app(fetch_logs, view_page):
     def check_content(button_name, text_content):
         button = view_page.locator(f'button:has-text("{button_name}")')
         button.wait_for(timeout=3 * 1000)
@@ -65,8 +65,7 @@ def test_v0_app_example_byoc_cloud() -> None:
         view_page,
         fetch_logs,
     ):
-
-        test_v0_app(fetch_logs, view_page)
+        run_v0_app(fetch_logs, view_page)
 
 
 @pytest.mark.cloud
@@ -76,4 +75,4 @@ def test_v0_app_example_cloud() -> None:
         view_page,
         fetch_logs,
     ):
-        test_v0_app(fetch_logs, view_page)
+        run_v0_app(fetch_logs, view_page)
