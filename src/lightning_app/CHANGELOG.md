@@ -24,3 +24,5 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 ### Fixed
+
+- Resolved a bug where the work statuses will grow quickly and be duplicated ([#13970](https://github.com/Lightning-AI/lightning/pull/13970))
