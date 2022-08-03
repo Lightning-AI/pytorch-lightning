@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import _HPU_AVAILABLE
@@ -33,7 +33,7 @@ else:
 _DATASETS_PATH = "./data"
 
 
-def load_data(traindir, valdir, train_transforms, val_transforms):
+def load_data(traindir, valdir, train_transforms, val_transforms):  # type: ignore[no-untyped-def]
     # check supported transforms
     if train_transforms != None:
         for t in train_transforms:
@@ -88,14 +88,14 @@ class HPUDataModule(pl.LightningDataModule):
         normalize: bool = False,
         seed: int = 42,
         batch_size: int = 32,
-        train_transforms=None,
-        val_transforms=None,
-        pin_memory=True,
-        shuffle=False,
-        drop_last=True,
-        *args,
-        **kwargs,
-    ):
+        train_transforms: transform_lib = None,
+        val_transforms: transform_lib = None,
+        pin_memory: bool = True,
+        shuffle: bool = False,
+        drop_last: bool = True,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.train_dir = train_dir
@@ -112,7 +112,7 @@ class HPUDataModule(pl.LightningDataModule):
 
         self.data_loader_type = habana_dataloader.HabanaDataLoader
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None):  # type: ignore[no-untyped-def]
         if self.shuffle == True:
             raise ValueError("HabanaDataLoader does not support shuffle=True")
 
@@ -130,7 +130,7 @@ class HPUDataModule(pl.LightningDataModule):
         if dataset == None:
             raise TypeError("Error creating dataset")
 
-    def train_dataloader(self):
+    def train_dataloader(self):  # type: ignore[no-untyped-def]
         """train set removes a subset to use for validation."""
         loader = self.data_loader_type(
             self.dataset_train,
@@ -142,7 +142,7 @@ class HPUDataModule(pl.LightningDataModule):
         )
         return loader
 
-    def val_dataloader(self):
+    def val_dataloader(self):  # type: ignore[no-untyped-def]
         """val set uses a subset of the training set for validation."""
         loader = self.data_loader_type(
             self.dataset_val,
@@ -154,7 +154,7 @@ class HPUDataModule(pl.LightningDataModule):
         )
         return loader
 
-    def test_dataloader(self):
+    def test_dataloader(self):  # type: ignore[no-untyped-def]
         """test set uses the test split."""
         loader = self.data_loader_type(
             self.dataset_val,
