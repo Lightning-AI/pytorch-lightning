@@ -153,4 +153,5 @@ The below snippet shows an example of how to use HPUDataModule.
     trainer.fit(model, datamodule=data_module)
     trainer.validate(model, datamodule=data_module)
 
-For more details please refer the examples/pl_hpu/hpu_datamodule_sample.py file.
+A working example can be found at examples/pl_hpu/hpu_datamodule_sample.py
+For more details please refer to `Habana dataloader <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#habana-data-loader>`__.
