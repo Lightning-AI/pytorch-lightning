@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sa
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = _RequirementAvailable("neptune")
+_NEPTUNE_AVAILABLE = _RequirementAvailable("neptune-client")
 _NEPTUNE_GREATER_EQUAL_0_9 = _RequirementAvailable("neptune-client>=0.9.0")
 
 
