@@ -96,11 +96,10 @@ class CallbackConnector:
     def _configure_accumulated_gradients(
         self, accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None
     ) -> None:
-        grad_accum_callbacks: List[Callback] = [
+        grad_accum_callbacks: List[GradientAccumulationScheduler] = [
             cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)
         ]
 
-        grad_accum_callback: Callback
         if grad_accum_callbacks:
             if accumulate_grad_batches is not None:
                 raise MisconfigurationException(
@@ -248,7 +247,7 @@ class CallbackConnector:
             A new list in which the last elements are Checkpoint if there were any present in the
             input.
         """
-        checkpoints: List[Callback] = [c for c in callbacks if isinstance(c, Checkpoint)]
+        checkpoints: List[Checkpoint] = [c for c in callbacks if isinstance(c, Checkpoint)]
         not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint)]
         return not_checkpoints + checkpoints
 
