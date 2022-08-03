@@ -17,6 +17,7 @@ from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
+from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.exceptions import ExitAppException
 
 
@@ -320,7 +321,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {"latest_call_hash": None},
+                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
             },
             "work_a": {
@@ -334,7 +335,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {"latest_call_hash": None},
+                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
             },
         },
@@ -364,7 +365,7 @@ def test_lightning_flow_and_work():
                     "_restarting": False,
                     "_internal_ip": "",
                 },
-                "calls": {"latest_call_hash": None},
+                "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
             },
             "work_a": {
@@ -379,10 +380,8 @@ def test_lightning_flow_and_work():
                     "_internal_ip": "",
                 },
                 "calls": {
-                    "latest_call_hash": None,
-                    "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c": {
-                        "name": "run",
-                        "call_hash": "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c",
+                    CacheCallsKeys.LATEST_CALL_HASH: None,
+                    "fe3fa0f": {
                         "ret": None,
                     },
                 },
@@ -435,7 +434,7 @@ def test_populate_changes_status_removed():
             "work": {
                 "vars": {},
                 "calls": {
-                    "latest_call_hash": "run:fe3f",
+                    CacheCallsKeys.LATEST_CALL_HASH: "run:fe3f",
                     "run:fe3f": {
                         "statuses": [
                             {"stage": "requesting", "message": None, "reason": None, "timestamp": 1},
