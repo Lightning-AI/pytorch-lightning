@@ -423,7 +423,8 @@ class LightningWork(abc.ABC):
         hash_args = args[1:] if len(args) > 0 and args[0] == self else args
         call_obj = {"args": hash_args, "kwargs": kwargs}
         # Note: Generate a hash as 167fe2e.
-        # Seven was selected after checking upon Github default SHA length.
+        # Seven was selected after checking upon Github default SHA length
+        # and to minimize hidden state size.
         return str(DeepHash(call_obj)[call_obj])[:7]
 
     def _wrap_run_for_caching(self, fn):
