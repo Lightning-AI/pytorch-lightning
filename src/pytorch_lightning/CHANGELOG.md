@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [1.8.0] - 2022-MM-DD
+
+### Added
+
+-
+
+
+-
+
+
+### Changed
+
+- The `Trainer.{fit,validate,test,predict,tune}` methods now raise a useful error message if the input is not a `LightningModule` ([#13892](https://github.com/Lightning-AI/lightning/pull/13892))
+
+
+-
+
+
+### Deprecated
+
+-
+
+
+-
+
+
+### Removed
+
+-
+
+
+-
+
+
+### Fixed
+
+-
+
+
+-
+
 
 ## [1.7.0] - 2022-08-02
 

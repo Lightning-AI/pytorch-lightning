@@ -6,6 +6,7 @@ from unittest.mock import ANY
 
 import pytest
 from deepdiff import Delta
+from pympler import asizeof
 from tests_app import _PROJECT_ROOT
 
 from lightning_app import LightningApp, LightningFlow, LightningWork  # F401
@@ -486,12 +487,11 @@ class CheckpointLightningApp(LightningApp):
         raise SuccessException
 
 
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_snapshotting(runtime_cls, tmpdir):
+def test_snap_shotting():
     try:
         app = CheckpointLightningApp(FlowA())
         app.checkpointing = True
-        runtime_cls(app, start_server=False).dispatch()
+        MultiProcessRuntime(app, start_server=False).dispatch()
     except SuccessException:
         pass
     checkpoint_dir = os.path.join(storage_root_dir(), "checkpoints")
@@ -765,15 +765,17 @@ class ProtectedAttributesFlow(LightningFlow):
 
 def test_protected_attributes_not_in_state():
     flow = ProtectedAttributesFlow()
-    MultiProcessRuntime(LightningApp(flow)).dispatch()
+    MultiProcessRuntime(LightningApp(flow), start_server=False).dispatch()
 
 
 class WorkExit(LightningWork):
     def __init__(self):
-        super().__init__()
+        super().__init__(raise_exception=False)
+        self.counter = 0
 
     def run(self):
-        pass
+        self.counter += 1
+        raise Exception("Hello")
 
 
 class FlowExit(LightningFlow):
@@ -782,13 +784,14 @@ class FlowExit(LightningFlow):
         self.work = WorkExit()
 
     def run(self):
+        if self.work.counter == 1:
+            self._exit()
         self.work.run()
-        self._exit()
 
 
 def test_lightning_app_exit():
     app = LightningApp(FlowExit())
-    MultiProcessRuntime(app).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.status.stage == WorkStageStatus.STOPPED
 
 
@@ -860,12 +863,12 @@ class SleepyFlowWithWork(LightningFlow):
 def test_slow_flow():
     app0 = LightningApp(SleepyFlow(sleep_interval=0.5 * FLOW_DURATION_THRESHOLD))
 
-    MultiProcessRuntime(app0).dispatch()
+    MultiProcessRuntime(app0, start_server=False).dispatch()
 
     app1 = LightningApp(SleepyFlow(sleep_interval=2 * FLOW_DURATION_THRESHOLD))
 
     with pytest.warns(LightningFlowWarning):
-        MultiProcessRuntime(app1).dispatch()
+        MultiProcessRuntime(app1, start_server=False).dispatch()
 
     app0 = LightningApp(
         SleepyFlowWithWork(
@@ -875,7 +878,7 @@ def test_slow_flow():
         )
     )
 
-    MultiProcessRuntime(app0).dispatch()
+    MultiProcessRuntime(app0, start_server=False).dispatch()
 
     app1 = LightningApp(
         SleepyFlowWithWork(
@@ -883,4 +886,36 @@ def test_slow_flow():
         )
     )
 
-    MultiProcessRuntime(app1).dispatch()
+    MultiProcessRuntime(app1, start_server=False).dispatch()
+
+
+class SizeWork(LightningWork):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.counter = 0
+
+    def run(self, signal: int):
+        self.counter += 1
+
+
+class SizeFlow(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.work0 = SizeWork(parallel=True, cache_calls=True)
+        self._state_sizes = {}
+
+    def run(self):
+        for idx in range(self.work0.counter + 2):
+            self.work0.run(idx)
+
+        self._state_sizes[self.work0.counter] = asizeof.asizeof(self.state)
+
+        if self.work0.counter >= 20:
+            self._exit()
+
+
+def test_state_size_constant_growth():
+    app = LightningApp(SizeFlow())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+    assert app.root._state_sizes[0] <= 5904
+    assert app.root._state_sizes[20] <= 23736
