@@ -946,7 +946,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
 
     def batch_to_device(self, batch: Any, *args: Any, **kwargs: Any) -> Any:
-        def fp_to_half(tensor: Tensor):
+        def fp_to_half(tensor: Tensor) -> Tensor:
             if torch.is_floating_point(tensor):
                 if self.precision_plugin.precision == PrecisionType.HALF:
                     return tensor.half()
