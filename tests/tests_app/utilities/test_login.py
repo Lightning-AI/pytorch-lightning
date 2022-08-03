@@ -6,7 +6,7 @@ import requests
 
 from lightning_app.utilities import login
 
-LIGHTNING_CLOUD_URL = "https://lightning.ai"
+LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
 
 
 @pytest.fixture(autouse=True)
