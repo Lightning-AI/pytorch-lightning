@@ -34,7 +34,8 @@ jobs:
       run: |
         pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install "mypy==0.920"
         pip list
 
     - name: Check typing
