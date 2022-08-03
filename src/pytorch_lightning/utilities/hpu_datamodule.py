@@ -35,7 +35,7 @@ _DATASETS_PATH = "./data"
 
 def load_data(traindir, valdir, train_transforms, val_transforms):  # type: ignore[no-untyped-def]
     # check supported transforms
-    if train_transforms != None:
+    if train_transforms is not None:
         for t in train_transforms:
             if (
                 isinstance(t, transform_lib.RandomResizedCrop)
@@ -50,7 +50,7 @@ def load_data(traindir, valdir, train_transforms, val_transforms):  # type: igno
 
         train_transforms = transform_lib.Compose(train_transforms)
 
-    if val_transforms != None:
+    if val_transforms is not None:
         for t in val_transforms:
             if (
                 isinstance(t, transform_lib.Resize)
@@ -113,10 +113,10 @@ class HPUDataModule(pl.LightningDataModule):
         self.data_loader_type = habana_dataloader.HabanaDataLoader
 
     def setup(self, stage: Optional[str] = None):  # type: ignore[no-untyped-def]
-        if self.shuffle == True:
+        if self.shuffle is True:
             raise ValueError("HabanaDataLoader does not support shuffle=True")
 
-        if self.pin_memory == False:
+        if self.pin_memory is False:
             raise ValueError("HabanaDataLoader supports only pin_memory=True")
 
         if self.num_workers != 8:
@@ -127,7 +127,7 @@ class HPUDataModule(pl.LightningDataModule):
         )
 
         dataset = self.dataset_train if stage == "fit" else self.dataset_val
-        if dataset == None:
+        if dataset is None:
             raise TypeError("Error creating dataset")
 
     def train_dataloader(self):  # type: ignore[no-untyped-def]
