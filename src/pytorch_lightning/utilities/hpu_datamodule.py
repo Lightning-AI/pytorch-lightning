@@ -15,13 +15,12 @@
 from typing import Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from pytorch_lightning.utilities import _HPU_AVAILABLE
-
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
-    from torchvision import transforms as transform_lib
     import torchvision.datasets
+    from torchvision import transforms as transform_lib
 
 if _HPU_AVAILABLE:
     try:
@@ -33,14 +32,17 @@ else:
 
 _DATASETS_PATH = "./data"
 
+
 def load_data(traindir, valdir, train_transforms, val_transforms):
     # check supported transforms
     if train_transforms != None:
         for t in train_transforms:
-            if isinstance(t, transform_lib.RandomResizedCrop) or \
-                isinstance(t, transform_lib.RandomHorizontalFlip) or \
-                isinstance(t, transform_lib.ToTensor) or \
-                isinstance(t, transform_lib.Normalize):
+            if (
+                isinstance(t, transform_lib.RandomResizedCrop)
+                or isinstance(t, transform_lib.RandomHorizontalFlip)
+                or isinstance(t, transform_lib.ToTensor)
+                or isinstance(t, transform_lib.Normalize)
+            ):
 
                 continue
             else:
@@ -50,10 +52,12 @@ def load_data(traindir, valdir, train_transforms, val_transforms):
 
     if val_transforms != None:
         for t in val_transforms:
-            if isinstance(t, transform_lib.Resize) or \
-                isinstance(t, transform_lib.CenterCrop) or \
-                isinstance(t, transform_lib.ToTensor) or \
-                isinstance(t, transform_lib.Normalize):
+            if (
+                isinstance(t, transform_lib.Resize)
+                or isinstance(t, transform_lib.CenterCrop)
+                or isinstance(t, transform_lib.ToTensor)
+                or isinstance(t, transform_lib.Normalize)
+            ):
 
                 continue
             else:
@@ -63,15 +67,11 @@ def load_data(traindir, valdir, train_transforms, val_transforms):
 
     if "imagenet" not in traindir.lower() and "ilsvrc2012" not in traindir.lower():
         raise ValueError("Habana dataloader only supports Imagenet dataset")
-        
-    # Data loading code
-    dataset_train = torchvision.datasets.ImageFolder(
-        traindir,
-        train_transforms)
 
-    dataset_val = torchvision.datasets.ImageFolder(
-        valdir,
-        val_transforms)
+    # Data loading code
+    dataset_train = torchvision.datasets.ImageFolder(traindir, train_transforms)
+
+    dataset_val = torchvision.datasets.ImageFolder(valdir, val_transforms)
 
     return dataset_train, dataset_val
 
@@ -88,11 +88,11 @@ class HPUDataModule(pl.LightningDataModule):
         normalize: bool = False,
         seed: int = 42,
         batch_size: int = 32,
-        train_transforms = None,
-        val_transforms = None,
-        pin_memory = True,
-        shuffle = False,
-        drop_last = True,
+        train_transforms=None,
+        val_transforms=None,
+        pin_memory=True,
+        shuffle=False,
+        drop_last=True,
         *args,
         **kwargs,
     ):
@@ -123,12 +123,10 @@ class HPUDataModule(pl.LightningDataModule):
             raise ValueError("HabanaDataLoader only supports num_workers as 8")
 
         self.dataset_train, self.dataset_val = load_data(
-            self.train_dir,
-            self.val_dir,
-            self.train_transform,
-            self.val_transform)
+            self.train_dir, self.val_dir, self.train_transform, self.val_transform
+        )
 
-        dataset = self.dataset_train if stage == 'fit' else self.dataset_val
+        dataset = self.dataset_train if stage == "fit" else self.dataset_val
         if dataset == None:
             raise TypeError("Error creating dataset")
 

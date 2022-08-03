@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import argparse
+import os
 
 import torch
 from torch.nn import functional as F
-from torchvision import transforms, models
+from torchvision import models, transforms
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.hpu_datamodule import HPUDataModule
 
 _DATASETS_PATH = "./data"
+
 
 class RN50Module(pl.LightningModule):
     def __init__(self):
@@ -75,24 +76,23 @@ class RN50Module(pl.LightningModule):
 def main(args):
 
     data_path = args.data_path
-    train_dir = os.path.join(data_path, 'train')
-    val_dir = os.path.join(data_path, 'val')
+    train_dir = os.path.join(data_path, "train")
+    val_dir = os.path.join(data_path, "val")
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-    train_transforms=[
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ]
+    train_transforms = [
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        normalize,
+    ]
     val_transforms = [
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            normalize,
-        ]
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize,
+    ]
 
     data_module = HPUDataModule(
         train_dir,
@@ -104,7 +104,7 @@ def main(args):
         shuffle=False,
         pin_memory=True,
         drop_last=True,
-        )
+    )
 
     # Initialize a trainer
     trainer = pl.Trainer(devices=1, accelerator="hpu", max_epochs=1, max_steps=2)
@@ -116,10 +116,11 @@ def main(args):
     trainer.validate(model, datamodule=data_module)
     trainer.test(model, datamodule=data_module)
 
-if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='PyLight ImageNet Training')
-    parser.add_argument('--data-path', default=_DATASETS_PATH, help='dataset')
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="PyLight ImageNet Training")
+    parser.add_argument("--data-path", default=_DATASETS_PATH, help="dataset")
     args = parser.parse_args()
 
     main(args)
