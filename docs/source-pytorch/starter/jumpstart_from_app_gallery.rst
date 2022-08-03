@@ -107,7 +107,7 @@ Next Steps
    :description: Add more functionality to your projects
    :col_css: col-md-6
    :button_link: jumpstart_from_component_gallery.html
-   
+
 .. customcalloutitem::
    :description: Use an existing App template for your model
    :header: Start with the *Training and Demo* App

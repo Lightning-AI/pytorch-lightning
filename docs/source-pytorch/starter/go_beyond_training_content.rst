@@ -2,7 +2,7 @@
 The *Train & Demo PyTorch Lightning* Application
 ************************************************
 
-This App enables training and demoing a Pytorch Lightning model. 
+This App enables training and demoing a Pytorch Lightning model.
 
 Why is this useful to you? Well you can download the source code for this App and then swap out the model in the App with your model. This means you'll
 be able to train and then demo your model with very little effort on your part.
