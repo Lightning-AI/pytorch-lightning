@@ -72,7 +72,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        r"""Performs back-propagatin using DeepSpeed's engine.
+        r"""Performs back-propagation using DeepSpeed's engine.
 
         Args:
             model: the model to be optimized
