@@ -145,7 +145,6 @@ class IPUStrategy(ParallelStrategy):
         super().setup(trainer)
 
         assert self.lightning_module is not None
-        assert self.lightning_module.trainer is not None
 
         # disable the `optimizer_zero_grad` function by setting it to `None`.
         # this is because the IPU zeros the gradients internally
@@ -201,14 +200,12 @@ class IPUStrategy(ParallelStrategy):
                 return self._inference_opts.replication_factor
 
             return len(self.parallel_devices) if self.parallel_devices else 0
-        assert self.lightning_module.trainer is not None
         stage = self.lightning_module.trainer.state.stage
         assert stage is not None
         return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
         assert self.lightning_module is not None
-        assert self.lightning_module.trainer is not None
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
@@ -231,11 +228,6 @@ class IPUStrategy(ParallelStrategy):
             self._inference_opts = self._create_opts(training=False)
         return self._inference_opts
 
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        if self.model is not None:
-            return unwrap_lightning_module(self.model)
-
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
@@ -257,7 +249,6 @@ class IPUStrategy(ParallelStrategy):
         ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
         """
         assert self.lightning_module is not None
-        assert self.lightning_module.trainer is not None
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
