@@ -298,10 +298,10 @@ class NeptuneLogger(Logger):
 
     def _retrieve_run_data(self) -> None:
         try:
-            if self._run_instance is not None:
-                self._run_instance.wait()
-                self._run_short_id = self._run_instance["sys/id"].fetch()
-                self._run_name = self._run_instance["sys/name"].fetch()
+            assert self._run_instance is not None
+            self._run_instance.wait()
+            self._run_short_id = self._run_instance["sys/id"].fetch()
+            self._run_name = self._run_instance["sys/name"].fetch()
         except NeptuneOfflineModeFetchException:
             self._run_short_id = "OFFLINE"
             self._run_name = "offline-name"
