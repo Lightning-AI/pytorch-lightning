@@ -94,10 +94,10 @@ To build the docker image for ROCm follow these steps:
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:base-rocm-py3.9-torch1.11 \
+    -t pytorch-lightning:base-rocm-py3.9-torch1.11.0 \
     -f dockers/base-rocm/Dockerfile \
     --build-arg PYTHON_VERSION=3.9 \
-    --build-arg PYTORCH_VERSION=1.11 \
+    --build-arg PYTORCH_VERSION=1.11.0 \
     .
 ```
 
