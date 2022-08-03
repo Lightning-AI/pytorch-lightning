@@ -58,7 +58,9 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 
     @staticmethod
     def batch_to(data: Tensor) -> Tensor:
-        return data.half()
+        if torch.is_floating_point(data):
+            return data.half()
+        return data
 
     def _move_float_tensors_to_half(self, batch: Any) -> Any:
         batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
@@ -272,7 +274,7 @@ class IPUStrategy(ParallelStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         # This override is necessary because the cast must occur before the data
         # is moved to the device to prevent wasteful host->device copies.
-        def fp_to_half(tensor):
+        def fp_to_half(tensor: Tensor):
             if torch.is_floating_point(tensor):
                 return tensor.half()
             return tensor
