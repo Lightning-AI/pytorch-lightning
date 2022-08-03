@@ -13,7 +13,7 @@
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
 
-import collections
+import collections.abc
 import inspect
 import logging
 import numbers
@@ -1712,7 +1712,7 @@ class LightningModule(
                     for i, x in enumerate(batch):
                         if isinstance(x, torch.Tensor):
                             split_x = x[:, t:t + split_size]
-                        elif isinstance(x, collections.Sequence):
+                        elif isinstance(x, collections.abc.Sequence):
                             split_x = [None] * len(x)
                             for batch_idx in range(len(x)):
                               split_x[batch_idx] = x[batch_idx][t:t + split_size]
@@ -1726,7 +1726,7 @@ class LightningModule(
             if :paramref:`~pytorch_lightning.core.module.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
         """
-        time_dims = [len(x[0]) for x in batch if isinstance(x, (Tensor, collections.Sequence))]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (Tensor, collections.abc.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
         assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
@@ -1736,7 +1736,7 @@ class LightningModule(
             for i, x in enumerate(batch):
                 if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
-                elif isinstance(x, collections.Sequence):
+                elif isinstance(x, collections.abc.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
                         split_x[batch_idx] = x[batch_idx][t : t + split_size]
