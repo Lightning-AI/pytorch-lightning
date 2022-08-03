@@ -220,10 +220,6 @@ def test_proper_url_parsing():
     assert org == "lightning"
     assert app == "install-app"
 
-    # resolve registry (orgs can have a private registry through their environment variables)
-    registry_url = cmd_install._resolve_app_registry()
-    assert registry_url == "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/apps"
-
     # load the component resource
     component_entry = cmd_install._resolve_resource(registry_url, name=name, version_arg="latest", resource_type="app")
 
@@ -286,11 +282,6 @@ def test_install_app_shows_error(tmpdir):
 # os.chdir(cwd)
 
 
-def test_public_app_registry():
-    registry = cmd_install._resolve_app_registry()
-    assert registry == "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/apps"
-
-
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_REGISTRY": "https://TODO/other_non_PL_registry"})
 def test_private_app_registry():
     registry = cmd_install._resolve_app_registry()
@@ -299,7 +290,7 @@ def test_private_app_registry():
 
 def test_public_component_registry():
     registry = cmd_install._resolve_component_registry()
-    assert registry == "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/components"
+    assert registry == "https://lightning.ai/v1/integrations/gallery-components"
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_COMPONENT_REGISTRY": "https://TODO/other_non_PL_registry"})

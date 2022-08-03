@@ -8,6 +8,9 @@ import sys
 
 import requests
 
+from lightning_app.core.constants import LIGHTNING_COMPONENT_PUBLIC_REGISTRY
+from lightning_app.utilities.network import LightningClient
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,11 +45,8 @@ def gallery_app(name, yes_arg, version_arg, cwd=None, overwrite=False):
     # make sure org/app-name syntax is correct
     org, app = _validate_name(name, resource_type="app", example="lightning/quick-start")
 
-    # resolve registry (orgs can have a private registry through their environment variables)
-    registry_url = _resolve_app_registry()
-
     # load the app resource
-    app_entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app")
+    app_entry = _resolve_resource("", name=name, version_arg=version_arg, resource_type="app")
 
     # give the user the chance to do a manual install
     source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
@@ -295,8 +295,23 @@ def _validate_name(name, resource_type, example):
 
 
 def _resolve_resource(registry_url, name, version_arg, resource_type):
+    gallery_entries = []
     try:
-        url = requests.get(registry_url)
+        if resource_type == "app":
+            client = LightningClient()
+            resources = client.lightningapp_v2_service_list_gallery_lightningapps()
+            for app in resources.apps:
+                # Filter only entries that can be downloaded
+                if app.can_download_source_code:
+                    gallery_entries.append(
+                        {"name": app.name, "version": app.version, "gitUrl": app.git_url, "sourceUrl": app.source_url}
+                    )
+
+            # TODO: LightningClient doesn't support components yet
+        elif resource_type == "component":
+            url = requests.get(registry_url)
+            data = json.loads(url.text)
+            gallery_entries = data["components"]
     except requests.ConnectionError:
         m = f"""
         Network connection error, could not load list of available Lightning {resource_type}s.
@@ -306,12 +321,9 @@ def _resolve_resource(registry_url, name, version_arg, resource_type):
         sys.tracebacklimit = 0
         raise SystemError(m)
 
-    data = json.loads(url.text)
-    data = data[resource_type + "s"]
-
     entries = []
     all_versions = []
-    for x in data:
+    for x in gallery_entries:
         if name == x["name"]:
             entries.append(x)
             all_versions.append(x["version"])
@@ -472,13 +484,6 @@ def _install_component(git_url):
         logger.info(m)
 
 
-def _resolve_app_registry():
-    public_registry = "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/apps"
-    registry = os.environ.get("LIGHTNING_APP_REGISTRY", public_registry)
-    return registry
-
-
 def _resolve_component_registry():
-    public_registry = "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/components"
-    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", public_registry)
+    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)
     return registry
