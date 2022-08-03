@@ -274,7 +274,7 @@ class IPUStrategy(ParallelStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         # This override is necessary because the cast must occur before the data
         # is moved to the device to prevent wasteful host->device copies.
-        def fp_to_half(tensor: Tensor):
+        def fp_to_half(tensor: Tensor) -> Tensor:
             if torch.is_floating_point(tensor):
                 return tensor.half()
             return tensor
