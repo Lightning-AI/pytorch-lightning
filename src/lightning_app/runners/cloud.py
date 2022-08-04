@@ -147,7 +147,7 @@ class CloudRuntime(Runtime):
                 # There can be only one app with unique project_id<>name pair
                 lightning_app = list_apps_resp.lightningapps[0]
             else:
-                app_body = Body7(name=app_config.name)
+                app_body = Body7(name=app_config.name, can_download_source_code=True)
                 lightning_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
                     project.project_id, app_body
                 )
