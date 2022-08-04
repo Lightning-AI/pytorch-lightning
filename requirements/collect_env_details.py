@@ -19,8 +19,8 @@ This server mainly to get detail info for better bug reporting.
 import os
 import platform
 import sys
-import pkg_resources
 
+import pkg_resources
 import torch
 
 sys.path += [os.path.abspath(".."), os.path.abspath("")]
@@ -76,7 +76,7 @@ def nice_print(details: dict, level: int = 0) -> list:
 
 def main() -> None:
     details = {"System": info_system(), "CUDA": info_cuda(), "Packages": info_packages()}
-    details['Lightning'] = {k: v for k, v in details['Packages'].items() if 'torch' in k or 'lightning' in k}
+    details["Lightning"] = {k: v for k, v in details["Packages"].items() if "torch" in k or "lightning" in k}
     lines = nice_print(details)
     text = os.linesep.join(lines)
     print(text)
