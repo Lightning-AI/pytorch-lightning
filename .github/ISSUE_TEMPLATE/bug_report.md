@@ -54,7 +54,6 @@ python collect_env_details.py
 You can also fill out the list below manually.
 -->
 
-
 - Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
 - PyTorch Lightning Version (e.g., 1.5.0):
 - Lightning App Version (e.g., 0.5.2):
