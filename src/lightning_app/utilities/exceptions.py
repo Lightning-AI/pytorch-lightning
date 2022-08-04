@@ -43,6 +43,7 @@ class LightningWorkException(Exception):
 
 class LightningPlatformException(Exception):  # pragma: no cover
     """Exception used to inform users of issues related to platform the LightningApp is running on.
+
     It's raised for framework by a platform LightningApp is running on.
     """
 
