@@ -36,7 +36,7 @@ jobs:
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
         pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip install "mypy==0.920"
+        pip install "mypy==0.971"
         pip list
 
     - name: Check typing
