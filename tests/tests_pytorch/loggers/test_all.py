@@ -45,6 +45,7 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"),
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
+    mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock),
 )
 ALL_LOGGER_CLASSES = (
     CometLogger,
@@ -363,7 +364,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # WandB
-    with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb:
+    with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb, mock.patch(
+        "pytorch_lightning.loggers.wandb.Run", new=mock.Mock
+    ):
         logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
         wandb.run = None
         wandb.init().step = 0
