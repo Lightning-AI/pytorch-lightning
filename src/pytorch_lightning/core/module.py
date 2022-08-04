@@ -1782,34 +1782,6 @@ class LightningModule(
                 " set model property `automatic_optimization` as False"
             )
 
-    @classmethod
-    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
-        """Collect all module arguments in the current constructor and all child constructors. The child
-        constructors are all the ``__init__`` methods that reach the current class through (chained)
-        ``super().__init__()`` calls.
-
-        Args:
-            frame: instance frame
-
-        Returns:
-            self_arguments: arguments dictionary of the first instance
-            parents_arguments: arguments dictionary of the parent's instances
-        """
-        if not frame:
-            frame = inspect.currentframe()
-
-        frame_args = collect_init_args(frame.f_back, [])
-        self_arguments = frame_args[-1]
-
-        # set hyper_parameters in child
-        self_arguments = self_arguments
-        parents_arguments = {}
-
-        # add all arguments from parents
-        for args in frame_args[:-1]:
-            parents_arguments.update(args)
-        return self_arguments, parents_arguments
-
     @torch.no_grad()
     def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs):
         """Saves the model in ONNX format.
