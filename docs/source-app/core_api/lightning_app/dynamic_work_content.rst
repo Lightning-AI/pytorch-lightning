@@ -107,7 +107,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 	import subprocess
 	import lightning as L
     	from lightning_app.structures import Dict
-	from lightning.app.storage import Path
+	from lightning_app.storage import Path
 	import sys
 	from typing import Optional
 	
