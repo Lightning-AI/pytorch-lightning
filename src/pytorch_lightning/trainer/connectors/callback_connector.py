@@ -247,7 +247,7 @@ class CallbackConnector:
             A new list in which the last elements are Checkpoint if there were any present in the
             input.
         """
-        checkpoints: List[Checkpoint] = [c for c in callbacks if isinstance(c, Checkpoint)]
+        checkpoints: List[Callback] = [c for c in callbacks if isinstance(c, Checkpoint)]
         not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint)]
         return not_checkpoints + checkpoints
 
