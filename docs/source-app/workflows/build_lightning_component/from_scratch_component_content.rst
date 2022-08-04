@@ -32,9 +32,9 @@ Use a **LightningWork** component for any programming logic that takes more than
 
 ----
 
-************************************************
-What building a Lightning component does for you
-************************************************
+**************************************************
+What developing a Lightning Component does for you
+**************************************************
 Lightning Components break up complex systems into modular components. The first obvious benefit is that components
 can be reused across other apps. This means you can build once, test it and forget it.
 
