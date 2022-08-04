@@ -112,7 +112,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 	from typing import Optional
 	
     
-    class JupyterLabWork(L.LightningWork):
+    	class JupyterLabWork(L.LightningWork):
 		def __init__(self, cloud_compute: Optional[L.CloudCompute] = None):
 			super().__init__(cloud_compute=cloud_compute, parallel=True)
 			self.pid = None
