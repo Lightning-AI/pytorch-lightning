@@ -408,7 +408,9 @@ class WorkRunner:
                 make_status(WorkStageStatus.FAILED, message=str(e), reason=WorkFailureReasons.USER_EXCEPTION)
             )
             self.delta_queue.put(
-                ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state, verbose_level=2)))
+                ComponentDelta(
+                    id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state, verbose_level=2))
+                )
             )
             self.work.on_exception(e)
             print("########## CAPTURED EXCEPTION ###########")
