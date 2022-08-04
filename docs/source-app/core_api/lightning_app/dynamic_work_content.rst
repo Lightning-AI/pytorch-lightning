@@ -103,73 +103,72 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 
 .. code-block:: python
 
-        import os
-	import subprocess
-	import lightning as L
-    	from lightning_app.structures import Dict
-	from lightning_app.storage import Path
-	import sys
-	from typing import Optional
-	
+    import os
+    import subprocess
+    import lightning as L
+    from lightning_app.structures import Dict
+    from lightning_app.storage import Path
+    import sys
+    from typing import Optional
     
-    	class JupyterLabWork(L.LightningWork):
-		def __init__(self, cloud_compute: Optional[L.CloudCompute] = None):
-			super().__init__(cloud_compute=cloud_compute, parallel=True)
-			self.pid = None
-			self.token = None
-			self.exit_code = None
-			self.storage = None
+    class JupyterLabWork(L.LightningWork):
+	def __init__(self, cloud_compute: Optional[L.CloudCompute] = None):
+		super().__init__(cloud_compute=cloud_compute, parallel=True)
+		self.pid = None
+		self.token = None
+		self.exit_code = None
+		self.storage = None
 
-		def run(self):
-			self.storage = Path(".")
+	def run(self):
+		self.storage = Path(".")
 
-			jupyter_notebook_config_path = Path.home() / ".jupyter/jupyter_notebook_config.py"
+		jupyter_notebook_config_path = Path.home() / ".jupyter/jupyter_notebook_config.py"
 
-			if os.path.exists(jupyter_notebook_config_path):
-				os.remove(jupyter_notebook_config_path)
+		if os.path.exists(jupyter_notebook_config_path):
+			os.remove(jupyter_notebook_config_path)
 
-			with subprocess.Popen(
-				f"{sys.executable} -m notebook --generate-config".split(" "),
-				stdout=subprocess.PIPE,
-				stderr=subprocess.STDOUT,
+		with subprocess.Popen(
+			f"{sys.executable} -m notebook --generate-config".split(" "),
+			stdout=subprocess.PIPE,
+			stderr=subprocess.STDOUT,
+			bufsize=0,
+			close_fds=True,
+		) as proc:
+			self.pid = proc.pid
+
+			self.exit_code = proc.wait()
+			if self.exit_code != 0:
+				raise Exception(self.exit_code)
+
+		with open(jupyter_notebook_config_path, "a") as f:
+			f.write(
+				"""c.NotebookApp.tornado_settings = {'headers': {'Content-Security-Policy': "frame-ancestors * 'self' "}}"""  # noqa E501
+			)
+
+		with open(f"jupyter_lab_{self.port}", "w") as f:
+			proc = subprocess.Popen(
+				f"{sys.executable} -m jupyter lab --ip {self.host} --port {self.port} --no-browser".split(" "),
 				bufsize=0,
 				close_fds=True,
-			) as proc:
-				self.pid = proc.pid
+				stdout=f,
+				stderr=f,
+			)
 
-				self.exit_code = proc.wait()
-				if self.exit_code != 0:
-					raise Exception(self.exit_code)
+		with open(f"jupyter_lab_{self.port}") as f:
+			while True:
+				for line in f.readlines():
+					if "lab?token=" in line:
+						self.token = line.split("lab?token=")[-1]
+						proc.wait()
 
-			with open(jupyter_notebook_config_path, "a") as f:
-				f.write(
-					"""c.NotebookApp.tornado_settings = {'headers': {'Content-Security-Policy': "frame-ancestors * 'self' "}}"""  # noqa E501
-				)
-
-			with open(f"jupyter_lab_{self.port}", "w") as f:
-				proc = subprocess.Popen(
-					f"{sys.executable} -m jupyter lab --ip {self.host} --port {self.port} --no-browser".split(" "),
-					bufsize=0,
-					close_fds=True,
-					stdout=f,
-					stderr=f,
-				)
-
-			with open(f"jupyter_lab_{self.port}") as f:
-				while True:
-					for line in f.readlines():
-						if "lab?token=" in line:
-							self.token = line.split("lab?token=")[-1]
-							proc.wait()
-
-		@property
-		def url(self):
-			if not self.token:
-				return ""
-			if self._future_url:
-				return f"{self._future_url}/lab?token={self.token}"
-			else:
-				return f"http://{self.host}:{self.port}/lab?token={self.token}"
+	@property
+	def url(self):
+		if not self.token:
+			return ""
+		if self._future_url:
+			return f"{self._future_url}/lab?token={self.token}"
+		else:
+			return f"http://{self.host}:{self.port}/lab?token={self.token}"
 
 
     class JupyterLabManager(L.LightningFlow):
