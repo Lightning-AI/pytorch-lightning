@@ -41,10 +41,19 @@ You can get the script and run it with:
 ```bash
 wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
 python collect_env_details.py
+
 ```
+And paste it below inside the Details summary toggle.
+
+<details>
+  <summary>Details</summary>
+    
+</details>
+
 
 You can also fill out the list below manually.
 -->
+
 
 - Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
 - PyTorch Lightning Version (e.g., 1.5.0):
