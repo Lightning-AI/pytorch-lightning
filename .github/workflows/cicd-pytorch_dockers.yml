@@ -251,3 +251,24 @@ jobs:
           file: dockers/nvidia/Dockerfile
           push: false
         timeout-minutes: 55
+
+  build-rocm:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {python_version: "3.9", pytorch_version: "1.12.0", rocm_whl_version: "5.1.1"}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            ROCM_WHL_VERSION=${{ matrix.rocm_whl_version }}
+          file: dockers/base-rocm/Dockerfile
+          push: false
+          tags: pytorchlightning/pytorch_lightning:base-rocm-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-rocm${{ matrix.rocm_whl_version }}
+        timeout-minutes: 100
