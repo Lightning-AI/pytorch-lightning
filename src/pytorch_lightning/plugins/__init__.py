@@ -31,7 +31,6 @@ __all__ = [
     "HPUCheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelPlugin",
-    "DDP2Plugin",
     "DDPPlugin",
     "DDPSpawnPlugin",
     "DDPFullyShardedPlugin",
