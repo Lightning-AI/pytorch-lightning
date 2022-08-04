@@ -65,7 +65,7 @@ class ModelIO:
         hparams_file: Optional[str] = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Union["ModelIO", "pl.LightningModule", "pl.LightningDataModule"]:
+    ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
@@ -178,7 +178,7 @@ def _load_from_checkpoint(
     checkpoint_path: Union[str, IO],
     map_location: MAP_LOCATION_TYPE = None,
     hparams_file: Optional[str] = None,
-    strict: Optional[bool] = None,
+    strict: bool = True,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
@@ -214,7 +214,7 @@ def _load_from_checkpoint(
 def _load_state(
     cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
-    strict: Optional[bool] = None,
+    strict: bool = True,
     **cls_kwargs_new: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
@@ -234,8 +234,7 @@ def _load_state(
                 cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
 
         # 2. Try to restore model hparams from checkpoint using the new key
-        _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-        _new_hparam = checkpoint.get(_new_hparam_key)
+        _new_hparam = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_KEY)
         if _new_hparam is not None:
             cls_kwargs_loaded.update(_new_hparam)
 
@@ -265,11 +264,7 @@ def _load_state(
         return obj
 
     # load the state_dict on the model automatically
-    if strict is None:
-        keys = obj.load_state_dict(checkpoint["state_dict"])
-
-    if strict is not None:
-        keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
+    keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:
         if keys.missing_keys:
