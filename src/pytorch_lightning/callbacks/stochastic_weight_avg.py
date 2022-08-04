@@ -155,6 +155,7 @@ class StochasticWeightAveraging(Callback):
         self._max_epochs = trainer.max_epochs
         if self._model_contains_batch_norm:
             # virtually increase max_epochs to perform batch norm update on latest epoch.
+            assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs += 1
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -169,7 +170,7 @@ class StochasticWeightAveraging(Callback):
             for lr, group in zip(self._swa_lrs, optimizer.param_groups):
                 group["initial_lr"] = lr
 
-            self._swa_scheduler: _LRScheduler = cast(
+            self._swa_scheduler = cast(
                 _LRScheduler,
                 SWALR(
                     optimizer,
@@ -227,6 +228,7 @@ class StochasticWeightAveraging(Callback):
             # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1
+            assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs -= 1
             self.reset_momenta()
         elif trainer.current_epoch - 1 == self.swa_end:
@@ -244,19 +246,22 @@ class StochasticWeightAveraging(Callback):
         for module in pl_module.modules():
             if not isinstance(module, nn.modules.batchnorm._BatchNorm):
                 continue
+            assert module.running_mean is not None
             module.running_mean = torch.zeros_like(
-                module.running_mean,  # type: ignore[arg-type]
+                module.running_mean,
                 device=pl_module.device,
-                dtype=module.running_mean.dtype,  # type: ignore[union-attr]
+                dtype=module.running_mean.dtype,
             )
+            assert module.running_var is not None
             module.running_var = torch.ones_like(
-                module.running_var,  # type: ignore[arg-type]
+                module.running_var,
                 device=pl_module.device,
-                dtype=module.running_var.dtype,  # type: ignore[union-attr]
+                dtype=module.running_var.dtype,
             )
             self.momenta[module] = module.momentum
-            module.momentum = None  # type: ignore[assignment]
-            module.num_batches_tracked *= 0  # type: ignore[assignment, operator]
+            module.momentum = float()
+            assert module.num_batches_tracked is not None
+            module.num_batches_tracked *= 0
 
     def reset_momenta(self) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""

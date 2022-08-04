@@ -76,7 +76,7 @@ def apply_to_collection(
     dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
     *args: Any,
-    wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
+    wrong_dtype: Optional[Union[type, Tuple[type, ...]]] = None,
     include_none: bool = True,
     **kwargs: Any,
 ) -> Any:
