@@ -13,7 +13,7 @@ from typing import Any, Callable, Optional
 
 from packaging.version import Version
 
-from lightning_app import _logger, _PROJECT_ROOT, _root_logger
+from lightning_app import _logger, _PROJECT_ROOT, _PACKAGE_ROOT, _root_logger
 from lightning_app.__version__ import version
 from lightning_app.core.constants import PACKAGE_LIGHTNING
 from lightning_app.utilities.git import check_github_repository, get_dir_name
@@ -90,7 +90,7 @@ def get_dist_path_if_editable_install(project_name) -> str:
 
 def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]:
 
-    if "site-packages" in _PROJECT_ROOT:
+    if "site-packages" in _PACKAGE_ROOT:
         return
 
     # Packaging the Lightning codebase happens only inside the `lightning` repo.
