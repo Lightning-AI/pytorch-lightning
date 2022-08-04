@@ -38,7 +38,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed all deprecated training type plugins ([#14011](https://github.com/Lightning-AI/lightning/pull/14011))
 
 
-- Removed the deprecated `DDP2Strategy` ([#12705](https://github.com/Lightning-AI/lightning/pull/12705))
+- Removed the deprecated `DDP2Strategy` ([#14026](https://github.com/Lightning-AI/lightning/pull/14026))
 
 
 ### Fixed
