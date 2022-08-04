@@ -42,7 +42,7 @@ def info_system() -> dict:
 
 def info_cuda() -> dict:
     return {
-        "GPU": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
+        "GPU": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())] or None,
         "available": torch.cuda.is_available(),
         "version": torch.version.cuda,
     }
