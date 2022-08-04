@@ -234,9 +234,7 @@ def _load_state(
                 cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
 
         # 2. Try to restore model hparams from checkpoint using the new key
-        _new_hparam = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_KEY)
-        if _new_hparam is not None:
-            cls_kwargs_loaded.update(_new_hparam)
+        cls_kwargs_loaded.update(checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_KEY, {}))
 
         # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
         cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
