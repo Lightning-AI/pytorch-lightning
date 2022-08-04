@@ -104,6 +104,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 .. code-block:: python
 
     import lightning as L
+    from lightning_app.structures import Dict
 
 
     class JupyterLabManager(L.LightningFlow):
@@ -112,7 +113,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 
         def __init__(self):
             super().__init__()
-            self.jupyter_works = L.structures.Dict()
+            self.jupyter_works = Dict()
             self.jupyter_config_requests = []
 
         def run(self):
