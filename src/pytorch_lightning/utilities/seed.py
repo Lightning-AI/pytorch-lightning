@@ -24,7 +24,7 @@ from typing import Any, Dict, Generator, Optional
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn, _get_rank
 
 log = logging.getLogger(__name__)
 
@@ -66,9 +66,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    # using `log.info` instead of `rank_zero_info`,
-    # so users can verify the seed is properly set in distributed training.
-    log.info(f"Global seed set to {seed}")
+    _log_info(f"Global seed set to {seed}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -153,3 +151,14 @@ def isolate_rng() -> Generator[None, None, None]:
     states = _collect_rng_states()
     yield
     _set_rng_states(states)
+
+
+def _log_info(message: str) -> None:
+    """Check global rank if the rank is greater than zero, add a prefix."""
+    rank = _get_rank()
+
+    if rank > 0:
+        log.info(f"[rank: {rank}] {message}")
+        return
+
+    log.info(message)
