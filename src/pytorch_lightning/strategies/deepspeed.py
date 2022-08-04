@@ -70,10 +70,15 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
+    """
+    .. deprecated:: v1.7.1
+        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
+    """
+
     def __init__(
         self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
     ) -> None:
-        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.8.0 and will be removed in v1.9.0")
+        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.7.1 and will be removed in v1.9.0")
         super().__init__(pl_module)
         self.precision = precision
 
@@ -945,7 +950,7 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer_device="nvme",
         )
 
-    def batch_to_device(self, batch: Any, *args: Any, **kwargs: Any) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         def fp_to_half(tensor: Tensor) -> Tensor:
             if torch.is_floating_point(tensor):
                 if self.precision_plugin.precision == PrecisionType.HALF:
@@ -956,7 +961,7 @@ class DeepSpeedStrategy(DDPStrategy):
             return tensor
 
         batch = apply_to_collection(batch, Tensor, function=fp_to_half)
-        return super().batch_to_device(batch, *args, **kwargs)
+        return super().batch_to_device(batch, device, dataloader_idx)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None

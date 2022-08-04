@@ -221,5 +221,5 @@ def test_gpu_accelerator_deprecation_warning():
 
 
 def test_v1_9_0_deprecated_lightning_deepspeed_module():
-    with pytest.deprecated_call(match=r"has been deprecated in v1.8.0 and will be removed in v1.9."):
+    with pytest.deprecated_call(match=r"has been deprecated in v1.7.1 and will be removed in v1.9."):
         _ = LightningDeepSpeedModule(BoringModel(), 32)
