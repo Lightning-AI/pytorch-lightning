@@ -403,7 +403,11 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
     assert pbar.calls["test"] == []
 
 
-def test_rich_progress_bar_padding():
+def test_rich_progress_bar_padding(monkeypatch):
+    import pytorch_lightning.callbacks.progress.rich_progress as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", True)
+
     progress_bar = RichProgressBar()
     trainer = Mock()
     trainer.max_epochs = 1
