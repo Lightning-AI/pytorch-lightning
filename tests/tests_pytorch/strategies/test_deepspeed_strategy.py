@@ -31,7 +31,7 @@ from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelChec
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.meta import init_meta_context
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -83,43 +83,6 @@ class ModelParallelBoringModelManualOptim(BoringModel):
     @property
     def automatic_optimization(self) -> bool:
         return False
-
-
-def test_deepspeed_lightning_module(tmpdir):
-    """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly."""
-
-    model = BoringModel()
-    module = LightningDeepSpeedModule(model, precision=16)
-
-    module.half()
-    assert module.dtype == torch.half
-    assert model.dtype == torch.half
-
-    module.to(torch.double)
-    assert module.dtype == torch.double
-    assert model.dtype == torch.double
-
-
-@RunIf(min_cuda_gpus=1)
-def test_deepspeed_lightning_module_precision(tmpdir):
-    """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision
-    16."""
-
-    model = BoringModel()
-    module = LightningDeepSpeedModule(model, precision=16)
-
-    module.cuda().half()
-    assert module.dtype == torch.half
-    assert model.dtype == torch.half
-
-    x = torch.randn((1, 32), dtype=torch.float).cuda()
-    out = module(x)
-
-    assert out.dtype == torch.half
-
-    module.to(torch.double)
-    assert module.dtype == torch.double
-    assert model.dtype == torch.double
 
 
 @pytest.fixture
@@ -1306,6 +1269,7 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == "bf16"
     assert trainer.strategy.config["zero_optimization"]["stage"] == 3
+    assert trainer.strategy.config["bf16"]["enabled"]
     assert model.layer.weight.dtype == torch.bfloat16
 
 
