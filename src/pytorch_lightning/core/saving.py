@@ -61,9 +61,7 @@ class ModelIO:
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[str, IO],
-        map_location: Optional[
-            Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
-        ] = None,
+        map_location: MAP_LOCATION_TYPE = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
         **kwargs: Any,
