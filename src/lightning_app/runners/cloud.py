@@ -173,7 +173,7 @@ class CloudRuntime(Runtime):
             )
 
             if cluster_id is not None:
-                print(f"running app on {lightning_app_release.cluster_id}")
+                logger.info(f"running app on {lightning_app_release.cluster_id}")
 
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
