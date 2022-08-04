@@ -250,7 +250,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
 
         # Closing the Create Project dialog.
         try:
-            project_dialog = admin_page.locator('text=Create a project')
+            project_dialog = admin_page.locator("text=Create a project")
             project_dialog.wait_for(timeout=10 * 1000, state="visible")
             print("'Create Project' dialog visible, closing it.")
             project_name_input = admin_page.locator('input[type="text"]')
