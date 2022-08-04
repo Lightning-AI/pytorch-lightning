@@ -43,11 +43,11 @@ wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirement
 python collect_env_details.py
 
 ```
-And paste it below inside the Details summary toggle.
+
 
 <details>
   <summary>Details</summary>
-    
+    Paste the output here and move this toggle outside of the comment block.
 </details>
 
 
