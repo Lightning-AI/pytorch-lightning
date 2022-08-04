@@ -12,3 +12,4 @@ isort>=5.0
 mypy>=0.720
 httpx
 trio
+pympler
