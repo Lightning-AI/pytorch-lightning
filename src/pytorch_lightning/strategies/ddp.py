@@ -107,7 +107,7 @@ class DDPStrategy(ParallelStrategy):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._model_averaging_period = model_averaging_period
         self._model_averager: Optional[ModelAverager] = None
-        self._pids: Optional[List[int]] = None
+        self._pids: List[int] = []
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
         self._process_group_backend: Optional[str] = process_group_backend
@@ -468,7 +468,6 @@ class DDPStrategy(ParallelStrategy):
         if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
             return
 
-        assert self._pids is not None
         for pid in self._pids:
             if pid != os.getpid():
                 os.kill(pid, signal.SIGKILL)
