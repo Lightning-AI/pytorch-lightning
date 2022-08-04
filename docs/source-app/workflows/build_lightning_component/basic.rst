@@ -1,7 +1,8 @@
-###########################
-Build a Lightning component
-###########################
-**Audience:** Users who want to build a Lightning component.
+#############################
+Develop a Lightning Component
+#############################
+
+**Audience:** Users who want to develop a Lightning Component.
 
 ----
 

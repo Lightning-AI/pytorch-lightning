@@ -1,11 +1,11 @@
 
 .. _fileserver_example:
 
-###################
-Build a File Server
-###################
+#####################
+Develop a File Server
+#####################
 
-**Prerequisite**: Reach :ref:`level 16+ <intermediate_level>` and read the `Drive article <https://lightning.ai/lightning-docs/glossary/storage/drive_content.html>`_.
+**Prerequisite**: Reach :ref:`level 16+ <intermediate_level>` and read the :ref:`Drive article <drive_storage>`.
 
 ----
 
