@@ -211,7 +211,7 @@ class Trainer(
 
                 .. deprecated:: v1.5
                     Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v2.0.0. Please set it inside the specific precision plugin and pass it to the ``Trainer``.
+                    in v1.10.0. Please set it inside the specific precision plugin and pass it to the ``Trainer``.
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
