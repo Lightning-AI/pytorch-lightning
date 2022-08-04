@@ -403,14 +403,12 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
     assert pbar.calls["test"] == []
 
 
-@RunIf(rich=True)
-def test_rich_progress_bar_padding(tmpdir):
-
+def test_rich_progress_bar_padding():
     progress_bar = RichProgressBar()
-    model = BoringModel()
+    trainer = Mock()
+    trainer.max_epochs = 1
+    progress_bar._trainer = trainer
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True)
-    trainer.fit(model)
-
-    assert "Epoch 0/0" in progress_bar.main_progress_bar.description
-    assert len(progress_bar.main_progress_bar.description) == len(progress_bar.val_progress_bar.description)
+    train_description = progress_bar._get_train_description(current_epoch=0)
+    assert "Epoch 0/0" in train_description
+    assert len(progress_bar.validation_description) == len(train_description)
