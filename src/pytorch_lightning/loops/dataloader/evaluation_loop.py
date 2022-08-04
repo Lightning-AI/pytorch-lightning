@@ -145,6 +145,9 @@ class EvaluationLoop(DataLoaderLoop):
         assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader,
+            pre_batch_to_device=partial(
+                self.trainer.lightning_module._on_before_batch_transfer, dataloader_idx=dataloader_idx
+            ),
             batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
         )
         dl_max_batches = self._max_batches[dataloader_idx]

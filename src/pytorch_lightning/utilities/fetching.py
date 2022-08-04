@@ -198,7 +198,7 @@ class AbstractDataFetcher(ABC):
         _teardown_dataloader_get_iterators()
 
 
-def _no_op_batch_to_device(batch: Any) -> Any:
+def _no_op_batch_func(batch: Any) -> Any:
     return batch
 
 
@@ -214,15 +214,21 @@ class DataFetcher(AbstractDataFetcher):
     def __init__(self, prefetch_batches: int = 1, store_on_device: bool = True) -> None:
         super().__init__(prefetch_batches=prefetch_batches)
         self.store_on_device = store_on_device
-        self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
+        self.pre_batch_to_device: Callable[[Any], Any] = _no_op_batch_func
+        self.batch_to_device: Callable[[Any], Any] = _no_op_batch_func
         self.batches: List[Any] = []
         self._has_len = False
 
     def setup(  # type: ignore[override]
-        self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
+        self,
+        dataloader: Iterable,
+        pre_batch_to_device: Optional[Callable[[Any], Any]] = None,
+        batch_to_device: Optional[Callable[[Any], Any]] = None,
     ) -> None:
         super().setup(dataloader)
         self._has_len = has_len(dataloader)
+        if pre_batch_to_device is not None:
+            self.pre_batch_to_device = pre_batch_to_device
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
 
@@ -271,6 +277,7 @@ class DataFetcher(AbstractDataFetcher):
             # the iterator is empty
             raise StopIteration
         self.wait()
+        batch = self.pre_batch_to_device(batch)
         return self.move_to_device(batch)
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:

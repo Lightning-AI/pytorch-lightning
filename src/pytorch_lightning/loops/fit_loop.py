@@ -264,7 +264,9 @@ class FitLoop(Loop[None]):
         dataloader = self.trainer.train_dataloader
         assert self._data_fetcher is not None
         self._data_fetcher.setup(
-            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
+            dataloader,
+            pre_batch_to_device=partial(self.trainer.lightning_module._on_before_batch_transfer, dataloader_idx=0),
+            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0),
         )
         with self.trainer.profiler.profile("run_training_epoch"):
             self._outputs = self.epoch_loop.run(self._data_fetcher)
