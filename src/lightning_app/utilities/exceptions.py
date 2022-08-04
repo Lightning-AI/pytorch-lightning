@@ -41,8 +41,10 @@ class LightningWorkException(Exception):
     """Exception used to inform users of misuse with LightningWork."""
 
 
-class LightningPlatformException(Exception):
-    """Exception used to inform users of issues related to platform the LightningApp is running on."""
+class LightningPlatformException(Exception):  # pragma: no cover
+    """Exception used to inform users of issues related to platform the LightningApp is running on.
+    It's raised for framework by a platform LightningApp is running on.
+    """
 
 
 class LightningAppStateException(Exception):
