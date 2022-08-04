@@ -45,8 +45,7 @@ class LightningPlatformException(Exception):  # pragma: no cover
     """Exception used to inform users of issues related to platform the LightningApp is running on.
 
     It gets raised by the Lightning Launcher on the platform side when the app is running in the cloud, and is useful
-    when framework or user code needs to catch exceptions specific to the platform, e.g., when resources exceed
-    quotas.
+    when framework or user code needs to catch exceptions specific to the platform, e.g., when resources exceed quotas.
     """
 
 
