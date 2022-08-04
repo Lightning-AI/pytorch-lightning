@@ -43,15 +43,15 @@ Find more examples
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Build a DAG
-   :description: Create a dag pipeline
+   :header: Develop a DAG
+   :description: Develop a DAG pipeline
    :col_css: col-md-4
    :button_link: ../dag/dag.html
    :height: 150
    :tag: Intermediate
 
 .. displayitem::
-   :header: Build a File Server
+   :header: Develop a File Server
    :description: Train multiple models with different parameters
    :col_css: col-md-4
    :button_link: ../file_server/file_server.html
@@ -59,7 +59,7 @@ Find more examples
    :tag: Intermediate
 
 .. displayitem::
-   :header: Build a Github Repo Script Runner
+   :header: Develop a Github Repo Script Runner
    :description: Run code from the internet in the cloud
    :col_css: col-md-4
    :button_link: ../github_repo_runner/github_repo_runner.html
@@ -67,7 +67,7 @@ Find more examples
    :tag: Intermediate
 
 .. displayitem::
-   :header: Build a HPO Sweeper
+   :header: Develop a HPO Sweeper
    :description: Train multiple models with different parameters
    :col_css: col-md-4
    :button_link: ../hpo/hpo.html
