@@ -108,7 +108,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 
     class JupyterLabManager(L.LightningFlow):
 
-        """This flow manages the users notebooks running within works.""""
+        """This flow manages the users notebooks running within works."""
 
         def __init__(self):
             super().__init__()
