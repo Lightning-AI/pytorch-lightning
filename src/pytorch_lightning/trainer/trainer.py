@@ -209,7 +209,7 @@ class Trainer(
             amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
 
-                .. deprecated:: v1.5
+                .. deprecated:: v1.8
                     Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
                     in v1.10.0. Please set it inside the specific precision plugin and pass it to the ``Trainer``.
 
