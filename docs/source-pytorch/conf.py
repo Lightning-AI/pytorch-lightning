@@ -49,7 +49,7 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
     AssistantCLI.copy_notebooks(
-        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+        PATH_RAW_NB, PATH_HERE, "_notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
     )
 
 
@@ -164,7 +164,7 @@ exclude_patterns = [
 ]
 
 if _PL_FAST_DOCS_DEV:
-    exclude_patterns.append("notebooks/*")
+    exclude_patterns.append("_notebooks/*")
     exclude_patterns.append("tutorials.rst")
 
 
