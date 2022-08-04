@@ -255,8 +255,7 @@ def _load_state(
     obj = cls(**_cls_kwargs)
 
     # give model a chance to load something
-    if not isinstance(obj, ModelIO):
-        obj.on_load_checkpoint(checkpoint)
+    obj.on_load_checkpoint(checkpoint)
 
     if isinstance(obj, pl.LightningDataModule):
         return obj
