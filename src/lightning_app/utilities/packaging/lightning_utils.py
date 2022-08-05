@@ -89,8 +89,8 @@ def get_dist_path_if_editable_install(project_name) -> str:
 
 
 def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]:
-    """This function determines if lightning is installed in editable mode (for developers)
-    and packages the current lightning source along with the app.
+    """This function determines if lightning is installed in editable mode (for developers) and packages the
+    current lightning source along with the app.
 
     For normal users who install via PyPi or Conda, then this function does not do anything.
     """

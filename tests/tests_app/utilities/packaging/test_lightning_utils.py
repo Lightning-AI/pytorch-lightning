@@ -32,8 +32,8 @@ def _mocked_get_dist_path_if_editable_install(*args, **kwargs):
     new=_mocked_get_dist_path_if_editable_install,
 )
 def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_editable_mode(tmpdir):
-    """This test ensures the source does not get packaged inside the lightning repo if not installed in editable mode.
-    """
+    """This test ensures the source does not get packaged inside the lightning repo if not installed in editable
+    mode."""
     cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
     assert cleanup_handle is None
 
