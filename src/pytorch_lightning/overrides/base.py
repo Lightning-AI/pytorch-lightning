@@ -147,8 +147,10 @@ def unwrap_lightning_module(wrapped_model: nn.Module, _suppress_warning: bool = 
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = unwrap_lightning_module(model.module)
-    if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):
-        model = unwrap_lightning_module(model.module)
+    if isinstance(model, _LightningModuleWrapperBase):
+        model = model.lightning_module
+    if isinstance(model, _LightningPrecisionModuleWrapperBase):
+        model = model.module
     if not isinstance(model, pl.LightningModule):
         raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
     return model
