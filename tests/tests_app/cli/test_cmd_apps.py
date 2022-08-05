@@ -11,7 +11,7 @@ from lightning_cloud.openapi import (
     V1Membership,
 )
 
-from lightning_app.cli.cmd_apps import AppManager
+from lightning_app.cli.cmd_apps import _AppManager
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
@@ -41,7 +41,7 @@ def test_list_all_apps_paginated(list_memberships: mock.MagicMock, list_instance
         ),
     ]
 
-    cluster_manager = AppManager()
+    cluster_manager = _AppManager()
     cluster_manager.list()
 
     list_memberships.assert_called_once()
@@ -58,7 +58,7 @@ def test_list_all_apps(list_memberships: mock.MagicMock, list_instances: mock.Ma
     list_memberships.return_value = V1ListMembershipsResponse(memberships=[V1Membership(project_id="default-project")])
     list_instances.return_value = V1ListLightningappInstancesResponse(lightningapps=[])
 
-    cluster_manager = AppManager()
+    cluster_manager = _AppManager()
     cluster_manager.list()
 
     list_memberships.assert_called_once()
@@ -72,7 +72,7 @@ def test_list_apps_on_cluster(list_memberships: mock.MagicMock, list_instances: 
     list_memberships.return_value = V1ListMembershipsResponse(memberships=[V1Membership(project_id="default-project")])
     list_instances.return_value = V1ListLightningappInstancesResponse(lightningapps=[])
 
-    cluster_manager = AppManager()
+    cluster_manager = _AppManager()
     cluster_manager.list(cluster_id="12345")
 
     list_memberships.assert_called_once()

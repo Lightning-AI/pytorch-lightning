@@ -1,6 +1,6 @@
 import click
 
-from lightning_app.cli.cmd_apps import AppManager
+from lightning_app.cli.cmd_apps import _AppManager
 from lightning_app.cli.cmd_clusters import AWSClusterManager
 
 
@@ -28,5 +28,5 @@ def list_clusters(**kwargs):
 @get_list.command("apps")
 def list_apps(cluster_id: str, **kwargs):
     """List your Lightning AI apps."""
-    app_manager = AppManager()
+    app_manager = _AppManager()
     app_manager.list(cluster_id=cluster_id)

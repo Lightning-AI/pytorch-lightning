@@ -11,17 +11,18 @@ from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 
 
-class AppManager:
-    """AppManager implements API calls specific to Lightning AI BYOC apps."""
+class _AppManager:
+    """_AppManager implements API calls specific to Lightning AI BYOC apps."""
 
     def __init__(self):
         self.api_client = LightningClient()
 
-    def list(self, cluster_id=None):
+    def list(self, cluster_id: str = None, limit: int = 100):
         project = _get_project(self.api_client)
 
         args = {
             "project_id": project.project_id,
+            "limit": limit,
         }
         if cluster_id is not None:
             args["cluster_id"] = cluster_id
@@ -33,10 +34,10 @@ class AppManager:
             resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**args)
             apps = apps + resp.lightningapps
         console = Console()
-        console.print(AppList(resp.lightningapps).as_table())
+        console.print(_AppList(resp.lightningapps).as_table())
 
 
-class AppList(Formatable):
+class _AppList(Formatable):
     def __init__(self, apps: [Externalv1LightningappInstance]):
         self.apps = apps
 

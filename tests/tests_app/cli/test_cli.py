@@ -100,7 +100,7 @@ def test_create_cluster(create: mock.MagicMock):
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_app.cli.cmd_apps.AppManager.list")
+@mock.patch("lightning_app.cli.cmd_apps._AppManager.list")
 def test_list_apps(list_command: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(list_apps)
