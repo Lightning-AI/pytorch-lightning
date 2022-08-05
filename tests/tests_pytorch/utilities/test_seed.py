@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Mapping, Optional
+from typing import Mapping
 from unittest import mock
 from unittest.mock import MagicMock
 
