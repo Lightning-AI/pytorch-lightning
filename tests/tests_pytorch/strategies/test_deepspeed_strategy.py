@@ -33,7 +33,6 @@ from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.meta import init_meta_context
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
@@ -1230,25 +1229,6 @@ def test_specific_gpu_device_id(tmpdir):
     )
     trainer.fit(model)
     trainer.test(model)
-
-
-@RunIf(min_cuda_gpus=2, min_torch="1.10.0", max_torch="1.12.0", standalone=True, deepspeed=True)
-def test_deepspeed_with_meta_device(tmpdir):
-    with init_meta_context():
-        model = BoringModel()
-    assert model.layer.weight.device.type == "meta"
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy=DeepSpeedStrategy(stage=3),
-        accelerator="gpu",
-        devices=2,
-        fast_dev_run=True,
-        precision=16,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-    assert model.layer.weight.device.type == "cpu"
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
