@@ -11,15 +11,24 @@ on:
         description: 'PyPI name to install the package with'
         required: true
         type: string
+      strategy-matrix:
+        description: 'what test configs to run in json format'
+        required: false
+        type: string
+        # default operating systems should be pinned to specific versions instead of "-latest" for stability
+        # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+        default: |
+          {
+            "os": ["ubuntu-20.04", "macos-11", "windows-2022"],
+            "python-version": ["3.7", "3.9"]
+          }
 
 jobs:
   pkg-check:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-20.04, macos-12, windows-2022]
-        python-version: [3.7, 3.9]  # todo: make this as input too
+      matrix: ${{ fromJSON(inputs.strategy-matrix) }}
 
     steps:
       - name: Checkout
