@@ -98,7 +98,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     if not app_name:
         raise click.ClickException(
-            f"You have not specified any LightningApp. Please select one of available: [{', '.join(apps.keys())}]"
+            f"You have not specified any Lightning App. Please select one of available: [{', '.join(apps.keys())}]"
         )
 
     if app_name not in apps:
