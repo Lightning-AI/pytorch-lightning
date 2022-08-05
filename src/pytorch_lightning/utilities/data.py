@@ -18,7 +18,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Type, Union
 
 import torch
 from torch import Tensor
