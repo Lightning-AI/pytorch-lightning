@@ -24,8 +24,11 @@ def test_commands_example_cloud() -> None:
         Popen(cmd, shell=True).wait()
 
         has_logs = False
+        logs = []
         while not has_logs:
             for log in fetch_logs():
+                if log not in logs:
+                    print(log)
                 if "['something', 'else']" in log:
                     has_logs = True
             sleep(1)
