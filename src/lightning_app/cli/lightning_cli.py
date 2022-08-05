@@ -66,7 +66,7 @@ def show():
 @click.argument("components", nargs=-1, required=False)
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def logs(app_name: str, components: List[str], follow: bool) -> None:
-    """Show application logs. By default prints logs for all currently available components.
+    """Show cloud application logs. By default prints logs for all currently available components.
 
     Example uses:
 
