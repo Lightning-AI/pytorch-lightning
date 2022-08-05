@@ -7,6 +7,7 @@ from typing import Any, cast, Dict, Generator, Iterable, List, Optional, Tuple, 
 from deepdiff import DeepHash
 
 from lightning_app.core.work import LightningWork
+from lightning_app.db.spec import LightningSpec
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
@@ -103,6 +104,7 @@ class LightningFlow:
         self._layout: Union[List[Dict], Dict] = {}
         self._paths = {}
         self._backend: Optional[Backend] = None
+        self._db_engine: Optional[Any] = None
 
     @property
     def name(self):
@@ -145,6 +147,8 @@ class LightningFlow:
                 # Attach the backend to the flow and its children work.
                 if self._backend:
                     LightningFlow._attach_backend(value, self._backend)
+                if self._db_engine:
+                    LightningFlow._attach_database_engine(value, self._db_engine)
 
             elif isinstance(value, LightningWork):
                 self._works.add(name)
@@ -177,9 +181,11 @@ class LightningFlow:
                 value.component_name = self.name
                 self._state.add(name)
 
+            elif isinstance(value, LightningSpec):
+                pass
+
             elif _is_json_serializable(value):
                 self._state.add(name)
-
                 if not isinstance(value, Path) and hasattr(self, "_paths") and name in self._paths:
                     # The attribute changed type from Path to another
                     self._paths.pop(name)
@@ -216,6 +222,24 @@ class LightningFlow:
 
         for work in flow.works(recurse=False):
             backend._wrap_run_method(_LightningAppRef().get_current(), work)
+
+    @staticmethod
+    def _attach_database_engine(flow: "LightningFlow", db_engine):
+        """Attach the database engine to all flows and its children."""
+        flow._db_engine = db_engine
+        for v in vars(flow).values():
+            if isinstance(v, LightningSpec):
+                v._db_engine = db_engine
+                v.component_name = flow.name
+                v._reload()
+
+        for child_flow in flow.flows.values():
+            LightningFlow._attach_database_engine(child_flow, db_engine)
+
+        for struct_name in flow._structures:
+            structure = getattr(flow, struct_name)
+            for flow in structure.flows:
+                LightningFlow._attach_database_engine(flow, db_engine)
 
     def __getattr__(self, item):
         if item in self.__dict__.get("_paths", {}):

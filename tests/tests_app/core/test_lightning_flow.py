@@ -4,14 +4,17 @@ from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
 from time import time
+from typing import Optional
 from unittest.mock import ANY
 
 import pytest
 from deepdiff import DeepDiff, Delta
+from sqlmodel import Field
 
 from lightning_app import LightningApp
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
+from lightning_app.db import LightningSpec
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
@@ -634,3 +637,28 @@ def test_lightning_flow():
             assert len(self._calls["scheduling"]) == 8
 
     Flow().run()
+
+
+class CounterDB(LightningSpec, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    counter: int = 0
+
+
+class FlowDB(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.counter = CounterDB()
+        self.counter.reload()
+
+    def run(self):
+        if self.counter.counter >= 1000:
+            self._exit()
+
+        print(self.counter.counter)
+        self.counter.counter += 1
+
+
+def test_lightning_flow_sql_model():
+
+    app = LightningApp(FlowDB(), database="sqlite")
+    MultiProcessRuntime(app, start_server=False).dispatch()

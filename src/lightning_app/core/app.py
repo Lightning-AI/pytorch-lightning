@@ -13,6 +13,7 @@ from deepdiff import DeepDiff, Delta
 import lightning_app
 from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
+from lightning_app.db import _CREATE_ENGINE
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
@@ -36,6 +37,7 @@ class LightningApp:
     def __init__(
         self,
         root: "lightning_app.LightningFlow",
+        database: t.Optional[str] = None,
         debug: bool = False,
     ):
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
@@ -97,6 +99,13 @@ class LightningApp:
         self._has_updated: bool = False
         self._schedules: t.Dict[str, t.Dict] = {}
         self.threads: t.List[threading.Thread] = []
+        self.db_engine: t.Optional[t.Any] = None
+
+        self.database = database
+
+        engine_callback = _CREATE_ENGINE.get(self.database, None)
+        if engine_callback:
+            self.db_engine = engine_callback()
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
