@@ -410,7 +410,7 @@ class LocalVariableModelSuperLast(BoringModel):
 
 
 class LocalVariableModelSuperFirst(BoringModel):
-    """This model has the _auto_collect_arguments() call at the end."""
+    """This model has the save_hyperparameters() call at the end."""
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
