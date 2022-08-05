@@ -29,6 +29,7 @@ def test_commands_example_cloud() -> None:
             for log in fetch_logs():
                 if log not in logs:
                     print(log)
+                    logs.append(log)
                 if "['something', 'else']" in log:
                     has_logs = True
             sleep(1)
