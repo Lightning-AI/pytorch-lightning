@@ -30,7 +30,7 @@ from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.profiler import AbstractProfiler, BaseProfiler
 from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfiler
-from pytorch_lightning.strategies import DDP2Strategy, ParallelStrategy
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
@@ -1098,11 +1098,3 @@ def test_trainer_tpu_cores(monkeypatch):
         )
     ):
         assert trainer.tpu_cores == 8
-
-
-def test_unsupported_ddp2_strategy():
-    with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
-        DDP2Strategy()
-
-    with pytest.raises(ValueError, match="The DDP2 strategy is no longer supported."):
-        Trainer(strategy="ddp2")
