@@ -16,7 +16,7 @@ from lightning_app.utilities.packaging.lightning_utils import (
 def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
 
-    cDEFAULTleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
+    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
     tar_name = f"lightning-{version}.tar.gz"
     assert sorted(os.listdir(tmpdir)) == [tar_name]
     cleanup_handle()
