@@ -160,7 +160,7 @@ def run_cli(args) -> Generator:
 
 @requires("playwright")
 @contextmanager
-def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
+def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str] = []) -> Generator:
     """This utility is used to automate testing e2e application with lightning_app.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
@@ -184,19 +184,22 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
-            [
-                sys.executable,
-                "-m",
-                "lightning",
-                "run",
-                "app",
-                app_name,
-                "--cloud",
-                "--name",
-                name,
-                "--open-ui",
-                "false",
-            ],
+            (
+                [
+                    sys.executable,
+                    "-m",
+                    "lightning",
+                    "run",
+                    "app",
+                    app_name,
+                    "--cloud",
+                    "--name",
+                    name,
+                    "--open-ui",
+                    "false",
+                ]
+                + extra_args
+            ),
             cwd=tmpdir,
             env=env_copy,
             stdout=sys.stdout,

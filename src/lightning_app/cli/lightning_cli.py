@@ -154,9 +154,20 @@ def logout():
 
 
 def _run_app(
-    file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
+    file: str,
+    cloud: bool,
+    cluster_id: str,
+    without_server: bool,
+    no_cache: bool,
+    name: str,
+    blocking: bool,
+    open_ui: bool,
+    env: tuple,
 ):
     file = _prepare_file(file)
+
+    if not cloud and cluster_id is not None:
+        raise click.ClickException("Using the flag --cluster-id in local execution is not supported.")
 
     runtime_type = RuntimeType.CLOUD if cloud else RuntimeType.MULTIPROCESS
 
@@ -189,6 +200,7 @@ def _run_app(
         on_before_run=on_before_run,
         name=name,
         env_vars=env_vars,
+        cluster_id=cluster_id,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
@@ -202,6 +214,9 @@ def run():
 @run.command("app")
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--cloud", type=bool, default=False, is_flag=True)
+@click.option(
+    "--cluster-id", type=str, default=None, help="Run Lightning App on a specific Lightning AI BYOC compute cluster"
+)
 @click.option("--name", help="The current application name", default="", type=str)
 @click.option("--without-server", is_flag=True, default=False)
 @click.option(
@@ -214,6 +229,7 @@ def run():
 def run_app(
     file: str,
     cloud: bool,
+    cluster_id: str,
     without_server: bool,
     no_cache: bool,
     name: str,
@@ -223,7 +239,7 @@ def run_app(
     app_args: List[str],
 ):
     """Run an app from a file."""
-    _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
 
 
 def app_command():
