@@ -11,7 +11,7 @@ ______________________________________________________________________
   <a href="https://lightning.ai/lightning-docs">Docs</a> •
   <a href="#getting-started">Getting started</a> •
   <a href="#asking-for-help">Help</a> •
-  <a href="https://www.pytorchlightning.ai/community">Slack</a>
+  <a href="https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1bqiy6kpt-x~2PBicDp~z_rF8r8l3vcg">Slack</a>
 </p>
 
 ![readme-gif](https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lightning-gif-888777nslpiijdbcvctyvwhe.gif)
@@ -138,4 +138,4 @@ If you have any questions please:
 
 1. [Read the docs](https://lightning.ai/lightning-docs/).
 1. [Search through existing Discussions](https://github.com/Lightning-ai/lightning/discussions), or [add a new question](https://github.com/Lightning-ai/lightning/discussions/new)
-1. [Join our Slack community](https://www.pytorchlightning.ai/community).
+1. [Join our Slack community](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1bqiy6kpt-x~2PBicDp~z_rF8r8l3vcg).
