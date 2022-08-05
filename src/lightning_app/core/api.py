@@ -258,11 +258,11 @@ async def post_state(
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
         state = deepcopy(last_state)
         state["app_state"]["stage"] = body["stage"]
-        deep_diff = DeepDiff(last_state, state)
+        deep_diff = DeepDiff(last_state, state, verbose_level=2)
     else:
         state = body["state"]
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
-        deep_diff = DeepDiff(last_state, state)
+        deep_diff = DeepDiff(last_state, state, verbose_level=2)
     update_delta = Delta(deep_diff)
     api_app_delta_queue.put(update_delta)
 

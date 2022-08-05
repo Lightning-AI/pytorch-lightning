@@ -202,7 +202,7 @@ class LightningApp:
 
     @staticmethod
     def populate_changes(last_state, new_state):
-        diff = DeepDiff(last_state, new_state, view="tree")
+        diff = DeepDiff(last_state, new_state, view="tree", verbose_level=2)
 
         changes_categories = [diff[key] for key in diff.to_dict()]
 
@@ -307,7 +307,7 @@ class LightningApp:
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            if Delta(DeepDiff(self.last_state, self.state)).to_dict():
+            if Delta(DeepDiff(self.last_state, self.state, verbose_level=2)).to_dict():
                 # new_state = self.populate_changes(self.last_state, self.state)
                 self.set_state(self.state)
                 self._has_updated = True
