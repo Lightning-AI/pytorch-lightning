@@ -88,8 +88,8 @@ jobs:
           # the config used in '.azure-pipelines/gpu-tests.yml'
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.3.1", ubuntu_version: "20.04"}
           # latest (used in Tutorials)
-          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1", ubuntu_version: "20.04"}
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1.1", ubuntu_version: "20.04"}
+          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
     steps:
       - uses: actions/checkout@v2
@@ -126,8 +126,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
-          - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1"}
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1.1"}
+          - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           #  nightly: add when there's a release candidate
           #  - {python_version: "3.9", pytorch_version: "1.12"}
