@@ -28,6 +28,7 @@ def dispatch(
     on_before_run: Optional[Callable] = None,
     name: str = "",
     env_vars: Dict[str, str] = {},
+    cluster_id: str = None,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -42,6 +43,7 @@ def dispatch(
         on_before_run: Callable to be executed before run.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
+        cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
@@ -60,7 +62,7 @@ def dispatch(
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
-    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache)
+    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id)
 
 
 @dataclass

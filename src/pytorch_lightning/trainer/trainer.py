@@ -209,6 +209,10 @@ class Trainer(
             amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
 
+                .. deprecated:: v1.8
+                    Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
+                    in v1.10.0. Please set it inside the specific precision plugin and pass it to the ``Trainer``.
+
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
                 set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
@@ -2003,14 +2007,6 @@ class Trainer(
     @property
     def strategy(self) -> Strategy:
         return self._accelerator_connector.strategy
-
-    @property
-    def training_type_plugin(self) -> Strategy:
-        rank_zero_deprecation(
-            "`Trainer.training_type_plugin` is deprecated in v1.6 and will be removed in v1.8. Use"
-            " `Trainer.strategy` instead."
-        )
-        return self.strategy
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
