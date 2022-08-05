@@ -104,34 +104,6 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 
 In these situations you should use `ddp_notebook` or `dp` instead.
 
-Distributed Data Parallel 2
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning::
-    The DDP2 strategy is no longer supported. For single-node use, we recommend ``strategy='ddp'`` or
-    ``strategy='dp'`` as a replacement. If you need DDP2, you will need ``torch < 1.9``,
-    ``pytorch-lightning < 1.5``, and set it as ``accelerator='ddp2'``.
-
-In certain cases, it's advantageous to use all batches on the same machine instead of a subset.
-For instance, you might want to compute a NCE loss where it pays to have more negative samples.
-
-In  this case, we can use DDP2 which behaves like DP in a machine and DDP across nodes. DDP2 does the following:
-
-1. Copies a subset of the data to each node.
-
-2. Inits a model on each node.
-
-3. Runs a forward and backward pass using DP.
-
-4. Syncs gradients across nodes.
-
-5. Applies the optimizer updates.
-
-.. code-block:: python
-
-    # train on 32 GPUs (4 nodes)
-    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp2", num_nodes=4)
-
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 `ddp_spawn` is exactly like `ddp` except that it uses .spawn to start the training processes.

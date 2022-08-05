@@ -2005,14 +2005,6 @@ class Trainer(
         return self._accelerator_connector.strategy
 
     @property
-    def training_type_plugin(self) -> Strategy:
-        rank_zero_deprecation(
-            "`Trainer.training_type_plugin` is deprecated in v1.6 and will be removed in v1.8. Use"
-            " `Trainer.strategy` instead."
-        )
-        return self.strategy
-
-    @property
     def precision_plugin(self) -> PrecisionPlugin:
         return self.strategy.precision_plugin
 
