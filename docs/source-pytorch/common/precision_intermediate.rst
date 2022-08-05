@@ -96,12 +96,16 @@ NVIDIA APEX
 
     Trainer(accelerator="gpu", devices=1, amp_backend="apex", precision=16)
 
-Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the trainer.
+Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the precision plugin.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-    Trainer(accelerator="gpu", devices=1, amp_backend="apex", amp_level="O2", precision=16)
+    from pytorch_lightning.plugins.apex_amp import ApexMixedPrecisionPlugin
+
+
+    apex_plugin = ApexMixedPrecisionPlugin(amp_level="O3")
+    Trainer(accelerator="gpu", devices=1, precision=16, plugins=[apex_plugin])
 
 ----
 
