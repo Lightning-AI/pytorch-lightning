@@ -455,9 +455,6 @@ class Trainer(
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
-            min_steps, max_steps, min_epochs, max_epochs, max_time
-        )
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         fit_loop.connect(epoch_loop=training_epoch_loop)
@@ -534,7 +531,7 @@ class Trainer(
         self.track_grad_norm: float = float(track_grad_norm)
 
         self._detect_anomaly: bool = detect_anomaly
-        self._setup_on_init(num_sanity_val_steps)
+        self._setup_on_init()
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -553,9 +550,10 @@ class Trainer(
             limit_val_batches,
             limit_test_batches,
             limit_predict_batches,
-            val_check_interval,
-            overfit_batches,
             fast_dev_run,
+            overfit_batches,
+            val_check_interval,
+            num_sanity_val_steps,
         )
 
         # Callback system
@@ -567,65 +565,63 @@ class Trainer(
         limit_val_batches: Optional[Union[int, float]],
         limit_test_batches: Optional[Union[int, float]],
         limit_predict_batches: Optional[Union[int, float]],
-        val_check_interval: Optional[Union[int, float]],
-        overfit_batches: Union[int, float],
         fast_dev_run: Union[int, bool],
-    ) -> None:
+        overfit_batches: Union[int, float],
+        val_check_interval: Optional[Union[int, float]],
+        num_sanity_val_steps: int,
+    ):
+        # init debugging flags
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
+                f"fast_dev_run={fast_dev_run!r} is not a valid configuration. It should be >= 0."
             )
-
         self.fast_dev_run = fast_dev_run
 
         # set fast_dev_run=True when it is 1, used while logging
         if fast_dev_run == 1:
             self.fast_dev_run = True
 
+        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
+        overfit_batches_enabled = overfit_batches > 0
+
         if fast_dev_run:
             num_batches = int(fast_dev_run)
-            limit_train_batches = num_batches
-            limit_val_batches = num_batches
-            limit_test_batches = num_batches
-            limit_predict_batches = num_batches
+            if not overfit_batches_enabled:
+                self.limit_train_batches = num_batches
+                self.limit_val_batches = num_batches
+
+            self.limit_test_batches = num_batches
+            self.limit_predict_batches = num_batches
             self.fit_loop.max_steps = num_batches
             self.num_sanity_val_steps = 0
             self.fit_loop.max_epochs = 1
-            val_check_interval = 1.0
+            self.val_check_interval = 1.0
             self.check_val_every_n_epoch = 1
             self.loggers = [DummyLogger()] if self.loggers else []
-
             rank_zero_info(
                 f"Running in `fast_dev_run` mode: will run the requested loop using {num_batches} batch(es). "
                 "Logging and checkpointing is suppressed."
             )
+        else:
+            if not overfit_batches_enabled:
+                self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
+                self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
+            self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
+            self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
+            self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
+            self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
 
-        self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
-        self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
-        self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
-        self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
-        self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
-        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self._configure_overfit_batches(self.overfit_batches)
-
-    def _configure_overfit_batches(self, overfit_batches: Union[int, float]) -> None:
-        """Configure batch limits using `overfit_batches`."""
-        if overfit_batches > 0:
+        if overfit_batches_enabled:
             self.limit_train_batches = overfit_batches
             self.limit_val_batches = overfit_batches
 
-    def _setup_on_init(self, num_sanity_val_steps: int) -> None:
+    def _setup_on_init(self) -> None:
         self._log_device_info()
 
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = float("inf")
         self.train_dataloader = None
-
-        if num_sanity_val_steps == -1:
-            self.num_sanity_val_steps = float("inf")
-        else:
-            self.num_sanity_val_steps = num_sanity_val_steps
 
         self.num_sanity_val_batches = []
         self.num_test_batches = []
@@ -696,6 +692,8 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
+        if not isinstance(model, pl.LightningModule):
+            raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy.model = model
         self._call_and_handle_interrupt(
             self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
@@ -776,6 +774,8 @@ class Trainer(
             :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
+        if model is not None and not isinstance(model, pl.LightningModule):
+            raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy.model = model or self.lightning_module
         return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
@@ -864,6 +864,8 @@ class Trainer(
             :meth:`~pytorch_lightning.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
+        if model is not None and not isinstance(model, pl.LightningModule):
+            raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy.model = model or self.lightning_module
         return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
@@ -951,6 +953,8 @@ class Trainer(
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
+        if model is not None and not isinstance(model, pl.LightningModule):
+            raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy.model = model or self.lightning_module
         return self._call_and_handle_interrupt(
             self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
@@ -1033,6 +1037,9 @@ class Trainer(
 
             lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
         """
+        if not isinstance(model, pl.LightningModule):
+            raise TypeError(f"`Trainer.tune()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+
         Trainer._log_api_event("tune")
 
         self.state.fn = TrainerFn.TUNING
@@ -1077,6 +1084,13 @@ class Trainer(
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            min_epochs, max_epochs = _parse_loop_limits(
+                self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
+            )
+            self.fit_loop.min_epochs = min_epochs
+            self.fit_loop.max_epochs = max_epochs
+
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -1138,7 +1152,6 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
-
         # reset logger connector
         self._logger_connector.reset_results()
         self._logger_connector.reset_metrics()
@@ -1278,6 +1291,7 @@ class Trainer(
         torch.set_grad_enabled(True)
 
         self.fit_loop.trainer = self
+
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
             self.fit_loop.run()
 
@@ -1989,14 +2003,6 @@ class Trainer(
     @property
     def strategy(self) -> Strategy:
         return self._accelerator_connector.strategy
-
-    @property
-    def training_type_plugin(self) -> Strategy:
-        rank_zero_deprecation(
-            "`Trainer.training_type_plugin` is deprecated in v1.6 and will be removed in v1.8. Use"
-            " `Trainer.strategy` instead."
-        )
-        return self.strategy
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
