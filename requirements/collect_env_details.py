@@ -24,8 +24,17 @@ import numpy
 import torch
 import tqdm
 
-sys.path += [os.path.abspath(".."), os.path.abspath(".")]
+sys.path += [os.path.abspath(".."), os.path.abspath("")]
 import pytorch_lightning  # noqa: E402
+
+try:
+    import lightning
+except ModuleNotFoundError:
+    pass
+try:
+    import lightning_app
+except ModuleNotFoundError:
+    pass
 
 LEVEL_OFFSET = "\t"
 KEY_PADDING = 20
@@ -56,6 +65,8 @@ def info_packages():
         "pyTorch_version": torch.__version__,
         "pyTorch_debug": torch.version.debug,
         "pytorch-lightning": pytorch_lightning.__version__,
+        "lightning": lightning.__version__ if "lightning" in sys.modules else None,
+        "lightning_app": lightning_app.__version__ if "lightning_app" in sys.modules else None,
         "tqdm": tqdm.__version__,
     }
 

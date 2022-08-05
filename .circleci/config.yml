@@ -1,8 +1,8 @@
 # Python CircleCI 2.1 configuration file.
 version: 2.1
 orbs:
-  gcp-gke: circleci/gcp-gke@1.0.4
-  go: circleci/go@1.3.0
+  gcp-gke: circleci/gcp-gke@1.4.0
+  go: circleci/go@1.7.1
   codecov: codecov/codecov@1.1.0
 
 trigger:
@@ -14,6 +14,7 @@ trigger:
       - "master"
       - "release/*"
       - "refs/tags/*"
+
 pr:
   - "master"
   - "release/*"
@@ -40,7 +41,7 @@ references:
         # the image uses python 2.7 by default, force a different version
         pyenv global 3.7.3
         python --version
-        pip install -r requirements/docs.txt
+        pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
         make clean
@@ -60,7 +61,7 @@ references:
     run:
       name: Install jsonnet
       command: |
-        go get github.com/google/go-jsonnet/cmd/jsonnet
+        go install github.com/google/go-jsonnet/cmd/jsonnet@latest
 
   update_jsonnet: &update_jsonnet
     run:
@@ -80,6 +81,8 @@ references:
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
+       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
+       echo "GKE pod name: $pod_name"
        echo "Waiting on kubernetes job: $job_name"
        i=0 && \
        # N checks spaced 30s apart = 900s total.
@@ -91,8 +94,6 @@ references:
        printf "Waiting for job to finish: " && \
        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
-       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
-       echo "GKE pod name: $pod_name" && \
        kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
        # First portion is the test logs. Print these to Github Action stdout.
@@ -105,10 +106,6 @@ references:
      name: Statistics
      command: |
        mv ./xx01 coverage.xml
-       # TODO: add human readable report
-       cat coverage.xml
-       sudo pip install pycobertura
-       pycobertura show coverage.xml
 
 jobs:
 
@@ -116,9 +113,9 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.9
+      - XLA_VER: 1.12
       - PYTHON_VER: 3.7
-      - MAX_CHECKS: 240
+      - MAX_CHECKS: 1000
       - CHECK_SPEEP: 5
     steps:
       - checkout
@@ -157,9 +154,9 @@ jobs:
 
 workflows:
   version: 2
-  build-docs:
-    jobs:
-      - build-Docs
+  #build-docs:  # FixMe
+  #  jobs:
+  #    - build-Docs
   test-on-tpus:
     jobs:
       - TPU-tests

@@ -29,7 +29,7 @@ dependencies:
     - python>=3.7
     - pip>20.1
     - numpy>=1.17.2
-    - pytorch>=1.8.*
+    - pytorch>=1.9.*
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
@@ -41,14 +41,14 @@ dependencies:
     - scikit-learn>=0.20.0
     - matplotlib>=3.1.1
     - omegaconf>=2.0.5
-    - torchtext>=0.9.*
+    - torchtext>=0.10.*
 
     # Examples
-    - torchvision>=0.9.*
+    - torchvision>=0.10.*
 
     - pip:
         - test-tube>=0.7.5
         - mlflow>=1.0.0
         - comet_ml>=3.1.12
-        - wandb>=0.8.21
+        - wandb>=0.10.22
         - neptune-client>=0.10.0

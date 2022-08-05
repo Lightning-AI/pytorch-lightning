@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
         python-version: 3.8
