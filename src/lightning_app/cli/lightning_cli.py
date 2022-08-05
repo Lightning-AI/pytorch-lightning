@@ -24,6 +24,7 @@ from lightning_app.utilities.cli_helpers import (
     _retrieve_application_url_and_available_commands,
 )
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import headers_for
@@ -51,8 +52,7 @@ def main():
 @click.group()
 @click.version_option(ver)
 def _main():
-    # register_all_external_components()
-    pass
+    register_all_external_components()
 
 
 @_main.group()
