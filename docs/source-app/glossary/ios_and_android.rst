@@ -26,4 +26,3 @@ Option 2
 You can build a mobile-first react Lightning App that works on both Apple and Android mobile devices.
 
 Here is a good example of a Lightning App that does just that: https://lightning.ai/app/7pmQNIDxAE-InVideo%20Search
-
