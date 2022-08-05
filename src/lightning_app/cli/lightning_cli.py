@@ -103,7 +103,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     if app_name not in apps:
         raise click.ClickException(
-            f"LightningApp '{app_name}' does not exist. Please select one of available: [{', '.join(apps.keys())}]"
+            f"The Lightning App '{app_name}' does not exist. Please select one of following: [{', '.join(apps.keys())}]"
         )
 
     # Fetch all lightning works from given application
