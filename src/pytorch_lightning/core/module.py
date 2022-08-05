@@ -1989,3 +1989,10 @@ class LightningModule(
             # We need to make sure the self inside the method is a weakref proxy
             self.__class__._register_load_state_dict_pre_hook(weakref.proxy(self), pre_load_state_dict_hook, True)
 
+<<<<<<< HEAD
+=======
+
+def _get_datahook_selector(pl_module: "pl.LightningModule") -> _DataHookSelector:
+    trainer = pl_module._trainer
+    return _DataHookSelector(pl_module, None) if trainer is None else trainer._data_connector._datahook_selector
+>>>>>>> 8b6b78fd4 (fix)
