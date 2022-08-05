@@ -104,7 +104,7 @@ class LightningFlow:
         self._layout: Union[List[Dict], Dict] = {}
         self._paths = {}
         self._backend: Optional[Backend] = None
-        self._db_engine: Optional[Any] = None
+        self._engine: Optional[Any] = None
 
     @property
     def name(self):
@@ -147,8 +147,8 @@ class LightningFlow:
                 # Attach the backend to the flow and its children work.
                 if self._backend:
                     LightningFlow._attach_backend(value, self._backend)
-                if self._db_engine:
-                    LightningFlow._attach_database_engine(value, self._db_engine)
+                if self._engine:
+                    LightningFlow._attach_database_engine(value, self._engine)
 
             elif isinstance(value, LightningWork):
                 self._works.add(name)
@@ -224,22 +224,22 @@ class LightningFlow:
             backend._wrap_run_method(_LightningAppRef().get_current(), work)
 
     @staticmethod
-    def _attach_database_engine(flow: "LightningFlow", db_engine):
+    def _attach_database_engine(flow: "LightningFlow", engine):
         """Attach the database engine to all flows and its children."""
-        flow._db_engine = db_engine
+        flow._engine = engine
         for v in vars(flow).values():
             if isinstance(v, LightningSpec):
-                v._db_engine = db_engine
+                v._engine = engine
                 v.component_name = flow.name
                 v._reload()
 
         for child_flow in flow.flows.values():
-            LightningFlow._attach_database_engine(child_flow, db_engine)
+            LightningFlow._attach_database_engine(child_flow, engine)
 
         for struct_name in flow._structures:
             structure = getattr(flow, struct_name)
             for flow in structure.flows:
-                LightningFlow._attach_database_engine(flow, db_engine)
+                LightningFlow._attach_database_engine(flow, engine)
 
     def __getattr__(self, item):
         if item in self.__dict__.get("_paths", {}):

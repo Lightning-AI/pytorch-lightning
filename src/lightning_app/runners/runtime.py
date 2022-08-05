@@ -84,7 +84,7 @@ class Runtime:
             self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
 
         lightning_app.LightningFlow._attach_backend(self.app.root, self.backend)
-        lightning_app.LightningFlow._attach_database_engine(self.app.root, self.app.db_engine)
+        lightning_app.LightningFlow._attach_database_engine(self.app.root, self.app.engine)
 
     def terminate(self) -> None:
         """This method is used to terminate all the objects (threads, processes, etc..) created by the app."""

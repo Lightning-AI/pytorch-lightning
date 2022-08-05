@@ -99,13 +99,13 @@ class LightningApp:
         self._has_updated: bool = False
         self._schedules: t.Dict[str, t.Dict] = {}
         self.threads: t.List[threading.Thread] = []
-        self.db_engine: t.Optional[t.Any] = None
+        self.engine: t.Optional[t.Any] = None
 
         self.database = database
 
         engine_callback = _CREATE_ENGINE.get(self.database, None)
         if engine_callback:
-            self.db_engine = engine_callback()
+            self.engine = engine_callback()
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,

@@ -10,17 +10,17 @@ else:
 
 class LightningSpec(SQLModel):
     __table_args__ = {"extend_existing": True}
-    _db_engine: Optional[Any] = None
+    _engine: Optional[Any] = None
     component_name: Optional[str]
     _should_reload: bool = False
 
     def __setattr__(self, key, value) -> None:
-        if key in ("_db_engine", "component_name", "_should_reload"):
+        if key in ("_engine", "component_name", "_should_reload"):
             object.__setattr__(self, key, value)
             return
 
-        if self._db_engine:
-            with Session(self._db_engine) as session:
+        if self._engine:
+            with Session(self._engine) as session:
                 statement = select(self.__class__).where(
                     getattr(self.__class__, "component_name") == self.component_name
                 )
@@ -48,7 +48,7 @@ class LightningSpec(SQLModel):
 
     def _reload(self):
         assert self.component_name
-        with Session(self._db_engine) as session:
+        with Session(self._engine) as session:
             statement = select(self.__class__).where(getattr(self.__class__, "component_name") == self.component_name)
             results = session.exec(statement)
             items = results.all()
