@@ -160,7 +160,7 @@ def run_cli(args) -> Generator:
 
 @requires("playwright")
 @contextmanager
-def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
+def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str] = []) -> Generator:
     """This utility is used to automate testing e2e application with lightning_app.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
@@ -184,19 +184,22 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
-            [
-                sys.executable,
-                "-m",
-                "lightning",
-                "run",
-                "app",
-                app_name,
-                "--cloud",
-                "--name",
-                name,
-                "--open-ui",
-                "false",
-            ],
+            (
+                [
+                    sys.executable,
+                    "-m",
+                    "lightning",
+                    "run",
+                    "app",
+                    app_name,
+                    "--cloud",
+                    "--name",
+                    name,
+                    "--open-ui",
+                    "false",
+                ]
+                + extra_args
+            ),
             cwd=tmpdir,
             env=env_copy,
             stdout=sys.stdout,
@@ -247,13 +250,20 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
         admin_page.goto(f"{Config.url}/{Config.username}/apps")
+
+        # Closing the Create Project dialog.
         try:
-            # Closing the Create Project modal
-            button = admin_page.locator('button:has-text("Cancel")')
+            project_dialog = admin_page.locator("text=Create a project")
+            project_dialog.wait_for(timeout=10 * 1000, state="visible")
+            print("'Create Project' dialog visible, closing it.")
+            project_name_input = admin_page.locator('input[type="text"]')
+            project_name_input.fill("Default Project")
+            button = admin_page.locator('button:has-text("Continue")')
             button.wait_for(timeout=3 * 1000)
             button.click()
-        except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-            pass
+        except playwright._impl._api_types.TimeoutError:
+            print("'Create Project' dialog not visible, skipping.")
+
         admin_page.locator(f"text={name}").click()
         admin_page.evaluate(
             """data => {
