@@ -19,9 +19,26 @@ from lightning_app.cli.cmd_apps import _AppList, _AppManager
 @pytest.mark.parametrize(
     "current_state,desired_state,expected",
     [
-        (V1LightningappInstanceState.RUNNING, V1LightningappInstanceState.DELETED, Text("terminating")),
-        (V1LightningappInstanceState.PENDING, V1LightningappInstanceState.RUNNING, Text("restarting")),
-        (V1LightningappInstanceState.STOPPED, V1LightningappInstanceState.RUNNING, Text("restarting")),
+        (
+            V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+            V1LightningappInstanceState.DELETED,
+            Text("terminating"),
+        ),
+        (
+            V1LightningappInstanceStatus(phase=V1LightningappInstanceState.STOPPED),
+            V1LightningappInstanceState.RUNNING,
+            Text("restarting"),
+        ),
+        (
+            V1LightningappInstanceStatus(phase=V1LightningappInstanceState.PENDING),
+            V1LightningappInstanceState.RUNNING,
+            Text("restarting"),
+        ),
+        (
+            V1LightningappInstanceStatus(phase=V1LightningappInstanceState.UNSPECIFIED, start_timestamp=None),
+            V1LightningappInstanceState.RUNNING,
+            Text("not yet started"),
+        ),
     ],
 )
 def test_state_transitions(current_state, desired_state, expected):

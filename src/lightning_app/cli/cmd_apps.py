@@ -1,7 +1,11 @@
 import json
 from datetime import datetime
 
-from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
+from lightning_cloud.openapi import (
+    Externalv1LightningappInstance,
+    V1LightningappInstanceState,
+    V1LightningappInstanceStatus,
+)
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -43,7 +47,7 @@ class _AppList(Formatable):
 
     @staticmethod
     def _textualize_state_transitions(
-        desired_state: V1LightningappInstanceState, current_state: V1LightningappInstanceState
+        desired_state: V1LightningappInstanceState, current_state: V1LightningappInstanceStatus
     ):
         phases = {
             V1LightningappInstanceState.IMAGE_BUILDING: Text("building image", style="bold yellow"),
@@ -56,22 +60,25 @@ class _AppList(Formatable):
             V1LightningappInstanceState.UNSPECIFIED: Text("unspecified", style="bold red"),
         }
 
+        if current_state.phase == V1LightningappInstanceState.UNSPECIFIED and current_state.start_timestamp is None:
+            return Text("not yet started", style="bold yellow")
+
         if (
             desired_state == V1LightningappInstanceState.DELETED
-            and current_state != V1LightningappInstanceState.DELETED
+            and current_state.phase != V1LightningappInstanceState.DELETED
         ):
             return Text("terminating", style="bold red")
 
         if (
             any(
-                phase == current_state
+                phase == current_state.phase
                 for phase in [V1LightningappInstanceState.PENDING, V1LightningappInstanceState.STOPPED]
             )
             and desired_state == V1LightningappInstanceState.RUNNING
         ):
             return Text("restarting", style="bold yellow")
 
-        return phases[current_state]
+        return phases[current_state.phase]
 
     def as_json(self) -> str:
         return json.dumps(self.apps)
@@ -81,9 +88,7 @@ class _AppList(Formatable):
 
         for app in self.apps:
             app: Externalv1LightningappInstance
-            status = self._textualize_state_transitions(
-                desired_state=app.spec.desired_state, current_state=app.status.phase
-            )
+            status = self._textualize_state_transitions(desired_state=app.spec.desired_state, current_state=app.status)
 
             # this guard is necessary only until 0.3.93 releases which includes the `created_at`
             # field to the external API
