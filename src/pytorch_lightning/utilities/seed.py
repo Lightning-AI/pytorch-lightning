@@ -154,11 +154,5 @@ def isolate_rng() -> Generator[None, None, None]:
 
 
 def _log_info(message: str) -> None:
-    """Check global rank if the rank is greater than zero, add a prefix."""
-    rank = _get_rank()
-
-    if rank > 0:
-        log.info(f"[rank: {rank}] {message}")
-        return
-
-    log.info(message)
+    """Add a prefix to log message with rank info."""
+    log.info(f"[rank: {_get_rank()}] {message}")

@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Mapping
+from typing import Mapping, Optional
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -102,9 +102,9 @@ def test_isolate_rng():
 
 @mock.patch("pytorch_lightning.utilities.seed.log.info")
 @pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"RANK": "1"}, {"RANK": "4"}])
-@pytest.mark.parametrize("message", ["log message"])
+@pytest.mark.parametrize("message", ["example log message"])
 def test_seed_everything_log_info(log_mock: MagicMock, env_vars: Mapping[str, str], message: str):
-    """Test that if rank more then zero, add a prefix."""
+    """Test if `_log_info` add a prefix with correct rank info."""
     with mock.patch.dict(os.environ, env_vars):
         from pytorch_lightning.utilities.rank_zero import _get_rank
 
@@ -112,6 +112,6 @@ def test_seed_everything_log_info(log_mock: MagicMock, env_vars: Mapping[str, st
 
         seed_utils._log_info(message=message)
 
-    expected_log = f"[rank: {rank}] {message}" if rank > 0 else message
+    expected_log = f"[rank: {rank}] {message}"
 
     log_mock.assert_called_once_with(expected_log)
