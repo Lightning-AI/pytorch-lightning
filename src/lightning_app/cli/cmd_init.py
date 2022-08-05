@@ -138,7 +138,7 @@ def component(component_name):
     app = la.LightningApp(LitApp())
 
     ⚡ Checkout the demo app with your {component_name} component: ⚡
-    lightning run {component_name}/app.py
+    lightning run app {component_name}/app.py
 
     ⚡ Tip: Publish your component to the Lightning Gallery to enable users to install it like so:
     lightning install component YourLightningUserName/{component_name}
