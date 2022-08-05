@@ -89,7 +89,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
     def _batch_to(self, batch: Tensor) -> Tensor:
         if torch.is_floating_point(batch):
-            if self.precision == PrecisionType.HALF:
+            if self.precision in (PrecisionType.HALF, PrecisionType.MIXED):
                 return batch.half()
             elif self.precision == PrecisionType.BFLOAT:
                 return batch.bfloat16()
@@ -547,7 +547,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision_plugin.precision == PrecisionType.HALF:
+            if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
                 dtype = torch.float16
             elif self.precision_plugin.precision == PrecisionType.BFLOAT:
                 dtype = torch.bfloat16

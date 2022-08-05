@@ -663,7 +663,8 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
+@pytest.mark.parametrize("precision", [16, "mixed"])
+def test_deepspeed_multigpu_stage_3(tmpdir, precision):
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     model = ModelParallelBoringModel()
     trainer = Trainer(
@@ -672,7 +673,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
         accelerator="gpu",
         devices=2,
         fast_dev_run=True,
-        precision=16,
+        precision=precision,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
