@@ -22,7 +22,7 @@ def on_colab_kaggle() -> bool:
     return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
 
 
-def fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
+def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
     if torch.is_floating_point(tensor):
         if precision in (PrecisionType.MIXED, PrecisionType.HALF):
             return tensor.half()
