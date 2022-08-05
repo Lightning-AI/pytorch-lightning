@@ -266,6 +266,7 @@ Keep Learning
    Event Loop <glossary/event_loop>
    Environment Variables <glossary/environment_variables>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
+   Apple and Android mobile devices with Lighting Apps <glossary/ios_and_android> 
    Sharing Components <glossary/sharing_components>
    Scheduling <glossary/scheduling.rst>
    Storage <glossary/storage/storage.rst>
