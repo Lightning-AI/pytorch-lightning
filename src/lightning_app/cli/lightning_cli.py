@@ -94,7 +94,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     }
 
     if not apps:
-        raise click.ClickException("Your app list is empty. Please run an application first.")
+        raise click.ClickException("You don't have any application in the cloud. Please, run an application first with `--cloud`.")
 
     if not app_name:
         raise click.ClickException(
