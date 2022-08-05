@@ -1,6 +1,7 @@
 from unittest import mock
 from unittest.mock import MagicMock
 
+import pytest as pytest
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     V1LightningappInstanceSpec,
@@ -10,8 +11,22 @@ from lightning_cloud.openapi import (
     V1ListMembershipsResponse,
     V1Membership,
 )
+from rich.text import Text
 
-from lightning_app.cli.cmd_apps import _AppManager
+from lightning_app.cli.cmd_apps import _AppList, _AppManager
+
+
+@pytest.mark.parametrize(
+    "current_state,desired_state,expected",
+    [
+        (V1LightningappInstanceState.RUNNING, V1LightningappInstanceState.DELETED, Text("terminating")),
+        (V1LightningappInstanceState.PENDING, V1LightningappInstanceState.RUNNING, Text("restarting")),
+        (V1LightningappInstanceState.STOPPED, V1LightningappInstanceState.RUNNING, Text("restarting")),
+    ],
+)
+def test_state_transitions(current_state, desired_state, expected):
+    actual = _AppList._textualize_state_transitions(current_state=current_state, desired_state=desired_state)
+    assert actual == expected
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
@@ -46,8 +61,8 @@ def test_list_all_apps_paginated(list_memberships: mock.MagicMock, list_instance
 
     list_memberships.assert_called_once()
     assert list_instances.mock_calls == [
-        mock.call(project_id="default-project"),
-        mock.call(project_id="default-project", page_token="page-2"),
+        mock.call(project_id="default-project", limit=100),
+        mock.call(project_id="default-project", page_token="page-2", limit=100),
     ]
 
 
@@ -62,7 +77,7 @@ def test_list_all_apps(list_memberships: mock.MagicMock, list_instances: mock.Ma
     cluster_manager.list()
 
     list_memberships.assert_called_once()
-    list_instances.assert_called_once_with(project_id="default-project")
+    list_instances.assert_called_once_with(project_id="default-project", limit=100)
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
@@ -76,4 +91,4 @@ def test_list_apps_on_cluster(list_memberships: mock.MagicMock, list_instances: 
     cluster_manager.list(cluster_id="12345")
 
     list_memberships.assert_called_once()
-    list_instances.assert_called_once_with(project_id="default-project", cluster_id="12345")
+    list_instances.assert_called_once_with(project_id="default-project", cluster_id="12345", limit=100)

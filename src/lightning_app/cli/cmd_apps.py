@@ -41,11 +41,10 @@ class _AppList(Formatable):
     def __init__(self, apps: [Externalv1LightningappInstance]):
         self.apps = apps
 
-    def as_json(self) -> str:
-        return json.dumps(self.apps)
-
-    def as_table(self) -> Table:
-        table = Table("id", "name", "status", "cluster", "created", show_header=True, header_style="bold green")
+    @staticmethod
+    def _textualize_state_transitions(
+        desired_state: V1LightningappInstanceState, current_state: V1LightningappInstanceState
+    ):
         phases = {
             V1LightningappInstanceState.IMAGE_BUILDING: Text("building image", style="bold yellow"),
             V1LightningappInstanceState.PENDING: Text("pending", style="bold yellow"),
@@ -57,14 +56,34 @@ class _AppList(Formatable):
             V1LightningappInstanceState.UNSPECIFIED: Text("unspecified", style="bold red"),
         }
 
+        if (
+            desired_state == V1LightningappInstanceState.DELETED
+            and current_state != V1LightningappInstanceState.DELETED
+        ):
+            return Text("terminating", style="bold red")
+
+        if (
+            any(
+                phase == current_state
+                for phase in [V1LightningappInstanceState.PENDING, V1LightningappInstanceState.STOPPED]
+            )
+            and desired_state == V1LightningappInstanceState.RUNNING
+        ):
+            return Text("restarting", style="bold yellow")
+
+        return phases[current_state]
+
+    def as_json(self) -> str:
+        return json.dumps(self.apps)
+
+    def as_table(self) -> Table:
+        table = Table("id", "name", "status", "cluster", "created", show_header=True, header_style="bold green")
+
         for app in self.apps:
             app: Externalv1LightningappInstance
-            status = phases[app.status.phase]
-            if (
-                app.spec.desired_state == V1LightningappInstanceState.DELETED
-                and app.status.phase != V1LightningappInstanceState.DELETED
-            ):
-                status = Text("terminating", style="bold red")
+            status = self._textualize_state_transitions(
+                desired_state=app.spec.desired_state, current_state=app.status.phase
+            )
 
             # this guard is necessary only until 0.3.93 releases which includes the `created_at`
             # field to the external API
