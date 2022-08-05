@@ -23,7 +23,7 @@ Follow the instructions below to add a new project to the PyTorch Lightning ecos
    For GPU integrations, you only add the path to the config (OS/Linux and Python version is fixed) to be running with Azure pipelines.
 4. Add a Contact to the ``.github/CODEOWNERS`` list for your organization folder or just a single project.
 5. Create a Draft PR with all mentioned requirements.
-6. Join our `Slack <https://www.pytorchlightning.ai/community>`_ (Optional) channel ``#alerts-ecosystem-ci`` to be notified if your project is breaking.
+6. Join our `Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1bqiy6kpt-x~2PBicDp~z_rF8r8l3vcg>`_ (Optional) channel ``#alerts-ecosystem-ci`` to be notified if your project is breaking.
 
 
 To learn more about Ecosystem CI, please refer to the `Ecosystem CI repo <https://github.com/Lightning-AI/ecosystem-ci>`_.
