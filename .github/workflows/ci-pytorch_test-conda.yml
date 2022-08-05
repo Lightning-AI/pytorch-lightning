@@ -24,8 +24,8 @@ jobs:
       matrix:
         # nightly: add when there's a release candidate
         include:
-          - {python-version: "3.8", pytorch-version: "1.9", cuda-version: "11.1"}
-          - {python-version: "3.8", pytorch-version: "1.10", cuda-version: "11.1"}
+          - {python-version: "3.8", pytorch-version: "1.9", cuda-version: "11.1.1"}
+          - {python-version: "3.8", pytorch-version: "1.10", cuda-version: "11.1.1"}
           - {python-version: "3.9", pytorch-version: "1.11", cuda-version: "11.3.1"}
           - {python-version: "3.9", pytorch-version: "1.12", cuda-version: "11.3.1"}
 
