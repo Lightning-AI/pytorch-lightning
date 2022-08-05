@@ -28,21 +28,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
-from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
-from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin
-from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin
-from pytorch_lightning.plugins.training_type.ipu import IPUPlugin
-from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin
-from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin
-from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
-from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AbstractProfiler, BaseProfiler
 from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfiler
-from pytorch_lightning.strategies import DDP2Strategy, ParallelStrategy
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
@@ -299,12 +287,6 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
         trainer.on_before_zero_grad(optimizer=optim.SGD(model.parameters(), lr=0.01, momentum=0.9))
 
 
-def test_v1_8_0_deprecated_training_type_plugin_property():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
-        trainer.training_type_plugin
-
-
 def test_v1_8_0_deprecate_trainer_data_loading_mixin():
     trainer = Trainer(max_epochs=1)
     model = BoringModel()
@@ -326,47 +308,6 @@ def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
 
     with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
         prefix_metric_keys({"foo": 1.0}, "bar")
-
-
-@pytest.mark.parametrize(
-    "cls",
-    [
-        DDPPlugin,
-        DDPSpawnPlugin,
-        pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
-        DataParallelPlugin,
-        DDPFullyShardedPlugin,
-        pytest.param(IPUPlugin, marks=RunIf(ipu=True)),
-        DDPShardedPlugin,
-        DDPSpawnShardedPlugin,
-        TPUSpawnPlugin,
-    ],
-)
-def test_v1_8_0_deprecated_training_type_plugin_classes(cls):
-    old_name = cls.__name__
-    new_name = old_name.replace("Plugin", "Strategy")
-    with pytest.deprecated_call(
-        match=f"{old_name}` is deprecated in v1.6 and will be removed in v1.8. Use .*{new_name}` instead."
-    ):
-        cls()
-
-
-def test_v1_8_0_deprecated_single_device_plugin_class():
-    with pytest.deprecated_call(
-        match=(
-            "SingleDevicePlugin` is deprecated in v1.6 and will be removed in v1.8."
-            " Use `.*SingleDeviceStrategy` instead."
-        )
-    ):
-        SingleDevicePlugin("cpu")
-
-
-@RunIf(tpu=True, standalone=True)
-def test_v1_8_0_deprecated_single_tpu_plugin_class():
-    with pytest.deprecated_call(
-        match="SingleTPUPlugin` is deprecated in v1.6 and will be removed in v1.8. Use `.*SingleTPUStrategy` instead."
-    ):
-        SingleTPUPlugin(0)
 
 
 def test_v1_8_0_deprecated_lightning_optimizers():
@@ -1157,14 +1098,3 @@ def test_trainer_tpu_cores(monkeypatch):
         )
     ):
         assert trainer.tpu_cores == 8
-
-
-def test_unsupported_ddp2_strategy():
-    with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
-        DDP2Strategy()
-
-    with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
-        DDP2Plugin()
-
-    with pytest.raises(ValueError, match="The DDP2 strategy is no longer supported."):
-        Trainer(strategy="ddp2")

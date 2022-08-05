@@ -25,6 +25,7 @@ from lightning_cloud.openapi import (
     V1LightningworkSpec,
     V1NetworkConfig,
     V1PackageManager,
+    V1ProjectClusterBinding,
     V1PythonDependencyInfo,
     V1UserRequestedComputeConfig,
     V1Work,
@@ -52,6 +53,7 @@ class CloudRuntime(Runtime):
         self,
         on_before_run: Optional[Callable] = None,
         name: str = "",
+        cluster_id: str = None,
         **kwargs: Any,
     ):
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
@@ -108,6 +110,7 @@ class CloudRuntime(Runtime):
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
+                    cluster_id=cluster_id,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
@@ -157,13 +160,20 @@ class CloudRuntime(Runtime):
                 enable_app_server=app_spec.enable_app_server,
                 flow_servers=app_spec.flow_servers,
                 image_spec=app_spec.image_spec,
+                cluster_id=cluster_id,
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
             )
+            if cluster_id is not None:
+                self._ensure_cluster_project_binding(project.project_id, cluster_id)
+
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project.project_id, lightning_app.id, release_body
             )
+
+            if cluster_id is not None:
+                logger.info(f"running app on {lightning_app_release.cluster_id}")
 
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
@@ -220,7 +230,10 @@ class CloudRuntime(Runtime):
                         lightning_app.id,
                         lightning_app_release.id,
                         Body9(
-                            desired_state=V1LightningappInstanceState.RUNNING, name=lightning_app.name, env=v1_env_vars
+                            cluster_id=cluster_id,
+                            desired_state=V1LightningappInstanceState.RUNNING,
+                            name=lightning_app.name,
+                            env=v1_env_vars,
                         ),
                     )
                 )
@@ -236,6 +249,20 @@ class CloudRuntime(Runtime):
 
         if cleanup_handle:
             cleanup_handle()
+
+    def _ensure_cluster_project_binding(self, project_id: str, cluster_id: str):
+        cluster_bindings = self.backend.client.projects_service_list_project_cluster_bindings(project_id=project_id)
+
+        for cluster_binding in cluster_bindings.clusters:
+            if cluster_binding.cluster_id != cluster_id:
+                continue
+            if cluster_binding.project_id == project_id:
+                return
+
+        self.backend.client.projects_service_create_project_cluster_binding(
+            project_id,
+            body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project_id),
+        )
 
     @staticmethod
     def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:
