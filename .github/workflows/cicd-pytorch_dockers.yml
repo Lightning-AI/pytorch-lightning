@@ -51,7 +51,7 @@ jobs:
       matrix:
         # the config used in '.circleci/config.yml`'
         python_version: ["3.7"]
-        xla_version: ["1.11"]
+        xla_version: ["1.12"]
     steps:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v2

@@ -13,7 +13,7 @@
 | pytorch-lightning (HPUs)   | .azure-pipelines/hpu-tests.yml      | Run only HPU-specific tests.                                                                                                                                                | HPU           | (3.8, 1.10)                                      | linux               |
 | pytorch-lightning (GPUs)   | .azure-pipelines/gpu-tests.yml      | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           | (3.9, 1.12)                                      | linux               |
 | PyTorchLightning.Benchmark | .azure-pipelines/gpu-benchmark.yml  | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           | (3.9, 1.12)                                      | linux               |
-| test-on-tpus               | .circleci/config.yml                | Run only TPU-specific tests.                                                                                                                                                | TPU           | (3.7, 1.9)                                       | linux               |
+| test-on-tpus               | .circleci/config.yml                | Run only TPU-specific tests.                                                                                                                                                | TPU           | (3.7, 1.12)                                      | linux               |
 
 - \*Accelerators used in CI
   - GPU: 2 x NVIDIA Tesla V100
