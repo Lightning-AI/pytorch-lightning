@@ -416,4 +416,4 @@ If you have any questions please:
 
 1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest).
 1. [Search through existing Discussions](https://github.com/Lightning-AI/lightning/discussions), or [add a new question](https://github.com/Lightning-AI/lightning/discussions/new)
-1. [Join our Slack community](https://www.pytorchlightning.ai/community](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1bqiy6kpt-x~2PBicDp~z_rF8r8l3vcg).
+1. \[Join our Slack community\](https://www.pytorchlightning.ai/community\](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1bqiy6kpt-x~2PBicDp~z_rF8r8l3vcg).
