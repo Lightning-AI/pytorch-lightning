@@ -32,7 +32,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
