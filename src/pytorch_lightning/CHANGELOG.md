@@ -399,7 +399,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed default `amp_level` for `DeepSpeedPrecisionPlugin` to `O2` ([#13897](https://github.com/PyTorchLightning/pytorch-lightning/pull/13897))
 
 
-- Fixed val dataloader reload conditions when `check_val_every_n_epochs` is set ([#13964](https://github.com/PyTorchLightning/pytorch-lightning/pull/13964))
+- Fixed validation dataloader reload conditions when `check_val_every_n_epoch` is set ([#13964](https://github.com/PyTorchLightning/pytorch-lightning/pull/13964))
 
 
 
