@@ -569,11 +569,12 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     "accelerator",
     [
         pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        "cpu",
     ],
 )
 def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
-        def __init__(self, *args, **kwargs) -> None:
+        def __init__(self) -> None:
             super().__init__()
             self.val_acc = Accuracy()
 
@@ -592,7 +593,6 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
             return super().validation_step(batch, batch_idx)
 
     early_stop = EarlyStopping(monitor="val_acc", mode="max")
-
     checkpoint = ModelCheckpoint(monitor="val_acc", save_last=True, save_top_k=2, mode="max")
 
     model = TestingModel()
