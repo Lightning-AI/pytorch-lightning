@@ -17,6 +17,7 @@ FROM ubuntu:20.04
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG PYTHON_VERSION=3.9
+ARG PYTORCH_VERSION=1.9
 
 SHELL ["/bin/bash", "-c"]
 
