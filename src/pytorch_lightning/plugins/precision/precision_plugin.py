@@ -182,9 +182,11 @@ class PrecisionPlugin(CheckpointHooks):
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
             # the configuration validator disallows clipping on manual
             return
-        model.configure_gradient_clipping(
-            optimizer,
-            optimizer_idx,
+
+        model.trainer._call_lightning_module_hook(
+            "configure_gradient_clipping",
+            optimizer=optimizer,
+            optimizer_idx=optimizer_idx,
             gradient_clip_val=clip_val,
             gradient_clip_algorithm=gradient_clip_algorithm,
         )
