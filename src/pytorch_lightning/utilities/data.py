@@ -18,7 +18,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Type, Union
 
 import torch
 from torch import Tensor
@@ -39,6 +39,7 @@ from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.meta import _get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -491,20 +492,6 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
         init(obj, *args, **kwargs)
 
     return wrapper
-
-
-# https://stackoverflow.com/a/63851681/9201239
-def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
-    """Returns a list of all classes that inherit directly or indirectly from the given class."""
-    subclasses = set()
-
-    def recurse(cl: Type[Any]) -> None:
-        for subclass in cl.__subclasses__():
-            subclasses.add(subclass)
-            recurse(subclass)
-
-    recurse(cls)
-    return subclasses
 
 
 @contextmanager
