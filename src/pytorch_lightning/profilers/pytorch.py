@@ -123,11 +123,6 @@ class ScheduleWrapper:
         self._num_validation_step = 0
         self._num_test_step = 0
         self._num_predict_step = 0
-        self._training_step_reached_end = False
-        self._validation_step_reached_end = False
-        self._test_step_reached_end = False
-        self._predict_step_reached_end = False
-        # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._current_action: Optional[str] = None
         self._prev_schedule_action: Optional[ProfilerAction] = None
         self._start_action_name: Optional[str] = None
@@ -174,18 +169,6 @@ class ScheduleWrapper:
         elif self.is_predicting:
             self._num_predict_step += 1
 
-    @property
-    def has_finished(self) -> bool:
-        if self.is_training:
-            return self._training_step_reached_end
-        if self.is_validating:
-            return self._validation_step_reached_end
-        if self.is_testing:
-            return self._test_step_reached_end
-        if self.is_predicting:
-            return self._predict_step_reached_end
-        return False
-
     def __call__(self, num_step: int) -> "ProfilerAction":
         # ignore the provided input. Keep internal state instead.
         if self._current_action is None or self.has_finished:
@@ -198,15 +181,6 @@ class ScheduleWrapper:
             # In this case, the action is RECORD in validation loop, and then call into the train
             # and the action is still WARMUP in train and pytorch will recognize this as error.
             action = ProfilerAction.RECORD
-        if action == ProfilerAction.RECORD_AND_SAVE:
-            if self.is_training:
-                self._training_step_reached_end = True
-            elif self.is_validating:
-                self._validation_step_reached_end = True
-            elif self.is_testing:
-                self._test_step_reached_end = True
-            elif self.is_predicting:
-                self._predict_step_reached_end = True
         self._prev_schedule_action = action
         return action
 
