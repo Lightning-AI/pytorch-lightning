@@ -256,8 +256,7 @@ For eg., if you are working with NLP task where you need to tokenize the text an
 
 
 This method expects a ``stage`` argument.
-It is used to separate setup logic for ``trainer.{fit,validate,test,predict}``. If ``setup`` is called with ``stage=None``,
-we assume all stages have been set-up.
+It is used to separate setup logic for ``trainer.{fit,validate,test,predict}``.
 
 .. note:: :ref:`setup<data/datamodule:setup>` is called from every process across all the nodes. Setting state here is recommended.
 .. note:: :ref:`teardown<data/datamodule:teardown>` can be used to clean up the state. It is also called from every process across all the nodes.
