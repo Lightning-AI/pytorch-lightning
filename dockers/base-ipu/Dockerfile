@@ -78,8 +78,7 @@ RUN \
     # install all requirements
     pip install -r requirements/pytorch/devel.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu && \
     rm assistant.py && \
-    rm -rf requirements/ && \
-    python -c "import torch; print(torch.__version__)" && \
+    rm -rf requirements/
 
 RUN \
     # Show what we have
