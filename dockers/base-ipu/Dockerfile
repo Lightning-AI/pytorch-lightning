@@ -36,6 +36,7 @@ RUN apt-get update -qq && \
         libopenmpi-dev \
         unzip \
         wget \
+        software-properties-common \
     && \
 
     # Install python
