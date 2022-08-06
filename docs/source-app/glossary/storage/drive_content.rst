@@ -10,7 +10,13 @@ The Drive object provides a central place for your components to share data.
 
 The Drive acts as an isolate folder and any component can access it by knowing its name.
 
-Your components can put, list, get, and delete files from and to the Drive (except LightningFlows).
+Drives offer two types of storage: temporary and persistent.
+
+Temporary Drives, allow your components to put, list, get, and delete files from and to the Drive (except LightningFlows).
+
+Persistent Drives are read-only (for now), meaning our components can only list and get the files.
+The primary purpose for persistent Drives is to give you a permanent location to store your training data.
+Persistent Drives only support Amazon S3 buckets (for now).
 
 ----
 
@@ -21,7 +27,19 @@ What Drive does for you
 Think of every instance of the Drive object acting like a Google Drive or like Dropbox.
 
 By sharing the Drive between components through the LightningFlow,
-several components can have a shared place to read and write files from.
+several components can have a shared place to read (persistent Drives) or read and write (temporary Drives) files from.
+
+Limitations
+^^^^^^^^^^^
+
+These limitations only apply to Amazon S3 buckets (persistent Drives)
+
+* There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work.
+
+* S3 buckets cannot be mounted as Drives at the runtime of a work. The `Drive` object must be initialized in a Flow and passed to a Work through its initialization arguments.
+
+* Whenever a Drive is mounted to a Work, the indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets.
+For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
 
 ----
 
@@ -29,7 +47,9 @@ several components can have a shared place to read and write files from.
 Create a Drive
 **************
 
-In order to create a Drive, you simply need to pass its name with the prefix ``lit://`` as follows:
+In order to create a Drive, you simply need to pass its name with the prefix ``lit://`` (temporary) or ``s3://`` (persistent).
+
+.. note:: We do not support mounting single objects for S3 buckets, so there must be a trailing `/` in the s3:// URL. For example: ``s3://foo/bar/``.
 
 .. code-block:: python
 
@@ -41,9 +61,9 @@ In order to create a Drive, you simply need to pass its name with the prefix ``l
     drive_1 = Drive("lit://drive_1")
 
     # The identifier of this Drive is ``drive_2``
-    drive_2 = Drive("lit://drive_2")
+    drive_2 = Drive("s3://drive_2/")
 
-Any components can create a drive object.
+Any components can create a drive object for temporary Drives.
 
 .. code-block:: python
 
@@ -74,7 +94,9 @@ Any components can create a drive object.
 Supported actions with Drives
 *****************************
 
-A Drive supports put, list, get, and delete actions.
+A temporary Drive supports put, list, get, and delete actions.
+
+A persistent Drive supports list and get actions (for now).
 
 .. code-block:: python
 
@@ -167,9 +189,9 @@ Here is an illustrated code example on how to create drives within works.
 
 ----
 
-*****************************
+*************************
 Transfer files with Drive
-*****************************
+*************************
 
 In the example below, the Drive is created by the flow and passed to its LightningWork's.
 
