@@ -15,7 +15,7 @@ concurrency:
 jobs:
   slow:
     runs-on: ${{ matrix.os }}
-    # if: github.event.pull_request.draft == false  # FIXME
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
