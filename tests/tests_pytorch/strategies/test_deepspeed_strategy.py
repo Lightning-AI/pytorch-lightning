@@ -15,7 +15,7 @@ import contextlib
 import json
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
