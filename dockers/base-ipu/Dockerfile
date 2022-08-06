@@ -17,14 +17,13 @@ FROM ubuntu:20.04
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG PYTHON_VERSION=3.9
-ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
 
 # for skipping configurations
 ENV \
     DEBIAN_FRONTEND=noninteractive \
-    CONDA_ENV=lightning
+    MKL_THREADING_LAYER=GNU
 
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
@@ -38,53 +37,47 @@ RUN apt-get update -qq && \
         unzip \
         wget \
     && \
-# Install conda and python.
-# NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
-    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py39_${CONDA_VERSION}-Linux-x86_64.sh && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b && \
-    rm ~/miniconda.sh && \
-# Cleaning
+
+    # Install python
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get install -y \
+        python${PYTHON_VERSION} \
+        python${PYTHON_VERSION}-distutils \
+        python${PYTHON_VERSION}-dev \
+    && \
+
+    update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
+
+    # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-ENV \
-    PATH="/root/miniconda3/bin:$PATH" \
-    LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH"
-
-COPY environment.yml environment.yml
-
-RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch && \
-    conda init bash && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>', 'horovod'])])" && \
-    cat environment.yml && \
-    conda env update --file environment.yml && \
-    conda clean -ya && \
-    rm environment.yml
-
-ENV \
-    PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
-    LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
-    # if you want this environment to be the default one, uncomment the following line:
-    CONDA_DEFAULT_ENV=${CONDA_ENV} \
-    MKL_THREADING_LAYER=GNU
-
-COPY ./requirements/pytorch/* requirements/
+COPY ./requirements/pytorch/* ./requirements/pytorch/
 COPY ./.actions/assistant.py assistant.py
 
+ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
+
 RUN \
-    pip list | grep torch && \
-    python -c "import torch; print(torch.__version__)" && \
+    # install pip
+    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
+    python${PYTHON_VERSION} get-pip.py && \
+    rm get-pip.py && \
+    # install assistant.py's dependency
     pip install -q fire && \
-    python requirements/adjust-versions.py requirements/extra.txt && \
-    # Install remaining requirements
-    pip install -r requirements/extra.txt --no-cache-dir && \
-    pip install -r requirements/test.txt --no-cache-dir && \
-    rm -rf requirements/
+    # disable cache \
+    pip config set global.cache-dir false && \
+    # set particular PyTorch version
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${PYTORCH_VERSION} && \
+    # install all requirements
+    pip install -r requirements/pytorch/devel.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu && \
+    rm assistant.py && \
+    rm -rf requirements/ && \
+    python -c "import torch; print(torch.__version__)" && \
 
 RUN \
     # Show what we have
