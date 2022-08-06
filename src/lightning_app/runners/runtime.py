@@ -10,7 +10,7 @@ import lightning_app
 from lightning_app import LightningApp
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
-from lightning_app.utilities.enum import AppStage, make_status, WorkStageStatus
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
 from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
@@ -28,6 +28,7 @@ def dispatch(
     on_before_run: Optional[Callable] = None,
     name: str = "",
     env_vars: Dict[str, str] = {},
+    cluster_id: str = None,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -42,6 +43,7 @@ def dispatch(
         on_before_run: Callable to be executed before run.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
+        cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
@@ -60,7 +62,7 @@ def dispatch(
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
-    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache)
+    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id)
 
 
 @dataclass
@@ -133,9 +135,10 @@ class Runtime:
         raise NotImplementedError
 
     def _add_stopped_status_to_work(self, work: "lightning_app.LightningWork") -> None:
+
         if work.status.stage == WorkStageStatus.STOPPED:
             return
-        latest_hash = work._calls["latest_call_hash"]
-        if latest_hash is None:
-            return
-        work._calls[latest_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+
+        latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        if latest_call_hash in work._calls:
+            work._calls[latest_call_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
