@@ -39,7 +39,7 @@ class Profiler(ABC):
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
         self._local_rank: Optional[int] = None
-        self._stage: Optional[str] = None
+        self._stage: str
 
     @abstractmethod
     def start(self, action_name: str) -> None:
@@ -149,14 +149,14 @@ class Profiler(ABC):
         return os.linesep.join(output)
 
     def setup(
-        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
+        self, stage: str, local_rank: Optional[int] = None, log_dir: Optional[str] = None
     ) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
         self.dirpath = self.dirpath or log_dir
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: str) -> None:
         """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.

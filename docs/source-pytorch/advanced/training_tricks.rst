@@ -326,7 +326,7 @@ The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class provid
         def prepare_data(self):
             MNIST(self.data_dir, download=True)
 
-        def setup(self, stage: Optional[str] = None):
+        def setup(self, stage: str):
             self.mnist = MNIST(self.data_dir)
 
         def train_loader(self):

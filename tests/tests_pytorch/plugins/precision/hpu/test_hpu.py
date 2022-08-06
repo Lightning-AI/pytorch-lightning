@@ -42,7 +42,7 @@ def test_precision_plugin(hmp_params):
 @RunIf(hpu=True)
 def test_mixed_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
-        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
             assert trainer.strategy.model.precision == "bf16"
             raise SystemExit
 

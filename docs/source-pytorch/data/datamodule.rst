@@ -84,7 +84,7 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
             self.data_dir = data_dir
             self.batch_size = batch_size
 
-        def setup(self, stage: Optional[str] = None):
+        def setup(self, stage: str):
             self.mnist_test = MNIST(self.data_dir, train=False)
             self.mnist_predict = MNIST(self.data_dir, train=False)
             mnist_full = MNIST(self.data_dir, train=True)
@@ -102,7 +102,7 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
         def predict_dataloader(self):
             return DataLoader(self.mnist_predict, batch_size=self.batch_size)
 
-        def teardown(self, stage: Optional[str] = None):
+        def teardown(self, stage: str):
             # Used to clean-up when the run is finished
             ...
 
@@ -141,18 +141,18 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             MNIST(self.data_dir, train=True, download=True)
             MNIST(self.data_dir, train=False, download=True)
 
-        def setup(self, stage: Optional[str] = None):
+        def setup(self, stage: str):
 
             # Assign train/val datasets for use in dataloaders
-            if stage == "fit" or stage is None:
+            if stage == "fit":
                 mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
 
             # Assign test dataset for use in dataloader(s)
-            if stage == "test" or stage is None:
+            if stage == "test":
                 self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
 
-            if stage == "predict" or stage is None:
+            if stage == "predict":
                 self.mnist_predict = MNIST(self.data_dir, train=False, transform=self.transform)
 
         def train_dataloader(self):
@@ -226,15 +226,15 @@ There are also data operations you might want to perform on every GPU. Use :meth
 
 
     class MNISTDataModule(pl.LightningDataModule):
-        def setup(self, stage: Optional[str] = None):
+        def setup(self, stage: str):
 
             # Assign Train/val split(s) for use in Dataloaders
-            if stage in (None, "fit"):
+            if stage == "fit":
                 mnist_full = MNIST(self.data_dir, train=True, download=True, transform=self.transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
 
             # Assign Test split(s) for use in Dataloaders
-            if stage in (None, "test"):
+            if stage == "test":
                 self.mnist_test = MNIST(self.data_dir, train=False, download=True, transform=self.transform)
 
 

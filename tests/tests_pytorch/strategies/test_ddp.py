@@ -94,7 +94,7 @@ def test_ddp_torch_dist_is_available_in_setup(
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
-        def setup(self, stage: Optional[str] = None) -> None:
+        def setup(self, stage: str) -> None:
             assert torch.distributed.is_initialized()
             raise SystemExit()
 

@@ -78,7 +78,7 @@ class AdvancedProfiler(Profiler):
             recorded_stats[action_name] = s.getvalue()
         return self._stats_to_str(recorded_stats)
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: str) -> None:
         super().teardown(stage=stage)
         self.profiled_actions = {}
 

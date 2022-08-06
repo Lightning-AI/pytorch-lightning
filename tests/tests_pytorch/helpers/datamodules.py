@@ -42,10 +42,10 @@ class MNISTDataModule(LightningDataModule):
         self.dataset_cls(self.data_dir, train=True, download=True)
         self.dataset_cls(self.data_dir, train=False, download=True)
 
-    def setup(self, stage: Optional[str] = None):
-        if stage == "fit" or stage is None:
+    def setup(self, stage: str):
+        if stage == "fit":
             self.mnist_train = self.dataset_cls(self.data_dir, train=True)
-        if stage == "test" or stage is None:
+        if stage == "test":
             self.mnist_test = self.dataset_cls(self.data_dir, train=False)
 
     def train_dataloader(self):
