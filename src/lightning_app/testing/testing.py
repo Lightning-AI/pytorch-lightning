@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -21,8 +22,10 @@ from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning_app.runners.multiprocess import MultiProcessRuntime
 from lightning_app.testing.config import Config
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
 from lightning_app.utilities.network import _configure_session, LightningClient
+from lightning_app.utilities.proxies import ProxyWorkRun
 
 if _is_playwright_available():
     import playwright
@@ -112,8 +115,13 @@ def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
         start_server=start_server,
     ).dispatch()
     # pop the stopped status.
-    call_hash = work._calls["latest_call_hash"]
-    work._calls[call_hash]["statuses"].pop(-1)
+    call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+
+    if call_hash in work._calls:
+        work._calls[call_hash]["statuses"].pop(-1)
+
+    if isinstance(work.run, ProxyWorkRun):
+        work.run = work.run.work_run
 
 
 def browser_context_args(browser_context_args: Dict) -> Dict:
@@ -127,9 +135,32 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
     }
 
 
+@contextmanager
+def run_cli(args) -> Generator:
+    """This utility is used to automate end-to-end testing of the Lightning AI CLI."""
+    cmd = [
+        sys.executable,
+        "-m",
+        "lightning",
+    ] + args
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_copy = os.environ.copy()
+        process = Popen(
+            cmd,
+            cwd=tmpdir,
+            env=env_copy,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        process.wait()
+
+    yield process.stdout.read().decode("UTF-8"), process.stderr.read().decode("UTF-8")
+
+
 @requires("playwright")
 @contextmanager
-def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
+def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str] = []) -> Generator:
     """This utility is used to automate testing e2e application with lightning_app.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
@@ -149,23 +180,26 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
     # 3. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
-        env_copy["PREPARE_LIGHTING"] = "1"
+        env_copy["PACKAGE_LIGHTNING"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
-            [
-                sys.executable,
-                "-m",
-                "lightning",
-                "run",
-                "app",
-                app_name,
-                "--cloud",
-                "--name",
-                name,
-                "--open-ui",
-                "false",
-            ],
+            (
+                [
+                    sys.executable,
+                    "-m",
+                    "lightning",
+                    "run",
+                    "app",
+                    app_name,
+                    "--cloud",
+                    "--name",
+                    name,
+                    "--open-ui",
+                    "false",
+                ]
+                + extra_args
+            ),
             cwd=tmpdir,
             env=env_copy,
             stdout=sys.stdout,
@@ -189,7 +223,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
             record_har_path=Config.har_location,
         )
         admin_page = context.new_page()
-        res = requests.post(Config.url + "/v1/auth/login", data=json.dumps(payload))
+        url = Config.url
+        if url.endswith("/"):
+            url = url[:-1]
+        res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
         token = res.json()["token"]
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")
@@ -213,13 +250,20 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
         admin_page.goto(f"{Config.url}/{Config.username}/apps")
+
+        # Closing the Create Project dialog.
         try:
-            # Closing the Create Project modal
-            button = admin_page.locator('button:has-text("Cancel")')
+            project_dialog = admin_page.locator("text=Create a project")
+            project_dialog.wait_for(timeout=10 * 1000, state="visible")
+            print("'Create Project' dialog visible, closing it.")
+            project_name_input = admin_page.locator('input[type="text"]')
+            project_name_input.fill("Default Project")
+            button = admin_page.locator('button:has-text("Continue")')
             button.wait_for(timeout=3 * 1000)
             button.click()
-        except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-            pass
+        except playwright._impl._api_types.TimeoutError:
+            print("'Create Project' dialog not visible, skipping.")
+
         admin_page.locator(f"text={name}").click()
         admin_page.evaluate(
             """data => {

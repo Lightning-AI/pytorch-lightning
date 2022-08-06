@@ -8,7 +8,7 @@ docutils>=0.16
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 
-https://storage.googleapis.com/grid-packages/lightning-ai-sphinx-theme/build-31-rc1.zip
+https://storage.googleapis.com/grid-packages/lightning-ai-sphinx-theme/build-31.3.zip
 sphinx-autodoc-typehints>=1.0,<1.15  # v1.15 failing on master (#11405)
 sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
