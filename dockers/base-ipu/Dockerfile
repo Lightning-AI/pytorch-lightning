@@ -39,7 +39,6 @@ RUN apt-get update -qq && \
         wget \
         software-properties-common \
     && \
-
     # Install python
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
@@ -47,10 +46,8 @@ RUN apt-get update -qq && \
         python${PYTHON_VERSION}-distutils \
         python${PYTHON_VERSION}-dev \
     && \
-
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
-
     # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
@@ -83,7 +80,6 @@ RUN \
 RUN \
     # Show what we have
     pip --version && \
-    conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__"
