@@ -593,6 +593,7 @@ class FlowSchedule(LightningFlow):
     def __init__(self):
         super().__init__()
         self._last_time = None
+        self.counter = 0
 
     def run(self):
         if self.schedule("* * * * * 0,5,10,15,20,25,30,35,40,45,50,55"):
@@ -604,6 +605,7 @@ class FlowSchedule(LightningFlow):
                 # TODO (tchaton) Optimize flow execution.
                 assert 4.0 < abs(time() - self._last_time) < 6.0
                 self._exit()
+        self.counter += 1
 
 
 def test_scheduling_api():

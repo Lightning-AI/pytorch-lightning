@@ -86,6 +86,7 @@ class LightningApp:
         self.caller_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.work_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.commands: t.Optional[t.List] = None
+        self.first_execution = False
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
@@ -307,7 +308,10 @@ class LightningApp:
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            if Delta(DeepDiff(self.last_state, self.state, verbose_level=2)).to_dict():
+            delta = Delta(DeepDiff(self.last_state, self.state, verbose_level=2))
+            difference = delta.to_dict()
+            if difference:
+                # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
                 self.set_state(self.state)
                 self._has_updated = True
@@ -352,16 +356,23 @@ class LightningApp:
 
         _process_command_requests(self)
 
+        t0 = time()
+
         try:
             self.check_error_queue()
-            t0 = time()
-            self.root.run()
-            self._last_run_time = time() - t0
+            # Execute the flow only if:
+            # - There are state changes
+            # - It is the first execution of the flow
+            if self._has_updated or not self.first_execution:
+                self.root.run()
         except CacheMissException:
             self._on_cache_miss_exception()
         except (ExitAppException, KeyboardInterrupt):
             done = True
             self.stage = AppStage.STOPPING
+
+        self._last_run_time = time() - t0
+        self.first_execution = True
 
         self.on_run_once_end()
         return done
