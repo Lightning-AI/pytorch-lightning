@@ -330,7 +330,8 @@ class SimpleApp2(LightningApp):
         return True
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
+@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_restarting_move_to_blocking(runtime_cls, tmpdir):
     """Validates sending restarting move the app to blocking again."""
     app = SimpleApp2(CounterFlow(), debug=True)
@@ -402,7 +403,7 @@ class EmptyFlow(LightningFlow):
 )
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
 
-    """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
+    """This test validates the `_collect_deltas_from_ui_and_delta_queue` can aggregate multiple delta together in a
     time window."""
 
     class SlowQueue(queue_type_cls):
@@ -427,7 +428,7 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
     # Wait for a bit because multiprocessing.Queue doesn't run in the same thread and takes some time for writes
     sleep(0.001)
 
-    delta = app._collect_deltas_from_ui_and_work_queues()[-1]
+    delta = app._collect_deltas_from_ui_and_delta_queue()[-1]
     generated = delta.to_dict()["values_changed"]["root['vars']['counter']"]["new_value"]
     if sleep_time:
         assert generated == expect
@@ -445,6 +446,7 @@ class SimpleFlow(LightningFlow):
         self.counter = 1
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
 
@@ -588,6 +590,7 @@ class CheckpointFlow(LightningFlow):
             self.flow.run()
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
@@ -863,6 +866,7 @@ class SleepyFlowWithWork(LightningFlow):
         self.counter += 1
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 def test_slow_flow():
     app0 = LightningApp(SleepyFlow(sleep_interval=0.5 * FLOW_DURATION_THRESHOLD))
 

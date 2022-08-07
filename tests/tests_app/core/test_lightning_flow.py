@@ -4,6 +4,7 @@ from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
 from time import time
+from unittest import mock
 from unittest.mock import ANY
 
 import pytest
@@ -233,6 +234,7 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
     return app.state["vars"]["x"]
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 @pytest.mark.parametrize(
     "attribute,update_fn,expected",
     (
@@ -246,10 +248,11 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
     ),
 )
 def test_attribute_state_change(attribute, update_fn, expected, tmpdir):
-    """Test that state changes get recored on all supported data types."""
+    """Test that state changes get recorded on all supported data types."""
     assert _run_state_transformation(tmpdir, attribute, update_fn, inplace=False) == expected
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 def test_inplace_attribute_state_change(tmpdir):
     """Test that in-place modifications on containers get captured as a state change."""
     # inplace modification of a nested dict
@@ -475,7 +478,8 @@ class CFlow(LightningFlow):
             self._exit()
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
+@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 @pytest.mark.parametrize("run_once", [False, True])
 def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
     app = LightningApp(CFlow(run_once))
@@ -511,9 +515,9 @@ class FlowCounter(LightningFlow):
         self.counter += 1
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
 def test_lightning_flow_counter(runtime_cls, tmpdir):
-
     app = LightningApp(FlowCounter())
     app.checkpointing = True
     runtime_cls(app, start_server=False).dispatch()
@@ -593,7 +597,6 @@ class FlowSchedule(LightningFlow):
     def __init__(self):
         super().__init__()
         self._last_time = None
-        self.counter = 0
 
     def run(self):
         if self.schedule("* * * * * 0,5,10,15,20,25,30,35,40,45,50,55"):
@@ -605,7 +608,6 @@ class FlowSchedule(LightningFlow):
                 # TODO (tchaton) Optimize flow execution.
                 assert 4.0 < abs(time() - self._last_time) < 6.0
                 self._exit()
-        self.counter += 1
 
 
 def test_scheduling_api():

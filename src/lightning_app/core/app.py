@@ -36,6 +36,7 @@ class LightningApp:
     def __init__(
         self,
         root: "lightning_app.LightningFlow",
+        tutorial_mode: bool = False,
         debug: bool = False,
     ):
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
@@ -51,6 +52,7 @@ class LightningApp:
         Arguments:
             root: The root LightningFlow component, that defined all
                 the app's nested components, running infinitely.
+            tutorial_mode: Whether to activate the event loop even when no external changes are received.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
 
@@ -104,6 +106,7 @@ class LightningApp:
         # we will need to revisit the logic at _should_snapshot, since right now
         # we are writing checkpoints too often, and this is expensive.
         self.checkpointing: bool = False
+        self.tutorial_mode = bool(int(os.getenv("TUTORIAL_MODE", "1" if tutorial_mode else "0")))
 
         self._update_layout()
 
@@ -254,7 +257,7 @@ class LightningApp:
         """Returns all the works defined within this application with their names."""
         return self.root.named_works(recurse=True)
 
-    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[Delta]:
+    def _collect_deltas_from_ui_and_delta_queue(self) -> t.List[Delta]:
         # The aggregation would try to get as many deltas as possible
         # from both the `api_delta_queue` and `delta_queue`
         # during the `state_accumulate_wait` time.
@@ -299,13 +302,15 @@ class LightningApp:
             delta.raise_errors = False
         return deltas
 
-    def maybe_apply_changes(self) -> bool:
+    def maybe_apply_changes(self) -> None:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
 
-        deltas = self._collect_deltas_from_ui_and_work_queues()
+        deltas = self._collect_deltas_from_ui_and_delta_queue()
 
         if not deltas:
+            if not self.tutorial_mode:
+                return
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
             delta = Delta(DeepDiff(self.last_state, self.state, verbose_level=2))
@@ -313,9 +318,9 @@ class LightningApp:
             if difference:
                 # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
-                self.set_state(self.state)
+                # self.set_state(self.state)
                 self._has_updated = True
-            return False
+            return
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
@@ -363,7 +368,7 @@ class LightningApp:
             # Execute the flow only if:
             # - There are state changes
             # - It is the first execution of the flow
-            if self._has_updated or not self.first_execution:
+            if self._has_updated or not self.first_execution or self.tutorial_mode:
                 self.root.run()
         except CacheMissException:
             self._on_cache_miss_exception()

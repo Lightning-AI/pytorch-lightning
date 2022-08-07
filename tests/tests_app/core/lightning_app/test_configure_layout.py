@@ -1,3 +1,4 @@
+import os
 from re import escape
 from unittest import mock
 from unittest.mock import Mock
@@ -86,6 +87,7 @@ class StaticWebFrontendFlow(LightningFlow):
         return frontend
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 @pytest.mark.parametrize("flow", (StaticWebFrontendFlow(), StreamlitFrontendFlow()))
 @mock.patch("lightning_app.runners.multiprocess.find_free_network_port")
 def test_layout_leaf_node(find_ports_mock, flow):
@@ -212,6 +214,7 @@ class DynamicContentComponent(EmptyFlow):
         )
 
 
+@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 def test_dynamic_content_layout_update():
     """Test that the `configure_layout()` gets called as part of the loop and can return new layouts."""
     flow = DynamicContentComponent()

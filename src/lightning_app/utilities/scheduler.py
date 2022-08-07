@@ -1,4 +1,6 @@
 import threading
+import traceback
+from asyncio.log import logger
 from copy import deepcopy
 from datetime import datetime
 from typing import Optional
@@ -24,6 +26,7 @@ class SchedulerThread(threading.Thread):
                 self._exit_event.wait(self._sleep_time)
                 self.run_once()
         except Exception as e:
+            logger.error(traceback.print_exc())
             raise e
 
     def run_once(self):
