@@ -1,3 +1,4 @@
+import logging
 import os
 import pickle
 from time import sleep
@@ -26,6 +27,8 @@ from lightning_app.utilities.app_helpers import affiliation
 from lightning_app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
 from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.warnings import LightningFlowWarning
+
+logger = logging.getLogger()
 
 
 class B1(LightningFlow):
@@ -919,3 +922,29 @@ def test_state_size_constant_growth():
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root._state_sizes[0] <= 5904
     assert app.root._state_sizes[20] <= 23736
+
+
+class FlowUpdated(LightningFlow):
+    def run(self):
+        logger.info("Hello World")
+
+
+class NonUpdatedLightningTestApp(LightningTestApp):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = 0
+
+    def on_after_run_once(self):
+        self.counter += 1
+        if not self._has_updated and self.counter > 2:
+            return True
+        return super().on_after_run_once()
+
+
+def test_non_updated_flow(caplog):
+    """This tests validate the app can run 3 times and call the flow only once."""
+    with caplog.at_level(logging.INFO):
+        app = NonUpdatedLightningTestApp(FlowUpdated())
+        MultiProcessRuntime(app, start_server=False).dispatch()
+    assert caplog.messages == ["Hello World"]
+    assert app.counter == 3
