@@ -61,7 +61,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed MPS device being unrecognized ([#13992](https://github.com/Lightning-AI/lightning/pull/13992))
 
 
-- Fixed `precision="mixed"` with `DeepSpeedStrategy` sharded context ([#14041](https://github.com/Lightning-AI/lightning/pull/14041))
+- Fixed incorrect `precision="mixed"` being used with `DeepSpeedStrategy` and `IPUStrategy` ([#14041](https://github.com/Lightning-AI/lightning/pull/14041))
+
 
 
 ## [1.7.0] - 2022-08-02
