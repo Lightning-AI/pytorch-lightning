@@ -458,7 +458,7 @@ def test_maybe_apply_changes_from_flow():
     assert app._has_updated
     app._has_updated = False
     app.maybe_apply_changes()
-    assert not app._has_updated
+    assert app._has_updated
 
 
 class SimpleWork(LightningWork):
