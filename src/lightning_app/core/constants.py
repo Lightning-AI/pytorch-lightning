@@ -32,6 +32,9 @@ LIGHTNING_CLOUD_PROJECT_ID = os.getenv("LIGHTNING_CLOUD_PROJECT_ID")
 LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path.home() / ".lightning" / "credentials.json"))
 DOT_IGNORE_FILENAME = ".lightningignore"
 
+LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
+LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
+
 
 def get_lightning_cloud_url() -> str:
     # DO NOT CHANGE!

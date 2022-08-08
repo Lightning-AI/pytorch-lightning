@@ -12,6 +12,9 @@ from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.lightning_cli_create import create
+from lightning_app.cli.lightning_cli_delete import delete
+from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
@@ -70,9 +73,20 @@ def logout():
 
 
 def _run_app(
-    file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
+    file: str,
+    cloud: bool,
+    cluster_id: str,
+    without_server: bool,
+    no_cache: bool,
+    name: str,
+    blocking: bool,
+    open_ui: bool,
+    env: tuple,
 ):
     file = _prepare_file(file)
+
+    if not cloud and cluster_id is not None:
+        raise click.ClickException("Using the flag --cluster-id in local execution is not supported.")
 
     runtime_type = RuntimeType.CLOUD if cloud else RuntimeType.MULTIPROCESS
 
@@ -105,6 +119,7 @@ def _run_app(
         on_before_run=on_before_run,
         name=name,
         env_vars=env_vars,
+        cluster_id=cluster_id,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
@@ -118,6 +133,9 @@ def run():
 @run.command("app")
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--cloud", type=bool, default=False, is_flag=True)
+@click.option(
+    "--cluster-id", type=str, default=None, help="Run Lightning App on a specific Lightning AI BYOC compute cluster"
+)
 @click.option("--name", help="The current application name", default="", type=str)
 @click.option("--without-server", is_flag=True, default=False)
 @click.option(
@@ -130,6 +148,7 @@ def run():
 def run_app(
     file: str,
     cloud: bool,
+    cluster_id: str,
     without_server: bool,
     no_cache: bool,
     name: str,
@@ -139,7 +158,7 @@ def run_app(
     app_args: List[str],
 ):
     """Run an app from a file."""
-    _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
 
 
 def app_command():
@@ -206,16 +225,9 @@ def stop():
     pass
 
 
-@_main.group(hidden=True)
-def delete():
-    """Delete an application."""
-    pass
-
-
-@_main.group(name="list", hidden=True)
-def get_list():
-    """List your applications."""
-    pass
+_main.add_command(get_list)
+_main.add_command(delete)
+_main.add_command(create)
 
 
 @_main.group()
