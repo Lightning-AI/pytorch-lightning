@@ -103,7 +103,7 @@ def test_isolate_rng():
 @mock.patch("pytorch_lightning.utilities.seed.log.info")
 @pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"RANK": "1"}, {"RANK": "4"}])
 def test_seed_everything_log_info(log_mock: MagicMock, env_vars: Mapping[str, str]):
-    """Test if `_log_info` add a prefix with correct rank info."""
+    """Test that log message prefix with correct rank info."""
     with mock.patch.dict(os.environ, env_vars):
         from pytorch_lightning.utilities.rank_zero import _get_rank
 
