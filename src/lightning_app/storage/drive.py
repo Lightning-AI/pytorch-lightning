@@ -40,6 +40,12 @@ class Drive:
                 self.protocol = protocol
                 self.id = id.replace(protocol, "")
 
+        if self.protocol == "s3://" and not self.id.endswith("/"):
+            raise ValueError(
+                "S3 drives must end in a trailing slash (`/`) to indicate a folder is being mounted. "
+                f"Recieved: '{id}'. Mounting a single file is not currently supported."
+            )
+
         if not self.id:
             raise Exception(f"The Drive id needs to start with one of the following protocols: {self.__PROTOCOLS__}")
 

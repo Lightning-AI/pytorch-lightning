@@ -214,7 +214,7 @@ def test_lit_drive():
 
 
 def test_s3_drives():
-    drive = Drive("s3://foo", allow_duplicates=True)
+    drive = Drive("s3://foo/", allow_duplicates=True)
     drive.component_name = "root.work"
 
     with pytest.raises(
@@ -245,7 +245,12 @@ def test_s3_drives():
         drive.get("a.txt")
 
 
-@pytest.mark.parametrize("drive_id", ["lit://drive", "s3://drive"])
+def test_create_s3_drive_without_trailing_slash_fails():
+    with pytest.raises(ValueError, match="S3 drives must end in a trailing slash"):
+        Drive("s3://foo")
+
+
+@pytest.mark.parametrize("drive_id", ["lit://drive", "s3://drive/"])
 def test_maybe_create_drive(drive_id):
     drive = Drive(drive_id, allow_duplicates=False)
     drive.component_name = "root.work1"
@@ -255,7 +260,7 @@ def test_maybe_create_drive(drive_id):
     assert new_drive.component_name == drive.component_name
 
 
-@pytest.mark.parametrize("drive_id", ["lit://drive", "s3://drive"])
+@pytest.mark.parametrize("drive_id", ["lit://drive", "s3://drive/"])
 def test_drive_deepcopy(drive_id):
     drive = Drive(drive_id, allow_duplicates=True)
     drive.component_name = "root.work1"
