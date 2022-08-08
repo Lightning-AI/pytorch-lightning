@@ -308,9 +308,11 @@ class LightningApp:
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            if DeepDiff(self.last_state, self.state, verbose_level=2):
+            deep_diff = DeepDiff(self.last_state, self.state, verbose_level=2)
+            if deep_diff:
                 # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
+                self.set_last_state(self.state)
                 self._has_updated = True
             return False
 
@@ -368,7 +370,6 @@ class LightningApp:
             self.stage = AppStage.STOPPING
 
         self._last_run_time = time() - t0
-        self._has_updated = False
 
         self.on_run_once_end()
         return done
@@ -421,6 +422,8 @@ class LightningApp:
             if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
                 self.api_publish_state_queue.put(self.state_vars)
 
+            self._has_updated = False
+
         return True
 
     def _update_layout(self) -> None:
@@ -437,8 +440,10 @@ class LightningApp:
         self.stage = AppStage.BLOCKING
         return False
 
-    def _has_work_finished(self, work):
+    def _has_work_finished(self, work) -> bool:
         latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        if latest_call_hash is None:
+            return False
         return "ret" in work._calls[latest_call_hash]
 
     def _collect_work_finish_status(self) -> dict:

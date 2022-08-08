@@ -44,7 +44,7 @@ class FlowCommands(LightningFlow):
 
     def run(self):
         if self.has_sweep and len(self.names) == 1:
-            sleep(2)
+            sleep(1)
             self._exit()
 
     def trigger_method(self, name: str):
@@ -156,7 +156,7 @@ def test_configure_commands(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name", "my_name", "--num_trials", "1"])
     app_command()
     time_left = 15
-    while time_left > 0 or process.exitcode is None:
+    while time_left > 0 and process.exitcode != 0:
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0

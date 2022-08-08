@@ -449,14 +449,14 @@ def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
 
     app = LightningApp(SimpleFlow())
-    assert not app._has_updated
+    assert app._has_updated
     app.maybe_apply_changes()
     app.root.run()
     app.maybe_apply_changes()
     assert app._has_updated
     app._has_updated = False
     app.maybe_apply_changes()
-    assert not app._has_updated
+    assert app._has_updated
 
 
 class SimpleWork(LightningWork):
