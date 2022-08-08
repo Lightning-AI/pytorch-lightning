@@ -201,7 +201,10 @@ def _load_from_checkpoint(
 
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
-    return _load_state(cls, checkpoint, strict=strict, **kwargs)
+    # allow cls to be evaluated as subclassed LightningModule or,
+    # as LightningModule for internal tests
+    if issubclass(cls, pl.LightningModule) or isinstance(cls, pl.LightningModule):
+        return _load_state(cls, checkpoint, strict=strict, **kwargs)
 
 
 def _load_state(
