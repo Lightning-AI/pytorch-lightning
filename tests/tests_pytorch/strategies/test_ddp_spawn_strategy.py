@@ -194,4 +194,3 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
 def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
     trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
-
