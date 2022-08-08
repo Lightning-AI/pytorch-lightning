@@ -49,7 +49,7 @@ class Drive:
         if not self.id:
             raise Exception(f"The Drive id needs to start with one of the following protocols: {self.__PROTOCOLS__}")
 
-        if self.protocol != "lit://" and "/" in self.id:
+        if self.protocol != "s3://" and "/" in self.id:
             raise Exception(f"The id should be unique to identify your drive. Found `{self.id}`.")
 
         self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else os.getcwd()
