@@ -14,7 +14,7 @@ def _signature_proxy_function():
 
 
 class _HttpMethod:
-    def __init__(self, route: str, method: Callable, timeout: int = 15, **kwargs):
+    def __init__(self, route: str, method: Callable, timeout: int = 30, **kwargs):
         """This class is used to inject user defined methods within the App Rest API.
 
         Arguments:

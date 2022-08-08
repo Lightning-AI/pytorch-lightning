@@ -1,3 +1,4 @@
+from ctypes import Union
 import logging
 import os
 import pickle
@@ -11,7 +12,7 @@ from time import time
 from deepdiff import DeepDiff, Delta
 
 import lightning_app
-from lightning_app.api.request_types import APIRequest, BaseRequest, CommandRequest
+from lightning_app.api.request_types import APIRequest, BaseRequest, CommandRequest, DeltaRequest
 from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
@@ -252,7 +253,7 @@ class LightningApp:
         """Returns all the works defined within this application with their names."""
         return self.root.named_works(recurse=True)
 
-    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[Delta]:
+    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[t.Union[Delta, APIRequest, CommandRequest]]:
         # The aggregation would try to get as many deltas as possible
         # from both the `api_delta_queue` and `delta_queue`
         # during the `state_accumulate_wait` time.
@@ -266,8 +267,10 @@ class LightningApp:
         while (time() - t0) < self.state_accumulate_wait:
 
             if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: BaseRequest = self.get_state_changed_from_queue(self.api_delta_queue)  # TODO: rename
+                delta_from_api: t.Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(self.api_delta_queue)  # TODO: rename
                 if delta_from_api:
+                    if isinstance(delta_from_api, DeltaRequest):
+                        delta_from_api = delta_from_api.delta
                     deltas.append(delta_from_api)
                 else:
                     should_get_delta_from_api = False
@@ -314,16 +317,19 @@ class LightningApp:
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
-        request_deltas = [delta for delta in deltas if isinstance(delta, (APIRequest, CommandRequest))]
-        for delta in request_deltas:
-            _process_requests(self, delta)
-
-        state = self.state
-
+        # 1: Process the API / Command Requests first as they might affect the state.
+        state_deltas = []
         for delta in deltas:
             if isinstance(delta, (APIRequest, CommandRequest)):
-                continue
+                _process_requests(self, delta)
+            else:
+                state_deltas.append(delta)
 
+        # 2: Collect the state
+        state = self.state
+
+        # 3: Apply the state delta
+        for delta in state_deltas:
             try:
                 state += delta
             except Exception as e:

@@ -10,7 +10,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
-
+from lightning_app.utilities.app_helpers import is_overridden
 import requests
 from pydantic import BaseModel
 
@@ -49,14 +49,11 @@ class ClientCommand:
         flow = getattr(method, "__self__", None)
         self.owner = flow.name if flow else None
         self.requirements = requirements
-        self.metadata = None
         self.models: Optional[Dict[str, BaseModel]] = None
         self.app_url = None
         self._state = None
 
-    def _setup(self, metadata: Dict[str, Any], models: Dict[str, BaseModel], app_url: str) -> None:
-        self.metadata = metadata
-        self.models = models
+    def _setup(self, app_url: str) -> None:
         self.app_url = app_url
 
     @property
@@ -75,32 +72,19 @@ class ClientCommand:
 
     def invoke_handler(self, **kwargs: Any) -> Dict[str, Any]:
         from lightning.app.utilities.state import headers_for
-
-        assert kwargs.keys() == self.models.keys()
-        for k, v in kwargs.items():
-            assert isinstance(v, self.models[k])
-        json = {
-            "command_name": self.metadata["command"],
-            "command_arguments": {k: v.json() for k, v in kwargs.items()},
-            "affiliation": self.metadata["affiliation"],
-            "id": str(uuid4()),
-        }
-        resp = requests.post(self.app_url + "/api/v1/commands", json=json, headers=headers_for({}))
+        resp = requests.post(self.app_url + "/command/{}", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()
         return resp.json()
 
     def _to_dict(self):
         return {"owner": self.owner, "requirements": self.requirements}
 
-    def __call__(self, **kwargs: Any) -> Any:
-        return self.method(**kwargs)
-
 
 def _download_command(
     command_metadata: Dict[str, Any],
     app_id: Optional[str],
     debug_mode: bool = False,
-) -> Tuple[ClientCommand, Dict[str, BaseModel]]:
+) -> ClientCommand:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
     config = _ClientCommandConfig(**command_metadata)
@@ -126,10 +110,9 @@ def _download_command(
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
     command = getattr(mod, cls_name)(method=None, requirements=config.requirements)
-    models = {k: getattr(mod, v) for k, v in config.params.items()}
     if debug_mode:
         shutil.rmtree(tmpdir)
-    return command, models
+    return command
 
 
 def _to_annotation(anno: str) -> str:
@@ -139,7 +122,7 @@ def _to_annotation(anno: str) -> str:
     return anno
 
 
-def _command_to_method_and_metadata(command: ClientCommand) -> Tuple[Callable, Dict[str, Any]]:
+def _validate_client_command(command: ClientCommand):
     """Extract method and its metadata from a ClientCommand."""
     params = inspect.signature(command.method).parameters
     command_metadata = {
@@ -167,8 +150,6 @@ def _command_to_method_and_metadata(command: ClientCommand) -> Tuple[Callable, D
             raise Exception(
                 f"The provided annotation for the argument {k} shouldn't an instance of pydantic BaseModel."
             )
-        command.models[k] = config
-    return method, command_metadata
 
 
 def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
@@ -188,6 +169,21 @@ def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
         fs.put(source_file, remote_url)
         return filepath
 
+
+def _prepare_commands(app) -> List:
+    if not is_overridden("configure_commands", app.root):
+        return []
+
+    # 1: Upload the command to s3.
+    commands = app.root.configure_commands()
+    for command_mapping in commands:
+        for command_name, command in command_mapping.items():
+            if isinstance(command, ClientCommand):
+                _upload_command(command_name, command)
+
+    # 2: Cache the commands on the app.
+    app.commands = commands
+    return commands
 
 def _process_api_request(app, request: APIRequest) -> None:
     flow = app.get_component_by_name(request.name)

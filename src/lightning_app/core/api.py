@@ -165,43 +165,6 @@ async def get_spec(
     return app_spec or []
 
 
-# @fastapi_service.post("/api/v1/commands", response_class=JSONResponse)
-# async def run_remote_command(
-#     request: Request,
-# ) -> None:
-#     data = await request.json()
-#     command_name = data.get("command_name", None)
-#     if not command_name:
-#         raise Exception("The provided command name is empty.")
-#     command_arguments = data.get("command_arguments", None)
-#     if not command_arguments:
-#         raise Exception("The provided command metadata is empty.")
-#     affiliation = data.get("affiliation", None)
-#     if not affiliation:
-#         raise Exception("The provided affiliation is empty.")
-
-#     async def fn(data):
-#         request_id = data["id"]
-#         api_commands_requests_queue.put(data)
-
-#         t0 = time.time()
-#         while request_id not in responses_store:
-#             await asyncio.sleep(0.1)
-#             if (time.time() - t0) > 15:
-#                 raise Exception("The response was never received.")
-
-#         return responses_store.pop(request_id)
-
-#     return await asyncio.create_task(fn(data))
-
-
-# @fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
-# async def get_commands() -> Optional[Dict]:
-#     global app_commands_metadata
-#     with lock:
-#         return app_commands_metadata
-
-
 @fastapi_service.post("/api/v1/delta")
 async def post_delta(
     request: Request,

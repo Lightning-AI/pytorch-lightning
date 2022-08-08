@@ -8,7 +8,7 @@ from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
 from lightning_app.utilities.app_helpers import is_overridden
-from lightning_app.utilities.commands.base import _commands_to_api, _validate_api
+from lightning_app.utilities.commands.base import _commands_to_api, _validate_api, _prepare_commands
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
 from lightning_app.utilities.load_app import extract_metadata_from_app
 from lightning_app.utilities.network import find_free_network_port
@@ -69,7 +69,7 @@ class MultiProcessRuntime(Runtime):
                     _validate_api(apis)
 
                 if is_overridden("configure_commands", self.app.root):
-                    commands = self.app.root.configure_commands()
+                    commands = _prepare_commands(self.app)
                     apis += _commands_to_api(commands)
 
                 kwargs = dict(

@@ -207,8 +207,8 @@ def app_command():
         resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()
     else:
-        client_command, models = _download_command(command_metadata, hparams.app_id, debug_mode=debug_mode)
-        client_command._setup(metadata=command_metadata, models=models, app_url=url)
+        client_command = _download_command(command_metadata, hparams.app_id, debug_mode=debug_mode)
+        client_command._setup(app_url=url)
         sys.argv = argv
         client_command.run()
 
