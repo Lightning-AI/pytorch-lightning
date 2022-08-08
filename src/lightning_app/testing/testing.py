@@ -324,10 +324,11 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         finally:
             print("##################################################")
             printed_logs = []
-            for log in fetch_logs():
-                if log not in printed_logs:
-                    printed_logs.append(log)
-                    print(log.split("[0m")[-1])
+            if fetch_logs:
+                for log in fetch_logs():
+                    if log not in printed_logs:
+                        printed_logs.append(log)
+                        print(log.split("[0m")[-1])
             button = admin_page.locator('[data-cy="stop"]')
             try:
                 button.wait_for(timeout=3 * 1000)

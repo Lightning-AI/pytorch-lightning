@@ -25,7 +25,6 @@ class SweepConfig(BaseModel):
 
 class SweepCommand(ClientCommand):
     def run(self) -> None:
-        print(sys.argv)
         parser = argparse.ArgumentParser()
         parser.add_argument("--sweep_name", type=str)
         parser.add_argument("--num_trials", type=int)
@@ -116,8 +115,12 @@ def test_client_commands(monkeypatch):
     kwargs = {"something": "1", "something_else": "1"}
     command = DummyCommand(run)
     _validate_client_command(command)
-    client_command = _download_command(None)
-    client_command._setup(app_url=url)
+    client_command = _download_command(
+        command_name="something",
+        cls_path=__file__,
+        cls_name="DummyCommand",
+    )
+    client_command._setup("something", app_url=url)
     client_command.run(**kwargs)
 
 
@@ -145,7 +148,7 @@ def test_configure_commands(monkeypatch):
     state = AppState()
     state._request_state()
     assert state.names == ["something"]
-    monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name", "my_name", "--num_trials", "1"])
+    monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name=my_name", "--num_trials=1"])
     app_command()
     time_left = 15
     while time_left > 0:

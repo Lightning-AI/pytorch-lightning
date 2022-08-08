@@ -1,6 +1,7 @@
 from command import CustomCommand, CustomConfig
 
 from lightning import LightningFlow
+from lightning_app.api import Post
 from lightning_app.core.app import LightningApp
 
 
@@ -34,6 +35,9 @@ class FlowCommands(LightningFlow):
             {"command_with_client": CustomCommand(self.command_with_client)},
         ]
         return commands + self.child_flow.configure_commands()
+
+    def configure_api(self):
+        return [Post("/user/command_without_client", self.command_with_client)]
 
 
 app = LightningApp(FlowCommands())

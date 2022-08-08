@@ -1,6 +1,5 @@
 import errno
 import inspect
-import logging
 import os
 import os.path as osp
 import shutil
@@ -8,8 +7,7 @@ import sys
 from getpass import getuser
 from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from uuid import uuid4
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import requests
 from pydantic import BaseModel
@@ -21,8 +19,6 @@ from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import AppState
 
-_logger = logging.getLogger(__name__)
-
 
 def makedirs(path: str):
     r"""Recursive directory creation function."""
@@ -31,17 +27,6 @@ def makedirs(path: str):
     except OSError as e:
         if e.errno != errno.EEXIST and osp.isdir(path):
             raise e
-
-
-class _ClientCommandConfig(BaseModel):
-    command: str
-    affiliation: str
-    params: Dict[str, str]
-    is_client_command: bool
-    cls_path: str
-    cls_name: str
-    owner: str
-    requirements: Optional[List[str]]
 
 
 class ClientCommand:
@@ -54,7 +39,8 @@ class ClientCommand:
         self.app_url = None
         self._state = None
 
-    def _setup(self, app_url: str) -> None:
+    def _setup(self, command_name: str, app_url: str) -> None:
+        self.command_name = command_name
         self.app_url = app_url
 
     @property
@@ -71,49 +57,49 @@ class ClientCommand:
     def run(self, **cli_kwargs) -> None:
         """Overrides with the logic to execute on the client side."""
 
-    def invoke_handler(self, **kwargs: Any) -> Dict[str, Any]:
-        from lightning.app.utilities.state import headers_for
-
-        resp = requests.post(self.app_url + "/command/{}", json=json, headers=headers_for({}))
+    def invoke_handler(self, config: BaseModel) -> Dict[str, Any]:
+        resp = requests.post(self.app_url + f"/command/{self.command_name}", data=config.json())
         assert resp.status_code == 200, resp.json()
         return resp.json()
 
     def _to_dict(self):
         return {"owner": self.owner, "requirements": self.requirements}
 
+    def __call__(self, **kwargs):
+        return self.method(**kwargs)
+
 
 def _download_command(
-    command_metadata: Dict[str, Any],
-    app_id: Optional[str],
+    command_name: str,
+    cls_path: str,
+    cls_name: str,
+    app_id: Optional[str] = None,
     debug_mode: bool = False,
 ) -> ClientCommand:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
-    config = _ClientCommandConfig(**command_metadata)
     tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
     makedirs(tmpdir)
-    target_file = osp.join(tmpdir, f"{config.command}.py")
+    target_file = osp.join(tmpdir, f"{command_name}.py")
     if app_id:
         client = LightningClient()
         project_id = _get_project(client).project_id
         response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
         for artifact in response.artifacts:
-            if f"commands/{config.command}.py" == artifact.filename:
+            if f"commands/{command_name}.py" == artifact.filename:
                 r = requests.get(artifact.url, allow_redirects=True)
                 with open(target_file, "wb") as f:
                     f.write(r.content)
     else:
         if not debug_mode:
-            shutil.copy(config.cls_path, target_file)
+            shutil.copy(cls_path, target_file)
 
-    cls_name = config.cls_name
-    spec = spec_from_file_location(config.cls_name, config.cls_path if debug_mode else target_file)
+    spec = spec_from_file_location(cls_name, cls_path if debug_mode else target_file)
     mod = module_from_spec(spec)
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
-    command = getattr(mod, cls_name)(method=None, requirements=config.requirements)
-    if debug_mode:
-        shutil.rmtree(tmpdir)
+    command = getattr(mod, cls_name)(method=None, requirements=[])
+    shutil.rmtree(tmpdir)
     return command
 
 
@@ -213,10 +199,13 @@ def _process_requests(app, request: Union[APIRequest, CommandRequest]) -> None:
         _process_command_requests(app, request)
 
 
-def _validate_api(apis):
-    for api in apis:
-        if api.route.startwith("/command"):
-            raise Exception("The route `command` is reserved for commands. Please, use something else.")
+def _collect_open_api_extras(command) -> Dict:
+    if not isinstance(command, ClientCommand):
+        return {}
+    return {
+        "cls_path": inspect.getfile(command.__class__),
+        "cls_name": command.__class__.__name__,
+    }
 
 
 def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) -> List:
@@ -228,6 +217,9 @@ def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) 
                 Post(
                     f"/command/{k}",
                     v.method if isinstance(v, ClientCommand) else v,
+                    method_name=k,
+                    tags=["app_client_command"] if isinstance(v, ClientCommand) else ["app_command"],
+                    openapi_extra=_collect_open_api_extras(v),
                 )
             )
     return api

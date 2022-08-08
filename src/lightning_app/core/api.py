@@ -25,6 +25,7 @@ from lightning_app.api.request_types import DeltaRequest
 from lightning_app.core.constants import FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
 from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
+from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
 
 if _is_starsessions_available():
@@ -105,6 +106,23 @@ class UIRefresher(Thread):
 class StateUpdate(BaseModel):
     state: dict = {}
 
+
+openapi_tags = [
+    {
+        "name": OpenAPITags.APP_CLIENT_COMMAND,
+        "description": "The App Endpoints to be triggered exclusively CLI",
+    },
+    {
+        "name": OpenAPITags.APP_COMMAND,
+        "description": "The App Endpoints that can be triggered equally the CLI or from a Http Request",
+    },
+    {
+        "name": OpenAPITags.APP_API,
+        "description": "The App Endpoints that can be triggered exclusively from a Http Request",
+    },
+]
+
+app = FastAPI(openapi_tags=openapi_tags)
 
 fastapi_service = FastAPI()
 

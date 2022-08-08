@@ -3,7 +3,7 @@ import inspect
 import time
 from copy import deepcopy
 from functools import wraps
-from typing import Callable
+from typing import Callable, List, Optional
 from uuid import uuid4
 
 from lightning_app.api.request_types import APIRequest, CommandRequest
@@ -14,7 +14,7 @@ def _signature_proxy_function():
 
 
 class _HttpMethod:
-    def __init__(self, route: str, method: Callable, timeout: int = 30, **kwargs):
+    def __init__(self, route: str, method: Callable, method_name: Optional[str] = None, timeout: int = 30, **kwargs):
         """This class is used to inject user defined methods within the App Rest API.
 
         Arguments:
@@ -24,7 +24,7 @@ class _HttpMethod:
         """
         self.route = route
         self.component_name = method.__self__.name
-        self.method_name = method.__name__
+        self.method_name = method_name or method.__name__
         self.method_annotations = method.__annotations__
         # TODO: Validate the signature contains only pydantic models.
         self.method_signature = inspect.signature(method)
@@ -90,3 +90,17 @@ class Put(_HttpMethod):
 
 class Delete(_HttpMethod):
     pass
+
+
+def _add_tags_to_api(apis: List[_HttpMethod], tags: List[str]) -> None:
+    for api in apis:
+        if not api.kwargs.get("tag"):
+            api.kwargs["tags"] = tags
+
+
+def _validate_api(apis: List[_HttpMethod]) -> None:
+    for api in apis:
+        if not isinstance(api, _HttpMethod):
+            raise Exception(f"The provided api should be either [{Delete}, {Get}, {Post}, {Put}]")
+        if api.route.startswith("/command"):
+            raise Exception("The route `/command` is reserved for commands. Please, use something else.")

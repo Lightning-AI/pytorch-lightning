@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import requests
 
@@ -49,10 +49,30 @@ def _is_url(id: Optional[str]) -> bool:
     return False
 
 
-def _extract_command_from_openapi(openapi_resp: Dict) -> Dict[str, str]:
+def _get_metadata_from_openapi(paths: Dict, path: str):
+    parameters = paths[path]["post"].get("parameters", {})
+    tag = paths[path]["post"].get("tags", [None])[0]
+    cls_path = paths[path]["post"].get("cls_path", None)
+    cls_name = paths[path]["post"].get("cls_name", None)
+
+    metadata = {"tag": tag, "parameters": {}}
+
+    if cls_path:
+        metadata["cls_path"] = cls_path
+
+    if cls_name:
+        metadata["cls_name"] = cls_name
+
+    if not parameters:
+        return metadata
+
+    metadata["parameters"].update({d["name"]: d["schema"]["type"] for d in parameters})
+    return metadata
+
+
+def _extract_command_from_openapi(openapi_resp: Dict) -> Dict[str, Dict[str, str]]:
     command_paths = [p for p in openapi_resp["paths"] if p.startswith("/command/")]
-    breakpoint()
-    return {p: openapi_resp["paths"][p]["post"]["parameters"] for p in command_paths}
+    return {p.replace("/command/", ""): _get_metadata_from_openapi(openapi_resp["paths"], p) for p in command_paths}
 
 
 def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Optional[str]):
