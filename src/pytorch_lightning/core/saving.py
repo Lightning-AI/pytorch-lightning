@@ -20,7 +20,7 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
 import torch
@@ -447,5 +447,5 @@ def convert(val: str) -> Union[int, float, bool, str]:
         return val
 
 
-def _default_map_location(storage: torch.StorageBase, _: str) -> torch.StorageBase:
+def _default_map_location(storage: torch._StorageBase, _: str) -> torch._StorageBase:
     return storage
