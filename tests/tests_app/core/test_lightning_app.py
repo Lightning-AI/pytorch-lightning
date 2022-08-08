@@ -443,22 +443,27 @@ class SimpleFlow(LightningFlow):
         self.counter = 0
 
     def run(self):
-        self.counter = 1
+        if self.counter < 2:
+            self.counter += 1
 
 
-@mock.patch.dict(os.environ, {"TUTORIAL_MODE": "1"})
 def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
 
-    app = LightningApp(SimpleFlow())
-    assert not app._has_updated
+    app = LightningApp(SimpleFlow(), tutorial_mode=True)
+    assert app._has_updated
     app.maybe_apply_changes()
     app.root.run()
     app.maybe_apply_changes()
     assert app._has_updated
     app._has_updated = False
+    app.root.run()
     app.maybe_apply_changes()
     assert app._has_updated
+    app._has_updated = False
+    app.root.run()
+    app.maybe_apply_changes()
+    assert not app._has_updated
 
 
 class SimpleWork(LightningWork):
@@ -903,6 +908,7 @@ class SizeWork(LightningWork):
 
     def run(self, signal: int):
         self.counter += 1
+        assert len(self._calls) == 2
 
 
 class SizeFlow(LightningFlow):

@@ -17,7 +17,7 @@ class SchedulerThread(threading.Thread):
     def __init__(self, app) -> None:
         super().__init__(daemon=True)
         self._exit_event = threading.Event()
-        self._sleep_time = 0.5
+        self._sleep_time = 0.05
         self._app = app
 
     def run(self) -> None:
