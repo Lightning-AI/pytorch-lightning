@@ -84,11 +84,12 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         return False
 
 
-def test_deepspeed_lightning_module(tmpdir):
+def test_deepspeed_lightning_module():
     """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly."""
 
     model = BoringModel()
-    module = LightningDeepSpeedModule(model, precision=16)
+    with pytest.deprecated_call(match="`LightningDeepSpeedModule` has been deprecated in v1.7.1"):
+        module = LightningDeepSpeedModule(model, precision=16)
 
     module.half()
     assert module.dtype == torch.half
@@ -100,12 +101,13 @@ def test_deepspeed_lightning_module(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_deepspeed_lightning_module_precision(tmpdir):
+def test_deepspeed_lightning_module_precision():
     """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision
     16."""
 
     model = BoringModel()
-    module = LightningDeepSpeedModule(model, precision=16)
+    with pytest.deprecated_call(match="`LightningDeepSpeedModule` has been deprecated in v1.7.1"):
+        module = LightningDeepSpeedModule(model, precision=16)
 
     module.cuda().half()
     assert module.dtype == torch.half
@@ -1286,6 +1288,7 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == "bf16"
     assert trainer.strategy.config["zero_optimization"]["stage"] == 3
+    assert trainer.strategy.config["bf16"]["enabled"]
     assert model.layer.weight.dtype == torch.bfloat16
 
 
@@ -1324,3 +1327,19 @@ def test_deepspeed_configure_optimizer_device_set(tmpdir):
     )
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=1, deepspeed=True)
+def test_deepspeed_tensors_cast_to_fp16_before_hosted_on_device():
+    class CustomBoringModel(BoringModel):
+        def transfer_batch_to_device(self, batch, *args, **kwargs):
+            assert batch.dtype is torch.float16
+            return super().transfer_batch_to_device(batch, *args, **kwargs)
+
+    model = CustomBoringModel()
+    trainer = Trainer(strategy="deepspeed", devices=1, accelerator="cuda", precision=16)
+    trainer.strategy.connect(model)
+    batch = torch.zeros((1), dtype=torch.float32)
+    batch = trainer.strategy.batch_to_device(batch)
+    assert batch.is_cuda
+    assert batch.dtype is torch.float16
