@@ -459,7 +459,7 @@ class WorkRunner:
             delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
             self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
-        logger.info(f"Gracefully terminated {self.work.name.replace('root.', '')}...")
+        logger.info(f"Gracefully terminated {self.work.name.replace('root.', '')}")
         # kill the thread as the job is going to be terminated.
         self.copier.join(0)
         if self.state_observer:
