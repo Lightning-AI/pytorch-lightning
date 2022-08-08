@@ -62,4 +62,4 @@ We are on the lookout for new people to join, however, if you feel like you meet
 
 ## Employment
 
-You can also become a [Lightning.ai](https://lightning.ai/) employee or intern and work on Lightning. To get started, you can email `careers@lightning.ai` with your resume or check out our [open job postings](https://boards.greenhouse.io/lightningai).
+You can also become a [Lightning AI](https://lightning.ai/) employee or intern and work on Lightning. To get started, you can email `careers@lightning.ai` with your resume or check out our [open job postings](https://boards.greenhouse.io/lightningai).
