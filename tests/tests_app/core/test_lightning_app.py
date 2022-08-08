@@ -899,6 +899,7 @@ class SizeWork(LightningWork):
 
     def run(self, signal: int):
         self.counter += 1
+        assert len(self._calls) == 2
 
 
 class SizeFlow(LightningFlow):
