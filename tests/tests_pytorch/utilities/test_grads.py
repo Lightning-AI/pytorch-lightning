@@ -76,3 +76,17 @@ def test_grad_norm(norm_type, expected):
 def test_grad_norm_invalid_norm_type(norm_type):
     with pytest.raises(ValueError, match="`norm_type` must be a positive number or 'inf'"):
         grad_norm(Mock(), norm_type)
+
+
+def test_grad_norm_with_double_dtype():
+    class Model(nn.Module):
+        def __init__(self):
+            super().__init__()
+            dtype = torch.double
+            self.param = nn.Parameter(torch.tensor(1.0, dtype=dtype))
+            # grad norm of this would become infinite
+            self.param.grad = torch.tensor(1e23, dtype=dtype)
+
+    model = Model()
+    norms = grad_norm(model, 2)
+    assert all(torch.isfinite(torch.tensor(v)) for v in norms.values()), norms
