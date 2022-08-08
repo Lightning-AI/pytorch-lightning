@@ -665,6 +665,9 @@ class DataHooks:
             MisconfigurationException:
                 If using data-parallel, ``Trainer(strategy='dp')``.
 
+            MisconfigurationException:
+                If using IPUs, ``Trainer(accelerator='ipu')``.
+
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
@@ -700,6 +703,9 @@ class DataHooks:
             MisconfigurationException:
                 If using data-parallel, ``Trainer(strategy='dp')``.
 
+            MisconfigurationException:
+                If using IPUs, ``Trainer(accelerator='ipu')``.
+
         See Also:
             - :meth:`on_after_batch_transfer`
             - :meth:`transfer_batch_to_device`
@@ -734,6 +740,9 @@ class DataHooks:
         Raises:
             MisconfigurationException:
                 If using data-parallel, ``Trainer(strategy='dp')``.
+
+            MisconfigurationException:
+                If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`
