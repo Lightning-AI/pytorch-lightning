@@ -442,7 +442,8 @@ class SimpleFlow(LightningFlow):
         self.counter = 0
 
     def run(self):
-        self.counter = 1
+        if self.counter < 2:
+            self.counter += 1
 
 
 def test_maybe_apply_changes_from_flow():
@@ -455,8 +456,13 @@ def test_maybe_apply_changes_from_flow():
     app.maybe_apply_changes()
     assert app._has_updated
     app._has_updated = False
+    app.root.run()
     app.maybe_apply_changes()
     assert app._has_updated
+    app._has_updated = False
+    app.root.run()
+    app.maybe_apply_changes()
+    assert not app._has_updated
 
 
 class SimpleWork(LightningWork):
