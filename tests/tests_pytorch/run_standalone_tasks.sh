@@ -42,4 +42,5 @@ MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python examples/convert_fr
 
 # test that ddp can launched as a module (-m option)
 echo "Running ddp example as module"
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/examples/convert_from_pt_to_pl"
 python -m examples.convert_from_pt_to_pl.image_classifier_5_lightning_datamodule ${args}
