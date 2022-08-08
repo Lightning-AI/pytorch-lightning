@@ -13,6 +13,20 @@
 # limitations under the License.
 import os
 
+import torch
+
+from pytorch_lightning.utilities.enums import PrecisionType
+
 
 def on_colab_kaggle() -> bool:
     return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
+
+
+def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
+    if torch.is_floating_point(tensor):
+        if precision in (PrecisionType.MIXED, PrecisionType.HALF):
+            return tensor.half()
+        if precision == PrecisionType.BFLOAT:
+            return tensor.bfloat16()
+
+    return tensor
