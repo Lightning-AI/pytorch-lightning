@@ -593,13 +593,15 @@ class FlowSchedule(LightningFlow):
     def __init__(self):
         super().__init__()
         self._last_times = []
+        self.target = 3
+        self.seconds = ",".join([str(v) for v in range(0, 60, self.target)])
 
     def run(self):
-        if self.schedule("* * * * * 0,5,10,15,20,25,30,35,40,45,50,55"):
+        if self.schedule(f"* * * * * {self.seconds}"):
             if len(self._last_times) < 3:
                 self._last_times.append(time())
             else:
-                assert abs((time() - self._last_times[-1]) - 5.0) < 0.1
+                assert abs((time() - self._last_times[-1]) - self.target) < 0.1
                 self._exit()
 
 
