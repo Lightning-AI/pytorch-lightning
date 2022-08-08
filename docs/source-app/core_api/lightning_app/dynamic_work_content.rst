@@ -212,7 +212,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
                     self.jupyter_config_requests.pop(idx)
 
         def configure_layout(self):
-            return lapp.frontend.StreamlitFrontend(render_fn=render_fn)
+            return L.app.frontend.StreamlitFrontend(render_fn=render_fn)
 
 ----
 
