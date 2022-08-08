@@ -21,9 +21,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-11]
-        python-version: ["3.7", "3.9"]  # minimum, maximum
+        python-version: ["3.7", "3.10"]  # minimum, maximum
         requires: ["oldest", "latest"]
         release: ["stable"]
+        exclude:
+          # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
+          # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
+          - {python-version: "3.10", requires: "oldest"}
         # TODO: re-enable RC testing
         # include:
         #   - {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
@@ -41,7 +45,7 @@ jobs:
       id: skip
       shell: bash -l {0}
       run: |
-        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*'
+        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*|.github/workflows/ci-pytorch_test-full.yml'
         echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
         MATCHES=$(cat changed_files.txt | grep -E $FILTER)
         echo $MATCHES
