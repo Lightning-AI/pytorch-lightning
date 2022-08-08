@@ -31,12 +31,7 @@ if [ -z "$LOGS" ]; then
     exit 1
 fi
 
-
 cd ../../
-
-# test that ddp can launched as a module (-m option)
-echo "Running ddp example as module"
-python -m examples.convert_from_pt_to_pl.image_classifier_5_lightning_datamodule ${args}
 
 # test that a user can manually launch individual processes
 echo "Running manual ddp launch test"
@@ -44,3 +39,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 args="--trainer.accelerator gpu --trainer.devices 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args} &
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args}
+
+# test that ddp can launched as a module (-m option)
+echo "Running ddp example as module"
+python -m examples.convert_from_pt_to_pl.image_classifier_5_lightning_datamodule ${args}
