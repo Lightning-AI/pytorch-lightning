@@ -15,7 +15,7 @@ from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_TH
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
-from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
 from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_command_requests
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -86,7 +86,7 @@ class LightningApp:
         self.caller_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.work_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.commands: t.Optional[t.List] = None
-        self.first_execution = False
+        self._first_execution = True
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
@@ -95,7 +95,7 @@ class LightningApp:
         self.processes: t.Dict[str, WorkManager] = {}
         self.frontends: t.Dict[str, Frontend] = {}
         self.stage = AppStage.RUNNING
-        self._has_updated: bool = False
+        self._has_updated: bool = True
         self._schedules: t.Dict[str, t.Dict] = {}
         self.threads: t.List[threading.Thread] = []
 
@@ -279,7 +279,7 @@ class LightningApp:
                 if component_output:
                     logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
                     work = self.get_component_by_name(component_output.id)
-                    new_work_delta = _delta_to_appstate_delta(self.root, work, deepcopy(component_output.delta))
+                    new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
                     deltas.append(new_work_delta)
                 else:
                     should_get_component_output = False
@@ -308,16 +308,13 @@ class LightningApp:
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            delta = Delta(DeepDiff(self.last_state, self.state, verbose_level=2))
-            difference = delta.to_dict()
-            if difference:
+            if DeepDiff(self.last_state, self.state, verbose_level=2):
                 # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
-                self.set_state(self.state)
                 self._has_updated = True
             return False
 
-        logger.debug(f"Received {[d.to_dict() for d in deltas]}")
+        logger.info(f"Received {[d.to_dict() for d in deltas]}")
 
         state = self.state
         for delta in deltas:
@@ -333,7 +330,6 @@ class LightningApp:
     def run_once(self):
         """Method used to collect changes and run the root Flow once."""
         done = False
-        self._has_updated = False
         self._last_run_time = 0.0
 
         if self.backend is not None:
@@ -363,7 +359,7 @@ class LightningApp:
             # Execute the flow only if:
             # - There are state changes
             # - It is the first execution of the flow
-            if self._has_updated or not self.first_execution:
+            if self._has_updated:
                 self.root.run()
         except CacheMissException:
             self._on_cache_miss_exception()
@@ -372,7 +368,7 @@ class LightningApp:
             self.stage = AppStage.STOPPING
 
         self._last_run_time = time() - t0
-        self.first_execution = True
+        self._has_updated = False
 
         self.on_run_once_end()
         return done

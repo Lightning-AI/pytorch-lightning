@@ -16,7 +16,7 @@ from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
-from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.exceptions import ExitAppException
 
@@ -416,7 +416,7 @@ def test_populate_changes():
     flow_a.work.counter = 1
     work_state_2 = flow_a.work.state
     delta = Delta(DeepDiff(work_state, work_state_2, verbose_level=2))
-    delta = _delta_to_appstate_delta(flow_a, flow_a.work, delta)
+    delta = _delta_to_app_state_delta(flow_a, flow_a.work, delta)
     new_flow_state = LightningApp.populate_changes(flow_state, flow_state + delta)
     flow_a.set_state(new_flow_state)
     assert flow_a.work.counter == 1
@@ -592,26 +592,21 @@ def test_flow_state_change_with_path():
 class FlowSchedule(LightningFlow):
     def __init__(self):
         super().__init__()
-        self._last_time = None
-        self.counter = 0
+        self._last_times = []
 
     def run(self):
         if self.schedule("* * * * * 0,5,10,15,20,25,30,35,40,45,50,55"):
-            if self._last_time is None:
-                self._last_time = False
-            elif not self._last_time:
-                self._last_time = time()
+            if len(self._last_times) < 3:
+                self._last_times.append(time())
             else:
-                # TODO (tchaton) Optimize flow execution.
-                assert 4.0 < abs(time() - self._last_time) < 6.0
+                assert abs((time() - self._last_times[-1]) - 5.0) < 0.1
                 self._exit()
-        self.counter += 1
 
 
 def test_scheduling_api():
 
     app = LightningApp(FlowSchedule())
-    MultiProcessRuntime(app).dispatch()
+    MultiProcessRuntime(app, start_server=True).dispatch()
 
 
 def test_lightning_flow():
