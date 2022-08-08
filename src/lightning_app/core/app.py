@@ -6,13 +6,12 @@ import threading
 import typing as t
 import warnings
 from copy import deepcopy
-from ctypes import Union
 from time import time
 
 from deepdiff import DeepDiff, Delta
 
 import lightning_app
-from lightning_app.api.request_types import APIRequest, BaseRequest, CommandRequest, DeltaRequest
+from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
 from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
