@@ -22,12 +22,12 @@ import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 
-from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPES, _PATH
+from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 
 def load(
     path_or_url: Union[IO, _PATH],
-    map_location: _MAP_LOCATION_TYPES = None,
+    map_location: _MAP_LOCATION_TYPE = None,
 ) -> Any:
     """Loads a checkpoint.
 

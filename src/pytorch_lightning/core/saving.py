@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPES, _PATH
+from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -57,7 +57,7 @@ class ModelIO:
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[str, IO],
-        map_location: _MAP_LOCATION_TYPES = None,
+        map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
         **kwargs: Any,
@@ -172,13 +172,13 @@ class ModelIO:
 def _load_from_checkpoint(
     cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint_path: Union[str, IO],
-    map_location: _MAP_LOCATION_TYPES = None,
+    map_location: _MAP_LOCATION_TYPE = None,
     hparams_file: Optional[str] = None,
     strict: bool = True,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
-        map_location = cast(_MAP_LOCATION_TYPES, lambda storage, loc: storage)
+        map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
