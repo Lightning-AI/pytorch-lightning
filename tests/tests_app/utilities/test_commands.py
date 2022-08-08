@@ -14,7 +14,7 @@ from lightning_app.cli.lightning_cli import app_command
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.testing.helpers import RunIf
-from lightning_app.utilities.commands.base import _validate_client_command, _download_command, ClientCommand
+from lightning_app.utilities.commands.base import _download_command, _validate_client_command, ClientCommand
 from lightning_app.utilities.state import AppState
 
 

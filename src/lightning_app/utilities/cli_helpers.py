@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 import requests
 
@@ -47,6 +47,7 @@ def _is_url(id: Optional[str]) -> bool:
     if isinstance(id, str) and (id.startswith("https://") or id.startswith("http://")):
         return True
     return False
+
 
 def _extract_command_from_openapi(openapi_resp: Dict) -> Dict[str, str]:
     command_paths = [p for p in openapi_resp["paths"] if p.startswith("/command/")]

@@ -10,12 +10,13 @@ from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
-from lightning_app.utilities.app_helpers import is_overridden
+
 import requests
 from pydantic import BaseModel
 
 from lightning_app.api.http_methods import Post
 from lightning_app.api.request_types import APIRequest, CommandRequest
+from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import AppState
@@ -72,6 +73,7 @@ class ClientCommand:
 
     def invoke_handler(self, **kwargs: Any) -> Dict[str, Any]:
         from lightning.app.utilities.state import headers_for
+
         resp = requests.post(self.app_url + "/command/{}", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()
         return resp.json()
@@ -184,6 +186,7 @@ def _prepare_commands(app) -> List:
     # 2: Cache the commands on the app.
     app.commands = commands
     return commands
+
 
 def _process_api_request(app, request: APIRequest) -> None:
     flow = app.get_component_by_name(request.name)

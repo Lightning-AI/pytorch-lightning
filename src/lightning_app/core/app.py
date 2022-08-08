@@ -1,4 +1,3 @@
-from ctypes import Union
 import logging
 import os
 import pickle
@@ -7,6 +6,7 @@ import threading
 import typing as t
 import warnings
 from copy import deepcopy
+from ctypes import Union
 from time import time
 
 from deepdiff import DeepDiff, Delta
@@ -267,7 +267,9 @@ class LightningApp:
         while (time() - t0) < self.state_accumulate_wait:
 
             if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: t.Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(self.api_delta_queue)  # TODO: rename
+                delta_from_api: t.Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(
+                    self.api_delta_queue
+                )  # TODO: rename
                 if delta_from_api:
                     if isinstance(delta_from_api, DeltaRequest):
                         delta_from_api = delta_from_api.delta
