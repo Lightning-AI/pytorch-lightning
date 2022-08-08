@@ -14,7 +14,6 @@ class Drive:
 
     __IDENTIFIER__ = "__drive__"
     __PROTOCOLS__ = ["lit://", "s3://"]
-    __PROTOCOLS_OPTIMIZATIONS__ = {"lit://": [], "s3://": ["indexed-s3"]}
 
     def __init__(
         self,
@@ -22,7 +21,6 @@ class Drive:
         allow_duplicates: bool = False,
         component_name: Optional[str] = None,
         root_folder: Optional[str] = None,
-        optimization: Optional[str] = None,
     ):
         """The Drive object provides a shared space to write and read files from.
 
@@ -35,8 +33,6 @@ class Drive:
             component_name: The component name which owns this drive.
                 When not provided, it is automatically inferred by Lightning.
             root_folder: This is the folder from where the Drive perceives the data (e.g this acts as a mount dir).
-            optimization: Whether to optimize the drive with a given option. This also defines if the drive will be
-                mounted to the component and accessible via normal file system operations.
         """
         self.id = None
         for protocol in self.__PROTOCOLS__:
@@ -49,12 +45,6 @@ class Drive:
 
         if "/" in self.id:
             raise Exception(f"The id should be unique to identify your drive. Found `{self.id}`.")
-
-        if optimization and optimization not in self.__PROTOCOLS_OPTIMIZATIONS__[self.protocol]:
-            raise Exception(
-                f"This Drive protocol is not compatible with the {optimization} optimization. Available "
-                f"optimizations for this protocol are: {self.__PROTOCOLS_OPTIMIZATIONS__[self.protocol]}"
-            )
 
         self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else os.getcwd()
         if not os.path.isdir(self.root_folder):
@@ -85,6 +75,10 @@ class Drive:
             raise Exception("The component name needs to be known to put a path to the Drive.")
         if _is_flow_context():
             raise Exception("The flow isn't allowed to put files into a Drive.")
+        if self.protocol == "s3://":
+            raise PermissionError(
+                "S3 based drives cannot currently add files via this API. Did you mean to use `lit://` drives?"
+            )
 
         self._validate_path(path)
 
@@ -108,6 +102,10 @@ class Drive:
         """
         if _is_flow_context():
             raise Exception("The flow isn't allowed to list files from a Drive.")
+        if self.protocol == "s3://":
+            raise PermissionError(
+                "S3 based drives cannot currently list files via this API. Did you mean to use `lit://` drives?"
+            )
 
         if component_name:
             paths = [
@@ -152,6 +150,10 @@ class Drive:
         """
         if _is_flow_context():
             raise Exception("The flow isn't allowed to get files from a Drive.")
+        if self.protocol == "s3://":
+            raise PermissionError(
+                "S3 based drives cannot currently get files via this API. Did you mean to use `lit://` drives?"
+            )
 
         if component_name:
             shared_path = self._to_shared_path(
@@ -199,6 +201,10 @@ class Drive:
         """
         if not self.component_name:
             raise Exception("The component name needs to be known to delete a path to the Drive.")
+        if self.protocol == "s3://":
+            raise PermissionError(
+                "S3 based drives cannot currently delete files via this API. Did you mean to use `lit://` drives?"
+            )
 
         shared_path = self._to_shared_path(
             path,
