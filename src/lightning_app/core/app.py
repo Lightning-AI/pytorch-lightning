@@ -11,12 +11,13 @@ from time import time
 from deepdiff import DeepDiff, Delta
 
 import lightning_app
+from lightning_app.api.request_types import APIRequest, BaseRequest, CommandRequest
 from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
-from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_requests
+from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
@@ -73,9 +74,7 @@ class LightningApp:
         # queues definition.
         self.delta_queue: t.Optional[BaseQueue] = None
         self.readiness_queue: t.Optional[BaseQueue] = None
-        self.commands_requests_queue: t.Optional[BaseQueue] = None
-        self.commands_responses_queue: t.Optional[BaseQueue] = None
-        self.commands_metadata_queue: t.Optional[BaseQueue] = None
+        self.api_response_queue: t.Optional[BaseQueue] = None
         self.api_publish_state_queue: t.Optional[BaseQueue] = None
         self.api_delta_queue: t.Optional[BaseQueue] = None
         self.error_queue: t.Optional[BaseQueue] = None
@@ -267,7 +266,7 @@ class LightningApp:
         while (time() - t0) < self.state_accumulate_wait:
 
             if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: Delta = self.get_state_changed_from_queue(self.api_delta_queue)  # TODO: rename
+                delta_from_api: BaseRequest = self.get_state_changed_from_queue(self.api_delta_queue)  # TODO: rename
                 if delta_from_api:
                     deltas.append(delta_from_api)
                 else:
@@ -315,8 +314,16 @@ class LightningApp:
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
+        request_deltas = [delta for delta in deltas if isinstance(delta, (APIRequest, CommandRequest))]
+        for delta in request_deltas:
+            _process_requests(self, delta)
+
         state = self.state
+
         for delta in deltas:
+            if isinstance(delta, (APIRequest, CommandRequest)):
+                continue
+
             try:
                 state += delta
             except Exception as e:
@@ -349,8 +356,6 @@ class LightningApp:
 
         elif self.stage == AppStage.RESTARTING:
             return self._apply_restarting()
-
-        _process_requests(self)
 
         try:
             self.check_error_queue()
@@ -403,8 +408,6 @@ class LightningApp:
             self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
-
-        _populate_commands_endpoint(self)
 
         while not done:
             done = self.run_once()

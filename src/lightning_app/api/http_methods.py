@@ -6,6 +6,8 @@ from functools import wraps
 from typing import Callable
 from uuid import uuid4
 
+from lightning_app.api.request_types import APIRequest, CommandRequest
+
 
 def _signature_proxy_function():
     pass
@@ -41,20 +43,21 @@ class _HttpMethod:
         # 2: Get the route associated with the http method.
         route = getattr(app, self.__class__.__name__.lower())
 
+        request_cls = CommandRequest if "command" in self.route else APIRequest
+
         # 3: Define the request handler.
         @wraps(_signature_proxy_function)
         async def _handle_request(*args, **kwargs):
             async def fn(*args, **kwargs):
                 request_id = str(uuid4()).split("-")[0]
                 request_queue.put(
-                    {
-                        "__type__": "request",
-                        "name": self.component_name,
-                        "method_name": self.method_name,
-                        "args": args,
-                        "kwargs": kwargs,
-                        "id": request_id,
-                    }
+                    request_cls(
+                        name=self.component_name,
+                        method_name=self.method_name,
+                        args=args,
+                        kwargs=kwargs,
+                        id=request_id,
+                    )
                 )
 
                 t0 = time.time()
@@ -86,5 +89,4 @@ class Put(_HttpMethod):
 
 
 class Delete(_HttpMethod):
-
     pass

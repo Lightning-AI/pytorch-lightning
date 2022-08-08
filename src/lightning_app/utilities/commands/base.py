@@ -8,13 +8,14 @@ import sys
 from getpass import getuser
 from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 import requests
 from pydantic import BaseModel
 
-from lightning_app.utilities.app_helpers import is_overridden
+from lightning_app.api.http_methods import Post
+from lightning_app.api.request_types import APIRequest, CommandRequest
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import AppState
@@ -92,11 +93,7 @@ class ClientCommand:
         return {"owner": self.owner, "requirements": self.requirements}
 
     def __call__(self, **kwargs: Any) -> Any:
-        assert self.models
-        input = {}
-        for k, v in kwargs.items():
-            input[k] = self.models[k].parse_raw(v)
-        return self.method(**input)
+        return self.method(**kwargs)
 
 
 def _download_command(
@@ -192,67 +189,40 @@ def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
         return filepath
 
 
-def _populate_commands_endpoint(app):
-    if not is_overridden("configure_commands", app.root):
-        return
-
-    # 1: Populate commands metadata
-    commands = app.root.configure_commands()
-    commands_metadata = []
-    command_names = set()
-    for command_mapping in commands:
-        for command_name, command in command_mapping.items():
-            is_client_command = isinstance(command, ClientCommand)
-            extras = {}
-            if is_client_command:
-                _upload_command(command_name, command)
-                command, extras = _command_to_method_and_metadata(command)
-            if command_name in command_names:
-                raise Exception(f"The component name {command_name} has already been used. They need to be unique.")
-            command_names.add(command_name)
-            params = inspect.signature(command).parameters
-            commands_metadata.append(
-                {
-                    "command": command_name,
-                    "affiliation": command.__self__.name,
-                    "params": list(params.keys()),
-                    "is_client_command": is_client_command,
-                    **extras,
-                }
-            )
-
-    # 1.2: Pass the collected commands through the queue to the Rest API.
-    app.commands_metadata_queue.put(commands_metadata)
-    app.commands = commands
+def _process_api_request(app, request: APIRequest) -> None:
+    flow = app.get_component_by_name(request.name)
+    method = getattr(flow, request.method_name)
+    response = method(*request.args, **request.kwargs)
+    app.api_response_queue.put({"response": response, "id": request.id})
 
 
-def _process_api_request(app, request):
-    flow = app.get_component_by_name(request["name"])
-    method = getattr(flow, request["method_name"])
-    response = method(*request["args"], **request["kwargs"])
-    app.commands_responses_queue.put({"response": response, "id": request["id"]})
-
-
-def _process_command_requests(app, request):
+def _process_command_requests(app, request: CommandRequest) -> None:
     for command in app.commands:
         for command_name, method in command.items():
-            if request["command_name"] == command_name:
+            if request.method_name == command_name:
                 # 2.1: Evaluate the method associated to a specific command.
                 # Validation is done on the CLI side.
-                response = method(**request["command_arguments"])
-                app.commands_responses_queue.put({"response": response, "id": request["id"]})
+                response = method(*request.args, **request.kwargs)
+                app.api_response_queue.put({"response": response, "id": request.id})
 
 
-def _process_requests(app) -> None:
-    if not is_overridden("configure_commands", app.root) and not is_overridden("configure_api", app.root):
-        return
-
-    request = app.get_state_changed_from_queue(app.commands_requests_queue)
-
-    if not request:
-        return
-
-    if "__type__" in request:
+def _process_requests(app, request: Union[APIRequest, CommandRequest]) -> None:
+    """Convert user commands to API endpoint."""
+    if isinstance(request, APIRequest):
         _process_api_request(app, request)
     else:
         _process_command_requests(app, request)
+
+
+def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) -> List:
+    """Convert user commands to API endpoint."""
+    api = []
+    for command in commands:
+        for k, v in command.items():
+            api.append(
+                Post(
+                    f"/command/{k}",
+                    v.method if isinstance(v, ClientCommand) else v,
+                )
+            )
+    return api

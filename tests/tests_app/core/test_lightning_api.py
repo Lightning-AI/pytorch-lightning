@@ -175,12 +175,11 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
     app = AppStageTestingApp(FlowA(), debug=True)
     publish_state_queue = MockQueue("publish_state_queue")
-    commands_metadata_queue = MockQueue("commands_metadata_queue")
-    commands_responses_queue = MockQueue("commands_metadata_queue")
+    api_response_queue = MockQueue("api_response_queue")
 
     publish_state_queue.put(app.state_with_changes)
 
-    thread = UIRefresher(publish_state_queue, commands_metadata_queue, commands_responses_queue)
+    thread = UIRefresher(publish_state_queue, api_response_queue)
     thread.run_once()
 
     assert global_app_state_store.get_app_state("1234") == app.state_with_changes
@@ -207,7 +206,7 @@ async def test_start_server(x_lightning_type):
     change_state_queue = MockQueue("change_state_queue")
     has_started_queue = MockQueue("has_started_queue")
     commands_requests_queue = MockQueue("commands_requests_queue")
-    commands_responses_queue = MockQueue("commands_responses_queue")
+    api_response_queue = MockQueue("api_response_queue")
     commands_metadata_queue = MockQueue("commands_metadata_queue")
     state = app.state_with_changes
     publish_state_queue.put(state)
@@ -216,7 +215,7 @@ async def test_start_server(x_lightning_type):
         publish_state_queue,
         change_state_queue,
         commands_requests_queue,
-        commands_responses_queue,
+        api_response_queue,
         commands_metadata_queue,
         has_started_queue=has_started_queue,
         uvicorn_run=False,
@@ -358,14 +357,14 @@ def test_start_server_started():
     api_delta_queue = mp.Queue()
     has_started_queue = mp.Queue()
     commands_requests_queue = mp.Queue()
-    commands_responses_queue = mp.Queue()
+    api_response_queue = mp.Queue()
     commands_metadata_queue = mp.Queue()
     kwargs = dict(
         api_publish_state_queue=api_publish_state_queue,
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
         commands_requests_queue=commands_requests_queue,
-        commands_responses_queue=commands_responses_queue,
+        api_response_queue=api_response_queue,
         commands_metadata_queue=commands_metadata_queue,
         port=1111,
     )
@@ -387,7 +386,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     api_delta_queue = MockQueue()
     has_started_queue = MockQueue()
     commands_requests_queue = MockQueue()
-    commands_responses_queue = MockQueue()
+    api_response_queue = MockQueue()
     commands_metadata_queue = MockQueue()
     kwargs = dict(
         host=host,
@@ -396,7 +395,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
         commands_requests_queue=commands_requests_queue,
-        commands_responses_queue=commands_responses_queue,
+        api_response_queue=api_response_queue,
         commands_metadata_queue=commands_metadata_queue,
     )
 

@@ -3,7 +3,6 @@ import logging
 import os
 import queue
 import sys
-import time
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
@@ -22,6 +21,7 @@ from pydantic import BaseModel
 from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import _HttpMethod
+from lightning_app.api.request_types import DeltaRequest
 from lightning_app.core.constants import FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
 from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
@@ -43,9 +43,6 @@ STATE_EVENT = "State changed"
 frontend_static_dir = os.path.join(FRONTEND_DIR, "static")
 
 api_app_delta_queue: Queue = None
-api_commands_requests_queue: Queue = None
-api_commands_metadata_queue: Queue = None
-api_commands_responses_queue: Queue = None
 
 template = {"ui": {}, "app": {}}
 templates = Jinja2Templates(directory=FRONTEND_DIR)
@@ -58,7 +55,7 @@ lock = Lock()
 
 app_spec: Optional[List] = None
 app_commands_metadata: Optional[Dict] = None
-commands_response_store = {}
+responses_store = {}
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +65,10 @@ logger = logging.getLogger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_commands_metadata_queue, api_commands_responses_queue) -> None:
+    def __init__(self, api_publish_state_queue, api_response_queue) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
-        self.api_commands_metadata_queue = api_commands_metadata_queue
-        self.api_commands_responses_queue = api_commands_responses_queue
+        self.api_response_queue = api_response_queue
         self._exit_event = Event()
 
     def run(self):
@@ -94,18 +90,10 @@ class UIRefresher(Thread):
             pass
 
         try:
-            metadata = self.api_commands_metadata_queue.get(timeout=0)
+            response = self.api_response_queue.get(timeout=0)
             with lock:
-                global app_commands_metadata
-                app_commands_metadata = metadata
-        except queue.Empty:
-            pass
-
-        try:
-            response = self.api_commands_responses_queue.get(timeout=0)
-            with lock:
-                global commands_response_store
-                commands_response_store[response["id"]] = response["response"]
+                global responses_store
+                responses_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 
@@ -177,41 +165,41 @@ async def get_spec(
     return app_spec or []
 
 
-@fastapi_service.post("/api/v1/commands", response_class=JSONResponse)
-async def run_remote_command(
-    request: Request,
-) -> None:
-    data = await request.json()
-    command_name = data.get("command_name", None)
-    if not command_name:
-        raise Exception("The provided command name is empty.")
-    command_arguments = data.get("command_arguments", None)
-    if not command_arguments:
-        raise Exception("The provided command metadata is empty.")
-    affiliation = data.get("affiliation", None)
-    if not affiliation:
-        raise Exception("The provided affiliation is empty.")
+# @fastapi_service.post("/api/v1/commands", response_class=JSONResponse)
+# async def run_remote_command(
+#     request: Request,
+# ) -> None:
+#     data = await request.json()
+#     command_name = data.get("command_name", None)
+#     if not command_name:
+#         raise Exception("The provided command name is empty.")
+#     command_arguments = data.get("command_arguments", None)
+#     if not command_arguments:
+#         raise Exception("The provided command metadata is empty.")
+#     affiliation = data.get("affiliation", None)
+#     if not affiliation:
+#         raise Exception("The provided affiliation is empty.")
 
-    async def fn(data):
-        request_id = data["id"]
-        api_commands_requests_queue.put(data)
+#     async def fn(data):
+#         request_id = data["id"]
+#         api_commands_requests_queue.put(data)
 
-        t0 = time.time()
-        while request_id not in commands_response_store:
-            await asyncio.sleep(0.1)
-            if (time.time() - t0) > 15:
-                raise Exception("The response was never received.")
+#         t0 = time.time()
+#         while request_id not in responses_store:
+#             await asyncio.sleep(0.1)
+#             if (time.time() - t0) > 15:
+#                 raise Exception("The response was never received.")
 
-        return commands_response_store.pop(request_id)
+#         return responses_store.pop(request_id)
 
-    return await asyncio.create_task(fn(data))
+#     return await asyncio.create_task(fn(data))
 
 
-@fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
-async def get_commands() -> Optional[Dict]:
-    global app_commands_metadata
-    with lock:
-        return app_commands_metadata
+# @fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
+# async def get_commands() -> Optional[Dict]:
+#     global app_commands_metadata
+#     with lock:
+#         return app_commands_metadata
 
 
 @fastapi_service.post("/api/v1/delta")
@@ -220,7 +208,7 @@ async def post_delta(
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> Mapping:
+) -> None:
     """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
     update the state."""
 
@@ -230,9 +218,7 @@ async def post_delta(
         raise Exception("Missing X-Lightning-Session-ID header")
 
     body: Dict = await request.json()
-    delta = body["delta"]
-    update_delta = Delta(delta)
-    api_app_delta_queue.put(update_delta)
+    api_app_delta_queue.put(DeltaRequest(delta=Delta(body["delta"])))
 
 
 @fastapi_service.post("/api/v1/state")
@@ -241,7 +227,7 @@ async def post_state(
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> Mapping:
+) -> None:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
     if x_lightning_session_id is None:
@@ -264,8 +250,7 @@ async def post_state(
         state = body["state"]
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
         deep_diff = DeepDiff(last_state, state, verbose_level=2)
-    update_delta = Delta(deep_diff)
-    api_app_delta_queue.put(update_delta)
+    api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
 
 
 @fastapi_service.get("/healthz", status_code=200)
@@ -349,9 +334,7 @@ class LightningUvicornServer(uvicorn.Server):
 def start_server(
     api_publish_state_queue,
     api_delta_queue,
-    commands_requests_queue,
-    commands_responses_queue,
-    commands_metadata_queue,
+    api_response_queue,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
@@ -362,22 +345,17 @@ def start_server(
 ):
     global api_app_delta_queue
     global global_app_state_store
-    global api_commands_requests_queue
-    global api_commands_responses_queue
     global app_spec
 
     app_spec = spec
     api_app_delta_queue = api_delta_queue
-    api_commands_requests_queue = commands_requests_queue
-    api_commands_responses_queue = commands_responses_queue
-    api_commands_metadata_queue = commands_metadata_queue
 
     if app_state_store is not None:
         global_app_state_store = app_state_store
 
     global_app_state_store.add(TEST_SESSION_UUID)
 
-    refresher = UIRefresher(api_publish_state_queue, api_commands_metadata_queue, commands_responses_queue)
+    refresher = UIRefresher(api_publish_state_queue, api_response_queue)
     refresher.setDaemon(True)
     refresher.start()
 
@@ -392,7 +370,7 @@ def start_server(
         # Register the user API.
         if apis:
             for api in apis:
-                api.add_route(fastapi_service, commands_requests_queue, commands_response_store)
+                api.add_route(fastapi_service, api_app_delta_queue, responses_store)
 
         register_global_routes()
 

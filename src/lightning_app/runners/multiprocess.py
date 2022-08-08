@@ -8,6 +8,7 @@ from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
 from lightning_app.utilities.app_helpers import is_overridden
+from lightning_app.utilities.commands.base import _commands_to_api
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
 from lightning_app.utilities.load_app import extract_metadata_from_app
 from lightning_app.utilities.network import find_free_network_port
@@ -64,18 +65,20 @@ class MultiProcessRuntime(Runtime):
 
                 apis = []
                 if is_overridden("configure_api", self.app.root):
-                    apis = self.app.root.configure_api()
+                    apis += self.app.root.configure_api()
+
+                if is_overridden("configure_commands", self.app.root):
+                    commands = self.app.root.configure_commands()
+                    apis += _commands_to_api(commands)
 
                 kwargs = dict(
                     apis=apis,
                     host=self.host,
                     port=self.port,
+                    api_response_queue=self.app.api_response_queue,
                     api_publish_state_queue=self.app.api_publish_state_queue,
                     api_delta_queue=self.app.api_delta_queue,
                     has_started_queue=has_started_queue,
-                    commands_requests_queue=self.app.commands_requests_queue,
-                    commands_responses_queue=self.app.commands_responses_queue,
-                    commands_metadata_queue=self.app.commands_metadata_queue,
                     spec=extract_metadata_from_app(self.app),
                 )
                 server_proc = multiprocessing.Process(target=start_server, kwargs=kwargs)
