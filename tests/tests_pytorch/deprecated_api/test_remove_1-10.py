@@ -11,22 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+import pytest
 
-import torch
-
-from pytorch_lightning.utilities.enums import PrecisionType
+from pytorch_lightning import Trainer
 
 
-def on_colab_kaggle() -> bool:
-    return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
-
-
-def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
-    if torch.is_floating_point(tensor):
-        if precision in (PrecisionType.MIXED, PrecisionType.HALF):
-            return tensor.half()
-        if precision == PrecisionType.BFLOAT:
-            return tensor.bfloat16()
-
-    return tensor
+def test_deprecated_amp_level():
+    with pytest.deprecated_call(match="Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0"):
+        Trainer(amp_level="O3", amp_backend="apex")

@@ -47,6 +47,20 @@ callbacks
     Timer
     TQDMProgressBar
 
+cli
+-----
+
+.. currentmodule:: pytorch_lightning.cli
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    LightningCLI
+    LightningArgumentParser
+    SaveConfigCallback
+
 core
 ----
 
