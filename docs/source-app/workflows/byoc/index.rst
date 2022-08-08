@@ -19,7 +19,7 @@ The control plane resides on Lightning Cloud.
 Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
 delegated access and an identity provider for secure access to the data plane.
 
-Next, as part of the environment creation process, users can configure networking,
+Next, as part of the environment creation process, you can configure networking,
 security, and select among cluster configuration options based on their own use cases.
 
 After submitting a cluster creation request, the Lightning Control Plane creates the required cloud infrastructure on the user account. This
@@ -43,6 +43,8 @@ Here's an example:
 .. code:: python
 
    lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --cost-savings
+
+..note:: Cluster creation is gonna take an hour or more after you run this command. 
 
 **Parameters:**
 
@@ -86,10 +88,9 @@ Delete a Lightning BYOC cluster
 
 Deletes a Lightning BYOC cluster. Lightning AI removes cluster artifacts and any resources running on the cluster.
 
-.. warning:: Deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
+.. warning:: Using the --force parameter when deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
 
-Deleting a run also deletes all Runs and Experiments that were started on the cluster.
-Deletion permanently removes not only the record of all runs on a cluster, but all associated experiments, artifacts, metrics, logs, etc.
+Deletion permanently removes not only the record of all runs on a cluster, but all associated artifacts, metrics, logs, etc.
 
 .. warning:: This process may take a few minutes to complete, but once started it CANNOT be rolled back. Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down every BYOC resource Lightning AI managed (for that cluster id) in the host cloud. All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
 
