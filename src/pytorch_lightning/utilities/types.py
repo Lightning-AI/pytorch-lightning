@@ -49,7 +49,7 @@ TRAIN_DATALOADERS = Union[
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 _DEVICE = Union[torch.device, str, int]
-_MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]]
+_MAP_LOCATION_TYPE = Union[_DEVICE, Callable[[torch.StorageBase, str], torch.StorageBase], Dict[_DEVICE, _DEVICE]]
 
 
 @runtime_checkable

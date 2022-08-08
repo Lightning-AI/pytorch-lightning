@@ -23,6 +23,7 @@ from enum import Enum
 from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
+import torch
 import yaml
 
 import pytorch_lightning as pl
@@ -57,7 +58,7 @@ class ModelIO:
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[str, IO],
-        map_location: _MAP_LOCATION_TYPE = None,
+        map_location: Optional[_MAP_LOCATION_TYPE] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
         **kwargs: Any,
@@ -172,13 +173,13 @@ class ModelIO:
 def _load_from_checkpoint(
     cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint_path: Union[str, IO],
-    map_location: _MAP_LOCATION_TYPE = None,
+    map_location: Optional[_MAP_LOCATION_TYPE] = None,
     hparams_file: Optional[str] = None,
     strict: bool = True,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
-        map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
+        map_location = _default_map_location
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
@@ -444,3 +445,7 @@ def convert(val: str) -> Union[int, float, bool, str]:
     except (ValueError, SyntaxError) as err:
         log.debug(err)
         return val
+
+
+def _default_map_location(storage: torch.StorageBase, _: str) -> torch.StorageBase:
+    return storage

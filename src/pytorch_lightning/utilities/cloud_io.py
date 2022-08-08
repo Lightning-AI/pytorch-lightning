@@ -15,7 +15,7 @@
 
 import io
 from pathlib import Path
-from typing import Any, Dict, IO, Union
+from typing import Any, Dict, IO, Union, Optional
 
 import fsspec
 import torch
@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 def load(
     path_or_url: Union[IO, _PATH],
-    map_location: _MAP_LOCATION_TYPE = None,
+    map_location: Optional[_MAP_LOCATION_TYPE] = None,
 ) -> Any:
     """Loads a checkpoint.
 
