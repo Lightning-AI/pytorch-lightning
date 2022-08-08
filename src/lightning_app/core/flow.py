@@ -634,3 +634,17 @@ class LightningFlow:
             lightning my_command_name --args name=my_own_name
         """
         raise NotImplementedError
+
+    def state_dict(self):
+        """Returns the current flow state but not its children."""
+        return {
+            "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
+            "calls": self._calls.copy(),
+            "changes": {},
+            "flows": {},
+            "works": {},
+            "structures": {},
+        }
+
+    def load_state_dict(self, flow_state: Dict[str, Any], children_state) -> None:
+        self.set_state(flow_state)

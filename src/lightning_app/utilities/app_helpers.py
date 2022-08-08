@@ -401,3 +401,31 @@ class LightningJSONEncoder(json.JSONEncoder):
         if callable(getattr(obj, "__json__", None)):
             return obj.__json__()
         return json.JSONEncoder.default(self, obj)
+
+
+def _state_dict(flow: "LightningFlow"):
+    state = {}
+    flows = [flow] + list(flow.flows.values())
+    for f in flows:
+        state[f.name] = f.state_dict()
+    for w in flow.works():
+        state[w.name] = w.state_dict()
+    return state
+
+
+def _load_state_dict(flow: "LightningFlow", state):
+    for w in flow.works():
+        w.load_state_dict(state.pop(w.name))
+
+    flows = [flow] + list(flow.flows.values())
+
+    work_state_left = {k: v for k, v in state.items() if k not in [f.name for f in flows]}
+
+    for f in flows:
+        children_state = {}
+        for k, work_state in work_state_left.items():
+            affiliation = k.split(".")
+            flow_name = ".".join(affiliation[:-1])
+            if flow_name == f.name:
+                children_state[affiliation[-1]] = work_state
+        f.load_state_dict(state.pop(f.name), children_state)
