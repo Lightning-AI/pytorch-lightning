@@ -214,6 +214,12 @@ def _process_requests(app, request: Union[APIRequest, CommandRequest]) -> None:
         _process_command_requests(app, request)
 
 
+def _validate_api(apis):
+    for api in apis:
+        if api.route.startwith("/command"):
+            raise Exception("The route `command` is reserved for commands. Please, use something else.")
+
+
 def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) -> List:
     """Convert user commands to API endpoint."""
     api = []
