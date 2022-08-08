@@ -1,18 +1,17 @@
 sphinx>=4.0,<5.0
-myst-parser>=0.15
-nbsphinx>=0.8.5
+myst-parser>=0.15,<0.17
+nbsphinx>=0.8.5, <=0.8.9
 ipython[notebook]
 ipython_genutils
-pandoc>=1.0
-docutils>=0.16
-sphinxcontrib-fulltoc>=1.0
+pandoc>=1.0, <=2.2
+docutils>=0.16, <0.19
+sphinxcontrib-fulltoc>=1.0, <=1.2.0
 sphinxcontrib-mockautodoc
 
 https://storage.googleapis.com/grid-packages/lightning-ai-sphinx-theme/build-31.3.zip
 sphinx-autodoc-typehints>=1.0,<1.15  # v1.15 failing on master (#11405)
-sphinx-paramlinks>=0.5.1
-sphinx-togglebutton>=0.2
-sphinx-copybutton>=0.3
+sphinx-paramlinks>=0.5.1, <=0.5.4
+sphinx-togglebutton>=0.2, <=0.3.2
+sphinx-copybutton>=0.3, <=0.5.0
 sphinx-autobuild
-typing-extensions  # already in `requirements.txt` but the docs CI job does not install it
 jinja2>=3.0.0,<3.1.0
