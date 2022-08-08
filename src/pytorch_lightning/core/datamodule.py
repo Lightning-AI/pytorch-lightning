@@ -27,7 +27,6 @@ from pytorch_lightning.utilities.argparse import (
     get_init_arguments_and_types,
     parse_argparser,
 )
-from pytorch_lightning.utilities.types import _PATH
 
 _ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
 
@@ -207,8 +206,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: Union[_PATH, IO],
-        hparams_file: Optional[_PATH] = None,
+        checkpoint_path: Union[str, IO],
+        hparams_file: Optional[str] = None,
         **kwargs: Any,
     ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         r"""
