@@ -415,7 +415,7 @@ def test_populate_changes():
     work_state = flow_a.work.state
     flow_a.work.counter = 1
     work_state_2 = flow_a.work.state
-    delta = Delta(DeepDiff(work_state, work_state_2))
+    delta = Delta(DeepDiff(work_state, work_state_2, verbose_level=2))
     delta = _delta_to_appstate_delta(flow_a, flow_a.work, delta)
     new_flow_state = LightningApp.populate_changes(flow_state, flow_state + delta)
     flow_a.set_state(new_flow_state)
