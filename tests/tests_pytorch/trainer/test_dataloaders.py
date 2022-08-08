@@ -946,91 +946,36 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
     assert tracker.mock_calls == expected_sequence
 
 
-@pytest.mark.parametrize("reload_dataloaders_every_n_epochs", [1, 2])
-def test_dataloaders_load_every_n_epochs(tmpdir, reload_dataloaders_every_n_epochs):
-    sanity_val_check_reload_epochs, train_reload_epochs, val_reload_epochs = [], [], []
-    sanity_val_step_epochs, val_step_epochs = [], []
-
-    class TestModel(BoringModel):
-        def train_dataloader(self):
-            train_reload_epochs.append(self.current_epoch)
-            return super().train_dataloader()
-
-        def val_dataloader(self):
-            if self.trainer.sanity_checking:
-                sanity_val_check_reload_epochs.append(self.current_epoch)
-            else:
-                val_reload_epochs.append(self.current_epoch)
-
-            return super().val_dataloader()
-
-        def validation_step(self, *args, **kwargs):
-            if self.trainer.sanity_checking:
-                sanity_val_step_epochs.append(self.current_epoch)
-            else:
-                val_step_epochs.append(self.current_epoch)
-
-            return super().validation_step(*args, **kwargs)
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        reload_dataloaders_every_n_epochs=reload_dataloaders_every_n_epochs,
-        max_epochs=5,
-        num_sanity_val_steps=1,
-    )
-
-    tracker = Mock()
-    model.train_dataloader = Mock(wraps=model.train_dataloader)
-    model.val_dataloader = Mock(wraps=model.val_dataloader)
-    model.test_dataloader = Mock(wraps=model.test_dataloader)
-
-    tracker.attach_mock(model.train_dataloader, "train_dataloader")
-    tracker.attach_mock(model.val_dataloader, "val_dataloader")
-    tracker.attach_mock(model.test_dataloader, "test_dataloader")
-
-    trainer.fit(model)
-    trainer.test(model)
-
-    # Verify the sequence
-    expected_sequence = [call.val_dataloader(), call.train_dataloader()]  # Sanity check first
-    if reload_dataloaders_every_n_epochs == 1:
-        expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 4
-    elif reload_dataloaders_every_n_epochs == 2:
-        expected_sequence += [call.train_dataloader(), call.val_dataloader()] * 2
-    expected_sequence += [call.test_dataloader()]
-
-    # assert tracker.mock_calls == expected_sequence
-
-    # Verify epoch of reloads
-    assert sanity_val_check_reload_epochs == sanity_val_step_epochs == [0]
-    assert val_step_epochs == [0, 1, 2, 3, 4]
-
-    if reload_dataloaders_every_n_epochs == 1:
-        assert train_reload_epochs == [0, 1, 2, 3, 4]
-        assert val_reload_epochs == [1, 2, 3, 4]
-    elif reload_dataloaders_every_n_epochs == 2:
-        assert train_reload_epochs == [0, 1, 3]
-        assert val_reload_epochs == [1, 3]
-
-
-@pytest.mark.parametrize("num_sanity_val_steps", [0, 1])
 @pytest.mark.parametrize(
-    "check_val_every_n_epoch, train_reload_epochs_expect, val_reload_epochs_expect",
+    (
+        "num_sanity_val_steps, check_val_every_n_epoch, reload_dataloaders_every_n_epochs,"
+        " train_reload_epochs_expect,val_reload_epochs_expect,val_step_epochs_expect"
+    ),
     [
         # Sanity check at epoch 0 creates a validation dataloader, but validation is
         # checked (and in this case reloaded) every n epochs starting from epoch n-1
-        (2, [0, 1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
-        (3, [0, 1, 3, 5, 7, 9], [2, 5, 8]),
-        (5, [0, 1, 3, 5, 7, 9], [4, 9]),
+        (0, 1, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        # (0, 1,2, [0, 1, 3, 5, 7, 9], [0, 2, 4, 6, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (0, 2, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
+        (0, 2, 2, [0, 1, 3, 5, 7, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
+        (0, 3, 2, [0, 1, 3, 5, 7, 9], [2, 5, 8], [2, 5, 8]),
+        (0, 5, 2, [0, 1, 3, 5, 7, 9], [4, 9], [4, 9]),
+        (1, 1, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        # (1, 1,2, [0, 1, 3, 5, 7, 9], [2, 4, 6, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        (1, 2, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
+        (1, 2, 2, [0, 1, 3, 5, 7, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
+        (1, 3, 2, [0, 1, 3, 5, 7, 9], [2, 5, 8], [2, 5, 8]),
+        (1, 5, 2, [0, 1, 3, 5, 7, 9], [4, 9], [4, 9]),
     ],
 )
 def test_dataloaders_load_every_n_epochs_infrequent_val(
-    tmpdir, num_sanity_val_steps, check_val_every_n_epoch, train_reload_epochs_expect, val_reload_epochs_expect
+    tmpdir,
+    num_sanity_val_steps,
+    check_val_every_n_epoch,
+    reload_dataloaders_every_n_epochs,
+    train_reload_epochs_expect,
+    val_reload_epochs_expect,
+    val_step_epochs_expect,
 ):
     """Test dataloader reload behavior when infrequently checking validation set (via check_val_every_n_epoch)"""
     sanity_val_check_epochs, train_reload_epochs, val_reload_epochs = [], [], []
@@ -1063,7 +1008,7 @@ def test_dataloaders_load_every_n_epochs_infrequent_val(
         limit_train_batches=1,
         limit_val_batches=1,
         check_val_every_n_epoch=check_val_every_n_epoch,
-        reload_dataloaders_every_n_epochs=2,
+        reload_dataloaders_every_n_epochs=reload_dataloaders_every_n_epochs,
         max_epochs=10,
         num_sanity_val_steps=num_sanity_val_steps,
     )
@@ -1073,7 +1018,8 @@ def test_dataloaders_load_every_n_epochs_infrequent_val(
     sanity_val_check_epochs_expect = [0] if num_sanity_val_steps else []
     assert sanity_val_check_epochs == sanity_val_step_epochs == sanity_val_check_epochs_expect
     assert train_reload_epochs == train_reload_epochs_expect
-    assert val_reload_epochs == val_step_epochs == val_reload_epochs_expect
+    assert val_reload_epochs == val_reload_epochs_expect
+    assert val_step_epochs == val_step_epochs_expect
 
 
 def test_dataloaders_load_every_n_epochs_frequent_val(tmpdir):
