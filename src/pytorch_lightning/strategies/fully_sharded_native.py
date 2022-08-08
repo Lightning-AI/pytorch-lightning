@@ -51,7 +51,7 @@ if _TORCH_GREATER_EQUAL_1_12:
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 else:
-    MixedPrecision = None
+    MixedPrecision = None  # type: ignore[misc,assignment]
     BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
 
