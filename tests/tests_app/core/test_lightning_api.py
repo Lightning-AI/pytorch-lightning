@@ -205,18 +205,14 @@ async def test_start_server(x_lightning_type):
     publish_state_queue = InfiniteQueue("publish_state_queue")
     change_state_queue = MockQueue("change_state_queue")
     has_started_queue = MockQueue("has_started_queue")
-    commands_requests_queue = MockQueue("commands_requests_queue")
     api_response_queue = MockQueue("api_response_queue")
-    commands_metadata_queue = MockQueue("commands_metadata_queue")
     state = app.state_with_changes
     publish_state_queue.put(state)
     spec = extract_metadata_from_app(app)
     ui_refresher = start_server(
         publish_state_queue,
         change_state_queue,
-        commands_requests_queue,
         api_response_queue,
-        commands_metadata_queue,
         has_started_queue=has_started_queue,
         uvicorn_run=False,
         spec=spec,
@@ -356,16 +352,12 @@ def test_start_server_started():
     api_publish_state_queue = mp.Queue()
     api_delta_queue = mp.Queue()
     has_started_queue = mp.Queue()
-    commands_requests_queue = mp.Queue()
     api_response_queue = mp.Queue()
-    commands_metadata_queue = mp.Queue()
     kwargs = dict(
         api_publish_state_queue=api_publish_state_queue,
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
-        commands_requests_queue=commands_requests_queue,
         api_response_queue=api_response_queue,
-        commands_metadata_queue=commands_metadata_queue,
         port=1111,
     )
 
@@ -385,18 +377,14 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     api_publish_state_queue = MockQueue()
     api_delta_queue = MockQueue()
     has_started_queue = MockQueue()
-    commands_requests_queue = MockQueue()
     api_response_queue = MockQueue()
-    commands_metadata_queue = MockQueue()
     kwargs = dict(
         host=host,
         port=1111,
         api_publish_state_queue=api_publish_state_queue,
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
-        commands_requests_queue=commands_requests_queue,
         api_response_queue=api_response_queue,
-        commands_metadata_queue=commands_metadata_queue,
     )
 
     monkeypatch.setattr(api, "logger", logging.getLogger())
@@ -454,6 +442,7 @@ def test_configure_api():
         except requests.exceptions.ConnectionError:
             sleep(0.1)
             time_left -= 0.1
+
     response = requests.post(
         f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
     )
