@@ -5,12 +5,12 @@ Lightning App - API References
 ##############################
 
 Core
-----
+____
 
 .. currentmodule:: lightning_app.core
 
 .. autosummary::
-    :toctree: api
+    :toctree: api/
     :nosignatures:
     :template: classtemplate_no_index.rst
 
@@ -32,10 +32,11 @@ ___________________
     :nosignatures:
     :template: classtemplate_no_index.rst
 
-    ~serve.serve.ModelInferenceAPI
     ~python.popen.PopenPythonScript
-    ~serve.gradio.ServeGradio
     ~python.tracer.TracerPythonScript
+    ~training.LightningTrainingComponent
+    ~serve.gradio.ServeGradio
+    ~serve.serve.ModelInferenceAPI
 
 ----
 
@@ -67,8 +68,8 @@ _______
     :nosignatures:
     :template: classtemplate_no_index.rst
 
-    ~drive.Drive
     ~path.Path
+    ~drive.Drive
     ~payload.Payload
 
 Learn more about :ref:`Storage <storage>`.
@@ -86,5 +87,5 @@ _______
     :template: classtemplate_no_index.rst
 
     ~cloud.CloudRuntime
-    ~multiprocess.MultiProcessRuntime
     ~singleprocess.SingleProcessRuntime
+    ~multiprocess.MultiProcessRuntime

@@ -120,7 +120,6 @@ class DistributedType(_DeprecatedEnum):
 
     DP = "dp"
     DDP = "ddp"
-    DDP2 = "ddp2"
     DDP_SPAWN = "ddp_spawn"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
@@ -203,16 +202,15 @@ class _StrategyType(LightningEnum):
     """Define type of training strategy.
 
     >>> # you can match the type with string
-    >>> _StrategyType.DDP == 'ddp'
+    >>> _StrategyType.DDP == 'DDP'
     True
     >>> # which is case invariant
-    >>> _StrategyType.DDP2 in ('ddp2', )
+    >>> _StrategyType.DP in ('dp', )
     True
     """
 
     DP = "dp"
     DDP = "ddp"
-    DDP2 = "ddp2"
     DDP_SPAWN = "ddp_spawn"
     DDP_FORK = "ddp_fork"
     TPU_SPAWN = "tpu_spawn"
