@@ -30,6 +30,7 @@ from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
+from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
@@ -217,6 +218,11 @@ def test_gpu_accelerator_deprecation_warning():
         )
     ):
         GPUAccelerator()
+
+
+def test_v1_9_0_deprecated_lightning_deepspeed_module():
+    with pytest.deprecated_call(match=r"has been deprecated in v1.7.1 and will be removed in v1.9."):
+        _ = LightningDeepSpeedModule(BoringModel(), 32)
 
 
 def test_meta_utility_deprecations():
