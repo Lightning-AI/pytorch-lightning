@@ -273,7 +273,7 @@ def _load_state(
     return obj
 
 
-def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Callable, str]] = None) -> Dict[str, Any]:
+def _convert_loaded_hparams(model_args: Dict[str, Any], hparams_type: Optional[Union[Callable, str]] = None) -> Dict[str, Any]:
     """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:
