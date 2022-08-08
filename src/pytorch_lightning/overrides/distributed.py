@@ -45,8 +45,6 @@ def _find_tensors(
 # https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
 def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     # `prepare_for_backward` is `DistributedDataParallel` specific.
-    if not isinstance(model, DistributedDataParallel):
-        return
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
         model.require_forward_param_sync = True  # type: ignore[assignment]
         # We'll return the output object verbatim since it is a freeform
