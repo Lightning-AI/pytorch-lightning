@@ -20,7 +20,7 @@ import os
 import re
 from argparse import Namespace
 from time import time
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union, List
 
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _module_available
@@ -94,6 +94,28 @@ class LayerLogger(Logger):
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         self.experiment.log(dict(metrics), step=step)
+
+    @rank_zero_only
+    def log_image(self, key: str, image: Any, step: Optional[int] = None, **kwargs: Any) -> None:
+        metrics = {key: layer.Image(image, **kwargs)}
+        self.log_metrics(metrics, step)
+
+    @rank_zero_only
+    def log_table(
+        self,
+        key: str,
+        columns: List[str] = None,
+        data: List[List[Any]] = None,
+        step: Optional[int] = None,
+    ) -> None:
+        """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
+
+        Can be defined either with `columns` and `data` or with `dataframe`.
+        """
+        import pandas as pd
+        df = pd.DataFrame(columns=columns,data=data)
+        metrics = {key: df}
+        self.log_metrics(metrics, step)
 
     @rank_zero_only
     def finalize(self, status: str = "FINISHED") -> None:
