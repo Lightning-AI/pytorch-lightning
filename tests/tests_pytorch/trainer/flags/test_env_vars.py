@@ -15,17 +15,20 @@ import os
 from unittest import mock
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 
 
 def test_passing_no_env_variables():
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
+    model = BoringModel()
     assert trainer.logger is not None
     assert trainer.max_steps == -1
-    assert trainer.max_epochs == 1000
-    trainer = Trainer(False, max_steps=42)
+    assert trainer.max_epochs is None
+    trainer = Trainer(logger=False, max_steps=1)
+    trainer.fit(model)
     assert trainer.logger is None
-    assert trainer.max_steps == 42
+    assert trainer.max_steps == 1
     assert trainer.max_epochs == -1
 
 
