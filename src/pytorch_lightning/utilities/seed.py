@@ -66,7 +66,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    _log_info(f"Global seed set to {seed}")
+    log.info(f"[rank: {_get_rank()}] Global seed set to {seed}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -151,8 +151,3 @@ def isolate_rng() -> Generator[None, None, None]:
     states = _collect_rng_states()
     yield
     _set_rng_states(states)
-
-
-def _log_info(message: str) -> None:
-    """Add a prefix to log message with rank info."""
-    log.info(f"[rank: {_get_rank()}] {message}")
