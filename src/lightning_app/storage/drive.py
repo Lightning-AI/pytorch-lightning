@@ -35,10 +35,17 @@ class Drive:
             root_folder: This is the folder from where the Drive perceives the data (e.g this acts as a mount dir).
         """
         self.id = None
+        self.protocol = None
         for protocol in self.__PROTOCOLS__:
             if id.startswith(protocol):
                 self.protocol = protocol
                 self.id = id.replace(protocol, "")
+                break
+        else:  # N.B. for-else loop
+            raise ValueError(
+                f"Unknown protocol for the drive 'id' argument '{id}`. The 'id' string "
+                f"must start with one of the following prefixes {self.__PROTOCOLS__}"
+            )
 
         if self.protocol == "s3://" and not self.id.endswith("/"):
             raise ValueError(

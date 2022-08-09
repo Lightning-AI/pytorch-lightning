@@ -109,8 +109,8 @@ def test_lit_drive_transferring_files():
 
 
 def test_lit_drive():
-    with pytest.raises(Exception, match="The Drive id needs to start with one of the following protocols"):
-        Drive("this_drive_id")
+    with pytest.raises(Exception, match="Unknown protocol for the drive 'id' argument"):
+        Drive("invalid_drive_id")
 
     with pytest.raises(
         Exception, match="The id should be unique to identify your drive. Found `this_drive_id/something_else`."
