@@ -190,12 +190,12 @@ def test_replace_init_method_multiple_loaders_without_init():
         classes.append(type(f"DataLoader_{i}", (random.choice(classes),), {}))
 
     with _replace_init_method(DataLoader, "dataset"):
-        for cls in classes:
-            if cls == DataLoader:
-                assert "_old_init" in cls.__dict__
-            else:
-                assert "_old_init" not in cls.__dict__
+        for cls in classes[1:]:  # First one is `DataLoader`
+            assert "_old_init" not in cls.__dict__
             assert hasattr(cls, "_old_init")
+
+        assert "_old_init" in DataLoader.__dict__
+        assert hasattr(DataLoader, "_old_init")
 
 
 class DataLoaderSubclass1(DataLoader):
