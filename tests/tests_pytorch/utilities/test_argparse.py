@@ -207,7 +207,7 @@ def test_add_argparse_args(cls, name):
 
 
 def test_negative_add_argparse_args():
-    with pytest.raises(RuntimeError, match="Please only pass an ArgumentParser instance."):
+    with pytest.raises(RuntimeError, match="Please only pass an `ArgumentParser` instance."):
         parser = ArgumentParser()
         add_argparse_args(AddArgparseArgsExampleClass, parser.add_argument_group("bad workflow"))
 
