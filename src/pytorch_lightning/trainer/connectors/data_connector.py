@@ -14,7 +14,7 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable, Collection, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
@@ -44,9 +44,6 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
 
 warning_cache = WarningCache()
-
-BATCH_DATALOADER = Union[Collection[DataLoader], List[DataLoader], DataLoader[Any]]
-REQUEST_DATALOADER = Union[DataLoader, List[DataLoader], BATCH_DATALOADER]
 
 
 class DataConnector:
@@ -347,12 +344,13 @@ class DataConnector:
 
         # always get the loaders first so we can count how many there are
         dataloaders = self._request_dataloader(mode)
-
-        if self.trainer.overfit_batches > 0:
-            dataloaders = self._resolve_overfit_batches(dataloaders, mode)
+        dataloaders = cast(EVAL_DATALOADERS, dataloaders)
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]  # type: ignore[list-item]
+
+        if self.trainer.overfit_batches > 0:
+            dataloaders = self._resolve_overfit_batches(dataloaders, mode)
 
         if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
@@ -421,7 +419,7 @@ class DataConnector:
 
         return loader_num_batches, dataloaders
 
-    def _request_dataloader(self, stage: RunningStage) -> REQUEST_DATALOADER:
+    def _request_dataloader(self, stage: RunningStage) -> TRAIN_DATALOADERS:
         """Requests a dataloader from the given model by calling dataloader hooks corresponding to the given stage.
 
         Returns:
@@ -440,7 +438,7 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(dataloaders: BATCH_DATALOADER, mode: RunningStage) -> BATCH_DATALOADER:
+    def _resolve_overfit_batches(dataloaders: EVAL_DATALOADERS, mode: RunningStage) -> EVAL_DATALOADERS:
         all_have_sequential_sampler = True
 
         def resolve_has_no_sequential_sampler(dataloader: DataLoader) -> None:
