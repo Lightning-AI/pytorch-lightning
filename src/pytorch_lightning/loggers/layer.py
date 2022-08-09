@@ -16,34 +16,30 @@ Layer Logger
 -------------
 """
 import logging
-import os
-import re
 from argparse import Namespace
-from time import time
+from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Union, List
 
-from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _module_available
-from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
-LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = _module_available("layer")
+_LAYER_AVAILABLE = _RequirementAvailable("layer")
 
 try:
     import layer
 except ModuleNotFoundError:
-    _LAYER_AVAILABLE = False
+    layer = None
 
 
 class LayerLogger(Logger):
-    LOGGER_JOIN_CHAR = "-"
 
     def __init__(
         self,
         project_name: str,
-        api_key: str
+        api_key: Optional[str]
     ):
         if layer is None:
             raise ModuleNotFoundError(
@@ -54,50 +50,51 @@ class LayerLogger(Logger):
 
         self.project_name = project_name
 
-        layer.login_with_api_key(api_key)
+        if api_key is not None:
+            layer.login_with_api_key(api_key)
         layer.init(project_name)
 
-    @property  # type: ignore[misc]
-    @rank_zero_experiment
-    def experiment(self) -> layer:
-        return layer
+    @property
+    def name(self) -> Optional[str]:
+        return f"{self.project_name}/{self._context.asset_name()}"
 
     @property
-    def run_id(self) -> Optional[str]:
-        """Create the experiment if it does not exist to get the run id.
-
-        Returns:
-            The run id.
-        """
-        _ = self.experiment
-        return self._run_id
+    def version(self) -> Optional[Union[int, str]]:
+        from layer.contracts.asset import AssetType
+        if self._context.asset_type() == AssetType.MODEL:
+            return f"{self._context.train().get_version()}.{self._context.train().get_train_index()}"
+        else:
+            raise NotImplementedError("Dataset versions not implemented yet!")
 
     @property
-    def experiment_id(self) -> Optional[str]:
-        """Create the experiment if it does not exist to get the experiment id.
+    def _context(self) -> Optional[layer.Context]:
+        context = layer.global_context.get_active_context()
+        if context is None:
+            raise Exception("Layer Context is only available during training!")
+        else:
+            return context
 
-        Returns:
-            The experiment id.
-        """
-        _ = self.experiment
-        return self._experiment_id
+    @rank_zero_only
+    def log_text(self, key: str, text: str) -> None:
+
+        layer.log({key: text})
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
 
-        self.experiment.log(params)
+        layer.log(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
-
-        self.experiment.log(dict(metrics), step=step)
+        layer.log(dict(metrics), step=step)
 
     @rank_zero_only
-    def log_image(self, key: str, image: Any, step: Optional[int] = None, **kwargs: Any) -> None:
-        metrics = {key: layer.Image(image, **kwargs)}
+    def log_image(self, key: str, image: Union["PIL.Image.Image", Path, "npt.NDArray[np.complex64]", "torch.Tensor"],
+                  format: str = "CHW",
+                  step: Optional[int] = None) -> None:
+        metrics = {key: layer.Image(image, format=format)}
         self.log_metrics(metrics, step)
 
     @rank_zero_only
@@ -106,45 +103,11 @@ class LayerLogger(Logger):
         key: str,
         columns: List[str] = None,
         data: List[List[Any]] = None,
-        step: Optional[int] = None,
+        dataframe: Any = None,
     ) -> None:
-        """Log a Table containing any object type (text, image, audio, video, molecule, html, etc).
-
-        Can be defined either with `columns` and `data` or with `dataframe`.
-        """
-        import pandas as pd
-        df = pd.DataFrame(columns=columns,data=data)
-        metrics = {key: df}
-        self.log_metrics(metrics, step)
-
-    @rank_zero_only
-    def finalize(self, status: str = "FINISHED") -> None:
-        super().finalize(status)
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """The root file directory in which MLflow experiments are saved.
-
-        Return:
-            Local path to the root experiment directory if the tracking uri is local.
-            Otherwise returns `None`.
-        """
-        return None
-
-    @property
-    def name(self) -> Optional[str]:
-        """Get the experiment id.
-
-        Returns:
-            The experiment id.
-        """
-        return self.project_name
-
-    @property
-    def version(self) -> Optional[str]:
-        """Get the run id.
-
-        Returns:
-            The run id.
-        """
-        return self.project_name
+        if dataframe:
+            self.log_metrics({key: dataframe})
+        else:
+            import pandas as pd
+            df = pd.DataFrame(columns=columns, data=data)
+            self.log_metrics({key: df})
