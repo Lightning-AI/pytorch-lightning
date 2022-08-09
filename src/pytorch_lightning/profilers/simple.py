@@ -17,7 +17,7 @@ import os
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -104,7 +104,7 @@ class SimpleProfiler(Profiler):
             if len(self.recorded_durations) > 0:
                 max_key = max(len(k) for k in self.recorded_durations.keys())
 
-                def log_row_extended(action: Any, mean: Any, num_calls: Any, total: Any, per: Any) -> str:
+                def log_row_extended(action: str, mean: str, num_calls: str, total: str, per: str) -> str:
                     row = f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|"
                     row += f"  {num_calls:<15}\t|  {total:<15}\t|  {per:<15}\t|"
                     return row
@@ -131,7 +131,7 @@ class SimpleProfiler(Profiler):
         else:
             max_key = max(len(k) for k in self.recorded_durations)
 
-            def log_row(action: Any, mean: Any, total: Any) -> str:
+            def log_row(action: str, mean: str, total: str) -> str:
                 return f"{sep}|  {action:<{max_key}s}\t|  {mean:<15}\t|  {total:<15}\t|"
 
             header_string = log_row("Action", "Mean duration (s)", "Total time (s)")
