@@ -161,7 +161,7 @@ class DataConnector:
         self.trainer.train_dataloader = None
         self.trainer.val_dataloaders = None
         self.trainer.test_dataloaders = None
-        self.trainer.predict_dataloaders = None  # type: ignore[assignment]
+        self.trainer.predict_dataloaders = None
 
         self._train_dataloader_source = _DataLoaderSource(
             train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
@@ -501,19 +501,15 @@ class _DataLoaderSource:
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
         """
-        from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
-
-        if not self.name:
-            return self.instance  # type: ignore[return-value]
-
-        if isinstance(self.instance, LightningModule):
+        if isinstance(self.instance, pl.LightningModule):
             return self.instance.trainer._call_lightning_module_hook(self.name, pl_module=self.instance)
 
-        if isinstance(self.instance, LightningDataModule):
+        if isinstance(self.instance, pl.LightningDataModule):
             method = getattr(self.instance, self.name)
             return method()
 
-        return self.instance  # type: ignore[return-value]
+        assert self.instance
+        return self.instance
 
     def is_defined(self) -> bool:
         """Returns whether the source dataloader can be retrieved or not.
@@ -527,9 +523,7 @@ class _DataLoaderSource:
 
         It does not check whether ``*_dataloader`` methods are actually overridden.
         """
-        from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
-
-        return isinstance(self.instance, (LightningModule, LightningDataModule))
+        return isinstance(self.instance, (pl.LightningModule, pl.LightningDataModule))
 
 
 @dataclass

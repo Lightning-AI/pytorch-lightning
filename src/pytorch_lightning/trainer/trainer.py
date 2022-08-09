@@ -628,12 +628,12 @@ class Trainer(
         self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.num_val_batches = []
+        self.num_predict_batches = []
         self.test_dataloaders = None
         self.val_dataloaders = None
+        self.predict_dataloaders = None
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
-
-        self.num_predict_batches = []
 
     def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
         r"""
