@@ -5,7 +5,7 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @williamfalcon @borda @tchaton @carmocca @awaelchli @justusschock @kaushikb11 @rohitgr7
+* @williamfalcon @borda @tchaton @awaelchli @justusschock @kaushikb11 @rohitgr7
 
 # CI/CD and configs
 /.github/       @borda @carmocca @akihironitta @tchaton
@@ -26,6 +26,7 @@
 /docs/source-app/expertise_levels           @williamfalcon @Felonious-Spellfire @RobertLaurella
 
 # Packages
+/src/pytorch_lightning                      @carmocca
 /src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
 /src/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
 /src/pytorch_lightning/core                 @tchaton @borda @carmocca @justusschock @kaushikb11
@@ -69,9 +70,6 @@
 /src/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli
 /src/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
 /src/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli
-
-# Testing
-/tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
 
 /.github/CODEOWNERS              @williamfalcon
 /.github/approve_config.yml      @williamfalcon
