@@ -116,7 +116,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for async checkpointing ([#13658](https://github.com/Lightning-AI/lightning/pull/13658))
 - Added support for HPU Device stats monitor ([#13819](https://github.com/Lightning-AI/lightning/pull/13819))
 
-
 ### Changed
 
 - `accelerator="gpu"` now automatically selects an available GPU backend (CUDA and MPS currently) ([#13642](https://github.com/Lightning-AI/lightning/pull/13642))
