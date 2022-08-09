@@ -51,6 +51,7 @@ from pytorch_lightning.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    AzureOpenMPIEnvironment
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
@@ -564,7 +565,7 @@ class AcceleratorConnector:
         if self._is_slurm_managing_tasks():
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
-        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment, AzureOpenMPIEnvironment):
             if env_type.detect():
                 # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
                 return env_type()  # type: ignore[abstract]

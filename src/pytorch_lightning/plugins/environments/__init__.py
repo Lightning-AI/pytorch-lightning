@@ -19,3 +19,4 @@ from pytorch_lightning.plugins.environments.lsf_environment import LSFEnvironmen
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.xla_environment import XLAEnvironment  # noqa: F401
+from pytorch_lightning.plugins.environments.azure_openmpi_environment import AzureOpenMPIEnvironment 
