@@ -414,6 +414,15 @@ def _state_dict(flow: "LightningFlow"):
 
 
 def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: bool = True) -> None:
+    """This function is used to reload the state assuming dynamic components creation.
+
+    When a component isn't found but its state exists, its state is passed up to its closest existing parent.
+
+    Arguments:
+        root_flow: The flow at the top of the component tree.
+        state: The collected state dict.
+        strict: Whether to validate all components have been re-created.
+    """
     # 1: Reload the state of the existing works
     for w in root_flow.works():
         w.load_state_dict(state.pop(w.name))
@@ -447,7 +456,7 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
     for flow_name, flow in flow_map.items():
         flow.load_state_dict(state.pop(flow_name), dynamic_children_state[flow_name])
 
-    # 6: Verify all state has been reloaded accordingly
+    # 6: Verify all dynamic components has been re-created.
     if strict:
         components_names = (
             [root_flow.name] + [f.name for f in root_flow.flows.values()] + [w.name for w in root_flow.works()]

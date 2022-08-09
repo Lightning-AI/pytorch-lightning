@@ -643,11 +643,11 @@ def test_lightning_flow():
 
 class WorkReload(LightningWork):
     def __init__(self):
-        super().__init__()
+        super().__init__(cache_calls=False)
         self.counter = 0
 
     def run(self):
-        pass
+        self.counter += 1
 
 
 class FlowReload(LightningFlow):
@@ -660,7 +660,7 @@ class FlowReload(LightningFlow):
             self.w = WorkReload()
 
         self.counter += 1
-        self.w.counter += 1
+        self.w.run()
 
     def load_state_dict(self, flow_state, children_states) -> None:
         self.w = WorkReload()
@@ -674,6 +674,9 @@ class FlowReload2(LightningFlow):
         self.counter = 0
 
     def run(self):
+        if not getattr(self, "w", None):
+            self.w = WorkReload()
+        self.w.run()
         self.counter += 1
 
     def load_state_dict(self, flow_state, children_states) -> None:
@@ -701,16 +704,32 @@ class RootFlowReload(LightningFlow):
 
 def test_lightning_flow_reload():
     flow = RootFlowReload()
+
+    assert flow.counter == 0
+    assert flow.flow.counter == 0
+
     flow.run()
+
     assert flow.flow.w.counter == 1
     assert flow.counter == 1
     assert flow.flow.counter == 1
     assert flow.flow_2.counter == 1
+    assert flow.flow_2.w.counter == 1
+
     state = _state_dict(flow)
     flow = RootFlowReload()
     _load_state_dict(flow, state)
+
+    assert flow.flow.w.counter == 1
+    assert flow.counter == 1
+    assert flow.flow.counter == 1
+    assert flow.flow_2.counter == 1
+    assert flow.flow_2.w.counter == 1
+
     flow.run()
+
     assert flow.flow.w.counter == 2
     assert flow.counter == 2
     assert flow.flow.counter == 2
     assert flow.flow_2.counter == 2
+    assert flow.flow_2.w.counter == 2

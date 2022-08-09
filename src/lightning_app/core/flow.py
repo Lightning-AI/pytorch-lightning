@@ -648,7 +648,17 @@ class LightningFlow:
 
     def load_state_dict(self, flow_state: Dict[str, Any], children_states: Dict[str, Any]) -> None:
         self.set_state(flow_state)
-        for child_name, state in children_states.items():
+        direct_children_states = {k: v for k, v in children_states.items() if "." not in k}
+        for child_name, state in direct_children_states.items():
             child = getattr(self, child_name, None)
-            if child:
-                child.set_state(state)
+            if isinstance(child, LightningFlow):
+                lower_children_states = {
+                    k.replace(child_name + ".", ""): v
+                    for k, v in children_states.items()
+                    if k.startswith(child_name) and k != child_name
+                }
+                child.load_state_dict(state, lower_children_states)
+            elif isinstance(child, LightningWork):
+                child.load_state_dict(state)
+            else:
+                raise Exception(f"The component {child} isn't supported.")
