@@ -128,7 +128,7 @@ def test_cuda_device(device):
 def test_cuda_current_device():
     """Test that calling .cuda() moves the model to the correct device and respects current cuda device setting."""
 
-    class CudaModule(nn.Module, DeviceDtypeModuleMixin):
+    class CudaModule(DeviceDtypeModuleMixin):
         def __init__(self):
             super().__init__()
             self.layer = nn.Linear(1, 1)
