@@ -178,3 +178,19 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     mock_init_process_group.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp_spawn", {}),
+        ("ddp_fork", {}),
+        ("ddp_notebook", {}),
+        ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_notebook_find_unused_parameters_false", {"find_unused_parameters": False}),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
