@@ -16,6 +16,7 @@ from lightning_cloud.openapi import (
     V1Membership,
     V1NetworkConfig,
     V1PackageManager,
+    V1ProjectClusterBinding,
     V1PythonDependencyInfo,
     V1UserRequestedComputeConfig,
     V1Work,
@@ -34,6 +35,48 @@ class MyWork(LightningWork):
 
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
+
+    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    def test_run_on_byoc_cluster(self, monkeypatch):
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="Default Project", project_id="default-project-id")]
+        )
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
+        app = mock.MagicMock()
+        app.flows = []
+        app.frontend = {}
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
+
+        # without requirements file
+        # setting is_file to False so requirements.txt existence check will return False
+        monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
+        monkeypatch.setattr(cloud, "Path", Path)
+        cloud_runtime.dispatch(cluster_id="test1234")
+        body = Body8(
+            cluster_id="test1234",
+            app_entrypoint_file=mock.ANY,
+            enable_app_server=True,
+            flow_servers=[],
+            image_spec=None,
+            works=[],
+            local_source=True,
+            dependency_cache_key=mock.ANY,
+        )
+        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+            "default-project-id", mock.ANY, body
+        )
+        cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
+            "default-project-id", body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id")
+        )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_requirements_file(self, monkeypatch):
