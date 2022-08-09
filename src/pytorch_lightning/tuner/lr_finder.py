@@ -174,24 +174,33 @@ class _LRFinder:
         return fig
 
     def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
-        """This will propose a suggestion for choice of initial learning rate as the point with the steepest
+        """This will propose a suggestion for an initial learning rate based on the point with the steepest
         negative gradient.
 
+        Args:
+            skip_begin: how many samples to skip in the beginning; helps to avoid too naive estimates
+            skip_end: how many samples to skip in the end; helps to avoid too optimistic estimates
+
         Returns:
-            lr: suggested initial learning rate to use
-            skip_begin: how many samples to skip in the beginning. Prevent too naive estimates
-            skip_end: how many samples to skip in the end. Prevent too optimistic estimates
+            The suggested initial learning rate to use, or `None` if a suggestion is not possible due to too few
+            loss samples.
         """
-        try:
-            loss = np.array(self.results["loss"][skip_begin:-skip_end])
-            loss = loss[np.isfinite(loss)]
-            min_grad = np.gradient(loss).argmin()
-            self._optimal_idx = min_grad + skip_begin
-            return self.results["lr"][self._optimal_idx]
-        # todo: specify the possible exception
-        except Exception:
-            log.exception("Failed to compute suggesting for `lr`. There might not be enough points.")
+        losses = np.array(self.results["loss"][skip_begin:-skip_end])
+        losses = losses[np.isfinite(losses)]
+        if len(losses) < 2:
+            # computing np.gradient requires at least 2 points
+            log.error(
+                "Failed to compute suggestion for learning rate because there are not enough points. Increase the loop"
+                " iteration limits or the size of your dataset/dataloader."
+            )
             self._optimal_idx = None
+            return None
+
+        # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
+        #   incorrectly shifted by an offset
+        min_grad = np.gradient(losses).argmin()
+        self._optimal_idx = min_grad + skip_begin
+        return self.results["lr"][self._optimal_idx]
 
 
 def lr_find(
@@ -252,8 +261,9 @@ def lr_find(
         lr = lr_finder.suggestion()
 
         # TODO: log lr.results to self.logger
-        lightning_setattr(model, lr_attr_name, lr)
-        log.info(f"Learning rate set to {lr}")
+        if lr is not None:
+            lightning_setattr(model, lr_attr_name, lr)
+            log.info(f"Learning rate set to {lr}")
 
     # Restore initial state of model
     trainer._checkpoint_connector.restore(ckpt_path)

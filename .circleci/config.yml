@@ -81,6 +81,8 @@ references:
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
+       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
+       echo "GKE pod name: $pod_name"
        echo "Waiting on kubernetes job: $job_name"
        i=0 && \
        # N checks spaced 30s apart = 900s total.
@@ -92,8 +94,6 @@ references:
        printf "Waiting for job to finish: " && \
        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
-       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
-       echo "GKE pod name: $pod_name" && \
        kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
        # First portion is the test logs. Print these to Github Action stdout.
@@ -106,10 +106,6 @@ references:
      name: Statistics
      command: |
        mv ./xx01 coverage.xml
-       # TODO: add human readable report
-       cat coverage.xml
-       sudo pip install pycobertura
-       pycobertura show coverage.xml
 
 jobs:
 
@@ -117,9 +113,9 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.9
+      - XLA_VER: 1.12
       - PYTHON_VER: 3.7
-      - MAX_CHECKS: 240
+      - MAX_CHECKS: 1000
       - CHECK_SPEEP: 5
     steps:
       - checkout

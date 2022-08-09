@@ -144,23 +144,18 @@ class AbstractDataFetcher(ABC):
                 dataloader_iter.state.update(iter_name, state)
 
     @property
-    def loaders(self) -> List[DataLoader]:
+    def loaders(self) -> Any:
         if isinstance(self.dataloader, CombinedLoader):
-            loaders = self.dataloader.loaders
-        else:
-            loaders = [self.dataloader]
-        return loaders
+            return self.dataloader.loaders
+        return self.dataloader
 
     @property
-    def loader_iters(self) -> List[Iterator]:
+    def loader_iters(self) -> Any:
         if self.dataloader_iter is None:
             raise MisconfigurationException("The `dataloader_iter` isn't available outside the __iter__ context.")
-
         if isinstance(self.dataloader, CombinedLoader):
-            loader_iters = self.dataloader_iter.loader_iters
-        else:
-            loader_iters = [self.dataloader_iter]
-        return loader_iters
+            return self.dataloader_iter.loader_iters
+        return self.dataloader_iter
 
     @property
     def state(self) -> List[MergedIteratorState]:

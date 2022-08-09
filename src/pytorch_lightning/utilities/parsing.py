@@ -108,7 +108,9 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
         del hparams_dict[k]
 
 
-def parse_class_init_keys(cls: Type["pl.LightningModule"]) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(
+    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]]
+) -> Tuple[str, Optional[str], Optional[str]]:
     """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
     Examples:
@@ -305,8 +307,6 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
     Gets all of the objects or dicts that holds attribute. Checks for attribute in model namespace, the old hparams
     namespace/dict, and the datamodule.
     """
-    trainer = getattr(model, "trainer", None)
-
     holders: List[Any] = []
 
     # Check if attribute in model
@@ -318,6 +318,7 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
         if attribute in model.hparams:
             holders.append(model.hparams)
 
+    trainer = model._trainer
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
     if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         holders.append(trainer.datamodule)

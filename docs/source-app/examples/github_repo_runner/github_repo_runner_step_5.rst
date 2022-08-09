@@ -1,26 +1,24 @@
 :orphan:
 
-******************************
-5. Putting everything together
-******************************
+***************************
+Step 5: Put it all together
+***************************
 
-Let's dive in on how to create such a component with the code below.
+Let's dive in on how to develop the component with the following code:
 
 .. literalinclude:: ./app.py
-    :lines: 277-
+    :lines: 287-
 
-
-*******************
 Run the application
-*******************
+^^^^^^^^^^^^^^^^^^^
 
-Clone the lightning repo and run the following command:
+Clone the Lightning repo and run the following command:
 
 .. code-block:: bash
 
    lightning run app docs/source-app/examples/github_repo_runner/app.py
 
-Add **--cloud** to run this application in the cloud.
+Add ``--cloud`` to run this application in the cloud.
 
 .. code-block:: bash
 
@@ -28,9 +26,9 @@ Add **--cloud** to run this application in the cloud.
 
 ----
 
-******************
-Find more examples
-******************
+**********************
+More hands-on examples
+**********************
 
 .. raw:: html
 
@@ -40,7 +38,7 @@ Find more examples
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Build a DAG
+   :header: Develop a DAG
    :description: Create a dag pipeline
    :col_css: col-md-4
    :button_link: ../dag/dag.html
@@ -48,7 +46,7 @@ Find more examples
    :tag: Intermediate
 
 .. displayitem::
-   :header: Build a File Server
+   :header: Develop a File Server
    :description: Train multiple models with different parameters
    :col_css: col-md-4
    :button_link: ../file_server/file_server.html
@@ -56,7 +54,7 @@ Find more examples
    :tag: Intermediate
 
 .. displayitem::
-   :header: Build a HPO Sweeper
+   :header: Develop a HPO Sweeper
    :description: Train multiple models with different parameters
    :col_css: col-md-4
    :button_link: ../hpo/hpo.html
@@ -64,7 +62,7 @@ Find more examples
    :tag: Intermediate
 
 .. displayitem::
-   :header: Build a Model Server
+   :header: Develop a Model Server
    :description: Serve multiple models with different parameters
    :col_css: col-md-4
    :button_link: ../model_server/model_server.html

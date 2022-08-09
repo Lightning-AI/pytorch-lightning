@@ -15,17 +15,20 @@ import os
 from unittest import mock
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 
 
 def test_passing_no_env_variables():
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
+    model = BoringModel()
     assert trainer.logger is not None
     assert trainer.max_steps == -1
-    assert trainer.max_epochs == 1000
-    trainer = Trainer(False, max_steps=42)
+    assert trainer.max_epochs is None
+    trainer = Trainer(logger=False, max_steps=1)
+    trainer.fit(model)
     assert trainer.logger is None
-    assert trainer.max_steps == 42
+    assert trainer.max_steps == 1
     assert trainer.max_epochs == -1
 
 
@@ -46,8 +49,8 @@ def test_passing_env_variables_defaults():
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_DEVICES": "2"})
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2)
+@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
 def test_passing_env_variables_devices(cuda_available_mock, device_count_mock):
     """Testing overwriting trainer arguments."""
     trainer = Trainer()

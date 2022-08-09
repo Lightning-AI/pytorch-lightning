@@ -4,9 +4,9 @@ name: cloud-testing
 
 on: # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches:
-      - "master"
+    branches: [master, "release/*"]
   pull_request:
+    branches: [master, "release/*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
@@ -54,11 +54,12 @@ jobs:
           - custom_work_dependencies
           - drive
           - payload
+          - commands
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
@@ -74,7 +75,7 @@ jobs:
 # TODO: Enable cache
 #      - name: Cache virtualenv
 #        id: cache-venv
-#        uses: actions/cache@v2
+#        uses: actions/cache@v3
 #        with:
 #          path: ./.venv/
 #          key: ${{ runner.os }}-pip-${{ matrix.app_name }}-${{ hashFiles('requirements/app/base.txt', 'requirements/app/*.txt', 'src/lightning_app/__version__.py') }}
@@ -89,7 +90,7 @@ jobs:
 
       - name: Cache Playwright dependencies
         id: playwright-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ matrix.app_name }}-${{ hashFiles('requirements/app/base.txt', 'requirements/app/*.txt', 'src/lightning_app/__version__.py') }}
@@ -155,7 +156,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p ${VIDEO_LOCATION}
-          HEADLESS=1 python -m pytest tests/tests_app_examples/test_${{ matrix.app_name }}.py::test_${{ matrix.app_name }}_example_cloud --timeout=900 --capture=no -v --color=yes
+          HEADLESS=1 PACKAGE_LIGHTNING=1 python -m pytest tests/tests_app_examples/test_${{ matrix.app_name }}.py::test_${{ matrix.app_name }}_example_cloud --timeout=900 --capture=no -v --color=yes
           # Delete the artifacts if successful
           rm -r ${VIDEO_LOCATION}/${{ matrix.app_name }}
 

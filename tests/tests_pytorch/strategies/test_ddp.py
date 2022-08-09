@@ -80,11 +80,13 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
 
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
-@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
 def test_torch_distributed_backend_env_variables(tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
-    with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
+    with patch.dict(os.environ, _environ), patch(
+        "pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2
+    ):
         with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
             with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
                 model = BoringModel()
@@ -101,9 +103,9 @@ def test_torch_distributed_backend_env_variables(tmpdir):
 
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("pytorch_lightning.accelerators.gpu.CUDAAccelerator.is_available", return_value=True)
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "gloo"}, clear=True)
 def test_ddp_torch_dist_is_available_in_setup(
     mock_gpu_is_available, mock_device_count, mock_cuda_available, mock_set_device, tmpdir
@@ -192,3 +194,15 @@ def test_ddp_process_group_backend(process_group_backend, env_var, device_str, e
                 assert strategy._get_process_group_backend() == expected_process_group_backend
     else:
         assert strategy._get_process_group_backend() == expected_process_group_backend
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp", {}),
+        ("ddp_find_unused_parameters_false", {"find_unused_parameters": False}),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
