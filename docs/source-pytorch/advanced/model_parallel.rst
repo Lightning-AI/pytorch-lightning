@@ -93,8 +93,8 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 .. _fully-sharded-training:
 
-Fully Sharded Training
-^^^^^^^^^^^^^^^^^^^^^^
+FairScale Fully Sharded Training
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning::
     Fully Sharded Training is in beta and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any issues.
@@ -147,7 +147,7 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 
         def configure_sharded_model(self):
             # modules are sharded across processes
-            # as soon as they are wrapped with ``wrap`` or ``auto_wrap``.
+            # as soon as they are wrapped with `wrap` or `auto_wrap`.
             # During the forward/backward passes, weights get synced across processes
             # and de-allocated once computation is complete, saving memory.
 
@@ -180,7 +180,7 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 .. _fairscale-activation-checkpointing:
 
 FairScale Activation Checkpointing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""""""""""
 
 Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed. Activation checkpointing is very useful when you have intermediate layers that produce large activations.
 
@@ -204,6 +204,81 @@ This saves memory when training larger models however requires wrapping modules 
             # Wrap layers using checkpoint_wrapper
             self.block_1 = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
             self.block_2 = nn.Linear(32, 2)
+
+
+.. _fully-sharded-native-training:
+
+PyTorch Fully Sharded Training
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+PyTorch has it's own version of `FSDP <https://pytorch.org/docs/stable/fsdp.html>`__ which is upstreamed from their `fairscale <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ project.
+It got introduced in their `v1.11.0 release <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`__. The API is pretty similar to that of fairscale.
+
+.. note::
+    Currently Fully Sharded Training relies on the user to wrap the model with Fully Sharded within the ``LightningModule``.
+    This means you must create a single model that is treated as a ``torch.nn.Module`` within the ``LightningModule``.
+    This is a limitation of Fully Sharded Training that will be resolved in the future.
+
+To activate parameter sharding, you must wrap your model using provided ``wrap`` function as described below. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
+
+When not using Fully Sharded these wrap functions are a no-op. This means once the changes have been made, there is no need to remove the changes for other strategies.
+
+``wrap`` will simply wrap the module with a Fully Sharded Parallel class with the correct parameters from the Lightning context manager.
+
+Below is an example that uses ``wrap`` to create your model:
+
+.. code-block:: python
+
+    import torch
+    import torch.nn as nn
+    import pytorch_lightning as pl
+    from pytorch_lightning import Trainer
+    from torch.distributed.fsdp.wrap import wrap
+
+
+    class MyModel(pl.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.linear_layer = nn.Linear(32, 32)
+            self.block = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32))
+
+        def configure_sharded_model(self):
+            # modules are sharded across processes
+            # as soon as they are wrapped with `wrap`.
+            # During the forward/backward passes, weights get synced across processes
+            # and de-allocated once computation is complete, saving memory.
+
+            # Wraps the layer in a Fully Sharded Wrapper automatically
+            linear_layer = wrap(self.linear_layer)
+
+            for i, layer in enumerate(self.block):
+                self.block[i] = wrap(layer)
+
+            self.model = nn.Sequential(linear_layer, nn.ReLU(), self.block)
+
+        def configure_optimizers(self):
+            return torch.optim.AdamW(self.model.parameters())
+
+
+    model = MyModel()
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer.fit(model)
+
+
+You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` and pass that to the ``strategy`` argumen inside the ``Trainer``.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
+
+
+    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=CPUOffload(offload_params=True))
+    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", device=s4)
+
+
+Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about the native support.
 
 
 .. _deepspeed_advanced:

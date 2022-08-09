@@ -78,9 +78,12 @@ The below table lists all relevant strategies available in Lightning with their 
    * - collaborative
      - :class:`~pytorch_lightning.strategies.HivemindStrategy`
      - Strategy for training collaboratively on local machines or unreliable GPUs across the internet. :ref:`Learn more. <strategies/hivemind:Training on unreliable mixed GPUs across the internet>`
+   * - fsdp_native
+     - :class:`~pytorch_lightning.strategies.DDPFullyShardedNativeStrategy`
+     - Strategy for Fully Sharded Data Parallel provided by PyTorch. :ref:`Learn more. <advanced/model_parallel:PyTorch Fully Sharded Training>`
    * - fsdp
      - :class:`~pytorch_lightning.strategies.DDPFullyShardedStrategy`
-     - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
+     - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Fully Sharded Training>`
    * - ddp_sharded
      - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
      - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
