@@ -54,4 +54,3 @@ If you need to install additional system packages or run other configuration ste
          class MyWork(LightningWork):
              def __init__(self):
               super().__init__(cloud_build_config=BuildConfig(image="my-custom-image")) # no cloud compute, for example default work
-

@@ -66,4 +66,3 @@ Instead of listing the requirements in a file, you can also pass them to the Lig
          class MyWork(LightningWork):
              def __init__(self):
               super().__init__(cloud_build_config=BuildConfig(image="my-custom-image")) # no cloud compute, for example default work
-
