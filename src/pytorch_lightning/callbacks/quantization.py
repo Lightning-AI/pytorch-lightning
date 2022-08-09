@@ -41,7 +41,7 @@ else:
 
 
 def wrap_qat_forward_context(
-    quant_cb: Callback,
+    quant_cb,
     model: "pl.LightningModule",
     func: Callable,
     trigger_condition: Optional[Union[Callable, int]] = None,
@@ -52,7 +52,7 @@ def wrap_qat_forward_context(
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
     def wrapper(data: Any) -> Any:
-        _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
+        _is_func_true = callable(trigger_condition) and trigger_condition(model.trainer)
         _is_count_true = isinstance(trigger_condition, int) and quant_cb._forward_calls < trigger_condition
         _quant_run = trigger_condition is None or _is_func_true or _is_count_true
         # apply custom trigger
@@ -184,7 +184,9 @@ class QuantizationAwareTraining(Callback):
             )
         self._observer_type = observer_type
 
-        if collect_quantization is not None and not isinstance(collect_quantization, (int, Callable)):
+        if collect_quantization is not None and not (
+            isinstance(collect_quantization, int) and callable(collect_quantization)
+        ):
             raise MisconfigurationException(
                 f'Unsupported `collect_quantization` "{collect_quantization}", allowed are `int` or `Callable`.'
             )
