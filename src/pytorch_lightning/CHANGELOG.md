@@ -70,7 +70,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed dtype inference during gradient norm computation ([#14051](https://github.com/Lightning-AI/lightning/pull/14051))
 
 
-- Fixed to use fsdp module to initialize precision scalar for fsdp native ([#14092](https://github.com/Lightning-AI/lightning/pull/14092))
+- Avoid requiring the fairscale package to use precision with the fsdp native strategy ([#14092](https://github.com/Lightning-AI/lightning/pull/14092))
 
 
 ## [1.7.0] - 2022-08-02
