@@ -59,7 +59,7 @@ class Drive:
         if self.protocol != "s3://" and "/" in self.id:
             raise Exception(f"The id should be unique to identify your drive. Found `{self.id}`.")
 
-        self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else os.getcwd()
+        self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else pathlib.Path(os.getcwd())
         if not os.path.isdir(self.root_folder):
             raise Exception(f"The provided root_folder isn't a directory: {root_folder}")
         self.component_name = component_name
