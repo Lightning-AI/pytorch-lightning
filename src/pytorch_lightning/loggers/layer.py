@@ -20,7 +20,7 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Union, List
 
-from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -54,6 +54,11 @@ class LayerLogger(Logger):
             layer.login_with_api_key(api_key)
         layer.init(project_name)
 
+    @property  # type: ignore[misc]
+    @rank_zero_experiment
+    def experiment(self) -> "layer":
+        return layer
+
     @property
     def name(self) -> Optional[str]:
         return f"{self.project_name}/{self._context.asset_name()}"
@@ -77,18 +82,18 @@ class LayerLogger(Logger):
     @rank_zero_only
     def log_text(self, key: str, text: str) -> None:
 
-        layer.log({key: text})
+        self.experiment.log({key: text})
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
 
-        layer.log(params)
+        self.experiment.log(params)
 
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
-        layer.log(dict(metrics), step=step)
+        self.experiment.log(dict(metrics), step=step)
 
     @rank_zero_only
     def log_image(self, key: str, image: Union["PIL.Image.Image", Path, "npt.NDArray[np.complex64]", "torch.Tensor"],
