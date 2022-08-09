@@ -35,6 +35,8 @@ except ModuleNotFoundError:
 
 
 class LayerLogger(Logger):
+    
+    PARAMETERS_KEY = "hyperparams"
 
     def __init__(
         self,
@@ -88,8 +90,10 @@ class LayerLogger(Logger):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
+        
+        parameters_key = self.PARAMETERS_KEY
 
-        self.experiment.log(params)
+        self.experiment.log({parameters_key: params})
 
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
