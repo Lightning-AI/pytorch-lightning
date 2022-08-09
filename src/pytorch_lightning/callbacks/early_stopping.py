@@ -28,7 +28,7 @@ from torch import Tensor
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import _rank_prefixed_message, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -258,15 +258,7 @@ class EarlyStopping(Callback):
         return msg
 
     @staticmethod
-    def _log_info(trainer: Optional["pl.Trainer"], message: str, log_rank_zero_only: bool) -> None:
-        if trainer:
-            # ignore logging in non-zero ranks if log_rank_zero_only flag is enabled
-            if log_rank_zero_only and trainer.global_rank != 0:
-                return
-            # if world size is more than one then specify the rank of the process being logged
-            if trainer.world_size > 1:
-                log.info(f"[rank: {trainer.global_rank}] {message}")
-                return
-
-        # if above conditions don't meet and we have to log
-        log.info(message)
+    def _log_info(trainer: "pl.Trainer", message: str, log_rank_zero_only: bool) -> None:
+        message = _rank_prefixed_message(message, trainer=trainer, log_rank_zero_only=log_rank_zero_only)
+        if message is not None:  # can be None on some ranks with `log_rank_zero_only`
+            log.info(message)
