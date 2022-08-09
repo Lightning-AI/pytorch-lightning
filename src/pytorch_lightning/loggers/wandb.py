@@ -361,7 +361,9 @@ class WandbLogger(Logger):
                 self._experiment = wandb.init(**self._wandb_init)
 
                 # define default x-axis
-                if isinstance(self._experiment, (Run, RunDisabled)) and getattr(self._experiment, "define_metric", None):
+                if isinstance(self._experiment, (Run, RunDisabled)) and getattr(
+                    self._experiment, "define_metric", None
+                ):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
