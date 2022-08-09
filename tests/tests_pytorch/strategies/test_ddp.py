@@ -194,3 +194,15 @@ def test_ddp_process_group_backend(process_group_backend, env_var, device_str, e
                 assert strategy._get_process_group_backend() == expected_process_group_backend
     else:
         assert strategy._get_process_group_backend() == expected_process_group_backend
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp", {}),
+        ("ddp_find_unused_parameters_false", {"find_unused_parameters": False}),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
