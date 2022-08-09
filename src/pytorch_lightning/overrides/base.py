@@ -20,6 +20,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
+from pytorch_lightning.core.module import LightningModule
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
@@ -75,6 +76,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         trainer = pl_module._trainer
 
         if trainer is not None:
+            assert isinstance(self.module, LightningModule)
             if trainer.training:
                 output = self.module.training_step(*inputs, **kwargs)
                 # In manual_optimization, we need to prevent DDP reducer as
