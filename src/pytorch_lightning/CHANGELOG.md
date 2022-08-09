@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added ``FullyShardedNativeNativeMixedPrecisionPlugin`` to handle precision for ``DDPFullyShardedNativeStrategy`` ([#14092](https://github.com/Lightning-AI/lightning/pull/14092))
+- Added `FullyShardedNativeNativeMixedPrecisionPlugin` to handle precision for `DDPFullyShardedNativeStrategy` ([#14092](https://github.com/Lightning-AI/lightning/pull/14092))
 
 
 -
