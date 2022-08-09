@@ -696,7 +696,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+        if self.precision_plugin.precision == PrecisionType.HALF:
             if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
