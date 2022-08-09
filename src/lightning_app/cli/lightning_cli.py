@@ -196,6 +196,7 @@ def app_command():
         for p in kwargs:
             if p.split("=")[0] not in metadata["parameters"]:
                 raise Exception(f"Some arguments need to be provided. The keys are {list(metadata['parameters'])}.")
+        # TODO: Encode the parameters and validate their type.
         query_parameters = "&".join(kwargs)
         resp = requests.post(url + f"/command/{command}?{query_parameters}")
         assert resp.status_code == 200, resp.json()
