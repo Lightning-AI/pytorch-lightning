@@ -23,6 +23,7 @@ from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
+from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN
 
 _T = TypeVar("_T", bound=Callable[..., Any])
 _ARGPARSE_CLS = Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]]
@@ -162,7 +163,7 @@ def add_argparse_args(
     parent_parser: ArgumentParser,
     *,
     use_argument_group: bool = True,
-) -> Union[_ArgumentGroup, ArgumentParser]:
+) -> _ADD_ARGPARSE_RETURN:
     r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
@@ -203,10 +204,10 @@ def add_argparse_args(
         >>> args = parser.parse_args([])
     """
     if isinstance(parent_parser, _ArgumentGroup):
-        raise RuntimeError("Please only pass an ArgumentParser instance.")
+        raise RuntimeError("Please only pass an `ArgumentParser` instance.")
     if use_argument_group:
         group_name = _get_abbrev_qualified_cls_name(cls)
-        parser: Union[_ArgumentGroup, ArgumentParser] = parent_parser.add_argument_group(group_name)
+        parser: _ADD_ARGPARSE_RETURN = parent_parser.add_argument_group(group_name)
     else:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 

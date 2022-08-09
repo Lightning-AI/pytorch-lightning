@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
-from argparse import _ArgumentGroup, ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace
 from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -27,8 +27,7 @@ from pytorch_lightning.utilities.argparse import (
     get_init_arguments_and_types,
     parse_argparser,
 )
-
-_ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
+from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, _PATH, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
@@ -150,31 +149,35 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             shuffle &= not isinstance(ds, IterableDataset)
             return DataLoader(ds, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
 
-        def train_dataloader() -> Union[Dict[str, DataLoader], List[DataLoader], DataLoader]:
+        def train_dataloader() -> TRAIN_DATALOADERS:
+            assert train_dataset
+
             if isinstance(train_dataset, Mapping):
                 return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
             if isinstance(train_dataset, Sequence):
                 return [dataloader(ds, shuffle=True) for ds in train_dataset]
-            if isinstance(train_dataset, Dataset):
-                return dataloader(train_dataset, shuffle=True)
+            return dataloader(train_dataset, shuffle=True)
 
-        def val_dataloader() -> Union[List[DataLoader], DataLoader]:
+        def val_dataloader() -> EVAL_DATALOADERS:
+            assert val_dataset
+
             if isinstance(val_dataset, Sequence):
                 return [dataloader(ds) for ds in val_dataset]
-            if isinstance(val_dataset, Dataset):
-                return dataloader(val_dataset)
+            return dataloader(val_dataset)
 
-        def test_dataloader() -> Union[List[DataLoader], DataLoader]:
+        def test_dataloader() -> EVAL_DATALOADERS:
+            assert test_dataset
+
             if isinstance(test_dataset, Sequence):
                 return [dataloader(ds) for ds in test_dataset]
-            if isinstance(test_dataset, Dataset):
-                return dataloader(test_dataset)
+            return dataloader(test_dataset)
 
-        def predict_dataloader() -> Union[List[DataLoader], DataLoader]:
+        def predict_dataloader() -> EVAL_DATALOADERS:
+            assert predict_dataset
+
             if isinstance(predict_dataset, Sequence):
                 return [dataloader(ds) for ds in predict_dataset]
-            if isinstance(predict_dataset, Dataset):
-                return dataloader(predict_dataset)
+            return dataloader(predict_dataset)
 
         datamodule = cls()
         if train_dataset is not None:
@@ -206,8 +209,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: Union[str, IO],
-        hparams_file: Optional[str] = None,
+        checkpoint_path: Union[_PATH, IO],
+        hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
     ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         r"""
