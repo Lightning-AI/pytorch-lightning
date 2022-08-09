@@ -652,5 +652,3 @@ class LightningFlow:
             child = getattr(self, child_name, None)
             if child:
                 child.set_state(state)
-        del flow_state
-        del children_states
