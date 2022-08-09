@@ -646,5 +646,11 @@ class LightningFlow:
             "structures": {},
         }
 
-    def load_state_dict(self, flow_state: Dict[str, Any], children_state) -> None:
+    def load_state_dict(self, flow_state: Dict[str, Any], children_states: Dict[str, Any]) -> None:
         self.set_state(flow_state)
+        for child_name, state in children_states.items():
+            child = getattr(self, child_name, None)
+            if child:
+                child.set_state(state)
+        del flow_state
+        del children_states

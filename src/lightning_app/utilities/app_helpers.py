@@ -413,19 +413,45 @@ def _state_dict(flow: "LightningFlow"):
     return state
 
 
-def _load_state_dict(flow: "LightningFlow", state):
-    for w in flow.works():
+def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: bool = True) -> None:
+    # 1: Reload the state of the existing works
+    for w in root_flow.works():
         w.load_state_dict(state.pop(w.name))
 
-    flows = [flow] + list(flow.flows.values())
+    # 2: Collect the existing flows
+    flows = [root_flow] + list(root_flow.flows.values())
+    flow_map = {f.name: f for f in flows}
 
-    work_state_left = {k: v for k, v in state.items() if k not in [f.name for f in flows]}
+    # 3: Find the state of the all dynamic components
+    dynamic_components = {k: v for k, v in state.items() if k not in flow_map}
 
-    for f in flows:
-        children_state = {}
-        for k, work_state in work_state_left.items():
-            affiliation = k.split(".")
-            flow_name = ".".join(affiliation[:-1])
-            if flow_name == f.name:
-                children_state[affiliation[-1]] = work_state
-        f.load_state_dict(state.pop(f.name), children_state)
+    # 4: Propagate the state of the dynamic components to their closest parents
+    dynamic_children_state = {}
+    for name, component_state in dynamic_components.items():
+        affiliation = name.split(".")
+        for idx in range(0, len(affiliation)):
+            parent_name = ".".join(affiliation[:-idx])
+            has_matched = False
+            for flow_name, flow in flow_map.items():
+                if flow_name == parent_name:
+                    if flow_name not in dynamic_children_state:
+                        dynamic_children_state[flow_name] = {}
+
+                    dynamic_children_state[flow_name].update({name.replace(parent_name + ".", ""): component_state})
+                    has_matched = True
+                    break
+            if has_matched:
+                break
+
+    # 5: Reload the flow states
+    for flow_name, flow in flow_map.items():
+        flow.load_state_dict(state.pop(flow_name), dynamic_children_state[flow_name])
+
+    # 6: Verify all state has been reloaded accordingly
+    if strict:
+        components_names = (
+            [root_flow.name] + [f.name for f in root_flow.flows.values()] + [w.name for w in root_flow.works()]
+        )
+        for component_name in dynamic_components:
+            if component_name not in components_names:
+                raise Exception(f"The component {component_name} was re-created during state reloading.")
