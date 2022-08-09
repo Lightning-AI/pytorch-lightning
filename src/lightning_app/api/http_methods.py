@@ -43,7 +43,7 @@ class _HttpMethod:
         # 2: Get the route associated with the http method.
         route = getattr(app, self.__class__.__name__.lower())
 
-        request_cls = CommandRequest if "command" in self.route else APIRequest
+        request_cls = CommandRequest if self.route.startswith("/command/") else APIRequest
 
         # 3: Define the request handler.
         @wraps(_signature_proxy_function)
