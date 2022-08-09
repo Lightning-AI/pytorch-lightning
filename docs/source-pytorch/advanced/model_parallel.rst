@@ -275,7 +275,7 @@ You can customize the strategy configuration by adjusting the arguments of :clas
 
 
     native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=CPUOffload(offload_params=True))
-    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", device=s4)
+    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", device=4)
 
 
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about the native support.
