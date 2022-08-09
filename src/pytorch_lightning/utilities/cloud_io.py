@@ -15,19 +15,19 @@
 
 import io
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Union
+from typing import Any, Dict, IO, Union
 
 import fsspec
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 
-from pytorch_lightning.utilities.types import _DEVICE, _PATH
+from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 
 def load(
     path_or_url: Union[IO, _PATH],
-    map_location: Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]] = None,
+    map_location: _MAP_LOCATION_TYPE = None,
 ) -> Any:
     """Loads a checkpoint.
 
