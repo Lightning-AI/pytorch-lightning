@@ -1927,7 +1927,9 @@ class Trainer(
         if source.is_defined() and has_step and enable_validation:
             # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
             # it should not reload again if it has already reloaded during sanity_check
-            if (self.sanity_checking and self.reload_dataloaders_every_n_epochs == 1) or not self.sanity_checking:
+            if self.state.fn == TrainerFn.FITTING and (
+                (self.sanity_checking and self.fit_loop.epoch_loop._should_check_val_epoch) or not self.sanity_checking
+            ):
                 self._last_val_dl_reload_epoch = self.current_epoch
 
             self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(

@@ -61,7 +61,7 @@ class DataConnector:
     def _should_reload_train_dl(self) -> bool:
         """Check if train dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and ((self.trainer.current_epoch + 1) % n_epochs == 0)
+        return n_epochs and (self.trainer.current_epoch % n_epochs == 0)
 
     @property
     def _should_reload_val_dl(self) -> bool:

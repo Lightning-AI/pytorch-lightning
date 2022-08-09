@@ -494,7 +494,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _should_check_val_epoch(self) -> bool:
         return self.trainer.enable_validation and (
             self.trainer.check_val_every_n_epoch is None
-            or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            or self.trainer.current_epoch % self.trainer.check_val_every_n_epoch == 0
         )
 
     def _should_check_val_fx(self) -> bool:
