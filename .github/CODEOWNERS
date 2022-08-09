@@ -45,7 +45,13 @@
 /src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
 /src/pytorch_lightning/utilities            @borda @tchaton @carmocca
 
-/src/lightning_app                           @tchaton @awaelchli @manskx @hhsecond
+/src/lightning_app                          @tchaton @manskx
+/src/lightning_app/cli/pl-app-template      @awaelchli @tchaton @Borda
+/src/lightning_app/core                     @tchaton @awaelchli @manskx
+/src/lightning_app/core/queues.py           @tchaton @hhsecond @manskx
+/src/lightning_app/runners/cloud.py         @tchaton @hhsecond
+/src/lightning_app/testing                  @tchaton @manskx
+/src/lightning_app/__about__.py             @nohalon @edenlightning @lantiga
 
 # Examples
 /examples/app_*                            @tchaton @awaelchli @manskx @hhsecond
