@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Dict, Generator, List, Optional, Tuple
 
 from torch import Tensor
 from torch.nn import Module
@@ -42,9 +42,11 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     def configure_ddp(self) -> None:
         # set up optimizers after the wrapped module has been moved to the device
-        self.setup_optimizers(self.lightning_module.trainer)  # type: ignore
+        assert self.lightning_module
+        assert self.model
+        self.setup_optimizers(self.lightning_module.trainer)
         self.model, self.optimizers = self._setup_model_and_optimizers(
-            model=LightningShardedDataParallel(self.model), optimizers=self.optimizers  # type: ignore
+            model=LightningShardedDataParallel(self.model), optimizers=self.optimizers
         )
         optimizers_to_device(self.optimizers, self.root_device)
 
@@ -69,7 +71,8 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         return optimizers
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:  # type: ignore
+        assert self.lightning_module
+        if self.model is not None and self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
 
         return self._reinit_optimizers_with_oss(optimizers)
@@ -93,7 +96,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             yield None
 
     @rank_zero_only
-    def _optim_state_dict(self, optimizer: Any) -> Any:
+    def _optim_state_dict(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """
         Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
         :meth:`consolidate_state_dict`.
