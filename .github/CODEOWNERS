@@ -55,25 +55,23 @@
 /src/lightning_app/__about__.py             @nohalon @edenlightning @lantiga
 
 # Examples
-/examples/app_*                            @tchaton @awaelchli @manskx @hhsecond
+/examples/app_*                             @tchaton @awaelchli @manskx @hhsecond
 # App tests
-/tests/tests_app                          @tchaton @awaelchli @manskx @hhsecond
-/tests/tests_app_examples                 @tchaton @awaelchli @manskx @hhsecond
+/tests/tests_app                            @tchaton @awaelchli @manskx @hhsecond
+/tests/tests_app_examples                   @tchaton @awaelchli @manskx @hhsecond
 
 # Specifics
-/src/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca
-/src/pytorch_lightning/trainer/progress.py                      @tchaton @awaelchli @carmocca
-
+/src/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
+/src/pytorch_lightning/trainer/progress.py                 @tchaton @awaelchli @carmocca
 # API
-/src/pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/core/datamodule.py   @williamFalcon @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli
-/src/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli
+/src/pytorch_lightning/callbacks/callback.py @williamfalcon @awaelchli @ananthsub @carmocca
+/src/pytorch_lightning/core/datamodule.py    @williamFalcon @awaelchli @ananthsub @carmocca
+/src/pytorch_lightning/trainer/trainer.py    @williamfalcon @tchaton @awaelchli
+/src/pytorch_lightning/core/hooks.py         @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
+/src/pytorch_lightning/core/module.py        @williamfalcon @tchaton @awaelchli
 
-/.github/CODEOWNERS              @williamfalcon
-/.github/approve_config.yml      @williamfalcon
-/SECURITY.md                     @williamfalcon
-/README.md                       @williamfalcon @edenlightning @borda
-/setup.py                        @williamfalcon @borda @carmocca
+/.github/CODEOWNERS                  @williamfalcon
+/SECURITY.md                         @williamfalcon
+/README.md                           @williamfalcon @edenlightning @borda
+/setup.py                            @williamfalcon @borda @carmocca
 /src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
