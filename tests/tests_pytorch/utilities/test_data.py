@@ -182,8 +182,8 @@ def test_replace_init_method_multiple_loaders_without_init():
     patching.
 
     This test simulates the behavior by generating sufficient number of dummy classes, which do not define `__init__`
-    and are children of `DataLoader`. We are testing that:     a) context manager `_replace_init_method` exits cleanly,
-    and     b) the mechanism checking for presence of `_old_init` works as expected.
+    and are children of `DataLoader`. We are testing that a) context manager `_replace_init_method` exits cleanly, and
+    b) the mechanism checking for presence of `_old_init` works as expected.
     """
     classes = [DataLoader]
     for i in range(100):
