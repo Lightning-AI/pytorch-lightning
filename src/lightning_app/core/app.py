@@ -315,7 +315,7 @@ class LightningApp:
                 self._has_updated = True
             return False
 
-        logger.info(f"Received {[d.to_dict() for d in deltas]}")
+        logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
         state = self.state
         for delta in deltas:
