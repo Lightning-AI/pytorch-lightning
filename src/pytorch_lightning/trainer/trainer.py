@@ -51,7 +51,7 @@ from pytorch_lightning.accelerators import (
     MPSAccelerator,
     TPUAccelerator,
 )
-from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -2290,11 +2290,11 @@ class Trainer(
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
-    def progress_bar_callback(self) -> Optional[ProgressBarBase]:
-        """An instance of :class:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase` found in the
+    def progress_bar_callback(self) -> Optional[ProgressBar]:
+        """An instance of :class:`~pytorch_lightning.callbacks.progress.progress.ProgressBar` found in the
         Trainer.callbacks list, or ``None`` if one doesn't exist."""
         for c in self.callbacks:
-            if isinstance(c, ProgressBarBase):
+            if isinstance(c, ProgressBar):
                 return c
         return None
 

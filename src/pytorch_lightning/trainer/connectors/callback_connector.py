@@ -24,7 +24,7 @@ from pytorch_lightning.callbacks import (
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBarBase,
+    ProgressBar,
     RichProgressBar,
     TQDMProgressBar,
 )
@@ -159,7 +159,7 @@ class CallbackConnector:
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
-        progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
+        progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBar)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
                 "You added multiple progress bar callbacks to the Trainer, but currently only one"

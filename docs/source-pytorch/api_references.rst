@@ -39,7 +39,7 @@ callbacks
     ModelCheckpoint
     ModelPruning
     ModelSummary
-    ProgressBarBase
+    ProgressBar
     QuantizationAwareTraining
     RichModelSummary
     RichProgressBar

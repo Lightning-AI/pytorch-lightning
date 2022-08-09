@@ -26,7 +26,7 @@ else:
     from tqdm import tqdm as _tqdm
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress.base import ProgressBarBase
+from pytorch_lightning.callbacks.progress.progress import ProgressBar
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 _PAD_SIZE = 5
@@ -57,7 +57,7 @@ class Tqdm(_tqdm):
         return n
 
 
-class TQDMProgressBar(ProgressBarBase):
+class TQDMProgressBar(ProgressBar):
     r"""
     This is the default progress bar used by Lightning. It prints to ``stdout`` using the
     :mod:`tqdm` package and shows up to four different bars:

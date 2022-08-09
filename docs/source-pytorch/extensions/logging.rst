@@ -320,7 +320,7 @@ Modifying the Progress Bar
 
 The progress bar by default already includes the training loss and version number of the experiment
 if you are using a logger. These defaults can be customized by overriding the
-:meth:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase.get_metrics` hook in your logger.
+:meth:`~pytorch_lightning.callbacks.progress.progress.ProgressBar.get_metrics` hook in your logger.
 
 .. code-block:: python
 

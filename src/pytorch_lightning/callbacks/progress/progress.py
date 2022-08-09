@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.logger import _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
-class ProgressBarBase(Callback):
+class ProgressBar(Callback):
     r"""
     The base class for progress bars in Lightning. It is a :class:`~pytorch_lightning.callbacks.Callback`
     that keeps track of the batch progress in the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
@@ -27,7 +27,7 @@ class ProgressBarBase(Callback):
 
     Example::
 
-        class LitProgressBar(ProgressBarBase):
+        class LitProgressBar(ProgressBar):
 
             def __init__(self):
                 super().__init__()  # don't forget this :)

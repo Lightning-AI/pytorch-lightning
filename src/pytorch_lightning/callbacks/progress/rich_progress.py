@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Union
 from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.progress.base import ProgressBarBase
+from pytorch_lightning.callbacks.progress.progress import ProgressBar
 
 _RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
 
@@ -28,7 +28,7 @@ if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
     from rich.console import RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
-    from rich.progress_bar import ProgressBar
+    from rich.progress_bar import ProgressBar as rich_ProgressBar
     from rich.style import Style
     from rich.text import Text
 
@@ -36,9 +36,9 @@ if _RICH_AVAILABLE:
         """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
         such as ``IterableDataset``."""
 
-        def render(self, task: "Task") -> ProgressBar:
+        def render(self, task: "Task") -> rich_ProgressBar:
             """Gets a progress bar widget for a task."""
-            return ProgressBar(
+            return rich_ProgressBar(
                 total=max(0, task.total),
                 completed=max(0, task.completed),
                 width=None if self.bar_width is None else max(1, self.bar_width),
@@ -196,7 +196,7 @@ class RichProgressBarTheme:
     metrics: Union[str, Style] = "white"
 
 
-class RichProgressBar(ProgressBarBase):
+class RichProgressBar(ProgressBar):
     """Create a progress bar with `rich text formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
