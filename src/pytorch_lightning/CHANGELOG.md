@@ -70,7 +70,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed dtype inference during gradient norm computation ([#14051](https://github.com/Lightning-AI/lightning/pull/14051))
 
 
-- Avoid raising the sampler warning if num_replicas=1 ([#14051](https://github.com/Lightning-AI/lightning/pull/14051))
+- Avoid raising the sampler warning if num_replicas=1 ([#14097](https://github.com/Lightning-AI/lightning/pull/14097))
 
 
 ## [1.7.0] - 2022-08-02
