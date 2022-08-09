@@ -315,10 +315,20 @@ class DDPSpawnStrategy(ParallelStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         entries = (
             ("ddp_spawn", "spawn"),
-            ("ddp_spawn_find_unused_parameters_false", "spawn"),
             ("ddp_fork", "fork"),
-            ("ddp_fork_find_unused_parameters_false", "fork"),
             ("ddp_notebook", "fork"),
+        )
+        for name, start_method in entries:
+            strategy_registry.register(
+                name,
+                cls,
+                description=f"DDP strategy with `start_method` '{start_method}'",
+                start_method=start_method,
+            )
+
+        entries = (
+            ("ddp_spawn_find_unused_parameters_false", "spawn"),
+            ("ddp_fork_find_unused_parameters_false", "fork"),
             ("ddp_notebook_find_unused_parameters_false", "fork"),
         )
         for name, start_method in entries:
