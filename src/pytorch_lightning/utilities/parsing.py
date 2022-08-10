@@ -165,7 +165,7 @@ def collect_init_args(
     frame: types.FrameType,
     path_args: List[Dict[str, Any]],
     inside: bool = False,
-    classes: Tuple[Type, ...] = (object,),
+    classes: Tuple[Type, ...] = (),
 ) -> List[Dict[str, Any]]:
     """Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
@@ -185,7 +185,7 @@ def collect_init_args(
     if not isinstance(frame.f_back, types.FrameType):
         return path_args
 
-    if "__class__" in local_vars and issubclass(local_vars["__class__"], classes):
+    if "__class__" in local_vars and (not classes or issubclass(local_vars["__class__"], classes)):
         local_args = get_init_args(frame)
         # recursive update
         path_args.append(local_args)
