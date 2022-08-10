@@ -153,7 +153,7 @@ class ClearMLLogger(Logger):
             self.task.logger.report_table(title=key, series=key, iteration=step, table_plot=table)
 
     @rank_zero_only
-    def finalize(self, status: Literal["success", "failed", "aborted"] = "sucess") -> None:
+    def finalize(self, status: Literal["success", "failed", "aborted"] = "success") -> None:
         """Finalize the experiment. Mark the task completed or otherwise given the status.
 
         Args:
