@@ -66,7 +66,7 @@ Here's an example:
 
 * instance-types: Instance types that you want to support, for computer jobs within the cluster. For now, this is the AWS instance types supported by the cluster.
 
-* cost_savings: Specifies if the cluster uses cost savings mode.
+* enable-performance: Specifies if the cluster uses cost savings mode.
 
 .. note:: In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters with low utilization.
 
