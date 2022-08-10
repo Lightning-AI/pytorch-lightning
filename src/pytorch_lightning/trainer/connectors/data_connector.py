@@ -307,7 +307,7 @@ class DataConnector:
                     f"Using `DistributedSampler` with the dataloaders. During `trainer.{trainer_fn.value}()`, it is"
                     " recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated"
                     " exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates"
-                    " replicates some samples to make sure all devices have same batch size in case of uneven inputs.",
+                    " some samples to make sure all devices have same batch size in case of uneven inputs.",
                     category=PossibleUserWarning,
                 )
 
