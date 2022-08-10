@@ -662,9 +662,9 @@ class FlowReload(LightningFlow):
         self.counter += 1
         self.w.run()
 
-    def load_state_dict(self, flow_state, children_states) -> None:
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
         self.w = WorkReload()
-        super().load_state_dict(flow_state, children_states)
+        super().load_state_dict(flow_state, children_states, strict=strict)
 
 
 class FlowReload2(LightningFlow):
@@ -679,9 +679,9 @@ class FlowReload2(LightningFlow):
         self.w.run()
         self.counter += 1
 
-    def load_state_dict(self, flow_state, children_states) -> None:
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
         self.w = WorkReload()
-        super().load_state_dict(flow_state, children_states)
+        super().load_state_dict(flow_state, children_states, strict=strict)
 
 
 class RootFlowReload(LightningFlow):
@@ -697,9 +697,9 @@ class RootFlowReload(LightningFlow):
         self.flow_2.run()
         self.counter += 1
 
-    def load_state_dict(self, flow_state, children_states) -> None:
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
         self.flow_2 = FlowReload2(children_states["flow_2"]["vars"]["random_value"])
-        super().load_state_dict(flow_state, children_states)
+        super().load_state_dict(flow_state, children_states, strict=strict)
 
 
 def test_lightning_flow_reload():

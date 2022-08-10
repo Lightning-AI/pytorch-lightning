@@ -409,7 +409,7 @@ def _state_dict(flow: "LightningFlow"):
     for f in flows:
         state[f.name] = f.state_dict()
     for w in flow.works():
-        state[w.name] = w.state_dict()
+        state[w.name] = w.state
     return state
 
 
@@ -425,7 +425,7 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
     """
     # 1: Reload the state of the existing works
     for w in root_flow.works():
-        w.load_state_dict(state.pop(w.name))
+        w.set_state(state.pop(w.name))
 
     # 2: Collect the existing flows
     flows = [root_flow] + list(root_flow.flows.values())
@@ -454,7 +454,7 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
 
     # 5: Reload the flow states
     for flow_name, flow in flow_map.items():
-        flow.load_state_dict(state.pop(flow_name), dynamic_children_state[flow_name])
+        flow.load_state_dict(state.pop(flow_name), dynamic_children_state[flow_name], strict=strict)
 
     # 6: Verify all dynamic components has been re-created.
     if strict:

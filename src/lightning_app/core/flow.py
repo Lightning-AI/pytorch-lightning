@@ -309,15 +309,24 @@ class LightningFlow:
         self.get_all_children_(children)
         return children
 
-    def set_state(self, provided_state: Dict) -> None:
+    def set_state(self, provided_state: Dict, recurse: bool = True) -> None:
         """Method to set the state to this LightningFlow, its children and
-        :class:`~lightning_app.core.work.LightningWork`."""
+        :class:`~lightning_app.core.work.LightningWork`.
+
+        Arguments:
+            provided_state: The state to be reloaded
+            recurse: Whether to apply the state down children.
+        """
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
             setattr(self, k, v)
         self._changes = provided_state["changes"]
         self._calls.update(provided_state["calls"])
+
+        if not recurse:
+            return
+
         for child, state in provided_state["flows"].items():
             getattr(self, child).set_state(state)
         for work, state in provided_state["works"].items():
@@ -646,8 +655,8 @@ class LightningFlow:
             "structures": {},
         }
 
-    def load_state_dict(self, flow_state: Dict[str, Any], children_states: Dict[str, Any]) -> None:
-        self.set_state(flow_state)
+    def load_state_dict(self, flow_state: Dict[str, Any], children_states: Dict[str, Any], strict: bool = True) -> None:
+        self.set_state(flow_state, recurse=False)
         direct_children_states = {k: v for k, v in children_states.items() if "." not in k}
         for child_name, state in direct_children_states.items():
             child = getattr(self, child_name, None)
@@ -657,8 +666,8 @@ class LightningFlow:
                     for k, v in children_states.items()
                     if k.startswith(child_name) and k != child_name
                 }
-                child.load_state_dict(state, lower_children_states)
+                child.load_state_dict(state, lower_children_states, strict=strict)
             elif isinstance(child, LightningWork):
-                child.load_state_dict(state)
-            else:
+                child.set_state(state)
+            elif strict:
                 raise Exception(f"The component {child} isn't supported.")

@@ -521,18 +521,6 @@ class LightningWork(abc.ABC):
         """Override to add your own logic."""
         pass
 
-    def state_dict(self):
-        """Returns the current flow state but not its children."""
-        return {
-            "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
-            # this may have the challenge that ret cannot be pickled, we'll need to handle this
-            "calls": self._calls.copy(),
-            "changes": {},
-        }
-
-    def load_state_dict(self, state: Dict[str, Any]) -> None:
-        self.set_state(state)
-
     def on_exception(self, exception: BaseException):
         """Override to customize how to handle exception in the run method."""
         if self._raise_exception:
