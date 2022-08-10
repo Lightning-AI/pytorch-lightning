@@ -678,7 +678,7 @@ def test_logger_sync_dist(distributed_env, log_val):
     is_tensor = isinstance(log_val, torch.Tensor)
 
     if not is_tensor:
-        log_val.update(torch.Tensor([0, 1]), torch.LongTensor([0, 0]))
+        log_val.update(torch.tensor([0, 1]), torch.tensor([0, 0], dtype=torch.long))
 
     result_metric = _ResultMetric(metadata=meta, is_tensor=is_tensor)
     result_metric.update(log_val, 10)
