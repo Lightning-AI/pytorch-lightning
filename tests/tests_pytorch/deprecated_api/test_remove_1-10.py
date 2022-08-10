@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.strategies.utils import on_colab_kaggle as _on_colab_kaggle
-from pytorch_lightning.utilities import rank_zero_deprecation
+import pytest
+
+from pytorch_lightning import Trainer
 
 
-def on_colab_kaggle() -> bool:
-    rank_zero_deprecation(
-        "`pl.plugins.training_type.utils.on_colab_kaggle` is deprecated in v1.6 and will be removed in v1.8."
-        " Use `pl.strategies.utils.on_colab_kaggle` instead."
-    )
-    return _on_colab_kaggle()
+def test_deprecated_amp_level():
+    with pytest.deprecated_call(match="Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0"):
+        Trainer(amp_level="O3", amp_backend="apex")
