@@ -318,7 +318,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         )
 
         try:
-            yield admin_page, view_page, fetch_logs
+            yield admin_page, view_page, fetch_logs, name
         except KeyboardInterrupt:
             pass
         finally:

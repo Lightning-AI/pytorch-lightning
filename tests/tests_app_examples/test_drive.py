@@ -13,6 +13,7 @@ def test_drive_example_cloud() -> None:
         _,
         view_page,
         fetch_logs,
+        _,
     ):
 
         has_logs = False
