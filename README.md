@@ -1,4 +1,4 @@
-### ** NEWS: PyTorch Lightning has been renamed Lightning! In addition to building models, you can now build research workflows and production pipelines**
+### \*\* NEWS: PyTorch Lightning has been renamed Lightning! In addition to building models, you can now build research workflows and production pipelines\*\*
 
 <div align="center">
 <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
