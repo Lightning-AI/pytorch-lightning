@@ -70,7 +70,7 @@ Here's an example:
 
 .. note:: In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters with low utilization.
 
-* edit_before_creation: Enables interactive editing of requests before submitting it to Lightning AI.
+* edit-before-creation: Enables interactive editing of requests before submitting it to Lightning AI.
 
 * wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
 
