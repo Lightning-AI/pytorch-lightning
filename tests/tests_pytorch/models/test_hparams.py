@@ -399,6 +399,25 @@ def _raw_checkpoint_path(trainer) -> str:
     return raw_checkpoint_path
 
 
+@pytest.mark.parametrize("base_class", (LightningModule, LightningDataModule))
+def test_save_hyperparameters_under_composition(base_class):
+    """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
+    collected."""
+
+    class ChildInComposition(base_class):
+        def __init__(self, same_arg):
+            super().__init__()
+            self.save_hyperparameters()
+
+    class NotPLSubclass:  # intentionally not subclassing LightningModule/LightningDataModule
+        def __init__(self, same_arg="parent_default", other_arg="other"):
+            super().__init__()
+            self.child = ChildInComposition(same_arg="cocofruit")
+
+    parent = NotPLSubclass()
+    assert parent.child.hparams == dict(same_arg="cocofruit")
+
+
 class LocalVariableModelSuperLast(BoringModel):
     """This model has the super().__init__() call at the end."""
 
