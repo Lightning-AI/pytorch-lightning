@@ -525,8 +525,8 @@ def test_invalid_hook_passed_in_datahook_selector():
         dh_selector.get_hook("setup")
 
 
-@pytest.mark.parametrize("devices, warn_cm", [(1, no_warning_call), (2, pytest.warns)])
-def test_eval_distributed_sampler_warning(devices, warn_cm):
+@pytest.mark.parametrize("devices, warn_context", [(1, no_warning_call), (2, pytest.warns)])
+def test_eval_distributed_sampler_warning(devices, warn_context):
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
 
     model = BoringModel()
@@ -534,11 +534,11 @@ def test_eval_distributed_sampler_warning(devices, warn_cm):
     trainer._data_connector.attach_data(model)
 
     trainer.state.fn = TrainerFn.VALIDATING
-    with warn_cm(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+    with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_val_dataloader(model)
 
     trainer.state.fn = TrainerFn.TESTING
-    with warn_cm(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+    with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_test_dataloader(model)
 
 

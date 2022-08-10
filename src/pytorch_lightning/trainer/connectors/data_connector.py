@@ -299,8 +299,8 @@ class DataConnector:
             # update docs too once this is resolved
             trainer_fn = self.trainer.state.fn
             if (
-                self.trainer.distributed_sampler_kwargs["num_replicas"] > 1
-                and isinstance(sampler, DistributedSampler)
+                isinstance(sampler, DistributedSampler)
+                and sampler.num_replicas > 1
                 and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING)
             ):
                 rank_zero_warn(
