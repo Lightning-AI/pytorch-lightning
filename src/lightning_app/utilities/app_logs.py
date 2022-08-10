@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from json import JSONDecodeError
 from threading import Thread
-from typing import Iterator, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional
 
 import dateutil.parser
 from websocket import WebSocketApp
@@ -30,10 +30,17 @@ class _LogEventLabels:
 class _LogEvent:
     message: str
     timestamp: datetime
+    component_name: str
     labels: _LogEventLabels
 
+    def __ge__(self, other: "_LogEvent") -> bool:
+        return self.timestamp >= other.timestamp
 
-def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
+    def __gt__(self, other: "_LogEvent") -> bool:
+        return self.timestamp > other.timestamp
+
+
+def _push_log_events_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
     """Pushes _LogEvents from websocket to read_queue.
 
     Returns callback function used with `on_message_callback` of websocket.WebSocketApp.
@@ -43,13 +50,17 @@ def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queu
         # We strongly trust that the contract on API will hold atm :D
         event_dict = json.loads(msg)
         labels = _LogEventLabels(**event_dict["labels"])
+
         if "message" in event_dict:
+            message = event_dict["message"]
+            timestamp = dateutil.parser.isoparse(event_dict["timestamp"])
             event = _LogEvent(
-                message=event_dict["message"],
-                timestamp=dateutil.parser.isoparse(event_dict["timestamp"]),
+                message=message,
+                timestamp=timestamp,
+                component_name=component_name,
                 labels=labels,
             )
-            read_queue.put((event.timestamp, component_name, event))
+            read_queue.put(event)
 
     return callback
 
@@ -66,8 +77,13 @@ def _error_callback(ws_app: WebSocketApp, error: Exception):
 
 
 def _app_logs_reader(
-    client: LightningClient, project_id: str, app_id: str, component_names: List[str], follow: bool
-) -> Iterator[Tuple[str, _LogEvent]]:
+    client: LightningClient,
+    project_id: str,
+    app_id: str,
+    component_names: List[str],
+    follow: bool,
+    on_error_callback: Optional[Callable] = None,
+) -> Iterator[_LogEvent]:
 
     read_queue = queue.PriorityQueue()
     logs_api_client = _LightningLogsSocketAPI(client.api_client)
@@ -78,8 +94,8 @@ def _app_logs_reader(
             project_id=project_id,
             app_id=app_id,
             component=component_name,
-            on_message_callback=_push_logevents_to_read_queue_callback(component_name, read_queue),
-            on_error_callback=_error_callback,
+            on_message_callback=_push_log_events_to_read_queue_callback(component_name, read_queue),
+            on_error_callback=on_error_callback or _error_callback,
         )
         for component_name in component_names
     ]
@@ -92,20 +108,19 @@ def _app_logs_reader(
     for th in log_threads:
         th.start()
 
+    # Print logs from queue when log event is available
     user_log_start = "<<< BEGIN USER_RUN_FLOW SECTION >>>"
     start_timestamp = None
 
     # Print logs from queue when log event is available
     try:
         while True:
-            _, component_name, log_event = read_queue.get(timeout=None if follow else 1.0)
-            log_event: _LogEvent
-
+            log_event = read_queue.get(timeout=None if follow else 1.0)
             if user_log_start in log_event.message:
                 start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
 
             if start_timestamp and log_event.timestamp > start_timestamp:
-                yield component_name, log_event
+                yield log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
