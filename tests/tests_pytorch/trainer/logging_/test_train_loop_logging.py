@@ -569,11 +569,12 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     "accelerator",
     [
         pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        "cpu",
     ],
 )
 def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
-        def __init__(self, *args, **kwargs) -> None:
+        def __init__(self) -> None:
             super().__init__()
             self.val_acc = Accuracy()
 
@@ -592,7 +593,6 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
             return super().validation_step(batch, batch_idx)
 
     early_stop = EarlyStopping(monitor="val_acc", mode="max")
-
     checkpoint = ModelCheckpoint(monitor="val_acc", save_last=True, save_top_k=2, mode="max")
 
     model = TestingModel()
@@ -812,3 +812,28 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
             call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
         ]
     )
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_log_on_train_start(mock_log_metrics, tmpdir):
+    """Tests that logged metrics on_train_start get reset after the first epoch."""
+
+    class MyModel(BoringModel):
+        def on_train_start(self):
+            self.log("foo", 123)
+
+    model = MyModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=2,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    assert mock_log_metrics.mock_calls == [call(metrics={"foo": 123.0, "epoch": 0}, step=0)]
+    assert trainer.max_epochs > 1
