@@ -30,7 +30,9 @@ sets up a new Lightning Cluster along with a Lightning Kubernetes Operator.
 Create a Lightning BYOC cluster
 *******************************
 
-You must have your cloud configured before you try and create a BYOC cluster.
+You must have your cloud configured before you try and create a BYOC cluster. 
+
+And to make your life a little easier, we've made a `Terraform module to help with that <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_.
 
 Create a Lightning BYOC cluster using the following command:
 
@@ -42,15 +44,17 @@ Here's an example:
 
 .. code:: python
 
-   lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --cost-savings
+   lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --enable-performance
 
 ..note:: Cluster creation is gonna take an hour or more after you run this command.
 
-**Parameters:**
+**Arguments**
 
 * cluster_name: The name of the cluster to be created
 
 .. note:: Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ).
+
+**Parameters:**
 
 * provider: The cloud provider where your cluster is located.
 
