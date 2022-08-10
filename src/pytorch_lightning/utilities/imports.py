@@ -124,6 +124,7 @@ class _RequirementAvailable:
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
+_PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 _TORCH_LESSER_EQUAL_1_10_2 = _compare_version("torch", operator.le, "1.10.2")

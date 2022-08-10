@@ -30,7 +30,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
@@ -265,7 +265,10 @@ def _make_entry_point_query_mock(callback_factory):
     entry_point = Mock()
     entry_point.name = "mocked"
     entry_point.load.return_value = callback_factory
-    if _PYTHON_GREATER_EQUAL_3_8_0:
+    if _PYTHON_GREATER_EQUAL_3_10_0:
+        query_mock.return_value = [entry_point]
+        import_path = "importlib.metadata.entry_points"
+    elif _PYTHON_GREATER_EQUAL_3_8_0:
         query_mock().get.return_value = [entry_point]
         import_path = "importlib.metadata.entry_points"
     else:
