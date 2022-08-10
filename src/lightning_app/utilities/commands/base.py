@@ -243,3 +243,4 @@ def _process_command_requests(app):
                     # Validation is done on the CLI side.
                     response = method(**command_query["command_arguments"])
                     app.commands_responses_queue.put({"response": response, "id": command_query["id"]})
+                    app._has_updated = True
