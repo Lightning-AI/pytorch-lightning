@@ -8,7 +8,9 @@ from uuid import uuid4
 
 import click
 import requests
+import rich
 from requests.exceptions import ConnectionError
+from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
@@ -131,9 +133,13 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
         follow=follow,
     )
 
+    rich_colors = list(ANSI_COLOR_NAMES)
+    colors = {c: rich_colors[i + 1] for i, c in enumerate(components)}
+
     for component_name, log_event in log_reader:
-        message = f"[{component_name}] {log_event.timestamp.isoformat()} {log_event.message}"
-        click.echo(message, err=log_event.labels.stream == "stderr", color=True)
+        date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+        color = colors[component_name]
+        rich.print(f"[{color}]{component_name}[/{color}] {date} {log_event.message}")
 
 
 @_main.command()

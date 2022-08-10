@@ -2,7 +2,7 @@ import json
 import queue
 import sys
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from json import JSONDecodeError
 from threading import Thread
 from typing import Iterator, List, Optional, Tuple
@@ -92,13 +92,20 @@ def _app_logs_reader(
     for th in log_threads:
         th.start()
 
+    user_log_start = "<<< BEGIN USER_RUN_FLOW SECTION >>>"
+    start_timestamp = None
+
     # Print logs from queue when log event is available
     try:
         while True:
             _, component_name, log_event = read_queue.get(timeout=None if follow else 1.0)
             log_event: _LogEvent
 
-            yield component_name, log_event
+            if user_log_start in log_event.message:
+                start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
+
+            if start_timestamp and log_event.timestamp > start_timestamp:
+                yield component_name, log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
