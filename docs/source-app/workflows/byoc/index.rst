@@ -44,7 +44,7 @@ Here's an example:
 
    lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --cost-savings
 
-..note:: Cluster creation is gonna take an hour or more after you run this command. 
+..note:: Cluster creation is gonna take an hour or more after you run this command.
 
 **Parameters:**
 
