@@ -506,7 +506,7 @@ class _DataLoaderSource:
             method = getattr(self.instance, self.name)
             return method()
 
-        assert self.instance
+        assert self.instance is not None
         return self.instance
 
     def is_defined(self) -> bool:
