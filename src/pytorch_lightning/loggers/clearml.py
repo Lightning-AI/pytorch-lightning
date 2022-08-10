@@ -67,9 +67,7 @@ class ClearMLLogger(Logger):
 
         if not self.id:
             self._initialized = True
-            self.task = Task.init(
-                project_name=self.project_name, task_name=self.task_name
-            )
+            self.task = Task.init(project_name=self.project_name, task_name=self.task_name)
         else:
             self._initialized = True
             self.task = Task.get_task(task_id=self.id)
@@ -82,7 +80,7 @@ class ClearMLLogger(Logger):
     ) -> None:
         """
         Records metrics.
-        This method logs metrics as as soon as it received them. 
+        This method logs metrics as as soon as it received them.
         If you want to aggregate metrics for one specific `step`, use the
         :meth:`~pytorch_lightning.loggers.base.Logger.agg_and_log_metrics`
         method.
@@ -110,12 +108,7 @@ class ClearMLLogger(Logger):
         self._step += 1
 
     @rank_zero_only
-    def log_hyperparams(
-        self,
-        params: Union[Dict[str, AnyStr], Namespace],
-        *args: Any,
-        **kwargs: Any
-    ) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, AnyStr], Namespace], *args: Any, **kwargs: Any) -> None:
         """Record hyperparameters.
 
         Args:
@@ -134,7 +127,7 @@ class ClearMLLogger(Logger):
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
-        """Record a table
+        """Record a table.
 
         Args:
             key: Unique identifier of the table
@@ -153,26 +146,18 @@ class ClearMLLogger(Logger):
 
         if data is not None:
             table = data
-            assert len(columns) == len(
-                table[0]
-            ), "number of column names should match the total number of columns"
+            assert len(columns) == len(table[0]), "number of column names should match the total number of columns"
             table.insert(0, columns)
 
         if table is not None:
-            self.task.logger.report_table(
-                title=key, series=key, iteration=step, table_plot=table
-            )
+            self.task.logger.report_table(title=key, series=key, iteration=step, table_plot=table)
 
     @rank_zero_only
-    def finalize(
-        self, status: Literal["success", "failed", "aborted"] = "sucess"
-    ) -> None:
-        """
-        Finalize the experiment. Mark the task completed 
-        or otherwise given the status.
+    def finalize(self, status: Literal["success", "failed", "aborted"] = "sucess") -> None:
+        """Finalize the experiment. Mark the task completed or otherwise given the status.
 
         Args:
-            status: Status that the experiment finished with 
+            status: Status that the experiment finished with
                 (e.g. success, failed, aborted)
         """
 
@@ -185,7 +170,7 @@ class ClearMLLogger(Logger):
 
     @property
     def name(self) -> Optional[str]:
-        """Gets the name of the experiment, being the name of the ClearML task
+        """Gets the name of the experiment, being the name of the ClearML task.
 
         Returns:
             The name of the ClearML task
@@ -194,8 +179,7 @@ class ClearMLLogger(Logger):
 
     @property
     def version(self) -> str:
-        """
-        Gets the version of the experiment, being the ID of the ClearML task.
+        """Gets the version of the experiment, being the ID of the ClearML task.
 
         Returns:
             The id of the ClearML task

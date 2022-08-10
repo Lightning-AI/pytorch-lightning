@@ -61,11 +61,7 @@ def test_clearml_logger_run_name():
 
 def test_clearml_logger_reusing_task():
     logger = ClearMLLogger("test", "test")
-    logger_reuse = ClearMLLogger(
-        project_name="test", 
-        task_name="test", 
-        task_id=logger.task.id
-    )
+    logger_reuse = ClearMLLogger(project_name="test", task_name="test", task_id=logger.task.id)
 
     assert logger.version == logger_reuse.version
 
