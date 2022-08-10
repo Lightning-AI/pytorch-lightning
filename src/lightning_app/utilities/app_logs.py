@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from json import JSONDecodeError
 from threading import Thread
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional
 
 import dateutil.parser
 from websocket import WebSocketApp
@@ -30,13 +30,14 @@ class _LogEventLabels:
 class _LogEvent:
     message: str
     timestamp: datetime
+    component_name: str
     labels: _LogEventLabels
 
     def __ge__(self, other: "_LogEvent") -> bool:
-        return self.timestamp <= other.timestamp
+        return self.timestamp >= other.timestamp
 
     def __gt__(self, other: "_LogEvent") -> bool:
-        return self.timestamp < other.timestamp
+        return self.timestamp > other.timestamp
 
 
 def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
@@ -67,9 +68,10 @@ def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queu
                 event = _LogEvent(
                     message=message,
                     timestamp=timestamp,
+                    component_name=component_name,
                     labels=labels,
                 )
-                read_queue.put((event.timestamp, component_name, event))
+                read_queue.put(event)
 
     return callback
 
@@ -87,7 +89,7 @@ def _error_callback(ws_app: WebSocketApp, error: Exception):
 
 def _app_logs_reader(
     client: LightningClient, project_id: str, app_id: str, component_names: List[str], follow: bool
-) -> Iterator[Tuple[str, _LogEvent]]:
+) -> Iterator[_LogEvent]:
 
     read_queue = queue.PriorityQueue()
     logs_api_client = _LightningLogsSocketAPI(client.api_client)
@@ -115,10 +117,7 @@ def _app_logs_reader(
     # Print logs from queue when log event is available
     try:
         while True:
-            _, component_name, log_event = read_queue.get(timeout=None if follow else 1.0)
-            log_event: _LogEvent
-            yield component_name, log_event
-
+            yield read_queue.get(timeout=None if follow else 1.0)
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
         pass

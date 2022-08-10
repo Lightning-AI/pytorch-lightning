@@ -136,10 +136,10 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     rich_colors = list(ANSI_COLOR_NAMES)
     colors = {c: rich_colors[i + 1] for i, c in enumerate(components)}
 
-    for component_name, log_event in log_reader:
+    for log_event in log_reader:
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-        color = colors[component_name]
-        rich.print(f"[{color}]{component_name}[/{color}] {date} {log_event.message}")
+        color = colors[log_event.component_name]
+        rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
 
 
 @_main.command()

@@ -326,15 +326,15 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 follow=False,
             )
             max_length = max(len(c.replace("root.", "")) for c in component_names)
-            for component, log_event in gen:
+            for log_event in gen:
                 message = log_event.message
                 identifier = f"{log_event.timestamp}{log_event.message}"
                 if identifier not in identifiers:
                     date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
                     identifiers.append(identifier)
-                    color = colors[component]
-                    padding = (max_length - len(component)) * " "
-                    print(f"[{color}]{component}{padding}[/{color}] {date} {message}")
+                    color = colors[log_event.component_name]
+                    padding = (max_length - len(log_event.component_name)) * " "
+                    print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
                 yield message
 
         # 5. Print your application ID
