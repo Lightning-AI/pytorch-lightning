@@ -3,7 +3,7 @@
 <div align="center">
 <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
 
-**Build high-performance PyTorch models and deploy them with Lightning Apps (scalable end-to-end ML systems).**
+**Build high-performance (PyTorch) models, research workflows, ML production pipelines.**
 
 ______________________________________________________________________
 
