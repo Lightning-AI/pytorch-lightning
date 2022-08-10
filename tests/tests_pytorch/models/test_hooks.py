@@ -296,9 +296,9 @@ class HookedModel(BoringModel):
         for i in range(current_batch, batches):
             out.extend(
                 [
-                    dict(name="on_before_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
-                    dict(name="transfer_batch_to_device", kwargs=dict(batch=ANY, device=device, dataloader_idx=0)),
-                    dict(name="on_after_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
+                    dict(name="on_before_batch_transfer", args=(ANY, 0)),
+                    dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
+                    dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
                     dict(name="on_train_batch_start", args=(ANY, i)),
@@ -325,9 +325,8 @@ class HookedModel(BoringModel):
                     ),
                     dict(
                         name="configure_gradient_clipping",
-                        kwargs=dict(
-                            optimizer=ANY, optimizer_idx=0, gradient_clip_val=None, gradient_clip_algorithm=None
-                        ),
+                        args=(ANY, 0),
+                        kwargs=dict(gradient_clip_val=None, gradient_clip_algorithm=None),
                     ),
                     # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
                     # the actual call to `PrecisionPlugin.optimizer_step`
@@ -355,9 +354,9 @@ class HookedModel(BoringModel):
         for i in range(batches):
             out.extend(
                 [
-                    dict(name="on_before_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
-                    dict(name="transfer_batch_to_device", kwargs=dict(batch=ANY, device=device, dataloader_idx=0)),
-                    dict(name="on_after_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
+                    dict(name="on_before_batch_transfer", args=(ANY, 0)),
+                    dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
+                    dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     dict(name="Callback.on_batch_start", args=(trainer, model)),
                     dict(name="Callback.on_train_batch_start", args=(trainer, model, ANY, i)),
                     dict(name="on_train_batch_start", args=(ANY, i)),
@@ -406,9 +405,9 @@ class HookedModel(BoringModel):
         for i in range(batches):
             out.extend(
                 [
-                    dict(name="on_before_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
-                    dict(name="transfer_batch_to_device", kwargs=dict(batch=ANY, device=device, dataloader_idx=0)),
-                    dict(name="on_after_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
+                    dict(name="on_before_batch_transfer", args=(ANY, 0)),
+                    dict(name="transfer_batch_to_device", args=(ANY, device, 0)),
+                    dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     dict(name=f"Callback.on_{fn}_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name=f"on_{fn}_batch_start", args=(ANY, i, 0)),
                     dict(name="forward", args=(ANY,)),
@@ -426,12 +425,12 @@ class HookedModel(BoringModel):
         for i in range(batches):
             out.extend(
                 [
-                    dict(name="on_before_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
+                    dict(name="on_before_batch_transfer", args=(ANY, 0)),
                     dict(
                         name="transfer_batch_to_device",
-                        kwargs=dict(batch=ANY, device=torch.device("cpu"), dataloader_idx=0),
+                        args=(ANY, torch.device("cpu"), 0),
                     ),
-                    dict(name="on_after_batch_transfer", kwargs=dict(batch=ANY, dataloader_idx=0)),
+                    dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     dict(name="Callback.on_predict_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name="on_predict_batch_start", args=(ANY, i, 0)),
                     dict(name="forward", args=(ANY,)),

@@ -291,7 +291,7 @@ class LightningModule(
     ) -> Any:
         device = device or self.device
 
-        def call_hook(hook_name, **kwargs):
+        def call_hook(hook_name, *args):
             if self._trainer:
                 datahook_selector = self._trainer._data_connector._datahook_selector
                 obj = datahook_selector.get_instance(hook_name)
@@ -300,14 +300,14 @@ class LightningModule(
                     if isinstance(obj, self.__class__)
                     else self._trainer._call_lightning_datamodule_hook
                 )
-                return trainer_method(hook_name, **kwargs)
+                return trainer_method(hook_name, *args)
             else:
                 hook = getattr(self, hook_name)
-                return hook(**kwargs)
+                return hook(*args)
 
-        batch = call_hook("on_before_batch_transfer", batch=batch, dataloader_idx=dataloader_idx)
-        batch = call_hook("transfer_batch_to_device", batch=batch, device=device, dataloader_idx=dataloader_idx)
-        batch = call_hook("on_after_batch_transfer", batch=batch, dataloader_idx=dataloader_idx)
+        batch = call_hook("on_before_batch_transfer", batch, dataloader_idx)
+        batch = call_hook("transfer_batch_to_device", batch, device, dataloader_idx)
+        batch = call_hook("on_after_batch_transfer", batch, dataloader_idx)
         return batch
 
     def print(self, *args, **kwargs) -> None:

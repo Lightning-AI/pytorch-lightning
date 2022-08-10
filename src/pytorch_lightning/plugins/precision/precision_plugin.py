@@ -185,8 +185,8 @@ class PrecisionPlugin(CheckpointHooks):
 
         model.trainer._call_lightning_module_hook(
             "configure_gradient_clipping",
-            optimizer=optimizer,
-            optimizer_idx=optimizer_idx,
+            optimizer,
+            optimizer_idx,
             gradient_clip_val=clip_val,
             gradient_clip_algorithm=gradient_clip_algorithm,
         )
