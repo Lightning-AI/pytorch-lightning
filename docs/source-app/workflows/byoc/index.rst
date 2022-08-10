@@ -64,7 +64,7 @@ Here's an example:
 
 * region: AWS region containing compute resources
 
-* instance_types: Instance types that you want to support, for computer jobs within the cluster. For now, this is the AWS instance types supported by the cluster.
+* instance-types: Instance types that you want to support, for computer jobs within the cluster. For now, this is the AWS instance types supported by the cluster.
 
 * cost_savings: Specifies if the cluster uses cost savings mode.
 
