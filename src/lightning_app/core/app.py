@@ -18,7 +18,7 @@ from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
 from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_command_requests
 from lightning_app.utilities.component import _convert_paths_after_init
-from lightning_app.utilities.enum import AppStage
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.layout import _collect_layout
 from lightning_app.utilities.proxies import ComponentDelta
@@ -202,7 +202,7 @@ class LightningApp:
 
     @staticmethod
     def populate_changes(last_state, new_state):
-        diff = DeepDiff(last_state, new_state, view="tree")
+        diff = DeepDiff(last_state, new_state, view="tree", verbose_level=2)
 
         changes_categories = [diff[key] for key in diff.to_dict()]
 
@@ -307,7 +307,7 @@ class LightningApp:
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            if Delta(DeepDiff(self.last_state, self.state)).to_dict():
+            if Delta(DeepDiff(self.last_state, self.state, verbose_level=2)).to_dict():
                 # new_state = self.populate_changes(self.last_state, self.state)
                 self.set_state(self.state)
                 self._has_updated = True
@@ -399,8 +399,8 @@ class LightningApp:
         if self.should_publish_changes_to_api and self.api_publish_state_queue:
             logger.debug("Publishing the state with changes")
             # Push two states to optimize start in the cloud.
-            self.api_publish_state_queue.put(self.state)
-            self.api_publish_state_queue.put(self.state)
+            self.api_publish_state_queue.put(self.state_vars)
+            self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
 
@@ -412,7 +412,7 @@ class LightningApp:
             self._update_run_time_monitor()
 
             if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
-                self.api_publish_state_queue.put(self.state)
+                self.api_publish_state_queue.put(self.state_vars)
 
         return True
 
@@ -430,16 +430,12 @@ class LightningApp:
         self.stage = AppStage.BLOCKING
         return False
 
-    def _collect_work_finish_status(self) -> dict:
-        work_finished_status = {}
-        for work in self.works:
-            work_finished_status[work.name] = False
-            for key in work._calls:
-                if key == "latest_call_hash":
-                    continue
-                fn_metadata = work._calls[key]
-                work_finished_status[work.name] = fn_metadata["name"] == "run" and "ret" in fn_metadata
+    def _has_work_finished(self, work):
+        latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        return "ret" in work._calls[latest_call_hash]
 
+    def _collect_work_finish_status(self) -> dict:
+        work_finished_status = {work.name: self._has_work_finished(work) for work in self.works}
         assert len(work_finished_status) == len(self.works)
         return work_finished_status
 

@@ -18,8 +18,6 @@ import torch
 from torch.nn import Module
 from typing_extensions import Self
 
-import pytorch_lightning as pl
-
 
 class DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ["device", "dtype"]
@@ -180,10 +178,8 @@ class DeviceDtypeModuleMixin(Module):
     def __update_properties(
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
-        def apply_fn(module: Union["DeviceDtypeModuleMixin", Module]) -> None:
-            # TODO: Find why `isinstance(module, DeviceDtypeModuleMixin)` doesn't
-            # work when using `init_meta_context`.
-            if not isinstance(module, (DeviceDtypeModuleMixin, pl.LightningModule)):
+        def apply_fn(module: Union[DeviceDtypeModuleMixin, Module]) -> None:
+            if not isinstance(module, DeviceDtypeModuleMixin):
                 return
             if device is not None:
                 module._device = device

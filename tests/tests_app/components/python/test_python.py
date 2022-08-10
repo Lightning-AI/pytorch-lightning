@@ -10,6 +10,7 @@ from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import RunIf
 from lightning_app.testing.testing import run_work_isolated
 from lightning_app.utilities.component import _set_work_context
+from lightning_app.utilities.enum import CacheCallsKeys
 
 COMPONENTS_SCRIPTS_FOLDER = str(os.path.join(_PROJECT_ROOT, "tests/tests_app/components/python/scripts/"))
 
@@ -112,7 +113,7 @@ def test_tracer_component_with_code():
     with open("file.py", "w") as f:
         f.write('raise Exception("An error")')
 
-    call_hash = python_script._calls["latest_call_hash"]
+    call_hash = python_script._calls[CacheCallsKeys.LATEST_CALL_HASH]
     python_script._calls[call_hash]["statuses"].pop(-1)
     python_script._calls[call_hash]["statuses"].pop(-1)
 
