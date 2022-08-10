@@ -956,22 +956,27 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         " train_reload_epochs_expect,val_reload_epochs_expect,val_step_epochs_expect"
     ),
     [
-        # Sanity check at epoch 0 creates a validation dataloader, but validation is
-        # checked (and in this case reloaded) every n epochs starting from epoch n-1
+        # general case where sanity check reloads the dataloaders for validation on current_epoch=0
         (0, 1, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         (1, 1, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 2, 3, 4, 5, 6, 7, 8, 9], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        # case where check_val_every_n_epoch < reload_dataloaders_every_n_epochs so expected val_reload_epoch
+        # and val_step_epoch will be different
         (0, 1, 2, [0, 2, 4, 6, 8], [0, 2, 4, 6, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         (1, 1, 2, [0, 2, 4, 6, 8], [2, 4, 6, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-        (0, 2, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
-        (1, 2, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
-        (0, 2, 2, [0, 2, 4, 6, 8], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
-        (1, 2, 2, [0, 2, 4, 6, 8], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
-        (0, 3, 2, [0, 2, 4, 6, 8], [2, 5, 8], [2, 5, 8]),
-        (1, 3, 2, [0, 2, 4, 6, 8], [2, 5, 8], [2, 5, 8]),
         (0, 3, 4, [0, 4, 8], [2, 8], [2, 5, 8]),
         (1, 3, 4, [0, 4, 8], [2, 8], [2, 5, 8]),
+        # case where check_val_every_n_epoch > reload_dataloaders_every_n_epochs so expected val_reload_epoch
+        # and val_step_epoch will be same
+        (0, 2, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
+        (1, 2, 1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
+        (0, 3, 2, [0, 2, 4, 6, 8], [2, 5, 8], [2, 5, 8]),
+        (1, 3, 2, [0, 2, 4, 6, 8], [2, 5, 8], [2, 5, 8]),
         (0, 5, 2, [0, 2, 4, 6, 8], [4, 9], [4, 9]),
         (1, 5, 2, [0, 2, 4, 6, 8], [4, 9], [4, 9]),
+        # case where check_val_every_n_epoch = reload_dataloaders_every_n_epochs so expected val_reload_epoch
+        # and val_step_epoch will be same
+        (0, 2, 2, [0, 2, 4, 6, 8], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
+        (1, 2, 2, [0, 2, 4, 6, 8], [1, 3, 5, 7, 9], [1, 3, 5, 7, 9]),
     ],
 )
 def test_dataloaders_load_every_n_epochs_infrequent_val(
