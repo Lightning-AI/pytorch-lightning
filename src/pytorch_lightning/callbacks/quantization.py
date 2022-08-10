@@ -58,11 +58,11 @@ def wrap_qat_forward_context(
         # apply custom trigger
         if _quant_run:
             quant_cb._forward_calls += 1
-            data = model.quant(data)
+            data = model.quant(data)  # type: ignore[operator]
         data = func(data)
         # apply custom trigger
         if _quant_run:
-            data = model.dequant(data)
+            data = model.dequant(data)  # type: ignore[operator]
         return data
 
     return wrapper
@@ -74,9 +74,9 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
     def wrapper(data) -> Any:
-        data = model.quant(data)
+        data = model.quant(data)  # type: ignore[operator]
         data = func(data)
-        data = model.dequant(data)
+        data = model.dequant(data)  # type: ignore[operator]
         return data
 
     return wrapper
