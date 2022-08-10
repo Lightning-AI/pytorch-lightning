@@ -1805,14 +1805,13 @@ both conditions are met. If any of these arguments is not set, it won't be consi
     model = LitModel()
     trainer.fit(model)
 
-    # setting `trainer.should_stop` at any point before/after 5th step
-    # will not terminate the training until 5th epoch is completed
+    # setting `trainer.should_stop` at any until both min_steps and min_epochs are satisfied
     class LitModel(LightningModule):
         def training_step(self, *args, **kwargs):
             if self.global_step == 7:
                 self.should_stop = True
 
 
-    trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100, limit_train_batches=10)
+    trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100)
     model = LitModel()
     trainer.fit(model)
