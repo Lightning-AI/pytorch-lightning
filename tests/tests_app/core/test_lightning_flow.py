@@ -17,7 +17,7 @@ from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import (
-    _delta_to_appstate_delta,
+    _delta_to_app_state_delta,
     _LightningAppRef,
     _load_state_dict,
     _state_dict,
@@ -701,6 +701,11 @@ class RootFlowReload(LightningFlow):
         super().load_state_dict(flow_state, children_states, strict=strict)
 
 
+class RootFlowReload2(RootFlowReload):
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        LightningFlow.load_state_dict(self, flow_state, children_states, strict=strict)
+
+
 def test_lightning_flow_reload():
     flow = RootFlowReload()
 
@@ -732,3 +737,10 @@ def test_lightning_flow_reload():
     assert flow.flow.counter == 2
     assert flow.flow_2.counter == 2
     assert flow.flow_2.w.counter == 2
+
+    flow = RootFlowReload2()
+    flow.run()
+    state = _state_dict(flow)
+    flow = RootFlowReload2()
+    with pytest.raises(ValueError, match="The component flow_2 wasn't instantiated for the component root"):
+        _load_state_dict(flow, state)

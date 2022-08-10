@@ -670,4 +670,4 @@ class LightningFlow:
             elif isinstance(child, LightningWork):
                 child.set_state(state)
             elif strict:
-                raise Exception(f"The component {child} isn't supported.")
+                raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")
