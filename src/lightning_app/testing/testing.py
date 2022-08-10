@@ -319,7 +319,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 component_names = ["flow"] + [w.name for w in works]
 
             colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
-
             gen = _app_logs_reader(
                 client=client,
                 project_id=project.project_id,
@@ -327,13 +326,15 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 component_names=component_names,
                 follow=False,
             )
+            max_length = max(len(c.replace("root.", "")) for c in component_names)
             for component, log_event in gen:
                 message = log_event.message
                 identifier = f"{log_event.timestamp}{log_event.message}"
                 if identifier not in identifiers:
                     identifiers.append(identifier)
                     color = colors[component]
-                    print(f"[{color}]{component}[/{color}] {log_event.timestamp} {message}")
+                    padding = (max_length - len(component)) * " "
+                    print(f"[{color}]{component}{padding}[/{color}] {log_event.timestamp} {message}")
                 yield message
 
         # 5. Print your application ID
