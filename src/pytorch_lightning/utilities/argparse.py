@@ -121,7 +121,7 @@ def parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(c
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls: Union[_ARGPARSE_CLS, Any]) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
@@ -219,7 +219,7 @@ def add_argparse_args(
 
     # Get symbols from cls or init function.
     for symbol in (cls, cls.__init__):
-        args_and_types = get_init_arguments_and_types(symbol)
+        args_and_types = get_init_arguments_and_types(symbol)  # type: ignore[arg-type]
         args_and_types = [x for x in args_and_types if x[0] not in ignore_arg_names]
         if len(args_and_types) > 0:
             break
