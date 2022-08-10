@@ -58,7 +58,7 @@ Here's an example:
 
 * role-arn: AWS IAM Role ARN used to provision resources
 
-* external_id: AWS IAM Role external ID
+* external-id: AWS IAM Role external ID
 
 .. note:: To read more on what the AWS external ID is and why it's useful go `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html`_.
 
