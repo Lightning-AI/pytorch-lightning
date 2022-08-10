@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-11]
+        os: [ubuntu-20.04, windows-2022, macOS-11]
         # same config as '.azure-pipelines/gpu-tests.yml'
         python-version: ["3.7"]
         pytorch-version: ["1.11"]
