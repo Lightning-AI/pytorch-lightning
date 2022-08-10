@@ -655,7 +655,12 @@ class LightningFlow:
             "structures": {},
         }
 
-    def load_state_dict(self, flow_state: Dict[str, Any], children_states: Dict[str, Any], strict: bool = True) -> None:
+    def load_state_dict(
+        self,
+        flow_state: Dict[str, Any],
+        children_states: Dict[str, Any],
+        strict: bool = True,
+    ) -> None:
         """Reloads the state of this flow and its children.
 
         .. code-block:: python
@@ -687,13 +692,19 @@ class LightningFlow:
                     # 2: Make any states modification / migration.
                     ...
 
-                    # 3: Call the parent ``load_state_dict`` to recursively reload the states.
-                    super().load_state_dict(flow_state, children_states, strict=strict)
+                    # 3: Call the parent ``load_state_dict`` to
+                    # recursively reload the states.
+                    super().load_state_dict(
+                        flow_state,
+                        children_states,
+                        strict,
+                    )
 
         Arguments:
             flow_state: The state of the current flow.
             children_states: The state of the dynamic children of this flow.
-            strict: Whether to raise an exception if a dynamic children hasn't been re-created.
+            strict: Whether to raise an exception if a dynamic
+                children hasn't been re-created.
         """
         self.set_state(flow_state, recurse=False)
         direct_children_states = {k: v for k, v in children_states.items() if "." not in k}
