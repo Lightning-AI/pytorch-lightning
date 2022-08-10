@@ -33,7 +33,7 @@ jobs:
       fail-fast: true
       max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2022]
         pkg: ["app", "pytorch"]
         python-version: [3.8]  # , 3.9
 
@@ -67,7 +67,7 @@ jobs:
       fail-fast: false
       # max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2022]
         pkg: ["", "lightning"]
         python-version: [3.8]  # , 3.9
 
@@ -100,7 +100,7 @@ jobs:
       fail-fast: false
       # max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2022]
         python-version: [3.8]  # , 3.9
 
     steps:
