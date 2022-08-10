@@ -85,7 +85,7 @@ def test_trainer_reset_correctly(tmpdir):
         "callbacks",
         "checkpoint_callback",
         "current_epoch",
-        "logger",
+        "loggers",
         "global_step",
         "max_steps",
     ]

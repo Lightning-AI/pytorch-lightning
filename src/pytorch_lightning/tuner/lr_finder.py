@@ -16,7 +16,6 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from functools import wraps
 from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import numpy as np
@@ -25,7 +24,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
+from pytorch_lightning.core.optimizer import _set_scheduler_opt_idx
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
@@ -274,7 +273,7 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
         "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
         "optimizer_frequencies": trainer.strategy.optimizer_frequencies,
         "callbacks": trainer.callbacks,
-        "logger": trainer.logger,
+        "loggers": trainer.loggers,
         # TODO: check if this is required
         "auto_lr_find": trainer.auto_lr_find,
         "max_steps": trainer.fit_loop.max_steps,
@@ -303,7 +302,7 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     trainer.strategy.optimizer_frequencies = params["optimizer_frequencies"]
     trainer.auto_lr_find = params["auto_lr_find"]
     trainer.callbacks = params["callbacks"]
-    trainer.logger = params["logger"]
+    trainer.loggers = params["loggers"]
     trainer.fit_loop.max_steps = params["max_steps"]
     trainer.limit_val_batches = params["limit_val_batches"]
 
