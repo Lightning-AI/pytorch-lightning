@@ -118,7 +118,7 @@ class AppStageTestingApp(LightningApp):
         previous_state = deepcopy(self.state)
         current_state = self.state
         current_state["app_state"]["stage"] = enum.value
-        deep_diff = DeepDiff(previous_state, current_state)
+        deep_diff = DeepDiff(previous_state, current_state, verbose_level=2)
         self.api_delta_queue.put(Delta(deep_diff))
 
     def maybe_apply_changes(self):

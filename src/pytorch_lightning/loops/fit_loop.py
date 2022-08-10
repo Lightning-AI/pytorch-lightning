@@ -50,10 +50,10 @@ class FitLoop(Loop[None]):
     def __init__(
         self,
         min_epochs: int = 0,
-        max_epochs: int = 1000,
+        max_epochs: Optional[int] = None,
     ) -> None:
         super().__init__()
-        if max_epochs < -1:
+        if isinstance(max_epochs, int) and max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
                 f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}."
@@ -162,6 +162,7 @@ class FitLoop(Loop[None]):
 
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
+        assert isinstance(self.max_epochs, int)
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
         if stop_epochs:
             # in case they are not equal, override so `trainer.current_epoch` has the expected value

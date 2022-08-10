@@ -202,7 +202,7 @@ jobs:
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.5.1
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
@@ -210,7 +210,7 @@ jobs:
         verbose: true
 
     - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.5.1
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
