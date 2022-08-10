@@ -118,6 +118,7 @@ def _app_logs_reader(
             _, component_name, log_event = read_queue.get(timeout=None if follow else 1.0)
             log_event: _LogEvent
             yield component_name, log_event
+
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
         pass
