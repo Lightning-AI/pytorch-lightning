@@ -179,8 +179,7 @@ class LightningModule(
     def trainer(self) -> "pl.Trainer":
         if not self._running_torchscript and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
-        if self._trainer is not None:
-            return self._trainer
+        return self._trainer  # type: ignore[return-value]
 
     @trainer.setter
     def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
@@ -270,7 +269,7 @@ class LightningModule(
         # this should match the implementation of `trainer.logger`
         # we don't reuse it so we can properly set the deprecation stacklevel
         if self._trainer is None:
-            return  # type: ignore[return-value]
+            return None
         loggers = self.trainer.loggers
         if len(loggers) == 0:
             return None
