@@ -293,10 +293,10 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.convert(pl_module, inplace=True)
         # check we shall preserve wrapper
         if self._input_compatible:
-            pl_module.forward = wrap_quantize_forward_context(
+            pl_module.forward = wrap_quantize_forward_context(  # type: ignore [assignment]
                 model=pl_module,
                 func=self.__module_forward,
-            )  # type: ignore [assignment]
+            )
         else:
             pl_module.forward = self.__module_forward  # type: ignore [assignment]
 
