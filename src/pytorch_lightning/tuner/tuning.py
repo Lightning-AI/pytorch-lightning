@@ -17,6 +17,7 @@ from typing_extensions import NotRequired, TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
@@ -171,7 +172,7 @@ class Tuner:
 
         _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
 
-        batch_size_finder = BatchSizeFinder(
+        batch_size_finder: Callback = BatchSizeFinder(
             mode=mode,
             steps_per_trial=steps_per_trial,
             init_val=init_val,
@@ -180,7 +181,7 @@ class Tuner:
         )
         # do not continue with the loop in case trainer.tuner is used
         batch_size_finder._early_exit = True
-        self.trainer.callbacks.append(batch_size_finder)
+        self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
 
         if method == "fit":
             self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
