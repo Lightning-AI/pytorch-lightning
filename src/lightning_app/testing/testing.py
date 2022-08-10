@@ -308,7 +308,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
 
         def fetch_logs(component_names: Optional[List[str]] = None) -> Generator:
             """This methods creates websockets connection in threads and returns the logs to the main thread."""
-
             app_id = admin_page.url.split("/")[-1]
 
             if not component_names:
