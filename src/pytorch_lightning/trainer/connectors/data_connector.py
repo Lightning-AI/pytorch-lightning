@@ -67,7 +67,10 @@ class DataConnector:
     def _should_reload_val_dl(self) -> bool:
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
+        return n_epochs and (
+            self.trainer._last_val_dl_reload_epoch is None
+            or self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
+        )
 
     def on_trainer_init(
         self,

@@ -632,7 +632,7 @@ class Trainer(
         self.test_dataloaders = None
         self.val_dataloaders = None
         self.predict_dataloaders = None
-        self._last_val_dl_reload_epoch = -1
+        self._last_val_dl_reload_epoch: Optional[int] = None
 
     def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
         r"""
@@ -714,7 +714,7 @@ class Trainer(
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
-        self._last_val_dl_reload_epoch = -1
+        self._last_val_dl_reload_epoch = None
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
@@ -1928,7 +1928,8 @@ class Trainer(
             # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
             # it should not reload again if it has already reloaded during sanity_check
             if self.state.fn == TrainerFn.FITTING and (
-                (self.sanity_checking and self.fit_loop.epoch_loop._should_check_val_epoch) or not self.sanity_checking
+                (self.sanity_checking and self.fit_loop.epoch_loop._should_check_val_epoch())
+                or not self.sanity_checking
             ):
                 self._last_val_dl_reload_epoch = self.current_epoch
 
