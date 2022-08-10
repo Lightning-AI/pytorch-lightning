@@ -297,7 +297,7 @@ class WandbLogger(Logger):
         self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
-            name=name or project,
+            name=name,
             project=project,
             id=version or id,
             dir=save_dir,
