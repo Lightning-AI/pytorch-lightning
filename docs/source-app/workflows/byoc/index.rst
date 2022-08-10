@@ -60,6 +60,8 @@ Here's an example:
 
 * external_id: AWS IAM Role external ID
 
+.. note:: To read more on what the AWS external ID is and why it's useful go `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html`_.
+
 * region: AWS region containing compute resources
 
 * instance_types: Instance types that you want to support, for computer jobs within the cluster. For now, this is the AWS instance types supported by the cluster.
