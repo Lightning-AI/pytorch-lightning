@@ -18,7 +18,7 @@ Quantization
 """
 import copy
 import functools
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, OrderedDict, Sequence, Union
 
 import torch
 from torch import Tensor
@@ -41,7 +41,7 @@ else:
 
 
 def wrap_qat_forward_context(
-    quant_cb,
+    quant_cb: "QuantizationAwareTraining",
     model: "pl.LightningModule",
     func: Callable,
     trigger_condition: Optional[Union[Callable, int]] = None,
@@ -73,7 +73,7 @@ def wrap_quantize_forward_context(model: "pl.LightningModule", func: Callable) -
     compatibility."""
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
-    def wrapper(data) -> Any:
+    def wrapper(data: Any) -> Any:
         data = model.quant(data)  # type: ignore[operator]
         data = func(data)
         data = model.dequant(data)  # type: ignore[operator]
@@ -205,7 +205,7 @@ class QuantizationAwareTraining(Callback):
         self._observer_disabled_stages = set(self.OBSERVER_STAGES) - observer_enabled_stages
 
         self._forward_calls = 0
-        self._fake_quant_to_initial_state_dict: Dict[FakeQuantizeBase, Tensor] = {}
+        self._fake_quant_to_initial_state_dict: Dict[FakeQuantizeBase, OrderedDict[str, Tensor]] = {}
         self._last_fake_quant_to_observer_enabled: Dict[FakeQuantizeBase, Tensor] = {}
         self._module_prepared = False
 
@@ -232,7 +232,7 @@ class QuantizationAwareTraining(Callback):
         for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
             fake_quant.observer_enabled.copy_(observer_enabled)
 
-    def _prepare_model(self, model: torch.nn.Module) -> None:
+    def _prepare_model(self, model: "pl.LightningModule") -> None:
         if self._module_prepared:
             return
         # QuantStub converts tensors from floating point to quantized
@@ -242,7 +242,7 @@ class QuantizationAwareTraining(Callback):
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
         self.__module_forward = model.forward
-        model.forward = wrap_qat_forward_context(
+        model.forward = wrap_qat_forward_context(  # type: ignore [assignment]
             quant_cb=self, model=model, func=model.forward, trigger_condition=self._collect_quantization
         )
 
@@ -252,7 +252,7 @@ class QuantizationAwareTraining(Callback):
             if self._observer_type == "histogram":
                 model.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
-                extra_kwargs = {}
+                extra_kwargs: Dict[str, Optional[int]] = {}
                 if _TORCH_GREATER_EQUAL_1_12:
                     extra_kwargs["version"] = 0
                 # version=None corresponds to using FakeQuantize rather than
@@ -263,7 +263,7 @@ class QuantizationAwareTraining(Callback):
                 model.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
 
         elif isinstance(self._qconfig, QConfig):
-            model.qconfig = self._qconfig
+            model.qconfig = self._qconfig  # type: ignore [assignment]
 
         if self._check_feasible_fuse(model):
             fuse_modules(model, self._modules_to_fuse, inplace=True)
@@ -283,7 +283,7 @@ class QuantizationAwareTraining(Callback):
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._convert_on_fit_end:
-            pl_module.forward = self.__module_forward
+            pl_module.forward = self.__module_forward  # type: ignore [assignment]
             return
         pl_module.eval()
         # Convert the observed model to a quantized model. This does several things:
@@ -293,9 +293,12 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.convert(pl_module, inplace=True)
         # check we shall preserve wrapper
         if self._input_compatible:
-            pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
+            pl_module.forward = wrap_quantize_forward_context(
+                model=pl_module,
+                func=self.__module_forward,
+            )  # type: ignore [assignment]
         else:
-            pl_module.forward = self.__module_forward
+            pl_module.forward = self.__module_forward  # type: ignore [assignment]
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "train" in self._observer_disabled_stages:
@@ -341,7 +344,7 @@ class QuantizationAwareTraining(Callback):
         keys = {"_qconfig", "_observer_type", "_collect_quantization", "_modules_to_fuse", "_input_compatible"}
         return {n: getattr(self, n) for n in keys}
 
-    def _load_before_model(self, model: torch.nn.Module, state_dict: Dict[str, Any]) -> None:
+    def _load_before_model(self, model: "pl.LightningModule", state_dict: Dict[str, Any]) -> None:
         """Special hook that gets called by the CheckpointConnector *before* the model gets loaded.
 
         This hook replaces the :meth:`on_load_checkpoint` and :meth:`load_state_dict` callback methods which get called
