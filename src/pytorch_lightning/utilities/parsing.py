@@ -229,7 +229,10 @@ def save_hyperparameters(
         init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
         init_args = {}
-        for local_args in collect_init_args(frame, [], classes=(pl.LightningModule, pl.LightningDataModule)):
+
+        from pytorch_lightning.core.mixins import HyperparametersMixin
+
+        for local_args in collect_init_args(frame, [], classes=(HyperparametersMixin,)):
             init_args.update(local_args)
 
     if ignore is None:
