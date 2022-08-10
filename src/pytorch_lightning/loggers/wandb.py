@@ -306,6 +306,7 @@ class WandbLogger(Logger):
         )
         self._wandb_init.update(**kwargs)
         # extract parameters
+        self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
@@ -446,7 +447,7 @@ class WandbLogger(Logger):
         Returns:
             The path to the save directory.
         """
-        return self._save_dir
+        return self._save_dir or self._project
 
     @property
     def name(self) -> Optional[str]:
