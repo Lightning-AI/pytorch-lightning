@@ -656,6 +656,45 @@ class LightningFlow:
         }
 
     def load_state_dict(self, flow_state: Dict[str, Any], children_states: Dict[str, Any], strict: bool = True) -> None:
+        """Reloads the state of this flow and its children.
+
+        .. code-block:: python
+
+            import lightning as L
+
+
+            class Work(L.LightningWork):
+                def __init__(self):
+                    super().__init__()
+                    self.counter = 0
+
+                def run(self):
+                    self.counter += 1
+
+
+            class Flow(L.LightningFlow):
+                def run(self):
+                    # dynamically create a work.
+                    if not getattr(self, "w", None):
+                        self.w = WorkReload()
+
+                    self.w.run()
+
+                def load_state_dict(self, flow_state, children_states, strict) -> None:
+                    # 1: Re-instantiate the dynamic work
+                    self.w = Work()
+
+                    # 2: Make any state modification
+                    ...
+
+                    # 3: Call the parent ``load_state_dict`` to recursively reload the states.
+                    super().load_state_dict(flow_state, children_states, strict=strict)
+
+        Arguments:
+            flow_state: The state of the current flow.
+            children_states: The state of the dynamic children of this flow.
+            strict: Whether to raise an exception if a dynamic children hasn't been re-created.
+        """
         self.set_state(flow_state, recurse=False)
         direct_children_states = {k: v for k, v in children_states.items() if "." not in k}
         for child_name, state in direct_children_states.items():
