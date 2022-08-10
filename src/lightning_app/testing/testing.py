@@ -331,10 +331,11 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 message = log_event.message
                 identifier = f"{log_event.timestamp}{log_event.message}"
                 if identifier not in identifiers:
+                    date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
                     identifiers.append(identifier)
                     color = colors[component]
                     padding = (max_length - len(component)) * " "
-                    print(f"[{color}]{component}{padding}[/{color}] {log_event.timestamp} {message}")
+                    print(f"[{color}]{component}{padding}[/{color}] {date} {message}")
                 yield message
 
         # 5. Print your application ID

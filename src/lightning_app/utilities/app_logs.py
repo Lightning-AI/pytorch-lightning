@@ -44,18 +44,32 @@ def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queu
 
     Returns callback function used with `on_message_callback` of websocket.WebSocketApp.
     """
+    user_log_start = "<<< BEGIN USER_RUN_FLOW SECTION >>>"
+    start_timestamp = None
 
     def callback(ws_app: WebSocketApp, msg: str):
         # We strongly trust that the contract on API will hold atm :D
+        nonlocal start_timestamp
         event_dict = json.loads(msg)
         labels = _LogEventLabels(**event_dict["labels"])
+
         if "message" in event_dict:
-            event = _LogEvent(
-                message=event_dict["message"],
-                timestamp=dateutil.parser.isoparse(event_dict["timestamp"]),
-                labels=labels,
-            )
-            read_queue.put((event.timestamp, component_name, event))
+            message = event_dict["message"]
+            timestamp = dateutil.parser.isoparse(event_dict["timestamp"])
+
+            if user_log_start in message:
+                start_timestamp = timestamp + timedelta(seconds=0.5)
+
+            if not start_timestamp:
+                return
+
+            if timestamp > start_timestamp:
+                event = _LogEvent(
+                    message=message,
+                    timestamp=timestamp,
+                    labels=labels,
+                )
+                read_queue.put((event.timestamp, component_name, event))
 
     return callback
 
@@ -98,21 +112,12 @@ def _app_logs_reader(
     for th in log_threads:
         th.start()
 
-    user_log_start = "<<< BEGIN USER_RUN_FLOW SECTION >>>"
-    start_timestamp = None
-
     # Print logs from queue when log event is available
     try:
         while True:
             _, component_name, log_event = read_queue.get(timeout=None if follow else 1.0)
             log_event: _LogEvent
-
-            if user_log_start in log_event.message:
-                start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
-
-            if start_timestamp and log_event.timestamp > start_timestamp:
-                yield component_name, log_event
-
+            yield component_name, log_event
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
         pass
