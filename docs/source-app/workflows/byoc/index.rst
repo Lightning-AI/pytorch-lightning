@@ -56,7 +56,7 @@ Here's an example:
 
 .. note:: AWS is supported today, but support for other cloud providers is coming soon.
 
-* role_arn: AWS IAM Role ARN used to provision resources
+* role-arn: AWS IAM Role ARN used to provision resources
 
 * external_id: AWS IAM Role external ID
 
