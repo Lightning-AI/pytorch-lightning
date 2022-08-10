@@ -92,7 +92,7 @@ def test_trainer_reset_correctly(tmpdir, trainer_fn):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     changed_attributes = [
-        "logger",
+        "loggers",
         "callbacks",
         "global_step",
         "limit_val_batches",

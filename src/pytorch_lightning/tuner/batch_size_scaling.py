@@ -77,7 +77,7 @@ def scale_batch_size(
 
 def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     dumped_params = {
-        "logger": trainer.logger,
+        "loggers": trainer.loggers,
         "callbacks": trainer.callbacks,
     }
     if trainer.state.fn == "fit":
@@ -118,7 +118,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
 
 def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
     # TODO: There are more states that needs to be reset (#4512 and #4870)
-    trainer.logger = params["logger"]
+    trainer.loggers = params["loggers"]
     trainer.callbacks = params["callbacks"]
 
     if trainer.state.fn == "fit":

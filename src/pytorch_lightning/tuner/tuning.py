@@ -180,16 +180,16 @@ class Tuner:
         )
         # do not continue with the loop in case trainer.tuner is used
         batch_size_finder._early_exit = True
-        self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
+        self.trainer.callbacks.append(batch_size_finder)
 
         if method == "fit":
             self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
         elif method == "validate":
-            self.trainer.validate(model, dataloaders, datamodule)
+            self.trainer.validate(model, dataloaders, datamodule=datamodule)
         elif method == "test":
-            self.trainer.test(model, dataloaders, datamodule)
+            self.trainer.test(model, dataloaders, datamodule=datamodule)
         elif method == "predict":
-            self.trainer.predict(model, dataloaders, datamodule)
+            self.trainer.predict(model, dataloaders, datamodule=datamodule)
 
         self.trainer.callbacks = [cb for cb in self.trainer.callbacks if cb is not batch_size_finder]
         self.trainer.auto_scale_batch_size = False
@@ -269,7 +269,7 @@ def _check_tuner_configuration(
     val_dataloaders: Optional[EVAL_DATALOADERS] = None,
     dataloaders: Optional[EVAL_DATALOADERS] = None,
     method: str = "fit",
-):
+) -> None:
     supported_methods = ("fit", "validate", "test", "predict")
     if method not in supported_methods:
         raise MisconfigurationException(f"method {method!r} is invalid. Should be one of {supported_methods}.")
