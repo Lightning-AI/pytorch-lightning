@@ -33,8 +33,8 @@ def create():
     help="Instance types that you want to support, for computer jobs within the cluster.",
 )
 @click.option(
-    "--disable-cost-savings",
-    "disable_cost_savings",
+    "--enable-performance",
+    "enable_performance",
     type=bool,
     required=False,
     default=False,
@@ -65,7 +65,7 @@ def create_cluster(
     provider: str,
     instance_types: str,
     edit_before_creation: bool,
-    disable_cost_savings: bool,
+    enable_performance: bool,
     wait: bool,
     **kwargs,
 ):
@@ -81,6 +81,6 @@ def create_cluster(
         external_id=external_id,
         instance_types=instance_types.split(",") if instance_types is not None else None,
         edit_before_creation=edit_before_creation,
-        cost_savings=not disable_cost_savings,
+        cost_savings=not enable_performance,
         wait=wait,
     )
