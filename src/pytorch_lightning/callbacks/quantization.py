@@ -18,7 +18,7 @@ Quantization
 """
 import copy
 import functools
-from typing import Any, Callable, Dict, Optional, OrderedDict, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
@@ -205,7 +205,7 @@ class QuantizationAwareTraining(Callback):
         self._observer_disabled_stages = set(self.OBSERVER_STAGES) - observer_enabled_stages
 
         self._forward_calls = 0
-        self._fake_quant_to_initial_state_dict: Dict[FakeQuantizeBase, OrderedDict[str, Tensor]] = {}
+        self._fake_quant_to_initial_state_dict: Dict[FakeQuantizeBase, Dict[str, Any]] = {}
         self._last_fake_quant_to_observer_enabled: Dict[FakeQuantizeBase, Tensor] = {}
         self._module_prepared = False
 
