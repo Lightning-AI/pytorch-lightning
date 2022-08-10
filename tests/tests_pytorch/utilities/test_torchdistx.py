@@ -18,7 +18,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.imports import _RequirementAvailable
-from pytorch_lightning.utilities.meta import _is_deferred
 from tests_pytorch.helpers.runif import RunIf
 
 _TORCHDISTX_AVAILABLE = _RequirementAvailable("torchdistx")
@@ -32,18 +31,18 @@ class SimpleBoringModel(LightningModule):
 
 @pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
 def test_deferred_init_with_lightning_module():
-    from torchdistx.deferred_init import deferred_init, materialize_module
+    from torchdistx.deferred_init import deferred_init, is_deferred, materialize_module
     from torchdistx.fake import is_fake
 
     model = deferred_init(SimpleBoringModel, 4)
     weight = model.layer[0].weight
     assert weight.device.type == "cpu"
     assert is_fake(weight)
-    assert _is_deferred(model)
+    assert is_deferred(model)
 
     materialize_module(model)
     materialize_module(model)  # make sure it's idempotent
-    assert not _is_deferred(model)
+    assert not is_deferred(model)
     weight = model.layer[0].weight
     assert weight.device.type == "cpu"
     assert not is_fake(weight)

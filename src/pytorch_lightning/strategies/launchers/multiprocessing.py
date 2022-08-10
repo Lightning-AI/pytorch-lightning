@@ -29,7 +29,7 @@ from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.imports import _module_available, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
 from pytorch_lightning.utilities.types import _PATH
@@ -180,10 +180,14 @@ class _MultiProcessingLauncher(_Launcher):
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def _check_torchdistx_support(self) -> None:
-        if self._start_method == "spawn":
-            from pytorch_lightning.utilities.meta import _is_deferred
+        if (
+            self._start_method == "spawn"
+            and self._strategy.lightning_module is not None
+            and _module_available("torchdistx.deferred_init")
+        ):
+            from torchdistx.deferred_init import is_deferred
 
-            if _is_deferred(self._strategy.lightning_module):
+            if is_deferred(self._strategy.lightning_module):
                 raise NotImplementedError(
                     f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
                     f" initialization."
