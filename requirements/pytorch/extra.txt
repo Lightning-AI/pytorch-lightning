@@ -7,5 +7,5 @@ torchtext>=0.10.*, <0.14.0
 omegaconf>=2.0.5, <2.3.0
 hydra-core>=1.0.5, <1.3.0
 jsonargparse[signatures]>=4.12.0, <=4.12.0
-gcsfs>=2021.5.0, <2022.6.0
+gcsfs>=2021.5.0, <2022.8.0
 rich>=10.14.0, !=10.15.0.a, <13.0.0
