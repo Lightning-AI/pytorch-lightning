@@ -29,6 +29,12 @@ class Backend(ABC):
 
     @abstractmethod
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
+        """Resolve and set the URL of all running or succeeded works within the given application.
+
+        Args:
+            app: A :class:`~lightning_app.core.app.LightningApp` instance.
+            base_url: The base URL of the app.
+        """
         pass
 
     @abstractmethod
@@ -43,6 +49,12 @@ class Backend(ABC):
         work_run: Callable,
         **kwargs: Any,
     ) -> None:
+        """The ``_dynamic_run_wrapper`` is used to wrap the run method of the given work to:
+
+        * register the app queues with the work
+        * create the work process
+        * execute the work via a ``ProxyWorkRun``
+        """
         if not work.name:
             # the name is empty, which means this work was never assigned to a parent flow
             raise AttributeError(
@@ -73,6 +85,13 @@ class Backend(ABC):
         return work.run(*args, **kwargs)
 
     def _wrap_run_method(self, app: "lightning_app.LightningApp", work: "lightning_app.LightningWork"):
+        """Wrap the run method of the given :class:`~lightning_app.core.work.LightningWork`.
+
+        Args:
+            app: A reference to the :class:`~lightning_app.core.app.LightningApp` being executed.
+            work: The :class:`~lightning_app.core.work.LightningWork` whose run method to wrap.
+        """
+        # Don't re-wrap if it' already done
         if work.run.__name__ == "_dynamic_run_wrapper":
             return
 

@@ -234,6 +234,7 @@ class LightningApp:
             return None
 
     def check_error_queue(self) -> None:
+        """Check for an exception in the error queue and change the AppStage to FAILED if one is found."""
         exception: Exception = self.get_state_changed_from_queue(self.error_queue)
         if isinstance(exception, Exception):
             self.stage = AppStage.FAILED
@@ -283,7 +284,7 @@ class LightningApp:
                 else:
                     should_get_component_output = False
 
-            # if both queues were found empties, should break the while loop.
+            # if both queues are empty, break the while loop.
             if not should_get_delta_from_api and not should_get_component_output:
                 break
 
@@ -304,6 +305,7 @@ class LightningApp:
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
+        # TODO: Confused here, why do we only want to do this if no deltas were received?
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
@@ -311,6 +313,8 @@ class LightningApp:
                 # new_state = self.populate_changes(self.last_state, self.state)
                 self.set_state(self.state)
                 self._has_updated = True
+            # TODO: Return value here seems to have no effect (and type signature is redundant) as all possible returns
+            #  are falsey
             return False
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
@@ -326,7 +330,7 @@ class LightningApp:
         self.set_state(state)
         self._has_updated = True
 
-    def run_once(self):
+    def run_once(self) -> bool:
         """Method used to collect changes and run the root Flow once."""
         done = False
         self._has_updated = False
@@ -336,11 +340,14 @@ class LightningApp:
             self.backend.update_work_statuses(self.works)
 
         self._update_layout()
+
+        # Collect deltas and update the app state
         self.maybe_apply_changes()
 
         if self.checkpointing and self._should_snapshot():
             self._dump_checkpoint()
 
+        # Break out here if one of the deltas set the stage to blocking
         if self.stage == AppStage.BLOCKING:
             return done
 
@@ -355,7 +362,10 @@ class LightningApp:
         try:
             self.check_error_queue()
             t0 = time()
+
+            # Run the root flow
             self.root.run()
+
             self._last_run_time = time() - t0
         except CacheMissException:
             self._on_cache_miss_exception()
@@ -417,6 +427,8 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
+        """Traverse the app components and collect and set the layout for all
+        :class:`~lightning_app.core.flow.LightningFlow` objects."""
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 

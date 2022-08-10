@@ -197,23 +197,24 @@ class LightningFlow:
 
     @staticmethod
     def _attach_backend(flow: "LightningFlow", backend):
-        """Attach the backend to all flows and its children."""
+        """Attach the backend to all flows and wrap the run methods of the works."""
         flow._backend = backend
 
+        # Recurse on the child flows
         for child_flow in flow.flows.values():
             LightningFlow._attach_backend(child_flow, backend)
 
+        # Recurse on attached data structures (e.g. `structures.dict.Dict`)
         for struct_name in flow._structures:
             structure = getattr(flow, struct_name)
+            structure._backend = backend
             for flow in structure.flows:
                 LightningFlow._attach_backend(flow, backend)
             for work in structure.works:
                 backend._wrap_run_method(_LightningAppRef().get_current(), work)
                 work._backend = backend
 
-        for name in flow._structures:
-            getattr(flow, name)._backend = backend
-
+        # Recurse on the child works
         for work in flow.works(recurse=False):
             backend._wrap_run_method(_LightningAppRef().get_current(), work)
 

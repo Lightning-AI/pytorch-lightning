@@ -9,7 +9,9 @@ from lightning_app.utilities.network import LightningClient
 
 
 def _format_input_env_variables(env_list: tuple) -> Dict[str, str]:
-    """
+    """Convert a list of environment variables of the form ``['foo=bar', 'bla=bloz']`` to a dictionary mapping
+    variable names to their values.
+
     Args:
         env_list:
            List of str for the env variables, e.g. ['foo=bar', 'bla=bloz']

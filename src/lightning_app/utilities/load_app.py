@@ -16,8 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 def load_app_from_file(filepath: str) -> "LightningApp":
-    # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
+    """Given a path to a Python file which creates a ``LightningApp`` instance, this function will execute the file
+    and return the created instance.
 
+    Adapted from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
+    """
     from lightning_app.core.app import LightningApp
 
     # In order for imports to work in a non-package, Python normally adds the current working directory to the
@@ -41,6 +44,7 @@ def load_app_from_file(filepath: str) -> "LightningApp":
         logger.error("".join(listing))
         sys.exit(1)
 
+    # Find any created `LightningApp` instances
     apps = [v for v in module.__dict__.values() if isinstance(v, LightningApp)]
     if len(apps) > 1:
         raise MisconfigurationException(f"There should not be multiple apps instantiated within a file. Found {apps}")
@@ -131,7 +135,7 @@ def _patch_sys_argv():
         sys.argv = sys.argv[3:]
 
     if "--app_args" not in sys.argv:
-        # 2: If app_args wasn't used, there is no arguments, so we assign the shorten arguments.
+        # 2: If app_args wasn't used, there are no arguments, so we just take the first entry in `sys.argv`.
         new_argv = sys.argv[:1]
     else:
         # 3: Collect all the arguments from the CLI
@@ -147,7 +151,7 @@ def _patch_sys_argv():
             last_index = len(argv_slice)
         else:
             last_index = min(matches)
-        # 6: last_index is either the fully command or the latest match from the CLI options.
+        # 6: last_index is either the full command or the latest match from the CLI options.
         new_argv = [argv_slice[0]] + argv_slice[first_index:last_index]
 
     # 7: Patch the command

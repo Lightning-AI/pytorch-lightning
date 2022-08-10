@@ -28,16 +28,23 @@ class MultiProcessRuntime(Runtime):
         try:
             _set_flow_context()
             self.app.backend = self.backend
+
+            # Create the queues for communicating between components
             self.backend._prepare_queues(self.app)
+
+            # Resolve the URL for all works
+            # TODO: This call can be removed, handled by update layout
             self.backend.resolve_url(self.app, "http://127.0.0.1")
 
-            # set env variables
+            # Set env variables
             os.environ.update(self.env_vars)
 
-            # refresh the layout with the populated urls.
+            # Refresh the layout with the populated URLs
             self.app._update_layout()
 
             _set_frontend_context()
+
+            # Start the frontend servers
             for frontend in self.app.frontends.values():
                 host = "localhost"
                 port = find_free_network_port()
@@ -46,6 +53,7 @@ class MultiProcessRuntime(Runtime):
 
             _set_flow_context()
 
+            # Instantiate and start the storage orchestrator Thread
             storage_orchestrator = StorageOrchestrator(
                 self.app,
                 self.app.request_queues,

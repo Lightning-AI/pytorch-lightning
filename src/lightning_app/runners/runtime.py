@@ -50,8 +50,10 @@ def dispatch(
 
     _set_flow_context()
 
+    # Resolve the runtime class
     runtime_type = RuntimeType(runtime_type)
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
+
     app = load_app_from_file(str(entrypoint_file))
 
     if blocking:
@@ -80,9 +82,11 @@ class Runtime:
     env_vars: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
+        # Resolve the backend
         if isinstance(self.backend, str):
             self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
 
+        # Attach the backend to the root flow
         lightning_app.LightningFlow._attach_backend(self.app.root, self.backend)
 
     def terminate(self) -> None:
