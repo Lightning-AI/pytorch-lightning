@@ -18,7 +18,7 @@ def test_drive_example_cloud() -> None:
 
         has_logs = False
         while not has_logs:
-            for log in fetch_logs(["flow"]):
+            for log in fetch_logs():
                 if "Application End!" in log:
                     has_logs = True
             sleep(1)
