@@ -74,5 +74,6 @@ def test_v0_app_example_cloud() -> None:
         _,
         view_page,
         fetch_logs,
+        _,
     ):
         run_v0_app(fetch_logs, view_page)
