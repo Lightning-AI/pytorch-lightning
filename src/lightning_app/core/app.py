@@ -15,7 +15,7 @@ from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_TH
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
-from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
 from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_command_requests
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -94,7 +94,7 @@ class LightningApp:
         self.processes: t.Dict[str, WorkManager] = {}
         self.frontends: t.Dict[str, Frontend] = {}
         self.stage = AppStage.RUNNING
-        self._has_updated: bool = False
+        self._has_updated: bool = True
         self._schedules: t.Dict[str, t.Dict] = {}
         self.threads: t.List[threading.Thread] = []
 
@@ -278,7 +278,7 @@ class LightningApp:
                 if component_output:
                     logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
                     work = self.get_component_by_name(component_output.id)
-                    new_work_delta = _delta_to_appstate_delta(self.root, work, deepcopy(component_output.delta))
+                    new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
                     deltas.append(new_work_delta)
                 else:
                     should_get_component_output = False
@@ -307,9 +307,11 @@ class LightningApp:
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            if Delta(DeepDiff(self.last_state, self.state, verbose_level=2)).to_dict():
+            deep_diff = DeepDiff(self.last_state, self.state, verbose_level=2)
+            if deep_diff:
+                # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
-                self.set_state(self.state)
+                self.set_last_state(self.state)
                 self._has_updated = True
             return False
 
@@ -329,7 +331,6 @@ class LightningApp:
     def run_once(self):
         """Method used to collect changes and run the root Flow once."""
         done = False
-        self._has_updated = False
         self._last_run_time = 0.0
 
         if self.backend is not None:
@@ -352,16 +353,22 @@ class LightningApp:
 
         _process_command_requests(self)
 
+        t0 = time()
+
         try:
             self.check_error_queue()
-            t0 = time()
-            self.root.run()
-            self._last_run_time = time() - t0
+            # Execute the flow only if:
+            # - There are state changes
+            # - It is the first execution of the flow
+            if self._has_updated:
+                self.root.run()
         except CacheMissException:
             self._on_cache_miss_exception()
         except (ExitAppException, KeyboardInterrupt):
             done = True
             self.stage = AppStage.STOPPING
+
+        self._last_run_time = time() - t0
 
         self.on_run_once_end()
         return done
@@ -414,6 +421,8 @@ class LightningApp:
             if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
                 self.api_publish_state_queue.put(self.state_vars)
 
+            self._has_updated = False
+
         return True
 
     def _update_layout(self) -> None:
@@ -430,8 +439,10 @@ class LightningApp:
         self.stage = AppStage.BLOCKING
         return False
 
-    def _has_work_finished(self, work):
+    def _has_work_finished(self, work) -> bool:
         latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        if latest_call_hash is None:
+            return False
         return "ret" in work._calls[latest_call_hash]
 
     def _collect_work_finish_status(self) -> dict:
