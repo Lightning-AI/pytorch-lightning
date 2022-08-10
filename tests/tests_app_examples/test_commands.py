@@ -26,7 +26,7 @@ def test_commands_example_cloud() -> None:
 
         has_logs = False
         while not has_logs:
-            for log in fetch_logs():
+            for log in fetch_logs(["flow"]):
                 if "['something', 'else']" in log:
                     has_logs = True
             sleep(1)

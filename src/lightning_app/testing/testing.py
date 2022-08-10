@@ -1,26 +1,30 @@
 import asyncio
 import json
+import logging
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import traceback
 from contextlib import contextmanager
 from subprocess import Popen
 from time import sleep
-from typing import Any, Callable, Dict, Generator, List, Type
+from typing import Any, Callable, Dict, Generator, List, Optional, Type
 
 import requests
 from lightning_cloud.openapi.rest import ApiException
 from requests import Session
 from rich import print
+from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import LightningApp, LightningFlow
 from lightning_app.cli.lightning_cli import run_app
 from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning_app.runners.multiprocess import MultiProcessRuntime
 from lightning_app.testing.config import Config
+from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
@@ -30,6 +34,9 @@ from lightning_app.utilities.proxies import ProxyWorkRun
 if _is_playwright_available():
     import playwright
     from playwright.sync_api import HttpCredentials, sync_playwright
+
+
+_logger = logging.getLogger(__name__)
 
 
 class LightningTestApp(LightningApp):
@@ -282,20 +289,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 var scrollingElement = (document.scrollingElement || document.body);
                 scrollingElement.scrollTop = scrollingElement.scrollHeight;
             }, 200);
-
-            if (!window._logs) {
-                window._logs = [];
-            }
-
-            if (window.logTerminals) {
-                Object.entries(window.logTerminals).forEach(
-                    ([key, value]) => {
-                        window.logTerminals[key]._onLightningWritelnHandler = function (data) {
-                            window._logs = window._logs.concat([data]);
-                        }
-                    }
-                );
-            }
             """
         )
 
@@ -309,8 +302,46 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
-        def fetch_logs() -> str:
-            return admin_page.evaluate("window._logs;")
+        client = LightningClient()
+        project = _get_project(client)
+        identifiers = []
+        rich_colors = list(ANSI_COLOR_NAMES)
+
+        def fetch_logs(component_names: Optional[List[str]] = None) -> Generator:
+            """This methods creates websockets connection in threads and returns the logs to the main thread."""
+            app_id = admin_page.url.split("/")[-1]
+
+            if not component_names:
+                works = client.lightningwork_service_list_lightningwork(
+                    project_id=project.project_id,
+                    app_id=app_id,
+                ).lightningworks
+                component_names = ["flow"] + [w.name for w in works]
+
+            def on_error_callback(ws_app, *_):
+                print(traceback.print_exc())
+                ws_app.close()
+
+            colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
+            gen = _app_logs_reader(
+                client=client,
+                project_id=project.project_id,
+                app_id=app_id,
+                component_names=component_names,
+                follow=False,
+                on_error_callback=on_error_callback,
+            )
+            max_length = max(len(c.replace("root.", "")) for c in component_names)
+            for log_event in gen:
+                message = log_event.message
+                identifier = f"{log_event.timestamp}{log_event.message}"
+                if identifier not in identifiers:
+                    date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+                    identifiers.append(identifier)
+                    color = colors[log_event.component_name]
+                    padding = (max_length - len(log_event.component_name)) * " "
+                    print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
+                yield message
 
         # 5. Print your application ID
         print(
@@ -323,11 +354,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             pass
         finally:
             print("##################################################")
-            printed_logs = []
-            for log in fetch_logs():
-                if log not in printed_logs:
-                    printed_logs.append(log)
-                    print(log.split("[0m")[-1])
             button = admin_page.locator('[data-cy="stop"]')
             try:
                 button.wait_for(timeout=3 * 1000)
@@ -337,8 +363,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             context.close()
             browser.close()
 
-            client = LightningClient()
-            project = _get_project(client)
             list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
 
             for lightningapp in list_lightningapps.lightningapps:
