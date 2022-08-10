@@ -22,6 +22,7 @@ from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger  # 
 from pytorch_lightning.loggers.neptune import NeptuneLogger  # noqa: F401
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loggers.wandb import WandbLogger  # noqa: F401
+from pytorch_lightning.loggers.clearml import _CLEARML_AVAILABLE, ClearMLLogger # noqa: F401
 
 __all__ = ["CSVLogger", "LightningLoggerBase", "Logger", "LoggerCollection", "TensorBoardLogger"]
 
@@ -32,3 +33,6 @@ if _COMET_AVAILABLE:
 
 if _MLFLOW_AVAILABLE:
     __all__.append("MLFlowLogger")
+
+if _CLEARML_AVAILABLE:
+    __all__.append("ClearMLLogger")

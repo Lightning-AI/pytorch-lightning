@@ -2,10 +2,18 @@ from argparse import Namespace
 from typing import Any, AnyStr, Dict, List, Literal, Optional, Union
 
 import pandas as pd
-from clearml import Task
-from pytorch_lightning.loggers.logger import Logger
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from torch import Tensor
+
+from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.utilities.imports import _module_available
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
+
+_CLEARML_AVAILABLE = _module_available("clearml")
+
+try:
+    from clearml import Task
+except ModuleNotFoundError:
+    _CLEARML_AVAILABLE = False
 
 
 class ClearMLLogger(Logger):
@@ -68,13 +76,16 @@ class ClearMLLogger(Logger):
 
     @rank_zero_only
     def log_metrics(
-        self, metrics: Dict[str, Union[float, Tensor]], step: Optional[int] = None
+        self,
+        metrics: Dict[str, Union[float, Tensor]],
+        step: Optional[int] = None,
     ) -> None:
         """
         Records metrics.
-        This method logs metrics as as soon as it received them. If you want to aggregate
-        metrics for one specific `step`, use the
-        :meth:`~pytorch_lightning.loggers.base.Logger.agg_and_log_metrics` method.
+        This method logs metrics as as soon as it received them. 
+        If you want to aggregate metrics for one specific `step`, use the
+        :meth:`~pytorch_lightning.loggers.base.Logger.agg_and_log_metrics`
+        method.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -90,14 +101,20 @@ class ClearMLLogger(Logger):
 
         for metric, value in metrics.items():
             self.task.logger.report_scalar(
-                title=metric, series=metric, value=_handle_value(value), iteration=step
+                title=metric,
+                series=metric,
+                value=_handle_value(value),
+                iteration=step,
             )
 
         self._step += 1
 
     @rank_zero_only
     def log_hyperparams(
-        self, params: Union[Dict[str, AnyStr], Namespace], *args: Any, **kwargs: Any
+        self,
+        params: Union[Dict[str, AnyStr], Namespace],
+        *args: Any,
+        **kwargs: Any
     ) -> None:
         """Record hyperparameters.
 
@@ -150,10 +167,13 @@ class ClearMLLogger(Logger):
     def finalize(
         self, status: Literal["success", "failed", "aborted"] = "sucess"
     ) -> None:
-        """Finalize the experiment. Mark the task completed or otherwise given the status.
+        """
+        Finalize the experiment. Mark the task completed 
+        or otherwise given the status.
 
         Args:
-            status: Status that the experiment finished with (e.g. success, failed, aborted)
+            status: Status that the experiment finished with 
+                (e.g. success, failed, aborted)
         """
 
         if status == "success":
@@ -174,7 +194,8 @@ class ClearMLLogger(Logger):
 
     @property
     def version(self) -> str:
-        """Gets the version of the experiment, being the ID of the ClearML task.
+        """
+        Gets the version of the experiment, being the ID of the ClearML task.
 
         Returns:
             The id of the ClearML task
