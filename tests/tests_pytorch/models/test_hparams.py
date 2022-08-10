@@ -411,7 +411,6 @@ def test_save_hyperparameters_under_composition(base_class):
 
     class NotPLSubclass:  # intentionally not subclassing LightningModule/LightningDataModule
         def __init__(self, same_arg="parent_default", other_arg="other"):
-            super().__init__()
             self.child = ChildInComposition(same_arg="cocofruit")
 
     parent = NotPLSubclass()
