@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 from contextlib import contextmanager
 from subprocess import Popen
 from time import sleep
@@ -317,6 +318,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 ).lightningworks
                 component_names = ["flow"] + [w.name for w in works]
 
+            def on_error_callback(ws_app, *_):
+                print(traceback.print_exc())
+                ws_app.close()
+
             colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
             gen = _app_logs_reader(
                 client=client,
@@ -324,6 +329,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 app_id=app_id,
                 component_names=component_names,
                 follow=False,
+                on_error_callback=on_error_callback,
             )
             max_length = max(len(c.replace("root.", "")) for c in component_names)
             for log_event in gen:
