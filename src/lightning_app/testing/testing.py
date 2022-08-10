@@ -333,7 +333,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 if identifier not in identifiers:
                     identifiers.append(identifier)
                     color = colors[component]
-                    print(f"[{color}]{component} [/{color}] {message}")
+                    print(f"[{color}]{component}[/{color}] {log_event.timestamp} {message}")
                 yield message
 
         # 5. Print your application ID
