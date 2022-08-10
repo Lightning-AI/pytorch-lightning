@@ -14,7 +14,7 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable, Collection, List, Optional, Tuple, Union
+from typing import Any, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
@@ -529,10 +529,10 @@ class _DataLoaderSource:
 class _DataHookSelector:
     """Stores the info about the shared DataHooks within ``LightningModule`` and ``LightningDataModule``.
 
-    The hook source can be
+    The hook source can be:
 
-    1. a method from the :class:`~pytorch_lightning.core.module.LightningModule`,
-    2. a method from the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+    1. the :class:`~pytorch_lightning.core.module.LightningModule`,
+    2. the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
 
     Arguments:
         model: A ``LightningModule``
@@ -545,7 +545,7 @@ class _DataHookSelector:
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
-    def get_instance(self, hook_name: str) -> Callable:
+    def get_instance(self, hook_name: str) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         if hook_name not in self._valid_hooks:
             raise ValueError(
                 f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."

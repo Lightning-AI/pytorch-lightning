@@ -426,10 +426,7 @@ class HookedModel(BoringModel):
             out.extend(
                 [
                     dict(name="on_before_batch_transfer", args=(ANY, 0)),
-                    dict(
-                        name="transfer_batch_to_device",
-                        args=(ANY, torch.device("cpu"), 0),
-                    ),
+                    dict(name="transfer_batch_to_device", args=(ANY, torch.device("cpu"), 0)),
                     dict(name="on_after_batch_transfer", args=(ANY, 0)),
                     dict(name="Callback.on_predict_batch_start", args=(trainer, model, ANY, i, 0)),
                     dict(name="on_predict_batch_start", args=(ANY, i, 0)),
