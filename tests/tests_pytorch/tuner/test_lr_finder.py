@@ -356,11 +356,15 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
     all_res = [trainer.tuner.lr_find(model).results for _ in range(3)]
 
-    assert all(
-        all_res[0][k] == curr_lr_finder[k] and len(curr_lr_finder[k]) > 10
-        for curr_lr_finder in all_res[1:]
-        for k in all_res[0].keys()
-    )
+    for curr_lr_finder in all_res[1:]:
+        for k in all_res[0].keys():
+            assert all_res[0][k] == curr_lr_finder[k]
+
+    # assert all(
+    #     all_res[0][k] == curr_lr_finder[k] and len(curr_lr_finder[k]) > 10
+    #     for curr_lr_finder in all_res[1:]
+    #     for k in all_res[0].keys()
+    # )
 
 
 @pytest.mark.parametrize(
