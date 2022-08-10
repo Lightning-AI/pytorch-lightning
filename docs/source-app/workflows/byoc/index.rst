@@ -30,7 +30,7 @@ sets up a new Lightning Cluster along with a Lightning Kubernetes Operator.
 Create a Lightning BYOC cluster
 *******************************
 
-You must have your cloud configured before you try and create a BYOC cluster. 
+You must have your cloud configured before you try and create a BYOC cluster.
 
 And to make your life a little easier, we've made a `Terraform module to help with that <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_.
 
