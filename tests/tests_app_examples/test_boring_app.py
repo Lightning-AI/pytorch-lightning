@@ -13,6 +13,7 @@ def test_boring_app_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_boring/"), app_name="app_dynamic.py") as (
         _,
         view_page,
+        fetch_logs,
         name,
     ):
 
@@ -23,6 +24,9 @@ def test_boring_app_example_cloud() -> None:
                 return True
 
         wait_for(view_page, check_hello_there)
+
+        for _ in fetch_logs():
+            pass
 
         runner = CliRunner()
         result = runner.invoke(logs, [name])
