@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A trivial script that wraps a LightningCLI around the BoringModel and BoringDataModule"""
+"""A trivial script that wraps a LightningCLI around the BoringModel and BoringDataModule."""
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 
