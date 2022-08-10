@@ -185,7 +185,7 @@ def test_optimization(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_mixed_precision(tmpdir):
+def test_half_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
             assert trainer.strategy.model.precision == 16

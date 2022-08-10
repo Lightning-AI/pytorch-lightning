@@ -300,3 +300,17 @@ def test_block_backward_sync():
         with strategy.block_backward_sync():
             pass
     model.no_sync.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp_sharded", {}),
+        ("ddp_sharded_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_sharded_spawn", {}),
+        ("ddp_sharded_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

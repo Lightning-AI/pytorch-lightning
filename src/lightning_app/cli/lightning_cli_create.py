@@ -79,7 +79,7 @@ def create_cluster(
         region=region,
         role_arn=role_arn,
         external_id=external_id,
-        instance_types=instance_types.split(","),
+        instance_types=instance_types.split(",") if instance_types is not None else None,
         edit_before_creation=edit_before_creation,
         cost_savings=cost_savings,
         wait=wait,
