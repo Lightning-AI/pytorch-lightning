@@ -24,7 +24,7 @@ def on_colab_kaggle() -> bool:
 
 def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
     if torch.is_floating_point(tensor):
-        if precision in (PrecisionType.MIXED, PrecisionType.HALF):
+        if precision == PrecisionType.HALF:
             return tensor.half()
         if precision == PrecisionType.BFLOAT:
             return tensor.bfloat16()
