@@ -301,7 +301,7 @@ class PyTorchProfiler(Profiler):
             )
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
-        has_schedule = "schedule" in profiler_kwargs or self.wait is not None
+        has_schedule = self.wait is not None
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
         schedule = torch.profiler.schedule(
