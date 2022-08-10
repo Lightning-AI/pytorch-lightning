@@ -22,13 +22,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # nightly: add when there's a release candidate
         include:
           - {python-version: "3.8", pytorch-version: "1.9"}
           - {python-version: "3.8", pytorch-version: "1.10"}
           - {python-version: "3.9", pytorch-version: "1.11"}
           - {python-version: "3.9", pytorch-version: "1.12"}
-
     timeout-minutes: 30
 
     steps:
@@ -45,7 +43,7 @@ jobs:
       id: skip
       shell: bash -l {0}
       run: |
-        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*'
+        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*|.github/workflows/ci-pytorch-test-conda.yml'
         echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
         MATCHES=$(cat changed_files.txt | grep -E $FILTER)
         echo $MATCHES
