@@ -684,7 +684,7 @@ class LightningFlow:
                     # 1: Re-instantiate the dynamic work
                     self.w = Work()
 
-                    # 2: Make any state modification
+                    # 2: Make any states modification / migration.
                     ...
 
                     # 3: Call the parent ``load_state_dict`` to recursively reload the states.
