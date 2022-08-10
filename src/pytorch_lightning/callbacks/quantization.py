@@ -185,7 +185,7 @@ class QuantizationAwareTraining(Callback):
         self._observer_type = observer_type
 
         if collect_quantization is not None and not (
-            isinstance(collect_quantization, int) and callable(collect_quantization)
+            isinstance(collect_quantization, int) or callable(collect_quantization)
         ):
             raise MisconfigurationException(
                 f'Unsupported `collect_quantization` "{collect_quantization}", allowed are `int` or `Callable`.'
