@@ -32,6 +32,12 @@ class _LogEvent:
     timestamp: datetime
     labels: _LogEventLabels
 
+    def __ge__(self, other: "_LogEvent") -> bool:
+        return self.timestamp <= other.timestamp
+
+    def __gt__(self, other: "_LogEvent") -> bool:
+        return self.timestamp < other.timestamp
+
 
 def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
     """Pushes _LogEvents from websocket to read_queue.
