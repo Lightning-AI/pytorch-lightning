@@ -27,7 +27,7 @@ def test_show_logs_errors(project, client):
     result = runner.invoke(logs, ["NonExistentApp"])
 
     assert result.exit_code == 1
-    assert "Your app list is empty. Please run an application first." in result.output
+    assert "Error: You don't have any application in the cloud" in result.output
 
     # App not specified
     apps = {app}
@@ -36,7 +36,7 @@ def test_show_logs_errors(project, client):
     result = runner.invoke(logs)
 
     assert result.exit_code == 1
-    assert "You have not specified any LightningApp. Please select one of available: [MyFakeApp]" in result.output
+    assert "Please select one of available: [MyFakeApp]" in str(result.output)
 
     # App does not exit
     apps = {app}
@@ -45,7 +45,7 @@ def test_show_logs_errors(project, client):
     result = runner.invoke(logs, ["ThisAppDoesNotExist"])
 
     assert result.exit_code == 1
-    assert "LightningApp 'ThisAppDoesNotExist' does not exist." in result.output
+    assert "The Lightning App 'ThisAppDoesNotExist' does not exist." in str(result.output)
 
     # Component does not exist
     apps = {app}
