@@ -30,7 +30,7 @@ def test_collect_failures_example_cloud() -> None:
     ):
         last_found_log_index = -1
         while len(expected_logs) != 0:
-            for index, log in enumerate(fetch_logs(["flow", "simple_work"])):
+            for index, log in enumerate(fetch_logs()):
                 if expected_logs[0] in log:
                     print(f"found expected log: {expected_logs[0]}")
                     expected_logs.pop(0)

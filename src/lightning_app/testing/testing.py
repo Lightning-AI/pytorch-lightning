@@ -16,6 +16,7 @@ import requests
 from lightning_cloud.openapi.rest import ApiException
 from requests import Session
 from rich import print
+from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import LightningApp, LightningFlow
 from lightning_app.cli.lightning_cli import run_app
@@ -302,7 +303,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
 
         client = LightningClient()
         project = _get_project(client)
-        logs = []
+        identifiers = []
+        rich_colors = list(ANSI_COLOR_NAMES)
 
         def fetch_logs(component_names: Optional[List[str]] = None) -> Generator:
             """This methods creates websockets connection in threads and returns the logs to the main thread."""
@@ -316,6 +318,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 ).lightningworks
                 component_names = ["flow"] + [w.name for w in works]
 
+            colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
+
             gen = _app_logs_reader(
                 client=client,
                 project_id=project.project_id,
@@ -325,9 +329,11 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             )
             for component, log_event in gen:
                 message = log_event.message
-                if message not in logs:
-                    logs.append(message)
-                    print(f"{component}: {message}")
+                identifier = f"{log_event.timestamp}{log_event.message}"
+                if identifier not in identifiers:
+                    identifiers.append(identifier)
+                    color = colors[component]
+                    print(f"[{color}]{component} [/{color}] {message}")
                 yield message
 
         # 5. Print your application ID
