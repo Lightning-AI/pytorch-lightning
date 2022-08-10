@@ -284,18 +284,13 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
 def test_should_stop_early_stopping_conditions(
     caplog, min_epochs, min_steps, current_epoch, global_step, epoch_loop_done, raise_info_msg
 ):
-    def get_trainer():
-        trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
-        trainer.num_training_batches = 10
-        trainer.should_stop = True
-        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = (
-            global_step
-        )
-        trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
-        trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
-        return trainer
+    trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
+    trainer.num_training_batches = 10
+    trainer.should_stop = True
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = global_step
+    trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
+    trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
 
-    trainer = get_trainer()
     message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.loops"):
         assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
