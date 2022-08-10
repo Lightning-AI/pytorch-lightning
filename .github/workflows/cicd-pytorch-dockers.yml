@@ -203,7 +203,7 @@ jobs:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
           notification_title: ${{ format('IPU; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
-          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@@U01A5T7EY9M>'  # akihironitta
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01GD29QCAV>'  # kaushikb11
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
