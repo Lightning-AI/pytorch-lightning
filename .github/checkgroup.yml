@@ -98,7 +98,6 @@ subprojects:
     paths:
       - ".github/workflows/ci-app*.yml"
       - ".github/workflows/docs-*.yml"
-      - "docs/source-app/**"
       - "examples/app_**"
       - "requirements/app/**"
       - "src/lightning_app/**"
@@ -119,6 +118,14 @@ subprojects:
       - "Cloud Test (template_react_ui)"
       - "Cloud Test (template_streamlit_ui)"
       - "Cloud Test (v0_app)"
+      - "doctest (app)"
+      - "make-docs (app)"
+
+  - id: "lightning_app: Docs"
+    paths:
+      - "docs/source-app/**"
+      - ".github/workflows/docs-*.yml"
+    checks:
       - "doctest (app)"
       - "make-docs (app)"
 
