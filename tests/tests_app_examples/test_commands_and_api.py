@@ -15,6 +15,7 @@ def test_commands_and_api_example_cloud() -> None:
         admin_page,
         view_page,
         fetch_logs,
+        _,
     ):
         app_id = admin_page.url.split("/")[-1]
         cmd = f"lightning command_with_client --name=this --app_id {app_id}"

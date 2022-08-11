@@ -43,7 +43,7 @@ class FlowCommands(LightningFlow):
 
     def run(self):
         if self.has_sweep and len(self.names) == 1:
-            sleep(2)
+            sleep(1)
             self._exit()
 
     def trigger_method(self, name: str):

@@ -171,7 +171,6 @@ def _prepare_commands(app) -> List:
 
     # 2: Cache the commands on the app.
     app.commands = commands
-    return commands
 
 
 def _process_api_request(app, request: APIRequest) -> None:
