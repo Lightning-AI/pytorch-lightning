@@ -31,7 +31,6 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - "pyproject.toml"  # includes mypy config
       - ".readthedocs.yml"
       - ".github/workflows/ci-pytorch*.yml"
       - ".github/workflows/docs-*.yml"
@@ -96,6 +95,7 @@ subprojects:
   - id: "pytorch_lightning: mypy"
     paths:
       - ".github/workflows/code-checks.yml"
+      - "pyproject.toml"  # includes mypy config
     checks:
       - "mypy"
 
