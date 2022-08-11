@@ -1,20 +1,33 @@
 subprojects:
-  - id: documentation
+  - id: pytorch_lightning
     paths:
-      - "docs/**.md"
+      - ".circleci/**"
+      - ".azure/**"
+      - "docs/source-pytorch/**"
+      # examples don't need to be added because they aren't used in CI, but these are
+      - "examples/test_pl_examples.py"
+      - "examples/run_ddp_examples.sh"
+      - "examples/run_pl_examples.sh"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes mypy config
     checks:
-      - "markdown_lint"
-      - "github_pages_build"
-  - id: mobile_app
+      - "TODO"
+  - id: pytorch_lightning dockers
     paths:
-      - "clients/app/**"
+      - "dockers/**"
     checks:
-      - "app_static_analysis"
-      - "app_unit_tests"
-      - "compatibility_check"
-  - id: cli_app
+      - "TODO"
+  - id: lightning_app
     paths:
-      - "clients/cli/**"
+      - "TODO"
     checks:
-      - "cli_unit_tests"
-      - "compatibility_check"
+      - "TODO"
+  - id: general
+    paths:
+      - ".github/**"
+      - ".pre-commit-config.yaml"
+      - "setup.py"
+    checks:
+      - "TODO"
