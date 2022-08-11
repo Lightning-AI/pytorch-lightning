@@ -147,7 +147,6 @@ Keep Learning
    :height: 180
 
 .. displayitem::
->>>>>>> master
    :header: Hands-on Examples
    :description: Learn by building Apps and Components.
    :col_css: col-md-6
