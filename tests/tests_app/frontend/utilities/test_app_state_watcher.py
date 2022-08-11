@@ -1,4 +1,4 @@
-"""The AppStateWatcher enables a Frontend to
+"""The AppStateWatcher enables a Frontend to.
 
 - subscribe to app state changes.
 - to access and change the app state.
