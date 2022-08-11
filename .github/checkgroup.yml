@@ -4,7 +4,6 @@ subprojects:
     paths:
       - ".circleci/**"
       - ".azure/**"
-      - "docs/source-pytorch/**"
       # all examples don't need to be added because they aren't used in CI, but these are
       - "examples/run_ddp_examples.sh"
       - "examples/convert_from_pt_to_pl/**"
@@ -58,6 +57,14 @@ subprojects:
       - "slow (ubuntu-20.04, 3.7, 1.11)"
       - "slow (windows-2022, 3.7, 1.11)"
       - "test-on-tpus"
+
+  - id: "pytorch_lightning: Docs"
+    paths:
+      - "docs/source-pytorch/**"
+      - ".github/workflows/docs-*.yml"
+    checks:
+      - "doctest (pytorch)"
+      - "make-docs (pytorch)"
 
   - id: "pytorch_lightning dockers"
     paths:
