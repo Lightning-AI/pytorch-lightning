@@ -42,7 +42,7 @@ Create a Lightning BYOC cluster using the following command:
 
 Here's an example:
 
-.. code:: python
+.. code:: bash
 
    lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --enable-performance
 
