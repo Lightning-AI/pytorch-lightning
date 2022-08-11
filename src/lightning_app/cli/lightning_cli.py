@@ -143,7 +143,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
 @_main.command()
 def login():
-    """Log in to your Lightning.ai account."""
+    """Log in to your lightning.ai account."""
     auth = Auth()
     auth.clear()
 
@@ -156,7 +156,7 @@ def login():
 
 @_main.command()
 def logout():
-    """Log out of your Lightning.ai account."""
+    """Log out of your lightning.ai account."""
     Auth().clear()
 
 
@@ -215,7 +215,7 @@ def _run_app(
 
 @_main.group()
 def run():
-    """Run your application."""
+    """Run a Lightning application locally or on the cloud."""
 
 
 @run.command("app")
@@ -321,7 +321,7 @@ _main.add_command(create)
 
 @_main.group()
 def install():
-    """Install Lightning apps and components."""
+    """Install a Lightning App and/or component."""
 
 
 @install.command("app")
@@ -379,7 +379,7 @@ def install_component(name, yes, version):
 
 @_main.group()
 def init():
-    """Init a Lightning app and component."""
+    """Init a Lightning App and/or component."""
 
 
 @init.command("app")
