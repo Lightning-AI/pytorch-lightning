@@ -225,8 +225,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
-        # TODO: users should be able to initialize without wrapping their layers
-        # as shown in the example here: https://fairscale.readthedocs.io/en/stable/api/nn/fsdp.html
         log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
