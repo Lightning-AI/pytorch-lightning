@@ -471,34 +471,34 @@ class TestDataHookSelector:
         model, _, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=None)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
     def test_with_datamodule_no_overridden(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
     def test_override_model_hook(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
     def test_override_datamodule_hook(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         setattr(dm, hook_name, self.overridden_func)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(dm, hook_name)
+        assert instance is dm
 
     def test_override_both_model_and_datamodule(self, hook_name):
         model, dm, trainer = self.reset_instances()
@@ -506,24 +506,24 @@ class TestDataHookSelector:
         setattr(model, hook_name, self.overridden_func)
         setattr(dm, hook_name, self.overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(dm, hook_name)
+        assert instance is dm
 
     def test_with_datamodule_override_model(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         setattr(model, hook_name, self.overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in `LightningModule`"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
 
 def test_invalid_hook_passed_in_datahook_selector():
     dh_selector = _DataHookSelector(BoringModel(), None)
     with pytest.raises(ValueError, match="is not a shared hook"):
-        dh_selector.get_hook("setup")
+        dh_selector.get_instance("setup")
 
 
 def test_eval_distributed_sampler_warning(tmpdir):
