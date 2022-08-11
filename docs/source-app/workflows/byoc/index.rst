@@ -84,7 +84,7 @@ Here's an example:
 View a list of your Lightning BYOC clusters
 *******************************************
 
-.. code:: python
+.. code:: bash
 
    lightning list clusters
 
