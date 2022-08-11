@@ -41,8 +41,8 @@ if _FAIRSCALE_AVAILABLE:  # pragma: no-cover
 
     def unwrap_lightning_module_sharded(wrapped_model: nn.Module) -> "pl.LightningModule":
         rank_zero_deprecation(
-            "The function `unwrap_lightning_module_sharded` is deprecated in v1.8 and will be removed in v1.10. Access"
-            " the `LightningModule` directly through the strategy attribute `Strategy.lightning_module`."
+            "The function `unwrap_lightning_module_sharded` is deprecated in v1.8.0 and will be removed in v1.10.0."
+            " Access the `LightningModule` directly through the strategy attribute `Strategy.lightning_module`."
         )
         model = wrapped_model
         if isinstance(model, ShardedDataParallel):
