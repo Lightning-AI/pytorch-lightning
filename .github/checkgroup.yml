@@ -1,0 +1,20 @@
+subprojects:
+  - id: documentation
+    paths:
+      - "docs/**.md"
+    checks:
+      - "markdown_lint"
+      - "github_pages_build"
+  - id: mobile_app
+    paths:
+      - "clients/app/**"
+    checks:
+      - "app_static_analysis"
+      - "app_unit_tests"
+      - "compatibility_check"
+  - id: cli_app
+    paths:
+      - "clients/cli/**"
+    checks:
+      - "cli_unit_tests"
+      - "compatibility_check"
