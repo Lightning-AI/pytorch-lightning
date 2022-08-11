@@ -31,7 +31,6 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".readthedocs.yml"
       - ".github/workflows/ci-pytorch*.yml"
       - ".github/workflows/docs-*.yml"
     checks:
