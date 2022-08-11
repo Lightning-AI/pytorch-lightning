@@ -15,6 +15,7 @@
 Layer Logger
 -------------
 """
+import torch
 import logging
 from argparse import Namespace
 from pathlib import Path
@@ -96,11 +97,19 @@ class LayerLogger(Logger):
         self.experiment.log(dict(metrics), step=step)
 
     @rank_zero_only
-    def log_image(self, key: str, image: Union["PIL.Image.Image", Path, "npt.NDArray[np.complex64]", "torch.Tensor"],
+    def log_image(self, key: str, image: Union["PIL.Image.Image", Path, "npt.NDArray[np.complex64]", torch.Tensor],
                   format: str = "CHW",
                   step: Optional[int] = None) -> None:
         metrics = {key: layer.Image(image, format=format)}
         self.log_metrics(metrics, step)
+
+    @rank_zero_only
+    def log_video(self, key: str, video: Union[torch.Tensor, Path], fps: Union[float, int] = 4) -> None:
+
+        if isinstance(video, torch.Tensor):
+            self.log_metrics({key: layer.Video(video=video, fps=fps)})
+        else:
+            self.log_metrics({key: video})
 
     @rank_zero_only
     def log_table(
