@@ -37,7 +37,7 @@ class FlowCommands(LightningFlow):
         return commands + self.child_flow.configure_commands()
 
     def configure_api(self):
-        return [Post("/user/command_without_client", self.command_with_client)]
+        return [Post("/user/command_without_client", self.command_without_client)]
 
 
 app = LightningApp(FlowCommands())

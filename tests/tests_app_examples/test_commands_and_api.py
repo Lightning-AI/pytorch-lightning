@@ -23,11 +23,10 @@ def test_commands_and_api_example_cloud() -> None:
         cmd = f"lightning command_without_client --name=is --app_id {app_id}"
         Popen(cmd, shell=True).wait()
 
-        sleep(10)
+        sleep(2)
 
-        resp = requests.post(
-            view_page.url.replace("/view", "") + "/user/command_without_client", json={"name": "awesome"}
-        )
+        base_url = view_page.url.replace("/view", "")
+        resp = requests.post(base_url + "/user/command_without_client?name=awesome")
         assert resp.status_code == 200, resp.json()
 
         has_logs = False

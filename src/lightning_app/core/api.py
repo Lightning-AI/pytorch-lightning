@@ -55,7 +55,7 @@ global_app_state_store.add(TEST_SESSION_UUID)
 lock = Lock()
 
 app_spec: Optional[List] = None
-app_commands_metadata: Optional[Dict] = None
+# In the future, this would be abstracted to support horizontal scaling.
 responses_store = {}
 
 logger = logging.getLogger(__name__)
@@ -93,6 +93,7 @@ class UIRefresher(Thread):
         try:
             response = self.api_response_queue.get(timeout=0)
             with lock:
+                # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
                 responses_store[response["id"]] = response["response"]
         except queue.Empty:
@@ -110,11 +111,11 @@ class StateUpdate(BaseModel):
 openapi_tags = [
     {
         "name": OpenAPITags.APP_CLIENT_COMMAND,
-        "description": "The App Endpoints to be triggered exclusively CLI",
+        "description": "The App Endpoints to be triggered exclusively from the CLI",
     },
     {
         "name": OpenAPITags.APP_COMMAND,
-        "description": "The App Endpoints that can be triggered equally the CLI or from a Http Request",
+        "description": "The App Endpoints that can be triggered equally from the CLI or from a Http Request",
     },
     {
         "name": OpenAPITags.APP_API,

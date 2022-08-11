@@ -3,8 +3,11 @@ import inspect
 import time
 from copy import deepcopy
 from functools import wraps
-from typing import Callable, List, Optional
+from multiprocessing import Queue
+from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
+
+from fastapi import FastAPI
 
 from lightning_app.api.request_types import APIRequest, CommandRequest
 
@@ -30,10 +33,8 @@ class _HttpMethod:
         self.method_signature = inspect.signature(method)
         self.timeout = timeout
         self.kwargs = kwargs
-        self.request_queue = None
-        self.response_queue = None
 
-    def add_route(self, app, request_queue, commands_response_store):
+    def add_route(self, app: FastAPI, request_queue: Queue, responses_store: Dict[str, Any]) -> None:
         # 1: Create a proxy function with the signature of the wrapped method.
         fn = deepcopy(_signature_proxy_function)
         fn.__annotations__ = self.method_annotations
@@ -61,12 +62,12 @@ class _HttpMethod:
                 )
 
                 t0 = time.time()
-                while request_id not in commands_response_store:
+                while request_id not in responses_store:
                     await asyncio.sleep(0.1)
                     if (time.time() - t0) > self.timeout:
                         raise Exception("The response was never received.")
 
-                return commands_response_store.pop(request_id)
+                return responses_store.pop(request_id)
 
             return await asyncio.create_task(fn(*args, **kwargs))
 
