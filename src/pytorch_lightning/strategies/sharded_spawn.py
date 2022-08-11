@@ -19,6 +19,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -42,9 +43,9 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     def configure_ddp(self) -> None:
         # set up optimizers after the wrapped module has been moved to the device
-        assert self.lightning_module
-        assert self.model
+        assert self.lightning_module is not None
         self.setup_optimizers(self.lightning_module.trainer)
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model, self.optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model), optimizers=self.optimizers
         )
