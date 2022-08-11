@@ -13,7 +13,7 @@ def test_boring_app_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_boring/"), app_name="app_dynamic.py") as (
         _,
         view_page,
-        _,
+        fetch_logs,
         name,
     ):
 
@@ -25,14 +25,13 @@ def test_boring_app_example_cloud() -> None:
 
         wait_for(view_page, check_hello_there)
 
+        for _ in fetch_logs():
+            pass
+
         runner = CliRunner()
         result = runner.invoke(logs, [name])
         lines = result.output.splitlines()
 
         assert result.exit_code == 0
         assert result.exception is None
-        assert len(lines) > 1, result.output
-        # We know that at some point we need to intstall lightning, so we check for that
-        assert any(
-            "Successfully built lightning" in line for line in lines
-        ), f"Did not find logs with lightning installation: {result.output}"
+        assert any("http://0.0.0.0:8080" in line for line in lines)
