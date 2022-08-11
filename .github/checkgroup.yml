@@ -1,9 +1,22 @@
 custom_service_name: "Lightning CI required checker"
 subprojects:
-  - id: "pytorch_lightning"
+  - id: "CI: CircleCI"
     paths:
       - ".circleci/**"
+    checks:
+      - "test-on-tpus"
+
+  - id: "CI: Azure"
+    paths:
       - ".azure/**"
+    checks:
+      - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
+      - "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (IPUs)"
+
+  - id: "pytorch_lightning"
+    paths:
       # all examples don't need to be added because they aren't used in CI, but these are
       - "examples/run_ddp_examples.sh"
       - "examples/convert_from_pt_to_pl/**"
