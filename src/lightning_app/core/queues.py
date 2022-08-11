@@ -118,6 +118,12 @@ class QueuingSystem(Enum):
         )
         return self._get_queue(queue_name)
 
+    def get_work_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
+        queue_name = (
+            f"{queue_id}_{WORK_QUEUE_CONSTANT}_{work_name}" if queue_id else f"{WORK_QUEUE_CONSTANT}_{work_name}"
+        )
+        return self._get_queue(queue_name)
+
 
 class BaseQueue(ABC):
     """Base Queue class that has a similar API to the Queue class in python."""
