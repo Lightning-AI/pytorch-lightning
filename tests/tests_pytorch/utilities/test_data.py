@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 
 import pytest
@@ -170,6 +171,30 @@ def test_update_dataloader_typerror_custom_exception():
     dataloader = GoodImpl(False, [])
     new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
     assert isinstance(new_dataloader, GoodImpl)
+
+
+def test_replace_init_method_multiple_loaders_without_init():
+    """In case of a class, that inherits from a class that we are patching, but doesn't define its own `__init__`
+    method (the one we are wrapping), it can happen, that `hasattr(cls, "_old_init")` is True because of parent
+    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error
+    occured only sometimes because it depends on the order in which we are iterating over a set of classes we are
+    patching.
+
+    This test simulates the behavior by generating sufficient number of dummy classes, which do not define `__init__`
+    and are children of `DataLoader`. We are testing that a) context manager `_replace_init_method` exits cleanly, and
+    b) the mechanism checking for presence of `_old_init` works as expected.
+    """
+    classes = [DataLoader]
+    for i in range(100):
+        classes.append(type(f"DataLoader_{i}", (random.choice(classes),), {}))
+
+    with _replace_init_method(DataLoader, "dataset"):
+        for cls in classes[1:]:  # First one is `DataLoader`
+            assert "_old_init" not in cls.__dict__
+            assert hasattr(cls, "_old_init")
+
+        assert "_old_init" in DataLoader.__dict__
+        assert hasattr(DataLoader, "_old_init")
 
 
 class DataLoaderSubclass1(DataLoader):
