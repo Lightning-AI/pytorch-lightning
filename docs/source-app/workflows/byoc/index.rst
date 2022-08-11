@@ -56,27 +56,35 @@ Here's an example:
 
 **Parameters:**
 
-* provider: The cloud provider where your cluster is located.
-
-.. note:: AWS is supported today, but support for other cloud providers is coming soon.
-
-* role-arn: AWS IAM Role ARN used to provision resources
-
-* external-id: AWS IAM Role external ID
-
-.. note:: To read more on what the AWS external ID is and why it's useful go `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html`_.
-
-* region: AWS region containing compute resources
-
-* instance-types: Instance types that you want to support, for computer jobs within the cluster. For now, this is the AWS instance types supported by the cluster.
-
-* enable-performance: Specifies if the cluster uses cost savings mode.
-
-.. note:: In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters with low utilization.
-
-* edit-before-creation: Enables interactive editing of requests before submitting it to Lightning AI.
-
-* wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
++------------------------+----------------------------------------------------------------------------------------------------+
+|Parameter               | Descritption                                                                                       |
++========================+====================================================================================================+
+| provider               | The cloud provider where your cluster is located.                                                  |
+|                        |                                                                                                    |
+|                        | AWS is supported today, but support for other cloud providers is coming soon.                      |
++------------------------+----------------------------------------------------------------------------------------------------+
+| role-arn               | AWS IAM Role ARN used to provision resources                                                       |
++------------------------+----------------------------------------------------------------------------------------------------+
+| external-id            | AWS IAM Role external ID                                                                           |
+|                        |                                                                                                    |
+|                        | To read more on what the AWS external ID is and why it's useful go                                 |
+|                        | `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html>`_|
++------------------------+----------------------------------------------------------------------------------------------------+
+| region                 | AWS region containing compute resources                                                            |
++------------------------+----------------------------------------------------------------------------------------------------+
+| instance-types         | Instance types that you want to support, for computer jobs within the cluster.                     |
+|                        |                                                                                                    |
+|                        | For now, this is the AWS instance types supported by the cluster.                                  |
++------------------------+----------------------------------------------------------------------------------------------------+
+| enable-performance     | Specifies if the cluster uses cost savings mode.                                                   | 
+|                        |                                                                                                    |
+|                        | In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters  |
+|                        | with low utilization.                                                                              |
++------------------------+----------------------------------------------------------------------------------------------------+
+| edit-before-creation   | Enables interactive editing of requests before submitting it to Lightning AI.                      |
++------------------------+----------------------------------------------------------------------------------------------------+
+| wait                   | Waits for the cluster to be in a RUNNING state. Only use this for debugging.                       |
++------------------------+----------------------------------------------------------------------------------------------------+
 
 ----
 
@@ -87,6 +95,8 @@ View a list of your Lightning BYOC clusters
 .. code:: bash
 
    lightning list clusters
+
+----
 
 *******************************
 Delete a Lightning BYOC cluster
