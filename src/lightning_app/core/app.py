@@ -305,7 +305,6 @@ class LightningApp:
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
-        # TODO: Confused here, why do we only want to do this if no deltas were received?
         if not deltas:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
