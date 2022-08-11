@@ -4,7 +4,6 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import List, Tuple, Union
-from uuid import uuid4
 
 import click
 import requests
@@ -26,10 +25,10 @@ from lightning_app.utilities.cli_helpers import (
     _retrieve_application_url_and_available_commands,
 )
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
-from lightning_app.utilities.state import headers_for
 
 logger = logging.getLogger(__name__)
 
@@ -263,41 +262,42 @@ def app_command():
     hparams, argv = parser.parse_known_args()
 
     # 1: Collect the url and comments from the running application
-    url, commands = _retrieve_application_url_and_available_commands(hparams.app_id)
-    if url is None or commands is None:
+    url, api_commands = _retrieve_application_url_and_available_commands(hparams.app_id)
+    if url is None or api_commands is None:
         raise Exception("We couldn't find any matching running app.")
 
-    if not commands:
+    if not api_commands:
         raise Exception("This application doesn't expose any commands yet.")
 
     command = argv[0]
 
-    command_names = [c["command"] for c in commands]
-    if command not in command_names:
-        raise Exception(f"The provided command {command} isn't available in {command_names}")
+    if command not in api_commands:
+        raise Exception(f"The provided command {command} isn't available in {list(api_commands)}")
 
     # 2: Send the command from the user
-    command_metadata = [c for c in commands if c["command"] == command][0]
-    params = command_metadata["params"]
+    metadata = api_commands[command]
 
     # 3: Execute the command
-    if not command_metadata["is_client_command"]:
-        # TODO: Improve what is supported there.
-        kwargs = {k.split("=")[0].replace("--", ""): k.split("=")[1] for k in argv[1:]}
-        for param in params:
-            if param not in kwargs:
-                raise Exception(f"The argument --{param}=X hasn't been provided.")
-        json = {
-            "command_name": command,
-            "command_arguments": kwargs,
-            "affiliation": command_metadata["affiliation"],
-            "id": str(uuid4()),
-        }
-        resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
+    if metadata["tag"] == OpenAPITags.APP_COMMAND:
+        # TODO: Improve what is current supported
+        kwargs = [v.replace("--", "") for v in argv[1:]]
+
+        for p in kwargs:
+            if p.split("=")[0] not in metadata["parameters"]:
+                raise Exception(f"Some arguments need to be provided. The keys are {list(metadata['parameters'])}.")
+        # TODO: Encode the parameters and validate their type.
+        query_parameters = "&".join(kwargs)
+        resp = requests.post(url + f"/command/{command}?{query_parameters}")
         assert resp.status_code == 200, resp.json()
     else:
-        client_command, models = _download_command(command_metadata, hparams.app_id, debug_mode=debug_mode)
-        client_command._setup(metadata=command_metadata, models=models, app_url=url)
+        client_command = _download_command(
+            command,
+            metadata["cls_path"],
+            metadata["cls_name"],
+            hparams.app_id,
+            debug_mode=debug_mode,
+        )
+        client_command._setup(command_name=command, app_url=url)
         sys.argv = argv
         client_command.run()
 
