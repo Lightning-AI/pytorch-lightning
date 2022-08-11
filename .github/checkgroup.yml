@@ -33,12 +33,9 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - "pyproject.toml"  # includes mypy config
       - ".readthedocs.yml"
-      - ".github/workflows/_check-schema.yml"
-      - ".github/workflows/ci-schema.yml"
       - ".github/workflows/ci-pytorch*.yml"
       - ".github/workflows/docs-*.yml"
     checks:
-      - "check / schema"
       - "conda (3.8, 1.10)"
       - "conda (3.8, 1.9)"
       - "conda (3.9, 1.11)"
