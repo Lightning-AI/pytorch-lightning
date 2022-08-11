@@ -28,7 +28,7 @@ runs:
   - name: Install | Uninstall package - archive
     working-directory: ./dist
     run: |
-      pip install *.tar.gz ${PKG_NAME}
+      pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
       pip uninstall -y ${PKG_NAME}

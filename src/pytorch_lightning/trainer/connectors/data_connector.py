@@ -516,7 +516,7 @@ class _DataLoaderSource:
         return not self.is_module() or is_overridden(self.name, self.instance)
 
     def is_module(self) -> bool:
-        """Returns whether the the DataLoader source is a LightningModule or a LightningDataModule.
+        """Returns whether the DataLoader source is a LightningModule or a LightningDataModule.
 
         It does not check whether ``*_dataloader`` methods are actually overridden.
         """

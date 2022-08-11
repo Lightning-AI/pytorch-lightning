@@ -18,7 +18,7 @@ from lightning_app.storage.path import artifacts_path
 from lightning_app.storage.requests import GetRequest
 from lightning_app.testing.helpers import EmptyFlow, MockQueue
 from lightning_app.utilities.component import _convert_paths_after_init
-from lightning_app.utilities.enum import WorkFailureReasons, WorkStageStatus
+from lightning_app.utilities.enum import CacheCallsKeys, WorkFailureReasons, WorkStageStatus
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.proxies import (
     ComponentDelta,
@@ -240,7 +240,7 @@ class WorkRunnerPatch(WorkRunner):
     counter = 0
 
     def __call__(self):
-        call_hash = "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c"
+        call_hash = "fe3fa0f"
         while True:
             try:
                 called = self.caller_queue.get()
@@ -254,7 +254,9 @@ class WorkRunnerPatch(WorkRunner):
                         "message": None,
                     }
                 )
-                self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+                self.delta_queue.put(
+                    ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
+                )
                 self.counter += 1
             except Exception as e:
                 logger.error(traceback.format_exc())
@@ -267,7 +269,7 @@ def test_proxy_timeout():
     app = LightningApp(FlowTimeout(), debug=True)
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    call_hash = app.root.work._calls["latest_call_hash"]
+    call_hash = app.root.work._calls[CacheCallsKeys.LATEST_CALL_HASH]
     assert len(app.root.work._calls[call_hash]["statuses"]) == 3
     assert app.root.work._calls[call_hash]["statuses"][0]["stage"] == "pending"
     assert app.root.work._calls[call_hash]["statuses"][1]["stage"] == "failed"
@@ -308,7 +310,7 @@ def test_path_argument_to_transfer(*_):
         "state": {
             "vars": {"_paths": {}, "_urls": {}},
             "calls": {
-                "latest_call_hash": "any",
+                CacheCallsKeys.LATEST_CALL_HASH: "any",
                 "any": {
                     "name": "run",
                     "call_hash": "any",
@@ -361,7 +363,7 @@ def test_path_argument_to_transfer(*_):
     ],
 )
 @mock.patch("lightning_app.utilities.proxies.Copier")
-def test_path_attributes_to_transfer(_, monkeypatch, origin, exists_remote, expected_get):
+def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
     """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
     exist)."""
     path_mock = Mock()
@@ -399,7 +401,7 @@ def test_path_attributes_to_transfer(_, monkeypatch, origin, exists_remote, expe
         "state": {
             "vars": {"_paths": flow.work._paths, "_urls": {}},
             "calls": {
-                "latest_call_hash": "any",
+                CacheCallsKeys.LATEST_CALL_HASH: "any",
                 "any": {
                     "name": "run",
                     "call_hash": "any",
@@ -550,9 +552,9 @@ def test_work_state_observer():
     ############################
     work.run(use_setattr=True, use_containers=False)
 
-    # this is necessary only in this test where we siumulate the calls
+    # this is necessary only in this test where we simulate the calls
     work._calls.clear()
-    work._calls.update({"latest_call_hash": None})
+    work._calls.update({CacheCallsKeys.LATEST_CALL_HASH: None})
 
     delta = delta_queue.get().delta.to_dict()
     assert delta["values_changed"] == {"root['vars']['var']": {"new_value": 2}}
@@ -583,7 +585,7 @@ def test_work_state_observer():
 
     # this is necessary only in this test where we siumulate the calls
     work._calls.clear()
-    work._calls.update({"latest_call_hash": None})
+    work._calls.update({CacheCallsKeys.LATEST_CALL_HASH: None})
 
     delta = delta_queue.get().delta.to_dict()
     assert delta == {"values_changed": {"root['vars']['var']": {"new_value": 3}}}
