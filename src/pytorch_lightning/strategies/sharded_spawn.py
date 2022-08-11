@@ -97,7 +97,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             yield None
 
     @rank_zero_only
-    def _optim_state_dict(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+    def _optim_state_dict(self, optimizer: Optimizer) -> Dict[str, Any]:
         """
         Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
         :meth:`consolidate_state_dict`.
