@@ -75,6 +75,7 @@ subprojects:
     paths:
       - "docs/source-pytorch/**"
       - ".github/workflows/docs-*.yml"
+      - "requirements/pytorch/**"
     checks:
       - "doctest (pytorch)"
       - "make-docs (pytorch)"
@@ -138,6 +139,7 @@ subprojects:
     paths:
       - "docs/source-app/**"
       - ".github/workflows/docs-*.yml"
+      - "requirements/app/**"
     checks:
       - "doctest (app)"
       - "make-docs (app)"
