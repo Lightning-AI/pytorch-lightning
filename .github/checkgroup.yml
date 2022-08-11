@@ -1,5 +1,6 @@
+custom_service_name: "Lightning CI required checker"
 subprojects:
-  - id: pytorch_lightning
+  - id: "pytorch_lightning"
     paths:
       - ".circleci/**"
       - ".azure/**"
@@ -46,7 +47,7 @@ subprojects:
       - "slow (windows-2022, 3.7, 1.11)"
       - "test-on-tpus"
 
-  - id: pytorch_lightning dockers
+  - id: "pytorch_lightning dockers"
     paths:
       - "dockers/**"
     checks:
@@ -74,12 +75,11 @@ subprojects:
     checks:
       - "TODO"
 
-  - id: ci
+  - id: "ci"
     paths:
       - ".actions/setup_tools.py"
       - "assistant.py"
       - ".github/**"
-      - ".pre-commit-config.yaml"
       - "setup.py"
     checks:
       - "install-meta-pypi (macOS-11, 3.8)"
@@ -97,9 +97,3 @@ subprojects:
       - "install-standalone (ubuntu-20.04, pytorch, 3.8)"
       - "install-standalone (windows-2022, app, 3.8)"
       - "install-standalone (windows-2022, pytorch, 3.8)"
-
-  - id: all
-    paths:
-      - "**"
-    checks:
-      - "WIP"
