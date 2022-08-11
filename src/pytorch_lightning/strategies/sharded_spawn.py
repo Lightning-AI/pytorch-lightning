@@ -78,7 +78,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
         return self._reinit_optimizers_with_oss(optimizers)
 
-    def optimizer_state(self, optimizer: "OSS") -> Dict[str, Tensor]:
+    def optimizer_state(self, optimizer: "OSS") -> Dict[str, Any]:
         if isinstance(optimizer, OSS):
             optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
