@@ -25,7 +25,7 @@ def test_commands_and_api_example_cloud() -> None:
 
         sleep(2)
 
-        base_url = view_page.url.replace("/view", "")
+        base_url = "/".join(view_page.url.split("/")[:-2])
         resp = requests.post(base_url + "/user/command_without_client?name=awesome")
         assert resp.status_code == 200, resp.json()
 
