@@ -76,7 +76,7 @@ Here's an example:
 |                        |                                                                                                    |
 |                        | For now, this is the AWS instance types supported by the cluster.                                  |
 +------------------------+----------------------------------------------------------------------------------------------------+
-| enable-performance     | Specifies if the cluster uses cost savings mode.                                                   | 
+| enable-performance     | Specifies if the cluster uses cost savings mode.                                                   |
 |                        |                                                                                                    |
 |                        | In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters  |
 |                        | with low utilization.                                                                              |
