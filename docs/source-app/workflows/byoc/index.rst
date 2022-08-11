@@ -100,6 +100,6 @@ Deletion permanently removes not only the record of all runs on a cluster, but a
 
 .. warning:: This process may take a few minutes to complete, but once started it CANNOT be rolled back. Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down every BYOC resource Lightning AI managed (for that cluster id) in the host cloud. All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
 
-.. code:: python
+.. code:: bash
 
    lightning delete cluster <cluster-name>
