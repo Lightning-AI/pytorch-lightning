@@ -55,7 +55,7 @@ def _main():
 
 @_main.command()
 def login():
-    """Log into your lightning.ai account."""
+    """Log in to your lightning.ai account."""
     auth = Auth()
     auth.clear()
 
