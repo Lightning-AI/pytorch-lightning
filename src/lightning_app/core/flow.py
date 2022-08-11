@@ -638,7 +638,7 @@ class LightningFlow:
     def configure_api(self):
         """Configure the API routes of the LightningFlow.
 
-        Returns a list of dictionaries of HttpMethod.
+        Returns a list of HttpMethod such as Post or Get.
 
         .. code-block:: python
 

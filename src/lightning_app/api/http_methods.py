@@ -16,14 +16,14 @@ def _signature_proxy_function():
     pass
 
 
-class _HttpMethod:
+class HttpMethod:
     def __init__(self, route: str, method: Callable, method_name: Optional[str] = None, timeout: int = 30, **kwargs):
         """This class is used to inject user defined methods within the App Rest API.
 
         Arguments:
             route: The path used to route the requests
             method: The associated flow method
-            timeout: The time taken before raising a timeout exception.
+            timeout: The time in seconds taken before raising a timeout exception.
         """
         self.route = route
         self.component_name = method.__self__.name
@@ -75,33 +75,33 @@ class _HttpMethod:
         route(self.route, **self.kwargs)(_handle_request)
 
 
-class Post(_HttpMethod):
+class Post(HttpMethod):
     pass
 
 
-class Get(_HttpMethod):
-
-    pass
-
-
-class Put(_HttpMethod):
+class Get(HttpMethod):
 
     pass
 
 
-class Delete(_HttpMethod):
+class Put(HttpMethod):
+
     pass
 
 
-def _add_tags_to_api(apis: List[_HttpMethod], tags: List[str]) -> None:
+class Delete(HttpMethod):
+    pass
+
+
+def _add_tags_to_api(apis: List[HttpMethod], tags: List[str]) -> None:
     for api in apis:
         if not api.kwargs.get("tag"):
             api.kwargs["tags"] = tags
 
 
-def _validate_api(apis: List[_HttpMethod]) -> None:
+def _validate_api(apis: List[HttpMethod]) -> None:
     for api in apis:
-        if not isinstance(api, _HttpMethod):
+        if not isinstance(api, HttpMethod):
             raise Exception(f"The provided api should be either [{Delete}, {Get}, {Post}, {Put}]")
         if api.route.startswith("/command"):
             raise Exception("The route `/command` is reserved for commands. Please, use something else.")
