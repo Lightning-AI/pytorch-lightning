@@ -36,7 +36,7 @@ And to make your life a little easier, we've made a `Terraform module to help wi
 
 Create a Lightning BYOC cluster using the following command:
 
-.. code:: python
+.. code:: bash
 
    lightning create cluster <cluster-name> <cloud-provider-parameters>
 
