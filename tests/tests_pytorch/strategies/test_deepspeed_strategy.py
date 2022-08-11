@@ -28,13 +28,12 @@ from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
 
 if _DEEPSPEED_AVAILABLE:
@@ -171,12 +170,11 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 
 @RunIf(deepspeed=True)
 @mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
-@pytest.mark.parametrize("precision", [16, "mixed"])
 @pytest.mark.parametrize(
     "amp_backend",
     ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
 )
-def test_deepspeed_precision_choice(_, amp_backend, precision, tmpdir):
+def test_deepspeed_precision_choice(_, amp_backend, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
@@ -188,16 +186,16 @@ def test_deepspeed_precision_choice(_, amp_backend, precision, tmpdir):
         accelerator="gpu",
         strategy="deepspeed",
         amp_backend=amp_backend,
-        precision=precision,
+        precision=16,
     )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == precision
+    assert trainer.strategy.precision_plugin.precision == 16
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_with_invalid_config_path(tmpdir):
+def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
 
     with pytest.raises(
@@ -218,7 +216,7 @@ def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_defaults(tmpdir):
+def test_deepspeed_defaults():
     """Ensure that defaults are correctly set as a config for DeepSpeed if no arguments are passed."""
     strategy = DeepSpeedStrategy()
     assert strategy.config is not None
@@ -663,7 +661,7 @@ class ManualModelParallelClassificationModel(ModelParallelClassificationModel):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu_stage_3(tmpdir):
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
     model = ModelParallelBoringModel()
     trainer = Trainer(

@@ -58,7 +58,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+        if self.precision == PrecisionType.HALF:
             inputs = self._move_float_tensors_to_half(inputs)
 
         return super().forward(*inputs, **kwargs)

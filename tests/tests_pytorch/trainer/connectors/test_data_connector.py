@@ -445,7 +445,8 @@ def test_dataloader_source_direct_access():
 def test_dataloader_source_request_from_module():
     """Test requesting a dataloader from a module works."""
     module = BoringModel()
-    module.trainer = Trainer()
+    trainer = Trainer()
+    module.trainer = trainer
     module.foo = Mock(return_value=module.train_dataloader())
 
     source = _DataLoaderSource(module, "foo")
