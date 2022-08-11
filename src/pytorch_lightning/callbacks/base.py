@@ -16,6 +16,7 @@ from typing import Any
 from pytorch_lightning.callbacks.callback import Callback as NewCallback
 from pytorch_lightning.utilities import rank_zero_deprecation
 
+
 # test
 class Callback(NewCallback):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
