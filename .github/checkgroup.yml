@@ -71,7 +71,7 @@ subprojects:
       - "doctest (pytorch)"
       - "make-docs (pytorch)"
 
-  - id: "pytorch_lightning dockers"
+  - id: "pytorch_lightning: Docker"
     paths:
       - "dockers/**"
     checks:
@@ -93,7 +93,7 @@ subprojects:
       - "build-pl (3.9, 1.9, 11.1.1)"
       - "build-xla (3.7, 1.12)"
 
-  - id: "pytorch_lightning mypy"
+  - id: "pytorch_lightning: mypy"
     paths:
       - ".github/workflows/code-checks.yml"
     checks:
