@@ -84,6 +84,10 @@ def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue",
 
 @dataclass
 class ProxyWorkRun:
+    """The ``ProxyWorkRun`` wraps the ``run`` method of a :class:`~lightning_app.core.work.LightningWork` to
+    redirect calls to the given :class:`~lightning_app.core.queues.BaseQueue` obeying its ``cache_calls`` and
+    ``parralel`` properties."""
+
     work_run: Callable
     work_name: str  # TODO: remove this argument and get the name from work.name directly
     work: "LightningWork"
@@ -106,8 +110,7 @@ class ProxyWorkRun:
 
         data = {"args": args, "kwargs": kwargs, "call_hash": call_hash}
 
-        # The if/else conditions are left un-compressed to simplify readability
-        # for the readers.
+        # The if/else conditions are left un-compressed to simplify readability.
         if self.cache_calls:
             if not entered or stopped_on_sigterm:
                 _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
@@ -122,6 +125,12 @@ class ProxyWorkRun:
                     # the previous task has completed and we can re-queue the next one.
                     # overriding the return value for next loop iteration.
                     _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
+
+        # If this is a blocking work and not following execution of a cached call then we break out of the flow
+        # execution at this point.
+        # TODO: This seems really strange. If you set cache_calls=False and parallel=False for a work then your flow
+        #  will never get further than that work. Seems like a really easy place for users to get stuck without any
+        #  feedback.
         if not self.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
@@ -275,6 +284,14 @@ class ComponentDelta:
 
 @dataclass
 class WorkRunner:
+    """The ``WorkRunner`` is a callable which wraps a work and will loop forever waiting for a call on the given
+    caller queue, passing the call args and kwargs to the work ``run`` method alterring the state, returning the
+    state delta to the given delta queue.
+
+    Any changes to the work state during execution will also be forwarded to the delta queue. If the work raises an
+    error during execution this will be forwarded to the given error queue.
+    """
+
     work: "LightningWork"
     work_name: str
     caller_queue: "BaseQueue"
@@ -432,7 +449,7 @@ class WorkRunner:
                 "HINT: Use the Payload API instead."
             )
 
-        # 17. DeepCopy the state and send the latest delta to the flow.
+        # 16. DeepCopy the state and send the latest delta to the flow.
         # use the latest state as we have already sent delta
         # during its execution.
         # inform the task has completed
@@ -443,7 +460,7 @@ class WorkRunner:
             ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state, verbose_level=2)))
         )
 
-        # 18. Update the work for the next delta if any.
+        # 17. Update the work for the next delta if any.
         self._proxy_setattr(cleanup=True)
 
     def _sigterm_signal_handler(self, signum, frame, call_hash: str) -> None:

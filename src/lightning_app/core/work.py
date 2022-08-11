@@ -420,6 +420,17 @@ class LightningWork(abc.ABC):
         return self.__getattribute__(item)
 
     def _call_hash(self, fn, args, kwargs) -> str:
+        """Generate a hash of the given args and kwargs to track changes in function calls. The hash needs to
+        satisfy the two key properties of a hash:
+
+            * the same args and kwargs will always produce the same hash
+            * different args and kwargs will produce different hashes with high likelihood
+
+        Args:
+            fn: The function being called. TODO: Currently unused
+            args: The positional arguments to the function.
+            kwargs: The keyword arguments to the function.
+        """
         hash_args = args[1:] if len(args) > 0 and args[0] == self else args
         call_obj = {"args": hash_args, "kwargs": kwargs}
         # Note: Generate a hash as 167fe2e.
