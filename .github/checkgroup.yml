@@ -11,8 +11,14 @@ subprojects:
       - "examples/run_pl_examples.sh"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - "pyproject.toml"  # includes mypy config
+      - ".readthedocs.yml"
+      - ".github/workflows/_check-schema.yml"
+      - ".github/workflows/ci-schema.yml"
+      - ".github/workflows/ci-pytorch*.yml"
+      - ".github/workflows/docs-*.yml"
     checks:
       - "check / schema"
       - "conda (3.8, 1.10)"
@@ -69,18 +75,47 @@ subprojects:
       - "build-pl (3.9, 1.9, 11.1.1)"
       - "build-xla (3.7, 1.12)"
 
-  - id: lightning_app
+  - id: "pytorch_lightning mypy"
     paths:
-      - "TODO"
+      - ".github/workflows/code-checks.yml"
     checks:
-      - "TODO"
+      - "mypy"
+
+  - id: "lightning_app"
+    paths:
+      - ".github/workflows/ci-app*.yml"
+      - ".github/workflows/docs-*.yml"
+      - "docs/source-app/**"
+      - "examples/app_**"
+      - "requirements/app/**"
+      - "src/lightning_app/**"
+      - "tests/tests_app/**"
+      - "tests/tests_app_examples/**"
+      - "tests/tests_clusters/**"
+      # the examples are used in the app CI
+      - "examples/app_*"
+    checks:
+      - "Cloud Test (boring_app)"
+      - "Cloud Test (collect_failures)"
+      - "Cloud Test (commands_and_api)"
+      - "Cloud Test (custom_work_dependencies)"
+      - "Cloud Test (drive)"
+      - "Cloud Test (idle_timeout)"
+      - "Cloud Test (payload)"
+      - "Cloud Test (template_jupyterlab)"
+      - "Cloud Test (template_react_ui)"
+      - "Cloud Test (template_streamlit_ui)"
+      - "Cloud Test (v0_app)"
+      - "doctest (app)"
+      - "make-docs (app)"
 
   - id: "ci"
     paths:
       - ".actions/setup_tools.py"
       - "assistant.py"
-      - ".github/**"
+      - ".github/workflows/ci-pkg-install.yml"
       - "setup.py"
+      - "src/lightning/**"
     checks:
       - "install-meta-pypi (macOS-11, 3.8)"
       - "install-meta-pypi (ubuntu-20.04, 3.8)"
