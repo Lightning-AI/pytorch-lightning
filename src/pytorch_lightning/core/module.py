@@ -582,7 +582,7 @@ class LightningModule(
 
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Tensor:
+    ) -> Union[Tensor, Dict, List, Tuple]:
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
         accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
