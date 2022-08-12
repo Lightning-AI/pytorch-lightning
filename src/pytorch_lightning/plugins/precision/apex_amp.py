@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Union, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from torch import Tensor
 from torch.nn import Module
