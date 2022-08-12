@@ -524,10 +524,6 @@ class Strategy(ABC):
         """Called in the training loop before anything happens for that batch."""
         pass
 
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.precision_plugin.dispatch(trainer)
-
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
         state = dict(vars(self))  # copy

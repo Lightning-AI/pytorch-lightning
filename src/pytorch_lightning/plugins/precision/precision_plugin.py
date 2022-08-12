@@ -215,9 +215,6 @@ class PrecisionPlugin(CheckpointHooks):
         parameters = self.main_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
 
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something when ``Strategy.dispatch()`` gets called."""
-
     @contextlib.contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""

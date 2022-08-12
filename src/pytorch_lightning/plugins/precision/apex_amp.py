@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union, List, Tuple
 
 from torch import Tensor
 from torch.nn import Module
@@ -45,14 +45,16 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
-    def dispatch(self, trainer: "pl.Trainer") -> None:
+    def connect(
+        self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
+        """Connects this plugin to the accelerator and the training process."""
         if not self._connected:
-            strategy = trainer.strategy
-            _, strategy.optimizers = amp.initialize(
-                trainer.lightning_module, strategy.optimizers, opt_level=self.amp_level
-            )
+            # amp.initialize should 1) only be called once 2) be called after the model has been moved to the device
+            # 3) be called before wrapping the model with e.g. DistributedDataParallel
+            _, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
             self._connected = True
-        return super().dispatch(trainer)
+        return model, optimizers, lr_schedulers
 
     def backward(
         self,
