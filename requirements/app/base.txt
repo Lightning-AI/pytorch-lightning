@@ -1,4 +1,4 @@
-lightning-cloud==0.5.0
+lightning-cloud==0.5.3
 packaging
 deepdiff>=5.7.0, <=5.8.1
 starsessions
