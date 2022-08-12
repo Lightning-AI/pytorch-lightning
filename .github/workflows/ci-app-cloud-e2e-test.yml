@@ -54,7 +54,7 @@ jobs:
           - custom_work_dependencies
           - drive
           - payload
-          - commands
+          - commands_and_api
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v2
