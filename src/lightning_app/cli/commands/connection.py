@@ -1,0 +1,158 @@
+import os
+import shutil
+from typing import List, Optional
+
+import click
+
+from lightning_app.utilities.cli_helpers import _retrieve_application_url_and_available_commands
+from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.network import LightningClient
+
+
+@click.argument("app_name_or_id", required=True)
+@click.option("-y", "--yes", required=False, is_flag=True, help="Whether to download the commands automatically.")
+def connect(app_name_or_id: str, yes: bool = False):
+    """Connect to a Lightning Application."""
+    from lightning_app.utilities.commands.base import _download_command
+
+    home = os.path.expanduser("~")
+    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
+
+    if not os.path.exists(lightning_folder):
+        os.makedirs(lightning_folder)
+
+    connected_file = os.path.join(lightning_folder, "connect.txt")
+
+    if os.path.exists(connected_file):
+        with open(connected_file) as f:
+            result = f.readlines()[0]
+        if result == app_name_or_id:
+            if app_name_or_id == "localhost":
+                click.echo("You are connected to the local Lightning App.")
+            else:
+                click.echo(f"You are already connected to the cloud Lightning App: {app_name_or_id}.")
+        else:
+            click.echo("You are already connected to a Lightning App. Please, use `lightning disconnect`.")
+
+    elif app_name_or_id.startswith("localhost"):
+        if app_name_or_id != "localhost":
+            raise Exception("You need to pass localhost to connect to the local Lightning App.")
+        with open(connected_file, "w") as f:
+            f.write(app_name_or_id + "\n")
+        click.echo("You are connected to the local Lightning App.")
+    else:
+        client = LightningClient()
+        project = _get_project(client)
+        lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
+            project.project_id
+        ).lightningapps
+
+        for lightningapp in lightningapps:
+            if lightningapp.id == app_name_or_id or lightningapp.name == app_name_or_id:
+                _, api_commands = _retrieve_application_url_and_available_commands(app_name_or_id)
+
+                if any(["cls_path" in v for v in api_commands.values()]):
+                    if not yes:
+                        yes = click.confirm(
+                            f"The Lightning App `{app_name_or_id}` provides a client interface (CLI). "
+                            "Do you want to proceed and install its CLI ?"
+                        )
+                        click.echo(" ")
+                    if yes:
+                        commands_folder = os.path.join(lightning_folder, "commands")
+                        if not os.path.exists(commands_folder):
+                            os.makedirs(commands_folder)
+
+                        for command_name, metadata in api_commands.items():
+                            if "cls_path" in metadata:
+                                target_file = os.path.join(commands_folder, f"{command_name}.py")
+                                _download_command(
+                                    command_name,
+                                    metadata["cls_path"],
+                                    metadata["cls_name"],
+                                    lightningapp.id,
+                                    target_file=target_file,
+                                )
+                                click.echo(f"Storing `{command_name}` under {target_file}")
+                                click.echo(
+                                    f"You can review all the downloaded commands under {commands_folder} folder."
+                                )
+                            else:
+                                with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
+                                    f.write(command_name)
+                        click.echo(" ")
+                        click.echo("The client interface has been successfully installed. ")
+                        click.echo(f"You can now run the following commands `lightning {[c for c in api_commands]}`.")
+
+                with open(connected_file, "w") as f:
+                    f.write(app_name_or_id + "\n")
+                    f.write(lightningapp.id + "\n")
+                click.echo(" ")
+                click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
+                return
+        click.echo(
+            "We didn't a matching app. Here are the available apps to be "
+            f"connected to {[app.name for app in lightningapps]}."
+        )
+
+
+def disconnect():
+    """Disconnect to a Lightning Application."""
+    home = os.path.expanduser("~")
+    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
+    connected_file = os.path.join(lightning_folder, "connect.txt")
+    if os.path.exists(connected_file):
+        with open(connected_file) as f:
+            result = f.readlines()[0]
+        os.remove(connected_file)
+        commands_folder = os.path.join(lightning_folder, "commands")
+        if os.path.exists(commands_folder):
+            shutil.rmtree(commands_folder)
+        if result == "localhost":
+            click.echo("You are disconnected to the local Lightning App.")
+        else:
+            click.echo(f"You are disconnected to the cloud Lightning App: {result}.")
+    else:
+        click.echo("You aren't connected to any Lightning App. Please, use `lightning connect app_name_or_id`.")
+
+
+def _retrieve_connection_to_an_app() -> Optional[List[Optional[str]]]:
+    home = os.path.expanduser("~")
+    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
+    connected_file = os.path.join(lightning_folder, "connect.txt")
+
+    if os.path.exists(connected_file):
+        with open(connected_file) as f:
+            lines = [line.replace("\n", "") for line in f.readlines()]
+            if len(lines) == 2:
+                return lines
+            return lines + [None]
+
+
+def _resolve_command_path(command: str) -> str:
+    home = os.path.expanduser("~")
+    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
+    commands_folder = os.path.join(lightning_folder, "commands")
+    return os.path.join(commands_folder, f"{command}.py")
+
+
+def _list_app_commands() -> None:
+    home = os.path.expanduser("~")
+    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
+    commands_folder = os.path.join(lightning_folder, "commands")
+    command_names = [
+        n.replace(".py", "").replace(".txt", "") for n in os.listdir(commands_folder) if n != "__pycache__"
+    ]
+    if not command_names:
+        print("The current Lightning App doesn't have commands.")
+        return
+
+    print("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
+    print()
+    print("  --help     Show this message and exit.")
+    print()
+    print("Lightning App Commands")
+    max_length = max(len(n) for n in command_names)
+    for command_name in command_names:
+        padding = (max_length + 1 - len(command_name)) * " "
+        print(f"  {command_name}{padding}Description")

@@ -1,19 +1,23 @@
 import logging
 import os
 import sys
-from argparse import ArgumentParser
-from os.path import expanduser
 from pathlib import Path
 from typing import List, Tuple, Union
 
 import click
-import requests
 import rich
 from requests.exceptions import ConnectionError
 from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.commands.app_commands import _run_app_command
+from lightning_app.cli.commands.connection import (
+    _list_app_commands,
+    _retrieve_connection_to_an_app,
+    connect,
+    disconnect,
+)
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
@@ -21,12 +25,8 @@ from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_A
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_logs import _app_logs_reader
-from lightning_app.utilities.cli_helpers import (
-    _format_input_env_variables,
-    _retrieve_application_url_and_available_commands,
-)
+from lightning_app.utilities.cli_helpers import _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
@@ -43,12 +43,20 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
 
 
 def main():
-    if len(sys.argv) == 1:
-        _main()
-    elif sys.argv[1] in _main.commands.keys() or sys.argv[1] == "--help":
+    # 1: Handle connection to a Lightning App.
+    if sys.argv[1] in ("connect", "disconnect"):
         _main()
     else:
-        app_command()
+        # 2: Collect the connection a Lightning App.
+        app_name, app_id = _retrieve_connection_to_an_app()
+        if app_name:
+            click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+            if "help" in sys.argv[1]:
+                _list_app_commands()
+            else:
+                _run_app_command(app_name, app_id)
+        else:
+            _main()
 
 
 @click.group()
@@ -63,95 +71,8 @@ def show():
     pass
 
 
-@_main.command()
-@click.argument("app_name_or_id", required=True)
-def connect(app_name_or_id: str):
-    """Connect to a Lightning Application."""
-    from lightning_app.utilities.commands.base import _download_command
-
-    home = expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-
-    if not os.path.exists(lightning_folder):
-        os.makedirs(lightning_folder)
-
-    connected_file = os.path.join(lightning_folder, "connect.txt")
-
-    if os.path.exists(connected_file):
-        with open(connected_file) as f:
-            result = f.readlines()[0]
-        if result == app_name_or_id:
-            if app_name_or_id == "localhost":
-                click.echo("You are connected to the local Lightning App.")
-            else:
-                click.echo(f"You are already connected to the cloud Lightning App: {app_name_or_id}.")
-        else:
-            click.echo("You are already connected to a Lightning App. Please, use `lightning disconnect`.")
-
-    elif app_name_or_id.startswith("localhost"):
-        if app_name_or_id != "localhost":
-            raise Exception("You need to pass localhost to connect to the local Lightning App.")
-        with open(connected_file, "w") as f:
-            f.write(app_name_or_id)
-        click.echo("You are connected to the local Lightning App.")
-    else:
-        client = LightningClient()
-        project = _get_project(client)
-        lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
-            project.project_id
-        ).lightningapps
-
-        for lightningapp in lightningapps:
-            if lightningapp.id == app_name_or_id or lightningapp.name == app_name_or_id:
-                _, api_commands = _retrieve_application_url_and_available_commands(app_name_or_id)
-
-                if any(["cls_path" in v for v in api_commands.values()]):
-                    if click.confirm(
-                        f"The Lightning App `{app_name_or_id}` provides a client interface. Do you want to install it?"
-                    ):
-                        commands_folder = os.path.join(lightning_folder, "commands")
-                        if not os.path.exists(commands_folder):
-                            os.makedirs(commands_folder)
-
-                        for command_name, metadata in api_commands.items():
-                            if "cls_path" in metadata:
-                                _download_command(
-                                    command_name,
-                                    metadata["cls_path"],
-                                    metadata["cls_name"],
-                                    app_name_or_id,
-                                    target_file=os.path.join(commands_folder, f"{command_name}.py"),
-                                )
-                        click.echo(
-                            "The client interface has been successfully installed. "
-                            f"You can now do: {[c for c in api_commands]}"
-                        )
-                with open(connected_file, "w") as f:
-                    f.write(app_name_or_id)
-                click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
-                return
-        click.echo(
-            "We didn't a matching app. Here are the available apps to be"
-            f"connected to {[app.name for app in lightningapps]}."
-        )
-
-
-@_main.command()
-def disconnect():
-    """Disconnect to a Lightning Application."""
-    home = expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-    connected_file = os.path.join(lightning_folder, "connect.txt")
-    if os.path.exists(connected_file):
-        with open(connected_file) as f:
-            result = f.readlines()[0]
-        os.remove(connected_file)
-        if result == "localhost":
-            click.echo("You are disconnected to the local Lightning App.")
-        else:
-            click.echo(f"You are disconnected to the cloud Lightning App: {result}.")
-    else:
-        click.echo("You aren't connected to any Lightning App. Please, use `lightning connect app_name_or_id`.")
+_main.command(connect)
+_main.command(disconnect)
 
 
 @show.command()
@@ -339,59 +260,6 @@ def run_app(
 ):
     """Run an app from a file."""
     _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
-
-
-def app_command():
-    """Execute a function in a running application from its name."""
-    from lightning_app.utilities.commands.base import _download_command
-
-    logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
-
-    debug_mode = bool(int(os.getenv("DEBUG", "0")))
-
-    parser = ArgumentParser()
-    parser.add_argument("--app_id", default=None, type=str, help="Optional argument to identify an application.")
-    hparams, argv = parser.parse_known_args()
-
-    # 1: Collect the url and comments from the running application
-    url, api_commands = _retrieve_application_url_and_available_commands(hparams.app_id)
-    if url is None or api_commands is None:
-        raise Exception("We couldn't find any matching running app.")
-
-    if not api_commands:
-        raise Exception("This application doesn't expose any commands yet.")
-
-    command = argv[0]
-
-    if command not in api_commands:
-        raise Exception(f"The provided command {command} isn't available in {list(api_commands)}")
-
-    # 2: Send the command from the user
-    metadata = api_commands[command]
-
-    # 3: Execute the command
-    if metadata["tag"] == OpenAPITags.APP_COMMAND:
-        # TODO: Improve what is current supported
-        kwargs = [v.replace("--", "") for v in argv[1:]]
-
-        for p in kwargs:
-            if p.split("=")[0] not in metadata["parameters"]:
-                raise Exception(f"Some arguments need to be provided. The keys are {list(metadata['parameters'])}.")
-        # TODO: Encode the parameters and validate their type.
-        query_parameters = "&".join(kwargs)
-        resp = requests.post(url + f"/command/{command}?{query_parameters}")
-        assert resp.status_code == 200, resp.json()
-    else:
-        client_command = _download_command(
-            command,
-            metadata["cls_path"],
-            metadata["cls_name"],
-            hparams.app_id,
-            debug_mode=debug_mode,
-        )
-        client_command._setup(command_name=command, app_url=url)
-        sys.argv = argv
-        client_command.run()
 
 
 @_main.group(hidden=True)
