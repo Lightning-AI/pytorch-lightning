@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 
 import pytest
-from tests.helpers.runif import RunIf
 
 from pytorch_lightning.utilities.imports import _HYDRA_AVAILABLE
+from tests.tests_pytorch.helpers.runif import RunIf
 
 if _HYDRA_AVAILABLE:
     from omegaconf import OmegaConf
@@ -53,8 +53,8 @@ import os
 import torch
 
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel
 
+from tests.tests_pytorch.helpers import BoringModel
 
 class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
@@ -62,8 +62,7 @@ class BoringModelGPU(BoringModel):
         assert self.device == torch.device(f"cuda:{self.trainer.strategy.local_rank}")
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
-
-@hydra.main()
+@hydra.main(config_path=None, version_base="1.1")
 def task_fn(cfg):
     trainer = Trainer(accelerator="auto", devices=cfg.devices, strategy=cfg.strategy, fast_dev_run=True)
     model = BoringModelGPU()
@@ -78,7 +77,7 @@ if __name__ == "__main__":
 """
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
@@ -108,7 +107,7 @@ def test_ddp_with_hydra_runjob(subdir):
     assert len(logs) == devices - 1
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("num_jobs", [1, 2])
