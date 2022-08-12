@@ -77,7 +77,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any) -> Any:
-            device = self.module.device
+            device = self.lightning_module.device
             data = python_scalar_to_tensor(data, device)
             data = unsqueeze_scalar_tensor(data)
             return data
