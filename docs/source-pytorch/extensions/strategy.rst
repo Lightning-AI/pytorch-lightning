@@ -37,7 +37,6 @@ Built-in strategies can be selected in two ways.
 The latter allows you to configure further options on the specifc strategy.
 Here are some examples:
 
-
 .. code-block:: python
 
     # Training with the DistributedDataParallel strategy on 4 GPUs
@@ -61,9 +60,7 @@ Here are some examples:
     # Training with the default IPU strategy on 8 IPUs
     trainer = Trainer(accelerator="ipu", devices=8)
 
-
 The below table lists all relevant strategies available in Lightning with their corresponding short-hand name:
-
 
 .. list-table:: Strategy Classes and Nicknames
    :widths: 20 20 20
@@ -121,6 +118,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - :class:`~pytorch_lightning.strategies.SingleTPUStrategy`
      - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
 
+----
 
 ************************
 Create a Custom Strategy

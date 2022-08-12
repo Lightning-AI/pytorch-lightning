@@ -61,7 +61,7 @@ log = logging.getLogger(__name__)
 class DDPFullyShardedNativeStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning:: ``DDPFullyShardedNativeStrategy`` is in beta and subject to change. The interface can
+    .. warning:: ``DDPFullyShardedNativeStrategy`` is in BETA and subject to change. The interface can
         bring breaking changes and new features with the next release of PyTorch.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
@@ -88,12 +88,12 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             This is an experimental feature that is subject to change in the
             the near future. It allows users to enable two different backward_prefetch
             algorithms to help backward communication and computation overlapping.
-            Pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
+            The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
         mixed_precision:
             Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16``
             or BF16 if ``precision=bf16`` unless a config is passed in.
             This is only available in PyTorch 1.12 and later.
-        \**kwargs: Passed to the FSDP Context manager which will configure the FSDP class when wrapping modules.
+        \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
 
     """
 
