@@ -29,17 +29,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.azure-pipelines/gpu-tests.yml' since the Dockerfile uses the cuda image
-        python_version: ["3.9"]
-        pytorch_version: ["1.12"]
+        include:
+          # We only release one docker image per PyTorch version.
+          # The matrix here is the same as the one in release-docker.yml.
+          - {python_version: "3.9", pytorch_version: "1.9", cuda_version: "11.1.1"}
+          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.3.1"}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/release/Dockerfile
           push: false  # pushed in release-docker.yml only when PL is released
         timeout-minutes: 50
@@ -53,14 +58,14 @@ jobs:
         python_version: ["3.7"]
         xla_version: ["1.12"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v1
+      - uses: docker/login-action@v2
         if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -85,30 +90,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # the config used in '.azure-pipelines/gpu-tests.yml'
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.3.1", ubuntu_version: "20.04"}
-          # latest (used in Tutorials)
-          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1.1", ubuntu_version: "20.04"}
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1.1", ubuntu_version: "20.04"}
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
+          # These are the base images for PL release docker images,
+          # so include at least all of the combinations in release-dockers.yml.
+          - {python_version: "3.9", pytorch_version: "1.9", cuda_version: "11.1.1"}
+          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.3.1"}
+          # Used in Lightning-AI/tutorials
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1.1"}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v1
+      - uses: docker/login-action@v2
         if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
-            UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
         if: failure() && env.PUSH_TO_HUB == 'true'
@@ -126,25 +132,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1.1"}
-          - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1.1"}
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
-          #  nightly: add when there's a release candidate
-          #  - {python_version: "3.9", pytorch_version: "1.12"}
+          - {python_version: "3.8", pytorch_version: "1.9"}
+          - {python_version: "3.8", pytorch_version: "1.10"}
+          - {python_version: "3.9", pytorch_version: "1.11"}
+          - {python_version: "3.9", pytorch_version: "1.12"}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v1
+      - uses: docker/login-action@v2
         if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
@@ -168,14 +172,14 @@ jobs:
           # the config used in 'dockers/ci-runner-ipu/Dockerfile'
           - {python_version: "3.9", pytorch_version: "1.9"}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v1
+      - uses: docker/login-action@v2
         if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -184,7 +188,7 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 100
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -199,7 +203,7 @@ jobs:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
           notification_title: ${{ format('IPU; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
-          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01BULUS2BG>'  # SeanNaren
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01GD29QCAV>'  # kaushikb11
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -212,14 +216,14 @@ jobs:
           # the config used in 'dockers/ci-runner-hpu/Dockerfile'
           - {gaudi_version: "1.5.0", pytorch_version: "1.11.0"}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v1
+      - uses: docker/login-action@v2
         if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v3
         with:
           build-args: |
             DIST=latest
@@ -243,10 +247,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build Conda Docker
         # publish master/release
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           file: dockers/nvidia/Dockerfile
           push: false
