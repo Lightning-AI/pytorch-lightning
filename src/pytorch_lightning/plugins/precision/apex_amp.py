@@ -54,7 +54,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             # 3) be called before wrapping the model with e.g. DistributedDataParallel
             _, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
             for opt in optimizers:
-                assert hasattr(opt, "_amp_stash")
+                assert False
             self._connected = True
         return model, optimizers, lr_schedulers
 
