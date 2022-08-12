@@ -50,11 +50,15 @@ def main():
         # 2: Collect the connection a Lightning App.
         app_name, app_id = _retrieve_connection_to_an_app()
         if app_name:
-            click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
-            if "help" in sys.argv[1]:
-                _list_app_commands()
+            # 3: Handle development use case.
+            if app_name == "localhost" and sys.argv[1:3] == ["run", "app"]:
+                _main()
             else:
-                _run_app_command(app_name, app_id)
+                click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+                if "help" in sys.argv[1]:
+                    _list_app_commands()
+                else:
+                    _run_app_command(app_name, app_id)
         else:
             _main()
 

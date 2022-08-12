@@ -32,8 +32,8 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     if metadata["tag"] == OpenAPITags.APP_COMMAND:
         _handle_command_without_client(command, metadata, url)
     else:
-        assert app_id
         _handle_command_with_client(command, metadata, app_id, url)
+    print("Your command execution was successful.")
 
 
 def _handle_command_without_client(command: str, metadata: Dict, url: str) -> None:
@@ -60,10 +60,9 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
     query_parameters = "&".join(provided_params)
     resp = requests.post(url + f"/command/{command}?{query_parameters}")
     assert resp.status_code == 200, resp.json()
-    print("Your command execution was successful.")
 
 
-def _handle_command_with_client(command: str, metadata: Dict, app_id: str, url: str):
+def _handle_command_with_client(command: str, metadata: Dict, app_id: Optional[str], url: str):
     debug_mode = bool(int(os.getenv("DEBUG", "0")))
 
     target_file = _resolve_command_path(command) if debug_mode else _resolve_command_path(command)
