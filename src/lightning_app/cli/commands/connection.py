@@ -113,7 +113,10 @@ def disconnect():
         else:
             click.echo(f"You are disconnected to the cloud Lightning App: {result}.")
     else:
-        click.echo("You aren't connected to any Lightning App. Please, use `lightning connect app_name_or_id`.")
+        click.echo(
+            "You aren't connected to any Lightning App. "
+            "Please, use `lightning connect app_name_or_id` to connect to one."
+        )
 
 
 def _retrieve_connection_to_an_app() -> Optional[List[Optional[str]]]:
