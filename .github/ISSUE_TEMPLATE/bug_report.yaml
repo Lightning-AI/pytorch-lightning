@@ -8,7 +8,7 @@ body:
         Bug reports aren't usually really **🐛 bugs**. More often than not they are questions about how to use the product.
         Hit us up on our [Community Slack](https://pytorch-lightning.slack.com) first if that is the case.
         You're probably going to get a faster response and you're going to learn about using the product.
-  
+
   - type: markdown
     attributes:
       value: >
@@ -17,14 +17,14 @@ body:
         1. A clear and concise description of the bug - keep it to a line or two
 
         2. A clear and concise code example that reproduces the problem. To get that use the [BoringModel] (https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)!
-        
+
          IMPORTANT: Has to be public.
 
          If you could not reproduce using the BoringModel and still think there's a bug, please post here
          but remember, bugs with code are fixed faster!
 
         3. Additional details that may help us reproduce your issue.
-  
+
   - type: checkboxes
     id: checks
     attributes:
@@ -59,7 +59,7 @@ body:
     attributes:
       label: Error
       description: >
-        Provide any error messages 
+        Provide any error messages
       placeholder: "# Copy complete error messages here, including log output if applicable."
       value: |
         ```
