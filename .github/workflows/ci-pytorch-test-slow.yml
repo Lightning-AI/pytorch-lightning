@@ -7,6 +7,12 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   pull_request:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+      - ".github/workflows/ci-pytorch-test-slow.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -28,43 +34,19 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Get changed files
-      id: changed-files
-      uses: tj-actions/changed-files@v24
-
-    - name: Decide if the test should be skipped
-      id: skip
-      shell: bash -l {0}
-      run: |
-        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*|.github/workflows/ci-pytorch_test-slow.yml'
-        echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
-        MATCHES=$(cat changed_files.txt | grep -E $FILTER)
-        echo $MATCHES
-        if [ -z "$MATCHES" ]; then
-            echo "Skip"
-            echo "::set-output name=continue::0"
-        else
-            echo "Continue"
-            echo "::set-output name=continue::1"
-        fi
-
     - uses: actions/setup-python@v4
-      if: ${{ (steps.skip.outputs.continue == '1') }}
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Reset caching
-      if: ${{ (steps.skip.outputs.continue == '1') }}
       run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
     - name: Get pip cache
-      if: ${{ (steps.skip.outputs.continue == '1') }}
       id: pip-cache
       run: |
         python -c "from pip._internal.locations import USER_CACHE_DIR; print('::set-output name=dir::' + USER_CACHE_DIR)"
 
     - name: Cache pip
-      if: ${{ (steps.skip.outputs.continue == '1') }}
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
@@ -73,7 +55,6 @@ jobs:
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-
 
     - name: Install dependencies
-      if: ${{ (steps.skip.outputs.continue == '1') }}
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
@@ -85,21 +66,20 @@ jobs:
       shell: bash
 
     - name: Testing PyTorch
-      if: ${{ (steps.skip.outputs.continue == '1') }}
       working-directory: tests/tests_pytorch
       run: coverage run --source pytorch_lightning -m pytest -v --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       env:
         PL_RUN_SLOW_TESTS: 1
 
     - name: Upload pytest test results
-      if: ${{ (failure()) && (steps.skip.outputs.continue == '1') }}
+      if: failure()
       uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
 
     - name: Statistics
-      if: ${{ (success()) && (steps.skip.outputs.continue == '1') }}
+      if: success()
       working-directory: tests/tests_pytorch
       run: |
         coverage report
@@ -107,7 +87,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: ${{ (success()) && (steps.skip.outputs.continue == '1') }}
+      if: success()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
