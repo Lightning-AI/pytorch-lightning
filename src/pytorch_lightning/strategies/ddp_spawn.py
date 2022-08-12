@@ -225,7 +225,9 @@ class DDPSpawnStrategy(ParallelStrategy):
         optimizers_to_device(self.optimizers, self.root_device)
 
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
-            self._lightning_module, self.optimizers, _ = self.precision_plugin.connect(self.lightning_module, self.optimizers, [])
+            self._lightning_module, self.optimizers, _ = self.precision_plugin.connect(
+                self.lightning_module, self.optimizers, []
+            )
 
     def determine_ddp_device_ids(self) -> Optional[List[int]]:
         if self.root_device.type == "cpu":
