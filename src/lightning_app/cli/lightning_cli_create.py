@@ -5,7 +5,7 @@ from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClus
 
 @click.group("create")
 def create():
-    """Create Lightning AI BYOC managed resources."""
+    """Create Lightning AI self-managed resources (clusters, etc…)"""
     pass
 
 
