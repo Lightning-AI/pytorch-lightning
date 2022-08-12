@@ -232,6 +232,11 @@ def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
                     "version": "0.0.4",
                     "name": "lightning/invideo",
                 },
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.5",
+                    "name": "another_app",
+                },
             ]
         }
         runner.invoke(lightning_cli.install_app, [app_name, "--yes"])  # no version specified so latest is installed
