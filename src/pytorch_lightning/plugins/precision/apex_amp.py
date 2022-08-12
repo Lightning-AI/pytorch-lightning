@@ -53,6 +53,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             # amp.initialize should 1) only be called once 2) be called after the model has been moved to the device
             # 3) be called before wrapping the model with e.g. DistributedDataParallel
             _, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
+            for opt in optimizers:
+                assert hasattr(opt, "_amp_stash")
             self._connected = True
         return model, optimizers, lr_schedulers
 
