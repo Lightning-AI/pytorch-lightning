@@ -120,6 +120,8 @@ def test_supported_attribute_declaration_inside_init():
 
 @pytest.mark.parametrize("replacement", [EmptyFlow(), EmptyWork(), None])
 def test_fixing_flows_and_works(replacement):
+    """Tests that once a flow attribute has been set it cannot be overwritten."""
+
     class FlowFixed(LightningFlow):
         def run(self):
             self.empty_flow = EmptyFlow()
