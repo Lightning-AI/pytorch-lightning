@@ -1,0 +1,106 @@
+name: Report a bug
+description: Errors and regression reports with complete reproducing test cases and/or stack traces.
+labels: ["status:triage", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Bug reports aren't usually really **🐛 bugs**. More often than not they are questions about how to use the product.
+        Hit us up on our [Community Slack](https://pytorch-lightning.slack.com) first if that is the case.
+        You're probably going to get a faster response and you're going to learn about using the product.
+  
+  - type: markdown
+    attributes:
+      value: >
+        If you are new to making bug reports, here are a few guidelines for you:
+
+        1. A clear and concise description of the bug - keep it to a line or two
+
+        2. A clear and concise code example that reproduces the problem. To get that use the [BoringModel] (https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)!
+        
+         IMPORTANT: Has to be public.
+
+         If you could not reproduce using the BoringModel and still think there's a bug, please post here
+         but remember, bugs with code are fixed faster!
+
+        3. Additional details that may help us reproduce your issue.
+  
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: First check
+      description: Please confirm and check all the following options.
+      options:
+        - label: I added a descriptive title to this issue.
+          required: true
+        - label: I used GitHub search to find a similar issue and didn't find it.
+          required: true
+        - label: I searched the [Lightning documentation](https://lightning.ai/lightning-docs/) for this issue.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Bug summary
+      description: A clear and concise description of the 🐛bug🐛.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: >
+        Provide your clear and concise code example that reproduces the problem. To get that use the [BoringModel] (https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)
+      placeholder: "# Insert code here"
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Error
+      description: >
+        Provide any error messages 
+      placeholder: "# Copy complete error messages here, including log output if applicable."
+      value: |
+        ```
+
+        # Copy complete error message here, including log output if applicable.
+
+        ```
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Versions
+      description: >
+        Provide information about .
+      value: |
+        ```
+
+        # Provide the following:
+        #- Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
+        #- PyTorch Lightning Version (e.g., 1.5.0):
+        #- Lightning App Version (e.g., 0.5.2):
+        #- PyTorch Version (e.g., 1.10):
+        #- Python version (e.g., 3.9):
+        #- OS (e.g., Linux):
+        #- CUDA/cuDNN version:
+        #- GPU models and configuration:
+        #- How you installed Lightning(`conda`, `pip`, source):
+        #- Running environment of LightningApp (e.g. local, cloud):
+
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "**Happy engineering!**"
