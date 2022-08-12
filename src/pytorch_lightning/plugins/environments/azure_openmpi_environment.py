@@ -25,30 +25,11 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
         """ devices : devices per node (same as trainer parameter)"""
         super().__init__()
         self.devices = devices
-
+        
     @property
     def creates_processes_externally(self) -> bool:
         """Return True if the cluster is managed (you don't launch processes yourself)"""
         return True
-
-    def world_size(self) -> int:
-        return int(os.environ.get("OMPI_COMM_WORLD_SIZE"))
-
-    def set_world_size(self, size: int) -> None:
-        pass
-
-    def global_rank(self) -> int:
-        return int(os.environ.get("OMPI_COMM_WORLD_RANK"))
-
-    def set_global_rank(self, rank: int) -> None:
-        pass
-
-    def local_rank(self) -> int:
-        return int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK"))
-
-    def node_rank(self) -> int:
-        # this may not exist, defaulting to 0
-        return int(os.environ.get("OMPI_COMM_WORLD_RANK",0)) // int(self.devices)
 
     @property
     def main_address(self) -> str:
@@ -70,3 +51,22 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
     def detect() -> bool:
         return "OMPI_COMM_WORLD_SIZE" in os.environ and "OMPI_COMM_WORLD_LOCAL_RANK" in os.environ and \
              ("AZ_BATCH_MASTER_NODE" in os.environ or "AZ_BATCHAI_MPI_MASTER_NODE" in os.environ)
+
+    def world_size(self) -> int:
+        return int(os.environ.get("OMPI_COMM_WORLD_SIZE"))
+
+    def set_world_size(self, size: int) -> None:
+        pass
+
+    def global_rank(self) -> int:
+        return int(os.environ.get("OMPI_COMM_WORLD_RANK"))
+
+    def set_global_rank(self, rank: int) -> None:
+        pass
+
+    def local_rank(self) -> int:
+        return int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK"))
+
+    def node_rank(self) -> int:
+        # this may not exist, defaulting to 0
+        return int(os.environ.get("OMPI_COMM_WORLD_RANK",0)) // int(self.devices)
