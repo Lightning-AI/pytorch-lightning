@@ -6,8 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from pytorch_lightning.utilities.imports import _HYDRA_AVAILABLE
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from tests.tests_pytorch.helpers.runif import RunIf
+
+_HYDRA_AVAILABLE = bool(_RequirementAvailable("hydra-core"))
 
 if _HYDRA_AVAILABLE:
     from omegaconf import OmegaConf
@@ -67,10 +69,12 @@ def task_fn(cfg):
     trainer = Trainer(accelerator="auto", devices=cfg.devices, strategy=cfg.strategy, fast_dev_run=True)
     model = BoringModelGPU()
     trainer.fit(model)
-    # make sure teardown executed
-    assert not torch.distributed.is_initialized()
-    assert "LOCAL_RANK" not in os.environ
+    trainer.test(model)
 
+    if torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
+
+    os.environ.pop("LOCAL_RANK", None)
 
 if __name__ == "__main__":
     task_fn()
@@ -103,8 +107,8 @@ def test_ddp_with_hydra_runjob(subdir):
     assert cfg.devices == devices
 
     # Make sure PL spawned a job that is logged by Hydra
-    logs = list(Path.cwd().glob("**/train_ddp_process_*.log"))
-    assert len(logs) == devices - 1
+    logs = list(Path.cwd().glob("**/*.log"))
+    assert len(logs) == 1
 
 
 @RunIf(min_cuda_gpus=2)
@@ -138,5 +142,5 @@ def test_ddp_with_hydra_multirunjob(num_jobs):
         assert cfg.devices == devices
         assert cfg.foo == local_rank
 
-    logs = list(Path.cwd().glob("**/train_ddp_process_*.log"))
-    assert len(logs) == num_jobs * (devices - 1)
+    logs = list(Path.cwd().glob("**/*.log"))
+    assert len(logs) == num_jobs
