@@ -7,9 +7,9 @@ import torch
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
@@ -256,8 +256,8 @@ def test_configure_ddp(tmpdir):
 def test_custom_kwargs_sharded(_, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     strategy = cls(reduce_fp16=True)
-    strategy.model = Mock(spec=LightningModule)
-    strategy.model.trainer = Mock()
+    strategy._lightning_module = Mock(spec=LightningModule)
+    strategy._lightning_module.trainer = Mock()
     strategy.parallel_devices = [Mock()]
     class_name = "sharded" if isinstance(strategy, DDPShardedStrategy) else "sharded_spawn"
 
@@ -276,8 +276,8 @@ def test_custom_kwargs_sharded_reduce_buffer_size(_, params, expected_buffer_siz
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     strategy = DDPShardedStrategy(**params)
     strategy.num_nodes = num_nodes
-    strategy.model = Mock(spec=LightningModule)
-    strategy.model.trainer = Mock()
+    strategy._lightning_module = Mock(spec=LightningModule)
+    strategy._lightning_module.trainer = Mock()
     strategy.parallel_devices = [Mock()]
 
     with mock.patch("pytorch_lightning.strategies.sharded.ShardedDataParallel", autospec=True) as mock_sharded:

@@ -101,7 +101,6 @@ subprojects:
   - id: "lightning_app"
     paths:
       - ".github/workflows/ci-app*.yml"
-      - "examples/app_**"
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
