@@ -11,25 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import pickle
+
 from unittest import mock
-
-import pytest
-
-import pytorch_lightning
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import LayerLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.utils import no_warning_call
 
 project_name = "test_project"
 api_key = "test_api_key"
 
 
 @mock.patch("pytorch_lightning.loggers.layer.layer")
-def test_wandb_logger_init(layer):
+def test_layer_logger_init(layer):
     """Check if Layer is initialized correctly
     """
 
