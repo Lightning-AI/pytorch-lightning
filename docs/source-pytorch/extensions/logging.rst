@@ -29,6 +29,7 @@ The following are loggers we support:
 
     CometLogger
     CSVLogger
+    LayerLogger
     MLFlowLogger
     NeptuneLogger
     TensorBoardLogger
@@ -68,7 +69,7 @@ You can also pass a custom Logger to the :class:`~pytorch_lightning.trainer.trai
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     trainer = Trainer(logger=tb_logger)
 
-Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
+Choose from any of the others such as MLflow, Comet, Neptune, WandB, Layer etc.
 
 .. testcode::
 

@@ -29,6 +29,37 @@ Here's the full documentation for the :class:`~pytorch_lightning.loggers.CometLo
 
 ----
 
+Layer
+========
+To use `Layer <https://layer.ai>`_ first install the Layer package:
+
+.. code-block:: bash
+
+    pip install layer
+
+Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
+
+.. code-block:: python
+
+    from pytorch_lightning.loggers import LayerLogger
+
+    layer_logger = LayerLogger(project_name="YOUR_LAYER_PROJECT_NAME", api_key="YOUR_LAYER_API_KEY")
+    trainer = Trainer(logger=layer_logger)
+
+Access the layer logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            layer = self.logger.experiment
+            fake_images = torch.Tensor(32, 3, 28, 28)
+            layer.add_image("generated_images", fake_images, 0)
+
+Here's the full documentation for the :class:`~pytorch_lightning.loggers.LayerLogger`.
+
+----
+
 MLflow
 ======
 To use `MLflow <https://mlflow.org/>`_ first install the MLflow package:
