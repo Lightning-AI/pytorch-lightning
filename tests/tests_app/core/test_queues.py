@@ -136,18 +136,18 @@ def test_redis_raises_error_if_failing(redis_mock):
     import redis
 
     my_queue = QueuingSystem.REDIS.get_api_delta_queue(queue_id="test_redis_queue_warning")
-    redis_mock.return_value.rpush.side_effect = redis.exceptions.ConnectionError("EROOOR")
-    redis_mock.return_value.llen.side_effect = redis.exceptions.ConnectionError("EROOOR")
+    redis_mock.return_value.rpush.side_effect = redis.exceptions.ConnectionError("ERROR")
+    redis_mock.return_value.llen.side_effect = redis.exceptions.ConnectionError("ERROR")
 
     with pytest.raises(ConnectionError, match="Your app failed because it couldn't connect to Redis."):
-        redis_mock.return_value.blpop.side_effect = redis.exceptions.ConnectionError("EROOOR")
+        redis_mock.return_value.blpop.side_effect = redis.exceptions.ConnectionError("ERROR")
         my_queue.get()
 
     with pytest.raises(ConnectionError, match="Your app failed because it couldn't connect to Redis."):
-        redis_mock.return_value.rpush.side_effect = redis.exceptions.ConnectionError("EROOOR")
+        redis_mock.return_value.rpush.side_effect = redis.exceptions.ConnectionError("ERROR")
         redis_mock.return_value.llen.return_value = 1
         my_queue.put(1)
 
     with pytest.raises(ConnectionError, match="Your app failed because it couldn't connect to Redis."):
-        redis_mock.return_value.llen.side_effect = redis.exceptions.ConnectionError("EROOOR")
+        redis_mock.return_value.llen.side_effect = redis.exceptions.ConnectionError("ERROR")
         my_queue.length()

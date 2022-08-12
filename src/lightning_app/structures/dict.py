@@ -15,9 +15,9 @@ def _prepare_name(component: "Component") -> str:
 # TODO: add support and tests for dict operations (insertion, update, etc.)
 class Dict(t.Dict[str, T]):
     def __init__(self, **kwargs: T):
-        """The Dict Object is used to represents dict collection of
+        """The ``Dict`` class is used to represent a dictionary of
         :class:`~lightning_app.core.work.LightningWork`
-        or :class:`~lightning_app.core.flow.LightningFlow`.
+        or :class:`~lightning_app.core.flow.LightningFlow` objects.
 
         .. doctest::
 
@@ -43,7 +43,9 @@ class Dict(t.Dict[str, T]):
             >>> assert flow.dict["work_0"].counter == 1
 
         Arguments:
-            items: A sequence of LightningWork or LightningFlow.
+            items: Any input support by the ``dict`` built-in for a dictionary mapping strings to
+                :class:`~lightning_app.core.work.LightningWork` or :class:`~lightning_app.core.flow.LightningFlow`
+                objects.
         """
         super().__init__(**kwargs)
         from lightning_app.runners.backends import Backend

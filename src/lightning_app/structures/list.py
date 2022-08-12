@@ -17,9 +17,9 @@ def _prepare_name(component: "Component") -> str:
 # TODO: add support and tests for list operations (concatenation, deletion, insertion, etc.)
 class List(t.List[T]):
     def __init__(self, *items: T):
-        """The List Object is used to represents list collection of
+        """The ``List`` class is used to represent a list of
         :class:`~lightning_app.core.work.LightningWork`
-        or :class:`~lightning_app.core.flow.LightningFlow`.
+        or :class:`~lightning_app.core.flow.LightningFlow` objects.
 
         .. doctest::
 
@@ -45,7 +45,8 @@ class List(t.List[T]):
             >>> assert flow.list[0].counter == 1
 
         Arguments:
-            items: A sequence of LightningWork or LightningFlow.
+            items: A sequence of :class:`~lightning_app.core.work.LightningWork` or
+                :class:`~lightning_app.core.flow.LightningFlow` objects.
         """
         super().__init__()
         from lightning_app.runners.backends import Backend
