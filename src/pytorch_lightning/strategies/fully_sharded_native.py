@@ -59,6 +59,43 @@ log = logging.getLogger(__name__)
 
 
 class DDPFullyShardedNativeStrategy(ParallelStrategy):
+    r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
+
+    .. warning:: ``DDPFullyShardedNativeStrategy`` is in BETA and subject to change. The interface can
+        bring breaking changes and new features with the next release of PyTorch.
+
+    Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
+    size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
+    at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
+    to ZeRO-Stage 3.
+
+    For more information `check out <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
+
+    Defaults have been set and options have been exposed, but may require configuration
+    based on your level of memory/speed efficiency. We suggest having a look at
+    `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
+
+    Arguments:
+        cpu_offload:
+            CPU offloading config. Currently, only parameter and gradient CPU
+            offload is supported. It can be enabled via passing in
+            ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
+            currently implicitly enables gradient offloading to CPU in order for
+            params and grads to be on same device to work with optimizer. This
+            API is subject to change. Default is ``None`` in which case there
+            will be no offloading.
+        backward_prefetch:
+            This is an experimental feature that is subject to change in the
+            the near future. It allows users to enable two different backward_prefetch
+            algorithms to help backward communication and computation overlapping.
+            The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
+        mixed_precision:
+            Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16``
+            or BF16 if ``precision=bf16`` unless a config is passed in.
+            This is only available in PyTorch 1.12 and later.
+        \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
+
+    """
 
     strategy_name = "fsdp_native"
     _registered_strategies: List[str] = []
@@ -76,42 +113,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         mixed_precision: Optional[MixedPrecision] = None,
         **kwargs: Any,
     ) -> None:
-        r"""Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
-
-        Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
-        size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
-        at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
-        to ZeRO-Stage 3.
-        `For more information: https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/`.
-
-        .. warning:: ``DDPFullyShardedNativeStrategy`` is in beta and subject to change. The interface can
-        bring breaking changes and new features with the next release of PyTorch.
-
-        Defaults have been set and options have been exposed, but may require configuration
-        based on your level of memory/speed efficiency. We suggest having a look at this tutorial for
-        more information.
-        `https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html`
-
-        Arguments:
-            cpu_offload:
-                CPU offloading config. Currently, only parameter and gradient CPU
-                offload is supported. It can be enabled via passing in
-                ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
-                currently implicitly enables gradient offloading to CPU in order for
-                params and grads to be on same device to work with optimizer. This
-                API is subject to change. Default is ``None`` in which case there
-                will be no offloading.
-            backward_prefetch:
-                This is an experimental feature that is subject to change in the
-                the near future. It allows users to enable two different backward_prefetch
-                algorithms to help backward communication and computation overlapping.
-                Pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-            mixed_precision:
-                Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`
-                or BF16 if ``precision=bf16`` unless a config is passed in.
-                This is only available in PyTorch 1.12 and later.
-            \**kwargs: Passed to the FSDP Context manager which will configure the FSDP class when wrapping modules.
-        """
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException(
                 "`DDPFullyShardedNativeStrategy` is supported from PyTorch v1.12.0 onwards."
