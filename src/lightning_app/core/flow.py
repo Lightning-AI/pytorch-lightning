@@ -556,7 +556,9 @@ class LightningFlow:
         return [dict(name=name, content=component) for (name, component) in self.flows.items()]
 
     def experimental_iterate(self, iterable: Iterable, run_once: bool = True, user_key: str = "") -> Generator:
-        """This method should always be used with any kind of iterable to ensure its fault tolerant.
+        """This experimental method can be used to iterate over an iterable in a fault-tolerant manner. If flow
+        execution is interrupted during the iteration and later resumed then the iteration will continue from the
+        last value reached rather than from the start.
 
         If you want your iterable to always be consumed from scratch, you shouldn't use this method.
 

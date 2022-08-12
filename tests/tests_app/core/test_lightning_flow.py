@@ -53,6 +53,8 @@ class CustomDataclass:
 )
 @pytest.mark.parametrize("cls", (LightningWork, LightningFlow))
 def test_unsupported_attribute_types(cls, attribute):
+    """Tests that settings attributes that are not JSON-serializable to a flow or work fails."""
+
     class Component(cls):
         def __init__(self):
             super().__init__()
@@ -209,7 +211,7 @@ def test_setattr_outside_run_context():
 
 
 def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
-    """This helper function defines a flow, assignes an attribute and performs a transformation on the state."""
+    """This helper function defines a flow, assigns an attribute and performs a transformation on the state."""
 
     class StateTransformationTest(LightningFlow):
         def __init__(self):
@@ -246,7 +248,7 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
     ),
 )
 def test_attribute_state_change(attribute, update_fn, expected, tmpdir):
-    """Test that state changes get recored on all supported data types."""
+    """Test that state changes get recorded on all supported data types."""
     assert _run_state_transformation(tmpdir, attribute, update_fn, inplace=False) == expected
 
 
@@ -412,11 +414,17 @@ def test_populate_changes():
 
     flow_a = A()
     flow_state = flow_a.state
+
+    # Create a modified work state
     work_state = flow_a.work.state
     flow_a.work.counter = 1
+
+    # Get a delta for the modified work state
     work_state_2 = flow_a.work.state
     delta = Delta(DeepDiff(work_state, work_state_2, verbose_level=2))
     delta = _delta_to_appstate_delta(flow_a, flow_a.work, delta)
+
+    # Apply the delta to get a new flow state
     new_flow_state = LightningApp.populate_changes(flow_state, flow_state + delta)
     flow_a.set_state(new_flow_state)
     assert flow_a.work.counter == 1
@@ -478,6 +486,7 @@ class CFlow(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
 @pytest.mark.parametrize("run_once", [False, True])
 def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
+    """Tests that iteration is correctly resumed when using ``experimental_iterate``."""
     app = LightningApp(CFlow(run_once))
     runtime_cls(app, start_server=False).dispatch()
     assert app.root.looping == 0
@@ -531,7 +540,9 @@ def test_lightning_flow_counter(runtime_cls, tmpdir):
             assert app.root.counter == 3
 
 
-def test_flow_iterate_method():
+def test_flow_iterate_method_raises():
+    """Tests that ``experimental_iterate`` raises a ``TypeError`` if not given an iterable."""
+
     class Flow(LightningFlow):
         def run(self):
             pass
@@ -607,12 +618,16 @@ class FlowSchedule(LightningFlow):
 
 
 def test_scheduling_api():
-
+    """Tests that the ``schedule`` method will return ``True`` at the correct intervals given in a CRON
+    expression."""
     app = LightningApp(FlowSchedule())
     MultiProcessRuntime(app).dispatch()
 
 
-def test_lightning_flow():
+def test_scheduling_aliases():
+    """Tests that the ``schedule`` method will be properly tracked when used with the supported aliases rather than
+    a CRON expression."""
+
     class Flow(LightningFlow):
         def run(self):
             if self.schedule("midnight"):
