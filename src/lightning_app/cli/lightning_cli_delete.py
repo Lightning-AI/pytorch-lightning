@@ -5,7 +5,7 @@ from lightning_app.cli.cmd_clusters import AWSClusterManager
 
 @click.group("delete")
 def delete():
-    """Delete Lightning AI BYOC managed resources."""
+    """Delete Lightning AI self-managed resources (clusters, etc…)"""
     pass
 
 

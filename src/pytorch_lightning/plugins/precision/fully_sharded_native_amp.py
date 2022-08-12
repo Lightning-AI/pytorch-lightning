@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
 else:
-    MixedPrecision = None
+    MixedPrecision = None  # type: ignore[misc,assignment]
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
