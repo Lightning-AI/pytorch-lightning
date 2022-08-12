@@ -449,7 +449,7 @@ def test_dm_init_from_datasets_with_init_params():
             self.batch_size = batch_size
             self.num_workers = num_workers
 
-    # batch_size and num_workers get passed to __init__; they are also part of the from_datasets signature
+    # batch_size and num_workers get special treatment - they are part of the `from_datasets` signature
     dm = KnownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
     assert dm.batch_size == 4
     assert dm.num_workers == 2
@@ -460,6 +460,7 @@ def test_dm_init_from_datasets_with_init_params():
             self.other = other
             self.batch_size = batch_size
 
+    # additional parameter `other` gets forwarded, alongside the special `batch_size` parameter
     dm = UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2, other=5)
     assert dm.batch_size == 4
     assert dm.other == 5
