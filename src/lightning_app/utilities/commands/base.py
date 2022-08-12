@@ -75,12 +75,15 @@ def _download_command(
     cls_name: str,
     app_id: Optional[str] = None,
     debug_mode: bool = False,
+    target_file: Optional[str] = None,
 ) -> ClientCommand:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
-    tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
-    makedirs(tmpdir)
-    target_file = osp.join(tmpdir, f"{command_name}.py")
+    if not target_file:
+        tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
+        makedirs(tmpdir)
+        target_file = osp.join(tmpdir, f"{command_name}.py")
+
     if app_id:
         client = LightningClient()
         project_id = _get_project(client).project_id
@@ -99,7 +102,8 @@ def _download_command(
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
     command = getattr(mod, cls_name)(method=None, requirements=[])
-    shutil.rmtree(tmpdir)
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
     return command
 
 
