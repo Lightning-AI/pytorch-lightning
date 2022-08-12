@@ -1,15 +1,16 @@
 from command import CustomCommand, CustomConfig
 
 from lightning import LightningFlow
+from lightning_app.api import Post
 from lightning_app.core.app import LightningApp
 
 
 class ChildFlow(LightningFlow):
-    def trigger_method(self, name: str):
+    def nested_command(self, name: str):
         print(f"Hello {name}")
 
     def configure_commands(self):
-        return [{"nested_trigger_command": self.trigger_method}]
+        return [{"nested_command": self.nested_command}]
 
 
 class FlowCommands(LightningFlow):
@@ -19,21 +20,24 @@ class FlowCommands(LightningFlow):
         self.child_flow = ChildFlow()
 
     def run(self):
-        if len(self.names):
+        if self.names:
             print(self.names)
 
-    def trigger_without_client_command(self, name: str):
+    def command_without_client(self, name: str):
         self.names.append(name)
 
-    def trigger_with_client_command(self, config: CustomConfig):
+    def command_with_client(self, config: CustomConfig):
         self.names.append(config.name)
 
     def configure_commands(self):
         commands = [
-            {"trigger_without_client_command": self.trigger_without_client_command},
-            {"trigger_with_client_command": CustomCommand(self.trigger_with_client_command)},
+            {"command_without_client": self.command_without_client},
+            {"command_with_client": CustomCommand(self.command_with_client)},
         ]
         return commands + self.child_flow.configure_commands()
+
+    def configure_api(self):
+        return [Post("/user/command_without_client", self.command_without_client)]
 
 
 app = LightningApp(FlowCommands())
