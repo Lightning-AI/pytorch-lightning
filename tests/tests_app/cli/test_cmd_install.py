@@ -231,9 +231,9 @@ def test_proper_url_parsing():
     source_url, git_url, folder_name, git_sha = cmd_install._show_install_app_prompt(
         component_entry, app, org, True, resource_type="app"
     )
-    assert folder_name == "LAI-InVideo-search-App"
+    assert folder_name == "video_search_react"
     # FixMe: this need to be updated after release with updated org rename
-    assert source_url == "https://github.com/Lightning-AI/LAI-InVideo-search-App"
+    assert source_url == "https://github.com/PyTorchLightning/video_search_react"
     assert "#ref" not in git_url
     assert git_sha
 
