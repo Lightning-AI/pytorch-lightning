@@ -58,7 +58,6 @@ module = [
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
     "pytorch_lightning.strategies.sharded",
-    "pytorch_lightning.strategies.sharded_spawn",
     "pytorch_lightning.trainer.callback_hook",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.supporters",

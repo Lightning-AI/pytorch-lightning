@@ -187,11 +187,6 @@ class HookedModel(BoringModel):
             {
                 "log",
                 "log_dict",
-                # the following are problematic as they do have `self._current_fx_name` defined some times but
-                # not others depending on where they were called. So we cannot reliably `self.log` in them
-                "on_before_batch_transfer",
-                "transfer_batch_to_device",
-                "on_after_batch_transfer",
             }
         )
         # remove `nn.Module` hooks
@@ -227,6 +222,9 @@ def test_fx_validator_integration(tmpdir):
         "on_pretrain_routine_end": "You can't",
         "train_dataloader": "You can't",
         "val_dataloader": "You can't",
+        "on_before_batch_transfer": "You can't",
+        "transfer_batch_to_device": "You can't",
+        "on_after_batch_transfer": "You can't",
         "on_validation_end": "You can't",
         "on_train_end": "You can't",
         "on_fit_end": "You can't",
@@ -238,6 +236,8 @@ def test_fx_validator_integration(tmpdir):
         "on_validation_model_eval": "You can't",
         "on_validation_model_train": "You can't",
         "lr_scheduler_step": "You can't",
+        "configure_gradient_clipping": "You can't",
+        "clip_gradients": "You can't",
         "on_save_checkpoint": "You can't",
         "on_load_checkpoint": "You can't",
         "on_exception": "You can't",
