@@ -61,7 +61,8 @@ class ClientCommand:
         """Overrides with the logic to execute on the client side."""
 
     def invoke_handler(self, config: BaseModel) -> Dict[str, Any]:
-        resp = requests.post(self.app_url + f"/command/{self.command_name}", data=config.json())
+        command = self.command_name.replace(" ", "_")
+        resp = requests.post(self.app_url + f"/command/{command}", data=config.json())
         assert resp.status_code == 200, resp.json()
         return resp.json()
 
@@ -194,6 +195,7 @@ def _process_api_request(app, request: APIRequest) -> None:
 def _process_command_requests(app, request: CommandRequest) -> None:
     for command in app.commands:
         for command_name, method in command.items():
+            command_name = command_name.replace(" ", "_")
             if request.method_name == command_name:
                 # 2.1: Evaluate the method associated to a specific command.
                 # Validation is done on the CLI side.
@@ -223,6 +225,7 @@ def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) 
     api = []
     for command in commands:
         for k, v in command.items():
+            k = k.replace(" ", "_")
             api.append(
                 Post(
                     f"/command/{k}",

@@ -20,7 +20,7 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     if not api_commands:
         raise Exception("This application doesn't expose any commands yet.")
 
-    full_command = " ".join(sys.argv)
+    full_command = "_".join(sys.argv)
 
     has_found = False
     for command in list(api_commands):
@@ -33,8 +33,6 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
 
     # 2: Send the command from the user
     metadata = api_commands[command]
-
-    command = command.replace(" ", "_")
 
     # 3: Execute the command
     if metadata["tag"] == OpenAPITags.APP_COMMAND:
