@@ -82,6 +82,7 @@ def _download_command(
 ) -> ClientCommand:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
+    command_name = command_name.replace(" ", "_")
     tmpdir = None
     if not target_file:
         tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")

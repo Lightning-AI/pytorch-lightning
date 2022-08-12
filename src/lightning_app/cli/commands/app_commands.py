@@ -20,19 +20,27 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     if not api_commands:
         raise Exception("This application doesn't expose any commands yet.")
 
-    command = sys.argv[1]
+    full_command = " ".join(sys.argv)
 
-    if command not in api_commands:
-        raise Exception(f"The provided command {command} isn't available in {list(api_commands)}")
+    has_found = False
+    for command in list(api_commands):
+        if command in full_command:
+            has_found = True
+            break
+
+    if not has_found:
+        raise Exception(f"The provided command isn't available in {list(api_commands)}")
 
     # 2: Send the command from the user
     metadata = api_commands[command]
+
+    command = command.replace(" ", "_")
 
     # 3: Execute the command
     if metadata["tag"] == OpenAPITags.APP_COMMAND:
         _handle_command_without_client(command, metadata, url)
     else:
-        _handle_command_with_client(command, metadata, app_id, url)
+        _handle_command_with_client(command, metadata, app_name, app_id, url)
     print("Your command execution was successful.")
 
 
@@ -62,10 +70,13 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
     assert resp.status_code == 200, resp.json()
 
 
-def _handle_command_with_client(command: str, metadata: Dict, app_id: Optional[str], url: str):
+def _handle_command_with_client(command: str, metadata: Dict, app_name: str, app_id: Optional[str], url: str):
     debug_mode = bool(int(os.getenv("DEBUG", "0")))
 
-    target_file = _resolve_command_path(command) if debug_mode else _resolve_command_path(command)
+    if app_name == "localhost":
+        target_file = metadata["cls_path"]
+    else:
+        target_file = _resolve_command_path(command) if debug_mode else _resolve_command_path(command)
 
     if debug_mode:
         print(target_file)
@@ -79,5 +90,5 @@ def _handle_command_with_client(command: str, metadata: Dict, app_id: Optional[s
         target_file=target_file if debug_mode else _resolve_command_path(command),
     )
     client_command._setup(command_name=command, app_url=url)
-    sys.argv = sys.argv[1:]
+    sys.argv = sys.argv[len(command.split("_")) :]
     client_command.run()

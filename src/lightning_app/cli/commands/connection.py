@@ -47,7 +47,7 @@ def connect(app_name_or_id: str, yes: bool = False):
 
         for command_name, metadata in api_commands.items():
             if "cls_path" in metadata:
-                target_file = os.path.join(commands_folder, f"{command_name}.py")
+                target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
                 _download_command(
                     command_name,
                     metadata["cls_path"],
