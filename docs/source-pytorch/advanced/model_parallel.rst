@@ -265,7 +265,7 @@ Below is an example that uses ``wrap`` to create your model:
     trainer.fit(model)
 
 
-You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` and pass that to the ``strategy`` argumen inside the ``Trainer``.
+You can customize the strategy configuration by adjusting the arguments of :class:`~pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` and pass that to the ``strategy`` argument inside the ``Trainer``.
 
 .. code-block:: python
 
