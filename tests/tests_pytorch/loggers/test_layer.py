@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from unittest import mock
+
 from pytorch_lightning.loggers import LayerLogger
 
 project_name = "test_project"
@@ -21,13 +22,10 @@ api_key = "test_api_key"
 
 @mock.patch("pytorch_lightning.loggers.layer.layer")
 def test_layer_logger_init(layer):
-    """Check if Layer is initialized correctly
-    """
+    """Check if Layer is initialized correctly."""
 
     # Test if Layer login and init is called
-    logger = LayerLogger(
-        project_name=project_name, api_key=api_key
-    )
+    logger = LayerLogger(project_name=project_name, api_key=api_key)
     logger.log_metrics({"acc": 1.0})
 
     layer.login_with_api_key.assert_called_once_with(api_key)
@@ -37,8 +35,7 @@ def test_layer_logger_init(layer):
 
 @mock.patch("pytorch_lightning.loggers.layer.layer")
 def test_layer_log_media(layer):
-    """Check if media is logged correctly
-    """
+    """Check if media is logged correctly."""
 
     logger = LayerLogger(project_name, api_key)
 
@@ -52,6 +49,7 @@ def test_layer_log_media(layer):
     rows = [["val1"]]
     layer.log.reset_mock()
     import pandas as pd
+
     df = pd.DataFrame(columns=columns, data=rows)
     logger.log_table(key="dataframe", dataframe=df)
     args, kwargs = layer.log.call_args
@@ -82,6 +80,7 @@ def test_layer_log_media(layer):
 
     # Check logging torch tensors as video
     import torch
+
     layer.log.reset_mock()
     video_tensor = torch.rand(10, 3, 100, 200)
     logger.log_video(key="video", video=video_tensor, fps=4)

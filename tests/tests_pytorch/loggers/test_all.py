@@ -27,10 +27,11 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
     CSVLogger,
+    LayerLogger,
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
-    WandbLogger, LayerLogger,
+    WandbLogger,
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
 from tests_pytorch.helpers.runif import RunIf
@@ -46,6 +47,7 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
     mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock),
+    mock.patch("pytorch_lightning.loggers.layer.layer"),
 )
 ALL_LOGGER_CLASSES = (
     CometLogger,
@@ -373,6 +375,14 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
+
+    # Layer
+    with mock.patch("pytorch_lightning.loggers.layer.layer"):
+        logger = _instantiate_logger(
+            LayerLogger, project_name="test_project", api_key="test_api_key", save_dir=tmpdir, prefix=prefix
+        )
+        logger.log_metrics({"test": 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({f"{prefix}{LayerLogger.PREFIX_JOIN_CHAR}test": 1.0}, step=0)
 
 
 def test_logger_default_name(tmpdir):
