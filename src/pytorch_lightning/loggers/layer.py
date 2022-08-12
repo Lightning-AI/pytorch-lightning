@@ -214,7 +214,7 @@ class LayerLogger(Logger):
 
     @property
     def version(self) -> Optional[Union[int, str]]:
-        """Gets the full version of the model (eg. 2.3)
+        """Gets the full version of the model (eg. `2.3`)
 
         Returns:
             The model version in `[major].[minor]` format
@@ -305,7 +305,7 @@ class LayerLogger(Logger):
         dataframe: Any = None,
     ) -> None:
         """
-        Log a table containing any object type (text, list, str, float, int).
+        Log a table containing any object type (list, str, float, int, bool).
 
         :param key: Name of your table
         :param columns: Column names as list
@@ -313,7 +313,7 @@ class LayerLogger(Logger):
         :param dataframe: pandas Dataframe to be logged
         :return:
         """
-        if dataframe:
+        if dataframe is not None:
             self.log_metrics({key: dataframe})
         else:
             import pandas as pd

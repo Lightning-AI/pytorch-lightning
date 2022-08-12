@@ -30,7 +30,7 @@ from pytorch_lightning.loggers import (
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
-    WandbLogger,
+    WandbLogger, LayerLogger,
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
 from tests_pytorch.helpers.runif import RunIf
@@ -54,6 +54,7 @@ ALL_LOGGER_CLASSES = (
     NeptuneLogger,
     TensorBoardLogger,
     WandbLogger,
+    LayerLogger,
 )
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
 ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB = tuple(filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE))
