@@ -168,6 +168,8 @@ class LayerLogger(Logger):
     PARAMETERS_KEY = "hyperparams"
     PREFIX_JOIN_CHAR = "-"
 
+    _project = None
+
     def __init__(
         self,
         project_name: Optional[str] = None,
@@ -190,18 +192,24 @@ class LayerLogger(Logger):
     def experiment(self) -> "layer":
         r"""
 
-        Top class `layer` object. To use Layer logging features do the following.
+        Top class `layer` object. To use Layer related functions, do the following.
 
         Example::
 
         .. code-block:: python
 
-            self.logger.experiment.log_video("detections", video_tensor)
+            self.logger.experiment.any_layer_function(...)
 
         """
-        if self._api_key is not None:
-            layer.login_with_api_key(self._api_key)
-        layer.init(self._project_name)
+
+        # Initializes the Layer Project if not initialized yet
+        if self._project is None:
+            # Log user in
+            if self._api_key is not None:
+                layer.login_with_api_key(self._api_key)
+
+            # Init project
+            self._project = layer.init(self._project_name)
 
         return layer
 
@@ -232,7 +240,7 @@ class LayerLogger(Logger):
             return None
 
     @property
-    def _context(self) -> Optional[layer.Context]:
+    def _context(self) -> Any:
         return layer.global_context.get_active_context()
 
     @rank_zero_only
@@ -307,9 +315,9 @@ class LayerLogger(Logger):
     def log_table(
         self,
         key: str,
-        columns: Optional[List[str]],
-        data: Optional[List[List[Any]]],
-        dataframe: Optional[Any],
+        columns: Optional[List[str]] = None,
+        data: Optional[List[List[Any]]] = None,
+        dataframe: Optional[Any] = None,
     ) -> None:
         """Log a table containing any object type (list, str, float, int, bool).
 

@@ -29,7 +29,7 @@ def test_layer_logger_init(layer):
     logger.log_metrics({"acc": 1.0})
 
     layer.login_with_api_key.assert_called_once_with(api_key)
-    layer.init.assert_called_once_with("test_project")
+    layer.init.assert_called_once_with(project_name)
     layer.log.assert_called_once_with({"acc": 1.0}, step=None)
 
 
