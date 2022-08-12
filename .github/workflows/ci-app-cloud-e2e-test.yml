@@ -7,37 +7,19 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    paths:
+      - ".github/workflows/ci-app-cloud-e2e-test.yml"
+      - "requirements/app/**"
+      - "src/lightning_app/**"
+      - "examples/app_*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  # This is job should once only once per PR to detect file changes so run required jobs.
-  # see .github/file-filters.yml to define file filters and run the jobs based on the output of each filter.
-  # More info: https://github.com/marketplace/actions/paths-changes-filter
-
-  changes:
-    runs-on: ubuntu-latest
-    # Set job outputs to the values from filter step
-    outputs:
-      app_examples: ${{ steps.filter.outputs.app_examples }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: .github/file-filters.yml
-
   cloud-test:
     name: Cloud Test
-    needs: changes
-    if: ${{ needs.changes.outputs.app_examples == 'true' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
