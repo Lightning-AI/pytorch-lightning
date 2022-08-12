@@ -1,0 +1,10 @@
+coverage>=6.4, <=6.4.2
+codecov>=2.1, <=2.1.12
+pytest>=7.0, <=7.1.2
+pytest-timeout <=2.1.0
+pytest-cov <=3.0.0
+playwright==1.22.0
+# pytest-flake8
+httpx
+trio
+pympler

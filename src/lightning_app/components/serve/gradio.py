@@ -18,7 +18,7 @@ class ServeGradio(LightningWork, abc.ABC):
 
     In the example below, the ``ServeGradio`` is subclassed to deploy ``AnimeGANv2``.
 
-    .. literalinclude:: ../../../../examples/components/serve/gradio/app.py
+    .. literalinclude:: ../../../examples/app_components/serve/gradio/app.py
         :language: python
 
     The result would be the following:

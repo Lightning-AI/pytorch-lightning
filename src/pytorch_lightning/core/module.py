@@ -13,8 +13,7 @@
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
 
-import collections
-import inspect
+import collections.abc
 import logging
 import numbers
 import os
@@ -45,8 +44,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.parsing import collect_init_args
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
@@ -80,6 +78,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "use_amp",
+            "trainer",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -93,7 +92,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self._trainer: Optional["pl.Trainer"] = None
 
         self._use_amp: bool = False
 
@@ -173,6 +172,21 @@ class LightningModule(
         return lr_schedulers
 
     @property
+    def trainer(self) -> "pl.Trainer":
+        if not self._running_torchscript and self._trainer is None:
+            raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
+        return self._trainer
+
+    @trainer.setter
+    def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
+        for v in self.children():
+            if isinstance(v, LightningModule):
+                v.trainer = trainer
+        if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
+        self._trainer = trainer
+
+    @property
     def example_input_array(self) -> Any:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
@@ -193,7 +207,7 @@ class LightningModule(
     @property
     def current_epoch(self) -> int:
         """The current epoch in the ``Trainer``, or 0 if not attached."""
-        return self.trainer.current_epoch if self.trainer else 0
+        return self.trainer.current_epoch if self._trainer else 0
 
     @property
     def global_step(self) -> int:
@@ -201,17 +215,17 @@ class LightningModule(
 
         If no Trainer is attached, this propery is 0.
         """
-        return self.trainer.global_step if self.trainer else 0
+        return self.trainer.global_step if self._trainer else 0
 
     @property
     def global_rank(self) -> int:
         """The index of the current process across all nodes and devices."""
-        return self.trainer.global_rank if self.trainer else 0
+        return self.trainer.global_rank if self._trainer else 0
 
     @property
     def local_rank(self) -> int:
         """The index of the current process within a single node."""
-        return self.trainer.local_rank if self.trainer else 0
+        return self.trainer.local_rank if self._trainer else 0
 
     @property
     def on_gpu(self):
@@ -249,7 +263,7 @@ class LightningModule(
         """Reference to the logger object in the Trainer."""
         # this should match the implementation of `trainer.logger`
         # we don't reuse it so we can properly set the deprecation stacklevel
-        if self.trainer is None:
+        if self._trainer is None:
             return
         loggers = self.trainer.loggers
         if len(loggers) == 0:
@@ -271,14 +285,14 @@ class LightningModule(
     @property
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
-        return self.trainer.loggers if self.trainer else []
+        return self.trainer.loggers if self._trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
         datahook_selector = (
-            _DataHookSelector(self, None) if self.trainer is None else self.trainer._data_connector._datahook_selector
+            _DataHookSelector(self, None) if self._trainer is None else self.trainer._data_connector._datahook_selector
         )
 
         hook = datahook_selector.get_hook("on_before_batch_transfer")
@@ -365,7 +379,7 @@ class LightningModule(
             value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
         )
 
-        if self.trainer is None:
+        if self._trainer is None:
             # not an error to support testing the `*_step` methods without a `Trainer` reference
             rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
@@ -396,6 +410,7 @@ class LightningModule(
             )
 
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
+        apply_to_collection(value, torch.Tensor, self.__check_numel_1, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -518,11 +533,10 @@ class LightningModule(
             )
 
     @staticmethod
-    def __check_not_nested(value: dict, name: str) -> dict:
+    def __check_not_nested(value: dict, name: str) -> None:
         # self-imposed restriction. for simplicity
         if any(isinstance(v, dict) for v in value.values()):
             raise ValueError(f"`self.log({name}, {value})` was called, but nested dictionaries cannot be logged")
-        return value
 
     @staticmethod
     def __check_allowed(v: Any, name: str, value: Any) -> None:
@@ -530,6 +544,14 @@ class LightningModule(
 
     def __to_tensor(self, value: numbers.Number) -> Tensor:
         return torch.tensor(value, device=self.device)
+
+    @staticmethod
+    def __check_numel_1(value: Tensor, name: str) -> None:
+        if not torch.numel(value) == 1:
+            raise ValueError(
+                f"`self.log({name}, {value})` was called, but the tensor must have a single element."
+                f" You can try doing `self.log({name}, {value}.mean())`"
+            )
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
@@ -646,8 +668,8 @@ class LightningModule(
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
-        batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -666,7 +688,7 @@ class LightningModule(
         Return:
             Anything
 
-        When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
+        When using the DP strategy, only a portion of the batch is inside the training_step:
 
         .. code-block:: python
 
@@ -828,8 +850,8 @@ class LightningModule(
         """
 
     def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when validating with dp or ddp2 because :meth:`validation_step` will operate on only part of
-        the batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -851,7 +873,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT validation_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def validation_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -1005,8 +1027,8 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
+        this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -1028,7 +1050,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT test_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def test_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -1329,7 +1351,10 @@ class LightningModule(
         Note:
             Some things to know:
 
-            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer and learning rate scheduler as needed.
+            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer as needed.
+            - If learning rate scheduler is specified in ``configure_optimizers()`` with key
+              ``"interval"`` (default "epoch") in the scheduler configuration, Lightning will call
+              the scheduler's ``.step()`` method automatically in case of automatic optimization.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizers.
             - If you use multiple optimizers, :meth:`training_step` will have an additional ``optimizer_idx`` parameter.
             - If you use :class:`torch.optim.LBFGS`, Lightning handles the closure function automatically for you.
@@ -1685,7 +1710,7 @@ class LightningModule(
                     for i, x in enumerate(batch):
                         if isinstance(x, torch.Tensor):
                             split_x = x[:, t:t + split_size]
-                        elif isinstance(x, collections.Sequence):
+                        elif isinstance(x, collections.abc.Sequence):
                             split_x = [None] * len(x)
                             for batch_idx in range(len(x)):
                               split_x[batch_idx] = x[batch_idx][t:t + split_size]
@@ -1699,7 +1724,7 @@ class LightningModule(
             if :paramref:`~pytorch_lightning.core.module.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
         """
-        time_dims = [len(x[0]) for x in batch if isinstance(x, (Tensor, collections.Sequence))]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (Tensor, collections.abc.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
         assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
@@ -1709,7 +1734,7 @@ class LightningModule(
             for i, x in enumerate(batch):
                 if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
-                elif isinstance(x, collections.Sequence):
+                elif isinstance(x, collections.abc.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
                         split_x[batch_idx] = x[batch_idx][t : t + split_size]
@@ -1754,34 +1779,6 @@ class LightningModule(
                 f"to use {fn_name}, please disable automatic optimization:"
                 " set model property `automatic_optimization` as False"
             )
-
-    @classmethod
-    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
-        """Collect all module arguments in the current constructor and all child constructors. The child
-        constructors are all the ``__init__`` methods that reach the current class through (chained)
-        ``super().__init__()`` calls.
-
-        Args:
-            frame: instance frame
-
-        Returns:
-            self_arguments: arguments dictionary of the first instance
-            parents_arguments: arguments dictionary of the parent's instances
-        """
-        if not frame:
-            frame = inspect.currentframe()
-
-        frame_args = collect_init_args(frame.f_back, [])
-        self_arguments = frame_args[-1]
-
-        # set hyper_parameters in child
-        self_arguments = self_arguments
-        parents_arguments = {}
-
-        # add all arguments from parents
-        for args in frame_args[:-1]:
-            parents_arguments.update(args)
-        return self_arguments, parents_arguments
 
     @torch.no_grad()
     def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs):
@@ -1944,28 +1941,6 @@ class LightningModule(
             )
         self._use_amp = use_amp
 
-    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
-        sharing, we cast the data to numpy.
-
-        Args:
-            queue: the instance of the queue to append the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
-    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
-
-        Args:
-            queue: the instance of the queue from where to get the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
         self._should_prevent_trainer_and_dataloaders_deepcopy = True
@@ -1975,7 +1950,7 @@ class LightningModule(
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
         if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            state["trainer"] = None
+            state["_trainer"] = None
             state.pop("train_dataloader", None)
             state.pop("val_dataloader", None)
             state.pop("test_dataloader", None)
@@ -1998,7 +1973,7 @@ class LightningModule(
 
         self._register_state_dict_hook(state_dict_hook)
 
-        if _TORCH_GREATER_EQUAL_1_12:
+        if _TORCH_GREATER_EQUAL_1_13:
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy

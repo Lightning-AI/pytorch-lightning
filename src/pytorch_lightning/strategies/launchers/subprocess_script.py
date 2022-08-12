@@ -24,11 +24,9 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 
-if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import to_absolute_path
+_HYDRA_AVAILABLE = _RequirementAvailable("hydra")
 
 
 class _SubprocessScriptLauncher(_Launcher):
@@ -114,10 +112,19 @@ class _SubprocessScriptLauncher(_Launcher):
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
         if __main__.__spec__ is None:  # pragma: no-cover
-            # pull out the commands used to run the script and resolve the abs file path
+            # Script called as `python a/b/c.py`
+            if _HYDRA_AVAILABLE:
+                # when user is using hydra find the absolute path
+                from hydra.utils import to_absolute_path
+
+                to_abs_path = to_absolute_path
+            else:
+                to_abs_path = os.path.abspath
+
+            # pull out the commands used to run the script and resolve the absolute file path
             command = sys.argv
             try:
-                full_path = self._get_complete_path(command[0])
+                full_path = to_abs_path(command[0])
             except Exception:
                 full_path = os.path.abspath(command[0])
 
@@ -138,7 +145,16 @@ class _SubprocessScriptLauncher(_Launcher):
                 del env_copy["PL_GLOBAL_SEED"]
 
             # start process
-            command, cwd = self._get_launch_command(command, local_rank)
+            # if hydra is available and initialized, make sure to set the cwd correctly
+            cwd: Optional[str] = None
+            if _HYDRA_AVAILABLE:
+                from hydra.core.hydra_config import HydraConfig
+                from hydra.utils import get_original_cwd
+
+                if HydraConfig.initialized():
+                    cwd = get_original_cwd()
+                    os_cwd = f'"{os.getcwd()}"'
+                    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
             subprocess.Popen(command, env=env_copy, cwd=cwd)
 
             # starting all processes at once can cause issues

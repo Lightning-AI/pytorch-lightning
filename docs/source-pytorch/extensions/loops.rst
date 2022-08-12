@@ -378,7 +378,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
 
 .. code-block:: bash
 
-    pip install lightning-flash baal
+    pip install lightning-flash[image] baal
 
 .. code-block:: python
 

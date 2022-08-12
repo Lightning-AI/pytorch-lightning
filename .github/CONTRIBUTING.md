@@ -103,7 +103,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
-Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
+Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
 
 ______________________________________________________________________
 
@@ -202,7 +202,7 @@ We recommend creating a PR in a separate branch other than `master`, especially 
 First, make sure you have set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
 
 ```bash
-git remote add upstream https://github.com/PyTorchLightning/pytorch-lightning.git
+git remote add upstream https://github.com/Lightning-AI/lightning.git
 ```
 
 You'll know its set up right if you run `git remote -v` and see something similar to this:
@@ -210,8 +210,8 @@ You'll know its set up right if you run `git remote -v` and see something simila
 ```bash
 origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (fetch)
 origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (push)
-upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (fetch)
-upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (push)
+upstream        https://github.com/Lightning-AI/lightning.git (fetch)
+upstream        https://github.com/Lightning-AI/lightning.git (push)
 ```
 
 Checkout your feature branch and rebase it with upstream's master before pushing up your feature branch:
@@ -225,7 +225,7 @@ git push -f
 
 #### How to add new tests?
 
-We are using [pytest](https://docs.pytest.org/en/stable/) in Pytorch Lightning.
+We are using [pytest](https://docs.pytest.org/en/stable/) in PyTorch Lightning.
 
 Here are tutorials:
 
@@ -319,7 +319,7 @@ NOTE: Once you edit one of these files, remember to `source` it or restart your 
 plclone (){
     git clone https://github.com/{YOUR_USERNAME}/pytorch-lightning.git
     cd pytorch-lightning
-    git remote add upstream https://github.com/PyTorchLightning/pytorch-lightning.git
+    git remote add upstream https://github.com/Lightning-AI/lightning.git
     # This is just here to print out info about your remote upstream/origin
     git remote -v
 }

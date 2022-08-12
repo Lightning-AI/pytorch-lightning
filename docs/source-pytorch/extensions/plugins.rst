@@ -87,6 +87,7 @@ Below is a list of built-in plugins for checkpointing.
     :nosignatures:
     :template: classtemplate.rst
 
+    AsyncCheckpointIO
     CheckpointIO
     HPUCheckpointIO
     TorchCheckpointIO
@@ -117,3 +118,4 @@ You can define the interface of your own cluster environment based on the requir
     LSFEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
+    XLAEnvironment

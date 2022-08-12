@@ -12,7 +12,7 @@ accelerators
 
     Accelerator
     CPUAccelerator
-    GPUAccelerator
+    CUDAAccelerator
     HPUAccelerator
     IPUAccelerator
     TPUAccelerator
@@ -46,6 +46,20 @@ callbacks
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
+
+cli
+-----
+
+.. currentmodule:: pytorch_lightning.cli
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    LightningCLI
+    LightningArgumentParser
+    SaveConfigCallback
 
 core
 ----
@@ -198,6 +212,7 @@ environments
     LSFEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
+    XLAEnvironment
 
 io
 ""
@@ -209,6 +224,7 @@ io
     :nosignatures:
     :template: classtemplate.rst
 
+    AsyncCheckpointIO
     CheckpointIO
     HPUCheckpointIO
     TorchCheckpointIO
@@ -231,7 +247,7 @@ others
 profiler
 --------
 
-.. currentmodule:: pytorch_lightning.profiler
+.. currentmodule:: pytorch_lightning.profilers
 
 .. autosummary::
     :toctree: api
@@ -268,8 +284,7 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    CollaborativeStrategy
-    DDP2Strategy
+    HivemindStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

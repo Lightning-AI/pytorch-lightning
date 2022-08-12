@@ -17,12 +17,12 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
-from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_au
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _is_dataloader_shuffled,
-    _replace_dataloader_init_method,
+    _replace_init_method,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -238,9 +238,9 @@ class DataConnector:
     def _prepare_dataloader(
         self, dataloader: Any, shuffle: Optional[bool] = None, mode: Optional[RunningStage] = None
     ) -> Any:
-        """This function handles to following functionalities:
+        """This function handles the following functionalities:
 
-        - Injecting a `DistributedDataSampler` into the `DataLoader` if on a distributed environment
+        - Injecting a `DistributedDataSamplerWrapper` into the `DataLoader` if on a distributed environment
         - Wrapping the datasets and samplers into fault-tolerant components
         - Wrapping the dataloader based on strategy-specific logic
         """
@@ -288,13 +288,6 @@ class DataConnector:
 
     def _resolve_sampler(self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
         if self._requires_distributed_sampler(dataloader):
-            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
-                raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced"
-                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                    " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `replace_sampler_ddp=False` if you want to use your custom sampler."
-                )
             sampler = self._get_distributed_sampler(
                 dataloader,
                 shuffle,
@@ -329,8 +322,8 @@ class DataConnector:
         """This function is used to created the distributed sampler injected within the user DataLoader."""
         kwargs["shuffle"] = shuffle and not overfit_batches
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
-        sampler = cls(dataloader.dataset, **kwargs)
+        cls = UnrepeatedDistributedSamplerWrapper if mode == RunningStage.PREDICTING else DistributedSamplerWrapper
+        sampler = cls(dataloader.sampler, **kwargs)
         return sampler
 
     def _reset_eval_dataloader(
@@ -431,7 +424,7 @@ class DataConnector:
         """
         source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
 
-        with _replace_dataloader_init_method():
+        with _replace_init_method(DataLoader, "dataset"), _replace_init_method(BatchSampler):
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
             # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
             dataloader = source.dataloader()
@@ -523,7 +516,7 @@ class _DataLoaderSource:
         return not self.is_module() or is_overridden(self.name, self.instance)
 
     def is_module(self) -> bool:
-        """Returns whether the the DataLoader source is a LightningModule or a LightningDataModule.
+        """Returns whether the DataLoader source is a LightningModule or a LightningDataModule.
 
         It does not check whether ``*_dataloader`` methods are actually overridden.
         """

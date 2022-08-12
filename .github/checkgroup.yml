@@ -1,0 +1,165 @@
+custom_service_name: "Lightning CI required checker"
+subprojects:
+  - id: "CI: CircleCI"
+    paths:
+      - ".circleci/**"
+    checks:
+      - "test-on-tpus"
+
+  - id: "CI: Azure"
+    paths:
+      - ".azure/**"
+    checks:
+      - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
+      - "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (IPUs)"
+
+  - id: "pytorch_lightning"
+    paths:
+      # all examples don't need to be added because they aren't used in CI, but these are
+      - "examples/run_ddp_examples.sh"
+      - "examples/convert_from_pt_to_pl/**"
+      - "examples/run_pl_examples.sh"
+      - "examples/pl_basics/backbone_image_classifier.py"
+      - "examples/pl_basics/autoencoder.py"
+      - "examples/pl_loops/mnist_lite.py"
+      - "examples/pl_fault_tolerant/automatic.py"
+      - "examples/test_pl_examples.py"
+      - "examples/pl_integrations/dali_image_classifier.py"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+      - ".github/workflows/ci-pytorch*.yml"
+      - ".github/workflows/docs-*.yml"
+    checks:
+      - "conda (3.8, 1.10)"
+      - "conda (3.8, 1.9)"
+      - "conda (3.9, 1.11)"
+      - "conda (3.9, 1.12)"
+      - "cpu (macOS-11, 3.10, latest, stable)"
+      - "cpu (macOS-11, 3.7, latest, stable)"
+      - "cpu (macOS-11, 3.7, oldest, stable)"
+      - "cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "cpu (windows-2022, 3.10, latest, stable)"
+      - "cpu (windows-2022, 3.7, latest, stable)"
+      - "cpu (windows-2022, 3.7, oldest, stable)"
+      - "doctest (pytorch)"
+      - "make-docs (pytorch)"
+      - "mypy"
+      - "PR Gatekeeper (pytorch)"
+      - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
+      - "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (IPUs)"
+      - "slow (macOS-11, 3.7, 1.11)"
+      - "slow (ubuntu-20.04, 3.7, 1.11)"
+      - "slow (windows-2022, 3.7, 1.11)"
+      - "test-on-tpus"
+
+  - id: "pytorch_lightning: Docs"
+    paths:
+      - "docs/source-pytorch/**"
+      - ".github/workflows/docs-*.yml"
+      - "requirements/pytorch/**"
+    checks:
+      - "doctest (pytorch)"
+      - "make-docs (pytorch)"
+
+  - id: "pytorch_lightning: Docker"
+    paths:
+      - "dockers/**"
+    checks:
+      - "build-conda (3.8, 1.10)"
+      - "build-conda (3.8, 1.9)"
+      - "build-conda (3.9, 1.11)"
+      - "build-conda (3.9, 1.12)"
+      - "build-cuda (3.8, 1.9, 11.1.1)"
+      - "build-cuda (3.9, 1.10, 11.3.1)"
+      - "build-cuda (3.9, 1.11, 11.3.1)"
+      - "build-cuda (3.9, 1.12, 11.3.1)"
+      - "build-cuda (3.9, 1.9, 11.1.1)"
+      - "build-hpu (1.5.0, 1.11.0)"
+      - "build-ipu (3.9, 1.9)"
+      - "build-NGC"
+      - "build-pl (3.9, 1.10, 11.3.1)"
+      - "build-pl (3.9, 1.11, 11.3.1)"
+      - "build-pl (3.9, 1.12, 11.3.1)"
+      - "build-pl (3.9, 1.9, 11.1.1)"
+      - "build-xla (3.7, 1.12)"
+
+  - id: "pytorch_lightning: mypy"
+    paths:
+      - ".github/workflows/code-checks.yml"
+      - "pyproject.toml"  # includes mypy config
+    checks:
+      - "mypy"
+
+  - id: "lightning_app"
+    paths:
+      - ".github/workflows/ci-app*.yml"
+      - "examples/app_**"
+      - "requirements/app/**"
+      - "src/lightning_app/**"
+      - "tests/tests_app/**"
+      - "tests/tests_app_examples/**"
+      - "tests/tests_clusters/**"
+      # the examples are used in the app CI
+      - "examples/app_*"
+    checks:
+      - "Cloud Test (boring_app)"
+      - "Cloud Test (collect_failures)"
+      - "Cloud Test (commands_and_api)"
+      - "Cloud Test (custom_work_dependencies)"
+      - "Cloud Test (drive)"
+      - "Cloud Test (idle_timeout)"
+      - "Cloud Test (payload)"
+      - "Cloud Test (template_jupyterlab)"
+      - "Cloud Test (template_react_ui)"
+      - "Cloud Test (template_streamlit_ui)"
+      - "Cloud Test (v0_app)"
+      - "doctest (app)"
+      - "make-docs (app)"
+      - "pytest (macOS-11, 3.8, latest)"
+      - "pytest (macOS-11, 3.8, oldest)"
+      - "pytest (ubuntu-20.04, 3.8, latest)"
+      - "pytest (ubuntu-20.04, 3.8, oldest)"
+      - "pytest (windows-2022, 3.8, latest)"
+      - "pytest (windows-2022, 3.8, oldest)"
+
+  - id: "lightning_app: Docs"
+    paths:
+      - "docs/source-app/**"
+      - ".github/workflows/docs-*.yml"
+      - "requirements/app/**"
+    checks:
+      - "doctest (app)"
+      - "make-docs (app)"
+
+  - id: "install"
+    paths:
+      - ".actions/setup_tools.py"
+      - ".github/workflows/ci-pkg-install.yml"
+      - "setup.py"
+      - "src/lightning/**"
+      # all __about__, __version__, __setup__
+      - "src/*/__*.py"
+    checks:
+      - "install-meta-pypi (macOS-11, 3.8)"
+      - "install-meta-pypi (ubuntu-20.04, 3.8)"
+      - "install-meta-pypi (windows-2022, 3.8)"
+      - "install-meta-src (macOS-11, 3.8)"
+      - "install-meta-src (macOS-11, lightning, 3.8)"
+      - "install-meta-src (ubuntu-20.04, 3.8)"
+      - "install-meta-src (ubuntu-20.04, lightning, 3.8)"
+      - "install-meta-src (windows-2022, 3.8)"
+      - "install-meta-src (windows-2022, lightning, 3.8)"
+      - "install-standalone (macOS-11, app, 3.8)"
+      - "install-standalone (macOS-11, pytorch, 3.8)"
+      - "install-standalone (ubuntu-20.04, app, 3.8)"
+      - "install-standalone (ubuntu-20.04, pytorch, 3.8)"
+      - "install-standalone (windows-2022, app, 3.8)"
+      - "install-standalone (windows-2022, pytorch, 3.8)"

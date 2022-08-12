@@ -31,7 +31,7 @@ class PopenPythonScript(LightningWork):
         env: Optional[Dict] = None,
         **kwargs,
     ):
-        """The PopenPythonScript Class enables to easily run a Python Script.
+        """The PopenPythonScript component enables to easily run a python script within a subprocess.
 
         Arguments:
             script_path: Path of the python script to run.
@@ -56,7 +56,7 @@ class PopenPythonScript(LightningWork):
 
         In this example, the script will be launch with the :class:`~subprocess.Popen`.
 
-        .. literalinclude:: ../../../../examples/components/python/component_popen.py
+        .. literalinclude:: ../../../examples/app_components/python/component_popen.py
             :language: python
         """
         super().__init__(**kwargs)
