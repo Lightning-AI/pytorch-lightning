@@ -157,7 +157,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         candidate_kwargs = dict(batch_size=batch_size, num_workers=num_workers)
         accepted_params = set(inspect.signature(cls.__init__).parameters.keys())
         accepted_params.discard("self")
-        special_kwargs = dict((k, v) for k, v in candidate_kwargs.items() if k in accepted_params)
+        special_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted_params}
 
         datamodule = cls(**datamodule_kwargs, **special_kwargs)
         if train_dataset is not None:
