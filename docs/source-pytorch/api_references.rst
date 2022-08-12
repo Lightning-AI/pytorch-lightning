@@ -286,6 +286,7 @@ strategies
 
     BaguaStrategy
     HivemindStrategy
+    DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

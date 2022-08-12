@@ -14,7 +14,7 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable, Collection, List, Optional, Tuple, Union
+from typing import Any, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
@@ -298,10 +298,14 @@ class DataConnector:
 
             # update docs too once this is resolved
             trainer_fn = self.trainer.state.fn
-            if isinstance(sampler, DistributedSampler) and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING):
+            if (
+                isinstance(sampler, DistributedSampler)
+                and sampler.num_replicas > 1
+                and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING)
+            ):
                 rank_zero_warn(
-                    f"Using `DistributedSampler` with the dataloaders. During `trainer.{trainer_fn.value}()`,"
-                    " it is recommended to use `Trainer(devices=1)` to ensure each sample/batch gets evaluated"
+                    f"Using `DistributedSampler` with the dataloaders. During `trainer.{trainer_fn.value}()`, it is"
+                    " recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated"
                     " exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates"
                     " some samples to make sure all devices have same batch size in case of uneven inputs.",
                     category=PossibleUserWarning,
@@ -527,16 +531,16 @@ class _DataLoaderSource:
 
 @dataclass
 class _DataHookSelector:
-    """Stores the info about the shared DataHooks within LightningModule and LightningDataModule.
+    """Stores the info about the shared DataHooks within ``LightningModule`` and ``LightningDataModule``.
 
-    The hook source can be
+    The hook source can be:
 
-    1. a method from the :class:`~pytorch_lightning.core.module.LightningModule`,
-    2. a method from the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+    1. the :class:`~pytorch_lightning.core.module.LightningModule`,
+    2. the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
 
     Arguments:
-        model: A LightningModule
-        datamodule: A LightningDataModule
+        model: A ``LightningModule``
+        datamodule: A ``LightningDataModule``
     """
 
     model: "pl.LightningModule"
@@ -545,7 +549,7 @@ class _DataHookSelector:
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
-    def get_hook(self, hook_name: str) -> Callable:
+    def get_instance(self, hook_name: str) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         if hook_name not in self._valid_hooks:
             raise ValueError(
                 f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."
@@ -553,7 +557,7 @@ class _DataHookSelector:
             )
 
         if self.datamodule is None:
-            return getattr(self.model, hook_name)
+            return self.model
 
         if is_overridden(hook_name, self.datamodule):
             if is_overridden(hook_name, self.model):
@@ -561,11 +565,11 @@ class _DataHookSelector:
                     f"You have overridden `{hook_name}` in both `LightningModule` and `LightningDataModule`."
                     " It will use the implementation from `LightningDataModule` instance."
                 )
-            return getattr(self.datamodule, hook_name)
+            return self.datamodule
 
         if is_overridden(hook_name, self.model):
             warning_cache.warn(
                 f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
                 " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
             )
-        return getattr(self.model, hook_name)
+        return self.model

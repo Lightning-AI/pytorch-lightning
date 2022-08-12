@@ -36,9 +36,7 @@ ORCHESTRATOR_RESPONSE_CONSTANT = "ORCHESTRATOR_RESPONSE"
 ORCHESTRATOR_COPY_REQUEST_CONSTANT = "ORCHESTRATOR_COPY_REQUEST"
 ORCHESTRATOR_COPY_RESPONSE_CONSTANT = "ORCHESTRATOR_COPY_RESPONSE"
 WORK_QUEUE_CONSTANT = "WORK_QUEUE"
-COMMANDS_REQUESTS_QUEUE_CONSTANT = "COMMANDS_REQUESTS_QUEUE"
-COMMANDS_RESPONSES_QUEUE_CONSTANT = "COMMANDS_RESPONSES_QUEUE"
-COMMANDS_METADATA_QUEUE_CONSTANT = "COMMANDS_METADATA_QUEUE"
+API_RESPONSE_QUEUE_CONSTANT = "API_RESPONSE_QUEUE"
 
 
 class QueuingSystem(Enum):
@@ -54,18 +52,8 @@ class QueuingSystem(Enum):
         else:
             return SingleProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
-    def get_commands_requests_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{COMMANDS_REQUESTS_QUEUE_CONSTANT}" if queue_id else COMMANDS_REQUESTS_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
-
-    def get_commands_responses_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = (
-            f"{queue_id}_{COMMANDS_RESPONSES_QUEUE_CONSTANT}" if queue_id else COMMANDS_RESPONSES_QUEUE_CONSTANT
-        )
-        return self._get_queue(queue_name)
-
-    def get_commands_metadata_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{COMMANDS_METADATA_QUEUE_CONSTANT}" if queue_id else COMMANDS_METADATA_QUEUE_CONSTANT
+    def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
+        queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
         return self._get_queue(queue_name)
 
     def get_readiness_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
@@ -96,10 +84,6 @@ class QueuingSystem(Enum):
 
     def get_api_delta_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_DELTA_QUEUE_CONSTANT}" if queue_id else API_DELTA_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
-
-    def get_api_refresh_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{API_REFRESH_QUEUE_CONSTANT}" if queue_id else API_REFRESH_QUEUE_CONSTANT
         return self._get_queue(queue_name)
 
     def get_orchestrator_request_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
