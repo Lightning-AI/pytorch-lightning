@@ -75,6 +75,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         trainer = pl_module._trainer
 
         if trainer is not None:
+            assert isinstance(self.module, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
             if trainer.training:
                 output = self.module.training_step(*inputs, **kwargs)
                 # In manual_optimization, we need to prevent DDP reducer as
