@@ -49,13 +49,12 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process."""
-        if not self._connected:
-            # amp.initialize should 1) only be called once 2) be called after the model has been moved to the device
-            # 3) be called before wrapping the model with e.g. DistributedDataParallel
+
+        # amp.initialize should 1) only be called once 2) be called after the model has been moved to the device
+        # 3) be called before wrapping the model with e.g. DistributedDataParallel
+        if any(not hasattr(opt, "_amp_stash") for opt in optimizers):
             _, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
-            for opt in optimizers:
-                assert False
-            self._connected = True
+
         return model, optimizers, lr_schedulers
 
     def backward(

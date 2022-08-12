@@ -28,6 +28,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -222,6 +223,9 @@ class DDPSpawnStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         self.setup_optimizers(self.lightning_module.trainer)
         optimizers_to_device(self.optimizers, self.root_device)
+
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            self.model, self.optimizers, _ = self.precision_plugin.connect(self.model, self.optimizers, [])
 
     def determine_ddp_device_ids(self) -> Optional[List[int]]:
         if self.root_device.type == "cpu":
