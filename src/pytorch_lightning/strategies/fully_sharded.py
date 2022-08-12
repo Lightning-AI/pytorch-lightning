@@ -67,7 +67,8 @@ class DDPFullyShardedStrategy(DDPStrategy):
         at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
         to ZeRO-Stage 3 but has been built for upstreaming to PyTorch.
 
-        For more information `check out FairScale's docs <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__.
+        For more information
+        `check out FairScale's docs <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__.
 
         Defaults have been set and options have been exposed, but may require configuration
         based on your level of memory/speed efficiency. We suggest having a look at
