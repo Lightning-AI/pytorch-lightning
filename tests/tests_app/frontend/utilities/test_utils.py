@@ -63,7 +63,7 @@ def test_get_frontend_environment_file():
 
 @mock.patch.dict(os.environ, clear=True)
 def test_is_running_locally() -> bool:
-    """We can determine if lightning is running locally."""
+    """We can determine if Lightning is running locally."""
     assert is_running_locally()
 
 
