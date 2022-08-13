@@ -14,22 +14,25 @@ Add a web UI with Panel (basic)
 What is Panel?
 **************
 
-`Panel`_ and the `HoloViz`_ ecosystem provides unique and powerful
-features such as big data viz via `DataShader`_, easy cross filtering
-via `HoloViews`_, streaming and much more.
+`Panel`_ and the `HoloViz`_ ecosystem provide unique and powerful
+features such as big data visualization using `DataShader`_, easy cross filtering
+using `HoloViews`_, streaming and much more.
 
-- Panel is highly flexible and ties into the PyData and Jupyter ecosystems as you can develop in notebooks and use ipywidgets. You can also develop in .py files.
-- Panel is one of the 4 most popular data app frameworks in Python with `more than 400.000 downloads a month <https://pyviz.org/tools.html#dashboarding>`_. It's especially popular in the scientific community.
-- Panel is used by for example Rapids to power `CuxFilter`_, a CuDF based big data viz framework.
-- Panel can be deployed on your favorite server or cloud including `Lightning`_.
+* Panel is highly flexible and ties into the PyData and Jupyter ecosystems as you can develop in notebooks and use ipywidgets. You can also develop in .py files.
+
+* Panel is one of the most popular data app frameworks in Python with `more than 400.000 downloads a month <https://pyviz.org/tools.html#dashboarding>`_. It's especially popular in the scientific community.
+
+* Panel is used, for example, by Rapids to power `CuxFilter`_, a CuDF based big data visualization framework.
+
+* Panel can be deployed on your favorite server or cloud including `Lightning`_.
 
 .. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-intro.gif
    :alt: Example Panel App
 
    Example Panel App
 
-Panel is **particularly well suited for lightning.ai apps** that needs to display live progress as the Panel server can react
-to state changes and asynchronously push messages from the server to the client via web socket communication.
+Panel is **particularly well suited for Lightning Apps** that need to display live progress. This is because the Panel server can react
+to state changes and asynchronously push messages from the server to the client using web socket communication.
 
 .. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-streaming-intro.gif
    :alt: Example Panel Streaming App
@@ -45,12 +48,12 @@ Install Panel with:
 ----
 
 *********************
-Run a basic Panel app
+Run a basic Panel App
 *********************
 
-In the next few sections, we'll build an app step-by-step.
+In the next few sections, we'll build an App step-by-step.
 
-First, create a file named ``app_panel.py`` with the app content:
+First, create a file named ``app_panel.py`` with the App content:
 
 .. code:: python
 
@@ -60,7 +63,7 @@ First, create a file named ``app_panel.py`` with the app content:
 
     pn.panel("Hello **Panel ⚡** World").servable()
 
-Then, create a file named ``app.py`` with the following app content:
+Then, create a file named ``app.py`` with the following App content:
 
 .. code:: python
 
@@ -87,34 +90,34 @@ Then, create a file named ``app.py`` with the following app content:
 
     app = L.LightningApp(LitApp())
 
-add ``panel`` to your ``requirements.txt`` file:
+Finally, add ``panel`` to your ``requirements.txt`` file:
 
 .. code:: bash
 
     echo 'panel' >> requirements.txt
 
-This is a best practice to make apps reproducible.
+.. note:: This is a best practice to make Apps reproducible.
 
 ----
 
 ***********
-Run the app
+Run the App
 ***********
 
-Run the app locally to see it!
+Run the App locally:
 
 .. code:: bash
 
     lightning run app app.py
 
-The app should look like the below
+The App should look like this:
 
 .. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-lightning-basic.png
    :alt: Basic Panel Lightning App
 
    Basic Panel Lightning App
 
-Now, run it on the cloud as well:
+Now, run it on the cloud:
 
 .. code:: bash
 
@@ -126,7 +129,7 @@ Now, run it on the cloud as well:
 Step-by-step walk-through
 *************************
 
-In this section, we explain each part of this code in detail.
+In this section, we explain each part of the code in detail.
 
 ----
 
@@ -145,11 +148,11 @@ Refer to the `Panel documentation <https://docs.Panel.io/>`_ and `awesome-panel.
 
 ----
 
-1. Add Panel to a component
+1. Add Panel to a Component
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Link this app to the Lightning App by using the ``PanelFrontend`` class which needs to be returned from
-the ``configure_layout`` method of the Lightning component you want to connect to Panel.
+the ``configure_layout`` method of the Lightning Component you want to connect to Panel.
 
 .. code:: python
     :emphasize-lines: 7-10
@@ -175,7 +178,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
 
     app = L.LightningApp(LitApp())
 
-The argument of the ``PanelFrontend`` class, points to the script, notebook or function that
+The argument of the ``PanelFrontend`` class, points to the script, notebook, or function that
 runs your Panel app.
 
 ----
@@ -184,7 +187,7 @@ runs your Panel app.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The second step, is to tell the Root component in which tab to render this component's UI.
-In this case, we render the ``LitPanel`` UI in the ``home`` tab of the application.
+In this case, we render the ``LitPanel`` UI in the ``home`` tab of the app.
 
 .. code:: python
     :emphasize-lines: 16-17
@@ -216,10 +219,10 @@ Tips & Tricks
 0. Use autoreload while developing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To speed up your development workflow, you can run your lightning app with Panel **autoreload** by
+To speed up your development workflow, you can run your Lightning App with Panel **autoreload** by
 setting the environment variable ``PANEL_AUTORELOAD`` to ``yes``.
 
-Try running the below
+Try running the following:
 
 .. code-block::
 
@@ -230,12 +233,12 @@ Try running the below
 
    Basic Panel Lightning App with autoreload
 
-1. Theme your app
+1. Theme your App
 ^^^^^^^^^^^^^^^^^
 
-To theme your app you, can use the lightning accent color ``#792EE5`` with the `FastListTemplate`_.
+To theme your App you, can use the Lightning accent color ``#792EE5`` with the `FastListTemplate`_.
 
-Try replacing the contents of ``app_panel.py`` with the below code.
+Try replacing the contents of ``app_panel.py`` with the following:
 
 .. code:: bash
 
@@ -301,7 +304,7 @@ Install some additional libraries and remember to add the dependencies to the ``
     echo 'plotly' >> requirements.txt
     echo 'pandas' >> requirements.txt
 
-Finally run the app
+Finally run the App
 
 .. code:: bash
 
