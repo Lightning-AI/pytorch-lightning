@@ -1,7 +1,7 @@
 """The AppStateWatcher enables a Frontend to.
 
 - subscribe to App state changes.
-- to access and change the app state.
+- to access and change the App state.
 
 This is particularly useful for the PanelFrontend, but can be used by other Frontends too.
 """
