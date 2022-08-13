@@ -60,6 +60,7 @@ def test_get_frontend_environment_file():
     assert env["LIGHTNING_RENDER_FILE"] == "app_panel.py"
     assert env["LIGHTNING_RENDER_PORT"] == "1234"
 
+
 @mock.patch.dict(os.environ, clear=True)
 def test_is_running_locally() -> bool:
     """We can determine if lightning is running locally."""
