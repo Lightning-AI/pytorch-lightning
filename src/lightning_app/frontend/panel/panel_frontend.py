@@ -82,8 +82,7 @@ class PanelFrontend(Frontend):
 
         if inspect.ismethod(entry_point):
             raise TypeError(
-                "The `PanelFrontend` doesn't support `entry_point` being a method. "
-                "Please, use a pure function."
+                "The `PanelFrontend` doesn't support `entry_point` being a method. " "Please, use a pure function."
             )
 
         self.entry_point = entry_point
