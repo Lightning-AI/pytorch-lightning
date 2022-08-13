@@ -68,7 +68,7 @@ class PanelFrontend(Frontend):
 
         app = L.LightningApp(LitApp())
 
-    You can start the lightning server with Panel autoreload by setting the `PANEL_AUTORELOAD`
+    You can start the Lightning server with Panel autoreload by setting the `PANEL_AUTORELOAD`
     environment variable to 'yes': `AUTORELOAD=yes lightning run app app_basic.py`.
 
     Args:
