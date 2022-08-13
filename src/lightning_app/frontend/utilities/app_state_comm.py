@@ -44,7 +44,7 @@ def _target_fn():
                 await websocket.recv()
                 # Note: I have not seen use cases where the two lines below are needed
                 # Changing '< 0.2' to '< 1' makes the App very sluggish to the end user
-                # Also the implementation can make the app state get behind because only 1 update
+                # Also the implementation can cause the App state to lag behind because only 1 update
                 # is received per 0.2 second (or 1 second).
                 # while (time.time() - last_updated) < 0.2:
                 #     time.sleep(0.05)
