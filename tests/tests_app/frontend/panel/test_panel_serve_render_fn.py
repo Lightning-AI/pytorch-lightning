@@ -1,4 +1,5 @@
-"""The panel_serve_render_fn_or_file file gets run by Python to lunch a Panel Server with Lightning.
+"""The panel_serve_render_fn_or_file file gets run by Python to launch a Panel Server with Lightning.
+
 
 These tests are for serving a render_fn function.
 """
