@@ -15,7 +15,7 @@ from lightning_app.utilities.state import AppState
 
 def test_stop_server_not_running():
     """If the server is not running but stopped an Exception should be raised."""
-    frontend = PanelFrontend(server_entry_point=Mock())
+    frontend = PanelFrontend(entry_point=Mock())
     with pytest.raises(RuntimeError, match="Server is not running."):
         frontend.stop_server()
 
@@ -40,7 +40,7 @@ class MockFlow(LightningFlow):
 def test_panel_frontend_start_stop_server(subprocess_mock):
     """Test that `PanelFrontend.start_server()` invokes subprocess.Popen with the right parameters."""
     # Given
-    frontend = PanelFrontend(server_entry_point=_noop_render_fn)
+    frontend = PanelFrontend(entry_point=_noop_render_fn)
     frontend.flow = MockFlow()
     # When
     frontend.start_server(host="hostname", port=1111)
@@ -97,20 +97,20 @@ def _call_me(state):
         "LIGHTNING_RENDER_PORT": "61896",
     },
 )
-def test_panel_wrapper_calls_server_entry_point(*_):
-    """Run the panel_serve_server_entry_point."""
+def test_panel_wrapper_calls_entry_point(*_):
+    """Run the panel_serve_entry_point."""
     runpy.run_module("lightning_app.frontend.panel.panel_serve_render_fn")
 
 
 def test_method_exception():
-    """The PanelFrontend does not support server_entry_point being a method and should raise an Exception."""
+    """The PanelFrontend does not support entry_point being a method and should raise an Exception."""
 
     class _DummyClass:
         def _render_fn(self):
             pass
 
     with pytest.raises(TypeError, match="being a method"):
-        PanelFrontend(server_entry_point=_DummyClass()._render_fn)
+        PanelFrontend(entry_point=_DummyClass()._render_fn)
 
 
 def test_open_close_log_files():

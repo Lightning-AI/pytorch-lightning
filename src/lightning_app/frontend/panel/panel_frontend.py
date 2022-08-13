@@ -68,28 +68,28 @@ class PanelFrontend(Frontend):
     environment variable to 'yes': `AUTORELOAD=yes lightning run app app_basic.py`.
 
     Args:
-        server_entry_point: A pure function or the path to a .py or .ipynb file.
+        entry_point: A pure function or the path to a .py or .ipynb file.
         The function must be a pure function that contains your Panel code.
         The function can optionally accept an `AppStateWatcher` argument.
 
     Raises:
-        TypeError: Raised if the server_entry_point is a class method
+        TypeError: Raised if the entry_point is a class method
     """
 
     @requires("panel")
-    def __init__(self, server_entry_point: Callable | str):
+    def __init__(self, entry_point: Callable | str):
         super().__init__()
 
-        if inspect.ismethod(server_entry_point):
+        if inspect.ismethod(entry_point):
             raise TypeError(
-                "The `PanelFrontend` doesn't support `server_entry_point` being a method. "
+                "The `PanelFrontend` doesn't support `entry_point` being a method. "
                 "Please, use a pure function."
             )
 
-        self.server_entry_point = server_entry_point
+        self.entry_point = entry_point
         self._process: None | subprocess.Popen = None
         self._log_files: dict[str, TextIO] = {}
-        _logger.debug(f"PanelFrontend Frontend with {server_entry_point} is initialized.")
+        _logger.debug(f"PanelFrontend Frontend with {entry_point} is initialized.")
 
     def start_server(self, host: str, port: int) -> None:
         _logger.debug(f"PanelFrontend starting server on {host}:{port}")
@@ -97,7 +97,7 @@ class PanelFrontend(Frontend):
         # 1: Prepare environment variables and arguments.
         env = get_frontend_environment(
             self.flow.name,
-            self.server_entry_point,
+            self.entry_point,
             port,
             host,
         )
@@ -131,13 +131,13 @@ class PanelFrontend(Frontend):
         self._log_files = {"stdout": stderr, "stderr": stdout}
 
     def _get_popen_args(self, host: str, port: int) -> list:
-        if callable(self.server_entry_point):
+        if callable(self.entry_point):
             path = str(pathlib.Path(__file__).parent / "panel_serve_render_fn.py")
         else:
-            path = pathlib.Path(self.server_entry_point)
+            path = pathlib.Path(self.entry_point)
 
         abs_path = str(path)
-        # The app is served at http://localhost:{port}/{flow}/{server_entry_point}
+        # The app is served at http://localhost:{port}/{flow}/{entry_point}
         # Lightning embeds http://localhost:{port}/{flow} but this redirects to the above and
         # seems to work fine.
         command = [
