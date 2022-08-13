@@ -3,22 +3,26 @@ from __future__ import annotations
 
 import inspect
 import logging
+import os
 import pathlib
 import subprocess
 import sys
 from typing import Callable, TextIO
 
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.frontend.utilities.utils import (
-    get_allowed_hosts,
-    get_frontend_environment,
-    has_panel_autoreload,
-    is_running_locally,
-)
+from lightning_app.frontend.utilities.utils import get_allowed_hosts, get_frontend_environment, is_running_locally
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
 
 _logger = logging.getLogger("PanelFrontend")
+
+
+def has_panel_autoreload() -> bool:
+    """Returns True if the PANEL_AUTORELOAD environment variable is set to 'yes' or 'true'.
+
+    Please note the casing of value does not matter
+    """
+    return os.environ.get("PANEL_AUTORELOAD", "no").lower() in ["yes", "y", "true"]
 
 
 class PanelFrontend(Frontend):
@@ -82,16 +86,16 @@ class PanelFrontend(Frontend):
 
         if inspect.ismethod(entry_point):
             raise TypeError(
-                "The `PanelFrontend` doesn't support `entry_point` being a method. " "Please, use a pure function."
+                "The `PanelFrontend` doesn't support `entry_point` being a method. Please, use a pure function."
             )
 
         self.entry_point = entry_point
         self._process: None | subprocess.Popen = None
         self._log_files: dict[str, TextIO] = {}
-        _logger.debug(f"PanelFrontend Frontend with {entry_point} is initialized.")
+        _logger.debug("PanelFrontend Frontend with %s is initialized.", entry_point)
 
     def start_server(self, host: str, port: int) -> None:
-        _logger.debug(f"PanelFrontend starting server on {host}:{port}")
+        _logger.debug("PanelFrontend starting server on %s:%s", host, port)
 
         # 1: Prepare environment variables and arguments.
         env = get_frontend_environment(
@@ -156,5 +160,5 @@ class PanelFrontend(Frontend):
         ]
         if has_panel_autoreload():
             command.append("--autoreload")
-        _logger.debug(f"PanelFrontend command {command}")
+        _logger.debug("PanelFrontend command %s", command)
         return command

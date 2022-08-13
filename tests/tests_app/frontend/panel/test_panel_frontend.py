@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 from lightning_app import LightningFlow
-from lightning_app.frontend.panel import panel_serve_render_fn, PanelFrontend
+from lightning_app.frontend.panel import has_panel_autoreload, panel_serve_render_fn, PanelFrontend
 from lightning_app.utilities.state import AppState
 
 
@@ -134,3 +134,30 @@ def test_open_close_log_files():
 
     # We can close even if not open
     frontend._close_log_files()
+
+
+@pytest.mark.parametrize(
+    ["value", "expected"],
+    (
+        ("Yes", True),
+        ("yes", True),
+        ("YES", True),
+        ("Y", True),
+        ("y", True),
+        ("True", True),
+        ("true", True),
+        ("TRUE", True),
+        ("No", False),
+        ("no", False),
+        ("NO", False),
+        ("N", False),
+        ("n", False),
+        ("False", False),
+        ("false", False),
+        ("FALSE", False),
+    ),
+)
+def test_has_panel_autoreload(value, expected):
+    """We can get and set autoreload via the environment variable PANEL_AUTORELOAD."""
+    with mock.patch.dict(os.environ, {"PANEL_AUTORELOAD": value}):
+        assert has_panel_autoreload() == expected

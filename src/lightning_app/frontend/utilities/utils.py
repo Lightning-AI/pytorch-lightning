@@ -1,6 +1,4 @@
 """Utility functions for lightning Frontends."""
-# TODO: Refactor stream_lit and streamlit_base to use this functionality.
-
 from __future__ import annotations
 
 import inspect
@@ -44,14 +42,6 @@ def get_allowed_hosts() -> str:
     """Returns a comma separated list of host[:port] that should be allowed to connect."""
     # TODO: Enable only lightning.ai domain in the cloud
     return "*"
-
-
-def has_panel_autoreload() -> bool:
-    """Returns True if the PANEL_AUTORELOAD environment variable is set to 'yes' or 'true'.
-
-    Please note the casing of value does not matter
-    """
-    return os.environ.get("PANEL_AUTORELOAD", "no").lower() in ["yes", "y", "true"]
 
 
 def get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port: int, host: str) -> os._Environ:
