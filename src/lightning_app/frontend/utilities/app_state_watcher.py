@@ -23,7 +23,7 @@ _logger = logging.getLogger(__name__)
 class AppStateWatcher(param.Parameterized):
     """The AppStateWatcher enables a Frontend to:
 
-    - Subscribe to any app state changes.
+    - Subscribe to any App state changes.
     - To access and change the app state from the UI.
 
     This is particularly useful for the PanelFrontend, but can be used by
