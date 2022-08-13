@@ -71,7 +71,7 @@ def get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port:
 
 
 def is_running_locally() -> bool:
-    """Returns True if the lightning app is running locally.
+    """Returns True if the Lightning App is running locally.
 
     This function can be used to determine if the app is running locally and provide a better developer experience.
     """
