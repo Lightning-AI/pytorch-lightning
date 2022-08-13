@@ -31,7 +31,7 @@ def test_watch_app_state():
     # When
     watch_app_state(callback)
 
-    # Here we would like to send messages via the web socket
+    # Here we would like to send messages using the web socket
     # For testing the web socket is not started. See conftest.py
     # So we need to manually trigger _run_callbacks here
     _run_callbacks()
