@@ -26,9 +26,41 @@ from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.seed import isolate_rng
 
 
 class BatchSizeFinder(Callback):
+    """The ``BatchSizeFinder`` callback tries to find the largest batch size for a given model that does not give
+    an out of memory (OOM) error. It works with both training and evalation. All you need to do is add it as a
+    callback inside Trainer and call ``trainer.fit/validate/test/predict()``. Internally it calls the respective
+    step function ``steps_per_trial`` times for each batch size until one of the batch size generates and OOM
+    error.
+
+    Args:
+        mode: search strategy to update the batch size:
+
+            - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
+            - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
+                do a binary search between the last successful batch size and the batch size that failed.
+
+        steps_per_trial: number of steps to run with a given batch size.
+            Ideally 1 should be enough to test if a OOM error occurs,
+            however in practice a few are needed.
+
+        init_val: initial batch size to start the search with.
+
+        max_trials: max number of increase in batch size done before
+            algorithm is terminated
+
+        batch_arg_name: name of the attribute that stores the batch size.
+            It is expected that the user has provided a model or datamodule that has a hyperparameter
+            with that name. We will look for this attribute name in the following places
+
+            - ``model``
+            - ``model.hparams``
+            - ``trainer.datamodule``
+    """
+
     SUPPORTED_MODES = ("power", "binsearch")
 
     def __init__(
@@ -39,36 +71,6 @@ class BatchSizeFinder(Callback):
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
     ) -> None:
-        """The `BatchSizeFinder` callback tries to find the largest batch size for a given model that does not give
-        an out of memory (OOM) error. It works with both training and evalation. All you need to do is add it as a
-        callback inside Trainer and call ``trainer.fit/validate/test/predict()``. Internally it calls the
-        respective step function ``steps_per_trial`` times for each batch size until one of the batch size
-        generates and OOM error.
-
-        Args:
-            mode: search strategy to update the batch size:
-
-                - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
-                - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
-                    do a binary search between the last successful batch size and the batch size that failed.
-
-            steps_per_trial: number of steps to run with a given batch size.
-                Ideally 1 should be enough to test if a OOM error occurs,
-                however in practice a few are needed.
-
-            init_val: initial batch size to start the search with.
-
-            max_trials: max number of increase in batch size done before
-               algorithm is terminated
-
-            batch_arg_name: name of the attribute that stores the batch size.
-                It is expected that the user has provided a model or datamodule that has a hyperparameter
-                with that name. We will look for this attribute name in the following places
-
-                - ``model``
-                - ``model.hparams``
-                - ``trainer.datamodule`` (the datamodule passed to the tune method)
-        """
         # TODO: Add input validation.
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
@@ -122,9 +124,10 @@ class BatchSizeFinder(Callback):
             )
 
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        new_size = scale_batch_size(
-            trainer, pl_module, self.mode, self.steps_per_trial, self.init_val, self.max_trials, self.batch_arg_name
-        )
+        with isolate_rng():
+            new_size = scale_batch_size(
+                trainer, pl_module, self.mode, self.steps_per_trial, self.init_val, self.max_trials, self.batch_arg_name
+            )
 
         self.optimal_batch_size = new_size
         if self._early_exit:

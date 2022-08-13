@@ -12,25 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""
-LRFinderCallback
-===============
+LearningRateFinder
+==================
 
 Finds optimal learning rate
 """
-
-from typing import Callable, Optional
+from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.tuner.lr_finder import lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
+from pytorch_lightning.utilities.seed import isolate_rng
 
 
-class LRFinderCallback(Callback):
-    SUPPORTED_MODES = ("linear", "exponential")
-
-    """LRFinderCallback enables the user to do a range test of good initial learning rates, to reduce the amount of
-    guesswork in picking a good starting learning rate.
+class LearningRateFinder(Callback):
+    """The ``LearningRateFinder`` callback enables the user to do a range test of good initial learning rates, to
+    reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
         min_lr: minimum learning rate to investigate
@@ -56,6 +54,8 @@ class LRFinderCallback(Callback):
             or if you are using more than one optimizer.
     """
 
+    SUPPORTED_MODES = ("linear", "exponential")
+
     def __init__(
         self,
         min_lr: float = 1e-8,
@@ -77,22 +77,23 @@ class LRFinderCallback(Callback):
         self._update_attr = update_attr
 
         self._early_exit = False
-        self.optimal_lr = None
+        self.optimal_lr: Optional[_LRFinder] = None
 
-    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        self.optimal_lr = lr_find(
-            trainer,
-            pl_module,
-            min_lr=self._min_lr,
-            max_lr=self._max_lr,
-            num_training=self._num_training,
-            mode=self._mode,
-            early_stop_threshold=self._early_stop_threshold,
-            update_attr=self._update_attr,
-        )
+    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        with isolate_rng():
+            self.optimal_lr = lr_find(
+                trainer,
+                pl_module,
+                min_lr=self._min_lr,
+                max_lr=self._max_lr,
+                num_training=self._num_training,
+                mode=self._mode,
+                early_stop_threshold=self._early_stop_threshold,
+                update_attr=self._update_attr,
+            )
 
         if self._early_exit:
             raise _TunerExitException()
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.lr_find(trainer, pl_module)

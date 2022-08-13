@@ -19,6 +19,7 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -353,18 +354,22 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     seed_everything(1)
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=10,
+        limit_val_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     all_res = [trainer.tuner.lr_find(model).results for _ in range(3)]
 
-    for curr_lr_finder in all_res[1:]:
-        for k in all_res[0].keys():
-            assert all_res[0][k] == curr_lr_finder[k]
-
-    # assert all(
-    #     all_res[0][k] == curr_lr_finder[k] and len(curr_lr_finder[k]) > 10
-    #     for curr_lr_finder in all_res[1:]
-    #     for k in all_res[0].keys()
-    # )
+    assert all(
+        all_res[0][k] == curr_lr_finder[k] and len(curr_lr_finder[k]) > 10
+        for curr_lr_finder in all_res[1:]
+        for k in all_res[0].keys()
+    )
 
 
 @pytest.mark.parametrize(
@@ -417,3 +422,13 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
     lr_finder = trainer.tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
     assert lr_finder.suggestion() is None
     assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
+
+
+def test_if_lr_finder_callback_already_configured():
+    """Test that an error is raised if `LearningRateFinder` is already configured inside `Tuner`"""
+    cb = LearningRateFinder()
+    trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+        trainer.tune(model)

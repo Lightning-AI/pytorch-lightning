@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from turtle import update
 from typing import Any, Dict, Optional, Union
 
 from typing_extensions import NotRequired, TypedDict
@@ -19,10 +18,10 @@ from typing_extensions import NotRequired, TypedDict
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.callbacks.lr_finder import LRFinderCallback
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
-from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -238,7 +237,7 @@ class Tuner:
 
         _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
 
-        lr_finder_callback = LRFinderCallback(
+        lr_finder_callback: Callback = LearningRateFinder(
             min_lr=min_lr,
             max_lr=max_lr,
             num_training=num_training,
@@ -282,7 +281,7 @@ def _check_tuner_configuration(
                 " arguments should be None, please consider setting `dataloaders` instead."
             )
 
-    if any(isinstance(cb, (BatchSizeFinder, LRFinderCallback)) for cb in trainer.callbacks):
+    if any(isinstance(cb, (BatchSizeFinder, LearningRateFinder)) for cb in trainer.callbacks):
         raise MisconfigurationException(
             "Trainer is already configured with a `BatchSizeFinder` callback. Please remove it if you"
             " want to use tuner."

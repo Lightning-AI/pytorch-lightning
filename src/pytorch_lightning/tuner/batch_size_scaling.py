@@ -300,7 +300,7 @@ def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -
         getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")(pl_module)
 
 
-def _try_loop_run(trainer: "pl.Trainer", params) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
     if trainer.state.fn == "fit":
         loop = trainer.fit_loop
     else:

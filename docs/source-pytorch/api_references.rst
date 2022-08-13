@@ -36,6 +36,7 @@ callbacks
     EarlyStopping
     GradientAccumulationScheduler
     LambdaCallback
+    LearningRateFinder
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning

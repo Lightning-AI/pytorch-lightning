@@ -110,7 +110,6 @@ from pytorch_lightning.utilities.exceptions import (
     MisconfigurationException,
 )
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
-from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
@@ -1066,17 +1065,16 @@ class Trainer(
 
         Trainer._log_api_event("tune")
 
-        with isolate_rng():
-            result = self.tuner._tune(
-                model,
-                train_dataloaders,
-                val_dataloaders,
-                dataloaders,
-                datamodule,
-                scale_batch_size_kwargs=scale_batch_size_kwargs,
-                lr_find_kwargs=lr_find_kwargs,
-                method=method,
-            )
+        result = self.tuner._tune(
+            model,
+            train_dataloaders,
+            val_dataloaders,
+            dataloaders,
+            datamodule,
+            scale_batch_size_kwargs=scale_batch_size_kwargs,
+            lr_find_kwargs=lr_find_kwargs,
+            method=method,
+        )
 
         return result
 

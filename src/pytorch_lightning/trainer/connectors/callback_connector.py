@@ -29,7 +29,7 @@ from pytorch_lightning.callbacks import (
     TQDMProgressBar,
 )
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
-from pytorch_lightning.callbacks.lr_finder import LRFinderCallback
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -255,7 +255,7 @@ class CallbackConnector:
         checkpoint_callbacks: List[Callback] = []
 
         for cb in callbacks:
-            if isinstance(cb, (BatchSizeFinder, LRFinderCallback)):
+            if isinstance(cb, (BatchSizeFinder, LearningRateFinder)):
                 tuner_callbacks.append(cb)
             elif isinstance(cb, Checkpoint):
                 checkpoint_callbacks.append(cb)

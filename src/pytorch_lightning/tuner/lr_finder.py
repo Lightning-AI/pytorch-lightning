@@ -24,8 +24,6 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.optimizer import _set_scheduler_opt_idx
-from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
@@ -92,7 +90,7 @@ class _LRFinder:
         lr = lr_finder.suggestion()
     """
 
-    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
+    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int) -> None:
         assert mode in ("linear", "exponential"), "mode should be either `linear` or `exponential`"
 
         self.mode = mode
@@ -107,6 +105,8 @@ class _LRFinder:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
+        from pytorch_lightning.core.optimizer import _set_scheduler_opt_idx
+
         optimizers = trainer.strategy.optimizers
 
         if len(optimizers) != 1:
@@ -233,7 +233,7 @@ def lr_find(
     lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
     # Configure optimizer and scheduler
-    lr_finder._exchange_scheduler(trainer, model)  # type: ignore[assignment]
+    lr_finder._exchange_scheduler(trainer, model)
 
     # Fit, lr & loss logged in callback
     _try_loop_run(trainer, params)
@@ -283,6 +283,8 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
 
 
 def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float) -> None:
+    from pytorch_lightning.loggers.logger import DummyLogger
+
     trainer.strategy.lr_scheduler_configs = []
     trainer.strategy.optimizer_frequencies = []
     # avoid lr find being called multiple times
@@ -463,7 +465,7 @@ class _ExponentialLR(_LRScheduler):
         return self._lr
 
 
-def _try_loop_run(trainer: "pl.Trainer", params) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
