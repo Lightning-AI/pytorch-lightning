@@ -1,4 +1,4 @@
-"""The watch_app_state function enables us to trigger a callback function when ever the app state changes."""
+"""The watch_app_state function enables us to trigger a callback function whenever the App state changes."""
 import os
 from unittest import mock
 
