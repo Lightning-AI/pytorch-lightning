@@ -72,7 +72,7 @@ def watch_app_state(callback: Callable):
     """Start the process that serves the UI at the given hostname and port number.
 
     Arguments:
-        callback: A function to run when the app state changes. Must be thread safe.
+        callback: A function to run when the App state changes. Must be thread safe.
 
     Example:
 
