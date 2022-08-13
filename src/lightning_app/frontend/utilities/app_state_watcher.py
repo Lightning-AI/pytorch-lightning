@@ -24,7 +24,7 @@ class AppStateWatcher(param.Parameterized):
     """The AppStateWatcher enables a Frontend to:
 
     - Subscribe to any App state changes.
-    - To access and change the app state from the UI.
+    - To access and change the App state from the UI.
 
     This is particularly useful for the PanelFrontend, but can be used by
     other Frontend's too.
