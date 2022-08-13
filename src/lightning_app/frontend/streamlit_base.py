@@ -7,9 +7,9 @@ import pydoc
 from typing import Callable, Union
 
 from lightning_app.core.flow import LightningFlow
+from lightning_app.frontend.utilities.utils import _reduce_to_flow_scope
 from lightning_app.utilities.app_helpers import StreamLitStatePlugin
 from lightning_app.utilities.state import AppState
-from lightning_app.frontend.utilities.utils import _reduce_to_flow_scope
 
 app_state = AppState(plugin=StreamLitStatePlugin())
 
