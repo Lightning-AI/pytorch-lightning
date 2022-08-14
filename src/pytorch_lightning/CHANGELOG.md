@@ -8,10 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
-
-
--
+- Added Layer logger  ([#14180](https://github.com/Lightning-AI/lightning/pull/14180))
 
 
 ### Changed
