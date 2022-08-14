@@ -25,7 +25,7 @@ from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -77,7 +77,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -545,6 +545,7 @@ class Trainer(
         self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
+        self.val_check_batch: Union[int, float]
         self.val_check_interval: Union[int, float]
         self.num_sanity_val_steps: Union[int, float]
         self.limit_train_batches: Union[int, float]
@@ -739,7 +740,7 @@ class Trainer(
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
+            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None  # type: ignore
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
 
@@ -983,7 +984,7 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.predicting = True
 
-        self.predict_loop.return_predictions = return_predictions
+        self.predict_loop.return_predictions = return_predictions # type: ignore
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
@@ -1393,7 +1394,7 @@ class Trainer(
 
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
-            return
+            return None
 
         if model_connected and ckpt_path is None:
             ckpt_path = "best"
@@ -1447,8 +1448,8 @@ class Trainer(
                     f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
-                return
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+                return None
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts)) # type: ignore
 
         if not ckpt_path:
             raise MisconfigurationException(
@@ -1662,7 +1663,7 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = "on_load_checkpoint"
 
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+        callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -1690,7 +1691,7 @@ class Trainer(
 
     def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+        callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -1743,6 +1744,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
+        assert isinstance(profiler, Profiler)
         self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
@@ -2129,8 +2131,9 @@ class Trainer(
         return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> "pl.LightningModule": # type: ignore
         # TODO: this is actually an optional return
+        assert self.strategy.lightning_module is not None
         return self.strategy.lightning_module
 
     @property
@@ -2222,12 +2225,12 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        assert self.logger is not None
         if len(self.loggers) == 1:
-            if isinstance(self.logger, TensorBoardLogger):
-                dirpath = self.logger.log_dir
-            else:
+            assert self.logger is not None
+            if not isinstance(self.logger, TensorBoardLogger):
                 dirpath = self.logger.save_dir
+            else:
+                dirpath = self.logger.log_dir
         else:
             dirpath = self.default_root_dir
 
@@ -2712,7 +2715,7 @@ class Trainer(
         if not logger:
             self.loggers = []
         elif isinstance(logger, LoggerCollection):
-            self.loggers = list(logger)
+            self.loggers = [x for x in logger]
         else:
             self.loggers = [logger]
 
@@ -2725,17 +2728,17 @@ class Trainer(
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> Dict[str, Tensor]:
+    def callback_metrics(self) -> Dict:
         # TODO: the true typing return can include dictionaries as defined in
         # `pytorch_lightning.trainer.connectors.logger_connector.result._OUT_DICT`
         return self._logger_connector.callback_metrics
 
     @property
-    def logged_metrics(self) -> dict:
+    def logged_metrics(self) -> _OUT_DICT:
         return self._logger_connector.logged_metrics
 
     @property
-    def progress_bar_metrics(self) -> dict:
+    def progress_bar_metrics(self) -> Dict:
         return self._logger_connector.progress_bar_metrics
 
     @property
@@ -2751,7 +2754,7 @@ class Trainer(
 
     def _should_terminate_gracefully(self) -> bool:
         value = torch.tensor(int(self._terminate_gracefully), device=self.strategy.root_device)
-        return self.strategy.reduce(value, reduce_op="sum") > 0
+        return bool(self.strategy.reduce(value, reduce_op="sum") > 0)
 
     """
     Other
