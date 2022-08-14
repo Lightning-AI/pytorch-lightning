@@ -21,7 +21,7 @@ def _get_render_fn_from_environment() -> Callable:
 
 
 def main():
-    """Run the render_fn with the current flow_state"""
+    """Run the render_fn with the current flow_state."""
     # Fetch the information of which flow attaches to this streamlit instance
     flow_state = _reduce_to_flow_scope(app_state, flow=os.environ["LIGHTNING_FLOW_NAME"])
 
