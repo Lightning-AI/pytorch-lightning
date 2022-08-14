@@ -154,7 +154,7 @@ class Trainer(
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
-        min_epochs: Optional[int] = None,
+        min_epochs: int = 0,
         max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
@@ -547,6 +547,10 @@ class Trainer(
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
+        self.limit_train_batches: Union[int, float]
+        self.limit_val_batches: Union[int, float]
+        self.limit_test_batches: Union[int, float]
+        self.limit_predict_batches: Union[int, float]
         self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
@@ -571,7 +575,7 @@ class Trainer(
         overfit_batches: Union[int, float],
         val_check_interval: Optional[Union[int, float]],
         num_sanity_val_steps: int,
-    ):
+    ) -> None:
         # init debugging flags
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
             raise MisconfigurationException(
@@ -708,7 +712,7 @@ class Trainer(
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[str] = None,
-    ) -> None:
+    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         Trainer._log_api_event("fit")
         log.detail(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -786,7 +790,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> _EVALUATE_OUTPUT:
+    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -876,7 +880,7 @@ class Trainer(
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> _EVALUATE_OUTPUT:
+    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -1236,7 +1240,7 @@ class Trainer(
             logger.log_graph(self.lightning_module)
             logger.save()
 
-    def _teardown(self):
+    def _teardown(self) -> None:
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.teardown()
@@ -1247,14 +1251,14 @@ class Trainer(
         self._logger_connector.teardown()
         self._signal_connector.teardown()
 
-    def run_stage(self) -> None:
+    def run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         rank_zero_deprecation(
             "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
             " `Trainer.{fit,validate,test,predict}` instead."
         )
         return self._run_stage()
 
-    def _run_stage(self):
+    def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
 
@@ -1264,7 +1268,7 @@ class Trainer(
             return self._run_predict()
         return self._run_train()
 
-    def _pre_training_routine(self):
+    def _pre_training_routine(self) -> None:
         # wait for all to join if on distributed
         self.strategy.barrier("setup_training")
 
@@ -2444,7 +2448,7 @@ class Trainer(
         return depr_arg_names
 
     @classmethod
-    def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs) -> Any:
+    def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> Any:
         return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
@@ -2580,7 +2584,7 @@ class Trainer(
         return self._fit_loop
 
     @fit_loop.setter
-    def fit_loop(self, loop: FitLoop):
+    def fit_loop(self, loop: FitLoop) -> None:
         """Attach a custom fit loop to this Trainer.
 
         It will run with
@@ -2594,7 +2598,7 @@ class Trainer(
         return self._validate_loop
 
     @validate_loop.setter
-    def validate_loop(self, loop: EvaluationLoop):
+    def validate_loop(self, loop: EvaluationLoop) -> None:
         """Attach a custom validation loop to this Trainer.
 
         It will run with
@@ -2609,7 +2613,7 @@ class Trainer(
         return self._test_loop
 
     @test_loop.setter
-    def test_loop(self, loop: EvaluationLoop):
+    def test_loop(self, loop: EvaluationLoop) -> None:
         """Attach a custom test loop to this Trainer.
 
         It will run with
@@ -2623,7 +2627,7 @@ class Trainer(
         return self._predict_loop
 
     @predict_loop.setter
-    def predict_loop(self, loop: PredictionLoop):
+    def predict_loop(self, loop: PredictionLoop) -> None:
         """Attach a custom prediction loop to this Trainer.
 
         It will run with
