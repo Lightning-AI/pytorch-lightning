@@ -159,6 +159,6 @@ def test_open_close_log_files():
     ),
 )
 def test_has_panel_autoreload(value, expected):
-    """We can get and set autoreload via the environment variable PANEL_AUTORELOAD."""
+    """We can get and set autoreload using the environment variable PANEL_AUTORELOAD."""
     with mock.patch.dict(os.environ, {"PANEL_AUTORELOAD": value}):
         assert has_panel_autoreload() == expected

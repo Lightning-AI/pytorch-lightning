@@ -2,7 +2,8 @@
 
 We will call the ``render_fn`` that the user provided to the PanelFrontend.
 
-It requires the below environment variables to be set
+It requires the following environment variables to be set
+
 
 - LIGHTNING_RENDER_FUNCTION
 - LIGHTNING_RENDER_MODULE_FILE

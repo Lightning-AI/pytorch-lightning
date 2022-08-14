@@ -63,11 +63,11 @@ def test_get_frontend_environment_file():
 
 @mock.patch.dict(os.environ, clear=True)
 def test_is_running_locally() -> bool:
-    """We can determine if lightning is running locally."""
+    """We can determine if Lightning is running locally."""
     assert is_running_locally()
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "127.0.0.1"})
 def test_is_running_cloud() -> bool:
-    """We can determine if lightning is running in cloud."""
+    """We can determine if Lightning is running in the cloud."""
     assert not is_running_locally()

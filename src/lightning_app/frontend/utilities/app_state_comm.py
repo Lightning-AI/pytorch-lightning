@@ -43,8 +43,8 @@ def _target_fn():
             while True:
                 await websocket.recv()
                 # Note: I have not seen use cases where the two lines below are needed
-                # Changing '< 0.2' to '< 1' makes the app very sluggish to the end user
-                # Also the implementation can make the app state get behind because only 1 update
+                # Changing '< 0.2' to '< 1' makes the App very sluggish to the end user
+                # Also the implementation can cause the App state to lag behind because only 1 update
                 # is received per 0.2 second (or 1 second).
                 # while (time.time() - last_updated) < 0.2:
                 #     time.sleep(0.05)
@@ -72,7 +72,7 @@ def watch_app_state(callback: Callable):
     """Start the process that serves the UI at the given hostname and port number.
 
     Arguments:
-        callback: A function to run when the app state changes. Must be thread safe.
+        callback: A function to run when the App state changes. Must be thread safe.
 
     Example:
 

@@ -1,4 +1,4 @@
-"""The watch_app_state function enables us to trigger a callback function when ever the app state changes."""
+"""The watch_app_state function enables us to trigger a callback function whenever the App state changes."""
 import os
 from unittest import mock
 
@@ -26,12 +26,12 @@ def test_get_ws_url_when_cloud():
 
 @mock.patch.dict(os.environ, {"LIGHTNING_FLOW_NAME": "FLOW"})
 def test_watch_app_state():
-    """We can watch the app state and a callback function will be run when it changes."""
+    """We can watch the App state and a callback function will be run when it changes."""
     callback = mock.MagicMock()
     # When
     watch_app_state(callback)
 
-    # Here we would like to send messages via the web socket
+    # Here we would like to send messages using the web socket
     # For testing the web socket is not started. See conftest.py
     # So we need to manually trigger _run_callbacks here
     _run_callbacks()
