@@ -59,7 +59,6 @@ module = [
     "pytorch_lightning.trainer.callback_hook",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.supporters",
-    "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
