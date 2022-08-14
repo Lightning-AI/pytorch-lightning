@@ -4,9 +4,8 @@ From here, we will call the render function that the user provided in ``configur
 """
 import os
 import pydoc
-from typing import Callable, Union
+from typing import Callable
 
-from lightning_app.core.flow import LightningFlow
 from lightning_app.frontend.utilities.utils import _reduce_to_flow_scope
 from lightning_app.utilities.app_helpers import StreamLitStatePlugin
 from lightning_app.utilities.state import AppState
@@ -22,6 +21,7 @@ def _get_render_fn_from_environment() -> Callable:
 
 
 def main():
+    """Run the render_fn with the current flow_state"""
     # Fetch the information of which flow attaches to this streamlit instance
     flow_state = _reduce_to_flow_scope(app_state, flow=os.environ["LIGHTNING_FLOW_NAME"])
 
