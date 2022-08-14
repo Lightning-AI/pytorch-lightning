@@ -19,13 +19,13 @@ import operator
 import os
 import traceback
 import warnings
-from argparse import ArgumentParser, Namespace
+from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Type, Union
 from weakref import proxy
 
 import torch
@@ -162,7 +162,7 @@ class Trainer(
         limit_val_batches: Optional[Union[int, float]] = None,
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
-        val_check_interval: Optional[Union[int, float]] = None,
+        val_check_interval: Union[int, float] = 1.0,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
@@ -174,7 +174,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -259,7 +259,6 @@ class Trainer(
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
                 that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
-                Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
@@ -526,7 +525,7 @@ class Trainer(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self.gradient_clip_val: Union[int, float] = gradient_clip_val
+        self.gradient_clip_val: Optional[Union[int, float]] = gradient_clip_val
         self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
@@ -547,6 +546,7 @@ class Trainer(
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
+        self.num_sanity_val_steps: Union[int, float]
         self.limit_train_batches: Union[int, float]
         self.limit_val_batches: Union[int, float]
         self.limit_test_batches: Union[int, float]
@@ -627,17 +627,18 @@ class Trainer(
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = float("inf")
-        self.train_dataloader = None
 
-        self.num_sanity_val_batches = []
-        self.num_test_batches = []
-        self.num_val_batches = []
-        self.num_predict_batches = []
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-        self.predict_dataloaders = None
-        self._last_train_dl_reload_epoch = None
-        self._last_val_dl_reload_epoch: Optional[int] = None
+        self.train_dataloader: Optional[Union[CombinedLoader, Any]] = None
+
+        self.num_sanity_val_batches: List[Union[int, float]] = []
+        self.num_test_batches: List[Union[int, float]] = []
+        self.num_val_batches: List[Union[int, float]] = []
+        self.num_predict_batches: List[Union[int, float]] = []
+        
+        self.test_dataloaders: Optional[List[DataLoader]] = None
+        self.val_dataloaders: Optional[List[DataLoader]] = None
+        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_val_dl_reload_epoch = float("-inf")
 
     def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
         r"""
@@ -1266,7 +1267,7 @@ class Trainer(
             return self._run_evaluate()
         if self.predicting:
             return self._run_predict()
-        return self._run_train()
+        self._run_train()
 
     def _pre_training_routine(self) -> None:
         # wait for all to join if on distributed
@@ -1376,6 +1377,7 @@ class Trainer(
         # fault-tolerance takes precedence
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
+        assert self.state.fn
         ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
         fn = self.state.fn.value
 
@@ -1456,6 +1458,7 @@ class Trainer(
         return ckpt_path
 
     def _call_setup_hook(self) -> None:
+        assert self.state.fn is not None
         fn = self.state.fn._setup_fn
 
         self.strategy.barrier("pre_setup")
@@ -1479,6 +1482,7 @@ class Trainer(
             self._call_callback_hooks("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
+        assert self.state.fn is not None
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
@@ -1742,6 +1746,7 @@ class Trainer(
         self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
+        assert self.state.fn is not None
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
@@ -2001,6 +2006,7 @@ class Trainer(
 
     @property
     def accelerator(self) -> Accelerator:
+        assert self.strategy.accelerator
         return self.strategy.accelerator
 
     @property
@@ -2052,6 +2058,7 @@ class Trainer(
             if isinstance(self.strategy, ParallelStrategy)
             else [self.strategy.root_device]
         )
+        assert devices is not None
         device_ids = []
         for idx, device in enumerate(devices):
             if isinstance(device, torch.device):
@@ -2131,7 +2138,7 @@ class Trainer(
         return self.strategy.optimizers
 
     @optimizers.setter
-    def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
+    def optimizers(self, new_optims: List[Optimizer]) -> None:
         self.strategy.optimizers = new_optims
 
     @property
@@ -2195,6 +2202,7 @@ class Trainer(
         To access the pure LightningModule, use
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
         """
+        assert self.strategy.model
         return self.strategy.model
 
     @model.setter
@@ -2214,6 +2222,7 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
+        assert self.logger is not None
         if len(self.loggers) == 1:
             if isinstance(self.logger, TensorBoardLogger):
                 dirpath = self.logger.log_dir
@@ -2441,7 +2450,7 @@ class Trainer(
     @classmethod
     def get_deprecated_arg_names(cls) -> List:
         """Returns a list with deprecated Trainer arguments."""
-        depr_arg_names = []
+        depr_arg_names: List[Any] = []
         for name, val in cls.__dict__.items():
             if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
                 depr_arg_names.extend(val)
@@ -2460,7 +2469,7 @@ class Trainer(
         return parse_env_variables(cls)
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> Union[_ArgumentGroup, ArgumentParser]:
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     """
@@ -2528,7 +2537,7 @@ class Trainer(
 
     @property
     def evaluating(self) -> bool:
-        return self.state.stage and self.state.stage.evaluating
+        return self.state.stage is not None and self.state.stage.evaluating
 
     @property
     def sanity_checking(self) -> bool:
@@ -2560,6 +2569,7 @@ class Trainer(
 
     @property
     def max_epochs(self) -> int:
+        assert self.fit_loop.max_epochs
         return self.fit_loop.max_epochs
 
     @property
