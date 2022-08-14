@@ -77,7 +77,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -2738,7 +2738,7 @@ class Trainer(
         return self._logger_connector.logged_metrics
 
     @property
-    def progress_bar_metrics(self) -> Dict:
+    def progress_bar_metrics(self) -> _PBAR_DICT:
         return self._logger_connector.progress_bar_metrics
 
     @property
