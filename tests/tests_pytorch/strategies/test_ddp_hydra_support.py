@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from pytorch_lightning.utilities.imports import _RequirementAvailable
-from tests.tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 _HYDRA_AVAILABLE = bool(_RequirementAvailable("hydra-core"))
 
