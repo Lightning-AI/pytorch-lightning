@@ -13,7 +13,6 @@
 # limitations under the License.
 import operator
 
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities import (
@@ -23,7 +22,7 @@ from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
 )
-from pytorch_lightning.utilities.imports import _compare_version, _RequirementAvailable, torch
+from pytorch_lightning.utilities.imports import _compare_version, _FAIRSCALE_AVAILABLE, _RequirementAvailable, torch
 
 
 def test_module_exists():
