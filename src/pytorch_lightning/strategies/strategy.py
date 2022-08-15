@@ -33,8 +33,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import _get_rank
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.types import (
     _PATH,
     LRSchedulerConfig,
@@ -50,8 +49,8 @@ TReduce = TypeVar("TReduce")
 
 log = logging.getLogger(__name__)
 
-if _FAIRSCALE_AVAILABLE:
-    from fairscale.optim import OSS
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch.distributed.optim import ZeroRedundancyOptimizer
 
 
 class Strategy(ABC):
@@ -170,7 +169,7 @@ class Strategy(ABC):
         self.optimizers = optimizers
         self.lr_scheduler_configs = lr_scheduler_configs
 
-    def optimizer_state(self, optimizer: Optimizer) -> Optional[Dict[str, Tensor]]:
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
@@ -178,19 +177,17 @@ class Strategy(ABC):
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
 
-        if _FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS):
-            return self._oss_optimizer_state(optimizer)
-        return optimizer.state_dict()
+        if _FAIRSCALE_AVAILABLE:
+            from fairscale.optim import OSS
 
-    def _oss_optimizer_state(self, optimizer: "OSS") -> Optional[Dict[str, Tensor]]:
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`OSS.consolidate_state_dict`.
-        """
-        optimizer.consolidate_state_dict()
-        if self.is_global_zero:
-            return optimizer.state_dict()
-        return None
+        if (_TORCH_GREATER_EQUAL_1_10 and isinstance(optimizer, ZeroRedundancyOptimizer)) or (
+                _FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS)
+        ):
+            optimizer.consolidate_state_dict()
+            return optimizer.state_dict() if self.is_global_zero else {}
+
+        # for optimizers that are not sharded, we return the state dict on all ranks
+        return optimizer.state_dict()
 
     def backward(
         self,
