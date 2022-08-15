@@ -14,21 +14,6 @@ body:
         
         If it really is a **🐛 bug**, please fill out this form as completely as you can.
 
-  - type: markdown
-    attributes:
-      value: >
-        If you're new to making bug reports, here are a few guidelines for you:
-
-        1. Please K.I.S.S. > Keep It Short and Succinct. From the description, to steps to reproduce the bug, to the code example, and to any additional info, try and keep everything as concise as possible.
-
-        2. Bugs with code are fixed faster! Please provide a clear and concise code example that reproduces the problem. To get that use the [BoringModel] (https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)!
-
-         IMPORTANT: This is going to be public, so please choose wisely.
-
-         If you could not reproduce the bug using the BoringModel and still think there's a bug, please make out a bug report.
-
-        3. Povide anything else that you think may help us reproduce your issue.
-
   - type: checkboxes
     id: checks
     attributes:
