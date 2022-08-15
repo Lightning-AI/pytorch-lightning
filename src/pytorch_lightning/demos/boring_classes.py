@@ -98,7 +98,7 @@ class BoringModel(LightningModule):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
         return torch.nn.functional.mse_loss(preds, torch.ones_like(preds))
 
-    def step(self, x):
+    def step(self, x: Any):
         x = self(x)
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
@@ -111,7 +111,7 @@ class BoringModel(LightningModule):
     def training_step_end(self, training_step_outputs):
         return training_step_outputs
 
-    def training_epoch_end(self, outputs) -> None:
+    def training_epoch_end(self, outputs: Any) -> None:
         torch.stack([x["loss"] for x in outputs]).mean()
 
     def validation_step(self, batch, batch_idx):
@@ -119,7 +119,7 @@ class BoringModel(LightningModule):
         loss = self.loss(batch, output)
         return {"x": loss}
 
-    def validation_epoch_end(self, outputs) -> None:
+    def validation_epoch_end(self, outputs: Any) -> None:
         torch.stack([x["x"] for x in outputs]).mean()
 
     def test_step(self, batch, batch_idx):
@@ -127,7 +127,7 @@ class BoringModel(LightningModule):
         loss = self.loss(batch, output)
         return {"y": loss}
 
-    def test_epoch_end(self, outputs) -> None:
+    def test_epoch_end(self, outputs: Any) -> None:
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self):
@@ -135,16 +135,16 @@ class BoringModel(LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> Any:
         return DataLoader(RandomDataset(32, 64))
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> Any:
         return DataLoader(RandomDataset(32, 64))
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> Any:
         return DataLoader(RandomDataset(32, 64))
 
-    def predict_dataloader(self):
+    def predict_dataloader(self) -> Any:
         return DataLoader(RandomDataset(32, 64))
 
 
@@ -156,7 +156,7 @@ class BoringDataModule(LightningDataModule):
         self.checkpoint_state: Optional[str] = None
         self.random_full = RandomDataset(32, 64 * 4)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
         if stage == "fit" or stage is None:
             self.random_train = Subset(self.random_full, indices=range(64))
 
@@ -169,16 +169,16 @@ class BoringDataModule(LightningDataModule):
         if stage == "predict" or stage is None:
             self.random_predict = Subset(self.random_full, indices=range(64 * 3, 64 * 4))
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> Any:
         return DataLoader(self.random_train)
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> Any:
         return DataLoader(self.random_val)
 
-    def test_dataloader(self) -> None:
+    def test_dataloader(self) -> Any:
         return DataLoader(self.random_test)
 
-    def predict_dataloader(self) -> None:
+    def predict_dataloader(self) -> Any:
         return DataLoader(self.random_predict)
 
 
