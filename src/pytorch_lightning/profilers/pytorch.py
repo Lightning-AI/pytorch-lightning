@@ -305,13 +305,15 @@ class PyTorchProfiler(Profiler):
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
         schedule = torch.profiler.schedule(
-            wait=self.wait, 
-            warmup=self.warmup, 
-            active=self.active, 
+            wait=self.wait,
+            warmup=self.warmup,
+            active=self.active,
             repeat=self.repeat,
             skip_first=self.skip_first,
         )
-        total_schedule_steps = (self.wait + self.warmup + self.active) * self.repeat + self.skip_first if self.repeat else None
+        total_schedule_steps = (
+            (self.wait + self.warmup + self.active) * self.repeat + self.skip_first if self.repeat else None
+        )
         self._default_schedule()
         schedule = schedule if has_schedule else self._default_schedule()
         self._schedule = ScheduleWrapper(schedule, total_schedule_steps) if schedule is not None else schedule
