@@ -301,16 +301,17 @@ class PyTorchProfiler(Profiler):
             )
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
-        has_schedule = self._wait is not None
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
-
-        schedule = torch.profiler.schedule(
-            wait=self._wait,
-            warmup=self._warmup,
-            active=self._active,
-            repeat=self._repeat,
-            skip_first=self._skip_first,
-        )
+        
+        has_schedule = self._wait is not None
+        if has_schedule:
+          schedule = torch.profiler.schedule(
+              wait=self._wait, 
+              warmup=self._warmup, 
+              active=self._active, 
+              repeat=self._repeat,
+              skip_first=self._skip_first,
+          )
         total_schedule_steps = (
             (self._wait + self._warmup + self._active) * self._repeat + self._skip_first if self._repeat else None
         )
