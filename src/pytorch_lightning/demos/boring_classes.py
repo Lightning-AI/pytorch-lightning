@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
@@ -26,7 +27,7 @@ class RandomDictDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Dict[str, Any]:
         a = self.data[index]
         b = a + 2
         return {"a": a, "b": b}
@@ -40,7 +41,7 @@ class RandomDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Any:
         return self.data[index]
 
     def __len__(self) -> int:
@@ -52,7 +53,7 @@ class RandomIterableDataset(IterableDataset):
         self.count = count
         self.size = size
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         for _ in range(self.count):
             yield torch.randn(self.size)
 
@@ -62,16 +63,16 @@ class RandomIterableDatasetWithLen(IterableDataset):
         self.count = count
         self.size = size
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         for _ in range(len(self)):
             yield torch.randn(self.size)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.count
 
 
 class BoringModel(LightningModule):
-    def __init__(self):
+    def __init__(self) -> None:
         """Testing PL Module.
 
         Use as follows:
@@ -90,10 +91,10 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
-    def forward(self, x):
+    def forward(self, x: Any) -> Any:
         return self.layer(x)
 
-    def loss(self, batch, preds):
+    def loss(self, batch, preds) -> Any:
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
         return torch.nn.functional.mse_loss(preds, torch.ones_like(preds))
 
@@ -174,15 +175,15 @@ class BoringDataModule(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(self.random_val)
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> None:
         return DataLoader(self.random_test)
 
-    def predict_dataloader(self):
+    def predict_dataloader(self) -> None:
         return DataLoader(self.random_predict)
 
 
 class ManualOptimBoringModel(BoringModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.automatic_optimization = False
 
@@ -211,12 +212,12 @@ class DemoModel(LightningModule):
         loss = x.sum()
         return loss
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Any:
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
@@ -225,7 +226,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
 
-    def forward(self, x):
+    def forward(self, x: Any) -> Tensor:
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
