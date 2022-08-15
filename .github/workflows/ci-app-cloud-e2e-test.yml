@@ -55,6 +55,7 @@ jobs:
           - drive
           - payload
           - commands_and_api
+          - test_app_mounted_s3_drive
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v2
