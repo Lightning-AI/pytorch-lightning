@@ -32,8 +32,8 @@ from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import (
     _PATH,
     LRSchedulerConfig,
@@ -181,7 +181,7 @@ class Strategy(ABC):
             from fairscale.optim import OSS
 
         if (_TORCH_GREATER_EQUAL_1_10 and isinstance(optimizer, ZeroRedundancyOptimizer)) or (
-                _FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS)
+            _FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS)
         ):
             optimizer.consolidate_state_dict()
             return optimizer.state_dict() if self.is_global_zero else {}
