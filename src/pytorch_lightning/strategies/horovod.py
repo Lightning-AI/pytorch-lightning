@@ -114,8 +114,8 @@ class HorovodStrategy(ParallelStrategy):
         lr_scheduler_configs = self.lr_scheduler_configs
         for config in lr_scheduler_configs:
             scheduler = config.scheduler
-            assert isinstance(scheduler, _LRScheduler)
-            scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
+            if hasattr(scheduler, "base_lrs"):
+                scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]  # type: ignore[union-attr]
 
         assert self.lightning_module is not None
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
