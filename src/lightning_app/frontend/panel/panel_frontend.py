@@ -10,7 +10,8 @@ import sys
 from typing import Callable, TextIO
 
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.frontend.utilities.utils import get_allowed_hosts, get_frontend_environment, is_running_locally
+from lightning_app.frontend.utilities.utils import get_allowed_hosts, get_frontend_environment
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
 
@@ -106,7 +107,7 @@ class PanelFrontend(Frontend):
         )
         command = self._get_popen_args(host, port)
 
-        if not is_running_locally():
+        if is_running_in_cloud():
             self._open_log_files()
 
         self._process = subprocess.Popen(command, env=env, **self._log_files)  # pylint: disable=consider-using-with

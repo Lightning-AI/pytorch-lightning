@@ -7,8 +7,8 @@ from lightning_app.frontend.utilities.utils import (
     get_flow_state,
     get_frontend_environment,
     get_render_fn_from_environment,
-    is_running_locally,
 )
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.state import AppState
 
 
@@ -64,10 +64,10 @@ def test_get_frontend_environment_file():
 @mock.patch.dict(os.environ, clear=True)
 def test_is_running_locally() -> bool:
     """We can determine if Lightning is running locally."""
-    assert is_running_locally()
+    assert is_running_in_cloud()
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "127.0.0.1"})
 def test_is_running_cloud() -> bool:
     """We can determine if Lightning is running in the cloud."""
-    assert not is_running_locally()
+    assert not is_running_in_cloud()

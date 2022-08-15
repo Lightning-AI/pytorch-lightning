@@ -1,3 +1,4 @@
+import os
 import warnings
 
 from lightning_cloud.openapi import V1Membership
@@ -34,3 +35,11 @@ def _get_project(client: LightningClient, project_id: str = LIGHTNING_CLOUD_PROJ
 
 def _sigterm_flow_handler(*_, app: "lightning_app.LightningApp"):
     app.stage = AppStage.STOPPING
+
+
+def is_running_in_cloud() -> bool:
+    """Returns True if the Lightning App is running in the cloud.
+
+    This function can be used to determine if the App is running locally and provide a better developer experience.
+    """
+    return "LIGHTNING_APP_STATE_URL" in os.environ
