@@ -248,7 +248,9 @@ class IPUStrategy(ParallelStrategy):
             dataloader, sampler, mode, self.replication_factor > 1  # type: ignore[arg-type]
         )
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = _reinstantiate_wrapped_cls(dataloader, opts, *dl_args, poptorch.DataLoader, **dl_kwargs)
+        dataloader = _reinstantiate_wrapped_cls(
+            dataloader, opts, *dl_args, explicit_cls=poptorch.DataLoader, **dl_kwargs
+        )
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:
