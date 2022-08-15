@@ -635,7 +635,7 @@ class Trainer(
         self.num_test_batches: List[Union[int, float]] = []
         self.num_val_batches: List[Union[int, float]] = []
         self.num_predict_batches: List[Union[int, float]] = []
-        
+
         self.test_dataloaders: Optional[List[DataLoader]] = None
         self.val_dataloaders: Optional[List[DataLoader]] = None
         self._last_train_dl_reload_epoch = float("-inf")
@@ -984,7 +984,7 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.predicting = True
 
-        self.predict_loop.return_predictions = return_predictions # type: ignore
+        self.predict_loop.return_predictions = return_predictions  # type: ignore
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
@@ -1449,7 +1449,7 @@ class Trainer(
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
                 return None
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts)) # type: ignore
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))  # type: ignore
 
         if not ckpt_path:
             raise MisconfigurationException(
@@ -2131,7 +2131,7 @@ class Trainer(
         return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
-    def lightning_module(self) -> "pl.LightningModule": # type: ignore
+    def lightning_module(self) -> "pl.LightningModule":  # type: ignore
         # TODO: this is actually an optional return
         assert self.strategy.lightning_module is not None
         return self.strategy.lightning_module

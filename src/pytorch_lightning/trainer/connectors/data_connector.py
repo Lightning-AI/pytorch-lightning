@@ -447,7 +447,9 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(dataloaders: Union[Collection[DataLoader], DataLoader], mode: RunningStage) -> Collection[DataLoader]:
+    def _resolve_overfit_batches(
+        dataloaders: Union[Collection[DataLoader], DataLoader], mode: RunningStage
+    ) -> Collection[DataLoader]:
         all_have_sequential_sampler = True
 
         def resolve_has_no_sequential_sampler(dataloader: DataLoader):
