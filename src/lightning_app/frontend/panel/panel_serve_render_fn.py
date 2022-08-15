@@ -17,6 +17,7 @@ Example:
 import inspect
 import os
 import pydoc
+from typing import Callable
 
 from lightning_app.frontend.panel.app_state_watcher import AppStateWatcher
 

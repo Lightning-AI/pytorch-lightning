@@ -1,14 +1,6 @@
 """We have some utility functions that can be used across frontends."""
-import inspect
-import os
-from unittest import mock
 
-from lightning_app.frontend.utils import (
-    _get_flow_state,
-    _get_frontend_environment,
-    get_render_fn_from_environment,
-)
-from lightning_app.utilities.cloud import is_running_in_cloud
+from lightning_app.frontend.utils import _get_flow_state, _get_frontend_environment
 from lightning_app.utilities.state import AppState
 
 
@@ -21,17 +13,6 @@ def test_get_flow_state(flow_state_state: dict, flow):
     assert flow_state._state == flow_state_state  # pylint: disable=protected-access
 
 
-def render_fn():
-    """Do nothing."""
-
-
-def test_get_render_fn_from_environment():
-    """We have a method to get the render_fn from the environment."""
-    # When
-    result = get_render_fn_from_environment("render_fn", __file__)
-    # Then
-    assert result.__name__ == render_fn.__name__
-    assert inspect.getmodule(result).__file__ == __file__
 
 
 def some_fn(_):
@@ -60,14 +41,3 @@ def test_get_frontend_environment_file():
     assert env["LIGHTNING_RENDER_FILE"] == "app_panel.py"
     assert env["LIGHTNING_RENDER_PORT"] == "1234"
 
-
-@mock.patch.dict(os.environ, clear=True)
-def test_is_running_locally() -> bool:
-    """We can determine if Lightning is running locally."""
-    assert is_running_in_cloud()
-
-
-@mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "127.0.0.1"})
-def test_is_running_cloud() -> bool:
-    """We can determine if Lightning is running in the cloud."""
-    assert not is_running_in_cloud()

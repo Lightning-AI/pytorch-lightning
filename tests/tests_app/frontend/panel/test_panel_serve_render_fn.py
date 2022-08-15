@@ -2,12 +2,13 @@
 
 These tests are for serving a render_fn function.
 """
+import inspect
 import os
 from unittest import mock
 
 import pytest
 
-from lightning_app.frontend.panel.panel_serve_render_fn import _get_render_fn
+from lightning_app.frontend.panel.panel_serve_render_fn import _get_render_fn, _get_render_fn_from_environment
 from lightning_app.frontend.panel.app_state_watcher import AppStateWatcher
 
 
@@ -63,3 +64,16 @@ def test_get_view_fn_no_args():
     """
     result = _get_render_fn()
     assert result() == "no_args"
+
+
+def render_fn_2():
+    """Do nothing."""
+
+
+def test_get_render_fn_from_environment():
+    """We have a method to get the render_fn from the environment."""
+    # When
+    result = _get_render_fn_from_environment("render_fn_2", __file__)
+    # Then
+    assert result.__name__ == render_fn_2.__name__
+    assert inspect.getmodule(result).__file__ == __file__
