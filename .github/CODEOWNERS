@@ -53,7 +53,6 @@
 /src/lightning_app/runners/cloud.py         @tchaton @hhsecond
 /src/lightning_app/testing                  @tchaton @manskx
 /src/lightning_app/__about__.py             @nohalon @edenlightning @lantiga
-src/lightning_app/frontend/panel             @tchaton @MarcSkovMadsen
 
 # Examples
 /examples/app_*                             @tchaton @awaelchli @manskx @hhsecond
