@@ -13,8 +13,6 @@ def test_get_flow_state(flow_state_state: dict, flow):
     assert flow_state._state == flow_state_state  # pylint: disable=protected-access
 
 
-
-
 def some_fn(_):
     """Be lazy!"""
 
@@ -34,10 +32,11 @@ def test_get_frontend_environment_fn():
 def test_get_frontend_environment_file():
     """We have a utility function to get the frontend render_fn environment."""
     # When
-    env = _get_frontend_environment(flow="root.lit_frontend", render_fn_or_file="app_panel.py", host="myhost", port=1234)
+    env = _get_frontend_environment(
+        flow="root.lit_frontend", render_fn_or_file="app_panel.py", host="myhost", port=1234
+    )
     # Then
     assert env["LIGHTNING_FLOW_NAME"] == "root.lit_frontend"
     assert env["LIGHTNING_RENDER_ADDRESS"] == "myhost"
     assert env["LIGHTNING_RENDER_FILE"] == "app_panel.py"
     assert env["LIGHTNING_RENDER_PORT"] == "1234"
-
