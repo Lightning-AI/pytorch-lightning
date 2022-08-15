@@ -38,12 +38,6 @@ def get_flow_state(flow: str) -> AppState:
     return flow_state
 
 
-def get_allowed_hosts() -> str:
-    """Returns a comma separated list of host[:port] that should be allowed to connect."""
-    # TODO: Enable only lightning.ai domain in the cloud
-    return "*"
-
-
 def get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port: int, host: str) -> os._Environ:
     """Returns an _Environ with the environment variables for serving a Frontend app set.
 

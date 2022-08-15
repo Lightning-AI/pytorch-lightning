@@ -10,7 +10,7 @@ import sys
 from typing import Callable, TextIO
 
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.frontend.utilities.utils import get_allowed_hosts, get_frontend_environment
+from lightning_app.frontend.utilities.utils import get_frontend_environment
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
@@ -157,9 +157,15 @@ class PanelFrontend(Frontend):
             "--prefix",
             self.flow.name,
             "--allow-websocket-origin",
-            get_allowed_hosts(),
+            _get_allowed_hosts(),
         ]
         if has_panel_autoreload():
             command.append("--autoreload")
         _logger.debug("PanelFrontend command %s", command)
         return command
+
+
+def _get_allowed_hosts() -> str:
+    """Returns a comma separated list of host[:port] that should be allowed to connect."""
+    # TODO: Enable only lightning.ai domain in the cloud
+    return "*"
