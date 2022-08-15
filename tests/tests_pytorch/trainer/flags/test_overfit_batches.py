@@ -142,7 +142,7 @@ def test_distributed_sampler_with_overfit_batches():
         strategy="ddp_spawn",
     )
     model.trainer = trainer
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     trainer._data_connector.attach_dataloaders(model)
     trainer.reset_train_dataloader()
     train_sampler = trainer.train_dataloader.loaders.sampler
