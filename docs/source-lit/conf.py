@@ -95,6 +95,8 @@ extensions = [
     "sphinx.ext.githubpages",
     "pt_lightning_sphinx_theme.extensions.lightning",
 ]
+# todo: remove this after finishing fusion
+suppress_warnings = ["autosectionlabel.*"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -135,11 +137,15 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    "PULL_REQUEST_TEMPLATE.md",
+    "generated/PULL_REQUEST_TEMPLATE.md",
     "**/README.md/*",
-    "readme.md",
     "code_samples/convert_pl_to_app/requirements.txt",
 ]
+
+os.makedirs(os.path.join(_PATH_HERE, "generated"), exist_ok=True)
+# copy all documents from GH templates like contribution guide
+for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
+    shutil.copy(md, os.path.join(_PATH_HERE, "generated", os.path.basename(md)))
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -387,6 +393,25 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
+import sys
 import lightning as L
+from typing import Optional
+
+import torch
+import pytorch_lightning as pl
+from torch import nn
+from torch.utils.data import IterableDataset, DataLoader, Dataset
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.cli import LightningCLI
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE,
+    _XLA_AVAILABLE,
+    _TPU_AVAILABLE,
+    _TORCHVISION_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_10,
+    _module_available,
+)
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True

@@ -21,160 +21,6 @@ Welcome to ⚡ Lightning Apps
 
 ----
 
-*****************
-Install Lightning
-*****************
-
-.. code-block:: bash
-
-   pip install lightning
-
-
-Or read the :ref:`advanced install <install>` guide.
-
-----
-
-***********
-Get Started
-***********
-
-.. raw:: html
-
-   <br />
-   <div class="display-card-container">
-      <div class="row">
-
-.. displayitem::
-   :header: Discover what Lightning Apps can do in 5 min
-   :description: Browse through mind-blowing ML Systems
-   :col_css: col-md-6
-   :button_link: get_started/what_app_can_do.html
-   :height: 180
-
-.. displayitem::
-   :header: Build and Train a Model
-   :description: Discover PyTorch Lightning and train your first Model.
-   :col_css: col-md-6
-   :button_link: get_started/build_model.html
-   :height: 180
-
-.. displayitem::
-   :header: Evolve a Model into an ML System
-   :description: Develop an App to train a model in the cloud
-   :col_css: col-md-6
-   :button_link: get_started/training_with_apps.html
-   :height: 180
-
-.. displayitem::
-   :header: Start from an ML system template
-   :description: Learn about Apps, from a template.
-   :col_css: col-md-6
-   :button_link: get_started/go_beyond_training.html
-   :height: 180
-
-.. raw:: html
-
-      </div>
-   </div>
-
-----
-
-***********************
-Current Lightning Users
-***********************
-
-.. raw:: html
-
-   <br />
-
-Build with Template(s) from the App & Component Gallery
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. displayitem::
-   :header: Start from Ready-to-Run Template Apps
-   :description: Jump-start your project's development
-   :col_css: col-md-6
-   :button_link: get_started/jumpstart_from_app_gallery.html
-   :height: 180
-
-.. displayitem::
-   :header: Add Component made by others to your App
-   :description: Add more functionalities to your projects
-   :col_css: col-md-6
-   :button_link: get_started/jumpstart_from_component_gallery.html
-   :height: 180
-
-
-.. raw:: html
-
-      </div>
-   </div>
-   <br />
-
-
-Keep Learning
-^^^^^^^^^^^^^
-
-.. raw:: html
-
-   <div class="display-card-container">
-      <div class="row">
-
-.. displayitem::
-   :header: Level-up with PyTorch Lightning
-   :description: PyTorch Lightning Tutorials
-   :col_css: col-md-6
-   :button_link: https://pytorch-lightning.readthedocs.io/en/latest/expertise_levels.html
-   :height: 180
-
-.. displayitem::
-   :header: Level-up with Lightning Apps
-   :description: From Basics to Advanced Skills
-   :col_css: col-md-6
-   :button_link: levels/basic/index.html
-   :height: 180
-
-.. displayitem::
-   :header: API Reference
-   :description: Detailed description of each API package
-   :col_css: col-md-6
-   :button_link: api_references.html
-   :height: 180
-
-.. displayitem::
-   :header: Hands-on Examples
-   :description: Learn by building Apps and Components.
-   :col_css: col-md-6
-   :button_link: examples/hands_on_example.html
-   :height: 180
-
-.. displayitem::
-   :header: Common Workflows
-   :description: Learn how to do ...
-   :col_css: col-md-6
-   :button_link: workflows/index.html
-   :height: 180
-
-.. displayitem::
-   :header: Glossary
-   :description: Discover Lightning App Concepts
-   :col_css: col-md-6
-   :button_link: glossary/index.html
-   :height: 180
-
-.. raw:: html
-
-   <hr class="docutils" style="margin: 50px 0 50px 0">
-
-.. raw:: html
-
-   <div style="display:none">
-
 .. toctree::
    :maxdepth: 1
    :caption: Home
@@ -276,3 +122,130 @@ Keep Learning
    [Docs under construction] Distributed front-ends <glossary/distributed_fe>
    [Docs under construction] Distributed hardware <glossary/distributed_hardware>
    [Docs under construction] Fault tolerance <glossary/fault_tolerance>
+
+
+.. toctree::
+   :maxdepth: 1
+   :name: start
+   :caption: Get Started
+
+   starter/introduction
+   starter/installation
+
+
+.. toctree::
+   :maxdepth: 2
+   :name: levels
+   :caption: Level Up
+
+   levels/core_skills
+   levels/intermediate
+   levels/advanced
+   levels/expert
+
+.. toctree::
+   :maxdepth: 2
+   :name: pl_docs
+   :caption: Core API
+
+   common/lightning_module
+   common/trainer
+
+.. toctree::
+   :maxdepth: 2
+   :name: api
+   :caption: API Reference
+
+   api_references
+
+.. toctree::
+   :maxdepth: 1
+   :name: Common Workflows
+   :caption: Common Workflows
+
+   Avoid overfitting <common/evaluation>
+   model/build_model.rst
+   common/hyperparameters
+   common/progress_bar
+   deploy/production
+   advanced/training_tricks
+   cli/lightning_cli
+   tuning/profiler
+   Manage experiments <visualize/logging_intermediate>
+   Organize existing PyTorch into Lightning <starter/converting>
+   clouds/cluster
+   Save and load model progress <common/checkpointing>
+   Save memory with half-precision <common/precision>
+   Training over the internet <strategies/hivemind>
+   advanced/model_parallel
+   clouds/cloud_training
+   Train on single or multiple GPUs <accelerators/gpu>
+   Train on single or multiple HPUs <accelerators/hpu>
+   Train on single or multiple IPUs <accelerators/ipu>
+   Train on single or multiple TPUs <accelerators/tpu>
+   Train on MPS <accelerators/mps>
+   Use a pretrained model <advanced/pretrained>
+   model/own_your_loop
+
+.. toctree::
+   :maxdepth: 1
+   :name: Glossary
+   :caption: Glossary
+
+   Accelerators <extensions/accelerator>
+   Callback <extensions/callbacks>
+   Checkpointing <common/checkpointing>
+   Cluster <clouds/cluster>
+   Cloud checkpoint <common/checkpointing_advanced>
+   Console Logging <common/console_logs>
+   Debugging <debug/debugging>
+   Early stopping <common/early_stopping>
+   Experiment manager (Logger) <visualize/experiment_managers>
+   Fault tolerant training  <clouds/fault_tolerant_training>
+   Finetuning <advanced/finetuning>
+   Flash <https://lightning-flash.readthedocs.io/en/stable/>
+   Grid AI <clouds/cloud_training>
+   GPU <accelerators/gpu>
+   Half precision <common/precision>
+   HPU <accelerators/hpu>
+   Inference <deploy/production_intermediate>
+   IPU <accelerators/ipu>
+   Lightning CLI <cli/lightning_cli>
+   Lightning Lite <model/build_model_expert>
+   LightningDataModule <data/datamodule>
+   LightningModule <common/lightning_module>
+   Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
+   Log <visualize/loggers>
+   Loops <extensions/loops>
+   TPU <accelerators/tpu>
+   Metrics <https://torchmetrics.readthedocs.io/en/stable/>
+   Model <model/build_model.rst>
+   Model Parallel <advanced/model_parallel>
+   Collaborative Training <strategies/hivemind>
+   Plugins <extensions/plugins>
+   Progress bar <common/progress_bar>
+   Production <deploy/production_advanced>
+   Predict <deploy/production_basic>
+   Pretrained models <advanced/pretrained>
+   Profiler <tuning/profiler>
+   Pruning and Quantization <advanced/pruning_quantization>
+   Remote filesystem and FSSPEC <common/remote_fs>
+   Strategy <extensions/strategy>
+   Strategy registry <advanced/strategy_registry>
+   Style guide <starter/style_guide>
+   Sweep <clouds/run_intermediate>
+   SWA <advanced/training_tricks>
+   SLURM <clouds/cluster_advanced>
+   Transfer learning <advanced/transfer_learning>
+   Trainer <common/trainer>
+   Torch distributed <clouds/cluster_intermediate_2>
+
+.. toctree::
+   :maxdepth: 1
+   :name: Community
+   :caption: Community
+
+   generated/CODE_OF_CONDUCT.md
+   generated/CONTRIBUTING.md
+   generated/BECOMING_A_CORE_CONTRIBUTOR.md
+   governance

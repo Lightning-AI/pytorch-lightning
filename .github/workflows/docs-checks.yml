@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch", "lit"]
+        pkg: ["app", "pytorch"]  # TODO: , "lit"
     steps:
       - uses: actions/checkout@v2
         with:
