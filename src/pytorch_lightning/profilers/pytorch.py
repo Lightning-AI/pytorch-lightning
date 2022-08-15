@@ -105,10 +105,12 @@ class ScheduleWrapper:
     """This class is used to override the schedule logic from the profiler and perform recording for both
     `training_step`, `validation_step`."""
 
-    def __init__(self, schedule: Callable) -> None:
+    def __init__(self, schedule: Callable, total_steps: Optional[int] = None) -> None:
         if not _KINETO_AVAILABLE:
             raise ModuleNotFoundError("You are trying to use `ScheduleWrapper` which require kineto install.")
         self._schedule = schedule
+        self.total_steps = total_steps
+        self.has_finished = False
         self.reset()
 
     def setup(self, start_action_name: str) -> None:
@@ -181,6 +183,8 @@ class ScheduleWrapper:
             # In this case, the action is RECORD in validation loop, and then call into the train
             # and the action is still WARMUP in train and pytorch will recognize this as error.
             action = ProfilerAction.RECORD
+        if self.num_step and self.num_step == self.total_steps:
+            self.has_finished = True
         self._prev_schedule_action = action
         return action
 
@@ -210,6 +214,11 @@ class PyTorchProfiler(Profiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_module_names: bool = True,
+        wait: int = None,
+        warmup: int = None,
+        active: int = None,
+        repeat: int = 0,
+        skip_first: int = 0,
         **profiler_kwargs: Any,
     ) -> None:
         """This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of.
@@ -277,6 +286,12 @@ class PyTorchProfiler(Profiler):
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
+        self.wait: int = wait
+        self.warmup: int = warmup
+        self.active: int = active
+        self.repeat: int = repeat
+        self.skip_first: int = skip_first
+
         if _KINETO_AVAILABLE:
             self._init_kineto(profiler_kwargs)
 
@@ -286,21 +301,20 @@ class PyTorchProfiler(Profiler):
             )
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
-        has_schedule = "schedule" in profiler_kwargs
+        has_schedule = self.wait is not None
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
-        schedule = profiler_kwargs.get("schedule", None)
-        if schedule is not None:
-            if not isinstance(schedule, Callable):
-                raise MisconfigurationException(f"Schedule should be a callable. Found: {schedule}")
-            action = schedule(0)
-            if not isinstance(action, ProfilerAction):
-                raise MisconfigurationException(
-                    f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
-                )
+        schedule = torch.profiler.schedule(
+            wait=self.wait, 
+            warmup=self.warmup, 
+            active=self.active, 
+            repeat=self.repeat,
+            skip_first=self.skip_first,
+        )
+        total_schedule_steps = (self.wait + self.warmup + self.active) * self.repeat + self.skip_first if self.repeat else None
         self._default_schedule()
         schedule = schedule if has_schedule else self._default_schedule()
-        self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
+        self._schedule = ScheduleWrapper(schedule, total_schedule_steps) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
 
         activities = profiler_kwargs.get("activities", None)
