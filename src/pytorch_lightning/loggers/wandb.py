@@ -454,9 +454,9 @@ class WandbLogger(Logger):
         """The project name of this experiment.
 
         Returns:
-            The name of the project this experiment belongs to, or
+            The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
+            name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
         """
-        # don't create an experiment if we don't have one
         return self._project
 
     @property
