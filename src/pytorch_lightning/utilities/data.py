@@ -501,15 +501,17 @@ def _replace_init_method(base_cls: Type, store_explicit_arg: Optional[str] = Non
     It patches the ``__init__`` method.
     """
     classes = _get_all_subclasses(base_cls) | {base_cls}
-    wrapped = set()
     for cls in classes:
-        if cls.__init__ not in wrapped:
+        # Check that __init__ belongs to the class
+        # https://stackoverflow.com/a/5253424
+        if "__init__" in cls.__dict__:
             cls._old_init = cls.__init__
             cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)
-            wrapped.add(cls.__init__)
     yield
     for cls in classes:
-        if hasattr(cls, "_old_init"):
+        # Check that _old_init belongs to the class
+        # https://stackoverflow.com/a/5253424
+        if "_old_init" in cls.__dict__:
             cls.__init__ = cls._old_init
             del cls._old_init
 

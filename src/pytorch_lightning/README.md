@@ -14,8 +14,8 @@ ______________________________________________________________________
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
-  <a href="#grid-ai">Grid AI</a> •
-  <a href="#license">License</a>
+  <a href="https://lightning.ai/">Lightning AI</a> •
+  <a href="https://github.com/Lightning-AI/lightning/blob/master/LICENSE">License</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
