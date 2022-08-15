@@ -323,7 +323,7 @@ class BoringFairScaleOptimizerModel(BoringModel):
         return OSS(params=base_optimizer.param_groups, optim=type(base_optimizer), **base_optimizer.defaults)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
 @pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
 def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using fairscale optimizers."""
