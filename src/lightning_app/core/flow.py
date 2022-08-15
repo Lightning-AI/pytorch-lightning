@@ -634,3 +634,36 @@ class LightningFlow:
             lightning my_command_name --args name=my_own_name
         """
         raise NotImplementedError
+
+    def configure_api(self):
+        """Configure the API routes of the LightningFlow.
+
+        Returns a list of HttpMethod such as Post or Get.
+
+        .. code-block:: python
+
+            from lightning_app import LightningFlow
+            from lightning_app.api import Post
+
+            from pydantic import BaseModel
+
+
+            class HandlerModel(BaseModel):
+                name: str
+
+
+            class Flow(L.LightningFlow):
+                def __init__(self):
+                    super().__init__()
+                    self.names = []
+
+                def handler(self, config: HandlerModel) -> None:
+                    self.names.append(config.name)
+
+                def configure_api(self):
+                    return [Post("/v1/api/request", self.handler)]
+
+        Once the app is running, you can access the Swagger UI of the app
+        under the ``/docs`` route.
+        """
+        raise NotImplementedError
