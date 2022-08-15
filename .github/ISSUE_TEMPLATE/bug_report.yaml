@@ -1,29 +1,33 @@
 name: Report a bug
 description: Errors and regression reports with complete reproducing test cases.
-labels: ["status:triage", "bug"]
+labels: ["needs triage", "bug"]
 body:
   - type: markdown
     attributes:
       value: >
-        Bug reports aren't usually really **🐛 bugs**. More often than not they are questions about how to use the product.
-        Hit us up on our [Community Slack](https://pytorch-lightning.slack.com) first if that is the case.
-        You're probably going to get a faster response and you're going to learn about using the product.
+        WAIT!
+        
+        Before you go any further. Is this really a **🐛 bug**? 
+        
+        If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
+        or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
+        
+        If it really is a **🐛 bug**, please fill out this form as completely as you can.
 
   - type: markdown
     attributes:
       value: >
-        If you are new to making bug reports, here are a few guidelines for you:
+        If you're new to making bug reports, here are a few guidelines for you:
 
-        1. A clear and concise description of the bug - keep it to a line or two
+        1. Please K.I.S.S. > Keep It Short and Succinct. From the description, to steps to reproduce the bug, to the code example, and to any additional info, try and keep everything as concise as possible.
 
-        2. A clear and concise code example that reproduces the problem. To get that use the [BoringModel] (https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)!
+        2. Bugs with code are fixed faster! Please provide a clear and concise code example that reproduces the problem. To get that use the [BoringModel] (https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)!
 
-         IMPORTANT: Has to be public.
+         IMPORTANT: This is going to be public, so please choose wisely.
 
-         If you could not reproduce using the BoringModel and still think there's a bug, please post here
-         but remember, bugs with code are fixed faster!
+         If you could not reproduce the bug using the BoringModel and still think there's a bug, please make out a bug report.
 
-        3. Additional details that may help us reproduce your issue.
+        3. Povide anything else that you think may help us reproduce your issue.
 
   - type: checkboxes
     id: checks
@@ -31,25 +35,29 @@ body:
       label: First check
       description: Please confirm and check all the following options.
       options:
-        - label: I added a descriptive title to this issue.
+        - label: I'm sure this is a bug.
           required: true
-        - label: I used GitHub search to find a similar issue and didn't find it.
+        - label: I've added a descriptive title to this bug.
           required: true
-        - label: I searched the [Lightning documentation](https://lightning.ai/lightning-docs/) for this issue.
+        - label: I've provided clear instructions on how to reproduce the bug.
+          required: true
+        - label: I've added a code sample.
+          required: true
+        - label: I've provided any other important info that is required.
           required: true
 
   - type: textarea
     attributes:
-      label: Bug summary
+      label: Bug description
       description: A clear and concise description of the 🐛bug🐛.
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: Reproduction
+      label: How to reproduce the bug
       description: >
-        Provide your clear and concise code example that reproduces the problem. To get that use the [BoringModel] (https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb)
+        Provide steps and example code here.
       placeholder: "# Insert code here"
       render: python
     validations:
@@ -57,14 +65,14 @@ body:
 
   - type: textarea
     attributes:
-      label: Error
+      label: Error messages and logs
       description: >
-        Provide any error messages
-      placeholder: "# Copy complete error messages here, including log output if applicable."
+        Provide any error messages and/or logs
+      placeholder: "# Copy the complete error messages and logs"
       value: |
         ```
 
-        # Copy complete error message here, including log output if applicable.
+        # Error messages and logs here please
 
         ```
     validations:
@@ -72,13 +80,12 @@ body:
 
   - type: textarea
     attributes:
-      label: Versions
+      label: Important info
       description: >
-        Provide information about .
+        Provide all the following info
       value: |
         ```
 
-        # Provide the following:
         #- Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
         #- PyTorch Lightning Version (e.g., 1.5.0):
         #- Lightning App Version (e.g., 0.5.2):
@@ -96,8 +103,8 @@ body:
 
   - type: textarea
     attributes:
-      label: Additional context
-      description: Add any other context about the problem here.
+      label: More info
+      description: Add any other info about the issue here.
     validations:
       required: false
 
