@@ -109,7 +109,7 @@ class ScheduleWrapper:
         if not _KINETO_AVAILABLE:
             raise ModuleNotFoundError("You are trying to use `ScheduleWrapper` which require kineto install.")
         self._schedule = schedule
-        self.total_steps = total_steps
+        self._total_steps = total_steps
         self.has_finished = False
         self.reset()
 
@@ -183,7 +183,7 @@ class ScheduleWrapper:
             # In this case, the action is RECORD in validation loop, and then call into the train
             # and the action is still WARMUP in train and pytorch will recognize this as error.
             action = ProfilerAction.RECORD
-        if self.num_step and self.num_step == self.total_steps:
+        if self.num_step and self.num_step == self._total_steps:
             self.has_finished = True
         self._prev_schedule_action = action
         return action
@@ -286,11 +286,11 @@ class PyTorchProfiler(Profiler):
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
-        self.wait: int = wait
-        self.warmup: int = warmup
-        self.active: int = active
-        self.repeat: int = repeat
-        self.skip_first: int = skip_first
+        self._wait: int = wait
+        self._warmup: int = warmup
+        self._active: int = active
+        self._repeat: int = repeat
+        self._skip_first: int = skip_first
 
         if _KINETO_AVAILABLE:
             self._init_kineto(profiler_kwargs)
@@ -301,17 +301,17 @@ class PyTorchProfiler(Profiler):
             )
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
-        has_schedule = self.wait is not None
+        has_schedule = self._wait is not None
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
         schedule = torch.profiler.schedule(
-            wait=self.wait, 
-            warmup=self.warmup, 
-            active=self.active, 
-            repeat=self.repeat,
-            skip_first=self.skip_first,
+            wait=self._wait, 
+            warmup=self._warmup, 
+            active=self._active, 
+            repeat=self._repeat,
+            skip_first=self._skip_first,
         )
-        total_schedule_steps = (self.wait + self.warmup + self.active) * self.repeat + self.skip_first if self.repeat else None
+        total_schedule_steps = (self._wait + self._warmup + self._active) * self._repeat + self._skip_first if self._repeat else None
         self._default_schedule()
         schedule = schedule if has_schedule else self._default_schedule()
         self._schedule = ScheduleWrapper(schedule, total_schedule_steps) if schedule is not None else schedule
