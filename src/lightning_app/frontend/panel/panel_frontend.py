@@ -10,7 +10,7 @@ import sys
 from typing import Callable, TextIO
 
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.frontend.utilities.utils import get_frontend_environment
+from lightning_app.frontend.utils import _get_frontend_environment
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
@@ -99,7 +99,7 @@ class PanelFrontend(Frontend):
         _logger.debug("PanelFrontend starting server on %s:%s", host, port)
 
         # 1: Prepare environment variables and arguments.
-        env = get_frontend_environment(
+        env = _get_frontend_environment(
             self.flow.name,
             self.entry_point,
             port,

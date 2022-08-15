@@ -16,15 +16,21 @@ Example:
 """
 import inspect
 import os
+import pydoc
 
-from lightning_app.frontend.utilities.app_state_watcher import AppStateWatcher
-from lightning_app.frontend.utilities.utils import get_render_fn_from_environment
+from lightning_app.frontend.panel.app_state_watcher import AppStateWatcher
+
+
+def _get_render_fn_from_environment(render_fn_name: str, render_fn_module_file: str) -> Callable:
+    """Returns the render_fn function to serve in the Frontend."""
+    module = pydoc.importfile(render_fn_module_file)
+    return getattr(module, render_fn_name)
 
 
 def _get_render_fn():
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
     render_fn_module_file = os.environ["LIGHTNING_RENDER_MODULE_FILE"]
-    render_fn = get_render_fn_from_environment(render_fn_name, render_fn_module_file)
+    render_fn = _get_render_fn_from_environment(render_fn_name, render_fn_module_file)
     if inspect.signature(render_fn).parameters:
 
         def _render_fn_wrapper():

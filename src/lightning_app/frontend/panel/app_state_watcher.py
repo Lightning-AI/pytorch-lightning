@@ -12,8 +12,8 @@ import os
 
 import param
 
-from lightning_app.frontend.utilities.app_state_comm import watch_app_state
-from lightning_app.frontend.utilities.utils import get_flow_state
+from lightning_app.frontend.panel.app_state_comm import watch_app_state
+from lightning_app.frontend.utils import _get_flow_state
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.state import AppState
 
@@ -91,7 +91,7 @@ class AppStateWatcher(param.Parameterized):
 
     def _get_flow_state(self) -> AppState:
         flow = os.environ["LIGHTNING_FLOW_NAME"]
-        return get_flow_state(flow)
+        return _get_flow_state(flow)
 
     def _update_flow_state(self):
         # Todo: Consider whether to only update if ._state changed

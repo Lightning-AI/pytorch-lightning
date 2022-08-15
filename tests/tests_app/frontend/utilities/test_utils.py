@@ -3,9 +3,9 @@ import inspect
 import os
 from unittest import mock
 
-from lightning_app.frontend.utilities.utils import (
-    get_flow_state,
-    get_frontend_environment,
+from lightning_app.frontend.utils import (
+    _get_flow_state,
+    _get_frontend_environment,
     get_render_fn_from_environment,
 )
 from lightning_app.utilities.cloud import is_running_in_cloud
@@ -15,7 +15,7 @@ from lightning_app.utilities.state import AppState
 def test_get_flow_state(flow_state_state: dict, flow):
     """We have a method to get an AppState scoped to the Flow state."""
     # When
-    flow_state = get_flow_state(flow)
+    flow_state = _get_flow_state(flow)
     # Then
     assert isinstance(flow_state, AppState)
     assert flow_state._state == flow_state_state  # pylint: disable=protected-access
@@ -41,7 +41,7 @@ def some_fn(_):
 def test_get_frontend_environment_fn():
     """We have a utility function to get the frontend render_fn environment."""
     # When
-    env = get_frontend_environment(flow="root.lit_frontend", render_fn_or_file=some_fn, host="myhost", port=1234)
+    env = _get_frontend_environment(flow="root.lit_frontend", render_fn_or_file=some_fn, host="myhost", port=1234)
     # Then
     assert env["LIGHTNING_FLOW_NAME"] == "root.lit_frontend"
     assert env["LIGHTNING_RENDER_ADDRESS"] == "myhost"
@@ -53,7 +53,7 @@ def test_get_frontend_environment_fn():
 def test_get_frontend_environment_file():
     """We have a utility function to get the frontend render_fn environment."""
     # When
-    env = get_frontend_environment(flow="root.lit_frontend", render_fn_or_file="app_panel.py", host="myhost", port=1234)
+    env = _get_frontend_environment(flow="root.lit_frontend", render_fn_or_file="app_panel.py", host="myhost", port=1234)
     # Then
     assert env["LIGHTNING_FLOW_NAME"] == "root.lit_frontend"
     assert env["LIGHTNING_RENDER_ADDRESS"] == "myhost"

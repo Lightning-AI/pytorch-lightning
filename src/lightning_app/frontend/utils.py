@@ -3,17 +3,10 @@ from __future__ import annotations
 
 import inspect
 import os
-import pydoc
 from typing import Callable
 
 from lightning_app.core.flow import LightningFlow
 from lightning_app.utilities.state import AppState
-
-
-def get_render_fn_from_environment(render_fn_name: str, render_fn_module_file: str) -> Callable:
-    """Returns the render_fn function to serve in the Frontend."""
-    module = pydoc.importfile(render_fn_module_file)
-    return getattr(module, render_fn_name)
 
 
 def _reduce_to_flow_scope(state: AppState, flow: str | LightningFlow) -> AppState:
@@ -26,7 +19,7 @@ def _reduce_to_flow_scope(state: AppState, flow: str | LightningFlow) -> AppStat
     return flow_state
 
 
-def get_flow_state(flow: str) -> AppState:
+def _get_flow_state(flow: str) -> AppState:
     """Returns an AppState scoped to the current Flow.
 
     Returns:
@@ -38,14 +31,14 @@ def get_flow_state(flow: str) -> AppState:
     return flow_state
 
 
-def get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port: int, host: str) -> os._Environ:
+def _get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port: int, host: str) -> os._Environ:
     """Returns an _Environ with the environment variables for serving a Frontend app set.
 
     Args:
-        flow (str): The name of the flow, for example root.lit_frontend
-        render_fn (Callable): A function to render
-        port (int): The port number, for example 54321
-        host (str): The host, for example 'localhost'
+        flow: The name of the flow, for example root.lit_frontend
+        render_fn_or_file: A function to render
+        port: The port number, for example 54321
+        host: The host, for example 'localhost'
 
     Returns:
         os._Environ: An environment

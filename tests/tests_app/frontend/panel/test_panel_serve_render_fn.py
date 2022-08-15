@@ -8,7 +8,7 @@ from unittest import mock
 import pytest
 
 from lightning_app.frontend.panel.panel_serve_render_fn import _get_render_fn
-from lightning_app.frontend.utilities.app_state_watcher import AppStateWatcher
+from lightning_app.frontend.panel.app_state_watcher import AppStateWatcher
 
 
 @pytest.fixture(autouse=True)
