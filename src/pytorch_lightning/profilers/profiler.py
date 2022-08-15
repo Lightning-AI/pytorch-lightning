@@ -39,7 +39,7 @@ class Profiler(ABC):
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
         self._local_rank: Optional[int] = None
-        self._stage: str
+        self._stage: Optional[str] = None
 
     @abstractmethod
     def start(self, action_name: str) -> None:
@@ -154,7 +154,7 @@ class Profiler(ABC):
         self._local_rank = local_rank
         self.dirpath = self.dirpath or log_dir
 
-    def teardown(self, stage: str) -> None:
+    def teardown(self, stage: Optional[str]) -> None:
         """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.
