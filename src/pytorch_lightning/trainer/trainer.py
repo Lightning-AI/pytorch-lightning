@@ -162,7 +162,7 @@ class Trainer(
         limit_val_batches: Optional[Union[int, float]] = None,
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
-        val_check_interval: Union[int, float] = 1.0,
+        val_check_interval: Optional[Union[int, float]] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,

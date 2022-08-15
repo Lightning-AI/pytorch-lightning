@@ -77,7 +77,7 @@ class DataConnector:
 
     def on_trainer_init(
         self,
-        val_check_interval: Union[int, float],
+        val_check_interval: Optional[Union[int, float]],
         reload_dataloaders_every_n_epochs: int,
         check_val_every_n_epoch: Optional[int],
     ) -> None:
