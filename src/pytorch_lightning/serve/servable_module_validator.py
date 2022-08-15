@@ -109,6 +109,7 @@ class ServableModuleValidator(Callback):
             except requests.exceptions.ConnectionError:
                 pass
             if time.time() - t0 > self.timeout:
+                process.kill()
                 raise Exception(f"The Server didn't start in {self.timeout}")
             time.sleep(0.1)
 
