@@ -431,7 +431,8 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
             optimizer2 = optim.Adam(self.parameters(), lr=0.1)
             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
-            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+            lr_scheduler3 = optim.lr_scheduler.ReduceLROnPlateau(optimizer2)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2, lr_scheduler3]
 
     model = TestModel()
     model.training_epoch_end = None
