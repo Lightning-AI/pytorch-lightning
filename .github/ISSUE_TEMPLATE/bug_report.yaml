@@ -6,12 +6,12 @@ body:
     attributes:
       value: >
         WAIT!
-        
-        Before you go any further. Is this really a **🐛 bug**? 
-        
+
+        Before you go any further. Is this really a **🐛 bug**?
+
         If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
         or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
-        
+
         If it really is a **🐛 bug**, please fill out this form as completely as you can.
 
   - type: checkboxes
