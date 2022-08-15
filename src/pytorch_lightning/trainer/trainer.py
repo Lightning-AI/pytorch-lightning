@@ -1744,7 +1744,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
-        assert isinstance(profiler, Profiler)
+        assert not isinstance(profiler, str)
         self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
