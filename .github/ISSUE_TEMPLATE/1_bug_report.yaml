@@ -1,5 +1,5 @@
 name: Report a bug
-description: Errors and regression reports with complete reproducing test cases.
+description: Any errors that are not UI related.
 labels: ["needs triage", "bug"]
 body:
   - type: markdown
