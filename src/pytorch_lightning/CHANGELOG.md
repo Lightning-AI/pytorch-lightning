@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `WandbLogger.name` property no longer returns the name of the experiment, and instead returns the project's name ([#14145](https://github.com/Lightning-AI/lightning/pull/14145))
 
 
+- The default project name in `WandbLogger` is now "lightning_logs" ([#14145](https://github.com/Lightning-AI/lightning/pull/14145))
+
+
 ### Deprecated
 
 - Deprecated `LightningDeepSpeedModule` ([#14000](https://github.com/Lightning-AI/lightning/pull/14000))
