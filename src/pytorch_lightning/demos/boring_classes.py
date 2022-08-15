@@ -98,7 +98,7 @@ class BoringModel(LightningModule):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
         return torch.nn.functional.mse_loss(preds, torch.ones_like(preds))
 
-    def step(self, x: Any):
+    def step(self, x: Any) -> Any:
         x = self(x)
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
@@ -108,7 +108,7 @@ class BoringModel(LightningModule):
         loss = self.loss(batch, output)
         return {"loss": loss}
 
-    def training_step_end(self, training_step_outputs):
+    def training_step_end(self, training_step_outputs: Any) -> Any:
         return training_step_outputs
 
     def training_epoch_end(self, outputs: Any) -> None:
@@ -130,7 +130,7 @@ class BoringModel(LightningModule):
     def test_epoch_end(self, outputs: Any) -> None:
         torch.stack([x["y"] for x in outputs]).mean()
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Any:
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
@@ -203,7 +203,7 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
-    def forward(self, x):
+    def forward(self, x: Any) -> Any:
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
     def training_step(self, batch, batch_nb):
