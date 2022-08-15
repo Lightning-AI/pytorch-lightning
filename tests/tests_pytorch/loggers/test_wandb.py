@@ -149,7 +149,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
     monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     wandb.run = None
-    logger = WandbLogger(save_dir=str(tmpdir), offline=True)
+    logger = WandbLogger(project="project", save_dir=str(tmpdir), offline=True)
     # the logger get initialized
     assert logger.version == wandb.init().id
 
@@ -162,7 +162,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
         _ = logger.experiment
 
     assert logger.version == "1"
-    assert logger.name == "run_name"
+    assert logger.name == "project"
     assert str(tmpdir) == logger.save_dir
     assert not os.listdir(tmpdir)
 
@@ -172,7 +172,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
-    assert trainer.checkpoint_callback.dirpath == str(tmpdir / "run_name" / version / "checkpoints")
+    assert trainer.checkpoint_callback.dirpath == str(tmpdir / "project" / version / "checkpoints")
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
