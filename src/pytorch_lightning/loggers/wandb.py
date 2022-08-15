@@ -260,7 +260,7 @@ class WandbLogger(Logger):
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
-        project: Optional[str] = None,
+        project: str = "lightning_logs",
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
@@ -447,17 +447,17 @@ class WandbLogger(Logger):
         Returns:
             The path to the save directory.
         """
-        return self._save_dir or self._project
+        return self._save_dir
 
     @property
     def name(self) -> Optional[str]:
-        """Gets the name of the experiment.
+        """The project name of this experiment.
 
         Returns:
-            The name of the experiment if the experiment exists else the name given to the constructor.
+            The name of the project this experiment belongs to, or
         """
         # don't create an experiment if we don't have one
-        return self._experiment.name if self._experiment else self._name
+        return self._project
 
     @property
     def version(self) -> Optional[str]:

@@ -27,6 +27,16 @@ from tests_pytorch.helpers.utils import no_warning_call
 
 @mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
+def test_wandb_project_name(*_):
+    logger = WandbLogger()
+    assert logger.name == "lightning_logs"
+
+    logger = WandbLogger(project="project")
+    assert logger.name == "project"
+
+
+@mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_init(wandb, monkeypatch):
     """Verify that basic functionality of wandb logger works.
 
@@ -91,7 +101,6 @@ def test_wandb_logger_init(wandb, monkeypatch):
     logger.watch("model", "log", 10, False)
     wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
 
-    assert logger.name == wandb.init().name
     assert logger.version == wandb.init().id
 
 
@@ -143,7 +152,6 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
     # the logger get initialized
     assert logger.version == wandb.init().id
-    assert logger.name == wandb.init().name
 
     # mock return values of experiment
     wandb.run = None
