@@ -38,4 +38,5 @@ def test_unwrap_lightning_module():
     wrapped_model = _LightningModuleWrapperBase(wrapped_model)
     wrapped_model = DataParallel(wrapped_model)
 
-    assert unwrap_lightning_module(wrapped_model) == model
+    with pytest.deprecated_call(match="The function `unwrap_lightning_module` is deprecated in v1.8.0"):
+        assert unwrap_lightning_module(wrapped_model) == model
