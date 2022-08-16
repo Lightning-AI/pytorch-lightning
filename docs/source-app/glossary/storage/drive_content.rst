@@ -43,8 +43,7 @@ These limitations only apply to ``s3://`` Drives:
 
 * S3 buckets cannot be mounted as Drives at the runtime of a Work. The `Drive` object must be initialized in a Flow and passed to a Work through its initialization arguments.
 
-* Whenever a Drive is mounted to a Work, the indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets.
-For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
+* Whenever a Drive is mounted to a Work, the indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets. For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
 
 ----
 
