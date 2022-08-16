@@ -267,7 +267,7 @@ class BoringFairScaleOptimizerModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
-@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+@pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
 def test_ddp_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using faircale optimizer."""
     model = BoringFairScaleOptimizerModel()
@@ -290,7 +290,7 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, min_torch="1.10")
-@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+@pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
