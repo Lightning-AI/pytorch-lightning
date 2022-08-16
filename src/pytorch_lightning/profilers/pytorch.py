@@ -170,7 +170,7 @@ class ScheduleWrapper:
             self._num_test_step += 1
         elif self.is_predicting:
             self._num_predict_step += 1
-    
+
     @property
     def has_finished(self) -> bool:
         return self._has_finished
@@ -307,25 +307,21 @@ class PyTorchProfiler(Profiler):
     def _init_kineto(self, profiler_kwargs: Any) -> None:
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
-        if (
-          self._wait is not None or 
-          self._warmup is not None or 
-          self._active is not None
-        ):
-          schedule = torch.profiler.schedule(
-              wait=self._wait, 
-              warmup=self._warmup, 
-              active=self._active, 
-              repeat=self._repeat,
-              skip_first=self._skip_first,
-          )
-          if self._repeat:
-            total_schedule_steps = (self._wait + self._warmup + self._active) * self._repeat
-            total_schedule_steps += self._skip_first
-          else:
-            total_schedule_steps = None
+        if self._wait is not None or self._warmup is not None or self._active is not None:
+            schedule = torch.profiler.schedule(
+                wait=self._wait,
+                warmup=self._warmup,
+                active=self._active,
+                repeat=self._repeat,
+                skip_first=self._skip_first,
+            )
+            if self._repeat:
+                total_schedule_steps = (self._wait + self._warmup + self._active) * self._repeat
+                total_schedule_steps += self._skip_first
+            else:
+                total_schedule_steps = None
         else:
-          schedule = None
+            schedule = None
         self._schedule = ScheduleWrapper(schedule, total_schedule_steps) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
 
@@ -513,4 +509,3 @@ class PyTorchProfiler(Profiler):
         self._recording_map = {}
 
         super().teardown(stage=stage)
-
