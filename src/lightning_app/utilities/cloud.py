@@ -8,12 +8,12 @@ from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.network import LightningClient
 
 
-def _get_project(client: LightningClient) -> V1Membership:
+def _get_project(client: LightningClient, project_id: str = LIGHTNING_CLOUD_PROJECT_ID) -> V1Membership:
     """Get a project membership for the user from the backend."""
     projects = client.projects_service_list_memberships()
-    if LIGHTNING_CLOUD_PROJECT_ID is not None:
+    if project_id is not None:
         for membership in projects.memberships:
-            if membership.project_id == LIGHTNING_CLOUD_PROJECT_ID:
+            if membership.project_id == project_id:
                 break
         else:
             raise ValueError(
