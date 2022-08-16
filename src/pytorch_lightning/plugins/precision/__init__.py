@@ -24,6 +24,7 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
+from pytorch_lightning.plugins.precision.colossalai import ColossalAIPrecisionPlugin
 
 __all__ = [
     "ApexMixedPrecisionPlugin",
@@ -39,4 +40,5 @@ __all__ = [
     "ShardedNativeMixedPrecisionPlugin",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
+    "ColossalAIPrecisionPlugin",
 ]

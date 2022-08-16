@@ -31,6 +31,7 @@ from pytorch_lightning.strategies.single_tpu import SingleTPUStrategy  # noqa: F
 from pytorch_lightning.strategies.strategy import Strategy  # noqa: F401
 from pytorch_lightning.strategies.strategy_registry import call_register_strategies, StrategyRegistry  # noqa: F401
 from pytorch_lightning.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
+from pytorch_lightning.strategies.colossalai import ColossalAIStrategy
 
 STRATEGIES_BASE_MODULE = "pytorch_lightning.strategies"
 
