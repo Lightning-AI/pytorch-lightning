@@ -53,9 +53,9 @@ jobs:
           - collect_failures
           - custom_work_dependencies
           - drive
+          - drive_mounted_s3
           - payload
           - commands_and_api
-          - app_mounted_s3_drive
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v2
