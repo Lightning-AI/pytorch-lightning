@@ -15,21 +15,19 @@
 
 import io
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Union
+from typing import Any, Dict, IO, Union
 
 import fsspec
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 
-from pytorch_lightning.utilities.types import _PATH
+from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 
 def load(
     path_or_url: Union[IO, _PATH],
-    map_location: Optional[
-        Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
-    ] = None,
+    map_location: _MAP_LOCATION_TYPE = None,
 ) -> Any:
     """Loads a checkpoint.
 
@@ -41,7 +39,10 @@ def load(
         # any sort of BytesIO or similar
         return torch.load(path_or_url, map_location=map_location)
     if str(path_or_url).startswith("http"):
-        return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
+        return torch.hub.load_state_dict_from_url(
+            str(path_or_url),
+            map_location=map_location,  # type: ignore[arg-type] # upstream annotation is not correct
+        )
     fs = get_filesystem(path_or_url)
     with fs.open(path_or_url, "rb") as f:
         return torch.load(f, map_location=map_location)
