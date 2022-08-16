@@ -170,7 +170,7 @@ class ScheduleWrapper:
             self._num_test_step += 1
         elif self.is_predicting:
             self._num_predict_step += 1
-
+    
     @property
     def has_finished(self) -> bool:
         return self._has_finished
@@ -307,22 +307,46 @@ class PyTorchProfiler(Profiler):
     def _init_kineto(self, profiler_kwargs: Any) -> None:
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
-        if self._wait is not None or self._warmup is not None or self._active is not None:
+        if (
+          "schedule" in profiler_kwargs and
+          profiler_kwargs.get("schedule") is None
+        ):
+          # for `schedule=None` case
+          schedule = None
+        else: 
+          if (
+            self._wait is not None or 
+            self._warmup is not None or 
+            self._active is not None
+          ):
+            # set schedule if schedule params is not None
             schedule = torch.profiler.schedule(
-                wait=self._wait,
-                warmup=self._warmup,
-                active=self._active,
+                wait=self._wait, 
+                warmup=self._warmup, 
+                active=self._active, 
                 repeat=self._repeat,
                 skip_first=self._skip_first,
             )
+            # count num steps
             if self._repeat:
-                total_schedule_steps = (self._wait + self._warmup + self._active) * self._repeat
-                total_schedule_steps += self._skip_first
+              total_schedule_steps = (self._wait + self._warmup + self._active) * self._repeat
+              total_schedule_steps += self._skip_first
             else:
-                total_schedule_steps = None
-        else:
-            schedule = None
-        self._schedule = ScheduleWrapper(schedule, total_schedule_steps) if schedule is not None else schedule
+              total_schedule_steps = None
+            self._schedule = ScheduleWrapper(schedule, total_schedule_steps)
+          else:
+            # it's also case when "schedule" in profiler_kwargs and
+            # profiler_kwargs.get("schedule") is not None
+            if (
+              "schedule" in profiler_kwargs and
+              profiler_kwargs.get("schedule") is not None
+            ):
+              warning_cache.warn(
+                "The \"schedule\" parameter is disabled, the scheduler will be replaced with the default one."
+                " Please pass the scheduler parameters directly to the profiler class."
+              )
+            schedule = self._default_schedule()
+            self._schedule = ScheduleWrapper(schedule)
         self._profiler_kwargs["schedule"] = self._schedule
 
         activities = profiler_kwargs.get("activities", None)
@@ -509,3 +533,4 @@ class PyTorchProfiler(Profiler):
         self._recording_map = {}
 
         super().teardown(stage=stage)
+
