@@ -26,6 +26,7 @@ def test_collect_failures_example_cloud() -> None:
         _,
         _,
         fetch_logs,
+        _,
     ):
         last_found_log_index = -1
         while len(expected_logs) != 0:
