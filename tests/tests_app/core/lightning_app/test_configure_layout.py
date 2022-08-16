@@ -220,7 +220,8 @@ def test_dynamic_content_layout_update():
     assert flow.configure_layout_called == 5
 
 
-def test_http_url_warning():
+@mock.patch("lightning_app.utilities.layout.is_running_in_cloud", return_value=True)
+def test_http_url_warning(*_):
     class Root(EmptyFlow):
         def configure_layout(self):
             return [

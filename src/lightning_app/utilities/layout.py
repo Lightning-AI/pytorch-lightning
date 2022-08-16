@@ -4,6 +4,7 @@ from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
+from lightning_app.utilities.cloud import is_running_in_cloud
 
 
 def _add_comment_to_literal_code(method, contains, comment):
@@ -86,7 +87,7 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
                 entry["target"] = ""
             else:
                 entry["target"] = url
-            if url.startswith("http") and not url.startswith("https"):
+            if url.startswith("http") and not url.startswith("https") and is_running_in_cloud():
                 # TODO: check for cloud
                 warnings.warn(
                     f"You configured an http link {url[:32]}... but it may not be accessible in the cloud."
