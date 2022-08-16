@@ -137,27 +137,36 @@ class _SubprocessScriptLauncher(_Launcher):
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
                 del env_copy["PL_GLOBAL_SEED"]
 
-            # start process
-            # if hydra is available and initialized, make sure to set the cwd correctly
-            cwd: Optional[str] = None
+            # if hydra is available process multiple processes
             if _HYDRA_AVAILABLE:
                 from hydra.core.hydra_config import HydraConfig
 
                 if HydraConfig.initialized():
-                    cwd = os.getcwd()
-                    os_cwd = f'"{cwd}"'  # this is needed to handle characters like `=` in the directory name
-
+                    # extract the hydra configu
                     hydra_cfg = HydraConfig.get()
-                    hydra_output = os_cwd
-                    if hydra_cfg.output_subdir is not None:
-                        hydra_output = os.path.join(cwd, hydra_cfg.output_subdir)
 
+                    # the location of the hydra configuration files saved for the current job
+                    hydra_output = hydra_cfg.runtime.output_dir
+                    if hydra_cfg.output_subdir is not None:
+                        hydra_output = os.path.join(hydra_output, hydra_cfg.output_subdir)
+
+                    # the command (without the CLI arguments)
                     command = command[:2] if __main__.__spec__ is None else command[:3]
-                    command += ["-cp", hydra_output, "-cn", "config.yaml"]
-                    command += [
-                        f"hydra.output_subdir=.pl_ddp_hydra_{local_rank}",
-                        f"hydra.run.dir={os_cwd}",
-                    ]
+
+                    # check if experimental re-run capability exists
+                    # otherwise use existing config.yaml which may have issues
+                    pickled_config = os.path.join(hydra_output, "config.pickle")
+                    if os.path.exists(pickled_config):
+                        command += ["--experimental-rerun", pickled_config]
+
+                    else:
+                        command += ["-cp", hydra_output, "-cn", "config.yaml"]
+                        command += [
+                            f"hydra.output_subdir=.pl_ddp_hydra_{local_rank}",
+                            f"hydra.run.dir={hydra_cfg.runtime.output_dir}",
+                        ]
+
+            # start process
             subprocess.Popen(command, env=env_copy)
 
             # starting all processes at once can cause issues
