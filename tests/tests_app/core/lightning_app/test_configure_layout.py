@@ -218,3 +218,20 @@ def test_dynamic_content_layout_update():
     app = LightningApp(flow)
     MultiProcessRuntime(app).dispatch()
     assert flow.configure_layout_called == 5
+
+
+def test_http_url_warning():
+    class Root(EmptyFlow):
+        def configure_layout(self):
+            return [
+                dict(name="warning expected", content="http://github.com/very/long/link/to/display"),
+                dict(name="no warning expected", content="https://github.com"),
+            ]
+
+    root = Root()
+
+    with pytest.warns(
+        UserWarning,
+        match=escape("You configured an http link http://github.com/very/long/link... but it may not be accessible"),
+    ):
+        LightningApp(root)
