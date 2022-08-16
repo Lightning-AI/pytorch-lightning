@@ -4,19 +4,24 @@
 About Drives
 ************
 
-Lightning Drive storage makes it easy to share files between LightningWorks so you can run your Lightning App both locally and in the cloud without changing the code.
+Lightning Drive storage makes it easy to share files between LightningWorks (Work) so you can run your Lightning App both locally and in the cloud without changing the code.
 
 The Drive object provides a central place for your components to share data.
 
-The Drive acts as an isolate folder and any component can access it by knowing its name.
+The Drive acts as an isolated folder and any component can access it by knowing its name.
 
-Drives offer two types of storage: temporary and persistent.
+We currently support two types of Drives: ``lit://`` and ``s3://``.
 
-Temporary Drives, allow your components to put, list, get, and delete files from and to the Drive (except LightningFlows).
-
-Persistent Drives are read-only (for now), meaning our components can only list and get the files.
-The primary purpose for persistent Drives is to give you a permanent location to store your training data.
-Persistent Drives only support Amazon S3 buckets (for now).
++---------------+-------------------------------------------------------------------------------------------------------------------------------+
+| ``lit://``    | ``lit://`` allow read-write operations and are accessible through the Drive API from a Work.                                  |
+|               |                                                                                                                               |
+|               | They allow your components to put, list, get, and delete files from and to the Drive (except LightningFlows).                 |
++---------------+-------------------------------------------------------------------------------------------------------------------------------+
+| ``s3://``     | ``s3://`` is AWS S3 storage mounted at a filesystem mount point. ``s3://`` is read-only (for now) and its primary purpose is  |
+|               | to give you a permanent location to store your training data.                                                                 |
+|               |                                                                                                                               |
+|               | They allow your components to list and get files located on the Drive.                                                        |
++---------------+-------------------------------------------------------------------------------------------------------------------------------+
 
 ----
 
@@ -27,16 +32,16 @@ What Drive does for you
 Think of every instance of the Drive object acting like a Google Drive or like Dropbox.
 
 By sharing the Drive between components through the LightningFlow,
-several components can have a shared place to read (persistent Drives) or read and write (temporary Drives) files from.
+several components can have a shared place to read (``s3://`` Drives) or read and write (``lit://`` Drives) files from.
 
 Limitations
 ^^^^^^^^^^^
 
-These limitations only apply to Amazon S3 buckets (persistent Drives)
+These limitations only apply to ``s3://`` Drives:
 
 * There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work.
 
-* S3 buckets cannot be mounted as Drives at the runtime of a work. The `Drive` object must be initialized in a Flow and passed to a Work through its initialization arguments.
+* S3 buckets cannot be mounted as Drives at the runtime of a Work. The `Drive` object must be initialized in a Flow and passed to a Work through its initialization arguments.
 
 * Whenever a Drive is mounted to a Work, the indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets.
 For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
@@ -47,7 +52,7 @@ For context, 1M files with 2-3 levels of nesting takes less than 1 second to ind
 Create a Drive
 **************
 
-In order to create a Drive, you simply need to pass its name with the prefix ``lit://`` (temporary) or ``s3://`` (persistent).
+In order to create a Drive, you simply need to pass its name with the prefix ``lit://`` or ``s3://``.
 
 .. note:: We do not support mounting single objects for S3 buckets, so there must be a trailing `/` in the s3:// URL. For example: ``s3://foo/bar/``.
 
@@ -63,7 +68,7 @@ In order to create a Drive, you simply need to pass its name with the prefix ``l
     # The identifier of this Drive is ``drive_2``
     drive_2 = Drive("s3://drive_2/")
 
-Any components can create a drive object for temporary Drives.
+Any component can create a drive object for ``lit://`` Drives.
 
 .. code-block:: python
 
@@ -94,9 +99,9 @@ Any components can create a drive object for temporary Drives.
 Supported actions with Drives
 *****************************
 
-A temporary Drive supports put, list, get, and delete actions.
+A ``lit://`` Drive supports put, list, get, and delete actions.
 
-A persistent Drive supports list and get actions (for now).
+A ``s3://`` Drive supports list and get actions (for now).
 
 .. code-block:: python
 
@@ -126,7 +131,7 @@ A persistent Drive supports list and get actions (for now).
 Component interactions with Drives
 **********************************
 
-Here is an illustrated code example on how to create drives within works.
+Here is an illustrated code example on how to create drives within Works.
 
 .. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/drive_2.png
 
@@ -193,12 +198,11 @@ Here is an illustrated code example on how to create drives within works.
 Transfer files with Drive
 *************************
 
-In the example below, the Drive is created by the flow and passed to its LightningWork's.
+In the example below, the Drive is created by the Flow and passed to its Work's.
 
 The ``Work_1`` put a file **a.txt** in the **Drive("lit://this_drive_id")** and the ``Work_2`` can list and get the **a.txt** file from it.
 
 .. literalinclude:: ../../../examples/app_drive/app.py
-
 
 ----
 
