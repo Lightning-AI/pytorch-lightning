@@ -443,10 +443,7 @@ def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
 
 
 def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optional[Type] = None, **kwargs: Any) -> Any:
-    if explicit_cls is None:
-        constructor = type(orig_object)
-    else:
-        constructor = explicit_cls
+    constructor = type(orig_object) if explicit_cls is None else explicit_cls
 
     try:
         result = constructor(*args, **kwargs)
