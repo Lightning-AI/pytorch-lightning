@@ -189,6 +189,8 @@ def test_replace_dunder_methods_multiple_loaders_without_init():
     for i in range(100):
         classes.append(type(f"DataLoader_{i}", (random.choice(classes),), {}))
 
+    before = {cls: cls.__init__ for cls in classes}
+
     with _replace_dunder_methods(DataLoader, "dataset"):
         for cls in classes[1:]:  # First one is `DataLoader`
             assert "__old__init__" not in cls.__dict__
@@ -196,6 +198,9 @@ def test_replace_dunder_methods_multiple_loaders_without_init():
 
         assert "__old__init__" in DataLoader.__dict__
         assert hasattr(DataLoader, "__old__init__")
+
+    for cls in classes:
+        assert before[cls] == cls.__init__
 
 
 class DataLoaderSubclass1(DataLoader):
@@ -420,6 +425,44 @@ def test_replace_dunder_methods_attrs():
     assert dataloader.my_arg == 10
     assert dataloader.another_arg == 100
     assert not hasattr(dataloader, "dataset")
+
+
+def test_replace_dunder_methods_restore_methods():
+    """This tests checks whether are all dunder methods restored to their original versions."""
+
+    class Init(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    class SetAttr(DataLoader):
+        def __setattr__(self, *args):
+            return super().__setattr__(*args)
+
+    class DelAttr(DataLoader):
+        def __delattr__(self, *args):
+            return super().__delattr__(*args)
+
+    class InitAndSetAttr(Init, SetAttr):
+        pass
+
+    class InitAndDelAttr(Init, DelAttr):
+        pass
+
+    class SetAttrAndDelAttr(SetAttr, DelAttr):
+        pass
+
+    class AllDunder(Init, SetAttr, DelAttr):
+        pass
+
+    before = dict()
+    for cls in (Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
+        before[cls] = {"init": cls.__init__, "setattr": cls.__setattr__, "delattr": cls.__delattr__}
+
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        pass
+
+    for cls in (Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
+        assert before[cls] == {"init": cls.__init__, "setattr": cls.__setattr__, "delattr": cls.__delattr__}
 
 
 @pytest.mark.parametrize("predicting", [True, False])
