@@ -46,7 +46,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     elif trainer.state.fn == TrainerFn.PREDICTING:
         __verify_eval_loop_configuration(trainer, model, "predict")
 
-    __verify_batch_transfer_support(trainer, model)
+    __verify_batch_transfer_support(trainer)
     _check_deprecated_callback_hooks(trainer)
     # TODO: Delete _check_on_hpc_hooks in v1.8
     _check_on_hpc_hooks(model)
@@ -149,7 +149,7 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
             raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
 
 
-def __verify_batch_transfer_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
     """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
     batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
