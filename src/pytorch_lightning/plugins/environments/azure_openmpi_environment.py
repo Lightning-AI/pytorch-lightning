@@ -19,7 +19,9 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
     """
     Environment for an OpenMPI environment on Azure
 
-    See Azure documentation here: https://docs.microsoft.com/en-us/azure/machine-learning/how-to-train-distributed-gpu#mpi
+    See Azure documentation: 
+        - https://docs.microsoft.com/en-us/azure/machine-learning/how-to-train-distributed-gpu#mpi
+        - https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/batch/batch-compute-node-environment-variables.md
     """
     def __init__(self, devices: int = 1) -> None:
         """ devices : devices per node (same as trainer parameter)"""
@@ -38,6 +40,8 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
             return os.environ.get("AZ_BATCH_MASTER_NODE").split(':')[0]
         elif "AZ_BATCHAI_MPI_MASTER_NODE" in os.environ:
             return os.environ.get("AZ_BATCHAI_MPI_MASTER_NODE")
+        else:
+            return os.environ.get("MASTER_ADDR", "127.0.0.1")
 
     @property
     def main_port(self) -> int:
@@ -49,8 +53,10 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect() -> bool:
-        return "OMPI_COMM_WORLD_SIZE" in os.environ and "OMPI_COMM_WORLD_LOCAL_RANK" in os.environ and \
-             ("AZ_BATCH_MASTER_NODE" in os.environ or "AZ_BATCHAI_MPI_MASTER_NODE" in os.environ)
+        return (
+            "OMPI_COMM_WORLD_SIZE" in os.environ
+            and "OMPI_COMM_WORLD_LOCAL_RANK" in os.environ
+        )
 
     def world_size(self) -> int:
         return int(os.environ.get("OMPI_COMM_WORLD_SIZE"))
@@ -59,7 +65,7 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
         pass
 
     def global_rank(self) -> int:
-        return int(os.environ.get("OMPI_COMM_WORLD_RANK"))
+        return int(os.environ.get("OMPI_COMM_WORLD_RANK", 0))
 
     def set_global_rank(self, rank: int) -> None:
         pass
@@ -68,5 +74,4 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
         return int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK"))
 
     def node_rank(self) -> int:
-        # this may not exist, defaulting to 0
-        return int(os.environ.get("OMPI_COMM_WORLD_RANK",0)) // int(self.devices)
+        return int(os.environ.get("OMPI_COMM_WORLD_RANK", 0)) // int(self.devices)
