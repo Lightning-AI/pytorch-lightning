@@ -110,7 +110,7 @@ class ScheduleWrapper:
             raise ModuleNotFoundError("You are trying to use `ScheduleWrapper` which require kineto install.")
         self._schedule = schedule
         self._total_steps = total_steps
-        self.has_finished = False
+        self._has_finished = False
         self.reset()
 
     def setup(self, start_action_name: str) -> None:
@@ -170,6 +170,10 @@ class ScheduleWrapper:
             self._num_test_step += 1
         elif self.is_predicting:
             self._num_predict_step += 1
+    
+    @property
+    def has_finished(self) -> bool:
+        return self._has_finished
 
     def __call__(self, num_step: int) -> "ProfilerAction":
         # ignore the provided input. Keep internal state instead.
@@ -184,7 +188,7 @@ class ScheduleWrapper:
             # and the action is still WARMUP in train and pytorch will recognize this as error.
             action = ProfilerAction.RECORD
         if self.num_step and self.num_step == self._total_steps:
-            self.has_finished = True
+            self._has_finished = True
         self._prev_schedule_action = action
         return action
 
@@ -303,20 +307,25 @@ class PyTorchProfiler(Profiler):
     def _init_kineto(self, profiler_kwargs: Any) -> None:
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
-        has_schedule = self._wait is not None
-        if has_schedule:
-            schedule = torch.profiler.schedule(
-                wait=self._wait,
-                warmup=self._warmup,
-                active=self._active,
-                repeat=self._repeat,
-                skip_first=self._skip_first,
-            )
-        total_schedule_steps = (
-            (self._wait + self._warmup + self._active) * self._repeat + self._skip_first if self._repeat else None
-        )
-        self._default_schedule()
-        schedule = schedule if has_schedule else self._default_schedule()
+        if (
+          self._wait is not None or 
+          self._warmup is not None or 
+          self._active is not None
+        ):
+          schedule = torch.profiler.schedule(
+              wait=self._wait, 
+              warmup=self._warmup, 
+              active=self._active, 
+              repeat=self._repeat,
+              skip_first=self._skip_first,
+          )
+          if self._repeat:
+            total_schedule_steps = (self._wait + self._warmup + self._active) * self._repeat
+            total_schedule_steps += self._skip_first
+          else:
+            total_schedule_steps = None
+        else:
+          schedule = None
         self._schedule = ScheduleWrapper(schedule, total_schedule_steps) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
 
@@ -504,3 +513,4 @@ class PyTorchProfiler(Profiler):
         self._recording_map = {}
 
         super().teardown(stage=stage)
+
