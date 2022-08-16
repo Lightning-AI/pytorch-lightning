@@ -55,7 +55,7 @@ class DataConnector:
         self._test_dataloader_source = _DataLoaderSource(None, "")
         self._predict_dataloader_source = _DataLoaderSource(None, "")
 
-        self._datahook_selector = _DataHookSelector(None, None)
+        self._datahook_selector: Optional[_DataHookSelector] = None
 
     @property
     def _should_reload_train_dl(self) -> bool:
@@ -542,7 +542,7 @@ class _DataHookSelector:
         datamodule: A ``LightningDataModule``
     """
 
-    model: Optional["pl.LightningModule"]
+    model: "pl.LightningModule"
     datamodule: Optional["pl.LightningDataModule"]
     _valid_hooks: Tuple[str, ...] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
