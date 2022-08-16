@@ -233,6 +233,6 @@ def test_http_url_warning(*_):
 
     with pytest.warns(
         UserWarning,
-        match=escape("You configured an http link http://github.com/very/long/link... but it may not be accessible"),
+        match=escape("You configured an http link http://github.com/very/long/link... but it won't be accessible"),
     ):
         LightningApp(root)
