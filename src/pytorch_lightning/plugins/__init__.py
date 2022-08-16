@@ -10,6 +10,7 @@ from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.hpu import HPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.ipu import IPUPrecisionPlugin
@@ -30,31 +31,17 @@ __all__ = [
     "XLACheckpointIO",
     "HPUCheckpointIO",
     "ApexMixedPrecisionPlugin",
-    "DataParallelPlugin",
-    "DDP2Plugin",
-    "DDPPlugin",
-    "DDPSpawnPlugin",
-    "DDPFullyShardedPlugin",
-    "DeepSpeedPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
-    "HorovodPlugin",
-    "IPUPlugin",
     "IPUPrecisionPlugin",
     "HPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
     "FullyShardedNativeMixedPrecisionPlugin",
-    "SingleDevicePlugin",
-    "SingleTPUPlugin",
+    "FullyShardedNativeNativeMixedPrecisionPlugin",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
-    "TPUSpawnPlugin",
-    "TrainingTypePlugin",
-    "ParallelPlugin",
-    "DDPShardedPlugin",
-    "DDPSpawnShardedPlugin",
     "LayerSync",
     "NativeSyncBatchNorm",
 ]

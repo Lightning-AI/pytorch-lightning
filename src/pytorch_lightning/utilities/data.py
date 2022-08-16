@@ -18,7 +18,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Type, Union
 
 import torch
 from torch import Tensor
@@ -39,6 +39,7 @@ from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.meta import _get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -493,20 +494,6 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
     return wrapper
 
 
-# https://stackoverflow.com/a/63851681/9201239
-def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
-    """Returns a list of all classes that inherit directly or indirectly from the given class."""
-    subclasses = set()
-
-    def recurse(cl: Type[Any]) -> None:
-        for subclass in cl.__subclasses__():
-            subclasses.add(subclass)
-            recurse(subclass)
-
-    recurse(cls)
-    return subclasses
-
-
 @contextmanager
 def _replace_init_method(base_cls: Type, store_explicit_arg: Optional[str] = None) -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
@@ -514,15 +501,17 @@ def _replace_init_method(base_cls: Type, store_explicit_arg: Optional[str] = Non
     It patches the ``__init__`` method.
     """
     classes = _get_all_subclasses(base_cls) | {base_cls}
-    wrapped = set()
     for cls in classes:
-        if cls.__init__ not in wrapped:
+        # Check that __init__ belongs to the class
+        # https://stackoverflow.com/a/5253424
+        if "__init__" in cls.__dict__:
             cls._old_init = cls.__init__
             cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)
-            wrapped.add(cls.__init__)
     yield
     for cls in classes:
-        if hasattr(cls, "_old_init"):
+        # Check that _old_init belongs to the class
+        # https://stackoverflow.com/a/5253424
+        if "_old_init" in cls.__dict__:
             cls.__init__ = cls._old_init
             del cls._old_init
 

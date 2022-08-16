@@ -14,7 +14,6 @@
 """The LightningModule - an nn.Module with many additional features."""
 
 import collections.abc
-import inspect
 import logging
 import numbers
 import os
@@ -38,7 +37,6 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger, LoggerCollection
-from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType, warnings
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -46,7 +44,6 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
-from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
@@ -293,16 +290,24 @@ class LightningModule(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
-        datahook_selector = (
-            _DataHookSelector(self, None) if self._trainer is None else self.trainer._data_connector._datahook_selector
-        )
 
-        hook = datahook_selector.get_hook("on_before_batch_transfer")
-        batch = hook(batch, dataloader_idx)
-        hook = datahook_selector.get_hook("transfer_batch_to_device")
-        batch = hook(batch, device, dataloader_idx)
-        hook = datahook_selector.get_hook("on_after_batch_transfer")
-        batch = hook(batch, dataloader_idx)
+        def call_hook(hook_name, *args):
+            if self._trainer:
+                datahook_selector = self._trainer._data_connector._datahook_selector
+                obj = datahook_selector.get_instance(hook_name)
+                trainer_method = (
+                    self._trainer._call_lightning_module_hook
+                    if isinstance(obj, self.__class__)
+                    else self._trainer._call_lightning_datamodule_hook
+                )
+                return trainer_method(hook_name, *args)
+            else:
+                hook = getattr(self, hook_name)
+                return hook(*args)
+
+        batch = call_hook("on_before_batch_transfer", batch, dataloader_idx)
+        batch = call_hook("transfer_batch_to_device", batch, device, dataloader_idx)
+        batch = call_hook("on_after_batch_transfer", batch, dataloader_idx)
         return batch
 
     def print(self, *args, **kwargs) -> None:
@@ -1781,34 +1786,6 @@ class LightningModule(
                 f"to use {fn_name}, please disable automatic optimization:"
                 " set model property `automatic_optimization` as False"
             )
-
-    @classmethod
-    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
-        """Collect all module arguments in the current constructor and all child constructors. The child
-        constructors are all the ``__init__`` methods that reach the current class through (chained)
-        ``super().__init__()`` calls.
-
-        Args:
-            frame: instance frame
-
-        Returns:
-            self_arguments: arguments dictionary of the first instance
-            parents_arguments: arguments dictionary of the parent's instances
-        """
-        if not frame:
-            frame = inspect.currentframe()
-
-        frame_args = collect_init_args(frame.f_back, [])
-        self_arguments = frame_args[-1]
-
-        # set hyper_parameters in child
-        self_arguments = self_arguments
-        parents_arguments = {}
-
-        # add all arguments from parents
-        for args in frame_args[:-1]:
-            parents_arguments.update(args)
-        return self_arguments, parents_arguments
 
     @torch.no_grad()
     def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs):

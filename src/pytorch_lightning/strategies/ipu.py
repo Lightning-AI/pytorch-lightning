@@ -26,6 +26,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -44,22 +45,33 @@ else:
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
+    """
+    .. deprecated:: v1.7.0
+        ``LightningIPUModule`` has been deprecated in v1.7.0 and will be removed in v1.9.0.
+    """
+
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        precision: Union[str, int] = 32,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
         rank_zero_deprecation("`LightningIPUModule` has been deprecated in v1.7.0 and will be removed in v1.8.0")
-        super().__init__(pl_module)
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+        if self.precision == PrecisionType.HALF:
             inputs = self._move_float_tensors_to_half(inputs)
 
         return super().forward(*inputs, **kwargs)
 
     @staticmethod
     def batch_to(data: Tensor) -> Tensor:
-        return data.half()
+        if torch.is_floating_point(data):
+            return data.half()
+        return data
 
     def _move_float_tensors_to_half(self, batch: Any) -> Any:
         batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
@@ -279,8 +291,7 @@ class IPUStrategy(ParallelStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         # This override is necessary because the cast must occur before the data
         # is moved to the device to prevent wasteful host->device copies.
-        if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
-            batch = apply_to_collection(batch, Tensor, function=Tensor.half)
+        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
         # We don't call `super().batch_to_device` because `data.to(device)` is not
         # currently necessary for IPUs. The movement of data from host<->IPU is
         # currently handled by PopTorch.

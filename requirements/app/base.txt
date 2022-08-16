@@ -1,9 +1,8 @@
-py
-lightning-cloud==0.5.0
+lightning-cloud==0.5.3
 packaging
-deepdiff>=5.7.0
+deepdiff>=5.7.0, <=5.8.1
 starsessions
-fsspec>=2022.01.0
-s3fs>=2022.1.0
+fsspec>=2022.01.0, <=2022.7.1
+s3fs>=2022.1.0, <=2022.7.1
 croniter # for now until we found something more robust.
 traitlets<5.2.0 # Traitlets 5.2.X fails: https://github.com/ipython/traitlets/issues/741

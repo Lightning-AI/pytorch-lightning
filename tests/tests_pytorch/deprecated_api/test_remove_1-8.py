@@ -30,30 +30,17 @@ from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.profiler import AbstractProfiler, BaseProfiler
 from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfiler
-from pytorch_lightning.strategies import DDP2Strategy, ParallelStrategy
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from tests_pytorch.deprecated_api import no_deprecated_call
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
-
-
-def test_v1_8_0_deprecated_distributed_type_enum():
-
-    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
-        _ = DistributedType.DDP
-
-
-def test_v1_8_0_deprecated_device_type_enum():
-
-    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
-        _ = DeviceType.CPU
 
 
 @pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
@@ -948,9 +935,7 @@ def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
         trainer.ipus == expected_ipus
 
 
-@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_v1_8_0_deprecated_lightning_ipu_module(_, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", True)
+def test_v1_8_0_deprecated_lightning_ipu_module():
     with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
         _ = LightningIPUModule(BoringModel(), 32)
 
@@ -1098,11 +1083,3 @@ def test_trainer_tpu_cores(monkeypatch):
         )
     ):
         assert trainer.tpu_cores == 8
-
-
-def test_unsupported_ddp2_strategy():
-    with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
-        DDP2Strategy()
-
-    with pytest.raises(ValueError, match="The DDP2 strategy is no longer supported."):
-        Trainer(strategy="ddp2")
