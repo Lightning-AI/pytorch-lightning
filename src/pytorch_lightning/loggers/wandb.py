@@ -255,7 +255,7 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: Optional[str] = None,
+        save_dir: Optional[str] = ".",
         offline: bool = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
