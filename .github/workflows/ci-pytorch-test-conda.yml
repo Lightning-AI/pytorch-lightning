@@ -27,7 +27,7 @@ jobs:
           - {python-version: "3.8", pytorch-version: "1.10"}
           - {python-version: "3.9", pytorch-version: "1.11"}
           - {python-version: "3.9", pytorch-version: "1.12"}
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
     - name: Workaround for https://github.com/actions/checkout/issues/760
