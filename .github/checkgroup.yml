@@ -73,6 +73,13 @@ subprojects:
   - id: "pytorch_lightning: Docker"
     paths:
       - "dockers/**"
+      - "!dockers/README.md"
+      - "requirements.txt"
+      - "requirements/*.txt"
+      - "requirements/pytorch/*"
+      - "environment.yml"
+      - ".github/workflows/*docker*.yml"
+      - "setup.py"
     checks:
       - "build-conda (3.8, 1.10)"
       - "build-conda (3.8, 1.9)"
