@@ -208,7 +208,7 @@ class DemoModel(LightningModule):
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch: Tensor, batch_nb: int) -> Tensor:
         x = batch
         x = self(x)
         loss = x.sum()
