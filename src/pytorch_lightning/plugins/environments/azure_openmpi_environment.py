@@ -14,6 +14,7 @@
 
 import os
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 
 class AzureOpenMPIEnvironment(ClusterEnvironment):
     """
@@ -49,7 +50,7 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
         if "AZ_BATCH_MASTER_NODE" in os.environ:
             return int(os.environ.get("AZ_BATCH_MASTER_NODE").split(':')[1])
         else:
-            return int(47586) # set port to arbitrary high number
+            return int(os.environ.get("MASTER_PORT", find_free_network_port()))
 
     @staticmethod
     def detect() -> bool:
