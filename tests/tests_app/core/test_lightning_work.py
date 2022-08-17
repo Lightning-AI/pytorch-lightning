@@ -5,7 +5,7 @@ import pytest
 
 from lightning_app import LightningApp
 from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import LightningWork, LightningWorkException
+from lightning_app.core.work import BuildConfig, LightningWork, LightningWorkException
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
@@ -280,3 +280,31 @@ def test_lightning_work_calls():
     w.run(1, [2], (3, 4), {"1": "3"})
     assert len(w._calls) == 2
     assert w._calls["0d824f7"] == {"ret": None}
+
+
+def test_work_cloud_build_config_provided():
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.cloud_build_config = BuildConfig(image="ghcr.io/gridai/base-images:v1.8-cpu")
+
+        def run(self, *args, **kwargs):
+            pass
+
+    w = Work()
+    assert len(w._calls) == 1
+    w.run()
+    assert len(w._calls) == 2
+
+
+def test_work_local_build_config_provided():
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.local_build_config = BuildConfig(image="ghcr.io/gridai/base-images:v1.8-cpu")
+
+        def run(self, *args, **kwargs):
+            pass
+
+    w = Work()
+    w.run()

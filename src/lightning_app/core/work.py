@@ -3,7 +3,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from deepdiff import DeepHash
 
@@ -316,9 +316,16 @@ class LightningWork(abc.ABC):
 
         return has_succeeded_counter
 
+    def _get_property_if_exists(self, name: str) -> Union[property, None]:
+        return getattr(self.__class__, name, None)
+
     def __setattr__(self, name: str, value: Any) -> None:
-        setattr_fn = getattr(self, "_setattr_replacement", None) or self._default_setattr
-        setattr_fn(name, value)
+        propObject = self._get_property_if_exists(name)
+        if isinstance(propObject, property) and propObject.fset is not None:
+            propObject.fset(self, value)
+        else:
+            setattr_fn = getattr(self, "_setattr_replacement", None) or self._default_setattr
+            setattr_fn(name, value)
 
     def _default_setattr(self, name: str, value: Any) -> None:
         from lightning_app.core.flow import LightningFlow
