@@ -15,7 +15,7 @@ import inspect
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -28,6 +28,7 @@ from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -222,7 +223,7 @@ def _v1_8_output_format(fx: Callable) -> bool:
     return "new_format" in parameters and parameters["new_format"].default is True
 
 
-def _set_sampler_epoch(dataloader: DataLoader, epoch: int) -> None:
+def _set_sampler_epoch(dataloader: Union[DataLoader, CombinedLoader], epoch: int) -> None:
     """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
 
     Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
