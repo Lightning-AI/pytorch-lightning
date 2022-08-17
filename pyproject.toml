@@ -33,7 +33,7 @@ files = [
 ]
 exclude = [
     "src/lightning_app/cli/component-template/",
-    "src/lightning_app/cli/pl-app-template/"
+    "src/lightning_app/cli/pl-app-template/",
 ]
 install_types = "True"
 non_interactive = "True"
