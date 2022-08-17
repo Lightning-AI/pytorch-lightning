@@ -24,7 +24,7 @@ if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 else:
-    MixedPrecision = None  # type: ignore[misc,assignment]
+    MixedPrecision = None
 
 
 class FullyShardedNativeNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
