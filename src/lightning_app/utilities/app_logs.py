@@ -127,11 +127,11 @@ def _app_logs_reader(
         pass
 
     except KeyboardInterrupt:
-        # User pressed CTRL+C to exit, we sould respect that
+        # User pressed CTRL+C to exit, we should respect that
         pass
 
     finally:
-        # Close connections - it will cause run_forever() to finish -> thread as finishes aswell
+        # Close connections - it will cause run_forever() to finish -> thread as finishes as well
         for socket in log_sockets:
             socket.close()
 
