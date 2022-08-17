@@ -110,6 +110,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue in which the default name for a run in `WandbLogger` would be set to the project name instead of a randomly generated string ([#14145](https://github.com/Lightning-AI/lightning/pull/14145))
 
 
+- Fixed not preserving set attributes on `DataLoader` and `BatchSampler` when instantiated inside `*_dataloader` hooks ([#14212](https://github.com/Lightning-AI/lightning/pull/14212))
+
+
+
 ## [1.7.1] - 2022-08-09
 
 ### Fixed
