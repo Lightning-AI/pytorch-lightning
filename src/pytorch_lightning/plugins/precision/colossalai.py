@@ -3,6 +3,7 @@ from typing import Optional, Any, Union
 from torch import Tensor
 from torch.optim import Optimizer
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class ColossalAIPrecisionPlugin(PrecisionPlugin):
@@ -19,4 +20,9 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
     def optimizer_step(self, model, optimizer, optimizer_idx: int, closure, **kwargs: Any) -> Any:
         closure_result = closure()
         self._after_closure(model, optimizer, optimizer_idx)
+        skipped_backward = closure_result is None
+        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
+            raise MisconfigurationException(
+                "Skipping backward by returning `None` from your `training_step` is not supported by `Colossalai`"
+            )
         optimizer.step()
