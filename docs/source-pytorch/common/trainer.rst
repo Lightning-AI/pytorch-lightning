@@ -1628,8 +1628,8 @@ The number of epochs run.
 
     if trainer.current_epoch >= 10:
         ...
-        
-datamodule        
+
+datamodule
 **********
 
 The current datamodule, which is used by the trainer. It shouldn't be replaced by another datamodule object.
@@ -1788,7 +1788,3 @@ The current val dataloader of the trainer. It shouldn't be replaced by another d
 .. code-block:: python
 
     used_val_dataloader = trainer.val_dataloader
-
-
-
-
