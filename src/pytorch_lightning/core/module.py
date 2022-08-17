@@ -286,7 +286,7 @@ class LightningModule(
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
 
-    def _call_batch_hook(self, hook_name, *args):
+    def _call_batch_hook(self, hook_name, *args) -> Any:
         if self._trainer:
             datahook_selector = self._trainer._data_connector._datahook_selector
             obj = datahook_selector.get_instance(hook_name)
@@ -300,7 +300,7 @@ class LightningModule(
             hook = getattr(self, hook_name)
             return hook(*args)
 
-    def _on_before_batch_transfer(self, batch: Any, dataloader_idx: int = 0):
+    def _on_before_batch_transfer(self, batch: Any, dataloader_idx: int = 0) -> Any:
         return self._call_batch_hook("on_before_batch_transfer", batch, dataloader_idx)
 
     def _apply_batch_transfer_handler(
