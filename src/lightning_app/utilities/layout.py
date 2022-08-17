@@ -87,7 +87,7 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
                 entry["target"] = ""
             else:
                 entry["target"] = url
-            if url.startswith("http") and not url.startswith("https") and is_running_in_cloud():
+            if url.startswith("http://") and is_running_in_cloud():
                 warnings.warn(
                     f"You configured an http link {url[:32]}... but it won't be accessible in the cloud."
                     f" Consider replacing 'http' with 'https' in the link above."
