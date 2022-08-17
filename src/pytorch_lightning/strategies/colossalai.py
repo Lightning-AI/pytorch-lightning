@@ -26,7 +26,8 @@ class ModelShardedContext(ColoInitContext):
 
 class ColossalAIStrategy(DDPStrategy):
     """ColossalAI strategy.
-    It only supports single optimizer which must be  `colossalai.nn.optimizer.CPUAdam`_ or `colossalai.nn.optimizer.HybridAdam`_ now.
+    It only supports single optimizer which must be  `colossalai.nn.optimizer.CPUAdam`_ or
+    `colossalai.nn.optimizer.HybridAdam`_ now.
     You must initialize your model in ``configure_sharded_model()``.
 
     It configures accelerator and precision, and you should not configure them when initializing ``Trainer``.
@@ -48,24 +49,28 @@ class ColossalAIStrategy(DDPStrategy):
             It can speed up training, but slightly more memory will be used. Defaults to True.
         chunk_size (Optional[int], optional): The size of a chunk.
             It will be ignored when ``use_chunk=False``.
-            If it's None, a best chunk size will be searched out based on ``chunk_search_range``, ``chunk_search_n_grids`` and ``min_chunk_size``.
+            If it's None, a best chunk size will be searched out based on ``chunk_search_range``,
+            ``chunk_search_n_grids`` and ``min_chunk_size``.
             Defaults to None.
         enable_distributed_storage (bool, optional): Whether to storage model in a distributed manner.
             It reduces memory from 1 to 1/N, but it may slow down training.
             Defaults to True.
         placement_policy (str, optional): It can be "cpu", "cuda" and "auto".
-            If it's "cpu", parameters, gradients and optimizer states will be offloaded to CPU, which means min CUDA memory will be used.
+            If it's "cpu", parameters, gradients and optimizer states will be offloaded to CPU,
+            which means min CUDA memory will be used.
             If it's "cuda", they won't be offloaded, which means max CUDA memory will be used. It's the fastest.
-            If it's "auto", they are moving dynamically based on CPU and CUDA memory usage. It will utilize heterogeneous memory space evenly and well.
+            If it's "auto", they are moving dynamically based on CPU and CUDA memory usage.
+            It will utilize heterogeneous memory space evenly and well.
             Note that "auto" policy can only work well when no other processes use CUDA during your training.
             Defaults to 'auto'.
         force_outputs_fp32 (bool, optional): Whether to cast outputs to fp32. Defaults to False.
-        gpu_margin_mem_ratio (float, optional): The ratio of GPU remaining memory (after the first forward-backward) 
-            which will be used by optimizer. 
+        gpu_margin_mem_ratio (float, optional): The ratio of GPU remaining memory (after the first forward-backward)
+            which will be used by optimizer.
             This argument will be ignored when ``placement_policy`` is not "auto".
             Defaults to 0.0.
         chunk_search_range (int, optional): The range of chunk size to search.
-            The actual search range will be from ``max(min_chunk_size, max_param_size)`` to ``max(min_chunk_size, max_param_size) + chunk_search_range``.
+            The actual search range will be from
+            ``max(min_chunk_size, max_param_size)`` to ``max(min_chunk_size, max_param_size) + chunk_search_range``.
             Defaults to 64*1024**2.
         chunk_search_n_grids (int, optional): The number of intervals in the search range. Defaults to 1024.
         min_chunk_size (Optional[int], optional): The minimum size for a chunk. Defaults to None.
@@ -73,7 +78,9 @@ class ColossalAIStrategy(DDPStrategy):
         min_scale (float, optional): The minimum dynamic loss scaling value. Defaults to 1.
         growth_factor (float, optional): The multiplication factor for increasing loss scale. Defaults to 2.
         backoff_factor (float, optional): The multiplication factor for decreasing loss scale. Defaults to 0.5.
-        growth_interval (int, optional): The number of steps to increase loss scale when no overflow occurs. Defaults to 1000.
+        growth_interval (int, optional):
+            The number of steps to increase loss scale when no overflow occurs.
+            Defaults to 1000.
         hysteresis (int, optional): The number of overflows before decreasing loss scale. Defaults to 2.
         max_scale (float, optional): The maximum dynamic loss scaling value. Defaults to 2**32.
 
@@ -150,8 +157,8 @@ class ColossalAIStrategy(DDPStrategy):
         super().setup_precision_plugin()
         assert len(self.optimizers) == 1, 'ColossalAIStrategy only supports single Optimizer now.'
         optimizer = self.optimizers[0]
-        assert isinstance(optimizer, (CPUAdam, HybridAdam)
-                          ), 'ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam now'
+        assert isinstance(optimizer, (CPUAdam, HybridAdam)), \
+            'ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam.'
         if self.use_chunk:
             chunk_size = self.chunk_size or ChunkManager.search_chunk_size(self.model, **self.chunk_size_search_kwargs)
         else:
