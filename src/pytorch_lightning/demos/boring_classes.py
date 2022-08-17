@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
+from torch.optim import _LRScheduler
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
@@ -27,7 +28,7 @@ class RandomDictDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
-    def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, index: int) -> Dict[str, Tensor]:
         a = self.data[index]
         b = a + 2
         return {"a": a, "b": b}
@@ -41,7 +42,7 @@ class RandomDataset(Dataset):
         self.len = length
         self.data = torch.randn(length, size)
 
-    def __getitem__(self, index: int) -> torch.Tensor:
+    def __getitem__(self, index: int) -> Tensor:
         return self.data[index]
 
     def __len__(self) -> int:
@@ -53,7 +54,7 @@ class RandomIterableDataset(IterableDataset):
         self.count = count
         self.size = size
 
-    def __iter__(self) -> Generator[torch.Tensor, None, None]:
+    def __iter__(self) -> Generator[Tensor, None, None]:
         for _ in range(self.count):
             yield torch.randn(self.size)
 
@@ -63,7 +64,7 @@ class RandomIterableDatasetWithLen(IterableDataset):
         self.count = count
         self.size = size
 
-    def __iter__(self) -> Generator[torch.Tensor, None, None]:
+    def __iter__(self) -> Generator[Tensor, None, None]:
         for _ in range(len(self)):
             yield torch.randn(self.size)
 
@@ -91,24 +92,24 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
-    def forward(self, x: torch.Tensor) -> torch.Tenso9r:
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return self.layer(x)
 
-    def loss(self, batch, preds) -> torch.Tensor:
+    def loss(self, batch: Tensor, preds: Tensor) -> Tensor:
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
         return torch.nn.functional.mse_loss(preds, torch.ones_like(preds))
 
-    def step(self, x: torch.Tensor) -> torch.Tensor:
+    def step(self, x: Tensor) -> Tensor:
         x = self(x)
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: Tensor, preds: Tensor) -> Dict[str, Tensor]:  # type: ignore
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
 
-    def training_step_end(self, training_step_outputs: torch.Tensor) -> torch.Tensor:
+    def training_step_end(self, training_step_outputs: Any) -> Any:
         return training_step_outputs
 
     def training_epoch_end(self, outputs: Any) -> None:
@@ -130,21 +131,21 @@ class BoringModel(LightningModule):
     def test_epoch_end(self, outputs: Any) -> None:
         torch.stack([x["y"] for x in outputs]).mean()
 
-    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim._LRScheduler]]:
+    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_LRScheduler]]:
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
 
-    def train_dataloader(self) -> torch.utils.DataLoader:
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
-    def val_dataloader(self) -> torch.utils.DataLoader:
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
-    def test_dataloader(self) -> torch.utils.DataLoader:
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
-    def predict_dataloader(self) -> torch.utils.DataLoader:
+    def predict_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
 
@@ -169,16 +170,16 @@ class BoringDataModule(LightningDataModule):
         if stage == "predict" or stage is None:
             self.random_predict = Subset(self.random_full, indices=range(64 * 3, 64 * 4))
 
-    def train_dataloader(self) -> torch.utils.DataLoader:
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(self.random_train)
 
-    def val_dataloader(self) -> torch.utils.DataLoader:
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(self.random_val)
 
-    def test_dataloader(self) -> torch.utils.DataLoader:
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(self.random_test)
 
-    def predict_dataloader(self) -> torch.utils.DataLoader:
+    def predict_dataloader(self) -> DataLoader:
         return DataLoader(self.random_predict)
 
 
@@ -203,7 +204,7 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
     def training_step(self, batch, batch_nb):
@@ -226,7 +227,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(9216, 128)
         self.fc2 = nn.Linear(128, 10)
 
-    def forward(self, x: torch.Tensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
