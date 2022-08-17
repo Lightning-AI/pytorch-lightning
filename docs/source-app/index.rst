@@ -227,6 +227,7 @@ Keep Learning
    Publish a Lightning component <workflows/build_lightning_component/publish_a_component>
    Run a server within a Lightning App <workflows/add_server/index>
    Run an App on the cloud <workflows/run_app_on_cloud/index>
+   Run Apps on your cloud account (BYOC) <workflows/byoc/index>
    Run work in parallel <workflows/run_work_in_parallel>
    Share an app  <workflows/share_app>
    Share files between components <workflows/share_files_between_components>
