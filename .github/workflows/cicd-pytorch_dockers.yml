@@ -8,8 +8,9 @@ on:
     paths:
       - "dockers/**"
       - "!dockers/README.md"
-      - "requirements/**"
       - "requirements.txt"
+      - "requirements/*.txt"
+      - "requirements/pytorch/*"
       - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - "setup.py"
