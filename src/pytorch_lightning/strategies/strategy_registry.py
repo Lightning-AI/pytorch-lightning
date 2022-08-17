@@ -83,7 +83,7 @@ class _StrategyRegistry(dict):
 
         return do_register
 
-    def get(self, name: str, default: Optional[Any] = None) -> Any:
+    def get(self, name: str, default: Optional[Strategy] = None) -> Strategy:  # type: ignore
         """Calls the registered strategy with the required parameters and returns the strategy object.
 
         Args:
