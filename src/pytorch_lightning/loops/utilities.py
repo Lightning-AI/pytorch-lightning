@@ -69,7 +69,7 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
 
 
 def _parse_loop_limits(
-    min_steps: Optional[int], max_steps: int, min_epochs: int, max_epochs: int, trainer: "pl.Trainer"
+    min_steps: Optional[int], max_steps: int, min_epochs: Optional[int], max_epochs: int, trainer: "pl.Trainer"
 ) -> Tuple[int, int]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.
@@ -95,9 +95,13 @@ def _parse_loop_limits(
         else:
             max_epochs = -1
 
-    if min_epochs == 0 and min_steps is not None:
+    if min_epochs is None and min_steps is not None:
         # setting this allows FitLoop.done to re-evaluate should_stop when it gets triggered `on_fit_start`
         min_epochs = 1
+        
+    if min_epochs is None:
+        # the default value is 0 so no training will be done when should_stop is triggered `on_fit_start`
+        min_epochs = 0
 
     return min_epochs, max_epochs
 

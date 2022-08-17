@@ -154,7 +154,7 @@ class Trainer(
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
-        min_epochs: int = 0,
+        min_epochs: Optional[int] = None,
         max_steps: int = -1,
         min_steps: Optional[int] = None,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
@@ -2576,7 +2576,7 @@ class Trainer(
         return self.fit_loop.max_epochs
 
     @property
-    def min_epochs(self) -> int:
+    def min_epochs(self) -> Optional[int]:
         return self.fit_loop.min_epochs
 
     @property
