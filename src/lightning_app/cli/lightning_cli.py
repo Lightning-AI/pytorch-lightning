@@ -3,7 +3,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import arrow
 import click
@@ -37,7 +37,7 @@ from lightning_app.utilities.network import LightningClient
 logger = logging.getLogger(__name__)
 
 
-def get_app_url(runtime_type: RuntimeType, *args) -> str:
+def get_app_url(runtime_type: RuntimeType, *args: Any) -> str:
     if runtime_type == RuntimeType.CLOUD:
         lightning_app = args[0]
         return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}"
@@ -45,7 +45,7 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
         return "http://127.0.0.1:7501/view"
 
 
-def main():
+def main() -> None:
     if len(sys.argv) == 1:
         _main()
     elif sys.argv[1] in _main.commands.keys() or sys.argv[1] == "--help":
@@ -56,12 +56,12 @@ def main():
 
 @click.group()
 @click.version_option(ver)
-def _main():
+def _main() -> None:
     register_all_external_components()
 
 
 @_main.group()
-def show():
+def show() -> None:
     """Show given resource."""
     pass
 
@@ -234,7 +234,7 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
 
 
 @_main.command()
-def login():
+def login() -> None:
     """Log in to your lightning.ai account."""
     auth = Auth()
     auth.clear()
@@ -247,7 +247,7 @@ def login():
 
 
 @_main.command()
-def logout():
+def logout() -> None:
     """Log out of your lightning.ai account."""
     Auth().clear()
 
@@ -262,7 +262,7 @@ def _run_app(
     blocking: bool,
     open_ui: bool,
     env: tuple,
-):
+) -> None:
     file = _prepare_file(file)
 
     if not cloud and cluster_id is not None:
@@ -281,7 +281,7 @@ def _run_app(
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
 
-    def on_before_run(*args):
+    def on_before_run(*args: Any) -> None:
         if open_ui and not without_server:
             click.launch(get_app_url(runtime_type, *args))
 
@@ -306,7 +306,7 @@ def _run_app(
 
 
 @_main.group()
-def run():
+def run() -> None:
     """Run a Lightning application locally or on the cloud."""
 
 
@@ -336,12 +336,12 @@ def run_app(
     open_ui: bool,
     env: tuple,
     app_args: List[str],
-):
+) -> None:
     """Run an app from a file."""
     _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
 
 
-def app_command():
+def app_command() -> None:
     """Execute a function in a running application from its name."""
     from lightning_app.utilities.commands.base import _download_command
 
@@ -395,13 +395,13 @@ def app_command():
 
 
 @_main.group(hidden=True)
-def fork():
+def fork() -> None:
     """Fork an application."""
     pass
 
 
 @_main.group(hidden=True)
-def stop():
+def stop() -> None:
     """Stop your application."""
     pass
 
@@ -412,7 +412,7 @@ _main.add_command(create)
 
 
 @_main.group()
-def install():
+def install() -> None:
     """Install a Lightning App and/or component."""
 
 
@@ -434,7 +434,7 @@ def install():
     default=False,
     help="When set, overwrite the app directory without asking if it already exists.",
 )
-def install_app(name, yes, version, overwrite: bool = False):
+def install_app(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
     if "github.com" in name:
         if version != "latest":
             logger.warning(
@@ -457,7 +457,7 @@ def install_app(name, yes, version, overwrite: bool = False):
     default="latest",
     show_default=True,
 )
-def install_component(name, yes, version):
+def install_component(name: str, yes: bool, version: str) -> None:
     if "github.com" in name:
         if version != "latest":
             logger.warning(
@@ -470,13 +470,13 @@ def install_component(name, yes, version):
 
 
 @_main.group()
-def init():
+def init() -> None:
     """Init a Lightning App and/or component."""
 
 
 @init.command("app")
 @click.argument("name", type=str, required=False)
-def init_app(name):
+def init_app(name: str) -> None:
     cmd_init.app(name)
 
 
@@ -502,7 +502,8 @@ def init_pl_app(source: Union[Tuple[str], Tuple[str, str]], name: str, overwrite
         script_path = source[0]
         source_dir = str(Path(script_path).resolve().parent)
     elif len(source) == 2:
-        source_dir, script_path = source
+        # enable type checking once https://github.com/python/mypy/issues/1178 is available
+        source_dir, script_path = source  # type: ignore
     else:
         click.echo(
             f"Incorrect number of arguments. You passed ({', '.join(source)}) but only either one argument"
@@ -518,13 +519,13 @@ def init_pl_app(source: Union[Tuple[str], Tuple[str, str]], name: str, overwrite
 
 @init.command("component")
 @click.argument("name", type=str, required=False)
-def init_component(name):
+def init_component(name: str) -> None:
     cmd_init.component(name)
 
 
 @init.command("react-ui")
 @click.option("--dest_dir", "-dest_dir", type=str, help="optional destination directory to create the react ui")
-def init_react_ui(dest_dir):
+def init_react_ui(dest_dir: str) -> None:
     """Create a react UI to give a Lightning component a React.js web user interface (UI)"""
     cmd_react_ui_init.react_ui(dest_dir)
 
