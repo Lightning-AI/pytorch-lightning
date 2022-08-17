@@ -15,7 +15,7 @@ from packaging.version import Version
 
 from lightning_app import _logger, _PROJECT_ROOT, _root_logger
 from lightning_app.__version__ import version
-from lightning_app.core.constants import PREPARE_LIGHTING
+from lightning_app.core.constants import PACKAGE_LIGHTNING
 from lightning_app.utilities.git import check_github_repository, get_dir_name
 
 logger = logging.getLogger(__name__)
@@ -101,11 +101,13 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
     # Packaging the Lightning codebase happens only inside the `lightning` repo.
     git_dir_name = get_dir_name() if check_github_repository() else None
 
-    if not PREPARE_LIGHTING and (not git_dir_name or (git_dir_name and not git_dir_name.startswith("lightning"))):
+    is_lightning = git_dir_name and git_dir_name == "lightning"
+
+    if (PACKAGE_LIGHTNING is None and not is_lightning) or PACKAGE_LIGHTNING == "0":
         return
-    if not bool(int(os.getenv("SKIP_LIGHTING_WHEELS_BUILD", "0"))):
-        download_frontend(_PROJECT_ROOT)
-        _prepare_wheel(_PROJECT_ROOT)
+
+    download_frontend(_PROJECT_ROOT)
+    _prepare_wheel(_PROJECT_ROOT)
 
     logger.info("Packaged Lightning with your application.")
 
@@ -113,11 +115,12 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
 
     tar_files = [os.path.join(root, tar_name)]
 
-    # skipping this by default
-    if not bool(int(os.getenv("SKIP_LIGHTING_UTILITY_WHEELS_BUILD", "1"))):
+    # Don't skip by default
+    if (PACKAGE_LIGHTNING or is_lightning) and not bool(int(os.getenv("SKIP_LIGHTING_UTILITY_WHEELS_BUILD", "0"))):
         # building and copying launcher wheel if installed in editable mode
         launcher_project_path = get_dist_path_if_editable_install("lightning_launcher")
         if launcher_project_path:
+            logger.info("Packaged Lightning Launcher with your application.")
             _prepare_wheel(launcher_project_path)
             tar_name = _copy_tar(launcher_project_path, root)
             tar_files.append(os.path.join(root, tar_name))
@@ -125,6 +128,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
         # building and copying lightning-cloud wheel if installed in editable mode
         lightning_cloud_project_path = get_dist_path_if_editable_install("lightning_cloud")
         if lightning_cloud_project_path:
+            logger.info("Packaged Lightning Cloud with your application.")
             _prepare_wheel(lightning_cloud_project_path)
             tar_name = _copy_tar(lightning_cloud_project_path, root)
             tar_files.append(os.path.join(root, tar_name))
