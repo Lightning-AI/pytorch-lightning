@@ -206,7 +206,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
 
-    def _setup_model(self) -> FullyShardedDataParallel:
+    def _setup_model(self) -> None:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         if is_overridden("configure_sharded_model", self.lightning_module):
@@ -252,7 +252,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         if trainer.state.fn == TrainerFn.FITTING:
             rank_zero_info(
                 "While configuring the optimizers with `DDPFullyShardedNativeStrategy`, make sure to use"
-                " `self.trainer.model.parameters()`."
+                " `self.trainer.model.parameters()` while initializing the optimizer."
             )
             self.setup_optimizers(trainer)
             optimizers_to_device(self.optimizers, self.root_device)
