@@ -48,28 +48,28 @@ Get Started
    :header: Discover what Lightning Apps can do in 5 min
    :description: Browse through mind-blowing ML Systems
    :col_css: col-md-6
-   :button_link: source-app/get_started/what_app_can_do.html
+   :button_link: get_started/what_app_can_do.html
    :height: 180
 
 .. displayitem::
    :header: Build and Train a Model
    :description: Discover PyTorch Lightning and train your first Model.
    :col_css: col-md-6
-   :button_link: source-app/get_started/build_model.html
+   :button_link: get_started/build_model.html
    :height: 180
 
 .. displayitem::
    :header: Evolve a Model into an ML System
    :description: Develop an App to train a model in the cloud
    :col_css: col-md-6
-   :button_link: source-app/get_started/training_with_apps.html
+   :button_link: get_started/training_with_apps.html
    :height: 180
 
 .. displayitem::
    :header: Start from an ML system template
    :description: Learn about Apps, from a template.
    :col_css: col-md-6
-   :button_link: source-app/get_started/go_beyond_training.html
+   :button_link: get_started/go_beyond_training.html
    :height: 180
 
 .. raw:: html
@@ -99,14 +99,14 @@ Build with Template(s) from the App & Component Gallery
    :header: Start from Ready-to-Run Template Apps
    :description: Jump-start your project's development
    :col_css: col-md-6
-   :button_link: source-app/get_started/jumpstart_from_app_gallery.html
+   :button_link: get_started/jumpstart_from_app_gallery.html
    :height: 180
 
 .. displayitem::
    :header: Add Component made by others to your App
    :description: Add more functionalities to your projects
    :col_css: col-md-6
-   :button_link: source-app/get_started/jumpstart_from_component_gallery.html
+   :button_link: get_started/jumpstart_from_component_gallery.html
    :height: 180
 
 .. raw:: html
@@ -134,35 +134,35 @@ Keep Learning
    :header: Level-up with Lightning Apps
    :description: From Basics to Advanced Skills
    :col_css: col-md-6
-   :button_link: source-app/levels/basic/index.html
+   :button_link: levels/basic/index.html
    :height: 180
 
 .. displayitem::
    :header: API Reference
    :description: Detailed description of each API package
    :col_css: col-md-6
-   :button_link: source-app/api_references.html
+   :button_link: api_references.html
    :height: 180
 
 .. displayitem::
    :header: Hands-on Examples
    :description: Learn by building Apps and Components.
    :col_css: col-md-6
-   :button_link: source-app/examples/hands_on_example.html
+   :button_link: examples/hands_on_example.html
    :height: 180
 
 .. displayitem::
    :header: Common Workflows
    :description: Learn how to do ...
    :col_css: col-md-6
-   :button_link: source-app/workflows/index.html
+   :button_link: workflows/index.html
    :height: 180
 
 .. displayitem::
    :header: Glossary
    :description: Discover Lightning App Concepts
    :col_css: col-md-6
-   :button_link: source-app/glossary/index.html
+   :button_link: glossary/index.html
    :height: 180
 
 .. raw:: html
@@ -183,26 +183,26 @@ Keep Learning
    :maxdepth: 1
    :caption: Get Started
 
-   source-app/installation
-   source-app/get_started/lightning_apps_intro
+   installation
+   get_started/lightning_apps_intro
 
 .. toctree::
    :maxdepth: 1
    :caption: App Building Skills
 
-   Basic <source-app/levels/basic/index>
-   Intermediate <source-app/levels/intermediate/index>
-   Advanced <source-app/levels/advanced/index>
+   Basic <levels/basic/index>
+   Intermediate <levels/intermediate/index>
+   Advanced <levels/advanced/index>
 
 .. toctree::
    :maxdepth: 1
    :caption: Examples
 
-   Develop a DAG <source-app/examples/dag/dag>
-   Develop a File Server <source-app/examples/file_server/file_server>
-   Develop a Github Repo Script Runner <source-app/examples/github_repo_runner/github_repo_runner>
-   Develop a HPO Sweeper <source-app/examples/hpo/hpo>
-   Develop a Model Server <source-app/examples/model_server_app/model_server_app>
+   Develop a DAG <examples/dag/dag>
+   Develop a File Server <examples/file_server/file_server>
+   Develop a Github Repo Script Runner <examples/github_repo_runner/github_repo_runner>
+   Develop a HPO Sweeper <examples/hpo/hpo>
+   Develop a Model Server <examples/model_server_app/model_server_app>
 
 ..
    [Docs under construction] Build a data exploring app  <examples/data_explore_app>
@@ -214,20 +214,20 @@ Keep Learning
    :maxdepth: 1
    :caption: How to...
 
-   Add a web user interface (UI) <source-app/workflows/add_web_ui/index>
-   Add a web link  <source-app/workflows/add_web_link>
-   Arrange app tabs <source-app/workflows/arrange_tabs/index>
-   Develop a Lightning App <source-app/workflows/build_lightning_app/index>
-   Develop a Lightning Component <source-app/workflows/build_lightning_component/index>
-   Cache Work run calls  <source-app/workflows/run_work_once>
-   Customize your cloud compute <source-app/core_api/lightning_work/compute>
-   Extend an existing app <source-app/workflows/extend_app>
-   Publish a Lightning component <source-app/workflows/build_lightning_component/publish_a_component>
-   Run a server within a Lightning App <source-app/workflows/add_server/index>
-   Run an App on the cloud <source-app/workflows/run_app_on_cloud/index>
-   Run work in parallel <source-app/workflows/run_work_in_parallel>
-   Share an app  <source-app/workflows/share_app>
-   Share files between components <source-app/workflows/share_files_between_components>
+   Add a web user interface (UI) <workflows/add_web_ui/index>
+   Add a web link  <workflows/add_web_link>
+   Arrange app tabs <workflows/arrange_tabs/index>
+   Develop a Lightning App <workflows/build_lightning_app/index>
+   Develop a Lightning Component <workflows/build_lightning_component/index>
+   Cache Work run calls  <workflows/run_work_once>
+   Customize your cloud compute <core_api/lightning_work/compute>
+   Extend an existing app <workflows/extend_app>
+   Publish a Lightning component <workflows/build_lightning_component/publish_a_component>
+   Run a server within a Lightning App <workflows/add_server/index>
+   Run an App on the cloud <workflows/run_app_on_cloud/index>
+   Run work in parallel <workflows/run_work_in_parallel>
+   Share an app  <workflows/share_app>
+   Share files between components <workflows/share_files_between_components>
 
 ..
    [Docs under construction] Add a Lightning component  <workflows/add_components/index>
@@ -241,33 +241,33 @@ Keep Learning
    :maxdepth: 1
    :caption: Core API Reference
 
-   LightningApp <source-app/core_api/lightning_app/index>
-   LightningFlow <source-app/core_api/lightning_flow>
-   LightningWork <source-app/core_api/lightning_work/index>
+   LightningApp <core_api/lightning_app/index>
+   LightningFlow <core_api/lightning_flow>
+   LightningWork <core_api/lightning_work/index>
 
 .. toctree::
    :maxdepth: 1
    :caption: Addons API Reference
 
-   source-app/api_reference/components
-   source-app/api_reference/frontend
-   source-app/api_reference/runners
-   source-app/api_reference/storage
+   api_reference/components
+   api_reference/frontend
+   api_reference/runners
+   api_reference/storage
 
 .. toctree::
    :maxdepth: 1
    :caption: Glossary
 
-   App Components Tree <source-app/glossary/app_tree>
-   Build Configuration <source-app/glossary/build_config/build_config>
-   DAG <source-app/glossary/dag>
-   Event Loop <source-app/glossary/event_loop>
-   Environment Variables <source-app/glossary/environment_variables>
-   Frontend <source-app/workflows/add_web_ui/glossary_front_end.rst>
-   Sharing Components <source-app/glossary/sharing_components>
-   Scheduling <source-app/glossary/scheduling.rst>
-   Storage <source-app/glossary/storage/storage.rst>
-   UI <source-app/workflows/add_web_ui/glossary_ui.rst>
+   App Components Tree <glossary/app_tree>
+   Build Configuration <glossary/build_config/build_config>
+   DAG <glossary/dag>
+   Event Loop <glossary/event_loop>
+   Environment Variables <glossary/environment_variables>
+   Frontend <workflows/add_web_ui/glossary_front_end.rst>
+   Sharing Components <glossary/sharing_components>
+   Scheduling <glossary/scheduling.rst>
+   Storage <glossary/storage/storage.rst>
+   UI <workflows/add_web_ui/glossary_ui.rst>
 
 ..
    [Docs under construction] Debug an app <glossary/debug_app>
