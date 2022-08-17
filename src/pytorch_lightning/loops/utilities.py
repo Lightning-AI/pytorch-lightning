@@ -98,7 +98,7 @@ def _parse_loop_limits(
     if min_epochs is None and min_steps is not None:
         # setting this allows FitLoop.done to re-evaluate should_stop when it gets triggered `on_fit_start`
         min_epochs = 1
-        
+
     if min_epochs is None:
         # the default value is 0 so no training will be done when should_stop is triggered `on_fit_start`
         min_epochs = 0
