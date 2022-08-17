@@ -19,10 +19,10 @@ def app(app_name):
     {new_resource_name}
 
     run your app with:
-        lightning run app {app_name}/{name_for_files}/app.py
+        lightning run app {app_name}/app.py
 
     run it on the cloud to share with your collaborators:
-        lightning run app {app_name}/{name_for_files}/app.py --cloud
+        lightning run app {app_name}/app.py --cloud
     """
     logger.info(m)
 
