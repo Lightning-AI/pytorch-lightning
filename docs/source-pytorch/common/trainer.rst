@@ -1279,7 +1279,7 @@ By setting to False, you have to add your own distributed sampler:
 
 .. code-block:: python
 
-    # in your LightningModule or LightningDataModule
+    # in your LightningModule or Lightning
     def train_dataloader(self):
         # default used by the Trainer
         sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
@@ -1632,8 +1632,7 @@ The number of epochs run.
 datamodule        
 **********
 
-The current datamodule, which is used by the trainer. It shouldn't be changed
-manually.
+The current datamodule, which is used by the trainer. It shouldn't be replaced by another datamodule object.
 
 
 .. code-block:: python
@@ -1762,7 +1761,7 @@ execution within that function, and the status of the Trainer.
 train_dataloader
 ****************
 
-The current train dataloader of the trainer. It shouldn't be changed manually.
+The current train dataloader of the trainer. It shouldn't be replaced by another dataloader object.
 
 .. code-block:: python
 
@@ -1772,7 +1771,7 @@ The current train dataloader of the trainer. It shouldn't be changed manually.
 test_dataloader
 ***************
 
-The current test dataloader of the trainer. It shouldn't be changed manually.
+The current test dataloader of the trainer. It shouldn't be replaced by another dataloader object.
 
 .. code-block:: python
 
@@ -1784,8 +1783,7 @@ val_dataloader
 **************
 
 
-The current val dataloader of the trainer. It shouldn't be changed manually.
-
+The current val dataloader of the trainer. It shouldn't be replaced by another dataloader object.
 .. code-block:: python
 
     used_val_dataloader = trainer.val_dataloader
