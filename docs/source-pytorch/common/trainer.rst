@@ -1784,6 +1784,7 @@ val_dataloader
 
 
 The current val dataloader of the trainer. It shouldn't be replaced by another dataloader object.
+
 .. code-block:: python
 
     used_val_dataloader = trainer.val_dataloader
