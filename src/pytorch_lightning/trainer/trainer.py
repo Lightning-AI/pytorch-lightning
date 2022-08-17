@@ -70,7 +70,6 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
@@ -106,8 +105,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
@@ -698,7 +696,7 @@ class Trainer(
         """
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model
+        self.strategy._lightning_module = model
         self._call_and_handle_interrupt(
             self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -780,7 +778,7 @@ class Trainer(
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _validate_impl(
@@ -870,7 +868,7 @@ class Trainer(
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _test_impl(
@@ -959,7 +957,7 @@ class Trainer(
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(
             self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
@@ -1469,20 +1467,14 @@ class Trainer(
 
     def _call_configure_sharded_model(self) -> None:
         with self.strategy.model_sharded_context():
-            self._handle_meta_model()
+            # experimental support for torchdistx
+            if _module_available("torchdistx.deferred_init"):
+                from torchdistx.deferred_init import materialize_module
+
+                materialize_module(self.lightning_module)
+
             self._call_lightning_module_hook("configure_sharded_model")
             self._call_callback_hooks("on_configure_sharded_model")
-
-    def _handle_meta_model(self) -> None:
-        if not is_on_meta_device(self.lightning_module):
-            return
-
-        if isinstance(self.strategy, DDPSpawnStrategy):
-            raise MisconfigurationException("LightningModule on meta device isn't supported with spawn.")
-
-        materialize_module(self.lightning_module)
-        # the trainer reference is lost during materialization
-        self.lightning_module.trainer = proxy(self)
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn
