@@ -1,0 +1,142 @@
+name: Package
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:  # Trigger the workflow on push or pull request, but only for the master branch
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  init-temp:
+    runs-on: ubuntu-20.04
+    steps:
+    - run: mkdir pypi && touch pypi/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ci-packages-${{ github.sha }}
+        path: pypi
+
+  install-standalone:
+    needs: init-temp
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, macOS-11, windows-2022]
+        pkg: ["app", "pytorch"]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - run: ls -lh pypi/
+
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ matrix.pkg }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+
+      - uses: ./.github/actions/pkg-install
+
+  install-meta-src:
+    needs: install-standalone
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, macOS-11, windows-2022]
+        pkg: ["", "lightning"]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: mkdir -p pypi
+      - uses: actions/download-artifact@v3
+        if: ${{ matrix.pkg != '' }}
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - run: ls -lh pypi/
+
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ matrix.pkg }}
+
+      - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: "lightning"
+          pip-flags: "-U --pre --find-links ../pypi/"
+
+  install-meta-pypi:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, macOS-11, windows-2022]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Dowload package
+        run: |
+          pip install -q fire requests
+          for pkg in 'app' 'pytorch' ; do
+            python .actions/assistant.py download-package "$pkg" --folder pypi
+          done
+          ls -lh pypi/
+
+      - name: Unzip packages
+        working-directory: pypi
+        run: for file in `ls *.gz`; do tar -xzf $file; done
+      - name: Show upacked pkgs
+        if: runner.os == 'linux'
+        run: |
+          sudo apt install -y tree
+          tree pypi/ -L 3
+
+      - name: Miror source
+        run: |
+          pip install -q fire requests
+          python .actions/assistant.py mirror-pkg2source pypi src
+          ls -R src/
+
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: "lightning"
+
+      - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: "lightning"
+          pip-flags: "-U --pre --find-links ../pypi/"

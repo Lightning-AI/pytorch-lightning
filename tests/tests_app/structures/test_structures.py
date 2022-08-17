@@ -8,7 +8,7 @@ from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.payload import Payload
 from lightning_app.structures import Dict, List
 from lightning_app.testing.helpers import EmptyFlow
-from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.enum import CacheCallsKeys, WorkStageStatus
 
 
 def test_dict():
@@ -49,7 +49,7 @@ def test_dict():
         for k in ("a", "b", "c", "d")
     )
     assert all(
-        flow.state["structures"]["dict"]["works"][f"work_{k}"]["calls"] == {"latest_call_hash": None}
+        flow.state["structures"]["dict"]["works"][f"work_{k}"]["calls"] == {CacheCallsKeys.LATEST_CALL_HASH: None}
         for k in ("a", "b", "c", "d")
     )
     assert all(flow.state["structures"]["dict"]["works"][f"work_{k}"]["changes"] == {} for k in ("a", "b", "c", "d"))
@@ -95,7 +95,8 @@ def test_dict():
         for k in ("a", "b", "c", "d")
     )
     assert all(
-        flow.state_with_changes["structures"]["dict"]["works"][f"work_{k}"]["calls"] == {"latest_call_hash": None}
+        flow.state_with_changes["structures"]["dict"]["works"][f"work_{k}"]["calls"]
+        == {CacheCallsKeys.LATEST_CALL_HASH: None}
         for k in ("a", "b", "c", "d")
     )
     assert all(
@@ -169,7 +170,8 @@ def test_list():
         for i in range(4)
     )
     assert all(
-        flow.state["structures"]["list"]["works"][str(i)]["calls"] == {"latest_call_hash": None} for i in range(4)
+        flow.state["structures"]["list"]["works"][str(i)]["calls"] == {CacheCallsKeys.LATEST_CALL_HASH: None}
+        for i in range(4)
     )
     assert all(flow.state["structures"]["list"]["works"][str(i)]["changes"] == {} for i in range(4))
 
@@ -209,7 +211,8 @@ def test_list():
         for i in range(4)
     )
     assert all(
-        flow.state_with_changes["structures"]["list"]["works"][str(i)]["calls"] == {"latest_call_hash": None}
+        flow.state_with_changes["structures"]["list"]["works"][str(i)]["calls"]
+        == {CacheCallsKeys.LATEST_CALL_HASH: None}
         for i in range(4)
     )
     assert all(flow.state_with_changes["structures"]["list"]["works"][str(i)]["changes"] == {} for i in range(4))

@@ -12,7 +12,7 @@ accelerators
 
     Accelerator
     CPUAccelerator
-    GPUAccelerator
+    CUDAAccelerator
     HPUAccelerator
     IPUAccelerator
     TPUAccelerator
@@ -46,6 +46,20 @@ callbacks
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
+
+cli
+-----
+
+.. currentmodule:: pytorch_lightning.cli
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    LightningCLI
+    LightningArgumentParser
+    SaveConfigCallback
 
 core
 ----
@@ -173,6 +187,7 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
@@ -210,6 +225,7 @@ io
     :nosignatures:
     :template: classtemplate.rst
 
+    AsyncCheckpointIO
     CheckpointIO
     HPUCheckpointIO
     TorchCheckpointIO
@@ -270,6 +286,7 @@ strategies
 
     BaguaStrategy
     HivemindStrategy
+    DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

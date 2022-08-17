@@ -7,6 +7,7 @@ import requests
 
 import lightning_app
 from lightning_app import LightningApp, LightningFlow, LightningWork
+from lightning_app.structures import Dict, List
 from lightning_app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin
 from lightning_app.utilities.state import AppState
 
@@ -15,7 +16,7 @@ from lightning_app.utilities.state import AppState
 def test_app_state_not_connected(_):
 
     """Test an error message when a disconnected AppState tries to access attributes."""
-    state = AppState()
+    state = AppState(port=8000)
     with pytest.raises(AttributeError, match="Failed to connect and fetch the app state"):
         _ = state.value
     with pytest.raises(AttributeError, match="Failed to connect and fetch the app state"):
@@ -209,7 +210,7 @@ def test_attach_plugin():
 @mock.patch("lightning_app.utilities.state._configure_session", return_value=requests)
 def test_app_state_connection_error(_):
     """Test an error message when a connection to retrieve the state can't be established."""
-    app_state = AppState()
+    app_state = AppState(port=8000)
     with pytest.raises(AttributeError, match=r"Failed to connect and fetch the app state\. Is the app running?"):
         app_state._request_state()
 
@@ -280,3 +281,41 @@ def test_app_state_with_no_env_var(**__):
     assert state._host == "http://127.0.0.1"
     assert state._port == 7501
     assert state._url == "http://127.0.0.1:7501"
+
+
+class FlowStructures(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w_list = List(Work(), Work())
+        self.w_dict = Dict(**{"toto": Work(), "toto_2": Work()})
+
+    def run(self):
+        self._exit()
+
+
+class FlowStructuresEmpty(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w_list = List()
+        self.w_dict = Dict()
+
+    def run(self):
+        self._exit()
+
+
+def test_app_state_with_structures():
+    app = LightningApp(FlowStructures())
+    state = AppState()
+    state._last_state = app.state
+    state._state = app.state
+    assert state.w_list["0"].counter == 0
+    assert len(state.w_list) == 2
+    assert state.w_dict["toto"].counter == 0
+    assert [k for k, _ in state.w_dict.items()] == ["toto", "toto_2"]
+    assert [k for k, _ in state.w_list.items()] == ["0", "1"]
+
+    app = LightningApp(FlowStructuresEmpty())
+    state = AppState()
+    state._last_state = app.state
+    state._state = app.state
+    assert state.w_list
