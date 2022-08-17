@@ -14,7 +14,7 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, cast, Iterable, List, Optional, Tuple, Union
+from typing import Any, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
@@ -290,12 +290,15 @@ class DataConnector:
         self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
     ) -> Union[Sampler, Iterable]:
         if self._requires_distributed_sampler(dataloader):
+            distributed_sampler_kwargs = self.trainer.distributed_sampler_kwargs
+            assert distributed_sampler_kwargs is not None
+            assert self.trainer.distributed_sampler_kwargs is not None
             sampler = self._get_distributed_sampler(
                 dataloader,
                 shuffle,
                 mode=mode,
                 overfit_batches=self.trainer.overfit_batches,
-                **self.trainer.distributed_sampler_kwargs,
+                **distributed_sampler_kwargs,
             )
 
             # update docs too once this is resolved
@@ -348,13 +351,12 @@ class DataConnector:
 
         # always get the loaders first so we can count how many there are
         dataloaders = self._request_dataloader(mode)
-        dataloaders = cast(EVAL_DATALOADERS, dataloaders)
-
-        if not isinstance(dataloaders, list):
-            dataloaders = [dataloaders]  # type: ignore[list-item]
 
         if self.trainer.overfit_batches > 0:
             dataloaders = self._resolve_overfit_batches(dataloaders, mode)
+
+        if not isinstance(dataloaders, list):
+            dataloaders = [dataloaders]  # type: ignore[assignment]
 
         if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
@@ -442,7 +444,9 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(dataloaders: EVAL_DATALOADERS, mode: RunningStage) -> EVAL_DATALOADERS:
+    def _resolve_overfit_batches(
+        dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS], mode: RunningStage
+    ) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         all_have_sequential_sampler = True
 
         def resolve_has_no_sequential_sampler(dataloader: DataLoader) -> None:
@@ -455,7 +459,7 @@ class DataConnector:
 
         if not all_have_sequential_sampler:
             rank_zero_warn(
-                "You requested to overfit but enabled training dataloader shuffling."
+                f"You requested to overfit but enabled {mode.dataloader_prefix} dataloader shuffling."
                 f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
             )
 
