@@ -1279,7 +1279,7 @@ By setting to False, you have to add your own distributed sampler:
 
 .. code-block:: python
 
-    # in your LightningModule or Lightning
+    # in your LightningModule or LightningDataModule
     def train_dataloader(self):
         # default used by the Trainer
         sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
