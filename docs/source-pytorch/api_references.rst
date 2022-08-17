@@ -173,6 +173,7 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin

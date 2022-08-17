@@ -260,7 +260,7 @@ class WandbLogger(Logger):
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
-        project: Optional[str] = None,
+        project: str = "lightning_logs",
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
@@ -297,7 +297,7 @@ class WandbLogger(Logger):
         self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
-            name=name or project,
+            name=name,
             project=project,
             id=version or id,
             dir=save_dir,
@@ -306,6 +306,7 @@ class WandbLogger(Logger):
         )
         self._wandb_init.update(**kwargs)
         # extract parameters
+        self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
@@ -450,13 +451,13 @@ class WandbLogger(Logger):
 
     @property
     def name(self) -> Optional[str]:
-        """Gets the name of the experiment.
+        """The project name of this experiment.
 
         Returns:
-            The name of the experiment if the experiment exists else the name given to the constructor.
+            The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
+            name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
         """
-        # don't create an experiment if we don't have one
-        return self._experiment.name if self._experiment else self._name
+        return self._project
 
     @property
     def version(self) -> Optional[str]:
