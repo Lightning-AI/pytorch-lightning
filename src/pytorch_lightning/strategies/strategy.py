@@ -24,7 +24,6 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
@@ -62,8 +61,9 @@ class Strategy(ABC):
         self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
-        self._launcher: Optional[_Launcher] = None
+        self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
+        self._launcher: Optional[_Launcher] = None
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
@@ -113,8 +113,9 @@ class Strategy(ABC):
             idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
         }
 
-    def connect(self, model: Module) -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        self._lightning_module = model
         self.model = model
 
     def _configure_launcher(self) -> None:
@@ -171,17 +172,29 @@ class Strategy(ABC):
         """
         return optimizer.state_dict()
 
-    def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
-        """Forwards backward-calls to the precision plugin.
+    def backward(
+        self,
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
+        r"""Forwards backward-calls to the precision plugin.
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
+            optimizer: An optional optimizer that gets passed down to the precision plugin's backward
+            optimizer_idx: An optional optimizer index that gets passed down to the precision plugin's backward
+            \*args: Positional arguments that get passed down to the precision plugin's backward, intended as arguments
+                for the actual function that performs the backward, like :meth:`~torch.Tensor.backward`.
+            \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
         self.pre_backward(closure_loss)
         assert self.lightning_module is not None
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
+        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
 
         closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
         self.post_backward(closure_loss)
@@ -316,7 +329,7 @@ class Strategy(ABC):
     @property
     def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule."""
-        return self._model
+        return self._model if self._model is not None else self._lightning_module
 
     @model.setter
     def model(self, new_model: Optional[Module]) -> None:
@@ -325,7 +338,7 @@ class Strategy(ABC):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self.model) if self.model is not None else None
+        return self._lightning_module
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()

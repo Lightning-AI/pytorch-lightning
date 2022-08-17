@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -42,13 +42,13 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install -q fire
           # python -m pip install --upgrade --user pip
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/base.txt -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip install -r requirements/${{ matrix.pkg }}/devel.txt
           pip list
         shell: bash
@@ -74,7 +74,7 @@ jobs:
         with:
           submodules: true
           # lfs: true
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -91,11 +91,12 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/base.txt -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list
