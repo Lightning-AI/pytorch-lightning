@@ -1628,6 +1628,19 @@ The number of epochs run.
 
     if trainer.current_epoch >= 10:
         ...
+        
+datamodule        
+**********
+
+The current datamodule, which is used by the trainer. It shouldn't be changed
+manually.
+
+
+.. code-block:: python
+
+    used_datamodule = trainer.datamodule
+
+
 
 is_last_batch
 *************
@@ -1745,3 +1758,38 @@ execution within that function, and the status of the Trainer.
     trainer.state.status
     # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
     trainer.state.stage
+
+train_dataloader
+****************
+
+The current train dataloader of the trainer. It shouldn't be changed manually.
+
+.. code-block:: python
+
+    used_train_dataloader = trainer.train_dataloader
+
+
+test_dataloader
+***************
+
+The current test dataloader of the trainer. It shouldn't be changed manually.
+
+.. code-block:: python
+
+    used_test_dataloader = trainer.test_dataloader
+
+
+
+val_dataloader
+**************
+
+
+The current val dataloader of the trainer. It shouldn't be changed manually.
+
+.. code-block:: python
+
+    used_val_dataloader = trainer.val_dataloader
+
+
+
+
