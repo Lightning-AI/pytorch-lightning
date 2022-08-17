@@ -93,7 +93,7 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
-    def forward(self, x: Tensor) -> Tensor:  # type: ignore
+    def forward(self, x: Tensor) -> Any:
         return self.layer(x)
 
     def loss(self, batch: Tensor, preds: Tensor) -> Tensor:
@@ -105,7 +105,7 @@ class BoringModel(LightningModule):
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
-    def training_step(self, batch: Tensor, batch_idx: int) -> Dict[str, Tensor]:  # type: ignore
+    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -189,7 +189,7 @@ class ManualOptimBoringModel(BoringModel):
         super().__init__()
         self.automatic_optimization = False
 
-    def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
+    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         opt = self.optimizers()
         output = self(batch)
         loss = self.loss(batch, output)
@@ -205,10 +205,10 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
-    def forward(self, x: Tensor) -> Tensor:  # type: ignore
+    def forward(self, x: Tensor) -> Any:
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def training_step(self, batch: Tensor, batch_nb: int) -> Tensor:
+    def training_step(self, batch: Tensor, batch_nb: int) -> STEP_OUTPUT:
         x = batch
         x = self(x)
         loss = x.sum()
