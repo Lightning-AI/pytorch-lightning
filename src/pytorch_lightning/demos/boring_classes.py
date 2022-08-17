@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -21,6 +21,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
 class RandomDictDataset(Dataset):
@@ -104,7 +105,7 @@ class BoringModel(LightningModule):
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
-    def training_step(self, batch: Tensor, preds: Tensor) -> Dict[str, Tensor]:  # type: ignore
+    def training_step(self, batch: Tensor, batch_idx: int) -> Dict[str, Tensor]:  # type: ignore
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -112,23 +113,23 @@ class BoringModel(LightningModule):
     def training_step_end(self, training_step_outputs: Any) -> Any:
         return training_step_outputs
 
-    def training_epoch_end(self, outputs: Any) -> None:
+    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         torch.stack([x["loss"] for x in outputs]).mean()
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
 
-    def validation_epoch_end(self, outputs: Any) -> None:
+    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         torch.stack([x["x"] for x in outputs]).mean()
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"y": loss}
 
-    def test_epoch_end(self, outputs: Any) -> None:
+    def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_LRScheduler]]:
@@ -188,7 +189,7 @@ class ManualOptimBoringModel(BoringModel):
         super().__init__()
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         opt = self.optimizers()
         output = self(batch)
         loss = self.loss(batch, output)
