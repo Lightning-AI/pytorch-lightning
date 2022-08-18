@@ -31,7 +31,7 @@ test: clean
 	pip install -e . -r requirements/pytorch/devel.txt
 	pip install -r requirements/pytorch/strategies.txt
 	# run tests with coverage
-	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v
+	python -m coverage run --source src/pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch -v
 	python -m coverage report
 
 docs: clean
