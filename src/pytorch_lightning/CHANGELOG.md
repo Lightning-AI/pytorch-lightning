@@ -26,6 +26,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Replaced the unwrapping logic in strategies with direct access to unwrapped `LightningModule` ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
 
 
+- Enabled `on_before_batch_transfer` for `DPStrategy` and `IPUAccelerator` ([14023](https://github.com/Lightning-AI/lightning/pull/14023))
+
+
 
 ### Deprecated
 

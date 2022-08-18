@@ -94,6 +94,7 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
+        batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
         batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()

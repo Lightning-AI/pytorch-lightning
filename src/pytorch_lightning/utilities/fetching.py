@@ -219,7 +219,9 @@ class DataFetcher(AbstractDataFetcher):
         self._has_len = False
 
     def setup(  # type: ignore[override]
-        self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
+        self,
+        dataloader: Iterable,
+        batch_to_device: Optional[Callable[[Any], Any]] = None,
     ) -> None:
         super().setup(dataloader)
         self._has_len = has_len(dataloader)
