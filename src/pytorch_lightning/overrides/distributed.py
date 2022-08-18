@@ -11,13 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import itertools
 from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
+from torch import distributed as dist
 from torch import Tensor
+from torch.distributed.algorithms.join import JoinHook
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
+from typing_extensions import Self
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -201,3 +205,79 @@ class IndexBatchSamplerWrapper:
     @property
     def sampler(self) -> Union[Sampler, Iterable]:
         return self._sampler.sampler
+
+
+class DistCallRecorder:
+    _PATCH_NAMES = [
+        "send",
+        "recv",
+        "broadcast",
+        "all_reduce",
+        "reduce",
+        "all_gather",
+        "gather",
+        "scatter",
+        "reduce_scatter",
+        "all_to_all",
+        "barrier",
+    ]
+
+    def __init__(self, patch_names: Optional[List[str]] = None) -> None:
+        self.patch_names = self._PATCH_NAMES if patch_names is None else patch_names
+        self.patched = dict()
+        self.recorded_calls = []
+
+    def __enter__(self) -> Self:
+        self.recorded_calls = []
+        self.patched = dict()
+        for name in self.patch_names:
+            if hasattr(dist, name):
+                orig_fn = getattr(dist, name)
+                self.patched[name] = orig_fn
+                patched_fn = self._create_patch(name, orig_fn)
+                setattr(dist, name, patched_fn)
+        return self
+
+    def __exit__(self, _, __, ___) -> None:
+        for name, fn in self.patched.items():
+            setattr(dist, name, fn)
+        self.recorded_calls = []
+        self.patched = dict()
+
+    def _create_patch(self, name, fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            self.recorded_calls.append((name, args, kwargs))
+            return fn(*args, **kwargs)
+
+        return wrapper
+
+
+class LightningJoinHook(JoinHook):
+    def __init__(self, ddp, divide_by_initial_world_size, dist_recorder: DistCallRecorder):
+        """Sets config variables for internal usage."""
+        assert isinstance(ddp, DistributedDataParallel), (
+            "DDP join hook requires passing in a DistributedDataParallel " "instance as the state"
+        )
+        ddp.logger._set_uneven_input_join()
+        self.ddp = ddp
+        self.ddp._divide_by_initial_world_size = divide_by_initial_world_size
+        self.dist_recorder = dist_recorder
+        super().__init__()
+
+    def main_hook(self) -> None:
+        while self.dist_recorder.recorded_calls:
+            recorded_name, args, kwargs = self.dist_recorder.recorded_calls.pop(0)
+            self.dist_recorder.patched[recorded_name](*args, **kwargs)
+
+    def post_hook(self, is_last_joiner: bool) -> None:
+        return super().post_hook(is_last_joiner)
+
+
+class LightningDistributedDataParallel(DistributedDataParallel):
+    def join_hook(self, **kwargs):
+        divide_by_initial_world_size = kwargs.get("divide_by_initial_world_size", True)
+        dist_recorder = kwargs.get("dist_recorder", DistCallRecorder())
+        return LightningJoinHook(
+            self, divide_by_initial_world_size=divide_by_initial_world_size, dist_recorder=dist_recorder
+        )

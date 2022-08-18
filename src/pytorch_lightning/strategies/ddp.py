@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import torch
 import torch.distributed
 from torch import Tensor
+from torch.distributed.algorithms.join import Join
 from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -33,7 +34,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.distributed import (
+    DistCallRecorder,
+    LightningDistributedDataParallel,
+    prepare_for_backward,
+)
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -201,7 +206,7 @@ class DDPStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
         log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
-        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
+        return LightningDistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def setup_distributed(self) -> None:
         log.detail(f"{self.__class__.__name__}: setting up distributed...")
@@ -367,7 +372,9 @@ class DDPStrategy(ParallelStrategy):
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         assert self.model is not None
         with self.precision_plugin.train_step_context():
-            return self.model(*args, **kwargs)
+            with DistCallRecorder() as recorder:
+                with Join([self.model], enable=True, dist_recorder=recorder):
+                    return self.model(*args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
