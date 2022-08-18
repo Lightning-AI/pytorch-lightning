@@ -39,12 +39,11 @@ from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-
-from ..utilities.model_helpers import is_overridden
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
@@ -210,7 +209,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
-        assert self.lightning_module
+        assert self.lightning_module is not None
         if any(isinstance(mod, FullyShardedDataParallel) for _, mod in self.lightning_module.named_modules()):
             if "auto_wrap_policy" in self.kwargs:
                 self.kwargs.pop("auto_wrap_policy")

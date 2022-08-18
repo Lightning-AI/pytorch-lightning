@@ -219,27 +219,12 @@ Lightning supports. The API is pretty similar to that of FairScale.
 Auto Wrapping
 """""""""""""
 Model layers should be wrapped in FSDP in a nested way to save peak memory and enable communication and computation overlapping. The
-simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code.
+simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
+have to ``wrap`` layers manually as in the case of manual wrapping.
 
 .. code-block:: python
 
-    import torch
-    import torch.nn as nn
-    import pytorch_lightning as pl
-    from pytorch_lightning import Trainer
-
-
-    class MyModel(pl.LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.linear_layer = nn.Linear(32, 32)
-            self.block = nn.Sequential(nn.Linear(32, 32), nn.Linear(32, 32))
-
-        def configure_optimizers(self):
-            return torch.optim.AdamW(self.trainer.model.parameters())
-
-
-    model = MyModel()
+    model = BoringModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
     trainer.fit(model)
 
