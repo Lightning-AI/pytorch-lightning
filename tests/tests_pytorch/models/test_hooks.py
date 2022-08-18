@@ -133,15 +133,7 @@ def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_d
     class CurrentTestModel(BoringModel):
         rank = 0
         transfer_batch_to_device_hook_rank = None
-        on_before_batch_transfer_hook_rank = None
         on_after_batch_transfer_hook_rank = None
-
-        def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx == 0
-            self.on_before_batch_transfer_hook_rank = self.rank
-            self.rank += 1
-            batch.samples += 1
-            return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
             assert dataloader_idx == 0
@@ -168,11 +160,10 @@ def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_d
     model_getter_mock.return_value = model
     batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
 
-    assert model.on_before_batch_transfer_hook_rank == 0
-    assert model.transfer_batch_to_device_hook_rank == 1
-    assert model.on_after_batch_transfer_hook_rank == 2
+    assert model.transfer_batch_to_device_hook_rank == 0
+    assert model.on_after_batch_transfer_hook_rank == 1
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
-    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
+    assert torch.allclose(batch_gpu.samples.cpu(), torch.zeros(5, 32))
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 

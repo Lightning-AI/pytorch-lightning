@@ -18,6 +18,7 @@ import logging
 import numbers
 import os
 import tempfile
+import warnings
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
@@ -38,7 +39,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType, warnings
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -286,28 +287,29 @@ class LightningModule(
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
 
+    def _call_batch_hook(self, hook_name, *args) -> Any:
+        if self._trainer:
+            datahook_selector = self._trainer._data_connector._datahook_selector
+            obj = datahook_selector.get_instance(hook_name)
+            trainer_method = (
+                self._trainer._call_lightning_module_hook
+                if isinstance(obj, self.__class__)
+                else self._trainer._call_lightning_datamodule_hook
+            )
+            return trainer_method(hook_name, *args)
+        else:
+            hook = getattr(self, hook_name)
+            return hook(*args)
+
+    def _on_before_batch_transfer(self, batch: Any, dataloader_idx: int = 0) -> Any:
+        return self._call_batch_hook("on_before_batch_transfer", batch, dataloader_idx)
+
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
-
-        def call_hook(hook_name, *args):
-            if self._trainer:
-                datahook_selector = self._trainer._data_connector._datahook_selector
-                obj = datahook_selector.get_instance(hook_name)
-                trainer_method = (
-                    self._trainer._call_lightning_module_hook
-                    if isinstance(obj, self.__class__)
-                    else self._trainer._call_lightning_datamodule_hook
-                )
-                return trainer_method(hook_name, *args)
-            else:
-                hook = getattr(self, hook_name)
-                return hook(*args)
-
-        batch = call_hook("on_before_batch_transfer", batch, dataloader_idx)
-        batch = call_hook("transfer_batch_to_device", batch, device, dataloader_idx)
-        batch = call_hook("on_after_batch_transfer", batch, dataloader_idx)
+        batch = self._call_batch_hook("transfer_batch_to_device", batch, device, dataloader_idx)
+        batch = self._call_batch_hook("on_after_batch_transfer", batch, dataloader_idx)
         return batch
 
     def print(self, *args, **kwargs) -> None:
@@ -1822,6 +1824,7 @@ class LightningModule(
                 )
             input_sample = self.example_input_array
 
+        input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
         if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
@@ -1902,6 +1905,7 @@ class LightningModule(
                 example_inputs = self.example_input_array
 
             # automatically send example inputs to the right device and use trace
+            example_inputs = self._on_before_batch_transfer(example_inputs)
             example_inputs = self._apply_batch_transfer_handler(example_inputs)
             torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
