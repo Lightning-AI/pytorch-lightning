@@ -187,13 +187,17 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
     "model, strategy",
     [
         (TestFSDPModel(), "fsdp_native"),
-        (TestFSDPModelAutoWrapped(), DDPFullyShardedNativeStrategy(auto_wrap_policy=custom_auto_wrap_policy)),
+        (TestFSDPModelAutoWrapped(), DDPFullyShardedNativeStrategy),
     ],
 )
 def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir, model, strategy):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     ck = ModelCheckpoint(save_last=True)
+
+    if not isinstance(strategy, str):
+        strategy = strategy(auto_wrap_policy=custom_auto_wrap_policy)
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
