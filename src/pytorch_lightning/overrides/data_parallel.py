@@ -13,7 +13,7 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any, cast, Union
+from typing import Any, cast, Optional, Union
 
 import torch
 from torch import Tensor
@@ -52,11 +52,23 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         )
 
     Args:
-        pl_module: the model to wrap
+        pl_module: The module to wrap. See description for `forward_module`.
+
+            .. deprecated:: v1.8.0
+                The argument ``pl_module`` is deprecated in v1.8.0 and will be removed in v1.10.0. Please use
+                ``forward_module`` instead.
+
+        forward_module: The module to wrap. If it's not a ``LightningModule``, it must have an attribute ``.module``
+            pointing to a ``LightningModule`` reference.
     """
 
-    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
-        super().__init__(pl_module)
+    def __init__(
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+    ) -> None:
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         _ignore_scalar_return_in_dp()
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
@@ -65,7 +77,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any) -> Any:
-            device = cast(torch.device, self.module.device)
+            device = cast(torch.device, self.lightning_module.device)
             data = python_scalar_to_tensor(data, device)
             data = unsqueeze_scalar_tensor(data)
             return data
@@ -95,7 +107,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
         if replica_device is not None:
             # by calling .to() we force the update to the self.device property
-            self.module.to(device=replica_device)
+            self._forward_module.to(device=replica_device)
         else:
             rank_zero_warn(
                 "Could not determine on which device the inputs are."
