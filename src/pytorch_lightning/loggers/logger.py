@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
