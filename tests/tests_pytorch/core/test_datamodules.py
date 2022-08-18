@@ -469,6 +469,18 @@ def test_dm_init_from_datasets_with_init_params():
     with pytest.raises(TypeError, match="missing 1 required positional argument: 'other'"):
         UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
 
+    class KwargsParametersDataModule(LightningDataModule):
+        def __init__(self, **kwargs):
+            super().__init__()
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    # everything gets forwarded, because there is `**kwargs` present
+    dm = KwargsParametersDataModule.from_datasets(DummyDS(), batch_size=10, num_workers=100, another=None)
+    assert dm.batch_size == 10
+    assert dm.num_workers == 100
+    assert dm.another is None
+
 
 # all args
 class DataModuleWithHparams_0(LightningDataModule):
