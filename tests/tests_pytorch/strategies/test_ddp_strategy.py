@@ -280,8 +280,8 @@ def test_ddp_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
-    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param.to("cpu"), shard_param)
+    for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
 class BoringZeroRedundancyOptimizerModel(BoringModel):
@@ -303,5 +303,5 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
-    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param.to("cpu"), shard_param)
+    for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(trained_param.to("cpu"), loaded_param)
