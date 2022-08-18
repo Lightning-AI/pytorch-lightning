@@ -41,7 +41,7 @@ pull_request_rules:
       - -conflict
       - -draft # filter-out GH draft PRs
       - -title~=(?i)wip # skip all PR that title contains “WIP” (ignoring case)
-      - "#approved-reviews-by>=1" # number of review approvals
+      - "#approved-reviews-by>=2" # number of review approvals
       - "#changes-requested-reviews-by=0" # no requested changes
     actions:
       label:
