@@ -1233,7 +1233,7 @@ reload_dataloaders_every_n_epochs
 |
 
 Set to a positive integer to reload dataloaders every n epochs from your currently used data source.
-DataSource can be a DataModule or a DataLightningModule.
+DataSource can be a ``LightningModule`` or a ``LightningDataModule.
 
 
 .. code-block:: python
@@ -1251,7 +1251,7 @@ DataSource can be a DataModule or a DataLightningModule.
         for batch in train_loader:
             ...
 
-Pseudo code applies also to the ``test_dataloader`` and the ``val_dataloader``.
+The pseudocode applies also to the ``val_dataloader``.
 
 .. _replace-sampler-ddp:
 
