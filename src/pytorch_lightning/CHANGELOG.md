@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added prefix to log message in `seed_everything` with rank info ([#13290](https://github.com/Lightning-AI/lightning/issues/13290))
 
 
+- Added support for HPU DataModule ([#13995](https://github.com/Lightning-AI/lightning/pull/13995))
+
+
 -
 
 
@@ -153,7 +156,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for DDP Fork ([#13405](https://github.com/Lightning-AI/lightning/pull/13405))
 - Added support for async checkpointing ([#13658](https://github.com/Lightning-AI/lightning/pull/13658))
 - Added support for HPU Device stats monitor ([#13819](https://github.com/Lightning-AI/lightning/pull/13819))
-- Added support for HPU DataModule ([#13995](https://github.com/Lightning-AI/lightning/pull/13995))
 
 ### Changed
 
