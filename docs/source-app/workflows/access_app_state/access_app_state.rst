@@ -21,11 +21,9 @@ What is special about the App State?
 ************************************
 
 The **App State** is always up-to-date, even running an App in the cloud on multiple machines.
-
-This means that every time an attribute is modified in a Work, that information is automatically broadcasted to the Flow.
-
-With this mechanism, any Component can **react** to any other Component's **state changes** through the Flow and complex systems can be easily implemented.
-
+This means that every time an attribute is modified in a Work, that information is automatically
+broadcasted to the Flow. With this mechanism, any Component can **react** to any other
+Component's **state changes** through the Flow and complex systems can be easily implemented.
 Lightning requires a state based driven mindset when implementing the Flow.
 
 ***************************************
