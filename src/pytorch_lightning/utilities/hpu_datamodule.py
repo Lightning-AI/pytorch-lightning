@@ -32,6 +32,10 @@ _DATASETS_PATH = "./data"
 
 
 def load_data(traindir, valdir, train_transforms, val_transforms):  # type: ignore[no-untyped-def]
+
+    if not _TORCHVISION_AVAILABLE:
+        return None
+
     # check supported transforms
     if train_transforms is not None:
         for t in train_transforms:
