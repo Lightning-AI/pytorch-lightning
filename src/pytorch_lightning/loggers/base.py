@@ -57,11 +57,6 @@ class LightningLoggerBase(logger.Logger):
         super().__init__(*args, **kwargs)
 
 
-class LoggerCollection(logger.LoggerCollection):
-    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
-        super().__init__(*args, **kwargs)
-
-
 class DummyExperiment(logger.DummyExperiment):
     def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         rank_zero_deprecation(
