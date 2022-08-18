@@ -33,9 +33,6 @@ _DATASETS_PATH = "./data"
 
 def load_data(traindir, valdir, train_transforms, val_transforms):  # type: ignore[no-untyped-def]
 
-    if not _TORCHVISION_AVAILABLE:
-        return None
-
     # check supported transforms
     if train_transforms is not None:
         for t in train_transforms:
@@ -115,6 +112,10 @@ class HPUDataModule(pl.LightningDataModule):
         self.data_loader_type = habana_dataloader.HabanaDataLoader
 
     def setup(self, stage: Optional[str] = None):  # type: ignore[no-untyped-def]
+
+        if not _TORCHVISION_AVAILABLE:
+            raise ValueError("torchvision transforms not available")
+
         if self.shuffle is True:
             raise ValueError("HabanaDataLoader does not support shuffle=True")
 
