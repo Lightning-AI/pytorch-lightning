@@ -26,16 +26,12 @@ exclude = '(_notebooks/.*)'
 [tool.mypy]
 files = [
     "src/pytorch_lightning",
-    "src/lightning_app",
+    "src/lightning_app/cli/lightning_cli*.py",
+    "src/lightning_app/cli/cmd_*.py",
+    # TODO enable for all of lightning_app
+    # "src/lightning_app/",
 ]
-exclude = [
-    "src/lightning_app/cli/component-template/",
-    "src/lightning_app/cli/app-template/",
-    "src/lightning_app/cli/pl-app-template/",
-    "src/lightning_app/cli/react-ui-template/",
-    # TODO, enforce typing in app tests
-    "src/lightning_app/testing/"
-]
+exclude = []
 install_types = "True"
 non_interactive = "True"
 disallow_untyped_defs = "True"

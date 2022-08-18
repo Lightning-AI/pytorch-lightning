@@ -107,7 +107,7 @@ def download_frontend(destination: Path) -> None:
         response = urllib.request.urlopen(url)
         file = tarfile.open(fileobj=response, mode="r|gz")
         file.extractall(path=download_dir)
-        shutil.move(Path(download_dir, build_dir_name), destination)
+        shutil.move(str(Path(download_dir, build_dir_name)), destination)
 
 
 def project_file_from_template(template_dir: Path, destination_dir: Path, template_name: str, **kwargs: Any) -> None:
@@ -121,7 +121,7 @@ def project_file_from_template(template_dir: Path, destination_dir: Path, templa
 def print_pretty_report(
     directory: pathlib.Path,
     ignore_patterns: Optional[List[str]] = None,
-    help_texts: Optional[Dict[str, str]] = None,
+    help_texts: Dict[str, str] = {},
 ) -> None:
     """Prints a report for the generated app."""
     tree = Tree(
@@ -135,8 +135,9 @@ def print_pretty_report(
     )
     max_witdth = max(len(p.name) for p in paths)
 
+    patterns_to_ignore = [] if ignore_patterns is None else ignore_patterns
     for path in paths:
-        if any(re.match(pattern, path.name) for pattern in ignore_patterns):
+        if any(re.match(pattern, path.name) for pattern in patterns_to_ignore):
             # Only display relevant files
             continue
 
