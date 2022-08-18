@@ -55,6 +55,7 @@ if _TORCH_GREATER_EQUAL_1_12:
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 else:
+    FullyShardedDataParallel = None  # type: ignore[misc,assignment]
     MixedPrecision = None  # type: ignore[misc,assignment]
     BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
@@ -136,7 +137,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
         self._rank_0_will_call_children_scripts: bool = False
-        self._model_wrapped = False
         self.kwargs = kwargs
 
     @property
@@ -206,22 +206,18 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
 
-    def _setup_model(self) -> None:
+    def _setup_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
-        if is_overridden("configure_sharded_model", self.lightning_module):
-            rank_zero_info(
-                "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
-                " are already wrapped for sharding and won't wrap the entire model using `FullyShardedDataParallel`."
-            )
-            return
-
-        if self._model_wrapped:
-            return
+        # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
+        assert self.lightning_module
+        if any(isinstance(mod, FullyShardedDataParallel) for _, mod in self.lightning_module.named_modules()):
+            if "auto_wrap_policy" in self.kwargs:
+                self.kwargs.pop("auto_wrap_policy")
 
         log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
-        self.model = FullyShardedDataParallel(
-            module=self.model,
+        return FullyShardedDataParallel(
+            module=model,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
@@ -229,7 +225,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             device_id=self.root_device.index,
             **self.kwargs,
         )
-        self._model_wrapped = True
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
@@ -245,15 +240,18 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
 
+        assert isinstance(self.model, pl.LightningModule)
         self.model = _LightningModuleWrapperBase(self.model)
-        self._setup_model()
+        if is_overridden("configure_sharded_model", self.lightning_module):
+            rank_zero_info(
+                "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
+                " are already wrapped for sharding and won't wrap the entire model using `FullyShardedDataParallel`."
+            )
+        else:
+            self.model = self._setup_model(self.model)
         self.barrier()
 
         if trainer.state.fn == TrainerFn.FITTING:
-            rank_zero_info(
-                "While configuring the optimizers with `DDPFullyShardedNativeStrategy`, make sure to use"
-                " `self.trainer.model.parameters()` while initializing the optimizer."
-            )
             self.setup_optimizers(trainer)
             optimizers_to_device(self.optimizers, self.root_device)
 
@@ -314,21 +312,19 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         assert self.model is not None
-        # with self.precision_plugin.train_step_context():
         return self.model(*args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert self.model is not None
-            return self.model(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            return self.model(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            return self.model(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def _determine_device_ids(self) -> List[int]:
         return [self.root_device.index]
