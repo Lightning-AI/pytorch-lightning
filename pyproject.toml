@@ -28,10 +28,13 @@ files = [
     "src/pytorch_lightning",
     "src/lightning_app/cli/lightning_cli*.py",
     "src/lightning_app/cli/cmd_*.py",
-    # TODO enable for all of lightning_app
+    # TODO: Check typing in app source
     # "src/lightning_app/",
 ]
-exclude = []
+exclude = [
+    "src/lightning_app/cli/component-template/",
+    "src/lightning_app/cli/pl-app-template/"
+]
 install_types = "True"
 non_interactive = "True"
 disallow_untyped_defs = "True"
