@@ -1747,12 +1747,11 @@ class LightningModule(
         for t in range(0, time_dims[0], split_size):
             batch_split = []
             for i, x in enumerate(batch):
+                split_x: Union[Tensor, List[Tensor]]
                 if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
                 elif isinstance(x, collections.Sequence):
-                    split_x = [None] * len(x)  # type: ignore[assignment]
-                    for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t : t + split_size]
+                    split_x = [x[batch_idx][t : t + split_size] for batch_idx in range(len(x))]
 
                 batch_split.append(split_x)
 
