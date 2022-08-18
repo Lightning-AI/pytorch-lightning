@@ -112,7 +112,7 @@ class _MNIST(Dataset):
                 time.sleep(delta * random.random())
             else:
                 break
-        assert res is not None, f"Failed to load data from {path_data}"
+        assert res is not None
         if exception is not None:
             # raise the caught exception
             raise exception
