@@ -38,8 +38,5 @@ def _sigterm_flow_handler(*_, app: "lightning_app.LightningApp"):
 
 
 def is_running_in_cloud() -> bool:
-    """Returns True if the Lightning App is running in the cloud.
-
-    This function can be used to determine if the App is running locally and provide a better developer experience.
-    """
+    """Returns True if the Lightning App is running in the cloud."""
     return "LIGHTNING_APP_STATE_URL" in os.environ
