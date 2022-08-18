@@ -26,7 +26,7 @@
 /docs/source-app/expertise_levels           @williamfalcon @Felonious-Spellfire @RobertLaurella
 
 # Packages
-/src/pytorch_lightning                      @carmocca @justusschock
+/src/pytorch_lightning                      @borda @awaelchli @carmocca @justusschock @rohitgr7 @otaj
 /src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
 /src/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
 /src/pytorch_lightning/core                 @tchaton @borda @carmocca @justusschock @kaushikb11

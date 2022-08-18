@@ -261,6 +261,7 @@ class ModelSummary:
         trainer = self._model._trainer
 
         input_ = model.example_input_array
+        input_ = model._on_before_batch_transfer(input_)
         input_ = model._apply_batch_transfer_handler(input_)
 
         mode = model.training
