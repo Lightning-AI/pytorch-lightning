@@ -1,0 +1,15 @@
+name: Probot
+
+on:
+  pull_request:
+    types: [opened]
+  check_run: {}
+  workflow_dispatch: {}
+
+jobs:
+  required-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: carmocca/probot@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
