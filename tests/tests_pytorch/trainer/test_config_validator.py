@@ -197,7 +197,7 @@ def test_invalid_setup_method():
 
 
 @pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}, {"accelerator": "gpu", "strategy": "dp"}])
-@pytest.mark.parametrize("hook", ["on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer"])
+@pytest.mark.parametrize("hook", ["transfer_batch_to_device", "on_after_batch_transfer"])
 def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kwargs, tmpdir):
     """Test that an exception is raised when overriding batch_transfer_hooks."""
     if trainer_kwargs.get("accelerator") == "gpu":
