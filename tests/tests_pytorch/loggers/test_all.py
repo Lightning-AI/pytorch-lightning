@@ -300,7 +300,7 @@ class RankZeroLoggerCheck(Callback):
 
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
-@RunIf(skip_windows=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)

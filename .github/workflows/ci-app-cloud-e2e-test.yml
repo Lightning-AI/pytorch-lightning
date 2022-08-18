@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
           python-version: "3.8"
 
@@ -54,7 +54,7 @@ jobs:
           - custom_work_dependencies
           - drive
           - payload
-          - commands
+          - commands_and_api
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v2
