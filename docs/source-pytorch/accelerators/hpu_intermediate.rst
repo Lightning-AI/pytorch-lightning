@@ -100,13 +100,13 @@ For more details, please refer to `Memory Stats APIs <https://docs.habana.ai/en/
 
 ----
 
-Using HPU Data Module
-----------------------
+Using HPUDataModule
+-----------------------
 
-HPUDataModule class is a wrapper around the pl.LightningDataModule class. It makes working with custom models easier on HPU devices.
-It uses HabanaDataloader for training, test and validation of user-provided models. Currently, it only supports Imagenet dataset.
+``HPUDataModule`` class is a wrapper around the ``LightningDataModule`` class. It makes working with custom models easier on HPU devices.
+It uses HabanaDataloader for training, testing, and validation of user-provided models. Currently, it only supports the ``Imagenet`` dataset.
 
-The below snippet shows an example of how to use HPUDataModule.
+The below snippet shows an example of how to use the ``HPUDataModule``.
 
 .. code-block:: python
 
