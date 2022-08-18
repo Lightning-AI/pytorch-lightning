@@ -16,9 +16,6 @@ import os
 import pytest
 import torch
 
-if _TORCHVISION_AVAILABLE:
-    from torchvision import transforms
-
 from pytorch_lightning import Callback, LightningDataModule, seed_everything, Trainer
 from pytorch_lightning.accelerators import HPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -30,6 +27,10 @@ from pytorch_lightning.utilities.hpu_datamodule import HPUDataModule
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+
+if _TORCHVISION_AVAILABLE:
+    from torchvision import transforms
 
 
 class HPUTestModel(BoringModel):
@@ -385,6 +386,9 @@ def test_hpu_datamodule_num_workers():
 
 @RunIf(hpu=True)
 def test_hpu_datamodule_unsupported_transforms():
+
+    if not _TORCHVISION_AVAILABLE:
+        return None
 
     model = BoringModel()
 
