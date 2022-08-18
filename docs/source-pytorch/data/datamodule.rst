@@ -414,7 +414,7 @@ the method runs on the correct devices).
     trainer.test(datamodule=dm)
 
 
-You can access the current used datamodule of a trainer via ``trainer.datamodule`` and the current used dataloaders via ``trainer.train_dataloader``, ``trainer.val_dataloader`` and ``trainer.test_dataloader``. Please note, that these objects shouldn't be replaced manually.
+You can access the current used datamodule of a trainer via ``trainer.datamodule`` and the current used dataloaders via ``trainer.train_dataloader``, ``trainer.val_dataloaders`` and ``trainer.test_dataloaders``. Please note, that these objects shouldn't be replaced manually.
 
 ----------------
 
