@@ -1,10 +1,9 @@
 name: Probot
 
 on:
+  check_run:
   pull_request:
-    types: [opened]
-  check_run: {}
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   required-jobs:
