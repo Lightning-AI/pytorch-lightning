@@ -32,9 +32,9 @@ Use a **LightningWork** component for any programming logic that takes more than
 
 ----
 
-************************************************
-What building a Lightning component does for you
-************************************************
+**************************************************
+What developing a Lightning Component does for you
+**************************************************
 Lightning Components break up complex systems into modular components. The first obvious benefit is that components
 can be reused across other apps. This means you can build once, test it and forget it.
 
@@ -151,50 +151,3 @@ run the app
 .. code:: bash
 
     lightning run app app.py
-
-----
-
-*******************************************
-Build a Lightning component from a template
-*******************************************
-If you'd prefer a component template with built-in testing that can be easily published to the
-Lightning component gallery, generate it with our template generator:
-
-.. code:: bash
-
-    lightning init component your-component-name
-
-You'll see a print-out like this:
-
-.. code:: bash
-
-    ➜ lightning init component your-component-name
-    INFO: laying out component template at /Users/williamfalcon/Developer/opensource/_/lightning/scratch/hello-world
-    INFO:
-    ⚡ Lightning component template created! ⚡
-    /Users/williamfalcon/Developer/opensource/_/lightning/scratch/hello-world
-
-    ...
-
-----
-
-Modify the component template
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The command above generates a component file like this:
-
-.. code:: python
-
-    import lightning as L
-
-
-    class TemplateComponent(L.LightningWork):
-        def __init__(self) -> None:
-            super().__init__()
-            self.value = 0
-
-        def run(self):
-            self.value += 1
-            print("welcome to your work component")
-            print("this is running inside a work")
-
-Now you can modify the component as you wish!

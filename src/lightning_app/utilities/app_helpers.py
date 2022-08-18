@@ -299,7 +299,7 @@ def _set_child_name(component: "Component", child: "Component", new_name: str) -
     return child_name
 
 
-def _delta_to_appstate_delta(root: "LightningFlow", component: "Component", delta: Delta) -> Delta:
+def _delta_to_app_state_delta(root: "LightningFlow", component: "Component", delta: Delta) -> Delta:
     delta_dict = delta.to_dict()
     for changed in delta_dict.values():
         for delta_key in changed.copy().keys():
@@ -322,8 +322,9 @@ def _delta_to_appstate_delta(root: "LightningFlow", component: "Component", delt
 
             delta_key_without_root = delta_key[4:]  # the first 4 chars are the word 'root', strip it
             new_key = new_prefix + delta_key_without_root
-            changed[new_key] = val
-            del changed[delta_key]
+            if new_key != delta_key:
+                changed[new_key] = val
+                del changed[delta_key]
 
     return Delta(delta_dict)
 
