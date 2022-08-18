@@ -310,6 +310,8 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        # we don't need precision context since casting is done by FSDP
+        # read `mixed_precision``` docstring here: https://pytorch.org/docs/stable/fsdp.html
         assert self.model is not None
         return self.model(*args, **kwargs)
 
