@@ -98,7 +98,7 @@ class _MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)
 
     @staticmethod
-    def _try_load(path_data: str, trials: int = 30, delta: Union[int, float] = 1.0) -> Tuple[Tensor, Tensor]:
+    def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
         """Resolving loading from the same time from multiple concurrent processes."""
         res, exception = None, None
         assert trials, "at least some trial has to be set"
@@ -148,7 +148,7 @@ class MNISTDataModule(LightningDataModule):
     <...mnist_datamodule.MNISTDataModule object at ...>
     """
 
-    name: str = "mnist"
+    name = "mnist"
 
     def __init__(
         self,
@@ -204,7 +204,7 @@ class MNISTDataModule(LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
-        loader: DataLoader = DataLoader(
+        loader = DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
             shuffle=True,
@@ -216,7 +216,7 @@ class MNISTDataModule(LightningDataModule):
 
     def val_dataloader(self) -> DataLoader:
         """MNIST val set uses a subset of the training set for validation."""
-        loader: DataLoader = DataLoader(
+        loader = DataLoader(
             self.dataset_val,
             batch_size=self.batch_size,
             shuffle=False,
