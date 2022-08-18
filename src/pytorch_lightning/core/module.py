@@ -291,15 +291,15 @@ class LightningModule(
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
 
-    def _call_batch_hook(self, hook_name, *args) -> Any:
+    def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
             datahook_selector = self._trainer._data_connector._datahook_selector
             obj = datahook_selector.get_instance(hook_name)
-            trainer_method = (
-                self._trainer._call_lightning_module_hook
-                if isinstance(obj, self.__class__)
-                else self._trainer._call_lightning_datamodule_hook
-            )
+            if isinstance(obj, self.__class__):
+                trainer_method = self._trainer._call_lightning_module_hook
+            else:
+                trainer_method = self._trainer._call_lightning_datamodule_hook
+
             return trainer_method(hook_name, *args)
         else:
             hook = getattr(self, hook_name)
