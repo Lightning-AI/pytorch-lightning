@@ -25,8 +25,10 @@ class _LightningLogsSocketAPI:
 
     @staticmethod
     def _socket_url(host: str, project_id: str, app_id: str, token: str, component: str) -> str:
+        protocol = "ws" if "localhost" in host else "wss"
+
         return (
-            f"wss://{host}/v1/projects/{project_id}/appinstances/{app_id}/logs?"
+            f"{protocol}://{host}/v1/projects/{project_id}/appinstances/{app_id}/logs?"
             f"token={token}&component={component}&follow=true"
         )
 

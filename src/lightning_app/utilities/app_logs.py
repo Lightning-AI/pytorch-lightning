@@ -2,7 +2,7 @@ import json
 import queue
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from json import JSONDecodeError
 from threading import Thread
 from typing import Callable, Iterator, List, Optional
@@ -38,6 +38,42 @@ class _LogEvent:
 
     def __gt__(self, other: "_LogEvent") -> bool:
         return self.timestamp > other.timestamp
+
+
+class LogSection:
+    """
+    Delimiters used to separate sections of Lightning App logs.
+    """
+    USER_RUN_FLOW = "USER_RUN_FLOW"
+    USER_RUN_WORK = "USER_RUN_WORK"
+
+
+def is_log_delimiter_begin(message: str):
+    return "<<< BEGIN" in message and "SECTION >>>" in message
+
+
+def is_log_delimiter_end(message: str):
+    return "<<< END" in message and "SECTION >>>" in message
+
+
+def log_delimiter_begin_for(section: str) -> str:
+    return f"<<< BEGIN {section} SECTION >>>"
+
+
+def log_delimiter_end_for(section: str) -> str:
+    return f"<<< END {section} SECTION >>>"
+
+
+def is_log_delimiter(message: str) -> bool:
+    return is_log_delimiter_begin(message) or is_log_delimiter_end(message)
+
+
+def is_internal_launcher_command(message: str) -> bool:
+    return "lightning-cloud-launcher" in message
+
+
+def is_internal_log(message: str) -> bool:
+    return is_internal_launcher_command(message) or is_log_delimiter(message)
 
 
 def _push_log_events_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
@@ -84,7 +120,6 @@ def _app_logs_reader(
     follow: bool,
     on_error_callback: Optional[Callable] = None,
 ) -> Iterator[_LogEvent]:
-
     read_queue = queue.PriorityQueue()
     logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
@@ -109,18 +144,20 @@ def _app_logs_reader(
         th.start()
 
     # Print logs from queue when log event is available
-    user_log_start = "<<< BEGIN USER_RUN_FLOW SECTION >>>"
-    start_timestamp = None
+    component_logs_started = {component_name: False for component_name in component_names}
 
-    # Print logs from queue when log event is available
     try:
         while True:
-            log_event = read_queue.get(timeout=None if follow else 1.0)
-            if user_log_start in log_event.message:
-                start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
+            log_event: _LogEvent = read_queue.get(timeout=None if follow else 1.0)
 
-            if start_timestamp and log_event.timestamp > start_timestamp:
+            if component_logs_started[log_event.component_name] and not is_internal_log(log_event.message):
                 yield log_event
+                continue
+
+            section = LogSection.USER_RUN_FLOW if log_event.component_name == "flow" else LogSection.USER_RUN_WORK
+
+            if log_delimiter_begin_for(section) in log_event.message:
+                component_logs_started[log_event.component_name] = True
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
