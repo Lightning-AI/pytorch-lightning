@@ -470,8 +470,9 @@ def test_dm_init_from_datasets_with_init_params():
         UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
 
     class KwargsParametersDataModule(LightningDataModule):
-        def __init__(self, **kwargs):
+        def __init__(self, num_workers, **kwargs):
             super().__init__()
+            self.num_workers = num_workers
             for key, value in kwargs.items():
                 setattr(self, key, value)
 
