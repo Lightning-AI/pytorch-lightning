@@ -22,5 +22,5 @@ The ML and backend services live on the Lightning App, but the iOS or Android co
 Option 2
 ^^^^^^^^
 
-You can build a mobile-first react Lightning App that works on both Apple and Android mobile devices.
+You can build a mobile-first React Lightning App that works on both Apple and Android mobile devices.
 The `InVideo app <https://lightning.ai/app/7pmQNIDxAE-InVideo%20Search>`_ is a good example of a Lightning App that does just that.
