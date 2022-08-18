@@ -44,8 +44,13 @@ class _FxValidator:
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
         "lr_scheduler_step": None,
-        "configure_gradient_clipping": None,
-        "clip_gradients": None,
+        # should match `optimizer_step`
+        "configure_gradient_clipping": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "clip_gradients": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
         "on_before_zero_grad": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
