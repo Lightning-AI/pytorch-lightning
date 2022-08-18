@@ -2674,9 +2674,7 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[Logger]:
-        if len(self.loggers) > 0:
-            return self.loggers[0]
-        return None
+        return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
