@@ -562,7 +562,13 @@ class AcceleratorConnector:
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
-        for env_type in (SLURMEnvironment, BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (
+            SLURMEnvironment,
+            BaguaEnvironment,
+            TorchElasticEnvironment,
+            KubeflowEnvironment,
+            LSFEnvironment,
+        ):
             if env_type.detect():
                 # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
                 return env_type()  # type: ignore[abstract]
