@@ -15,7 +15,9 @@ import os
 
 import pytest
 import torch
-from torchvision import transforms
+
+if _TORCHVISION_AVAILABLE:
+    from torchvision import transforms
 
 from pytorch_lightning import Callback, LightningDataModule, seed_everything, Trainer
 from pytorch_lightning.accelerators import HPUAccelerator
