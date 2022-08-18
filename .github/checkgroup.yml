@@ -73,7 +73,6 @@ subprojects:
   - id: "pytorch_lightning: Docker"
     paths:
       - "dockers/**"
-      - "!dockers/README.md"
       - "requirements.txt"
       - "requirements/*.txt"
       - "requirements/pytorch/*"
