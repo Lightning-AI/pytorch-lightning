@@ -1723,6 +1723,18 @@ Whether this process is the global zero in multi-node training
         if self.trainer.is_global_zero:
             print("in node 0, accelerator 0")
 
+predict_dataloaders
+*******************
+
+The current predict dataloaders of the trainer. They shouldn't be replaced by another dataloader object.
+Note that property returns a list of predict dataloaders.
+
+.. code-block:: python
+
+    used_predict_dataloaders = trainer.predict_dataloaders
+
+
+
 progress_bar_metrics
 ********************
 
@@ -1768,23 +1780,27 @@ The current train dataloader of the trainer. It shouldn't be replaced by another
     used_train_dataloader = trainer.train_dataloader
 
 
-test_dataloader
+test_dataloaders
+****************
+
+The current test dataloaders of the trainer. They shouldn't be replaced by another dataloader object.
+Note that property returns a list of test dataloaders.
+
+
+.. code-block:: python
+
+    used_test_dataloaders = trainer.test_dataloaders
+
+
+
+val_dataloaders
 ***************
 
-The current test dataloader of the trainer. It shouldn't be replaced by another dataloader object.
+
+The current val dataloaders of the trainer. They shouldn't be replaced by another dataloader object.
+Note that property returns a list of val dataloaders.
+
 
 .. code-block:: python
 
-    used_test_dataloader = trainer.test_dataloader
-
-
-
-val_dataloader
-**************
-
-
-The current val dataloader of the trainer. It shouldn't be replaced by another dataloader object.
-
-.. code-block:: python
-
-    used_val_dataloader = trainer.val_dataloader
+    used_val_dataloaders = trainer.val_dataloaders
