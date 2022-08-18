@@ -52,13 +52,12 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerPLType,
     LRSchedulerTypeUnion,
     STEP_OUTPUT,
+    MODULE_OPTIMIZERS
 )
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
-
-MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
 
 
 class LightningModule(
