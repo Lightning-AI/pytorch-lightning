@@ -17,12 +17,10 @@ Option 1
 ^^^^^^^^
 
 You can develop a Lightning App that interacts with an iOS or Android app.
-
 The ML and backend services live on the Lightning App, but the iOS or Android code (obj-c/swift or android) lives on the mobile devices.
 
 Option 2
 ^^^^^^^^
 
 You can build a mobile-first react Lightning App that works on both Apple and Android mobile devices.
-
-Here is a good example of a Lightning App that does just that: https://lightning.ai/app/7pmQNIDxAE-InVideo%20Search
+The `InVideo app <https://lightning.ai/app/7pmQNIDxAE-InVideo%20Search>`_ is a good example of a Lightning App that does just that.
