@@ -366,6 +366,54 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         )
 
 
+def test_dm_init_from_datasets_with_init_params():
+    """Test that extra kwargs can be passed down to the init via the ``LightningDataModule.from_datasets`` method.
+
+    The two special arguments batch_size and num_workers get passed down depending on whether the __init__ accepts them.
+    """
+    # No additional parameters
+    LightningDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+
+    class KnownExtraParametersDataModule(LightningDataModule):
+        def __init__(self, batch_size=1, num_workers=0):
+            super().__init__()
+            self.batch_size = batch_size
+            self.num_workers = num_workers
+
+    # batch_size and num_workers get special treatment - they are part of the `from_datasets` signature
+    dm = KnownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+    assert dm.batch_size == 4
+    assert dm.num_workers == 2
+
+    class UnknownExtraParametersDataModule(LightningDataModule):
+        def __init__(self, other, batch_size=1):
+            super().__init__()
+            self.other = other
+            self.batch_size = batch_size
+
+    # additional parameter `other` gets forwarded, alongside the special `batch_size` parameter
+    dm = UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2, other=5)
+    assert dm.batch_size == 4
+    assert dm.other == 5
+
+    # positional arguments raise an error as they would when instantiating the datamodule normally
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'other'"):
+        UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+
+    class KwargsParametersDataModule(LightningDataModule):
+        def __init__(self, num_workers, **kwargs):
+            super().__init__()
+            self.num_workers = num_workers
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    # everything gets forwarded, because there is `**kwargs` present
+    dm = KwargsParametersDataModule.from_datasets(DummyDS(), batch_size=10, num_workers=100, another=None)
+    assert dm.batch_size == 10
+    assert dm.num_workers == 100
+    assert dm.another is None
+
+
 # all args
 class DataModuleWithHparams_0(LightningDataModule):
     def __init__(self, arg0, arg1, kwarg0=None):
