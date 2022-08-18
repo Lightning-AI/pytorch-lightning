@@ -41,9 +41,8 @@ class _LogEvent:
 
 
 class LogSection:
-    """
-    Delimiters used to separate sections of Lightning App logs.
-    """
+    """Delimiters used to separate sections of Lightning App logs."""
+
     USER_RUN_FLOW = "USER_RUN_FLOW"
     USER_RUN_WORK = "USER_RUN_WORK"
 
