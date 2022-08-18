@@ -29,6 +29,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Replaced the unwrapping logic in strategies with direct access to unwrapped `LightningModule` ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
 
 
+- Enabled `on_before_batch_transfer` for `DPStrategy` and `IPUAccelerator` ([14023](https://github.com/Lightning-AI/lightning/pull/14023))
+
+
 
 ### Deprecated
 
@@ -69,6 +72,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an assertion error when using a `ReduceOnPlateau` scheduler with the Horovod strategy ([#14215](https://github.com/Lightning-AI/lightning/pull/14215))
 
+
+- Fixed an `AttributeError` when accessing `LightningModule.logger` and the Trainer has multiple loggers ([#14234](https://github.com/Lightning-AI/lightning/pull/14234))
 
 
 ## [1.7.2] - 2022-08-17
