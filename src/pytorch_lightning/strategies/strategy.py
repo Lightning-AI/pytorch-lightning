@@ -32,7 +32,6 @@ from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import (
     _PATH,
@@ -48,9 +47,6 @@ TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
 
 log = logging.getLogger(__name__)
-
-if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.optim import ZeroRedundancyOptimizer
 
 
 class Strategy(ABC):
@@ -177,12 +173,9 @@ class Strategy(ABC):
         if isinstance(optimizer, LightningOptimizer):
             optimizer = optimizer._optimizer
 
-        if _FAIRSCALE_AVAILABLE:
-            from fairscale.optim import OSS
-
-        if (_TORCH_GREATER_EQUAL_1_10 and isinstance(optimizer, ZeroRedundancyOptimizer)) or (
-            _FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS)
-        ):
+        if hasattr(optimizer, "consolidate_state_dict"):
+            # there are optimizers like Fairscale's OSS or PyTorch's ZeroRedundancyOptimizer that shard their
+            # states, and to avoid OOM we consolidate the full state on rank 0 only
             optimizer.consolidate_state_dict()
             return optimizer.state_dict() if self.is_global_zero else {}
 
