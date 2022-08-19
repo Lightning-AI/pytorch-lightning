@@ -48,7 +48,7 @@ jobs:
             echo "::set-output name=continue::1"
         fi
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       if: ${{ (steps.skip.outputs.continue == '1') }}
       with:
         python-version: ${{ matrix.python-version }}
