@@ -142,32 +142,6 @@ class ModelIO:
             **kwargs,
         )
 
-    # -------------------------
-    # OPTIONAL HOOKS
-    # -------------------------
-    def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
-        """Hook to do whatever you need right before Slurm manager saves the model.
-
-        Args:
-            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
-                Contents need to be pickleable.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use ``LightningModule.on_save_checkpoint`` instead.
-        """
-
-    def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
-        """Hook to do whatever you need right before Slurm manager loads the model.
-
-        Args:
-            checkpoint: A dictionary with variables from the checkpoint.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use ``LightningModule.on_load_checkpoint`` instead.
-        """
-
 
 def _load_from_checkpoint(
     cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
