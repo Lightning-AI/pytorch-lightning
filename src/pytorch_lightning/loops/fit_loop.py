@@ -13,8 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from functools import partial
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import CUDAAccelerator
@@ -262,10 +261,14 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.train_dataloader
+
+        def batch_to_device(batch: Any) -> Any:
+            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=0)
+            return batch
+
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(
-            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
-        )
+        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         with self.trainer.profiler.profile("run_training_epoch"):
             self._outputs = self.epoch_loop.run(self._data_fetcher)
 
