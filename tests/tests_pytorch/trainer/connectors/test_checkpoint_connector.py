@@ -41,39 +41,6 @@ class HPCHookedModel(BoringModel):
         self.hpc_load_called += 1
 
 
-# TODO: remove test_hpc_hook_calls in v1.8
-@mock.patch(
-    "pytorch_lightning.trainer.connectors.accelerator_connector.AcceleratorConnector._is_slurm_managing_tasks",
-    return_value=True,
-)
-def test_hpc_hook_calls(mock_slurm_env, tmpdir):
-    model = HPCHookedModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
-    environment = trainer._accelerator_connector.cluster_environment
-    assert isinstance(environment, SLURMEnvironment)
-    assert environment.auto_requeue
-    with pytest.deprecated_call(
-        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
-    ):
-        trainer.fit(model)
-
-    # simulate snapshot on slurm
-    hpc_save_path = trainer._checkpoint_connector.hpc_save_path(tmpdir)
-    trainer.save_checkpoint(hpc_save_path)
-    assert model.hpc_save_called == 1
-    assert model.hpc_load_called == 0
-
-    # new training run, restore from hpc checkpoint file automatically
-    assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
-    with pytest.deprecated_call(
-        match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
-    ):
-        trainer.fit(model)
-    assert model.hpc_save_called == 1
-    assert model.hpc_load_called == 1
-
-
 def test_preloaded_checkpoint_lifecycle(tmpdir):
     """Tests that the preloaded checkpoint contents gets cleared from memory when it is not required anymore."""
     model = BoringModel()
