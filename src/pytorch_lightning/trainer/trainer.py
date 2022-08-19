@@ -2768,6 +2768,9 @@ class Trainer(
         if self.max_epochs == -1 and self.max_steps == -1:
             return float("inf")
 
+        if self.max_epochs == -1:
+            return self.max_steps
+
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
             self.reset_train_dataloader()
