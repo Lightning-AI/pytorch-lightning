@@ -337,7 +337,6 @@ async def test_health_endpoint_failure():
         ("/", 200),
         ("/asdf", 200),
         ("/view/component_a", 200),
-        ("/admin", 200),
     ),
 )
 @pytest.mark.anyio
