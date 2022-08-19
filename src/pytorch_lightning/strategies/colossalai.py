@@ -211,7 +211,7 @@ class ColossalAIStrategy(DDPStrategy):
         return super().lightning_module
 
     def teardown(self) -> None:
-        pass
+        gpc.destroy()
 
     def optimizer_step(self, optimizer, opt_idx: int, closure, model=None, **kwargs: Any) -> Any:
         model = model or self.model
