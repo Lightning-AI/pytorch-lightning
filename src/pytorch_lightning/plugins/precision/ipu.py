@@ -19,6 +19,7 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -35,7 +36,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: int) -> None:
-        supported_precision_values = (16, 32)
+        supported_precision_values = (PrecisionType.HALF, PrecisionType.FLOAT)
         if precision not in supported_precision_values:
             raise ValueError(
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."

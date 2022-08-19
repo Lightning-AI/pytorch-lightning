@@ -13,8 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from functools import partial
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import CUDAAccelerator
@@ -50,10 +49,10 @@ class FitLoop(Loop[None]):
     def __init__(
         self,
         min_epochs: int = 0,
-        max_epochs: int = 1000,
+        max_epochs: Optional[int] = None,
     ) -> None:
         super().__init__()
-        if max_epochs < -1:
+        if isinstance(max_epochs, int) and max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
                 f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}."
@@ -162,6 +161,7 @@ class FitLoop(Loop[None]):
 
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
+        assert isinstance(self.max_epochs, int)
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
         if stop_epochs:
             # in case they are not equal, override so `trainer.current_epoch` has the expected value
@@ -261,10 +261,14 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.train_dataloader
+
+        def batch_to_device(batch: Any) -> Any:
+            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=0)
+            return batch
+
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(
-            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
-        )
+        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         with self.trainer.profiler.profile("run_training_epoch"):
             self._outputs = self.epoch_loop.run(self._data_fetcher)
 

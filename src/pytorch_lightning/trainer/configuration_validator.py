@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -45,7 +46,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     elif trainer.state.fn == TrainerFn.PREDICTING:
         __verify_eval_loop_configuration(trainer, model, "predict")
 
-    __verify_dp_batch_transfer_support(trainer, model)
+    __verify_batch_transfer_support(trainer, model)
     _check_deprecated_callback_hooks(trainer)
     # TODO: Delete _check_on_hpc_hooks in v1.8
     _check_on_hpc_hooks(model)
@@ -148,16 +149,21 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
             raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
 
 
-def __verify_dp_batch_transfer_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def __verify_batch_transfer_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
-    # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-    batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
     for hook in batch_transfer_hooks:
+        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
         if isinstance(trainer.strategy, DataParallelStrategy) and (
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
         ):
             raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
+
+        if isinstance(trainer.accelerator, IPUAccelerator) and (
+            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
+        ):
+            raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
 
 
 def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:

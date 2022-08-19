@@ -47,6 +47,20 @@ callbacks
     Timer
     TQDMProgressBar
 
+cli
+-----
+
+.. currentmodule:: pytorch_lightning.cli
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    LightningCLI
+    LightningArgumentParser
+    SaveConfigCallback
+
 core
 ----
 
@@ -173,6 +187,7 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
@@ -271,6 +286,7 @@ strategies
 
     BaguaStrategy
     HivemindStrategy
+    DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

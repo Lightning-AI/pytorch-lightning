@@ -18,8 +18,6 @@ import torch
 from torch.nn import Module
 from typing_extensions import Self
 
-import pytorch_lightning as pl
-
 
 class DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ["device", "dtype"]
@@ -39,7 +37,7 @@ class DeviceDtypeModuleMixin(Module):
         raise RuntimeError("Cannot set the dtype explicitly. Please use module.to(new_dtype).")
 
     @property
-    def device(self) -> Union[str, torch.device]:
+    def device(self) -> torch.device:
         device = self._device
 
         # make this more explicit to always include the index
@@ -118,14 +116,16 @@ class DeviceDtypeModuleMixin(Module):
         while being optimized.
 
         Arguments:
-            device: if specified, all parameters will be
-                copied to that device
+            device: If specified, all parameters will be copied to that device. If `None`, the current CUDA device
+                index will be used.
 
         Returns:
             Module: self
         """
-        if device is None or isinstance(device, int):
-            device = torch.device("cuda", index=(device or 0))
+        if device is None:
+            device = torch.device("cuda", torch.cuda.current_device())
+        elif isinstance(device, int):
+            device = torch.device("cuda", index=device)
         self.__update_properties(device=device)
         return super().cuda(device=device)
 
@@ -180,10 +180,8 @@ class DeviceDtypeModuleMixin(Module):
     def __update_properties(
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
-        def apply_fn(module: Union["DeviceDtypeModuleMixin", Module]) -> None:
-            # TODO: Find why `isinstance(module, DeviceDtypeModuleMixin)` doesn't
-            # work when using `init_meta_context`.
-            if not isinstance(module, (DeviceDtypeModuleMixin, pl.LightningModule)):
+        def apply_fn(module: Union[DeviceDtypeModuleMixin, Module]) -> None:
+            if not isinstance(module, DeviceDtypeModuleMixin):
                 return
             if device is not None:
                 module._device = device

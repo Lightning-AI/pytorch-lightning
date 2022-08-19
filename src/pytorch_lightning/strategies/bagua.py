@@ -7,11 +7,7 @@ from torch import Tensor
 from torch.nn import Module
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import (
-    _LightningModuleWrapperBase,
-    _LightningPrecisionModuleWrapperBase,
-    unwrap_lightning_module,
-)
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -54,10 +50,16 @@ log = logging.getLogger(__name__)
 
 
 class LightningBaguaModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
-        super().__init__(pl_module)
+    def __init__(
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+    ) -> None:
+        self._validate_init_arguments(pl_module, forward_module)
+        forward_module = pl_module or forward_module
+        super().__init__(forward_module=forward_module)
         # Bagua use `bagua_module_name` to distinguish different modules
-        self._bagua_module_name = f"{pl_module.__class__.__name__}{id(pl_module)}"
+        self._bagua_module_name = f"{forward_module.__class__.__name__}{id(forward_module)}"
 
 
 class BaguaStrategy(DDPStrategy):
@@ -108,13 +110,6 @@ class BaguaStrategy(DDPStrategy):
         self._bagua_algorithm = algorithm
         self._bagua_flatten = flatten
         self._bagua_kwargs = bagua_kwargs
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        model = self.model
-        if isinstance(model, BaguaDistributedDataParallel):
-            model = model.module
-        return unwrap_lightning_module(model) if model is not None else None
 
     def setup_distributed(self) -> None:
         reset_seed()
@@ -190,7 +185,7 @@ class BaguaStrategy(DDPStrategy):
 
     def _configure_bagua_model(self, trainer: "pl.Trainer") -> None:
         model = LightningBaguaModule(self.model)  # type: ignore[arg-type]
-        self._model = self._setup_model(model)
+        self.model = self._setup_model(model)
 
         # start the background communication for async algorithm
         if trainer.training and self._bagua_algorithm == "async":

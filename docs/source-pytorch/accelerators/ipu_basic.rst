@@ -67,3 +67,5 @@ Please see the `MNIST example <https://github.com/Lightning-AI/lightning/blob/ma
 * Since the step functions are traced, branching logic or any form of primitive values are traced into constants. Be mindful as this could lead to errors in your custom code.
 * Clipping gradients is not supported.
 * It is not possible to use :class:`torch.utils.data.BatchSampler` in your dataloaders if you are using multiple IPUs.
+* IPUs handle the data transfer to the device on the host, hence the hooks :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` and
+  :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer` do not apply here and if you have overridden any of them, an exception will be raised.
