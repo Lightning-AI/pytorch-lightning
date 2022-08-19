@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+from typing import Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -93,7 +93,7 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
-    def forward(self, x: Tensor) -> Any:  # type: ignore [override]
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore [override]
         return self.layer(x)
 
     def loss(self, batch: Tensor, preds: Tensor) -> Tensor:
@@ -205,7 +205,7 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
-    def forward(self, x: Tensor) -> Any:  # type: ignore [override]
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore [override]
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
     def training_step(self, batch: Tensor, batch_nb: int) -> STEP_OUTPUT:  # type: ignore [override]
