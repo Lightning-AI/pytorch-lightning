@@ -2,20 +2,25 @@ import torch
 import pytorch_lightning as pl
 import contextlib
 from typing import Optional, Generator, Any
-from colossalai.gemini import ChunkManager, GeminiManager
-from colossalai.utils.model.colo_init_context import ColoInitContext
-from colossalai.utils import get_current_device
-from colossalai.nn.parallel import ZeroDDP
-from colossalai.zero import ZeroOptimizer
-from colossalai.tensor import ProcessGroup
-from colossalai.nn.optimizer import CPUAdam, HybridAdam
-from colossalai.logging import get_dist_logger, disable_existing_loggers
-from colossalai.core import global_context as gpc
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+_COLOSSALAI_AVAILABLE = _RequirementAvailable("colossalai")
+if _COLOSSALAI_AVAILABLE:
+    from colossalai.gemini import ChunkManager, GeminiManager
+    from colossalai.utils.model.colo_init_context import ColoInitContext
+    from colossalai.utils import get_current_device
+    from colossalai.nn.parallel import ZeroDDP
+    from colossalai.zero import ZeroOptimizer
+    from colossalai.tensor import ProcessGroup
+    from colossalai.nn.optimizer import CPUAdam, HybridAdam
+    from colossalai.logging import get_dist_logger, disable_existing_loggers
+    from colossalai.core import global_context as gpc
 
 
 class ModelShardedContext(ColoInitContext):
@@ -109,6 +114,12 @@ class ColossalAIStrategy(DDPStrategy):
         hysteresis: int = 2,
         max_scale: float = 2**32,
     ) -> None:
+        if not _COLOSSALAI_AVAILABLE:
+            raise MisconfigurationException(
+                "To use the `ColossalAIStrategy`, please install `colossalai` first. "
+                "Download `colossalai` by consulting https://colossalai.org/download."
+            )
+
         accelerator = CUDAAccelerator()
         precision_plugin = ColossalAIPrecisionPlugin()
         super().__init__(accelerator=accelerator, precision_plugin=precision_plugin)
