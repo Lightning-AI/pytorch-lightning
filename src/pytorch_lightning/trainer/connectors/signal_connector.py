@@ -68,7 +68,9 @@ class SignalConnector:
         # save logger to make sure we get all the metrics
         for logger in self.trainer.loggers:
             logger.finalize("finished")
-        self.trainer.save_checkpoint(self.trainer.default_root_dir)
+        # TODO: in v1.8 change this to use self.trainer.default_root_dir
+        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer._weights_save_path_internal)
+        self.trainer.save_checkpoint(hpc_save_path)
 
         if self.trainer.is_global_zero:
             # find job id
