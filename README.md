@@ -4,7 +4,7 @@
 <div align="center">
 <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
 
-**Build high-performance (PyTorch) models and lightning apps that glue together everything around the models, without the pain of infrastructure, cost management, scaling and everything else.**
+**Build PyTorch models and lightning apps that glue together everything around the models, without the pain of infrastructure, cost management, scaling and everything else.**
 
 ______________________________________________________________________
 
