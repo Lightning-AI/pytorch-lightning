@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enabled `on_before_batch_transfer` for `DPStrategy` and `IPUAccelerator` ([14023](https://github.com/Lightning-AI/lightning/pull/14023))
 
 
+- Save checkpoints and profiler output to the first logger ([14325](https://github.com/Lightning-AI/lightning/pull/14325))
+
 
 ### Deprecated
 
