@@ -20,6 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.progress.base import get_standard_metrics, ProgressBarBase
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
@@ -250,3 +251,15 @@ def test_v1_10_deprecated_seed_utilities():
 
     with pytest.deprecated_call(match="seed.pl_worker_init_function` has been deprecated in v1.8.0"):
         pl_worker_init_function(0)
+
+
+def test_v1_10_deprecated_progress_bar_base():
+    with pytest.deprecated_call(match="callbacks.progress.base.ProgressBarBase` was deprecated in v1.8.0"):
+        ProgressBarBase()
+
+
+def test_v1_10_deprecated_progress_get_standard_metrics():
+    trainer = Trainer()
+    pl_module = BoringModel()
+    with pytest.deprecated_call(match=r"callbacks.progress.base.get_standard_metrics` was deprecated in v1.8.0"):
+        get_standard_metrics(trainer, pl_module)
