@@ -176,13 +176,6 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
         Print cluster logs:
 
             $ lightning show cluster logs my-cluster
-
-
-
-
-
-
-            
     """
 
     client = LightningClient()
