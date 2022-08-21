@@ -1,16 +1,14 @@
 import json
 import queue
-import sys
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
-from json import JSONDecodeError
+from dataclasses import dataclass
 from threading import Thread
-from typing import Callable, Dict, Iterator, List, Optional
+from typing import Callable, Iterator, Optional
 
 import arrow
 import dateutil.parser
 from websocket import WebSocketApp
 
+from lightning_app.utilities.log_helpers import _OrderedLogEntry, _error_callback
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
@@ -24,23 +22,11 @@ class _ClusterLogEventLabels:
     logger: str
     path: Optional[str] = None
     workspace: Optional[str] = None
-#    stream: Optional[str] = None
 
 
 @dataclass
-class _ClusterLogEvent:
-    message: str
-    timestamp: datetime
+class _ClusterLogEvent(_OrderedLogEntry):
     labels: _ClusterLogEventLabels
-
-    def as_dict(self) -> Dict:
-        return asdict(self)
-
-    def __ge__(self, other: "_ClusterLogEvent") -> bool:
-        return self.timestamp >= other.timestamp
-
-    def __gt__(self, other: "_ClusterLogEvent") -> bool:
-        return self.timestamp > other.timestamp
 
 
 def _push_log_events_to_read_queue_callback(read_queue: queue.PriorityQueue):
@@ -67,17 +53,6 @@ def _push_log_events_to_read_queue_callback(read_queue: queue.PriorityQueue):
     return callback
 
 
-def _error_callback(ws_app: WebSocketApp, error: Exception):
-    errors = {
-        KeyError: "Malformed log message, missing key",
-        JSONDecodeError: "Malformed log message",
-        TypeError: "Malformed log format",
-        ValueError: "Malformed date format",
-    }
-    print(f"Error while reading logs ({errors.get(type(error), 'Unknown')}), {error}", file=sys.stderr)
-    ws_app.close()
-
-
 def _cluster_logs_reader(
     client: LightningClient,
     cluster_id: str,
@@ -90,7 +65,8 @@ def _cluster_logs_reader(
     logs_api_client = _LightningLogsSocketAPI(client.api_client)
     read_queue = queue.PriorityQueue()
 
-    # We will use a socket per component
+    # We will use a socket inside a thread to read logs,
+    # to follow our typical reading pattern
     log_socket = logs_api_client.create_cluster_logs_socket(
             cluster_id=cluster_id,
             start=start,
@@ -99,8 +75,6 @@ def _cluster_logs_reader(
             on_error_callback=on_error_callback or _error_callback,
         )
 
-    # And each socket on separate thread pushing log event to print queue
-    #   run_forever() will run until we close() the connection from outside
     log_thread = Thread(target=log_socket.run_forever)
 
     # Establish connection and begin pushing logs to the print queue
@@ -112,27 +86,18 @@ def _cluster_logs_reader(
             log_event = read_queue.get(timeout=None if follow else 1.0)
             yield log_event
 
-            #if user_log_start in log_event.message:
-            #    start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
-
-            #if start_timestamp and log_event.timestam
-            #
-            # p > start_timestamp:
-            #    yield log_event
-
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
         pass
 
     except KeyboardInterrupt:
-        # User pressed CTRL+C to exit, we sould respect that
+        # User pressed CTRL+C to exit, we should respect that
         pass
 
     finally:
-        # Close connections - it will cause run_forever() to finish -> thread as finishes aswell
+        # Close connection - it will cause run_forever() to finish -> thread as finishes as well
         log_socket.close()
 
-        # Because all socket were closed, we can just wait for threads to finish.
+        # The socket was closed, we can just wait for thread to finish.
         log_thread.join()
-
 
