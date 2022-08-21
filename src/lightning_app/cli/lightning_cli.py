@@ -183,10 +183,10 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
     cluster_manager = AWSClusterManager()
     existing_clusters = cluster_manager.get_clusters()
 
-    if not existing_clusters:
-        raise click.ClickException("You don't have any clusters.")
-
     clusters = {cluster.name: cluster.id for cluster in existing_clusters}
+
+    if not clusters:
+        raise click.ClickException("You don't have any clusters.")
 
     if not cluster_name:
         raise click.ClickException(
@@ -196,7 +196,7 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
     if cluster_name not in clusters:
         raise click.ClickException(
             f"The cluster '{cluster_name}' does not exist."
-            f" Please select one of following: [{', '.join(clusters.keys())}]"
+            f" Please select one of the following: [{', '.join(clusters.keys())}]"
         )
 
     log_reader = _cluster_logs_reader(
