@@ -125,9 +125,9 @@ def _cluster_logs_reader(
 
     finally:
         # Close connections - it will cause run_forever() to finish -> thread as finishes aswell
-        for socket in log_sockets:
-            socket.close()
+        log_socket.close()
 
         # Because all socket were closed, we can just wait for threads to finish.
-        for th in log_threads:
-            th.join()
+        log_thread.join()
+
+
