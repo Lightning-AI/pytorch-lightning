@@ -29,7 +29,7 @@ class _LogsSocketAPI:
 class _LightningLogsSocketAPI(_LogsSocketAPI):
     @staticmethod
     def _app_logs_socket_url(host: str, project_id: str, app_id: str, token: str, component: str) -> str:
-            (
+        return (
             f"wss://{host}/v1/projects/{project_id}/appinstances/{app_id}/logs?"
             f"token={token}&component={component}&follow=true"
         )

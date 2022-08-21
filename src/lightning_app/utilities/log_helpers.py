@@ -1,9 +1,7 @@
-from dataclasses import dataclass
-
-
-from datetime import datetime
-from json import JSONDecodeError
 import sys
+from json import JSONDecodeError
+from dataclasses import dataclass
+from datetime import datetime
 
 from websocket import WebSocketApp
 
@@ -32,5 +30,3 @@ def _error_callback(ws_app: WebSocketApp, error: Exception):
     }
     print(f"Error while reading logs ({errors.get(type(error), 'Unknown')}), {error}", file=sys.stderr)
     ws_app.close()
-
-
