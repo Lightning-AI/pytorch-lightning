@@ -101,9 +101,11 @@ class _LightningLogsSocketAPI(_LogsSocketAPI):
 
 class _ClusterLogsSocketAPI(_LogsSocketAPI):
     @staticmethod
-    def _cluster_logs_socket_url(host: str, cluster_id: str, start: int, end: int, token: str) -> str:
+    def _cluster_logs_socket_url(host: str, cluster_id: str, start: int, end: int, limit: int, token: str) -> str:
         return (
-            f"wss://{host}/v1/core/clusters/{cluster_id}/logs?" f"start={start}&end={end}&" f"token={token}&follow=true"
+            f"wss://{host}/v1/core/clusters/{cluster_id}/logs?"
+            f"start={start}&end={end}&token={token}&limit={limit}"
+            f"&follow=true"
         )
 
     def create_cluster_logs_socket(
@@ -111,6 +113,7 @@ class _ClusterLogsSocketAPI(_LogsSocketAPI):
         cluster_id: str,
         start: int,  # unix timestamp
         end: int,  # unix timestamp
+        limit: int,
         on_message_callback: Callable[[WebSocketApp, str], None],
         on_error_callback: Optional[Callable[[Exception, str], None]] = None,
     ) -> WebSocketApp:
@@ -124,8 +127,8 @@ class _ClusterLogsSocketAPI(_LogsSocketAPI):
                     print(msg)
 
 
-                cluster_logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
-                cluster_logs_socket.run_forever()
+                logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
+                logs_socket.run_forever()
 
             .. code-block:: python
                 # Asynchronous reading (with Threads)
@@ -135,14 +138,15 @@ class _ClusterLogsSocketAPI(_LogsSocketAPI):
                     print(msg)
 
 
-                cluster_logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
+                logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
 
-                cluster_logs_thread = Thread(target=cluster_logs_socket.run_forever)
+                logs_thread = Thread(target=cluster_logs_socket.run_forever)
 
-                cluster_logs_thread.start()
+                logs_thread.start()
                 # .......
 
-                cluster_logs_socket.close()
+
+                logs_socket.close()
 
         Arguments:
             cluster_id: Project ID.
@@ -161,6 +165,7 @@ class _ClusterLogsSocketAPI(_LogsSocketAPI):
             cluster_id=cluster_id,
             token=_token,
             start=start,
+            limit=limit,
             end=end,
         )
 

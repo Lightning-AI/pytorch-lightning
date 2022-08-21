@@ -58,6 +58,7 @@ def _cluster_logs_reader(
     cluster_id: str,
     start: arrow.Arrow,
     end: arrow.Arrow,
+    limit: int,
     follow: bool,
     on_error_callback: Optional[Callable] = None,
 ) -> Iterator[_ClusterLogEvent]:
@@ -71,6 +72,7 @@ def _cluster_logs_reader(
         cluster_id=cluster_id,
         start=start,
         end=end,
+        limit=limit,
         on_message_callback=_push_log_events_to_read_queue_callback(read_queue),
         on_error_callback=on_error_callback or _error_callback,
     )

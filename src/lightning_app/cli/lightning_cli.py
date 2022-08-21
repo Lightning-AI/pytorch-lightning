@@ -168,8 +168,9 @@ def cluster():
     help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
     "-f/--follow).",
 )
+@click.option("--limit", default=1000, help="The max number of log lines returned.")
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool) -> None:
+def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
     """Show cluster logs.
 
     Example uses:
@@ -177,6 +178,21 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
         Print cluster logs:
 
             $ lightning show cluster logs my-cluster
+
+
+        Print cluster logs and wait for new logs:
+
+            $ lightning show cluster logs my-cluster --follow
+
+
+        Print cluster logs, from 48 hours ago to now:
+
+            $ lightning show cluster logs my-cluster --from "48 hours ago"
+
+
+        Print cluster logs, 10 most recent lines:
+
+            $ lightning show cluster logs my-cluster --limit 10
     """
 
     client = LightningClient()
@@ -204,6 +220,7 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
         cluster_id=clusters[cluster_name],
         start=from_time.int_timestamp,
         end=to_time.int_timestamp,
+        limit=limit,
         follow=follow,
     )
 
