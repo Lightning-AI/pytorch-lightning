@@ -96,9 +96,6 @@ def _app_logs_reader(
     try:
         while True:
             log_event = read_queue.get(timeout=None if follow else 1.0)
-            yield log_event
-
-
             if user_log_start in log_event.message:
                 start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
 

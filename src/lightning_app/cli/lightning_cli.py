@@ -25,9 +25,9 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 
 from lightning_app.utilities.cli_helpers import (
+    _arrow_time_callback,
     _format_input_env_variables,
     _retrieve_application_url_and_available_commands,
-    _arrow_time_callback,
 )
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import OpenAPITags
@@ -216,7 +216,7 @@ def logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow
         follow=follow,
     )
 
-    colors = {"error": "red", "info": "green"}
+    colors = {"error": "red", "warning": "yellow", "info": "green"}
 
     for log_event in log_reader:
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
