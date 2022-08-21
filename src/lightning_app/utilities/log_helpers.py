@@ -1,7 +1,7 @@
 import sys
-from json import JSONDecodeError
 from dataclasses import dataclass
 from datetime import datetime
+from json import JSONDecodeError
 
 from websocket import WebSocketApp
 

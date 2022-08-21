@@ -8,7 +8,7 @@ import arrow
 import dateutil.parser
 from websocket import WebSocketApp
 
-from lightning_app.utilities.log_helpers import _OrderedLogEntry, _error_callback
+from lightning_app.utilities.log_helpers import _error_callback, _OrderedLogEntry
 from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
@@ -68,12 +68,12 @@ def _cluster_logs_reader(
     # We will use a socket inside a thread to read logs,
     # to follow our typical reading pattern
     log_socket = logs_api_client.create_cluster_logs_socket(
-            cluster_id=cluster_id,
-            start=start,
-            end=end,
-            on_message_callback=_push_log_events_to_read_queue_callback(read_queue),
-            on_error_callback=on_error_callback or _error_callback,
-        )
+        cluster_id=cluster_id,
+        start=start,
+        end=end,
+        on_message_callback=_push_log_events_to_read_queue_callback(read_queue),
+        on_error_callback=on_error_callback or _error_callback,
+    )
 
     log_thread = Thread(target=log_socket.run_forever)
 
