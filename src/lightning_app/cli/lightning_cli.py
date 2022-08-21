@@ -224,7 +224,6 @@ def logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow
         rich.print(f"[{color}]{log_event.labels.level}[/{color}] {date} {log_event.message.rstrip()}")
 
 
-
 @_main.command()
 def login():
     """Log in to your lightning.ai account."""
