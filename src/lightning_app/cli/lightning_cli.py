@@ -198,10 +198,9 @@ def logs(cluster_name: str, follow: bool) -> None:
     colors = {c: rich_colors[i + 1] for i, c in enumerate([cluster_name])}
 
     for log_event in log_reader:
-
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-        color = colors[log_event.component_name]
-        rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
+        color = colors[log_event.labels.cluster_id]
+        rich.print(f"[{color}]{log_event.labels.cluster_id}[/{color}] {date} {log_event.message}")
 
 
 @_main.command()
