@@ -210,7 +210,8 @@ class FitLoop(Loop[None]):
 
         self.trainer.reset_train_dataloader(self.trainer.lightning_module)
         # reload the evaluation dataloaders too for proper display in the progress bar
-        self.epoch_loop.val_loop._reload_evaluation_dataloaders()
+        if self.epoch_loop._should_check_val_epoch():
+            self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
         data_fetcher_cls = _select_data_fetcher(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
