@@ -43,7 +43,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 def load_requirements(
-    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
+        path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
 ) -> List[str]:
     """Loading requirements from a file.
 
@@ -58,8 +58,8 @@ def load_requirements(
         # filer all comments
         comment = ""
         if comment_char in ln:
-            comment = ln[ln.index(comment_char) :]
-            ln = ln[: ln.index(comment_char)]
+            comment = ln[ln.index(comment_char):]
+            ln = ln[:ln.index(comment_char)]
         req = ln.strip()
         # skip directly installed dependencies
         if not req or req.startswith("http") or "@http" in req:
@@ -67,6 +67,11 @@ def load_requirements(
         # remove version restrictions unless they are strict
         if unfreeze and "<" in req and "strict" not in comment:
             req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+
+        # adding strict back to the comment
+        if "strict" in comment:
+            req += "  # strict"
+
         reqs.append(req)
     return reqs
 
