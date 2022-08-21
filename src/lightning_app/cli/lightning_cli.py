@@ -151,7 +151,7 @@ def cluster():
     pass
 
 
-@cluster.command()
+@cluster.command(name="logs")
 @click.argument("cluster_name", required=True)
 @click.option(
     "--from",
@@ -165,10 +165,11 @@ def cluster():
     "to_time",
     default="0 seconds ago",
     callback=_arrow_time_callback,
-    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with -f/--follow).",
+    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
+    "-f/--follow).",
 )
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool, name="logs") -> None:
+def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool) -> None:
     """Show cluster logs.
 
     Example uses:
@@ -194,7 +195,8 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
 
     if cluster_name not in clusters:
         raise click.ClickException(
-            f"The cluster '{cluster_name}' does not exist. Please select one of following: [{', '.join(clusters.keys())}]"
+            f"The cluster '{cluster_name}' does not exist."
+            f" Please select one of following: [{', '.join(clusters.keys())}]"
         )
 
     log_reader = _cluster_logs_reader(
