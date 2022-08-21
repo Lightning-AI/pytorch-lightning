@@ -16,10 +16,13 @@ from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
+from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_logs import _app_logs_reader
+from lightning_app.utilities.cluster_logs import _cluster_logs_reader
+
 from lightning_app.utilities.cli_helpers import (
     _format_input_env_variables,
     _retrieve_application_url_and_available_commands,
@@ -136,6 +139,66 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     colors = {c: rich_colors[i + 1] for i, c in enumerate(components)}
 
     for log_event in log_reader:
+        date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+        color = colors[log_event.component_name]
+        rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
+
+
+@show.group()
+def cluster():
+    """Groups cluster commands inside show."""
+    pass
+
+
+@cluster.command()
+@click.argument("cluster_name", required=True)
+# @click.argument("components", nargs=-1, required=False)
+@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
+def logs(cluster_name: str, follow: bool) -> None:
+    """Show cluster logs.
+
+    Example uses:
+
+        Print cluster logs:
+
+            $ lightning show cluster logs my-cluster
+    """
+
+    client = LightningClient()
+    cluster_manager = AWSClusterManager()
+    existing_clusters = cluster_manager.get_clusters()
+
+    if not existing_clusters:
+        raise click.ClickException(
+            "You don't have any clusters."
+        )
+
+    clusters = {
+        cluster.name: cluster.id
+        for cluster in existing_clusters
+    }
+
+    if not cluster_name:
+        raise click.ClickException(
+            f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
+        )
+
+    if cluster_name not in clusters:
+        raise click.ClickException(
+            f"The cluster '{cluster_name}' does not exist. Please select one of following: [{', '.join(clusters.keys())}]"
+        )
+
+    log_reader = _cluster_logs_reader(
+        client=client,
+        cluster_id=clusters[cluster_name],
+        follow=follow,
+    )
+
+    rich_colors = list(ANSI_COLOR_NAMES)
+    colors = {c: rich_colors[i + 1] for i, c in enumerate([cluster_name])}
+
+    for log_event in log_reader:
+
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
         color = colors[log_event.component_name]
         rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
