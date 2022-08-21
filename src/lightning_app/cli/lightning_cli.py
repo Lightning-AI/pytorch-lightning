@@ -18,8 +18,10 @@ from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.cli.cmd_clusters import AWSClusterManager
-from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
+from lightning_app.core.constants import get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
+
+
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
@@ -43,7 +45,7 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
         lightning_app = args[0]
         return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}"
     else:
-        return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
+        return "http://127.0.0.1:7501/view"
 
 
 def main():
