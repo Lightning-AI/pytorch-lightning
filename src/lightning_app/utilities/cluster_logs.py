@@ -7,6 +7,7 @@ from json import JSONDecodeError
 from threading import Thread
 from typing import Callable, Dict, Iterator, List, Optional
 
+import arrow
 import dateutil.parser
 from websocket import WebSocketApp
 
@@ -80,6 +81,8 @@ def _error_callback(ws_app: WebSocketApp, error: Exception):
 def _cluster_logs_reader(
     client: LightningClient,
     cluster_id: str,
+    start: arrow.Arrow,
+    end: arrow.Arrow,
     follow: bool,
     on_error_callback: Optional[Callable] = None,
 ) -> Iterator[_ClusterLogEvent]:
@@ -90,6 +93,8 @@ def _cluster_logs_reader(
     # We will use a socket per component
     log_socket = logs_api_client.create_cluster_logs_socket(
             cluster_id=cluster_id,
+            start=start,
+            end=end,
             on_message_callback=_push_log_events_to_read_queue_callback(read_queue),
             on_error_callback=on_error_callback or _error_callback,
         )

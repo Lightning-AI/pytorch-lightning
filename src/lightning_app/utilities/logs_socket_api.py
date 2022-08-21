@@ -32,9 +32,10 @@ class _LightningLogsSocketAPI:
         )
 
     @staticmethod
-    def _cluster_logs_socket_url(host: str, cluster_id: str, token: str) -> str:
+    def _cluster_logs_socket_url(host: str, cluster_id: str, start: int, end: int, token: str) -> str:
         return (
             f"wss://{host}/v1/core/clusters/{cluster_id}/logs?"
+            f"start={start}&end={end}&"
             f"token={token}&follow=true"
         )
 
@@ -105,6 +106,8 @@ class _LightningLogsSocketAPI:
     def create_cluster_logs_socket(
             self,
             cluster_id: str,
+            start: int,  # unix timestamp
+            end: int,  # unix timestamp
             on_message_callback: Callable[[WebSocketApp, str], None],
             on_error_callback: Optional[Callable[[Exception, str], None]] = None,
     ) -> WebSocketApp:
@@ -158,6 +161,8 @@ class _LightningLogsSocketAPI:
             host=clean_ws_host,
             cluster_id=cluster_id,
             token=_token,
+            start=start,
+            end=end,
         )
 
         return WebSocketApp(socket_url, on_message=on_message_callback, on_error=on_error_callback)

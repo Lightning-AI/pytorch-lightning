@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from typing import List, Tuple, Union
 
+import arrow
 import click
 import requests
 import rich
@@ -26,6 +27,7 @@ from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.cli_helpers import (
     _format_input_env_variables,
     _retrieve_application_url_and_available_commands,
+    _arrow_time_callback,
 )
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import OpenAPITags
@@ -152,9 +154,22 @@ def cluster():
 
 @cluster.command()
 @click.argument("cluster_name", required=True)
-# @click.argument("components", nargs=-1, required=False)
+@click.option(
+    "--from",
+    "from_time",
+    default="24 hours ago",
+    help="The starting timestamp to query cluster logs from.",
+    callback=_arrow_time_callback
+)
+@click.option(
+    "--to",
+    "to_time",
+    default="0 seconds ago",
+    callback=_arrow_time_callback,
+    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with -f/--follow)."
+)
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def logs(cluster_name: str, follow: bool) -> None:
+def logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool) -> None:
     """Show cluster logs.
 
     Example uses:
@@ -191,6 +206,8 @@ def logs(cluster_name: str, follow: bool) -> None:
     log_reader = _cluster_logs_reader(
         client=client,
         cluster_id=clusters[cluster_name],
+        start=from_time.int_timestamp,
+        end=to_time.int_timestamp,
         follow=follow,
     )
 
