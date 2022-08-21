@@ -201,7 +201,7 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir, model, stra
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
-        devices=1,
+        devices=2,
         strategy=strategy,
         precision=16,
         max_epochs=1,
@@ -226,13 +226,13 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     # Test entry point
     trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
 
-    # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
     trainer.test(ckpt_path=model_path)
 
     # Predict entry point
     trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
 
-    # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
     trainer.predict(ckpt_path=model_path)
 
 

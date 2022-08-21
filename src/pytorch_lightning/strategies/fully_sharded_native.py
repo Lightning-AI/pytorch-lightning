@@ -210,9 +210,11 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
         assert self.lightning_module is not None
-        if any(isinstance(mod, FullyShardedDataParallel) for _, mod in self.lightning_module.named_modules()):
-            if "auto_wrap_policy" in self.kwargs:
-                self.kwargs.pop("auto_wrap_policy")
+        if (
+            any(isinstance(mod, FullyShardedDataParallel) for mod in self.lightning_module.modules())
+            and "auto_wrap_policy" in self.kwargs
+        ):
+            del self.kwargs["auto_wrap_policy"]
 
         log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
         return FullyShardedDataParallel(
@@ -250,9 +252,8 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self.model = self._setup_model(self.model)
         self.barrier()
 
-        if trainer.state.fn == TrainerFn.FITTING:
-            self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
+        self.setup_optimizers(trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
 
         self.setup_precision_plugin()
 
