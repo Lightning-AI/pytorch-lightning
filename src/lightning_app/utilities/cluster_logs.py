@@ -22,6 +22,10 @@ class _ClusterLogEventLabels:
     logger: str
     path: Optional[str] = None
     workspace: Optional[str] = None
+    identifier: Optional[str] = None
+    issuer: Optional[str] = None
+    error: Optional[str] = None
+    errorVerbose: Optional[str] = None
 
 
 @dataclass
