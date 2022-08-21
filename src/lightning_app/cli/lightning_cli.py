@@ -168,7 +168,12 @@ def cluster():
     callback=_arrow_time_callback,
     help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with -f/--follow)."
 )
-@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
+@click.option(
+    "-f",
+    "--follow",
+    required=False,
+    is_flag=True,
+    help="Wait for new logs, to exit use CTRL+C.")
 def logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool) -> None:
     """Show cluster logs.
 
@@ -211,13 +216,13 @@ def logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow
         follow=follow,
     )
 
-    rich_colors = list(ANSI_COLOR_NAMES)
-    colors = {c: rich_colors[i + 1] for i, c in enumerate([cluster_name])}
+    colors = {"error": "red", "info": "green"}
 
     for log_event in log_reader:
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-        color = colors[log_event.labels.cluster_id]
-        rich.print(f"[{color}]{log_event.labels.cluster_id}[/{color}] {date} {log_event.message}")
+        color = colors.get(log_event.labels.level, "green")
+        rich.print(f"[{color}]{log_event.labels.level}[/{color}] {date} {log_event.message.rstrip()}")
+
 
 
 @_main.command()

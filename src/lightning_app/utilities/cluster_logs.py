@@ -100,4 +100,3 @@ def _cluster_logs_reader(
 
         # The socket was closed, we can just wait for thread to finish.
         log_thread.join()
-
