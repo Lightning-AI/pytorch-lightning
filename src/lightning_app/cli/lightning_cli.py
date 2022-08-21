@@ -176,7 +176,7 @@ def cluster():
     required=False,
     is_flag=True,
     help="Wait for new logs, to exit use CTRL+C.")
-def logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool) -> None:
+def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool, name="logs") -> None:
     """Show cluster logs.
 
     Example uses:
