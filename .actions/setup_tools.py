@@ -67,11 +67,6 @@ def load_requirements(
         # remove version restrictions unless they are strict
         if unfreeze and "<" in req and "strict" not in comment:
             req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
-
-        # adding strict back to the comment
-        if "strict" in comment:
-            req += "  # strict"
-
         reqs.append(req)
     return reqs
 
