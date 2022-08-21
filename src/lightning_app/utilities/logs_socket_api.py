@@ -103,18 +103,16 @@ class _ClusterLogsSocketAPI(_LogsSocketAPI):
     @staticmethod
     def _cluster_logs_socket_url(host: str, cluster_id: str, start: int, end: int, token: str) -> str:
         return (
-            f"wss://{host}/v1/core/clusters/{cluster_id}/logs?"
-            f"start={start}&end={end}&"
-            f"token={token}&follow=true"
+            f"wss://{host}/v1/core/clusters/{cluster_id}/logs?" f"start={start}&end={end}&" f"token={token}&follow=true"
         )
 
     def create_cluster_logs_socket(
-            self,
-            cluster_id: str,
-            start: int,  # unix timestamp
-            end: int,    # unix timestamp
-            on_message_callback: Callable[[WebSocketApp, str], None],
-            on_error_callback: Optional[Callable[[Exception, str], None]] = None,
+        self,
+        cluster_id: str,
+        start: int,  # unix timestamp
+        end: int,  # unix timestamp
+        on_message_callback: Callable[[WebSocketApp, str], None],
+        on_error_callback: Optional[Callable[[Exception, str], None]] = None,
     ) -> WebSocketApp:
         """Creates and returns WebSocketApp to listen to cluster logs.
 

@@ -14,24 +14,21 @@ from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.core.constants import get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
-
-
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_logs import _app_logs_reader
-from lightning_app.utilities.cluster_logs import _cluster_logs_reader
-
 from lightning_app.utilities.cli_helpers import (
     _arrow_time_callback,
     _format_input_env_variables,
     _retrieve_application_url_and_available_commands,
 )
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
@@ -161,27 +158,24 @@ def cluster():
     "from_time",
     default="24 hours ago",
     help="The starting timestamp to query cluster logs from.",
-    callback=_arrow_time_callback
+    callback=_arrow_time_callback,
 )
 @click.option(
     "--to",
     "to_time",
     default="0 seconds ago",
     callback=_arrow_time_callback,
-    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with -f/--follow)."
+    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with -f/--follow).",
 )
-@click.option(
-    "-f",
-    "--follow",
-    required=False,
-    is_flag=True,
-    help="Wait for new logs, to exit use CTRL+C.")
+@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, follow: bool, name="logs") -> None:
     """Show cluster logs.
 
     Example uses:
 
         Print cluster logs:
+
+
 
             $ lightning show cluster logs my-cluster
     """
@@ -191,14 +185,9 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
     existing_clusters = cluster_manager.get_clusters()
 
     if not existing_clusters:
-        raise click.ClickException(
-            "You don't have any clusters."
-        )
+        raise click.ClickException("You don't have any clusters.")
 
-    clusters = {
-        cluster.name: cluster.id
-        for cluster in existing_clusters
-    }
+    clusters = {cluster.name: cluster.id for cluster in existing_clusters}
 
     if not cluster_name:
         raise click.ClickException(

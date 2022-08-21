@@ -8,7 +8,7 @@ from typing import Callable, Iterator, List, Optional
 import dateutil.parser
 from websocket import WebSocketApp
 
-from lightning_app.utilities.log_helpers import _OrderedLogEntry, _error_callback
+from lightning_app.utilities.log_helpers import _error_callback, _OrderedLogEntry
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
