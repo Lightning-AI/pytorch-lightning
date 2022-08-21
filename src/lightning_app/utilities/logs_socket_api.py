@@ -7,8 +7,9 @@ from websocket import WebSocketApp
 from lightning_app.utilities.login import Auth
 
 
-# decompose this
-class _LightningLogsSocketAPI:
+# This class joins common things for reading logs,
+# initialization and getting API token
+class _LogsSocketAPI:
     def __init__(self, api_client: ApiClient):
         self.api_client = api_client
         self._auth = Auth()
@@ -24,19 +25,13 @@ class _LightningLogsSocketAPI:
         )
         return token_resp.token
 
+
+class _LightningLogsSocketAPI(_LogsSocketAPI):
     @staticmethod
     def _app_logs_socket_url(host: str, project_id: str, app_id: str, token: str, component: str) -> str:
             (
             f"wss://{host}/v1/projects/{project_id}/appinstances/{app_id}/logs?"
             f"token={token}&component={component}&follow=true"
-        )
-
-    @staticmethod
-    def _cluster_logs_socket_url(host: str, cluster_id: str, start: int, end: int, token: str) -> str:
-        return (
-            f"wss://{host}/v1/core/clusters/{cluster_id}/logs?"
-            f"start={start}&end={end}&"
-            f"token={token}&follow=true"
         )
 
     def create_lightning_logs_socket(
@@ -103,15 +98,25 @@ class _LightningLogsSocketAPI:
 
         return WebSocketApp(socket_url, on_message=on_message_callback, on_error=on_error_callback)
 
+
+class _ClusterLogsSocketAPI(_LogsSocketAPI):
+    @staticmethod
+    def _cluster_logs_socket_url(host: str, cluster_id: str, start: int, end: int, token: str) -> str:
+        return (
+            f"wss://{host}/v1/core/clusters/{cluster_id}/logs?"
+            f"start={start}&end={end}&"
+            f"token={token}&follow=true"
+        )
+
     def create_cluster_logs_socket(
             self,
             cluster_id: str,
             start: int,  # unix timestamp
-            end: int,  # unix timestamp
+            end: int,    # unix timestamp
             on_message_callback: Callable[[WebSocketApp, str], None],
             on_error_callback: Optional[Callable[[Exception, str], None]] = None,
     ) -> WebSocketApp:
-        """Creates and returns WebSocketApp to listen to lightning app logs.
+        """Creates and returns WebSocketApp to listen to cluster logs.
 
             .. code-block:: python
                 # Synchronous reading, run_forever() is blocking
@@ -121,8 +126,8 @@ class _LightningLogsSocketAPI:
                     print(msg)
 
 
-                flow_logs_socket = client.create_lightning_logs_socket("project_id", "app_id", "flow", print_log_msg)
-                flow_socket.run_forever()
+                cluster_logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
+                cluster_logs_socket.run_forever()
 
             .. code-block:: python
                 # Asynchronous reading (with Threads)
@@ -132,23 +137,19 @@ class _LightningLogsSocketAPI:
                     print(msg)
 
 
-                flow_logs_socket = client.create_lightning_logs_socket("project_id", "app_id", "flow", print_log_msg)
-                work_logs_socket = client.create_lightning_logs_socket("project_id", "app_id", "work_1", print_log_msg)
+                cluster_logs_socket = client.create_cluster_logs_socket("cluster_id", 1661100000, 1661101000, print_log_msg)
 
-                flow_logs_thread = Thread(target=flow_logs_socket.run_forever)
-                work_logs_thread = Thread(target=work_logs_socket.run_forever)
+                cluster_logs_thread = Thread(target=cluster_logs_socket.run_forever)
 
-                flow_logs_thread.start()
-                work_logs_thread.start()
+                cluster_logs_thread.start()
                 # .......
 
-                flow_logs_socket.close()
-                work_logs_thread.close()
+                cluster_logs_socket.close()
 
         Arguments:
-            project_id: Project ID.
-            app_id: Application ID.
-            component: Component name eg flow.
+            cluster_id: Project ID.
+            start: Starting timestamp to query cluster logs from.
+            end: Ending timestamp to query cluster logs to.
             on_message_callback: Callback object which is called when received data.
             on_error_callback: Callback object which is called when we get error.
 
