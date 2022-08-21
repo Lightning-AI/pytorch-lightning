@@ -224,12 +224,12 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
         follow=follow,
     )
 
-    colors = {"error": "red", "warning": "yellow", "info": "green"}
+    colors = {"error": "red", "warn": "yellow", "info": "green"}
 
     for log_event in log_reader:
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
         color = colors.get(log_event.labels.level, "green")
-        rich.print(f"[{color}]{log_event.labels.level}[/{color}] {date} {log_event.message.rstrip()}")
+        rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
 
 
 @_main.command()
