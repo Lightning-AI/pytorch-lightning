@@ -463,7 +463,6 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
 
     def look_for_trace(trace_dir):
         """Determines if a directory contains a PyTorch trace."""
-        print(os.listdir(trace_dir))
         return any("trace.json" in filename for filename in os.listdir(trace_dir))
 
     model = BoringModel()
