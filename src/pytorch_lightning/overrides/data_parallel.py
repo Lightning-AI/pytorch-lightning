@@ -13,7 +13,7 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any, cast, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch import Tensor
@@ -77,7 +77,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any) -> Any:
-            device = cast(torch.device, self.lightning_module.device)
+            device = self.lightning_module.device
             data = python_scalar_to_tensor(data, device)
             data = unsqueeze_scalar_tensor(data)
             return data

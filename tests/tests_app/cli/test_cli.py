@@ -75,8 +75,8 @@ def test_main_lightning_cli_help():
     [
         (["--instance-types", "t3.xlarge"], ["t3.xlarge"], True),
         (["--instance-types", "t3.xlarge,t3.2xlarge"], ["t3.xlarge", "t3.2xlarge"], True),
-        ([], None, True),
-        (["--enable-performance"], None, False),
+        ([], [], True),
+        (["--enable-performance"], [], False),
     ],
 )
 def test_create_cluster(
