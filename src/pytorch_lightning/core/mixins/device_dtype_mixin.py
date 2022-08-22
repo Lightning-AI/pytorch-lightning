@@ -37,7 +37,7 @@ class DeviceDtypeModuleMixin(Module):
         raise RuntimeError("Cannot set the dtype explicitly. Please use module.to(new_dtype).")
 
     @property
-    def device(self) -> Union[str, torch.device]:
+    def device(self) -> torch.device:
         device = self._device
 
         # make this more explicit to always include the index
