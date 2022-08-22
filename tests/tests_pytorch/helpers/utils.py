@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import re
+import functools
 from contextlib import contextmanager
 from typing import Optional, Type
 
@@ -76,6 +77,10 @@ def set_random_main_port():
 def init_checkpoint_callback(logger):
     checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
     return checkpoint
+
+
+def getattr_recursive(obj, attr):
+    return functools.reduce(getattr, [obj] + attr.split("."))
 
 
 @contextmanager
