@@ -699,13 +699,6 @@ class DataHooks:
                 batch['x'] = transforms(batch['x'])
                 return batch
 
-        Raises:
-            MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
-
-            MisconfigurationException:
-                If using IPUs, ``Trainer(accelerator='ipu')``.
-
         See Also:
             - :meth:`on_after_batch_transfer`
             - :meth:`transfer_batch_to_device`

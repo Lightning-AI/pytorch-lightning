@@ -53,6 +53,7 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
+from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
@@ -186,6 +187,12 @@ class AcceleratorConnector:
         self._amp_type_flag: Optional[LightningEnum] = None
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
+
+        if amp_level is not None:
+            rank_zero_deprecation(
+                "Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0 and will be removed"
+                " in v1.10.0. Please set it inside the specific precision plugin and pass it to the `Trainer`."
+            )
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -719,7 +726,9 @@ class AcceleratorConnector:
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
                     return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, (DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy)):
+                if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
+                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
+                if isinstance(self.strategy, DDPFullyShardedStrategy):
                     return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 

@@ -1,15 +1,11 @@
-name: Test App
+name: Test App - examples
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on: # Trigger the workflow on push or pull request, but only for the master branch
   push:
     branches: [master, "release/*"]
   pull_request:
-    paths:
-      - "src/lightning_app/**"
-      - "tests/tests_app/**"
-      - "requirements/app/**"
-      - "setup.py"
+    branches: [master, "release/*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -21,12 +17,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2022]
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v2
@@ -69,15 +65,8 @@ jobs:
           pip list
         shell: bash
 
-#      - name: Start Redis
-#        if: runner.os == 'Linux'
-#        uses: supercharge/redis-github-action@1.4.0
-#        with:
-#          redis-version: 6
-#          redis-port: 6379
-
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
 
@@ -96,7 +85,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source lightning_app -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source lightning_app -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
@@ -121,19 +110,3 @@ jobs:
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false
-
-# TODO: figure out why we clone and install quick-start
-#      - name: Clone Quick Start Example Repo
-#        uses: actions/checkout@v3
-#        # TODO: this needs to be git submodule
-#        if: matrix.os == 'windows-2019'  # because the install doesn't work on windows
-#        with:
-#          repository: Lightning-AI/lightning-quick-start
-#          ref: 'main'
-#          path: lightning-quick-start
-#
-#      - name: Lightning Install quick-start
-#        shell: bash
-#        if: matrix.os != 'windows-2019'  # because the install doesn't work on windows
-#        run: |
-#          python -m lightning install app lightning/quick-start -y
