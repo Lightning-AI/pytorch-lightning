@@ -217,10 +217,18 @@ def test_amp_with_apex(bwd_mock, tmpdir):
 def test_amp_with_apex_reload(tmpdir):
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", accelerator="gpu", devices=1
+        default_root_dir=tmpdir,
+        max_steps=5,
+        limit_test_batches=1,
+        precision=16,
+        amp_backend="apex",
+        accelerator="gpu",
+        devices=1,
     )
     trainer.fit(model)
     trainer.fit_loop.max_steps = 7
 
-    with pytest.warns(UserWarning, match="Ignoring APEX AMP state in checkpoint"):
+    with pytest.raises(RuntimeError, match="Ignoring APEX AMP state in checkpoint"):
         trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
+
+    trainer.test(model, ckpt_path="best")

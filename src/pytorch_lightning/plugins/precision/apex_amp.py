@@ -97,6 +97,3 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def state_dict(self) -> Dict[str, Any]:
         return amp.state_dict()
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        rank_zero_warn("Ignoring APEX AMP state in checkpoint: Resuming training with APEX is currently not supported.")
