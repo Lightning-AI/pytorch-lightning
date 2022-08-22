@@ -15,9 +15,8 @@
 
 import dataclasses
 from collections import defaultdict, OrderedDict
-from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple, Union
 
 from lightning_app.utilities.exceptions import MisconfigurationException
 
