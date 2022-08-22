@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -138,31 +139,6 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     assert before_batch_size != after_batch_size, "Batch size was not altered after running auto scaling of batch size"
 
     assert not os.path.exists(tmpdir / "scale_batch_size_temp_model.ckpt")
-
-
-@RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize("scale_mode", ["power", "binsearch"])
-def test_auto_scale_batch_size_calls_forward_method_x_times(tmpdir, scale_mode):
-    """Test that models actually go through forward loop (and don't get skipped due to buggy epoch count
-    resets)."""
-
-    class CounterModel(BatchSizeModel):
-        def __init__(self):
-            super().__init__(batch_size=2)
-            self.num_completed_epochs = 0
-
-        def on_train_epoch_end(self):
-            self.num_completed_epochs += 1
-
-    tutils.reset_seed()
-    model = CounterModel()
-    trainer = Trainer(default_root_dir=tmpdir, auto_scale_batch_size=True, max_epochs=1, accelerator="gpu", devices=1)
-    max_trials = 5
-    trainer.tune(model, scale_batch_size_kwargs={"max_trials": max_trials, "mode": scale_mode})
-
-    expected_minimum_number_of_passed_epochs = max_trials
-    actual_number_of_passed_epochs = model.num_completed_epochs
-    assert actual_number_of_passed_epochs >= expected_minimum_number_of_passed_epochs
 
 
 @RunIf(min_cuda_gpus=1)
@@ -316,10 +292,13 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
 def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
-    scale_batch_size_kwargs = {"max_trials": 5, "init_val": 4, "mode": scale_method}
+    max_trials = 5
+    scale_batch_size_kwargs = {"max_trials": max_trials, "steps_per_trial": 2, "init_val": 4, "mode": scale_method}
 
-    trainer = Trainer(max_epochs=2, auto_scale_batch_size=True)
-    new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
+    with patch.object(model, "on_train_epoch_end") as advance_mocked:
+        new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
+        assert advance_mocked.call_count == max_trials
 
     assert trainer.train_dataloader.loaders.batch_size == new_batch_size
     assert trainer.val_dataloaders[0].batch_size == new_batch_size
