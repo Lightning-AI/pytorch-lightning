@@ -10,10 +10,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Release LAI docs as stable ([#14250](https://github.com/Lightning-AI/lightning/pull/14250))
+- Compatibility for Python 3.10
 
 ### Fixed
 
 - Pinning starsessions to 1.x ([#14333](https://github.com/Lightning-AI/lightning/pull/14333))
+- Parsed local package versions ([#13933](https://github.com/Lightning-AI/lightning/pull/13933))
 
 
 ## [0.5.6] - 2022-08-16
