@@ -209,10 +209,6 @@ class CheckpointConnector:
     def restore_precision_plugin_state(self) -> None:
         """Restore the precision plugin state from the pre-loaded checkpoint."""
         prec_plugin = self.trainer.precision_plugin
-
-        if isinstance(prec_plugin, ApexMixedPrecisionPlugin) and self.trainer.state.fn == TrainerFn.FITTING:
-            raise RuntimeError("Resuming training with APEX is currently not supported.")
-
         prec_plugin.on_load_checkpoint(self._loaded_checkpoint)
         if prec_plugin.__class__.__qualname__ in self._loaded_checkpoint:
             prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
