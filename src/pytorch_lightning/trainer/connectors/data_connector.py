@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_au
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _is_dataloader_shuffled,
-    _replace_init_method,
+    _replace_dunder_methods,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -61,13 +61,19 @@ class DataConnector:
     def _should_reload_train_dl(self) -> bool:
         """Check if train dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs)
+        return n_epochs and (
+            self.trainer._last_train_dl_reload_epoch is None
+            or self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
+        )
 
     @property
     def _should_reload_val_dl(self) -> bool:
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
+        return n_epochs and (
+            self.trainer._last_val_dl_reload_epoch is None
+            or self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
+        )
 
     def on_trainer_init(
         self,
@@ -428,9 +434,11 @@ class DataConnector:
         """
         source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
 
-        with _replace_init_method(DataLoader, "dataset"), _replace_init_method(BatchSampler):
+        with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
-            # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning.
+            # Also, it records all attribute setting and deletion using patched `__setattr__` and `__delattr__`
+            # methods so that the re-instantiated object is as close to the original as possible.
             dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
