@@ -114,6 +114,9 @@ class BoringModel(LightningModule):
         return training_step_outputs
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+        # We know the outputs can only be dict, since we are outputting dict on every training_step.
+        # We assert it in order to give this information to mypy as well
+        assert isinstance(outputs, dict)
         torch.stack([x["loss"] for x in outputs]).mean()
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:  # type: ignore [override]
@@ -122,6 +125,9 @@ class BoringModel(LightningModule):
         return {"x": loss}
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+        # We know the outputs can only be dict, since we have only one val_dataloader and are outputting dict on every
+        # validation_step. We assert it in order to give this information to mypy as well
+        assert isinstance(outputs, dict)
         torch.stack([x["x"] for x in outputs]).mean()
 
     def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:  # type: ignore [override]
@@ -130,6 +136,9 @@ class BoringModel(LightningModule):
         return {"y": loss}
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+        # We know the outputs can only be dict, since we have only one test_dataloader and are outputting dict on every
+        # test_step. We assert it in order to give this information to mypy as well
+        assert isinstance(outputs, dict)
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_LRScheduler]]:
@@ -191,6 +200,7 @@ class ManualOptimBoringModel(BoringModel):
 
     def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:  # type: ignore [override]
         opt = self.optimizers()
+        assert not isinstance(opt, list)
         output = self(batch)
         loss = self.loss(batch, output)
         opt.zero_grad()
