@@ -19,7 +19,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PARAMETERS
 
@@ -99,4 +99,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return amp.state_dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        amp.load_state_dict(state_dict)
+        rank_zero_warn(
+            "Ignoring APEX AMP state in checkpoint: Resuming training with APEX is currently not supported."
+        )
