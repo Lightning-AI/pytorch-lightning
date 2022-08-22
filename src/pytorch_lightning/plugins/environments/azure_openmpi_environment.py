@@ -13,20 +13,23 @@
 # limitations under the License.
 
 import os
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-class AzureOpenMPIEnvironment(ClusterEnvironment):
-    """
-    Environment for an OpenMPI environment on Azure
 
-    See Azure documentation: 
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+
+
+class AzureOpenMPIEnvironment(ClusterEnvironment):
+    """Environment for an OpenMPI environment on Azure.
+
+    See Azure documentation:
         - https://docs.microsoft.com/en-us/azure/machine-learning/how-to-train-distributed-gpu#mpi
         - https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/batch/batch-compute-node-environment-variables.md
     """
-    def __init__(self, devices: int = 1, main_port : int = -1) -> None:
-        """ devices : devices per node (same as trainer parameter)"""
+
+    def __init__(self, devices: int = 1, main_port: int = -1) -> None:
+        """devices : devices per node (same as trainer parameter)"""
         super().__init__()
         self.devices = devices
-        
+
     @property
     def creates_processes_externally(self) -> bool:
         """Return True if the cluster is managed (you don't launch processes yourself)"""
@@ -36,7 +39,7 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
     def main_address(self) -> str:
         # AZ_BATCH_MASTER_NODE should be defined when num_nodes > 1
         if "AZ_BATCH_MASTER_NODE" in os.environ:
-            return os.environ.get("AZ_BATCH_MASTER_NODE").split(':')[0]
+            return os.environ.get("AZ_BATCH_MASTER_NODE").split(":")[0]
         elif "AZ_BATCHAI_MPI_MASTER_NODE" in os.environ:
             return os.environ.get("AZ_BATCHAI_MPI_MASTER_NODE")
         else:
@@ -46,17 +49,14 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
     def main_port(self) -> int:
         # AZ_BATCH_MASTER_NODE should be defined when num_nodes > 1
         if "AZ_BATCH_MASTER_NODE" in os.environ:
-            return int(os.environ.get("AZ_BATCH_MASTER_NODE").split(':')[1])
+            return int(os.environ.get("AZ_BATCH_MASTER_NODE").split(":")[1])
         else:
-            # set arbitrary high port if environmental variable MASTER_PORT is not already set 
+            # set arbitrary high port if environmental variable MASTER_PORT is not already set
             return int(os.environ.get("MASTER_PORT", 47586))
 
     @staticmethod
     def detect() -> bool:
-        return (
-            "OMPI_COMM_WORLD_SIZE" in os.environ
-            and "OMPI_COMM_WORLD_LOCAL_RANK" in os.environ
-        )
+        return "OMPI_COMM_WORLD_SIZE" in os.environ and "OMPI_COMM_WORLD_LOCAL_RANK" in os.environ
 
     def world_size(self) -> int:
         return int(os.environ.get("OMPI_COMM_WORLD_SIZE"))

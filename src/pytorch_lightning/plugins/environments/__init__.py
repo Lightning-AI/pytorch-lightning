@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.plugins.environments.azure_openmpi_environment import AzureOpenMPIEnvironment
 from pytorch_lightning.plugins.environments.bagua_environment import BaguaEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.kubeflow_environment import KubeflowEnvironment  # noqa: F401
@@ -19,4 +20,3 @@ from pytorch_lightning.plugins.environments.lsf_environment import LSFEnvironmen
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.xla_environment import XLAEnvironment  # noqa: F401
-from pytorch_lightning.plugins.environments.azure_openmpi_environment import AzureOpenMPIEnvironment 
