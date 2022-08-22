@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Iterator, List, Optional, Tuple, Union
+from typing import cast, Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -114,9 +114,7 @@ class BoringModel(LightningModule):
         return training_step_outputs
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        # We know the outputs can only be dict, since we are outputting dict on every training_step.
-        # We assert it in order to give this information to mypy as well
-        assert isinstance(outputs, dict)
+        outputs = cast(List[Dict[str, Tensor]], outputs)
         torch.stack([x["loss"] for x in outputs]).mean()
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:  # type: ignore [override]
@@ -125,9 +123,7 @@ class BoringModel(LightningModule):
         return {"x": loss}
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        # We know the outputs can only be dict, since we have only one val_dataloader and are outputting dict on every
-        # validation_step. We assert it in order to give this information to mypy as well
-        assert isinstance(outputs, dict)
+        outputs = cast(List[Dict[str, Tensor]], outputs)
         torch.stack([x["x"] for x in outputs]).mean()
 
     def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:  # type: ignore [override]
@@ -136,9 +132,7 @@ class BoringModel(LightningModule):
         return {"y": loss}
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        # We know the outputs can only be dict, since we have only one test_dataloader and are outputting dict on every
-        # test_step. We assert it in order to give this information to mypy as well
-        assert isinstance(outputs, dict)
+        outputs = cast(List[Dict[str, Tensor]], outputs)
         torch.stack([x["y"] for x in outputs]).mean()
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_LRScheduler]]:
