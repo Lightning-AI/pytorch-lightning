@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,19 +14,30 @@
 import glob
 import logging
 import os
+import pathlib
 import re
+import shutil
+import tarfile
+import tempfile
+import urllib.request
+from datetime import datetime
 from importlib.util import module_from_spec, spec_from_file_location
-from itertools import groupby
+from itertools import chain, groupby
 from types import ModuleType
 from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
 
+# TODO: remove this once lightning-ui package is ready as a dependency
+_LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
+
 
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
+    assert spec, f"Failed to load module {name} from {location}"
     py = module_from_spec(spec)
+    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
     spec.loader.exec_module(py)
     return py
 
@@ -35,7 +45,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 def load_requirements(
     path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
 ) -> List[str]:
-    """Load requirements from a file.
+    """Loading requirements from a file.
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
     >>> load_requirements(path_req)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
@@ -57,6 +67,11 @@ def load_requirements(
         # remove version restrictions unless they are strict
         if unfreeze and "<" in req and "strict" not in comment:
             req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+
+        # adding strict back to the comment
+        if "strict" in comment:
+            req += "  # strict"
+
         reqs.append(req)
     return reqs
 
@@ -84,11 +99,10 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     text = text.replace("pytorch-lightning.readthedocs.io/en/stable/", f"pytorch-lightning.readthedocs.io/en/{version}")
     # codecov badge
     text = text.replace("/branch/master/graph/badge.svg", f"/release/{version}/graph/badge.svg")
-    # replace github badges for release ones
+    # github actions badge
     text = text.replace("badge.svg?branch=master&event=push", f"badge.svg?tag={version}")
-    # Azure...
+    # azure pipelines badge
     text = text.replace("?branchName=master", f"?branchName=refs%2Ftags%2F{version}")
-    text = re.sub(r"\?definitionId=\d+&branchName=master", f"?definitionId=2&branchName=refs%2Ftags%2F{version}", text)
 
     skip_begin = r"<!-- following section will be skipped from PyPI description -->"
     skip_end = r"<!-- end skipping PyPI description -->"
@@ -141,6 +155,7 @@ def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
     ...     lines = [ln.rstrip() for ln in fp.readlines()]
     >>> lines = replace_vars_with_imports(lines, import_path)
     """
+    copied = []
     body, tracking, skip_offset = [], False, 0
     for ln in lines:
         offset = len(ln) - len(ln.lstrip())
@@ -151,8 +166,9 @@ def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
         if var:
             name = var.groups()[0]
             # skip private or apply white-list for allowed vars
-            if not name.startswith("__") or name in ("__all__",):
+            if name not in copied and (not name.startswith("__") or name in ("__all__",)):
                 body.append(f"{' ' * offset}from {import_path} import {name}  # noqa: F401")
+                copied.append(name)
             tracking, skip_offset = True, offset
             continue
         if not tracking:
@@ -183,6 +199,31 @@ def prune_imports_callables(lines: List[str]) -> List[str]:
             tracking, skip_offset = True, offset
             continue
         if not tracking:
+            body.append(ln)
+    return body
+
+
+def prune_func_calls(lines: List[str]) -> List[str]:
+    """Prune calling functions from a file, even multi-line.
+
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "__init__.py")
+    >>> import_path = ".".join(["pytorch_lightning", "loggers"])
+    >>> with open(py_file, encoding="utf-8") as fp:
+    ...     lines = [ln.rstrip() for ln in fp.readlines()]
+    >>> lines = prune_func_calls(lines)
+    """
+    body, tracking, score = [], False, 0
+    for ln in lines:
+        # catching callable
+        calling = re.match(r"^@?[\w_\d\.]+ *\(", ln.lstrip())
+        if calling and " import " not in ln:
+            tracking = True
+            score = 0
+        if tracking:
+            score += ln.count("(") - ln.count(")")
+            if score == 0:
+                tracking = False
+        else:
             body.append(ln)
     return body
 
@@ -261,6 +302,46 @@ def prune_comments_docstrings(lines: List[str]) -> List[str]:
     return body
 
 
+def wrap_try_except(body: List[str], pkg: str, ver: str) -> List[str]:
+    """Wrap the file with try/except for better traceability of import misalignment."""
+    not_empty = sum(1 for ln in body if ln)
+    if not_empty == 0:
+        return body
+    body = ["try:"] + [f"    {ln}" if ln else "" for ln in body]
+    body += [
+        "",
+        "except ImportError as err:",
+        "",
+        "    from os import linesep",
+        f"    from {pkg} import __version__",
+        f"    msg = f'Your `lightning` package was built for `{pkg}=={ver}`," + " but you are running {__version__}'",
+        "    raise type(err)(str(err) + linesep + msg)",
+    ]
+    return body
+
+
+def parse_version_from_file(pkg_root: str) -> str:
+    """Loading the package version from file."""
+    file_ver = os.path.join(pkg_root, "__version__.py")
+    file_about = os.path.join(pkg_root, "__about__.py")
+    if os.path.isfile(file_ver):
+        ver = _load_py_module("version", file_ver).version
+    elif os.path.isfile(file_about):
+        ver = _load_py_module("about", file_about).__version__
+    else:  # this covers case you have build only meta-package so not additional source files are present
+        ver = ""
+    return ver
+
+
+def prune_duplicate_lines(body):
+    body_ = []
+    # drop duplicated lines
+    for ln in body:
+        if ln.lstrip() not in body_ or ln.lstrip() in (")", ""):
+            body_.append(ln)
+    return body_
+
+
 def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
     """Parse the real python package and for each module create a mirroe version with repalcing all function and
     class implementations by cross-imports to the true package.
@@ -270,6 +351,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
     >>> create_meta_package(os.path.join(_PROJECT_ROOT, "src"))
     """
     package_dir = os.path.join(src_folder, pkg_name)
+    pkg_ver = parse_version_from_file(package_dir)
     # shutil.rmtree(os.path.join(src_folder, "lightning", lit_name))
     py_files = glob.glob(os.path.join(src_folder, pkg_name, "**", "*.py"), recursive=True)
     for py_file in py_files:
@@ -289,30 +371,99 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            body = prune_comments_docstrings(lines)
+            body = prune_comments_docstrings([ln.rstrip() for ln in lines])
             if fname not in ("__init__.py", "__main__.py"):
                 body = prune_imports_callables(body)
-            body = replace_block_with_imports([ln.rstrip() for ln in body], import_path, "class")
-            body = replace_block_with_imports(body, import_path, "def")
-            body = replace_block_with_imports(body, import_path, "async def")
+            for key_word in ("class", "def", "async def"):
+                body = replace_block_with_imports(body, import_path, key_word)
+            # TODO: fix reimporting which is artefact after replacing var assignment with import;
+            #  after fixing , update CI by remove F811 from CI/check pkg
             body = replace_vars_with_imports(body, import_path)
+            if fname not in ("__main__.py",):
+                body = prune_func_calls(body)
             body_len = -1
             # in case of several in-depth statements
             while body_len != len(body):
                 body_len = len(body)
+                body = prune_duplicate_lines(body)
                 body = prune_empty_statements(body)
-            # TODO: add try/catch wrapper for whole body,
+            # add try/catch wrapper for whole body,
             #  so when import fails it tells you what is the package version this meta package was generated for...
+            body = wrap_try_except(body, pkg_name, pkg_ver)
 
         # todo: apply pre-commit formatting
+        # clean to many empty lines
         body = [ln for ln, _group in groupby(body)]
-        lines = []
         # drop duplicated lines
-        for ln in body:
-            if ln + os.linesep not in lines or ln in (")", ""):
-                lines.append(ln + os.linesep)
+        body = prune_duplicate_lines(body)
         # compose the target file name
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fp:
-            fp.writelines(lines)
+            fp.writelines([ln + os.linesep for ln in body])
+
+
+def set_version_today(fpath: str) -> None:
+    """Replace the template date with today."""
+    with open(fpath) as fp:
+        lines = fp.readlines()
+
+    def _replace_today(ln):
+        today = datetime.now()
+        return ln.replace("YYYY.-M.-D", f"{today.year}.{today.month}.{today.day}")
+
+    lines = list(map(_replace_today, lines))
+    with open(fpath, "w") as fp:
+        fp.writelines(lines)
+
+
+def _download_frontend(root: str = _PROJECT_ROOT):
+    """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
+    directory."""
+
+    try:
+        frontend_dir = pathlib.Path(root, "src", "lightning_app", "ui")
+        download_dir = tempfile.mkdtemp()
+
+        shutil.rmtree(frontend_dir, ignore_errors=True)
+        response = urllib.request.urlopen(_LIGHTNING_FRONTEND_RELEASE_URL)
+
+        file = tarfile.open(fileobj=response, mode="r|gz")
+        file.extractall(path=download_dir)
+
+        shutil.move(os.path.join(download_dir, "build"), frontend_dir)
+        print("The Lightning UI has successfully been downloaded!")
+
+    # If installing from source without internet connection, we don't want to break the installation
+    except Exception:
+        print("The Lightning UI downloading has failed!")
+
+
+def _adjust_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
+    """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`."""
+    reqs = load_requirements(req_dir, file_name="base.txt")
+    for i, req in enumerate(reqs):
+        pkg_name = req[: min(req.index(c) for c in ">=" if c in req)]
+        ver_ = parse_version_from_file(os.path.join(source_dir, pkg_name))
+        if not ver_:
+            continue
+        ver2 = ".".join(ver_.split(".")[:2] + ["*"])
+        reqs[i] = f"{req}, =={ver2}"
+
+    with open(os.path.join(req_dir, "base.txt"), "w") as fp:
+        fp.writelines([ln + os.linesep for ln in reqs])
+
+
+def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
+    """Load all base requirements from all particular packages and prune duplicates."""
+    requires = [
+        load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
+        for d in glob.glob(os.path.join(req_dir, "*"))
+        if os.path.isdir(d)
+    ]
+    if not requires:
+        return None
+    # TODO: add some smarter version aggregation per each package
+    requires = list(chain(*requires))
+    with open(os.path.join(req_dir, "base.txt"), "w") as fp:
+        fp.writelines([ln + os.linesep for ln in requires])

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
+import inspect
 from argparse import ArgumentParser, Namespace
 from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -65,7 +66,13 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
-        """Extends existing argparse by default `LightningDataModule` attributes."""
+        """Extends existing argparse by default `LightningDataModule` attributes.
+
+        Example::
+
+            parser = ArgumentParser(add_help=False)
+            parser = LightningDataModule.add_argparse_args(parser)
+        """
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
@@ -80,8 +87,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
         Example::
 
-            parser = ArgumentParser(add_help=False)
-            parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
         """
         return from_argparse_args(cls, args, **kwargs)
@@ -105,19 +110,22 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         predict_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
+        **datamodule_kwargs: Any,
     ):
         r"""
         Create an instance from torch.utils.data.Dataset.
 
         Args:
-            train_dataset: (optional) Dataset to be used for train_dataloader()
-            val_dataset: (optional) Dataset or list of Dataset to be used for val_dataloader()
-            test_dataset: (optional) Dataset or list of Dataset to be used for test_dataloader()
-            predict_dataset: (optional) Dataset or list of Dataset to be used for predict_dataloader()
-            batch_size: Batch size to use for each dataloader. Default is 1.
+            train_dataset: Optional dataset to be used for train_dataloader()
+            val_dataset: Optional dataset or list of Dataset to be used for val_dataloader()
+            test_dataset: Optional dataset or list of Dataset to be used for test_dataloader()
+            predict_dataset: Optional dataset or list of Dataset to be used for predict_dataloader()
+            batch_size: Batch size to use for each dataloader. Default is 1. This parameter gets forwarded to the
+                ``__init__`` if the datamodule has such a name defined in its signature.
             num_workers: Number of subprocesses to use for data loading. 0 means that the
-                data will be loaded in the main process. Number of CPUs available.
-
+                data will be loaded in the main process. Number of CPUs available. This parameter gets forwarded to the
+                ``__init__`` if the datamodule has such a name defined in its signature.
+            **datamodule_kwargs: Additional parameters that get passed down to the datamodule's ``__init__``.
         """
 
         def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
@@ -146,7 +154,17 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 return [dataloader(ds) for ds in predict_dataset]
             return dataloader(predict_dataset)
 
-        datamodule = cls()
+        candidate_kwargs = dict(batch_size=batch_size, num_workers=num_workers)
+        accepted_params = inspect.signature(cls.__init__).parameters
+        accepts_kwargs = any(param.kind == param.VAR_KEYWORD for param in accepted_params.values())
+        if accepts_kwargs:
+            special_kwargs = candidate_kwargs
+        else:
+            accepted_params = set(accepted_params)
+            accepted_params.discard("self")
+            special_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted_params}
+
+        datamodule = cls(**datamodule_kwargs, **special_kwargs)
         if train_dataset is not None:
             datamodule.train_dataloader = train_dataloader
         if val_dataset is not None:

@@ -56,6 +56,7 @@ The full list of built-in precision plugins is listed below.
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
@@ -87,6 +88,7 @@ Below is a list of built-in plugins for checkpointing.
     :nosignatures:
     :template: classtemplate.rst
 
+    AsyncCheckpointIO
     CheckpointIO
     HPUCheckpointIO
     TorchCheckpointIO

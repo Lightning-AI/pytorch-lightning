@@ -9,11 +9,14 @@ _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning_app")
 _PATH_REQUIREMENTS = os.path.join("requirements", "app")
+_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
+    assert spec, f"Failed to load module {name} from {location}"
     py = module_from_spec(spec)
+    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
     spec.loader.exec_module(py)
     return py
 
@@ -25,11 +28,12 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS)
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "cloud": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="cloud.txt"),
-        "ui": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="ui.txt"),
-        "test": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="test.txt"),
+        "cloud": _setup_tools.load_requirements(file_name="cloud.txt", **common_args),
+        "ui": _setup_tools.load_requirements(file_name="ui.txt", **common_args),
+        "test": _setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     extras["dev"] = extras["cloud"] + extras["ui"] + extras["test"]  # + extras['docs']
     extras["all"] = extras["cloud"] + extras["ui"]
@@ -46,7 +50,12 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-exclude requirements *.txt" + os.linesep,
         "recursive-include src/lightning_app *.md" + os.linesep,
         "recursive-include requirements/app *.txt" + os.linesep,
+        "recursive-include src/lightning_app/cli/*-template *" + os.linesep,  # Add templates
     ]
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    lines += ["recursive-include src/lightning_app/ui *" + os.linesep]
+
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)
 
@@ -59,7 +68,10 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
     _long_description = _setup_tools.load_readme_description(
         _PACKAGE_ROOT, homepage=_about.__homepage__, version=_version.version
     )
-    # TODO: at this point we need to download the UI to the package
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    _setup_tools._download_frontend(_PROJECT_ROOT)
+
     return dict(
         name="lightning-app",
         version=_version.version,  # todo: consider using date version + branch for installation from source
@@ -83,7 +95,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             ],
         },
         setup_requires=["wheel"],
-        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS),
+        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

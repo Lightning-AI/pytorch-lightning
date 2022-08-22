@@ -21,9 +21,10 @@ Lightning supports multiple ways of doing distributed training.
 |
 
 - Data Parallel (``strategy='dp'``) (multiple-gpus, 1 machine)
-- DistributedDataParallel (``strategy='ddp'``) (multiple-gpus across many machines (python script based)).
-- DistributedDataParallel (``strategy='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
-- DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
+- DistributedDataParallel (multiple-gpus across many machines)
+    - Regular (``strategy='ddp'``)
+    - Spawn (``strategy='ddp_spawn'``)
+    - Notebook/Fork (``strategy='ddp_notebook'``)
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 
@@ -46,8 +47,9 @@ after which the root node will aggregate the results.
     :doc:`Manual Optimization <../model/manual_optimization>` with DP. Use DDP which is more stable and at least 3x faster.
 
 .. warning:: DP only supports scattering and gathering primitive collections of tensors like lists, dicts, etc.
-    Therefore the :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` hook does not apply in
-    this mode and if you have overridden it, it will not be called.
+    Therefore :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` and
+    :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer`
+    do not apply in this mode and if you have overridden any of them, an exception will be raised.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
@@ -100,29 +102,7 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 - Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
 
-In these situations you should use `dp` or `ddp_spawn` instead.
-
-Distributed Data Parallel 2
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In certain cases, it's advantageous to use all batches on the same machine instead of a subset.
-For instance, you might want to compute a NCE loss where it pays to have more negative samples.
-
-In  this case, we can use DDP2 which behaves like DP in a machine and DDP across nodes. DDP2 does the following:
-
-1. Copies a subset of the data to each node.
-
-2. Inits a model on each node.
-
-3. Runs a forward and backward pass using DP.
-
-4. Syncs gradients across nodes.
-
-5. Applies the optimizer updates.
-
-.. code-block:: python
-
-    # train on 32 GPUs (4 nodes)
-    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp2", num_nodes=4)
+In these situations you should use `ddp_notebook` or `dp` instead.
 
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -192,6 +172,68 @@ You can then call your scripts anywhere
 
     cd /project/src
     python some_file.py --accelerator 'gpu' --devices 8 --strategy 'ddp'
+
+
+Distributed Data Parallel in Notebooks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+DDP Notebook/Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle notebooks, and so on:
+The Trainer enables it by default when such environments are detected.
+
+.. code-block:: python
+
+    # train on 8 GPUs in a Jupyter notebook
+    trainer = Trainer(accelerator="gpu", devices=8)
+
+    # can be set explicitly
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_notebook")
+
+    # can also be used in non-interactive environments
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_fork")
+
+Data Parallel (``strategy="dp"``) is the only other strategy supported in interactive environments but is slower, is discouraged by PyTorch and has other limitations.
+Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork/Notebook for its speed and stability but it can only be used with scripts.
+
+
+Comparison of DDP variants and tradeoffs
+****************************************
+
+.. list-table:: DDP variants and their tradeoffs
+   :widths: 40 20 20 20
+   :header-rows: 1
+
+   * -
+     - DDP
+     - DDP Spawn
+     - DDP Notebook/Fork
+   * - Works in Jupyter notebooks / IPython environments
+     - No
+     - No
+     - Yes
+   * - Supports multi-node
+     - Yes
+     - Yes
+     - Yes
+   * - Supported platforms
+     - Linux, Mac, Win
+     - Linux, Mac, Win
+     - Linux, Mac
+   * - Requires all objects to be picklable
+     - No
+     - Yes
+     - No
+   * - Is the guard ``if __name__=="__main__"`` required?
+     - Yes
+     - Yes
+     - No
+   * - Limitations in the main process
+     - None
+     - None
+     - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` functions before invoking ``Trainer.fit`` is not allowed.
+   * - Process creation time
+     - Slow
+     - Slow
+     - Fast
 
 
 Horovod
@@ -345,10 +387,10 @@ is described as an ip address followed by a ssh port.
 See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details on installation and advanced features.
 
 
-DP/DDP2 caveats
-^^^^^^^^^^^^^^^
-In DP and DDP2 each GPU within a machine sees a portion of a batch.
-DP and ddp2 roughly do the following:
+DP caveats
+^^^^^^^^^^
+In DP each GPU within a machine sees a portion of a batch.
+It does roughly the following:
 
 .. testcode::
 
@@ -375,9 +417,8 @@ you will only be operating on one of those pieces.
     def training_step(self, batch, batch_idx):
         y_0 = batch
 
-For most metrics, this doesn't really matter. However, if you want
-to add something to your computational graph (like softmax)
-using all batch parts you can use the `training_step_end` step.
+For most metrics, this doesn't really matter. However, if you want to add something to your computational graph using
+all batch parts you can use the `training_step_end` step.
 
 .. testcode::
 
@@ -409,29 +450,6 @@ In pseudocode, the full sequence is:
 
     # use the full batch for something like softmax
     full_out = model.training_step_end(all_results)
-
-To illustrate why this is needed, let's look at DataParallel
-
-.. testcode::
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(batch)
-
-        # on dp or ddp2 if we did softmax now it would be wrong
-        # because batch is actually a piece of the full batch
-        return y_hat
-
-
-    def training_step_end(self, step_output):
-        # step_output has outputs of each part of the batch
-
-        # do softmax here
-        outputs = torch.cat(outputs, dim=1)
-        softmax = softmax(outputs, dim=1)
-        out = softmax.mean()
-
-        return out
 
 If `training_step_end` is defined it will be called regardless of TPU, DP, DDP, etc... which means
 it will behave the same regardless of the backend.
@@ -481,7 +499,7 @@ If you also need to use your own DDP implementation, override :meth:`pytorch_lig
 
 Torch Distributed Elastic
 -------------------------
-Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of GPUs you want to use in the trainer.
+Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' backend and the number of GPUs you want to use in the trainer.
 
 .. code-block:: python
 

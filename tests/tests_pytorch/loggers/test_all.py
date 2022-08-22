@@ -45,6 +45,7 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"),
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
+    mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock),
 )
 ALL_LOGGER_CLASSES = (
     CometLogger,
@@ -299,7 +300,7 @@ class RankZeroLoggerCheck(Callback):
 
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
-@RunIf(skip_windows=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)
@@ -363,7 +364,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # WandB
-    with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb:
+    with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb, mock.patch(
+        "pytorch_lightning.loggers.wandb.Run", new=mock.Mock
+    ):
         logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
         wandb.run = None
         wandb.init().step = 0

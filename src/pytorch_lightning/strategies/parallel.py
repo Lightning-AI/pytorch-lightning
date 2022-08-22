@@ -13,14 +13,12 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 import torch
 from torch import Tensor
-from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -57,10 +55,6 @@ class ParallelStrategy(Strategy, ABC):
         """Return the root device."""
 
     @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        return unwrap_lightning_module(self.model) if self.model is not None else None
-
-    @property
     def global_rank(self) -> int:
         return self.cluster_environment.global_rank() if self.cluster_environment is not None else 0
 
@@ -81,16 +75,18 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
-    def parallel_devices(self):
+    def parallel_devices(self) -> Optional[List[torch.device]]:
         return self._parallel_devices
 
     @parallel_devices.setter
-    def parallel_devices(self, parallel_devices):
+    def parallel_devices(self, parallel_devices: Optional[List[torch.device]]) -> None:
         self._parallel_devices = parallel_devices
 
     @property
-    def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+        distributed_sampler_kwargs = dict(
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
+        )
         return distributed_sampler_kwargs
 
     @property
@@ -104,7 +100,7 @@ class ParallelStrategy(Strategy, ABC):
             return pg_backend
         return get_default_process_group_backend_for_device(self.root_device)
 
-    def reconciliate_processes(self, trace: str):
+    def reconciliate_processes(self, trace: str) -> None:
         """Function to re-conciliate processes on failure."""
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
@@ -118,18 +114,19 @@ class ParallelStrategy(Strategy, ABC):
         return decision
 
     @contextmanager
-    def block_backward_sync(self):
+    def block_backward_sync(self) -> Generator:
         """Blocks ddp sync gradients behaviour on backwards pass.
 
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        if isinstance(self.model, DistributedDataParallel):
+        if isinstance(self.model, pl.utilities.types.DistributedDataParallel):
             with self.model.no_sync():
                 yield None
         else:
             yield None
 
     def teardown(self) -> None:
+        assert self.cluster_environment is not None
         self.cluster_environment.teardown()
         super().teardown()

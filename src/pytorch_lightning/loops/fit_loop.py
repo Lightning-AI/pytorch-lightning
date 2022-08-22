@@ -13,15 +13,14 @@
 # limitations under the License.
 import logging
 import os
-from functools import partial
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import GPUAccelerator
+from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _is_max_limit_reached
+from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -33,7 +32,7 @@ from pytorch_lightning.utilities.fetching import (
     InterBatchParallelDataFetcher,
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
@@ -50,10 +49,10 @@ class FitLoop(Loop[None]):
     def __init__(
         self,
         min_epochs: int = 0,
-        max_epochs: int = 1000,
+        max_epochs: Optional[int] = None,
     ) -> None:
         super().__init__()
-        if max_epochs < -1:
+        if isinstance(max_epochs, int) and max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
             raise MisconfigurationException(
                 f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}."
@@ -104,13 +103,7 @@ class FitLoop(Loop[None]):
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
-        if value is None:
-            rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
-                " Use `max_steps = -1` instead."
-            )
-            value = -1
-        elif value < -1:
+        if value < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
             )
@@ -156,31 +149,41 @@ class FitLoop(Loop[None]):
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
+        if self.trainer.num_training_batches == 0:
+            rank_zero_info("`Trainer.fit` stopped: No training batches.")
+            return True
+
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.epoch_loop.global_step, self.max_steps)
+        if stop_steps:
+            rank_zero_info(f"`Trainer.fit` stopped: `max_steps={self.max_steps!r}` reached.")
+            return True
+
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
+        assert isinstance(self.max_epochs, int)
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
         if stop_epochs:
             # in case they are not equal, override so `trainer.current_epoch` has the expected value
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
+            rank_zero_info(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
+            return True
 
-        should_stop = False
         if self.trainer.should_stop:
             # early stopping
             met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
             met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
-                should_stop = True
+                self.trainer.should_stop = True
+                rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
+                return True
             else:
-                log.info(
-                    "Trainer was signaled to stop but required minimum epochs"
-                    f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
-                    " not been met. Training will continue..."
+                rank_zero_info(
+                    f"Trainer was signaled to stop but the required `min_epochs={self.min_epochs!r}` or"
+                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
                 )
-        self.trainer.should_stop = should_stop
-
-        return stop_steps or should_stop or stop_epochs or self.trainer.num_training_batches == 0
+        self.trainer.should_stop = False
+        return False
 
     @property
     def skip(self) -> bool:
@@ -206,7 +209,8 @@ class FitLoop(Loop[None]):
 
         self.trainer.reset_train_dataloader(self.trainer.lightning_module)
         # reload the evaluation dataloaders too for proper display in the progress bar
-        self.epoch_loop.val_loop._reload_evaluation_dataloaders()
+        if self.epoch_loop._should_check_val_epoch():
+            self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
         data_fetcher_cls = _select_data_fetcher(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
@@ -232,11 +236,8 @@ class FitLoop(Loop[None]):
         # reset outputs here instead of in `reset` as they are not accumulated between epochs
         self._outputs = []
 
-        if self.trainer.train_dataloader is not None and callable(
-            getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
-        ):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.train_dataloader.sampler.set_epoch(self.epoch_progress.current.processed)
+        if self.trainer.train_dataloader is not None:
+            _set_sampler_epoch(self.trainer.train_dataloader, self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
@@ -261,10 +262,14 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.train_dataloader
+
+        def batch_to_device(batch: Any) -> Any:
+            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=0)
+            return batch
+
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(
-            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
-        )
+        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         with self.trainer.profiler.profile("run_training_epoch"):
             self._outputs = self.epoch_loop.run(self._data_fetcher)
 
@@ -349,7 +354,7 @@ def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
         )
         return DataLoaderIterDataFetcher
     elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-        if not isinstance(trainer.accelerator, GPUAccelerator):
+        if not isinstance(trainer.accelerator, CUDAAccelerator):
             raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
         return InterBatchParallelDataFetcher
     return DataFetcher

@@ -1,0 +1,35 @@
+name: 'PR Gatekeeper'
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+# todo: simplify after adding https://github.com/octodemo/pr-gatekeeper/issues/293
+
+jobs:
+  gatekeeper:
+    name: PR Gatekeeper
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: ["app", "pytorch"]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: "2"  # To retrieve the preceding commit.
+      - name: Get changed files using defaults
+        id: changed-files
+        uses: tj-actions/changed-files@v28
+      - name: Determine changes
+        id: touched
+        run: |
+          patterns = ('docs/source-${{ matrix.pkg }}', 'src/lightning_${{ matrix.pkg }}', 'tests/tests_${{ matrix.pkg }}')
+          changed = any(p in "${{steps.changed-files.outputs.all_changed_and_modified_files}}" for p in patterns)
+          print(f'::set-output name=files::{int(changed)}')
+        shell: python
+      - uses: octodemo/pr-gatekeeper@main
+        if: steps.touched.outputs.files == 1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: './.github/gatekeeper-config_${{ matrix.pkg }}.yml'

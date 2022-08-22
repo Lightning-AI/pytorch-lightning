@@ -19,10 +19,10 @@ def app(app_name):
     {new_resource_name}
 
     run your app with:
-        lightning run app {app_name}/{name_for_files}/app.py
+        lightning run app {app_name}/app.py
 
     run it on the cloud to share with your collaborators:
-        lightning run app {app_name}/{name_for_files}/app.py --cloud
+        lightning run app {app_name}/app.py --cloud
     """
     logger.info(m)
 
@@ -124,7 +124,7 @@ def component(component_name):
     ⚡ Use the component inside an app: ⚡
 
     from {name_for_files} import TemplateComponent
-    import lightning_app as la
+    import lightning.app as la
 
     class LitApp(la.LightningFlow):
         def __init__(self) -> None:
@@ -138,7 +138,7 @@ def component(component_name):
     app = la.LightningApp(LitApp())
 
     ⚡ Checkout the demo app with your {component_name} component: ⚡
-    lightning run {component_name}/app.py
+    lightning run app {component_name}/app.py
 
     ⚡ Tip: Publish your component to the Lightning Gallery to enable users to install it like so:
     lightning install component YourLightningUserName/{component_name}

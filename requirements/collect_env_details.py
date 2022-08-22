@@ -20,18 +20,17 @@ import os
 import platform
 import sys
 
-import numpy
+import pkg_resources
 import torch
-import tqdm
 
 sys.path += [os.path.abspath(".."), os.path.abspath("")]
-import pytorch_lightning  # noqa: E402
+
 
 LEVEL_OFFSET = "\t"
 KEY_PADDING = 20
 
 
-def info_system():
+def info_system() -> dict:
     return {
         "OS": platform.system(),
         "architecture": platform.architecture(),
@@ -41,26 +40,24 @@ def info_system():
     }
 
 
-def info_cuda():
+def info_cuda() -> dict:
     return {
-        "GPU": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
-        # 'nvidia_driver': get_nvidia_driver_version(run_lambda),
+        "GPU": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())] or None,
         "available": torch.cuda.is_available(),
         "version": torch.version.cuda,
     }
 
 
-def info_packages():
-    return {
-        "numpy": numpy.__version__,
-        "pyTorch_version": torch.__version__,
-        "pyTorch_debug": torch.version.debug,
-        "pytorch-lightning": pytorch_lightning.__version__,
-        "tqdm": tqdm.__version__,
-    }
+def info_packages() -> dict:
+    """Get name and version of all installed packages."""
+    packages = {}
+    for dist in pkg_resources.working_set:
+        package = dist.as_requirement()
+        packages[package.key] = package.specs[0][1]
+    return packages
 
 
-def nice_print(details, level=0):
+def nice_print(details: dict, level: int = 0) -> list:
     lines = []
     for k in sorted(details):
         key = f"* {k}:" if level == 0 else f"- {k}:"
@@ -77,8 +74,9 @@ def nice_print(details, level=0):
     return lines
 
 
-def main():
+def main() -> None:
     details = {"System": info_system(), "CUDA": info_cuda(), "Packages": info_packages()}
+    details["Lightning"] = {k: v for k, v in details["Packages"].items() if "torch" in k or "lightning" in k}
     lines = nice_print(details)
     text = os.linesep.join(lines)
     print(text)

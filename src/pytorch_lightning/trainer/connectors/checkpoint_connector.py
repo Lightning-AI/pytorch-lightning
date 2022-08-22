@@ -245,7 +245,7 @@ class CheckpointConnector:
             if state:
                 # The Quantization callbacks have a special method that must be called before restoring the weights
                 # of the model
-                callback._load_before_model(self.trainer.model, deepcopy(state))
+                callback._load_before_model(self.trainer.lightning_module, deepcopy(state))
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
@@ -264,10 +264,19 @@ class CheckpointConnector:
             return
 
         fit_loop = self.trainer.fit_loop
+        pl_module = self.trainer.lightning_module
+        assert pl_module is not None
+
         # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
         # it will be overwritten by the loop's state if it was also saved
-        optimizer_loop = fit_loop.epoch_loop.batch_loop.optimizer_loop
-        optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint["global_step"]
+        batch_loop = fit_loop.epoch_loop.batch_loop
+        if pl_module.automatic_optimization:
+            batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint[
+                "global_step"
+            ]
+        else:
+            batch_loop.manual_loop.optim_step_progress.total.completed = self._loaded_checkpoint["global_step"]
+
         # set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
         # it will be overwritten by the loop's state if it was also saved
         fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]

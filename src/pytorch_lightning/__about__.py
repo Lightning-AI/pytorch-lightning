@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +13,6 @@
 # limitations under the License.
 import time
 
-# __version__ = "1.7.0dev"
 __author__ = "Lightning AI et al."
 __author_email__ = "pytorch@lightning.ai"
 __license__ = "Apache-2.0"

@@ -17,7 +17,7 @@ import io
 import logging
 import pstats
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Tuple, Union
 
 from pytorch_lightning.profilers.profiler import Profiler
 
@@ -82,7 +82,7 @@ class AdvancedProfiler(Profiler):
         super().teardown(stage=stage)
         self.profiled_actions = {}
 
-    def __reduce__(self):
+    def __reduce__(self) -> Tuple:
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
         return (
             self.__class__,

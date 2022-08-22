@@ -1,0 +1,75 @@
+name: "Deploy Docs"
+on:
+  push:
+    branches: ["release/app"]
+
+jobs:
+  # https://github.com/marketplace/actions/deploy-to-github-pages
+  build-docs-deploy:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2
+        # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly.
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: ${{ secrets.GCS_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: 'google-github-actions/setup-gcloud@v0'
+        with:
+          project_id: ${{ secrets.GCS_PROJECT }}
+
+      # Note: This uses an internal pip API and may not always work
+      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-deploy-docs-pip-${{ hashFiles('requirements/app/*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-deploy-docs-pip-
+
+      - name: Install dependencies
+        env:
+          FREEZE_REQUIREMENTS: 1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pandoc
+          pip --version
+          pip install -e . --quiet -r requirements/app/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+          pip list
+        shell: bash
+
+      - name: Make Documentation
+        working-directory: ./docs/source-app
+        run: |
+          # First run the same pipeline as Read-The-Docs
+          make clean
+          make html --jobs 2
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4.4.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages # The branch the action should deploy to.
+          folder: docs/build/html # The folder the action should deploy.
+          clean: true # Automatically remove deleted files from the deploy branch
+          target-folder: docs # If you'd like to push the contents of the deployment folder into a specific directory
+          single-commit: true # you'd prefer to have a single commit on the deployment branch instead of full history
+        if: success()
+
+      # Uploading docs to GCS so they can be served on lightning.ai
+      - name: Upload to GCS 🪣
+        run: |-
+          gsutil -m rsync -d -R docs/build/html/ gs://${{ secrets.GCS_BUCKET }}
+        if: success()

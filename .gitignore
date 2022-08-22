@@ -109,6 +109,7 @@ celerybeat-schedule
 
 # dotenv
 .env
+.env_stagging
 
 # virtualenv
 .venv
@@ -136,7 +137,7 @@ ENV/
 Datasets/
 mnist/
 MNIST/
-legacy/checkpoints/
+tests/legacy/checkpoints/
 *.gz
 *ubyte
 
@@ -158,3 +159,15 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
+src/lightning_app/ui/*
+*examples/template_react_ui*
+hars*
+artifacts/*
+*docs/examples*
+*docs/source-app/api*
+
+# tutorials
+our_model.tar
+test.png
+saved_models
+data/

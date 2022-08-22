@@ -19,13 +19,19 @@ from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
 
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.utilities import rank_zero_deprecation
+import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-    ...
+    def __init__(
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+    ) -> None:
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
 
 
 def _find_tensors(
@@ -42,12 +48,10 @@ def _find_tensors(
 
 
 # In manual_optimization, we need to call reducer prepare_for_backward.
-# Note: Keep track of Pytorch DDP and update if there is a change
+# Note: Keep track of PyTorch DDP and update if there is a change
 # https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
 def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     # `prepare_for_backward` is `DistributedDataParallel` specific.
-    if not isinstance(model, DistributedDataParallel):
-        return
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
         model.require_forward_param_sync = True  # type: ignore[assignment]
         # We'll return the output object verbatim since it is a freeform
@@ -176,28 +180,10 @@ class IndexBatchSamplerWrapper:
     def __init__(self, sampler: BatchSampler) -> None:
         self.seen_batch_indices: List[List[int]] = []
         self._sampler = sampler
-        self._batch_indices: List[int] = []
-
-    @property
-    def batch_indices(self) -> List[int]:
-        rank_zero_deprecation(
-            "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.5 and will be removed in"
-            " v1.7. Access the full list `seen_batch_indices` instead."
-        )
-        return self._batch_indices
-
-    @batch_indices.setter
-    def batch_indices(self, indices: List[int]) -> None:
-        rank_zero_deprecation(
-            "The attribute `IndexBatchSamplerWrapper.batch_indices` was deprecated in v1.5 and will be removed in"
-            " v1.7. Access the full list `seen_batch_indices` instead."
-        )
-        self._batch_indices = indices
 
     def __iter__(self) -> Iterator[List[int]]:
         self.seen_batch_indices = []
         for batch in self._sampler:
-            self._batch_indices = batch
             self.seen_batch_indices.append(batch)
             yield batch
 

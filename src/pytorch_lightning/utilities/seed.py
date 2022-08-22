@@ -24,7 +24,7 @@ from typing import Any, Dict, Generator, Optional
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import _get_rank, rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -66,9 +66,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    # using `log.info` instead of `rank_zero_info`,
-    # so users can verify the seed is properly set in distributed training.
-    log.info(f"Global seed set to {seed}")
+    log.info(f"[rank: {_get_rank()}] Global seed set to {seed}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -97,8 +95,8 @@ def reset_seed() -> None:
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
-    """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set set the seed
-    with ``seed_everything(seed, workers=True)``.
+    """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set the seed with
+    ``seed_everything(seed, workers=True)``.
 
     See also the PyTorch documentation on
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
