@@ -1,5 +1,4 @@
 import logging
-import sys
 from dataclasses import dataclass
 from datetime import datetime
 from json import JSONDecodeError
@@ -31,5 +30,5 @@ def _error_callback(ws_app: WebSocketApp, error: Exception):
         TypeError: "Malformed log format",
         ValueError: "Malformed date format",
     }
-    logger.error(f"⚡ Error while reading logs ({errors.get(type(error), 'Unknown')}), {error}", file=sys.stderr)
+    logger.error(f"⚡ Error while reading logs ({errors.get(type(error), 'Unknown')}), {error}")
     ws_app.close()

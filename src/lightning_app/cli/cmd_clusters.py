@@ -95,12 +95,12 @@ class AWSClusterManager:
 
     def get_clusters(self):
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
-        return resp.clusters
+        return ClusterList(resp.clusters)
 
     def list(self):
         clusters = self.get_clusters()
         console = Console()
-        console.print(ClusterList(clusters).as_table())
+        console.print(clusters.as_table())
 
     def delete(self, cluster_id: str = None, force: bool = False, wait: bool = False):
         if force:

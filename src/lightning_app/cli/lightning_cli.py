@@ -197,9 +197,9 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
 
     client = LightningClient()
     cluster_manager = AWSClusterManager()
-    existing_clusters = cluster_manager.get_clusters()
+    existing_cluster_list = cluster_manager.get_clusters()
 
-    clusters = {cluster.name: cluster.id for cluster in existing_clusters}
+    clusters = {cluster.name: cluster.id for cluster in existing_cluster_list.clusters}
 
     if not clusters:
         raise click.ClickException("You don't have any clusters.")
