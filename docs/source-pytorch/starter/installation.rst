@@ -19,6 +19,8 @@ Now you can install using `pip <https://pypi.org/project/pytorch-lightning/>`_ u
 
     pip install pytorch-lightning
 
+Or read the `Apple M1 Macs installation article <installation_mac.rst>`_.
+
 --------------
 
 ******************
