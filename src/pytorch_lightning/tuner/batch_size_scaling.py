@@ -243,7 +243,6 @@ def _adjust_batch_size(
 
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
-
     return new_size, changed
 
 
