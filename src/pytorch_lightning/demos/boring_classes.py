@@ -17,10 +17,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
@@ -194,7 +196,7 @@ class ManualOptimBoringModel(BoringModel):
 
     def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:  # type: ignore [override]
         opt = self.optimizers()
-        assert not isinstance(opt, list)
+        assert isinstance(opt, (Optimizer, LightningOptimizer))
         output = self(batch)
         loss = self.loss(batch, output)
         opt.zero_grad()
