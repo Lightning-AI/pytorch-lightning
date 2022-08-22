@@ -22,11 +22,14 @@ the name, type and number of parameters for each layer.
 
 """
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities.model_summary import _format_summary_table, summarize
+from pytorch_lightning.utilities.model_summary import DeepSpeedSummary
+from pytorch_lightning.utilities.model_summary import ModelSummary as Summary
+from pytorch_lightning.utilities.model_summary import summarize
+from pytorch_lightning.utilities.model_summary.model_summary import _format_summary_table
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +56,7 @@ class ModelSummary(Callback):
         if not self._max_depth:
             return None
 
-        model_summary = summarize(pl_module, max_depth=self._max_depth)
+        model_summary = self._summary(trainer, pl_module)
         summary_data = model_summary._get_summary_data()
         total_parameters = model_summary.total_parameters
         trainable_parameters = model_summary.trainable_parameters
@@ -61,6 +64,13 @@ class ModelSummary(Callback):
 
         if trainer.is_global_zero:
             self.summarize(summary_data, total_parameters, trainable_parameters, model_size)
+
+    def _summary(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Union[DeepSpeedSummary, Summary]:
+        from pytorch_lightning.strategies.deepspeed import DeepSpeedStrategy
+
+        if isinstance(trainer.strategy, DeepSpeedStrategy) and trainer.strategy.zero_stage_3:
+            return DeepSpeedSummary(pl_module, max_depth=self._max_depth)
+        return summarize(pl_module, max_depth=self._max_depth)
 
     @staticmethod
     def summarize(

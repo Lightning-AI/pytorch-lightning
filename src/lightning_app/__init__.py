@@ -37,6 +37,6 @@ if _module_available("lightning_app.components.demo"):
     from lightning_app.components import demo  # noqa: F401
 
 _PACKAGE_ROOT = os.path.dirname(__file__)
-_PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
 
 __all__ = ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute"]

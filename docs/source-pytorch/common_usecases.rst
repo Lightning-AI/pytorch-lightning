@@ -127,7 +127,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Train on multiple machines over the internet
    :description: Train on local machines or unreliable GPUs across the internet.
    :col_css: col-md-12
-   :button_link: strategies/collaborative_training
+   :button_link: strategies/hivemind
    :height: 100
 
 .. displayitem::

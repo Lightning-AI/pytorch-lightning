@@ -6,6 +6,8 @@ Sharing my components
 
 **Level:** Basic
 
+----
+
 *********************************************
 Why should I consider sharing my components ?
 *********************************************
@@ -13,6 +15,8 @@ Why should I consider sharing my components ?
 Lightning is community driven and its core objective is to make AI accessible to everyone.
 
 By creating components and sharing them with everyone else, the barrier to entry will be go down.
+
+----
 
 *************************************
 How should I organize my components ?
@@ -34,10 +38,12 @@ Here are the best practices steps before sharing the component:
 
 .. note:: As a Lightning user, it helps to implement your components thinking someone else is going use them.
 
+----
+
 ******************************************
 How should I proceed to share components ?
 ******************************************
 
 Once your component is ready, create a PiPy package with your own library and then it can be re-used by anyone else.
 
-Here is a `Component Template <https://github.com/PyTorchLightning/LAI-slack-messenger>`_ from `William Falcon <https://www.williamfalcon.com/>`_ to guide your component
+Here is a `Component Template <https://github.com/Lightning-AI/LAI-slack-messenger>`_ from `William Falcon <https://www.williamfalcon.com/>`_ to guide your component

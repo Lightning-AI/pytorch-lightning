@@ -66,7 +66,7 @@ def test_node_rank_from_group_rank():
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_random_master_port():
+def test_random_main_port():
     """Test randomly chosen main port when no main port was given by user."""
     env = LightningEnvironment()
     port = env.main_port

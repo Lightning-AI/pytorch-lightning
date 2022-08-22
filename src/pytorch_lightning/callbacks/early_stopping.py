@@ -135,7 +135,7 @@ class EarlyStopping(Callback):
             # validation, then we run after validation instead of on train epoch end
             self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
-    def _validate_condition_metric(self, logs: Dict[str, float]) -> bool:
+    def _validate_condition_metric(self, logs: Dict[str, Tensor]) -> bool:
         monitor_val = logs.get(self.monitor)
 
         error_msg = (

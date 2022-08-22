@@ -20,6 +20,7 @@ Add Flask to a component
 First, define your flask app as you normally would without Lightning:
 
 .. code:: python
+    :emphasize-lines: 9
 
     from flask import Flask
 
@@ -36,13 +37,13 @@ First, define your flask app as you normally would without Lightning:
 To enable the server inside the component, start the Flask server in the run method and use the ``self.host`` and ``self.port`` properties:
 
 .. code:: python
-    :emphasize-lines: 11
+    :emphasize-lines: 12
 
-    import lightning_app as la
+    import lightning as L
     from flask import Flask
 
 
-    class LitFlask(lapp.LightningWork):
+    class LitFlask(L.LightningWork):
         def run(self):
             flask_app = Flask(__name__)
 
@@ -61,13 +62,13 @@ The final step, is to tell the Root component in which tab to render this compon
 In this case, we render the ``LitFlask`` output in the ``home`` tab of the application.
 
 .. code:: python
-    :emphasize-lines: 16, 22
+    :emphasize-lines: 17, 23
 
-    import lightning_app as la
+    import lightning as L
     from flask import Flask
 
 
-    class LitFlask(lapp.LightningWork):
+    class LitFlask(L.LightningWork):
         def run(self):
             flask_app = Flask(__name__)
 
@@ -78,7 +79,7 @@ In this case, we render the ``LitFlask`` output in the ``home`` tab of the appli
             flask_app.run(host=self.host, port=self.port)
 
 
-    class Root(lapp.LightningFlow):
+    class Root(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_flask = LitFlask(parallel=True)
@@ -91,7 +92,7 @@ In this case, we render the ``LitFlask`` output in the ``home`` tab of the appli
             return tab1
 
 
-    app = lapp.LightningApp(Root())
+    app = L.LightningApp(Root())
 
 We use the ``parallel=True`` argument of ``LightningWork`` to run the server in the background
 while the rest of the Lightning App runs everything else.
@@ -103,30 +104,15 @@ Run the app
 ***********
 Start the app to see your new UI!
 
-.. code:: console
+.. code:: bash
 
     lightning run app app.py
 
 To run the app on the cloud, use the ``--cloud`` argument.
 
-.. code:: console
+.. code:: bash
 
     lightning run app app.py --cloud
-
-.. code:: python
-
-    from flask import Flask
-
-
-    class LitFlask(lapp.LightningWork):
-        def run(self):
-            flask_app = Flask(__name__)
-
-            @flask_app.route("/")
-            def hello():
-                return "Hello, World!"
-
-            flask_app.run(host=self.host, port=self.port)
 
 ----
 

@@ -1,3 +1,5 @@
+.. _app_component_tree:
+
 ###################
 App Component Tree
 ###################
@@ -6,9 +8,11 @@ App Component Tree
 
 **Level:** Basic
 
-****************************************
+----
+
+**************************************
 What is an Application Component Tree?
-****************************************
+**************************************
 
 Components can be nested to form component trees where the LightningFlows are its branches and LightningWorks are its leaves.
 
@@ -25,6 +29,8 @@ Here's a basic application with four flows and two works (associated tree struct
 
 A Lightning app runs all flows into a single process. Its flows coordinate the execution of the works each running in their own independent processes.
 
+----
+
 ***********************************************
 How do I define my application component tree?
 ***********************************************
@@ -35,22 +41,25 @@ You can attach your components in the **__init__** method of a flow.
 
 .. code-block:: python
 
-    import lightning_app as la
+    import lightning as L
 
 
-    class RootFlow(lapp.LightningFlow):
+    class RootFlow(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self.work = Work()  # The `Work` component is attached here.
+            # The `Work` component is attached here.
+            self.work = Work()
 
-            self.nested_flow = NestedFlow()  # The `NestedFlow` component is attached here.
+            # The `NestedFlow` component is attached here.
+            self.nested_flow = NestedFlow()
 
 Once done, simply add the root flow to a Lightning app as follows:
 
 .. code-block:: python
 
-    app = lapp.LightningApp(RootFlow())
+    app = L.LightningApp(RootFlow())
 
+----
 
 ******************************************
 Is my application component tree static?
@@ -62,16 +71,20 @@ You can simply attach your components in the **run** method of a flow using the 
 
 .. code-block:: python
 
-    class RootFlow(lapp.LightningFlow):
+    class RootFlow(L.LightningFlow):
         def run(self):
 
             if not hasattr(self, "work"):
-                setattr(self, "work", Work())  # The `Work` component is attached here.
-            getattr(self, "work").run()  # Run the `Work` component.
+                # The `Work` component is attached here.
+                setattr(self, "work", Work())
+            # Run the `Work` component.
+            getattr(self, "work").run()
 
             if not hasattr(self, "nested_flow"):
-                setattr(self, "nested_flow", NestedFlow())  # The `NestedFlow` component is attached here.
-            getattr(self, "wonested_flowrk").run()  # Run the `NestedFlow` component.
+                # The `NestedFlow` component is attached here.
+                setattr(self, "nested_flow", NestedFlow())
+            # Run the `NestedFlow` component.
+            getattr(self, "wonested_flowrk").run()
 
 
 But it is usually more readable to use Lightning built-in :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List` as follows:
@@ -81,16 +94,18 @@ But it is usually more readable to use Lightning built-in :class:`~lightning_app
     from lightning_app.structures import Dict
 
 
-    class RootFlow(lapp.LightningFlow):
+    class RootFlow(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.dict = Dict()
 
         def run(self):
             if "work" not in self.dict:
-                self.dict["work"] = Work()  # The `Work` component is attached here.
+                # The `Work` component is attached here.
+                self.dict["work"] = Work()
             self.dict["work"].run()
 
             if "nested_flow" not in self.dict:
-                self.dict["nested_flow"] = NestedFlow()  # The `NestedFlow` component is attached here.
+                # The `NestedFlow` component is attached here.
+                self.dict["nested_flow"] = NestedFlow()
             self.dict["nested_flow"].run()

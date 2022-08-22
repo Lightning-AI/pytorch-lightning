@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -7,6 +6,9 @@ import subprocess
 import sys
 
 import requests
+from packaging.version import Version
+
+from lightning_app.core.constants import LIGHTNING_APPS_PUBLIC_REGISTRY, LIGHTNING_COMPONENT_PUBLIC_REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +51,12 @@ def gallery_app(name, yes_arg, version_arg, cwd=None, overwrite=False):
     app_entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app")
 
     # give the user the chance to do a manual install
-    source_url, git_url, folder_name = _show_install_app_prompt(app_entry, app, org, yes_arg, resource_type="app")
+    source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
+        app_entry, app, org, yes_arg, resource_type="app"
+    )
 
     # run installation if requested
-    _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite)
+    _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
 
 
 def non_gallery_app(gh_url, yes_arg, cwd=None, overwrite=False):
@@ -161,14 +165,16 @@ def _show_non_gallery_install_component_prompt(gh_url, yes_arg):
 def _show_install_app_prompt(entry, app, org, yes_arg, resource_type):
     source_url = entry["sourceUrl"]  # This URL is used only to display the repo and extract folder name
     full_git_url = entry["gitUrl"]  # Used to clone the repo (can include tokens for private repos)
-    git_url = full_git_url.split("#ref=")[0]
+    git_url_parts = full_git_url.split("#ref=")
+    git_url = git_url_parts[0]
+    git_sha = git_url_parts[1] if len(git_url_parts) == 2 else None
 
     folder_name = source_url.split("/")[-1]
 
     # yes arg does not prompt the user for permission to install anything
     # automatically creates env and sets up the project
     if yes_arg:
-        return source_url, git_url, folder_name
+        return source_url, git_url, folder_name, git_sha
 
     prompt = f"""
     ⚡ Installing Lightning {resource_type} ⚡
@@ -192,7 +198,7 @@ def _show_install_app_prompt(entry, app, org, yes_arg, resource_type):
         if not should_install:
             raise KeyboardInterrupt()
 
-        return source_url, git_url, folder_name
+        return source_url, git_url, folder_name, git_sha
     except KeyboardInterrupt:
         repo = entry["sourceUrl"]
         m = f"""
@@ -291,8 +297,16 @@ def _validate_name(name, resource_type, example):
 
 
 def _resolve_resource(registry_url, name, version_arg, resource_type):
+    gallery_entries = []
     try:
-        url = requests.get(registry_url)
+        response = requests.get(registry_url)
+        data = response.json()
+
+        if resource_type == "app":
+            gallery_entries = [a for a in data["apps"] if a["canDownloadSourceCode"]]
+
+        elif resource_type == "component":
+            gallery_entries = data["components"]
     except requests.ConnectionError:
         m = f"""
         Network connection error, could not load list of available Lightning {resource_type}s.
@@ -302,12 +316,9 @@ def _resolve_resource(registry_url, name, version_arg, resource_type):
         sys.tracebacklimit = 0
         raise SystemError(m)
 
-    data = json.loads(url.text)
-    data = data[resource_type + "s"]
-
     entries = []
     all_versions = []
-    for x in data:
+    for x in gallery_entries:
         if name == x["name"]:
             entries.append(x)
             all_versions.append(x["version"])
@@ -317,7 +328,7 @@ def _resolve_resource(registry_url, name, version_arg, resource_type):
 
     entry = None
     if version_arg == "latest":
-        entry = entries[-1]
+        entry = max(entries, key=lambda app: Version(app["version"]))
     else:
         for e in entries:
             if e["version"] == version_arg:
@@ -367,7 +378,9 @@ def _install_with_env(repo_url, folder_name, cwd=None):
     logger.info(m)
 
 
-def _install_app(source_url: str, git_url: str, folder_name: str, cwd=None, overwrite: bool = False):
+def _install_app(
+    source_url: str, git_url: str, folder_name: str, cwd=None, overwrite: bool = False, git_sha: str = None
+):
     """Installing lighting app from the `git_url`
 
     Args:
@@ -381,6 +394,8 @@ def _install_app(source_url: str, git_url: str, folder_name: str, cwd=None, over
             Working director. If not specified, current working directory is used.
         overwrite:
             If true, overwrite the app directory without asking if it already exists
+        git_sha:
+            The git_sha for checking out the git repo of the app.
     """
 
     if not cwd:
@@ -411,6 +426,15 @@ def _install_app(source_url: str, git_url: str, folder_name: str, cwd=None, over
     # step into the repo folder
     os.chdir(f"{folder_name}")
     cwd = os.getcwd()
+
+    try:
+        if git_sha:
+            subprocess.check_output(["git", "checkout", git_sha], stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        if "did not match any" in str(e.output):
+            raise SystemExit("Looks like the git SHA is not valid or doesn't exist in app repo.")
+        else:
+            raise Exception(e)
 
     # activate and install reqs
     # TODO: remove shell=True... but need to run command in venv
@@ -456,12 +480,10 @@ def _install_component(git_url):
 
 
 def _resolve_app_registry():
-    public_registry = "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/apps"
-    registry = os.environ.get("LIGHTNING_APP_REGISTRY", public_registry)
+    registry = os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
     return registry
 
 
 def _resolve_component_registry():
-    public_registry = "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/components"
-    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", public_registry)
+    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)
     return registry

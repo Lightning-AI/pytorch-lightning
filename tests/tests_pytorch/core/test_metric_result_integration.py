@@ -21,9 +21,11 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import torchmetrics
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
+import pytorch_lightning as pl
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -34,7 +36,9 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 class DummyMetric(Metric):
@@ -456,6 +460,8 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         "limit_val_batches": 0,
         "accelerator": accelerator,
         "devices": devices,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
     }
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
@@ -471,7 +477,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
 
-    trainer = Trainer(**trainer_kwargs, enable_progress_bar=False, enable_model_summary=False)
+    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
@@ -629,3 +635,60 @@ def test_result_metric_max_min(reduce_fx, expected):
     rm = _ResultMetric(metadata, is_tensor=True)
     rm.update(torch.tensor(expected), 1)
     assert rm.compute() == expected
+
+
+def test_compute_not_a_tensor_raises():
+    class RandomMetric(Metric):
+        def update(self):
+            pass
+
+        def compute(self):
+            return torch.tensor(1.0), torch.tensor(2.0)
+
+    class MyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metric = RandomMetric()
+
+        def on_train_start(self):
+            self.log("foo", self.metric)
+
+    model = MyModel()
+    trainer = Trainer(
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+        enable_model_summary=False,
+    )
+    with pytest.raises(ValueError, match=r"compute\(\)` return of.*foo' must be a tensor"):
+        trainer.fit(model)
+
+
+@pytest.mark.parametrize("distributed_env", [True, False])
+@pytest.mark.parametrize("log_val", [torch.tensor(0.5), torchmetrics.Accuracy()])
+def test_logger_sync_dist(distributed_env, log_val):
+    pl.trainer.connectors.logger_connector.result.warning_cache.clear()
+
+    # self.log('bar', 0.5, ..., sync_dist=False)
+    meta = _Metadata("foo", "bar")
+    meta.sync = _Sync(_should=False)
+    is_tensor = isinstance(log_val, torch.Tensor)
+
+    if not is_tensor:
+        log_val.update(torch.tensor([0, 1]), torch.tensor([0, 0], dtype=torch.long))
+
+    result_metric = _ResultMetric(metadata=meta, is_tensor=is_tensor)
+    result_metric.update(log_val, 10)
+
+    warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
+
+    with mock.patch(
+        "pytorch_lightning.trainer.connectors.logger_connector.result.distributed_available",
+        return_value=distributed_env,
+    ):
+        with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
+            value = _ResultCollection._get_cache(result_metric, on_step=False)
+        assert value == 0.5

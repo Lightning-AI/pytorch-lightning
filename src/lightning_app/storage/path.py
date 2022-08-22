@@ -408,8 +408,12 @@ def filesystem() -> AbstractFileSystem:
     endpoint_url = os.getenv("LIGHTNING_BUCKET_ENDPOINT_URL", "")
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     if endpoint_url != "" and bucket_name != "":
-        key = os.getenv("AWS_ACCESS_KEY_ID", "")
-        secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+        key = os.getenv("LIGHTNING_AWS_ACCESS_KEY_ID", "")
+        secret = os.getenv("LIGHTNING_AWS_SECRET_ACCESS_KEY", "")
+        # TODO: Remove when updated on the platform side.
+        if key == "" or secret == "":
+            key = os.getenv("AWS_ACCESS_KEY_ID", "")
+            secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
         if key == "" or secret == "":
             raise RuntimeError("missing S3 bucket credentials")
 

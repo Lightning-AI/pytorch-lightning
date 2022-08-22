@@ -182,9 +182,10 @@ class EvaluationEpochLoop(Loop):
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
 
+        trainer = self._trainer
         if (
-            self.trainer is not None
-            and self.trainer.state._fault_tolerant_mode.is_enabled
+            trainer is not None
+            and trainer.state._fault_tolerant_mode.is_enabled
             and self._data_fetcher is not None
             and not self._num_completed_batches_reached()  # did not finish
             and self.batch_progress.current.ready  # did start

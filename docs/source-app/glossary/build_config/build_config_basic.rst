@@ -20,14 +20,14 @@ for more granular control.
 .. code-block:: bash
 
     ├── app.py
-    ├── requirements.txt                # Global requirements for the entire app
+    ├── requirements.txt          # Global requirements for the entire app
     └── works
         ├── serve
-        │   ├── requirements.txt        # Requirements specific to the 'serve' work
-        │   └── serve.py                # Source file for the LightningWork
+        │   ├── requirements.txt  # Requirements specific to the 'serve' work
+        │   └── serve.py          # Source file for the LightningWork
         └── train
-            ├── requirements.txt        # Requirements specific to the 'train' work
-            └── train.py                # Source file for the LightningWork
+            ├── requirements.txt  # Requirements specific to the 'train' work
+            └── train.py          # Source file for the LightningWork
 
 The requirements.txt file must be located in the same directry as the source file of the LightningWork.
 When the LightningWork starts up, it will pick up the requirements file if present and install all listed packages.
@@ -46,6 +46,7 @@ Instead of listing the requirements in a file, you can also pass them to the Lig
 :class:`~lightning_app.utilities.packaging.build_config.BuildConfig`:
 
 .. code-block:: python
+    :emphasize-lines: 7
 
     from lightning_app import LightningWork, BuildConfig
 

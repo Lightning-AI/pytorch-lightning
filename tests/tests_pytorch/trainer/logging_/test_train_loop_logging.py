@@ -28,9 +28,8 @@ from torchmetrics import Accuracy
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomDictDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -569,11 +568,12 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     "accelerator",
     [
         pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        "cpu",
     ],
 )
 def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
-        def __init__(self, *args, **kwargs) -> None:
+        def __init__(self) -> None:
             super().__init__()
             self.val_acc = Accuracy()
 
@@ -592,7 +592,6 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
             return super().validation_step(batch, batch_idx)
 
     early_stop = EarlyStopping(monitor="val_acc", mode="max")
-
     checkpoint = ModelCheckpoint(monitor="val_acc", save_last=True, save_top_k=2, mode="max")
 
     model = TestingModel()
@@ -631,7 +630,16 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo/dataloader_idx_0", -1)
 
-    trainer = Trainer(default_root_dir=tmpdir)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+        enable_model_summary=False,
+    )
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="`self.log` with the key `foo/dataloader_idx_0`"):
         trainer.fit(model)
@@ -640,7 +648,6 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy())
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
         trainer.fit(model)
@@ -653,7 +660,6 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy())
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(
         MisconfigurationException,
@@ -667,7 +673,6 @@ def test_logging_raises(tmpdir):
             self.log("foo", -1, prog_bar=True)
             return super().training_step(*args)
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r"self.log\(foo, ...\)` twice in `training_step`"):
         trainer.fit(model)
@@ -677,9 +682,16 @@ def test_logging_raises(tmpdir):
             self.log("foo", -1, reduce_fx=torch.argmax)
             return super().training_step(*args)
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+        def on_train_start(self):
+            self.log("foo", torch.tensor([1.0, 2.0]))
+
+    model = TestModel()
+    with pytest.raises(ValueError, match="tensor must have a single element"):
         trainer.fit(model)
 
 
@@ -799,3 +811,28 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
             call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
         ]
     )
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_log_on_train_start(mock_log_metrics, tmpdir):
+    """Tests that logged metrics on_train_start get reset after the first epoch."""
+
+    class MyModel(BoringModel):
+        def on_train_start(self):
+            self.log("foo", 123)
+
+    model = MyModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=2,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    assert mock_log_metrics.mock_calls == [call(metrics={"foo": 123.0, "epoch": 0}, step=0)]
+    assert trainer.max_epochs > 1

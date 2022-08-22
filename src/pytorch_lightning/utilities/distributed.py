@@ -17,6 +17,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -48,6 +49,9 @@ log = logging.getLogger(__name__)
 def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
     """Function to gather all tensors from several ddp processes onto a list that is broadcasted to all processes.
 
+    Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
+    tensors are padded, gathered and then trimmed to secure equal workload for all processes.
+
     Args:
         result: the value to sync
         group: the process group to gather results from. Defaults to all processes (world)
@@ -63,13 +67,41 @@ def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tens
     result = result.contiguous()
 
     world_size = torch.distributed.get_world_size(group)
-
-    gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
-
-    # sync and broadcast all
     torch.distributed.barrier(group=group)
-    torch.distributed.all_gather(gathered_result, result, group)
 
+    # if the tensor is scalar, things are easy
+    if result.ndim == 0:
+        return _simple_gather_all_tensors(result, group, world_size)
+
+    # 1. Gather sizes of all tensors
+    local_size = torch.tensor(result.shape, device=result.device)
+    local_sizes = [torch.zeros_like(local_size) for _ in range(world_size)]
+    torch.distributed.all_gather(local_sizes, local_size, group=group)
+    max_size = torch.stack(local_sizes).max(dim=0).values
+    all_sizes_equal = all(all(ls == max_size) for ls in local_sizes)
+
+    # 2. If shapes are all the same, then do a simple gather:
+    if all_sizes_equal:
+        return _simple_gather_all_tensors(result, group, world_size)
+
+    # 3. If not, we need to pad each local tensor to maximum size, gather and then truncate
+    pad_dims = []
+    pad_by = (max_size - local_size).detach().cpu()
+    for val in reversed(pad_by):
+        pad_dims.append(0)
+        pad_dims.append(val.item())
+    result_padded = F.pad(result, pad_dims)
+    gathered_result = [torch.zeros_like(result_padded) for _ in range(world_size)]
+    torch.distributed.all_gather(gathered_result, result_padded, group)
+    for idx, item_size in enumerate(local_sizes):
+        slice_param = [slice(dim_size) for dim_size in item_size]
+        gathered_result[idx] = gathered_result[idx][slice_param]
+    return gathered_result
+
+
+def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> List[Tensor]:
+    gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
+    torch.distributed.all_gather(gathered_result, result, group)
     return gathered_result
 
 
@@ -113,6 +145,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
     if group is None:
         group = torch.distributed.group.WORLD
 
+    op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
         if reduce_op.lower() in ("avg", "mean"):
             op = ReduceOp.SUM
@@ -142,7 +175,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
 
 class AllGatherGrad(torch.autograd.Function):
     @staticmethod
-    def forward(
+    def forward(  # type: ignore[override]
         ctx: Any,
         tensor: Tensor,
         group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
@@ -285,7 +318,7 @@ def register_ddp_comm_hook(
         ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
     new_rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
-    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
+    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)  # type: ignore[operator]
 
 
 def tpu_distributed() -> bool:
@@ -361,7 +394,6 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
 
     Args:
         state: Dictionary containing the state of the current process
-        device: Current process device.
 
     Returns:
         states: On global rank 0, a dictionary where the primary keys are

@@ -59,7 +59,10 @@ _REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
-_PATH_SETUP = os.path.join(_PATH_ROOT, "src", _REAL_PKG_NAME or "lightning", "__setup__.py")
+_PATH_SRC = os.path.join(_PATH_ROOT, "src")
+_PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
+_PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME or "lightning", "__setup__.py")
+_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
 # Hardcode the env variable from time of package creation, otherwise it fails during installation
@@ -74,7 +77,9 @@ with open(__file__, "w") as fp:
 
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
+    assert spec, f"Failed to load module {name} from {location}"
     py = module_from_spec(spec)
+    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
     spec.loader.exec_module(py)
     return py
 
@@ -86,9 +91,19 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 # engineer specific practices
 if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
+
+    if _PACKAGE_NAME == "lightning":  # install just the meta package
+        _SETUP_TOOLS._adjust_require_versions(_PATH_SRC, _PATH_REQUIRE)
+    elif _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
+        _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+
+    if _PACKAGE_NAME not in _PACKAGE_MAPPING:
+        _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
+
     for lit_name, pkg_name in _PACKAGE_MAPPING.items():
         # fixme: if we run creation of meta pkg against stable we shall pull the source
         _SETUP_TOOLS.create_meta_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
+
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
     _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
     setup(**_SETUP_MODULE._setup_args(pkg_name=_REAL_PKG_NAME))

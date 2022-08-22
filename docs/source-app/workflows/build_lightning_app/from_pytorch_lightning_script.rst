@@ -1,27 +1,28 @@
-#######################################
-Build app from PyTorch Lightning script
-#######################################
+#######################################################
+Develop a Lightning App from a PyTorch Lightning script
+#######################################################
 
-**Audience:** Users who want to build an app from their PyTorch Lightning scripts.
+**Audience:** Users who want to develop a Lightning App (App) from their PyTorch Lightning (PL) scripts.
 
 ----
 
-***********************************************
-Why do I want to build an app from a PL script?
-***********************************************
-Generating an app from a PL script allows you to immediately run on the cloud and share the progress with friends.
+*************************************************************
+What developing a Lightning App from a PL script does for you
+*************************************************************
+
+Developing an App from a PL script allows you to immediately run on the cloud and share the progress with friends.
 Once you're happy with your model, you can immediately expand beyond just model development to things like
-making your own inference APIs, research demos or even speeding up your data pipeline.
+making your own inference APIs, research demos, or even speeding up your data pipeline.
 
-The PyTorch Lightning app is your entry point to the full end-to-end ML licefycle.
+The PyTorch Lightning App is your entry point to the full end-to-end ML licefycle.
 
 ----
 
-*******************
-Generate a template
-*******************
+******************
+Develop a template
+******************
 
-To generate a template from a PyTorch Lightning script, use this command:
+To develop a template from a PyTorch Lightning script, use this command:
 
 .. code:: bash
 
@@ -35,22 +36,23 @@ If your script is not at the root of the project folder, and you'd like to inclu
     lightning init pl-app path/to/project/root path/to/the/pl_script.py
 
 
-The default trainer app lets you train a model with a beautiful UI locally and on the cloud with zero effort!
+The default trainer App lets you train a model with a beautiful UI locally and on the cloud with zero effort!
 
 ----
 
 ***********
-Run the app
+Run the App
 ***********
-.. note:: this page is under construction
 
-Run the app locally:
+.. note:: This section is under construction.
+
+Run the App locally:
 
 .. code:: bash
 
     lightning run app pl-app/app.py
 
-Or run it on the cloud so you can share with collaborators and even use all the cloud GPUs you want
+Or run the App on the cloud so you can share with collaborators and even use all the cloud GPUs you want.
 
 .. code:: bash
 
@@ -67,7 +69,7 @@ Or run it on the cloud so you can share with collaborators and even use all the 
 Modify the template
 *******************
 
-The command above generates an app file like this:
+The command above generates an App file like this:
 
 .. note:: TODO: list the file and show how to extend it
 
@@ -75,10 +77,10 @@ The command above generates an app file like this:
 
     from your_app_name import ComponentA, ComponentB
 
-    import lightning_app as la
+    import lightning as L
 
 
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self) -> None:
             super().__init__()
             self.component_a = ComponentA()
@@ -89,7 +91,7 @@ The command above generates an app file like this:
             self.component_b.run()
 
 
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 Now you can add your own components as you wish!
 
@@ -99,7 +101,7 @@ Now you can add your own components as you wish!
 Known issues
 ************
 
-- The UI takes a couple seconds to load when opening the app, be patient.
+- The UI takes a couple seconds to load when opening the App, so please be patient.
 - The timer resets when refreshing the page.
 - The UI for adding new environment variables does not provide an option to delete an entry.
 - A bug exists that leaves the script hanging at the start of training when using the DDP strategy.

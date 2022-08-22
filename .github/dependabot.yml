@@ -17,8 +17,25 @@ updates:
       # Separate sections of the branch name with a hyphen
       # for example, `dependabot-npm_and_yarn-next_js-acorn-6.4.1`
       separator: "-"
-    # Allow up to 10 open pull requests for pip dependencies
+    # Allow up to 5 open pull requests for pip dependencies
     open-pull-requests-limit: 5
     reviewers:
-      - "carmocca"
+      - "Lightning-AI/teams/core-lightning"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
+    # Labels on pull requests for version updates only
+    labels:
+      - "ci"
+    pull-request-branch-name:
+      # Separate sections of the branch name with a hyphen
+      # for example, `dependabot-npm_and_yarn-next_js-acorn-6.4.1`
+      separator: "-"
+    # Allow up to 5 open pull requests for GitHub Actions
+    open-pull-requests-limit: 5
+    reviewers:
       - "Lightning-AI/teams/core-lightning"

@@ -28,7 +28,6 @@ from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACh
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import pl_multi_process_test
 
 
 class WeightSharingModule(BoringModel):
@@ -46,8 +45,7 @@ class WeightSharingModule(BoringModel):
         return x
 
 
-@RunIf(tpu=True)
-@pl_multi_process_test
+@RunIf(tpu=True, standalone=True)
 def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
@@ -65,11 +63,9 @@ def test_resume_training_on_cpu(tmpdir):
     # Verify that training is resumed on CPU
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     trainer.fit(model, ckpt_path=model_path)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
 
@@ -293,12 +289,14 @@ def test_xla_checkpoint_plugin_being_default():
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 
-@RunIf(tpu=True)
-@patch("pytorch_lightning.strategies.tpu_spawn.xm")
-def test_mp_device_dataloader_attribute(_):
+@patch("pytorch_lightning.strategies.tpu_spawn.MpDeviceLoader")
+@patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
+def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
     dataset = RandomDataset(32, 64)
-    dataloader = TPUSpawnStrategy().process_dataloader(DataLoader(dataset))
-    assert dataloader.dataset == dataset
+    dataloader = DataLoader(dataset)
+    processed_dataloader = TPUSpawnStrategy().process_dataloader(dataloader)
+    mp_loader_mock.assert_called_with(dataloader, root_device_mock)
+    assert processed_dataloader.dataset == processed_dataloader._loader.dataset
 
 
 @RunIf(tpu=True)
@@ -307,8 +305,7 @@ def test_warning_if_tpus_not_used():
         Trainer()
 
 
-@RunIf(tpu=True)
-@pl_multi_process_test
+@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ["devices", "expected_device_ids"],
     [

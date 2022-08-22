@@ -1,0 +1,10 @@
+name: Check Schema
+
+on:
+  push: {}
+  pull_request:
+    branches: [master, "release/*"]
+
+jobs:
+  check:
+    uses: ./.github/workflows/_check-schema.yml

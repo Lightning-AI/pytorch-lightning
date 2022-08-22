@@ -48,7 +48,6 @@ def test_fx_validator():
         "on_fit_start",
         "on_init_end",
         "on_init_start",
-        "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",
@@ -93,7 +92,6 @@ def test_fx_validator():
         "on_configure_sharded_model",
         "on_init_end",
         "on_init_start",
-        "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",
@@ -185,17 +183,7 @@ class HookedModel(BoringModel):
     def __init__(self, not_supported):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
-        pl_module_hooks.difference_update(
-            {
-                "log",
-                "log_dict",
-                # the following are problematic as they do have `self._current_fx_name` defined some times but
-                # not others depending on where they were called. So we cannot reliably `self.log` in them
-                "on_before_batch_transfer",
-                "transfer_batch_to_device",
-                "on_after_batch_transfer",
-            }
-        )
+        pl_module_hooks.difference_update({"log", "log_dict"})
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -229,6 +217,9 @@ def test_fx_validator_integration(tmpdir):
         "on_pretrain_routine_end": "You can't",
         "train_dataloader": "You can't",
         "val_dataloader": "You can't",
+        "on_before_batch_transfer": "You can't",
+        "transfer_batch_to_device": "You can't",
+        "on_after_batch_transfer": "You can't",
         "on_validation_end": "You can't",
         "on_train_end": "You can't",
         "on_fit_end": "You can't",

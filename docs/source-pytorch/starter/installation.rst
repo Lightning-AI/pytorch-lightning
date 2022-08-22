@@ -50,10 +50,10 @@ are not published yet. This is the bleeding edge, so use it at your own discreti
 
 .. code-block:: bash
 
-    pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
+    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip -U
 
 Install future patch releases from the source. Note that the patch release contains only the bug fixes for the recent major release.
 
 .. code-block:: bash
 
-    pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/refs/heads/release/1.5.x.zip
+    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/pytorch.zip -U

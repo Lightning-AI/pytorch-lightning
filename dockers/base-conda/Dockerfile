@@ -71,8 +71,11 @@ ENV \
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda update -n base -c defaults conda && \
-    conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+RUN \
+    conda update -n base -c defaults conda && \
+    conda create -y --name $CONDA_ENV \
+      python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} \
+      -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
     printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchtext', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
@@ -80,6 +83,7 @@ RUN conda update -n base -c defaults conda && \
     rm prune.py && \
     cat environment.yml && \
     conda env update --name $CONDA_ENV --file environment.yml && \
+    conda install "Pillow<9.0" && \
     conda clean -ya && \
     rm environment.yml
 
@@ -94,12 +98,11 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     pip install -q fire && \
-    python requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt && \
-    python requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt && \
+    python assistant.py requirements_prune_pkgs torch,torchvision,torchtext && \
     # Install remaining requirements
-    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/pytorch/extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/pytorch/examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install --no-cache-dir -r requirements/pytorch/base.txt \
+        -r requirements/pytorch/extra.txt \
+        -r requirements/pytorch/examples.txt && \
     rm assistant.py
 
 ENV \

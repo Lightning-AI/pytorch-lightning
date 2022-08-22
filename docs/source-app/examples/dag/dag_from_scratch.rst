@@ -15,7 +15,9 @@ In this example, you will learn how to create a simple DAG which:
 
 and learn how to schedule this entire process.
 
-Find the complete example `here <https://github.com/PyTorchLightning/lightning/blob/master/examples/dag/app.py>`_.
+Find the complete example `here <https://github.com/Lightning-AI/lightning/blob/master/examples/app_dag/app.py>`_.
+
+----
 
 **************************
 Step 1: Implement your DAG
@@ -33,19 +35,20 @@ First, let's define the component we need:
 * Processing is responsible to execute a ``processing.py`` script.
 * A collection of model work to train all models in parallel.
 
-.. literalinclude:: ../../../../examples/dag/app.py
+.. literalinclude:: ../../../examples/app_dag/app.py
     :lines: 55-79
 
 And its run method executes the steps described above.
 Additionally, ``work.stop`` is used to reduce cost when running in the cloud.
 
-.. literalinclude:: ../../../../examples/dag/app.py
+.. literalinclude:: ../../../examples/app_dag/app.py
     :lines: 81-108
 
+----
 
 *****************************
 Step 2: Define the scheduling
 *****************************
 
-.. literalinclude:: ../../../../examples/dag/app.py
+.. literalinclude:: ../../../examples/app_dag/app.py
     :lines: 109-137

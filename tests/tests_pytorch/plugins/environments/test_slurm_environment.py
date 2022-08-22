@@ -83,7 +83,7 @@ def test_attributes_from_environment_variables(caplog):
     "slurm_node_list,expected",
     [("alpha,beta,gamma", "alpha"), ("alpha beta gamma", "alpha"), ("1.2.3.[100-110]", "1.2.3.100")],
 )
-def test_master_address_from_slurm_node_list(slurm_node_list, expected):
+def test_main_address_from_slurm_node_list(slurm_node_list, expected):
     """Test extracting the main node from different formats for the SLURM_NODELIST."""
     with mock.patch.dict(os.environ, {"SLURM_NODELIST": slurm_node_list}):
         env = SLURMEnvironment()

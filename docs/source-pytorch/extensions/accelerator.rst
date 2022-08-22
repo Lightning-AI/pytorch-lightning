@@ -125,7 +125,7 @@ Accelerator API
 
     Accelerator
     CPUAccelerator
-    GPUAccelerator
+    CUDAAccelerator
     HPUAccelerator
     IPUAccelerator
     MPSAccelerator

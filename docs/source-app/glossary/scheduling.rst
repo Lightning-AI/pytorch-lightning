@@ -22,22 +22,19 @@ The LightningFlow has a ``schedule`` method which can be used to schedule your c
 
 
     class MyFlow(LightningFlow):
+
         def run(self):
             if self.schedule("hourly"):
                 # run some code once every hour.
-                pass
 
             if self.schedule("daily"):
                 # run some code once day.
-                pass
 
             if self.schedule("daily") and anything_else:
                 # run some code once day if the anything else is also True.
-                pass
 
             if self.schedule("2 4 * * mon,fri"):
                 # defined with cron syntax, run some code at 04:02 on every Monday and Friday.
-                pass
 
 Learn more about the cron syntax `here <https://github.com/kiorky/croniter>`_
 
@@ -56,7 +53,6 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
     from lightning_app import LightningFlow
     from lightning_app.core.structures import List
 
-
     class ScheduledDAG(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -65,10 +61,12 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
         def run(self):
             if self.schedule("hourly"):
                 # dynamically instantiate
-                # don't forget to always attach your components to the flow !!!
+                # don't forget to always attach
+                # your components to the flow !!!
                 self.list.append(MyDAGFlow(...))
 
-            # run all dags, but the completed ones are cached and don't re-execute.
+            # run all dags, but the completed ones
+            # are cached and don't re-execute.
             for dag in self.list:
                 dag.run()
 
@@ -79,7 +77,6 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
 
     from lightning_app import LightningFlow
     from time import time
-
 
     class ScheduledDAG(LightningFlow):
         def __init__(self):
@@ -99,7 +96,6 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
     from lightning_app import LightningFlow
     from time import time
 
-
     class ScheduledDAG(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -112,12 +108,17 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
             if self.schedule("hourly"):
                 self.should_execute = True
 
-            if self.should_execute:  # Runs in 10 min
-                self.data_processor.run(trigger_time=time())  # Runs in 5 min
+            # Runs in 10 min
+            if self.should_execute:
+                # Runs in 5 min
+                self.data_processor.run(trigger_time=time())
                 if self.data_processor.has_succeeded:
-                    self.training_work.run(self.data_processor.data)  # Runs in 5 min
+                    # Runs in 5 min
+                    self.training_work.run(self.data_processor.data)
                 if self.training_work.has_succeeded:
                     self.should_execute = False
+
+----
 
 ***********
 Limitations
@@ -133,7 +134,6 @@ Here is an example of something which **WON'T** work:
     from lightning_app import LightningFlow
     from time import time
 
-
     class ScheduledDAG(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -143,9 +143,11 @@ Here is an example of something which **WON'T** work:
         def run(self):
             ...
             if self.schedule("hourly"):
-                self.data_processor.run(trigger_time=time())  # This executes and finishes 5 min later
+                # This finishes 5 min later
+                self.data_processor.run(trigger_time=time())
                 if self.data_processor.has_succeeded:
-                    # This will never be reached as the data processor will keep processing forever...
+                    # This will never be reached as the
+                    # data processor will keep processing forever...
                     self.training_work.run(self.data_processor.data)
 
 ----
@@ -154,10 +156,30 @@ Here is an example of something which **WON'T** work:
 Frequently Asked Questions
 **************************
 
-- **Q: Can I use multiple nested schedule?**
+- **Q: Can I use multiple nested scheduler?** No, as they might cancel themselves out, but you can capture the event of one to trigger the next one.
 
-    Not really as they might cancel themselves out, but you can capture the event of one to trigger the next one.
+- **Q: Can I use any arbitrary logic to schedule?** Yes, this design enables absolute flexibility, but you need to be careful to avoid bad practices.
 
-- **Q: Can I use any arbitrary logic to schedule?**
+----
 
-    Yes, this design enables absolute flexibility, but you need to be careful to avoid bad practices.
+********
+Examples
+********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Build a DAG
+   :description: Learn how to schedule a DAG execution
+   :col_css: col-md-4
+   :button_link: ../examples/dag/dag.html
+   :height: 180
+   :tag: Intermediate
+
+.. raw:: html
+
+        </div>
+    </div>

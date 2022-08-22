@@ -553,16 +553,6 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_predict_end(self, self.lightning_module)
 
-    def on_keyboard_interrupt(self):
-        r"""
-        .. deprecated:: v1.5
-            This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
-
-        Called when any trainer execution is interrupted by KeyboardInterrupt.
-        """
-        for callback in self.callbacks:
-            callback.on_keyboard_interrupt(self, self.lightning_module)
-
     def on_exception(self, exception: BaseException) -> None:
         r"""
         .. deprecated:: v1.6

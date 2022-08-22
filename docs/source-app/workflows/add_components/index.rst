@@ -1,3 +1,5 @@
+:orphan:
+
 ###########################
 Add a component to your app
 ###########################
@@ -11,7 +13,7 @@ Install a component
 
 Any Lightning component can be installed with:
 
-.. code:: bash
+.. code:: python
 
    lightning install component org/the-component-name
 

@@ -38,20 +38,17 @@ First **create a file named app.py** with the app content:
 .. code:: python
 
     # app.py
-    import lightning_app as la
+    import lightning as L
     import streamlit as st
 
-
     def your_streamlit_app(lightning_app_state):
-        st.write("hello world")
+        st.write('hello world')
 
-
-    class LitStreamlit(lapp.LightningFlow):
+    class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
-
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
@@ -60,8 +57,7 @@ First **create a file named app.py** with the app content:
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
 
-
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 add "streamlit" to a requirements.txt file:
 
@@ -78,13 +74,13 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: bash
+.. code:: python
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: bash
+.. code:: python
 
     lightning run app app.py --cloud
 
@@ -105,9 +101,8 @@ First, find the streamlit app you want to integrate. In this example, that app l
 
     import streamlit as st
 
-
     def your_streamlit_app():
-        st.write("hello world")
+        st.write('hello world')
 
 Refer to the `Streamlit documentation <https://docs.streamlit.io/>`_ for more complex examples.
 
@@ -122,20 +117,17 @@ the ``configure_layout`` method of the Lightning component you want to connect t
     :emphasize-lines: 8-10
 
     # app.py
-    import lightning_app as la
+    import lightning as L
     import streamlit as st
 
-
     def your_streamlit_app(lightning_app_state):
-        st.write("hello world")
+        st.write('hello world')
 
-
-    class LitStreamlit(lapp.LightningFlow):
+    class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
-
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
@@ -144,8 +136,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
 
-
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 The ``render_fn`` argument of the ``StreamlitFrontend`` class, points to a function that runs your Streamlit app.
 The first argument to the function is the lightning app state. Any changes to the app state update the app.
@@ -161,20 +152,17 @@ In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the appli
     :emphasize-lines: 18
 
     # app.py
-    import lightning_app as la
+    import lightning as L
     import streamlit as st
 
-
     def your_streamlit_app(lightning_app_state):
-        st.write("hello world")
+        st.write('hello world')
 
-
-    class LitStreamlit(lapp.LightningFlow):
+    class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
-
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
@@ -183,5 +171,4 @@ In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the appli
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
 
-
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())

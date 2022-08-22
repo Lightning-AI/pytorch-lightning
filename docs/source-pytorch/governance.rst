@@ -34,7 +34,6 @@ Leads
 Core Maintainers
 ----------------
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
-- Roger Shieh (`s-rog <https://github.com/s-rog>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
 - Siyu Wang (`four4fish <https://github.com/four4fish>`_)
@@ -56,6 +55,7 @@ Alumni
 - Teddy Koker (`teddykoker <https://github.com/teddykoker>`_)
 - Nate Raw (`nateraw <https://github.com/nateraw>`_)
 - Peter Yu (`yukw777 <https://github.com/yukw777>`_)
+- Roger Shieh (`s-rog <https://github.com/s-rog>`_)
 
 
 Releases

@@ -19,23 +19,13 @@ import torch.distributed
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_9_1
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
 
 class TorchElasticEnvironment(ClusterEnvironment):
     """Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        # TODO: remove in 1.7
-        if hasattr(self, "is_using_torchelastic") and callable(self.is_using_torchelastic):
-            rank_zero_deprecation(
-                f"`{self.__class__.__name__}.is_using_torchelastic` has been deprecated in v1.6 and will be removed in"
-                " v1.7. Implement the static method `detect()` instead (do not forget to add the `@staticmethod`"
-                " decorator)."
-            )
 
     @property
     def creates_processes_externally(self) -> bool:

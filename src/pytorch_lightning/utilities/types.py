@@ -16,12 +16,14 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
 import torch
 from torch import Tensor
+from torch._C._distributed_c10d import ProcessGroup
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
@@ -47,6 +49,43 @@ TRAIN_DATALOADERS = Union[
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 _DEVICE = Union[torch.device, str, int]
+_MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]]
+
+
+@runtime_checkable
+class TrainingStep(Protocol):
+    """This class is used to detect if an object implements the `training_step` hook using `isinstance(model,
+    TrainingStep)`."""
+
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        ...
+
+
+@runtime_checkable
+class ValidationStep(Protocol):
+    """This class is used to detect if an object implements the `validation_step` hook using `isinstance(model,
+    ValidationStep)`."""
+
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        ...
+
+
+@runtime_checkable
+class TestStep(Protocol):
+    """This class is used to detect if an object implements the `test_step` hook using `isinstance(model,
+    TestStep)`."""
+
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        ...
+
+
+@runtime_checkable
+class PredictStep(Protocol):
+    """This class is used to detect if an object implements the `predict_step` hook using `isinstance(model,
+    PredictStep)`."""
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        ...
 
 
 @runtime_checkable
@@ -65,6 +104,7 @@ class _Stateful(Protocol):
 @runtime_checkable
 class _LRScheduler(_Stateful, Protocol):
     optimizer: Optimizer
+    base_lrs: List[float]
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
         ...
@@ -99,10 +139,36 @@ class ReduceLROnPlateau(_Stateful, Protocol):
         ...
 
 
+# Inferred from `torch.nn.parallel.distributed.pyi`
+# Missing attributes were added to improve typing
+@runtime_checkable
+class DistributedDataParallel(Protocol):
+    def __init__(
+        self,
+        module: torch.nn.Module,
+        device_ids: Optional[List[Union[int, torch.device]]] = None,
+        output_device: Optional[Union[int, torch.device]] = None,
+        dim: int = 0,
+        broadcast_buffers: bool = True,
+        process_group: Optional[ProcessGroup] = None,
+        bucket_cap_mb: int = 25,
+        find_unused_parameters: bool = False,
+        check_reduction: bool = False,
+        gradient_as_bucket_view: bool = False,
+        static_graph: bool = False,
+    ) -> None:
+        ...
+
+    @contextmanager
+    def no_sync(self) -> Generator:
+        ...
+
+
 # todo: improve LRSchedulerType naming/typing
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
+LRSchedulerPLType = Union[_LRScheduler, ReduceLROnPlateau]
 
 
 @dataclass

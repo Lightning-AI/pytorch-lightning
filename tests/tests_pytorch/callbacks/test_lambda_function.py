@@ -48,9 +48,10 @@ def test_lambda_call(tmpdir):
         limit_val_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+    with pytest.deprecated_call(
+        match="`on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.fit(model)
-
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     # raises KeyboardInterrupt and loads from checkpoint
@@ -63,11 +64,17 @@ def test_lambda_call(tmpdir):
         limit_predict_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+    with pytest.deprecated_call(
+        match="`on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.fit(model, ckpt_path=ckpt_path)
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+    with pytest.deprecated_call(
+        match="`on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.test(model)
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
+    with pytest.deprecated_call(
+        match="`on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
         trainer.predict(model)
 
     assert checker == hooks

@@ -16,15 +16,7 @@ from dataclasses import dataclass, field
 from functools import partial, wraps
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
-from torch.utils.data import (
-    BatchSampler,
-    Dataset,
-    DistributedSampler,
-    get_worker_info,
-    RandomSampler,
-    Sampler,
-    SequentialSampler,
-)
+from torch.utils.data import Dataset, DistributedSampler, get_worker_info, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import (
     _BaseDataLoaderIter,
     _MultiProcessingDataLoaderIter,
@@ -756,10 +748,6 @@ def _validate_map_dataset(dataloader: DataLoader) -> None:
     sampler = getattr(dataloader, "sampler", None)
     if sampler is not None and type(sampler) not in SUPPORTED_SAMPLERS:
         raise TypeError(f"Fault-tolerance supports only {SUPPORTED_SAMPLERS}.")
-
-    batch_sampler = getattr(dataloader, "batch_sampler", None)
-    if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
-        raise TypeError("Fault-tolerance supports only a `BatchSampler`.")
 
     if type(sampler) is DistributedSampler and sampler.shuffle:
         raise TypeError("A `DistributedSampler` sampler shuffle attribute is set to True.")
