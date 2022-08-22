@@ -151,7 +151,7 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
 
 def __verify_batch_transfer_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
-    batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
     for hook in batch_transfer_hooks:
         # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
