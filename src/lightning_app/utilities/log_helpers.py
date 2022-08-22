@@ -1,9 +1,12 @@
+import logging
 import sys
 from dataclasses import dataclass
 from datetime import datetime
 from json import JSONDecodeError
 
 from websocket import WebSocketApp
+
+logger = logging.getLogger(__name__)
 
 
 # This is a superclass to inherit log entry classes from it:
@@ -28,5 +31,5 @@ def _error_callback(ws_app: WebSocketApp, error: Exception):
         TypeError: "Malformed log format",
         ValueError: "Malformed date format",
     }
-    print(f"Error while reading logs ({errors.get(type(error), 'Unknown')}), {error}", file=sys.stderr)
+    logger.error(f"⚡ Error while reading logs ({errors.get(type(error), 'Unknown')}), {error}", file=sys.stderr)
     ws_app.close()
