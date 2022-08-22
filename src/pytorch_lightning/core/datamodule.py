@@ -115,7 +115,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @classmethod
     def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated Trainer arguments."""
+        """Returns a list with deprecated DataModule arguments."""
         depr_arg_names: List[str] = []
         for name, val in cls.__dict__.items():
             if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
