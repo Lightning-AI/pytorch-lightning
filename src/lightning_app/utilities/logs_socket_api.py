@@ -152,6 +152,7 @@ class _ClusterLogsSocketAPI(_LogsSocketAPI):
             cluster_id: Project ID.
             start: Starting timestamp to query cluster logs from.
             end: Ending timestamp to query cluster logs to.
+            limit: A maximal number of log lines to get.
             on_message_callback: Callback object which is called when received data.
             on_error_callback: Callback object which is called when we get error.
 
