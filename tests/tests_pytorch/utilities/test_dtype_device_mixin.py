@@ -113,7 +113,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     ],
 )
 @RunIf(min_cuda_gpus=1)
-def test_gpu_cuda_device(device):
+def test_cuda_device(device):
     model = TopModule()
 
     model.cuda(device)
@@ -122,3 +122,25 @@ def test_gpu_cuda_device(device):
     assert device.type == "cuda"
     assert device.index is not None
     assert device.index == torch.cuda.current_device()
+
+
+@RunIf(min_cuda_gpus=2)
+def test_cuda_current_device():
+    """Test that calling .cuda() moves the model to the correct device and respects current cuda device setting."""
+
+    class CudaModule(DeviceDtypeModuleMixin):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(1, 1)
+
+    model = CudaModule()
+
+    torch.cuda.set_device(0)
+    model.cuda(1)
+    assert model.device == torch.device("cuda", 1)
+    assert model.layer.weight.device == torch.device("cuda", 1)
+
+    torch.cuda.set_device(1)
+    model.cuda()  # model is already on device 1, and calling .cuda() without device index should not move model
+    assert model.device == torch.device("cuda", 1)
+    assert model.layer.weight.device == torch.device("cuda", 1)

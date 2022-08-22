@@ -67,6 +67,11 @@ def load_requirements(
         # remove version restrictions unless they are strict
         if unfreeze and "<" in req and "strict" not in comment:
             req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+
+        # adding strict back to the comment
+        if "strict" in comment:
+            req += "  # strict"
+
         reqs.append(req)
     return reqs
 
@@ -94,11 +99,10 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     text = text.replace("pytorch-lightning.readthedocs.io/en/stable/", f"pytorch-lightning.readthedocs.io/en/{version}")
     # codecov badge
     text = text.replace("/branch/master/graph/badge.svg", f"/release/{version}/graph/badge.svg")
-    # replace github badges for release ones
+    # github actions badge
     text = text.replace("badge.svg?branch=master&event=push", f"badge.svg?tag={version}")
-    # Azure...
+    # azure pipelines badge
     text = text.replace("?branchName=master", f"?branchName=refs%2Ftags%2F{version}")
-    text = re.sub(r"\?definitionId=\d+&branchName=master", f"?definitionId=2&branchName=refs%2Ftags%2F{version}", text)
 
     skip_begin = r"<!-- following section will be skipped from PyPI description -->"
     skip_end = r"<!-- end skipping PyPI description -->"

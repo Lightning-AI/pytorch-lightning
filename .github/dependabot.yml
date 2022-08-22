@@ -27,7 +27,7 @@ updates:
     directory: "/"
     # Check for updates once a week
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     # Labels on pull requests for version updates only
     labels:
       - "ci"

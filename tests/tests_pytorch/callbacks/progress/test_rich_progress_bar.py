@@ -21,8 +21,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from tests_pytorch.helpers.datasets import RandomIterableDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -401,3 +400,15 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
 
     trainer.test(model, verbose=False)
     assert pbar.calls["test"] == []
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_padding():
+    progress_bar = RichProgressBar()
+    trainer = Mock()
+    trainer.max_epochs = 1
+    progress_bar._trainer = trainer
+
+    train_description = progress_bar._get_train_description(current_epoch=0)
+    assert "Epoch 0/0" in train_description
+    assert len(progress_bar.validation_description) == len(train_description)

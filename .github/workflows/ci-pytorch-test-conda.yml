@@ -22,14 +22,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # nightly: add when there's a release candidate
         include:
           - {python-version: "3.8", pytorch-version: "1.9"}
           - {python-version: "3.8", pytorch-version: "1.10"}
           - {python-version: "3.9", pytorch-version: "1.11"}
           - {python-version: "3.9", pytorch-version: "1.12"}
-
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
     - name: Workaround for https://github.com/actions/checkout/issues/760
@@ -39,7 +37,7 @@ jobs:
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v24
+      uses: tj-actions/changed-files@v28
 
     - name: Decide if the test should be skipped
       id: skip
