@@ -4,13 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [1.7.3] - 2022-08-24
+## [1.7.3] - 2022-08-23
 
 ### Fixed
 
 - Fixed an assertion error when using a `ReduceOnPlateau` scheduler with the Horovod strategy ([#14215](https://github.com/Lightning-AI/lightning/pull/14215))
 - Fixed an `AttributeError` when accessing `LightningModule.logger` and the Trainer has multiple loggers ([#14234](https://github.com/Lightning-AI/lightning/pull/14234))
 - Fixed wrong num padding for `RichProgressBar` ([#14296](https://github.com/Lightning-AI/lightning/pull/14296))
+- Added back support for `log`ging in the `configure_gradient_clipping` hook after unintended removal in v1.7.2 ([#14298](https://github.com/Lightning-AI/lightning/issues/14298))
 
 
 ## [1.7.2] - 2022-08-17
