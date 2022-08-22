@@ -292,7 +292,6 @@ class DataConnector:
         if self._requires_distributed_sampler(dataloader):
             distributed_sampler_kwargs = self.trainer.distributed_sampler_kwargs
             assert distributed_sampler_kwargs is not None
-            assert self.trainer.distributed_sampler_kwargs is not None
             sampler = self._get_distributed_sampler(
                 dataloader,
                 shuffle,
@@ -465,7 +464,9 @@ class DataConnector:
 
             def replace_sampler(dataloader: DataLoader) -> DataLoader:
                 return _update_dataloader(
-                    dataloader, sampler=SequentialSampler(dataloader.dataset), mode=mode  # type: ignore[arg-type]
+                    dataloader,
+                    sampler=SequentialSampler(dataloader.dataset),  # type: ignore[arg-type]
+                    mode=mode,
                 )
 
             dataloaders = apply_to_collection(dataloaders, DataLoader, replace_sampler)
