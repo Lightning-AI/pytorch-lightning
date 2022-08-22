@@ -271,7 +271,7 @@ class BoringFairScaleOptimizerModel(BoringModel):
 def test_ddp_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using faircale optimizer."""
     model = BoringFairScaleOptimizerModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_epochs=2)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 
@@ -294,7 +294,7 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_epochs=2)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 
