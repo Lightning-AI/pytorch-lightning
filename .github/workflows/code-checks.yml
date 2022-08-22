@@ -16,7 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["lightning_app", "pytorch_lightning"]
+        include:
+          - {name: "app", pkg: "lightning_app"}
+          - {name: "pytorch", pkg: "pytorch_lightning"}
     steps:
     - uses: actions/checkout@v3
 
@@ -30,16 +32,19 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/pytorch/base.txt') }}
+        key: ${{ runner.os }}-pip-${{ matrix.name }}-${{ hashFiles('requirements/pytorch/base.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    - name: Install dependencies
+    - name: Adjust dependencies
+      if: matrix.name == "pytorch"
       run: |
         pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        # todo: adjust requirements for both code-bases
-        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements/${{ matrix.name }}/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
     - name: Check typing
