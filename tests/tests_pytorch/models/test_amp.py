@@ -218,7 +218,7 @@ def test_amp_with_apex_reload(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_steps=5,
+        max_steps=1,
         limit_test_batches=1,
         precision=16,
         amp_backend="apex",
@@ -226,7 +226,6 @@ def test_amp_with_apex_reload(tmpdir):
         devices=1,
     )
     trainer.fit(model)
-    trainer.fit_loop.max_steps = 7
 
     with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
         trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
