@@ -104,4 +104,3 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._state_dict_loaded = True
         return super().load_state_dict(state_dict)
-
