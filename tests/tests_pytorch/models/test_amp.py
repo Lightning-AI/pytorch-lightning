@@ -228,7 +228,7 @@ def test_amp_with_apex_reload(tmpdir):
     trainer.fit(model)
     trainer.fit_loop.max_steps = 7
 
-    with pytest.raises(RuntimeError, match="Ignoring APEX AMP state in checkpoint"):
+    with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
         trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
 
     trainer.test(model, ckpt_path="best")
