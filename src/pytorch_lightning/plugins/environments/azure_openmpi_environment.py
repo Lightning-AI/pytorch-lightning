@@ -14,8 +14,6 @@
 
 import os
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
-
 class AzureOpenMPIEnvironment(ClusterEnvironment):
     """
     Environment for an OpenMPI environment on Azure
@@ -24,7 +22,7 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
         - https://docs.microsoft.com/en-us/azure/machine-learning/how-to-train-distributed-gpu#mpi
         - https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/batch/batch-compute-node-environment-variables.md
     """
-    def __init__(self, devices: int = 1) -> None:
+    def __init__(self, devices: int = 1, main_port : int = -1) -> None:
         """ devices : devices per node (same as trainer parameter)"""
         super().__init__()
         self.devices = devices
@@ -50,7 +48,8 @@ class AzureOpenMPIEnvironment(ClusterEnvironment):
         if "AZ_BATCH_MASTER_NODE" in os.environ:
             return int(os.environ.get("AZ_BATCH_MASTER_NODE").split(':')[1])
         else:
-            return int(os.environ.get("MASTER_PORT", find_free_network_port()))
+            # set arbitrary high port if environmental variable MASTER_PORT is not already set 
+            return int(os.environ.get("MASTER_PORT", 47586))
 
     @staticmethod
     def detect() -> bool:
