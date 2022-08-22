@@ -177,16 +177,17 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-@mock.patch("pytorch_lightning.lite.lite._replace_dataloader_init_method")
+@mock.patch("pytorch_lightning.lite.lite._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
     class Lite(LightningLite):
         def run(self):
-            ctx_manager().__enter__.assert_called_once()
+            # One for BatchSampler, another for DataLoader
+            assert ctx_manager().__enter__.call_count == 2
 
     Lite().run()
-    ctx_manager().__exit__.assert_called_once()
+    assert ctx_manager().__exit__.call_count == 2
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
@@ -317,31 +318,35 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         ("cpu", "cpu"),
         pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("tpu", "xla:0", marks=RunIf(tpu=True)),
+        pytest.param("tpu", "xla:0", marks=RunIf(tpu=True, standalone=True)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
 )
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
-    lite = EmptyLite(accelerator=accelerator, devices=1)
 
-    expected_device = torch.device(expected)
+    class Lite(LightningLite):
+        def run(self):
+            expected_device = torch.device(expected)
 
-    # module
-    module = torch.nn.Linear(2, 3)
-    module = lite.to_device(module)
-    assert all(param.device == expected_device for param in module.parameters())
+            # module
+            module = torch.nn.Linear(2, 3)
+            module = lite.to_device(module)
+            assert all(param.device == expected_device for param in module.parameters())
 
-    # tensor
-    tensor = torch.rand(2, 2)
-    tensor = lite.to_device(tensor)
-    assert tensor.device == expected_device
+            # tensor
+            tensor = torch.rand(2, 2)
+            tensor = lite.to_device(tensor)
+            assert tensor.device == expected_device
 
-    # collection
-    collection = {"data": torch.rand(2, 2), "int": 1}
-    collection = lite.to_device(collection)
-    assert collection["data"].device == expected_device
+            # collection
+            collection = {"data": torch.rand(2, 2), "int": 1}
+            collection = lite.to_device(collection)
+            assert collection["data"].device == expected_device
+
+    lite = Lite(accelerator=accelerator, devices=1)
+    lite.run()
 
 
 def test_rank_properties():
@@ -407,15 +412,21 @@ def test_deepspeed_multiple_models():
             model = BoringModel()
             optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
             model, optimizer = self.setup(model, optimizer)
-            state_dict = deepcopy(model.state_dict())
 
-            for _ in range(2):
+            for i in range(2):
                 optimizer.zero_grad()
                 x = model(torch.randn(1, 32).to(self.device))
                 loss = x.sum()
+                if i == 0:
+                    # the weights are not initialized with stage 3 until backward is run once
+                    assert all(w.nelement() == 0 for w in model.state_dict().values())
                 self.backward(loss, model=model)
+                if i == 0:
+                    # save for later to check that the weights were updated
+                    state_dict = deepcopy(model.state_dict())
                 optimizer.step()
 
+            # check that the model trained, the weights from step 1 do not match the weights from step 2
             for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
                 assert not torch.allclose(mw_b, mw_a)
 
@@ -433,6 +444,7 @@ def test_deepspeed_multiple_models():
             model_1, optimizer_1 = self.setup(model_1, optimizer_1)
             model_2, optimizer_2 = self.setup(model_2, optimizer_2)
 
+            # train model_1 first
             self.seed_everything(42)
             data_list = []
             for _ in range(2):
@@ -444,9 +456,11 @@ def test_deepspeed_multiple_models():
                 self.backward(loss, model=model_1)
                 optimizer_1.step()
 
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert not torch.allclose(mw_1, mw_2)
+            # the weights do not match
+            assert all(w.nelement() > 1 for w in model_1.state_dict().values())
+            assert all(w.nelement() == 0 for w in model_2.state_dict().values())
 
+            # now train model_2 with the same data
             for data in data_list:
                 optimizer_2.zero_grad()
                 x = model_2(data)
@@ -454,6 +468,7 @@ def test_deepspeed_multiple_models():
                 self.backward(loss, model=model_2)
                 optimizer_2.step()
 
+            # the weights should match
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
                 assert torch.allclose(mw_1, mw_2)
 

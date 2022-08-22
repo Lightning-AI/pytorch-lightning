@@ -89,8 +89,13 @@ def get_dist_path_if_editable_install(project_name) -> str:
 
 
 def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]:
+    """This function determines if lightning is installed in editable mode (for developers) and packages the
+    current lightning source along with the app.
 
-    if "site-packages" in _PROJECT_ROOT:
+    For normal users who install via PyPi or Conda, then this function does not do anything.
+    """
+
+    if not get_dist_path_if_editable_install("lightning"):
         return
 
     # Packaging the Lightning codebase happens only inside the `lightning` repo.

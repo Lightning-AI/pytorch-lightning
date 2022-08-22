@@ -180,6 +180,7 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
         min_cuda_gpus="PL_RUN_CUDA_TESTS",
         slow="PL_RUN_SLOW_TESTS",
         ipu="PL_RUN_IPU_TESTS",
+        tpu="PL_RUN_TPU_TESTS",
     )
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
         # special case: we don't have a CPU job for standalone tests, so we shouldn't run only cuda tests.

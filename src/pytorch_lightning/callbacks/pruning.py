@@ -467,7 +467,7 @@ class ModelPruning(Callback):
 
             if missing_modules or missing_parameters:
                 raise MisconfigurationException(
-                    "Some provided `parameters_to_tune` don't exist in the model."
+                    "Some provided `parameters_to_prune` don't exist in the model."
                     f" Found missing modules: {missing_modules} and missing parameters: {missing_parameters}"
                 )
         else:

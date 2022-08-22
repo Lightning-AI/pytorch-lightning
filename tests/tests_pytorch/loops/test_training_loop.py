@@ -141,7 +141,7 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 def test_fit_loop_done_log_messages(caplog):
-    fit_loop = FitLoop()
+    fit_loop = FitLoop(max_epochs=1)
     trainer = Mock(spec=Trainer)
     fit_loop.trainer = trainer
 

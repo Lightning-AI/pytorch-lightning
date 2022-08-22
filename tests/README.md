@@ -1,6 +1,6 @@
 # PyTorch-Lightning Tests
 
-Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/helpers/boring_model.py) under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
+Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/Lightning-AI/lightning/blob/master/src/pytorch_lightning/demos/boring_classes.py) under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
 
 ## Running tests
 
@@ -9,10 +9,11 @@ To setup a local development environment, install both local and test dependenci
 
 ```bash
 # clone the repo
-git clone https://github.com/PyTorchLightning/pytorch-lightning
-cd pytorch-lightning
+git clone https://github.com/Lightning-AI/lightning.git
+cd lightning
 
 # install required depedencies
+export PACKAGE_NAME=pytorch
 python -m pip install ".[dev, examples]"
 # install pre-commit (optional)
 python -m pip install pre-commit
@@ -25,7 +26,7 @@ Additionally, for testing backward compatibility with older versions of PyTorch 
 bash .actions/pull_legacy_checkpoints.sh
 ```
 
-Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
+Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/Lightning-AI/lightning/blob/master/tests/legacy/README.md).
 
 You can run the full test suite in your terminal via this make script:
 

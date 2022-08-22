@@ -1,7 +1,8 @@
-###########################
-Build a Lightning component
-###########################
-A Lightning app is a collection of components interacting together. Learn how to build a Lightning component in this section.
+#############################
+Develop a Lightning Component
+#############################
+
+A Lightning App (App) is a collection of components interacting together. Learn how to build a Lightning Component (Component) in this section.
 
 ----
 

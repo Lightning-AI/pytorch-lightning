@@ -14,9 +14,11 @@
 import pytest
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
@@ -191,4 +193,30 @@ def test_invalid_setup_method():
     model = BoringModel()
 
     with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
+        trainer.fit(model)
+
+
+@pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}, {"accelerator": "gpu", "strategy": "dp"}])
+@pytest.mark.parametrize("hook", ["transfer_batch_to_device", "on_after_batch_transfer"])
+def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kwargs, tmpdir):
+    """Test that an exception is raised when overriding batch_transfer_hooks."""
+    if trainer_kwargs.get("accelerator") == "gpu":
+        match_pattern = rf"Overriding `{hook}` is not .* in DP mode."
+        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
+        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 2)
+    elif trainer_kwargs.get("accelerator") == "ipu":
+        match_pattern = rf"Overriding `{hook}` is not .* with IPUs"
+        monkeypatch.setattr(pl.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+        monkeypatch.setattr(pl.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+
+    def custom_method(self, batch, *_, **__):
+        batch = batch + 1
+        return batch
+
+    trainer = Trainer(default_root_dir=tmpdir, **trainer_kwargs)
+
+    model = BoringModel()
+    setattr(model, hook, custom_method)
+
+    with pytest.raises(MisconfigurationException, match=match_pattern):
         trainer.fit(model)

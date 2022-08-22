@@ -30,30 +30,50 @@ def test_v0_app_example():
     assert result.exit_code == 0
 
 
+def run_v0_app(fetch_logs, view_page):
+    def check_content(button_name, text_content):
+        button = view_page.locator(f'button:has-text("{button_name}")')
+        button.wait_for(timeout=3 * 1000)
+        button.click()
+        view_page.reload()
+        locator = view_page.frame_locator("iframe").locator("div")
+        locator.wait_for(timeout=3 * 1000)
+        assert text_content in " ".join(locator.all_text_contents())
+        return True
+
+    wait_for(view_page, check_content, "TAB_1", "Hello from component A")
+    wait_for(view_page, check_content, "TAB_2", "Hello from component B")
+    has_logs = False
+    while not has_logs:
+        for log in fetch_logs(["flow"]):
+            if "'a': 'a', 'b': 'b'" in log:
+                has_logs = True
+        sleep(1)
+
+
+@pytest.mark.cloud
+@pytest.mark.skipif(
+    os.environ.get("LIGHTNING_BYOC_CLUSTER_ID") is None,
+    reason="missing LIGHTNING_BYOC_CLUSTER_ID environment variable",
+)
+def test_v0_app_example_byoc_cloud() -> None:
+    with run_app_in_cloud(
+        os.path.join(_PROJECT_ROOT, "examples/app_v0"),
+        extra_args=["--cluster-id", os.environ.get("LIGHTNING_BYOC_CLUSTER_ID")],
+    ) as (
+        _,
+        view_page,
+        fetch_logs,
+    ):
+        run_v0_app(fetch_logs, view_page)
+
+
 @pytest.mark.cloud
 def test_v0_app_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_v0")) as (
         _,
         view_page,
         fetch_logs,
+        _,
     ):
-
-        def check_content(button_name, text_content):
-            button = view_page.locator(f'button:has-text("{button_name}")')
-            button.wait_for(timeout=3 * 1000)
-            button.click()
-            view_page.reload()
-            locator = view_page.frame_locator("iframe").locator("div")
-            locator.wait_for(timeout=3 * 1000)
-            assert text_content in " ".join(locator.all_text_contents())
-            return True
-
-        wait_for(view_page, check_content, "TAB_1", "Hello from component A")
-        wait_for(view_page, check_content, "TAB_2", "Hello from component B")
-
-        has_logs = False
-        while not has_logs:
-            for log in fetch_logs():
-                if "'a': 'a', 'b': 'b'" in log:
-                    has_logs = True
-            sleep(1)
+        run_v0_app(fetch_logs, view_page)

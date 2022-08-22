@@ -7,7 +7,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
@@ -35,7 +35,7 @@ def test_invalid_on_cpu(tmpdir):
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
 @pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
 def test_precision_plugin_config(precision, expected):
-    plugin = FullyShardedNativeMixedPrecisionPlugin(precision=precision, device="cuda")
+    plugin = FullyShardedNativeNativeMixedPrecisionPlugin(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
     assert config.param_dtype == expected
     assert config.buffer_dtype == expected
@@ -96,6 +96,7 @@ class TestFSDPModel(BoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
+        assert isinstance(self.trainer.strategy.precision_plugin, FullyShardedNativeNativeMixedPrecisionPlugin)
         assert isinstance(self.layer.module[0], FullyShardedDataParallel)
         assert isinstance(self.layer.module[2], FullyShardedDataParallel)
         # root should not be resharding
@@ -128,10 +129,9 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-@pytest.mark.parametrize("precision", [16, "bf16"])
+@pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
 def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
-
     model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp_native", precision=precision, max_epochs=1
