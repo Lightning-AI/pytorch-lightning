@@ -174,7 +174,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: Union[bool, _LITERAL_WARN] = False,
+        deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -259,6 +259,7 @@ class Trainer(
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
                 that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
+                Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.

@@ -115,7 +115,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: Union[bool, _LITERAL_WARN] = False,
+        deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
         auto_select_gpus: bool = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
