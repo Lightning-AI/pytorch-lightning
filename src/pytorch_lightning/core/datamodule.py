@@ -189,9 +189,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         if accepts_kwargs:
             special_kwargs = candidate_kwargs
         else:
-            accepted_params = set(accepted_params)
-            accepted_params.discard("self")
-            special_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted_params}
+            accepted_param_names = set(accepted_params)
+            accepted_param_names.discard("self")
+            special_kwargs = {k: v for k, v in candidate_kwargs.items() if k in accepted_param_names}
 
         datamodule = cls(**datamodule_kwargs, **special_kwargs)
         if train_dataset is not None:
