@@ -77,7 +77,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed wrong num padding for `RichProgressBar` ([#14296](https://github.com/Lightning-AI/lightning/pull/14296))
 
- 
+
 - Fixed manual backward not working with Bagua Strategy ([[#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534)])
 
 
