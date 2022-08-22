@@ -229,6 +229,9 @@ have to ``wrap`` layers manually as in the case of manual wrapping.
     trainer.fit(model)
 
 
+Read more `here <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/#auto-wrapping>`__.
+
+
 Manual Wrapping
 """""""""""""""
 
