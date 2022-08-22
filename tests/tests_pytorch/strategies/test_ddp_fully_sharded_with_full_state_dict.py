@@ -41,7 +41,7 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     assert isinstance(trainer.strategy.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
-class TestFSDPModel(BoringModel):
+class TestFSDPModelManualWrapped(BoringModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.layer: Optional[torch.nn.Module] = None
@@ -96,11 +96,46 @@ class TestFSDPModel(BoringModel):
             assert self.layer.module[2].mixed_precision
 
 
+class TestFSDPModelAutoWrapped(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
+
+    def on_train_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_test_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_validation_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_prediction_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def _assert_layer_fsdp_instance(self) -> None:
+        assert isinstance(self.layer, FullyShardedDataParallel)
+        assert isinstance(self.layer.module[0], FullyShardedDataParallel)
+        assert isinstance(self.layer.module[2], FullyShardedDataParallel)
+
+        # Assert that the nested layers are set reshard_after_forward to True
+        assert self.layer.module[0].reshard_after_forward is True
+        assert self.layer.module[2].reshard_after_forward is True
+
+        if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
+            assert self.layer.mixed_precision
+            assert self.layer.module[0].mixed_precision
+            assert self.layer.module[2].mixed_precision
+
+
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
 def test_fully_sharded_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
-    model = TestFSDPModel()
+    model = TestFSDPModelManualWrapped()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
@@ -115,18 +150,28 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
-def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
+@pytest.mark.parametrize(
+    "model, strategy",
+    [
+        (TestFSDPModelManualWrapped(), DDPFullyShardedStrategy(min_num_params=2)),
+        (TestFSDPModelAutoWrapped(), "fsdp"),
+    ],
+)
+def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir, model, strategy):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
-    model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
         devices=2,
-        strategy="fsdp",
+        strategy=strategy,
         precision=16,
         max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
         callbacks=[ck],
         enable_progress_bar=False,
         enable_model_summary=False,
@@ -134,7 +179,7 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
     _run_multiple_stages(trainer, model)
 
 
-def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
+def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModelManualWrapped):
     # Use FullySharded to get the state dict for the sake of comparison
     model_state_dict = trainer.strategy.lightning_module_state_dict()
 
@@ -153,13 +198,19 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
     trainer.save_checkpoint(model_path, weights_only=True)
 
-    _assert_save_equality(trainer, model_path, cls=TestFSDPModel)
+    _assert_save_equality(trainer, model_path, cls=model.__class__)
 
     # Test entry point
     trainer.test(model)  # model is wrapped, will not call configure_shared_model
 
-    # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
     trainer.test(ckpt_path=model_path)
+
+    # Predict entry point
+    trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
+
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
+    trainer.predict(ckpt_path=model_path)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)

@@ -18,6 +18,7 @@ from typing import Any, Dict, Generator, List, Optional
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -27,7 +28,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -144,16 +145,37 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING:
-            self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
-
             if self._layer_sync:
                 assert self.model
                 self.model = self._layer_sync.apply(self.model)
 
-        self.setup_precision_plugin()
         self.configure_ddp()
+        self.model = _LightningModuleWrapperBase(self.model)
+        self.model = self._setup_model(self.model)
+        self.setup_optimizers(self.lightning_module.trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
         self.barrier()
+
+        self.setup_precision_plugin()
+
+    def _setup_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
+        """Wraps the model into a
+        :class:`~fairscale.nn.data_parallel.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        log.detail(f"setting up `Fairscale FSDP` model with device id: {self.root_device.index}.")
+
+        return FullyShardedDataParallel(
+            module=model,
+            process_group=self.process_group,
+            cpu_offload=self.cpu_offload,
+            move_grads_to_cpu=self.move_grads_to_cpu,
+            flatten_parameters=self.flatten_parameters,
+            mixed_precision=(self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)),
+            reshard_after_forward=self.reshard_after_forward,
+            fp32_reduce_scatter=self.fp32_reduce_scatter,
+            compute_dtype=self.compute_dtype,
+            bucket_cap_mb=self.bucket_cap_mb,
+            state_dict_device=self.state_dict_device,
+        )
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -190,10 +212,6 @@ class DDPFullyShardedStrategy(DDPStrategy):
             # (TODO: need to figure out solution)
             self.model_to_device()
 
-        # setup optimizers after fully sharded has wrapped the lightning module
-        assert self.lightning_module
-        self.setup_optimizers(self.lightning_module.trainer)
-
     def model_to_device(self) -> None:
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         # ensure we update the device type in the lightning module
@@ -201,24 +219,22 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.lightning_module.to(self.root_device)
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
-            return self.model.training_step(*args, **kwargs)
+        # we don't need precision context since casting is done by FSDP
+        # read `mixed_precision` docstring here: https://pytorch.org/docs/stable/fsdp.html
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
-            return self.model.validation_step(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def post_training_step(self) -> None:
         pass

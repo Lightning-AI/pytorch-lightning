@@ -143,6 +143,9 @@ def _run_power_scaling(
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
                 break
             else:
                 raise  # some other error not memory related
@@ -203,7 +206,12 @@ def _run_binsearch_scaling(
                 garbage_collection_cuda()
                 high = new_size
                 midval = (high + low) // 2
+
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
+
                 if high - low <= 1:
                     break
             else:
