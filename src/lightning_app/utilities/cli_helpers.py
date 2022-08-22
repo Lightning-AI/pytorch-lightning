@@ -123,13 +123,14 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
     return None, None
 
 
-def _arrow_time_callback(_ctx, _param, value, arw_now=arrow.utcnow()) -> arrow.Arrow:
+def _arrow_time_callback(
+    _ctx: "click.core.Context", _param: "click.core.Option", value: str, arw_now=arrow.utcnow()
+) -> arrow.Arrow:
     try:
         return arw_now.dehumanize(value)
-    except:
-        pass
+    except ValueError:
+        raise click.ClickException(f"cannot parse time {value}")
     try:
         return arrow.get(value)
-    except:
-        pass
-    raise click.ClickException(f"cannot parse time {value}")
+    except ValueError:
+        raise click.ClickException(f"cannot parse time {value}")
