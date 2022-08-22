@@ -13,6 +13,10 @@ concurrency:
 jobs:
   mypy:
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: ["lightning_app", "pytorch_lightning"]
     steps:
     - uses: actions/checkout@v3
 
@@ -39,4 +43,4 @@ jobs:
         pip list
 
     - name: Check typing
-      run: mypy
+      run: mypy ./src/${{ matrix.pkg }}
