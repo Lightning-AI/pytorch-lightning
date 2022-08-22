@@ -468,7 +468,7 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`. Callbacks run sequentially in the order defined here
+Add a list of :class:`~pytorch_lightning.callbacks.callback.Callback`. Callbacks run sequentially in the order defined here
 with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
 after all others to ensure all states are saved to the checkpoints.
 

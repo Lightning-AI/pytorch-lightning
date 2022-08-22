@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2022]
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
@@ -66,7 +66,7 @@ jobs:
         shell: bash
 
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
 
