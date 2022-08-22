@@ -6,13 +6,6 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    paths:
-      - ".github/workflows/ci-app-examples.yml"
-      - "requirements/app/**"
-      - "src/lightning_app/**"
-      - "tests/tests_app_examples/**"
-      # the examples are used in the app CI
-      - "examples/app_*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -73,7 +66,7 @@ jobs:
         shell: bash
 
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
 
