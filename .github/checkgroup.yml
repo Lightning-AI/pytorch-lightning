@@ -122,7 +122,6 @@ subprojects:
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "tests/tests_app_examples/**"
-      - "tests/tests_clusters/**"
       # the examples are used in the app CI
       - "examples/app_*"
     checks:
