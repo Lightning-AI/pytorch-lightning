@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [0.5.7] - 2022-08-22
+
+### Changed
+
+- Release LAI docs as stable ([#14250](https://github.com/Lightning-AI/lightning/pull/14250))
+
+### Fixed
+
+- Pinning starsessions to 1.x ([#14333](https://github.com/Lightning-AI/lightning/pull/14333))
+
+
 ## [0.5.6] - 2022-08-16
 
 ### Fixed
