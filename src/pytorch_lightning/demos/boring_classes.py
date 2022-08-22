@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Generator, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -55,7 +55,7 @@ class RandomIterableDataset(IterableDataset):
         self.count = count
         self.size = size
 
-    def __iter__(self) -> Generator[Tensor, None, None]:
+    def __iter__(self) -> Iterator[Tensor]:
         for _ in range(self.count):
             yield torch.randn(self.size)
 
@@ -65,7 +65,7 @@ class RandomIterableDatasetWithLen(IterableDataset):
         self.count = count
         self.size = size
 
-    def __iter__(self) -> Generator[Tensor, None, None]:
+    def __iter__(self) -> Iterator[Tensor]:
         for _ in range(len(self)):
             yield torch.randn(self.size)
 
