@@ -23,7 +23,6 @@ REDIS_WARNING_QUEUE_SIZE = 1000
 USER_ID = os.getenv("USER_ID", "1234")
 FRONTEND_DIR = os.path.join(os.path.dirname(lightning_app.__file__), "ui")
 PACKAGE_LIGHTNING = os.getenv("PACKAGE_LIGHTNING", None)
-LOCAL_LAUNCH_ADMIN_VIEW = bool(int(os.getenv("LOCAL_LAUNCH_ADMIN_VIEW", "0")))
 CLOUD_UPLOAD_WARNING = int(os.getenv("CLOUD_UPLOAD_WARNING", "2"))
 DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
 # Project under which the resources need to run in cloud. If this env is not set,
