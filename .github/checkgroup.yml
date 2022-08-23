@@ -43,7 +43,6 @@ subprojects:
       - "mypy"
       - "PR Gatekeeper (pytorch)"
       - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
       - "slow (macOS-11, 3.7, 1.11)"
@@ -56,7 +55,6 @@ subprojects:
       - ".azure/gpu-tests.yml"
     checks:
       - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
 
   - id: "pytorch_lightning: Azure HPU"
     paths:
@@ -125,9 +123,7 @@ subprojects:
       # the examples are used in the app CI
       - "examples/app_*"
     checks:
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: template_streamlit_ui)'
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: boring_app)'
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: v0_app)'
+      - 'App.cloud-e2e'
       - "doctest (app)"
       - "make-docs (app)"
       - "pytest (macOS-11, 3.8, latest)"
@@ -141,9 +137,7 @@ subprojects:
     paths:
       - ".azure/app-cloud-e2e.yml"
     checks:
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: template_streamlit_ui)'
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: boring_app)'
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: v0_app)'
+      - 'App.cloud-e2e'
 
   - id: "lightning_app: Docs"
     paths:
