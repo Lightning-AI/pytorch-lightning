@@ -162,14 +162,3 @@ def test_single_gpu_batch_parse():
 
     assert batch.text.type() == "torch.mps.LongTensor"
     assert batch.label.type() == "torch.mps.LongTensor"
-
-
-@RunIf(mps=True)
-def test_data_is_not_changed_after_move_to_mps_device():
-    trainer = Trainer(accelerator="mps", devices=1)
-    x = torch.zeros([10, 10])
-    device = torch.device("mps")
-
-    for _ in range(1000):
-        x_mps = trainer.strategy.batch_to_device(x.clone(), device)
-        torch.testing.assert_close(x_mps, x)
