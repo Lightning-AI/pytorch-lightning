@@ -22,6 +22,7 @@ from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, 
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.ipu import LightningIPUModule
+from pytorch_lightning.strategies.utils import on_colab_kaggle
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -63,3 +64,8 @@ def test_v1_10_deprecated_unwrap_lightning_module():
 def test_v1_10_deprecated_unwrap_lightning_module_sharded():
     with pytest.deprecated_call(match=r"The function `unwrap_lightning_module_sharded` is deprecated in v1.8.0"):
         unwrap_lightning_module_sharded(BoringModel())
+
+
+def test_v1_10_deprecated_on_colab_kaggle_func():
+    with pytest.deprecated_call(match="The function `on_colab_kaggle` has been deprecated in v1.8.0"):
+        on_colab_kaggle()

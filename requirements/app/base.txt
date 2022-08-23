@@ -1,7 +1,7 @@
 lightning-cloud==0.5.3
 packaging
 deepdiff>=5.7.0, <=5.8.1
-starsessions
+starsessions>=1.2.1, <2.0 # strict
 fsspec>=2022.01.0, <=2022.7.1
 s3fs>=2022.1.0, <=2022.7.1
 croniter # for now until we found something more robust.
