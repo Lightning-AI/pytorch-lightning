@@ -42,16 +42,17 @@ RUN \
         curl \
         unzip \
         ca-certificates \
-        libopenmpi-dev \
-    && \
+        libopenmpi-dev
 
+RUN \
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
-    rm ~/miniconda.sh && \
+    rm ~/miniconda.sh
 
+RUN \
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
@@ -73,9 +74,10 @@ COPY environment.yml environment.yml
 # conda init
 RUN \
     conda update -n base -c defaults conda && \
+    CUDA_VERSION_MM=$(python -c "print('.'.join('$CUDA_VERSION'.split('.')[:2]))") && \
     conda create -y --name $CONDA_ENV \
-      python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} \
-      -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+      python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION_MM} \
+      -c nvidia -c pytorch -c pytorch-test && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
     printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchtext', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
