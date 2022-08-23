@@ -361,7 +361,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             context.close()
             browser.close()
 
-            print(f"DELETING App:{name}")
+            print(f"DELETING App: {name}")
             print(f"DELETING Project: {project.project_id}")
 
             list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
