@@ -85,7 +85,10 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         **kwargs: Any,
     ) -> Any:
         if self._state_dict_loaded:
-            raise RuntimeError("Resuming training with APEX is currently not supported.")
+            raise RuntimeError(
+                "Resuming training with APEX is currently not supported. Set `amp_backend=None` for example or use a"
+                " different precision plugin."
+            )
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
