@@ -77,6 +77,11 @@ jobs:
         run: pip install -e . -r requirements/app/base.txt
         shell: bash
 
+      - name: Lightning Install quick-start
+        shell: bash
+        run: |
+          python -m lightning install app lightning/quick-start -y
+
       - name: Tests
         working-directory: ./tests
         env:
