@@ -46,7 +46,7 @@ There are a couple of ways you can add a dynamic Work:
 	        # Run the `Work` component.
             getattr(self,  "work").run()
 
-.. note:: 
+.. note::
      ``__setattr__()`` has to be triggered in order for the state to be replicated.
 
      Currently a state update is triggered if the ``__setattr__()`` function is called. For example, if you use ``status.run_script = True``,

@@ -67,7 +67,7 @@ Is my application component tree static?
 
 No, Lightning supports dynamic flows and works.
 
-.. note:: 
+.. note::
      ``__setattr__()`` has to be triggered in order for the state to be replicated.
 
      Currently a state update is triggered if the ``__setattr__()`` function is called. For example, if you use ``status.run_script = True``,
@@ -88,9 +88,9 @@ No, Lightning supports dynamic flows and works.
 
 You can simply attach your components in the **run** method of a flow using the Python functions **hasattr**, **setattr**, and **getattr**.
 
-.. note:: 
+.. note::
           ``__setattr__()``   has to be triggered in order for the state to be replicated.
-		  
+
 		   Currently a state update is triggered if the ``__setattr__()`` function is called. For example, if you use ``status.run_script = True``,
 		   ``__setattr__()`` is called and the status is updated with all found changes.
 		   But if you use  ``state.form_values["script_dir"]  = st_script_dir``  then ``__setattr__()`` is not called on for the state
