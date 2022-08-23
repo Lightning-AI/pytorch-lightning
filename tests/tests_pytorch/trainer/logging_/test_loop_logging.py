@@ -54,6 +54,8 @@ def test_default_level_for_hooks_that_support_logging():
             "on_after_backward",
             "on_before_optimizer_step",
             "optimizer_step",
+            "configure_gradient_clipping",
+            "clip_gradients",
             "on_before_zero_grad",
             "optimizer_zero_grad",
             "training_step",
