@@ -13,7 +13,7 @@ Don't know what this is? Follow our `beginner guide here <install_beginner.rst>`
 
 * Python 3.8.x or later (3.8.x, 3.9.x, 3.10.x)
 
-Or read the `Apple M1 Macs installation article <installation_mac.rst>`_ or the `Windows installation article <installation_win.rst>`_.
+Or read the `Apple Silicon Macs installation article <installation_mac.rst>`_ or the `Windows installation article <installation_win.rst>`_.
 
 ----
 

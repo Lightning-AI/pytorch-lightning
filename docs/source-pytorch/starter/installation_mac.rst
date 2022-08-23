@@ -1,10 +1,10 @@
 :orphan:
 
-#############################
-Installation on Apple M1 Macs
-#############################
+##################################
+Installation on Apple Silicon Macs
+##################################
 
-Apple M1 Mac environments need a bit of tweaking before you install.
+Apple Silicon (M1, M2, M3) Mac environments need a bit of tweaking before you install.
 
 ----
 
