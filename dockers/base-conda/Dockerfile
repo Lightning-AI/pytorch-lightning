@@ -75,7 +75,7 @@ RUN \
     conda update -n base -c defaults conda && \
     conda create -y --name $CONDA_ENV \
       python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} \
-      -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+      -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
     printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchtext', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
