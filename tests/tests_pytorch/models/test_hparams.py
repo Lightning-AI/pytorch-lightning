@@ -29,6 +29,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
@@ -397,6 +398,24 @@ def _raw_checkpoint_path(trainer) -> str:
     raw_checkpoint_path = raw_checkpoint_paths[0]
     raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
     return raw_checkpoint_path
+
+
+@pytest.mark.parametrize("base_class", (HyperparametersMixin, LightningModule, LightningDataModule))
+def test_save_hyperparameters_under_composition(base_class):
+    """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
+    collected."""
+
+    class ChildInComposition(base_class):
+        def __init__(self, same_arg):
+            super().__init__()
+            self.save_hyperparameters()
+
+    class NotPLSubclass:  # intentionally not subclassing LightningModule/LightningDataModule
+        def __init__(self, same_arg="parent_default", other_arg="other"):
+            self.child = ChildInComposition(same_arg="cocofruit")
+
+    parent = NotPLSubclass()
+    assert parent.child.hparams == dict(same_arg="cocofruit")
 
 
 class LocalVariableModelSuperLast(BoringModel):

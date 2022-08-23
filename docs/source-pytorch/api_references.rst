@@ -187,6 +187,7 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
@@ -285,6 +286,7 @@ strategies
 
     BaguaStrategy
     HivemindStrategy
+    DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

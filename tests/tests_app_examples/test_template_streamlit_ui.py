@@ -14,6 +14,7 @@ def test_template_streamlit_ui_example_cloud() -> None:
         _,
         view_page,
         fetch_logs,
+        _,
     ):
 
         def click_button(*_, **__):

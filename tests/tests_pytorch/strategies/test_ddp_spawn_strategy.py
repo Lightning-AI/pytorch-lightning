@@ -184,11 +184,17 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     "strategy_name,expected_ddp_kwargs",
     [
         ("ddp_spawn", {}),
-        ("ddp_fork", {}),
-        ("ddp_notebook", {}),
+        pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
         ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
-        ("ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}),
-        ("ddp_notebook_find_unused_parameters_false", {"find_unused_parameters": False}),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_false",
+            {"find_unused_parameters": False},
+            marks=RunIf(skip_windows=True),
+        ),
     ],
 )
 def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):

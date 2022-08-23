@@ -19,12 +19,19 @@ from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
 
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-    ...
+    def __init__(
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+    ) -> None:
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
 
 
 def _find_tensors(

@@ -37,7 +37,7 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
-from pytorch_lightning.utilities.enums import _FaultTolerantMode
+from pytorch_lightning.utilities.enums import _FaultTolerantMode, LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.meta import _get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -47,6 +47,18 @@ from pytorch_lightning.utilities.warnings import WarningCache
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
 warning_cache = WarningCache()
+
+
+class _WrapAttrTag(LightningEnum):
+    SET = "set"
+    DEL = "del"
+
+    def __call__(self, *args):
+        if self == self.SET:
+            fn = setattr
+        else:
+            fn = delattr
+        return fn(*args)
 
 
 def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
@@ -189,27 +201,7 @@ def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
-    dl_cls = type(dataloader)
-    try:
-        dataloader = dl_cls(*dl_args, **dl_kwargs)
-    except TypeError as e:
-        # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
-        # `__init__` arguments map to one `DataLoader.__init__` argument
-        import re
-
-        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
-        if not match:
-            # an unexpected `TypeError`, continue failure
-            raise
-        argument = match.groups()[0]
-        message = (
-            f"The {dl_cls.__name__} `DataLoader` implementation has an error where more than one `__init__` argument"
-            f" can be passed to its parent's `{argument}=...` `__init__` argument. This is likely caused by allowing"
-            f" passing both a custom argument that will map to the `{argument}` argument as well as `**kwargs`."
-            f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
-            " This argument was automatically passed to your DataLoader by PyTorch Lightning."
-        )
-        raise MisconfigurationException(message) from e
+    dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
     return dataloader
 
 
@@ -375,7 +367,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                         "this, expose an argument `sampler` in the `__init__` method of your custom class."
                     )
 
-                batch_sampler = batch_sampler_cls(*args, **kwargs)
+                batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
             else:
                 try:
                     batch_sampler = batch_sampler_cls(
@@ -450,6 +442,37 @@ def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
 
+def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optional[Type] = None, **kwargs: Any) -> Any:
+    constructor = type(orig_object) if explicit_cls is None else explicit_cls
+
+    try:
+        result = constructor(*args, **kwargs)
+    except TypeError as e:
+        # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
+        # `__init__` arguments map to one `DataLoader.__init__` argument
+        import re
+
+        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
+        if not match:
+            # an unexpected `TypeError`, continue failure
+            raise
+        argument = match.groups()[0]
+        message = (
+            f"The {constructor.__name__} implementation has an error where more than one `__init__` argument"
+            f" can be passed to its parent's `{argument}=...` `__init__` argument. This is likely caused by allowing"
+            f" passing both a custom argument that will map to the `{argument}` argument as well as `**kwargs`."
+            f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
+            " This argument was automatically passed to your object by PyTorch Lightning."
+        )
+        raise MisconfigurationException(message) from e
+
+    attrs_record = getattr(orig_object, "__pl_attrs_record", list())
+    for args, fn in attrs_record:
+        fn(result, *args)
+
+    return result
+
+
 def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) -> Callable:
     """Wraps the ``__init__`` method of classes (currently :class:`~torch.utils.data.DataLoader` and
     :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
@@ -458,6 +481,8 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
     def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
         # We need to inspect `init`, as inspecting `obj.__init__`
         # can lead to inspecting the wrong function with multiple inheritance
+        old_inside_init = getattr(obj, "__pl_inside_init", False)
+        object.__setattr__(obj, "__pl_inside_init", True)
         params = inspect.signature(init).parameters
 
         parameters_defaults = OrderedDict(
@@ -475,43 +500,82 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
         }
 
         if not hasattr(obj, "__pl_saved_args"):
-            obj.__pl_saved_args = args
-            obj.__pl_saved_kwargs = kwargs
-            obj.__pl_saved_arg_names = param_names
-            obj.__pl_saved_default_kwargs = default_kwargs
+            object.__setattr__(obj, "__pl_saved_args", args)
+            object.__setattr__(obj, "__pl_saved_kwargs", kwargs)
+            object.__setattr__(obj, "__pl_saved_arg_names", param_names)
+            object.__setattr__(obj, "__pl_saved_default_kwargs", default_kwargs)
 
         # We want to use the latest possible value for explicit argument (i.e. ideally what gets passed to base class)
         # so that we can be sure, that it will not get changed anymore.
         # That is why we are setting this in every `__init__`
         if store_explicit_arg is not None:
             if store_explicit_arg in param_names:
-                setattr(obj, f"__{store_explicit_arg}", args[param_names.index(store_explicit_arg)])
+                object.__setattr__(obj, f"__{store_explicit_arg}", args[param_names.index(store_explicit_arg)])
             elif store_explicit_arg in kwargs:
-                setattr(obj, f"__{store_explicit_arg}", kwargs[store_explicit_arg])
+                object.__setattr__(obj, f"__{store_explicit_arg}", kwargs[store_explicit_arg])
 
         init(obj, *args, **kwargs)
+        object.__setattr__(obj, "__pl_inside_init", old_inside_init)
+
+    return wrapper
+
+
+def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
+    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently :class:`~torch.utils.data.DataLoader` and
+    :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
+
+    @functools.wraps(method)
+    def wrapper(obj: Any, *args: Any):
+        # First, let's find out if we're the first in inheritance chain calling the patched method.
+        name, *_ = args
+        prev_call_name, prev_call_method = getattr(obj, "__pl_current_call", (None, "method"))
+        first_call = not (prev_call_name == name and prev_call_method == tag)
+
+        # Then mark the current called method
+        object.__setattr__(obj, "__pl_current_call", (name, tag))
+
+        # call original method
+        method(obj, *args)
+        if first_call and not getattr(obj, "__pl_inside_init", True):
+            # and save the value it was called with to the internal list,
+            # if we're outside of __init__ and the original call did not fail and we're the first call
+            attrs_record = getattr(obj, "__pl_attrs_record", list())
+            attrs_record.append((args, tag))
+            object.__setattr__(obj, "__pl_attrs_record", attrs_record)
+        object.__setattr__(obj, "__pl_current_call", (prev_call_name, prev_call_method))
 
     return wrapper
 
 
 @contextmanager
-def _replace_init_method(base_cls: Type, store_explicit_arg: Optional[str] = None) -> Generator[None, None, None]:
+def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = None) -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
 
-    It patches the ``__init__`` method.
+    It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.
     """
     classes = _get_all_subclasses(base_cls) | {base_cls}
-    wrapped = set()
     for cls in classes:
-        if cls.__init__ not in wrapped:
-            cls._old_init = cls.__init__
+        # Check that __init__ belongs to the class
+        # https://stackoverflow.com/a/5253424
+        if "__init__" in cls.__dict__:
+            cls.__old__init__ = cls.__init__
             cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)
-            wrapped.add(cls.__init__)
+
+        # we want at least one setattr/delattr in the chain to be patched and it can happen, that none of the subclasses
+        # implement `__setattr__`/`__delattr__`. Therefore, we are always patching the `base_cls`
+        for patch_fn_name, tag in (("__setattr__", _WrapAttrTag.SET), ("__delattr__", _WrapAttrTag.DEL)):
+            if patch_fn_name in cls.__dict__ or cls is base_cls:
+                saved_name = f"__old{patch_fn_name}"
+                setattr(cls, saved_name, getattr(cls, patch_fn_name))
+                setattr(cls, patch_fn_name, _wrap_attr_method(getattr(cls, patch_fn_name), tag))
     yield
     for cls in classes:
-        if hasattr(cls, "_old_init"):
-            cls.__init__ = cls._old_init
-            del cls._old_init
+        for patched_name in ("__setattr__", "__delattr__", "__init__"):
+            # Check that __old__{init,setattr,delattr} belongs to the class
+            # https://stackoverflow.com/a/5253424
+            if f"__old{patched_name}" in cls.__dict__:
+                setattr(cls, patched_name, getattr(cls, f"__old{patched_name}"))
+                delattr(cls, f"__old{patched_name}")
 
 
 def _wrap_with_capture_dataset(dataset: Dataset) -> Dataset:

@@ -31,7 +31,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs
+from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -51,14 +51,18 @@ class LightningIPUModule(_LightningModuleWrapperBase):
     """
 
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        precision: Union[str, int] = 32,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
         rank_zero_deprecation("`LightningIPUModule` has been deprecated in v1.7.0 and will be removed in v1.8.0")
-        super().__init__(pl_module)
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+        if self.precision == PrecisionType.HALF:
             inputs = self._move_float_tensors_to_half(inputs)
 
         return super().forward(*inputs, **kwargs)
@@ -244,7 +248,9 @@ class IPUStrategy(ParallelStrategy):
             dataloader, sampler, mode, self.replication_factor > 1  # type: ignore[arg-type]
         )
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(opts, *dl_args, **dl_kwargs)
+        dataloader = _reinstantiate_wrapped_cls(
+            dataloader, opts, *dl_args, explicit_cls=poptorch.DataLoader, **dl_kwargs
+        )
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:

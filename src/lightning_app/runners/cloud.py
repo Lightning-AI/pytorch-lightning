@@ -18,15 +18,22 @@ from lightning_cloud.openapi import (
     Gridv1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
+    V1Drive,
+    V1DriveSpec,
+    V1DriveStatus,
+    V1DriveType,
     V1EnvVar,
     V1Flowserver,
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
+    V1LightningworkDrives,
     V1LightningworkSpec,
+    V1Metadata,
     V1NetworkConfig,
     V1PackageManager,
     V1ProjectClusterBinding,
     V1PythonDependencyInfo,
+    V1SourceType,
     V1UserRequestedComputeConfig,
     V1Work,
 )
@@ -36,6 +43,7 @@ from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENC
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
+from lightning_app.storage import Drive
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
@@ -107,10 +115,45 @@ class CloudRuntime(Runtime):
                     preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
                 )
+
+                drive_specs: List[V1LightningworkDrives] = []
+                for drive_attr_name, drive in [
+                    (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
+                ]:
+                    if drive.protocol == "lit://":
+                        drive_type = V1DriveType.NO_MOUNT_S3
+                        source_type = V1SourceType.S3
+                    elif drive.protocol == "s3://":
+                        drive_type = V1DriveType.INDEXED_S3
+                        source_type = V1SourceType.S3
+                    else:
+                        raise RuntimeError(
+                            f"unknown drive protocol `{drive.protocol}`. Please verify this "
+                            f"drive type has been configured for use in the cloud dispatcher."
+                        )
+
+                    drive_specs.append(
+                        V1LightningworkDrives(
+                            drive=V1Drive(
+                                metadata=V1Metadata(
+                                    name=f"{work.name}.{drive_attr_name}",
+                                ),
+                                spec=V1DriveSpec(
+                                    drive_type=drive_type,
+                                    source_type=source_type,
+                                    source=f"{drive.protocol}{drive.id}",
+                                ),
+                                status=V1DriveStatus(),
+                            ),
+                            mount_location=str(drive.root_folder),
+                        ),
+                    )
+
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
                     cluster_id=cluster_id,
+                    drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
