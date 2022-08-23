@@ -13,9 +13,10 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
-    _replace_init_method,
+    _replace_dunder_methods,
     _replace_value_in_saved_args,
     _update_dataloader,
+    _WrapAttrTag,
     extract_batch_size,
     get_len,
     has_iterable_dataset,
@@ -144,10 +145,10 @@ def test_update_dataloader_typerror_custom_exception():
             super().__init__(foo, *args, **kwargs)
 
     dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
-    with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`dataset`"):
+    with pytest.raises(MisconfigurationException, match="implementation has an error.*`dataset`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
-    with _replace_init_method(DataLoader, "dataset"):
+    with _replace_dunder_methods(DataLoader, "dataset"):
         dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
     new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
     assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
@@ -159,7 +160,7 @@ def test_update_dataloader_typerror_custom_exception():
             super().__init__(*args, shuffle=randomize, **kwargs)
 
     dataloader = BadImpl(False, [])
-    with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`shuffle`"):
+    with pytest.raises(MisconfigurationException, match="implementation has an error.*`shuffle`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
     class GoodImpl(DataLoader):
@@ -173,28 +174,33 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_replace_init_method_multiple_loaders_without_init():
+def test_replace_dunder_methods_multiple_loaders_without_init():
     """In case of a class, that inherits from a class that we are patching, but doesn't define its own `__init__`
-    method (the one we are wrapping), it can happen, that `hasattr(cls, "_old_init")` is True because of parent
+    method (the one we are wrapping), it can happen, that `hasattr(cls, "__old__init__")` is True because of parent
     class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error
     occured only sometimes because it depends on the order in which we are iterating over a set of classes we are
     patching.
 
     This test simulates the behavior by generating sufficient number of dummy classes, which do not define `__init__`
-    and are children of `DataLoader`. We are testing that a) context manager `_replace_init_method` exits cleanly, and
-    b) the mechanism checking for presence of `_old_init` works as expected.
+    and are children of `DataLoader`. We are testing that a) context manager `_replace_dunder_method` exits cleanly, and
+    b) the mechanism checking for presence of `__old__init__` works as expected.
     """
     classes = [DataLoader]
     for i in range(100):
         classes.append(type(f"DataLoader_{i}", (random.choice(classes),), {}))
 
-    with _replace_init_method(DataLoader, "dataset"):
-        for cls in classes[1:]:  # First one is `DataLoader`
-            assert "_old_init" not in cls.__dict__
-            assert hasattr(cls, "_old_init")
+    before = {cls: cls.__init__ for cls in classes}
 
-        assert "_old_init" in DataLoader.__dict__
-        assert hasattr(DataLoader, "_old_init")
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        for cls in classes[1:]:  # First one is `DataLoader`
+            assert "__old__init__" not in cls.__dict__
+            assert hasattr(cls, "__old__init__")
+
+        assert "__old__init__" in DataLoader.__dict__
+        assert hasattr(DataLoader, "__old__init__")
+
+    for cls in classes:
+        assert before[cls] == cls.__init__
 
 
 class DataLoaderSubclass1(DataLoader):
@@ -322,8 +328,8 @@ class ChangingDataLoader(DataLoader):
         pytest.param(ChangingDataLoader, (range(5),), dict(), ("dataset",), list(range(10)), dict(), id="test9"),
     ],
 )
-def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, checked_values):
-    with _replace_init_method(DataLoader, "dataset"):
+def test_replace_dunder_methods_dataloader(cls, args, kwargs, arg_names, dataset, checked_values):
+    with _replace_dunder_methods(DataLoader, "dataset"):
         dataloader = cls(*args, **kwargs)
 
     assert dataloader.__pl_saved_args == args
@@ -360,12 +366,12 @@ def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, c
             assert dataloader_value == value
 
 
-def test_replace_init_method_extra_kwargs():
+def test_replace_dunder_methods_extra_kwargs():
     class LoaderSubclass(DataLoader):
         def __init__(self, dataset, *args, batch_size=10, **kwargs):
             super().__init__(dataset, *args, batch_size=batch_size, **kwargs)
 
-    with _replace_init_method(DataLoader, "dataset"):
+    with _replace_dunder_methods(DataLoader, "dataset"):
         dataloader = LoaderSubclass(range(10))
 
     assert dataloader.__pl_saved_args == (range(10),)
@@ -373,6 +379,90 @@ def test_replace_init_method_extra_kwargs():
     assert dataloader.__pl_saved_arg_names == ("dataset",)
     assert dataloader.__pl_saved_default_kwargs == {"batch_size": 10}
     assert dataloader.__dataset == range(10)
+
+
+def test_replace_dunder_methods_attrs():
+    """This test checks, that all the calls from setting and deleting attributes within `_replace_dunder_methods`
+    are correctly preserved even after reinstantiation.
+
+    It also includes a custom `__setattr__`
+    """
+
+    class Loader(DataLoader):
+        def __setattr__(self, attr, val):
+            if attr == "custom_arg":
+                val = val + 2
+            super().__setattr__(attr, val)
+
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        dataloader = Loader(range(10))
+        dataloader.custom_arg = 5
+        dataloader.my_arg = 10
+        dataloader.another_arg = 100
+        del dataloader.dataset
+        try:
+            del dataloader.abc_arg
+        except AttributeError:
+            pass
+
+    assert dataloader.__pl_saved_args == (range(10),)
+    assert dataloader.__pl_saved_kwargs == {}
+    assert dataloader.__pl_saved_arg_names == ("dataset",)
+    assert dataloader.__dataset == range(10)
+    assert dataloader.custom_arg == 7
+    assert dataloader.my_arg == 10
+    assert dataloader.another_arg == 100
+    assert not hasattr(dataloader, "dataset")
+    assert dataloader.__pl_attrs_record == [
+        (("custom_arg", 5), _WrapAttrTag.SET),
+        (("my_arg", 10), _WrapAttrTag.SET),
+        (("another_arg", 100), _WrapAttrTag.SET),
+        (("dataset",), _WrapAttrTag.DEL),
+    ]
+
+    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert dataloader.custom_arg == 7
+    assert dataloader.my_arg == 10
+    assert dataloader.another_arg == 100
+    assert not hasattr(dataloader, "dataset")
+
+
+def test_replace_dunder_methods_restore_methods():
+    """This tests checks whether are all dunder methods restored to their original versions."""
+
+    class Init(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    class SetAttr(DataLoader):
+        def __setattr__(self, *args):
+            return super().__setattr__(*args)
+
+    class DelAttr(DataLoader):
+        def __delattr__(self, *args):
+            return super().__delattr__(*args)
+
+    class InitAndSetAttr(Init, SetAttr):
+        pass
+
+    class InitAndDelAttr(Init, DelAttr):
+        pass
+
+    class SetAttrAndDelAttr(SetAttr, DelAttr):
+        pass
+
+    class AllDunder(Init, SetAttr, DelAttr):
+        pass
+
+    before = dict()
+    for cls in (Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
+        before[cls] = {"init": cls.__init__, "setattr": cls.__setattr__, "delattr": cls.__delattr__}
+
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        pass
+
+    for cls in (Init, SetAttr, DelAttr, InitAndSetAttr, InitAndDelAttr, SetAttrAndDelAttr, AllDunder):
+        assert before[cls] == {"init": cls.__init__, "setattr": cls.__setattr__, "delattr": cls.__delattr__}
 
 
 @pytest.mark.parametrize("predicting", [True, False])
@@ -391,8 +481,8 @@ def test_custom_batch_sampler(predicting):
             super().__init__(sampler, 10, drop_last)
 
     sampler = RandomSampler(range(10))
-    with _replace_init_method(BatchSampler):
-        # instantiate within `_replace_init_method` context manager, simulating `*_dataloader` hooks
+    with _replace_dunder_methods(BatchSampler):
+        # instantiate within `_replace_dunder_method` context manager, simulating `*_dataloader` hooks
         batch_sampler = MyBatchSampler(sampler, "random_str")
 
     dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
@@ -437,8 +527,8 @@ def test_custom_batch_sampler_no_drop_last():
             super().__init__(sampler, 10, False)
 
     sampler = RandomSampler(range(10))
-    with _replace_init_method(BatchSampler):
-        # instantiate within `_replace_init_method` context manager, simulating `*_dataloader` hooks
+    with _replace_dunder_methods(BatchSampler):
+        # instantiate within `_replace_dunder_method` context manager, simulating `*_dataloader` hooks
         batch_sampler = MyBatchSampler(sampler, "random_str")
 
     dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
@@ -464,8 +554,8 @@ def test_custom_batch_sampler_no_sampler():
             self.extra_arg = extra_arg
             super().__init__(RandomSampler(range(10)), 10, False)
 
-    with _replace_init_method(BatchSampler):
-        # instantiate within `_replace_init_method` context manager, simulating `*_dataloader` hooks
+    with _replace_dunder_methods(BatchSampler):
+        # instantiate within `_replace_dunder_method` context manager, simulating `*_dataloader` hooks
         batch_sampler = MyBatchSampler("random_str")
     dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
