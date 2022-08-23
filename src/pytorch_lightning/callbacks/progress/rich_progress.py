@@ -298,10 +298,6 @@ class RichProgressBar(ProgressBarBase):
             # progress has started
             self._progress_stopped = False
 
-    def refresh(self) -> None:
-        if self.progress:
-            self.progress.refresh()
-
     def on_train_start(self, trainer, pl_module):
         self._init_progress(trainer)
 
@@ -428,7 +424,9 @@ class RichProgressBar(ProgressBarBase):
             if self.main_progress_bar_id is not None:
                 self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
             self._update(self.val_progress_bar_id, self.val_batch_idx)
-        self.refresh()
+
+        # TODO: Find out why an error occurs without refresh here.
+        self.progress.refresh()
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._update(self.test_progress_bar_id, self.test_batch_idx)
