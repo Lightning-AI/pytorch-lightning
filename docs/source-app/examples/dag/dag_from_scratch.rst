@@ -39,10 +39,9 @@ First, let's define the component we need:
     :lines: 55-79
 
 And its run method executes the steps described above.
-Additionally, ``work.stop`` is used to reduce cost when running in the cloud.
 
 .. literalinclude:: ../../../examples/app_dag/app.py
-    :lines: 81-108
+    :lines: 80-103
 
 ----
 
@@ -51,4 +50,4 @@ Step 2: Define the scheduling
 *****************************
 
 .. literalinclude:: ../../../examples/app_dag/app.py
-    :lines: 109-137
+    :lines: 106-135
