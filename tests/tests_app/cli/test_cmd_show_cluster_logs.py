@@ -1,14 +1,12 @@
 from unittest import mock
 
 from click.testing import CliRunner
-from lightning_cloud.openapi import Externalv1Cluster
 
 from lightning_app.cli.cmd_clusters import ClusterList
 from lightning_app.cli.lightning_cli import cluster_logs
 
 
 @mock.patch("lightning_app.cli.lightning_cli.AWSClusterManager.get_clusters")
-@mock.patch("lightning_app.cli.lightning_cli.LightningClient")
 def test_show_logs_errors(client, get_clusters):
     """Test that the CLI prints the errors for the show logs command."""
 
@@ -27,12 +25,3 @@ def test_show_logs_errors(client, get_clusters):
 
     assert result.exit_code == 1
     assert "Error: You don't have any clusters" in result.output
-
-    # One cluster
-    clusters = ClusterList([Externalv1Cluster(name="MyFakeCluster", id="MyFakeCluster")])
-    get_clusters.return_value = clusters
-
-    result = runner.invoke(cluster_logs, ["MyFakeClusterTwo"])
-
-    assert result.exit_code == 1
-    assert "Please select one of the following: [MyFakeCluster]" in str(result.output)
