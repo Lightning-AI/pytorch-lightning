@@ -47,7 +47,7 @@ class ServableModuleValidator(Callback):
         server: Literal["fastapi", "ml_server", "torchserve", "sagemaker"] = "fastapi",
         host: str = "127.0.0.1",
         port: int = 8080,
-        timeout: int = 10,
+        timeout: int = 20,
         exit_on_failure: bool = True,
     ):
         super().__init__()
@@ -109,7 +109,8 @@ class ServableModuleValidator(Callback):
             except requests.exceptions.ConnectionError:
                 pass
             if time.time() - t0 > self.timeout:
-                raise Exception(f"The Server didn't start in {self.timeout}")
+                process.kill()
+                raise Exception(f"The server didn't start within {self.timeout} seconds.")
             time.sleep(0.1)
 
         payload = servable_module.configure_payload()

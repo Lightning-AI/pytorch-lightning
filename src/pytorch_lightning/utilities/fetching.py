@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import Any, Callable, List, Optional, Sized, Tuple
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -219,7 +218,9 @@ class DataFetcher(AbstractDataFetcher):
         self._has_len = False
 
     def setup(  # type: ignore[override]
-        self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
+        self,
+        dataloader: Iterable,
+        batch_to_device: Optional[Callable[[Any], Any]] = None,
     ) -> None:
         super().setup(dataloader)
         self._has_len = has_len(dataloader)
