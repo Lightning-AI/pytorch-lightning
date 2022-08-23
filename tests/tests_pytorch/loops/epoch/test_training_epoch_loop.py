@@ -33,7 +33,6 @@ _out13 = {"loss": 1.3}
 class TestPrepareOutputs:
     def prepare_outputs(self, fn, tbptt_splits, batch_outputs, num_optimizers, automatic_optimization):
         lightning_module = LightningModule()
-        lightning_module.on_train_batch_end = lambda *_: None  # override to trigger the deprecation message
         lightning_module.automatic_optimization = automatic_optimization
         lightning_module.truncated_bptt_steps = tbptt_splits
         return fn(

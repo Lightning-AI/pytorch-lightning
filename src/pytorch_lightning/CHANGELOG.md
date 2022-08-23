@@ -65,6 +65,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `DistributedType` and `DeviceType` enum classes ([#14045](https://github.com/Lightning-AI/lightning/pull/14045))
 
 
+- Remove the deprecated `on_train_batch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#14373](https://github.com/PyTorchLightning/pytorch-lightning/pull/14373))
+
+
+- Remove the deprecated  `training_epoch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#14373](https://github.com/PyTorchLightning/pytorch-lightning/pull/14373))
+
+
 - Removed the experimental `pytorch_lightning.utiltiies.meta` functions in favor of built-in https://github.com/pytorch/torchdistx support ([#13868](https://github.com/Lightning-AI/lightning/pull/13868))
 
 
