@@ -65,7 +65,6 @@ subprojects:
       - ".azure/hpu-tests.yml"
     checks:
       - "pytorch-lightning (HPUs)"
-      - "pytorch-lightning (IPUs)"
 
   - id: "pytorch_lightning: Azure IPU"
     paths:
