@@ -46,15 +46,21 @@ Here's an example:
 
    lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --enable-performance
 
-..note:: Cluster creation is going to take an hour or more after you run this command.
+.. note:: Cluster creation is going to take an hour or more after you run this command.
 
-**Arguments**
+----
+
+Arguments
+^^^^^^^^^
 
 * cluster_name: The name of the cluster to be created
 
 .. note:: Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ).
 
-**Parameters:**
+----
+
+Parameters
+^^^^^^^^^^
 
 +------------------------+----------------------------------------------------------------------------------------------------+
 |Parameter               | Descritption                                                                                       |
@@ -104,7 +110,7 @@ Delete a Lightning BYOC cluster
 
 Deletes a Lightning BYOC cluster. Lightning AI removes cluster artifacts and any resources running on the cluster.
 
-.. warning:: Using the --force parameter when deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
+.. warning:: Using the ``--force`` parameter when deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
 
 Deletion permanently removes not only the record of all runs on a cluster, but all associated artifacts, metrics, logs, etc.
 

@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [0.6.0] - 2022-MM-DD
+## [0.6.0] - 2022-08-DD
 
 ### Added
 
@@ -50,10 +50,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Resolved a bug where the install command was not installing the latest version of an app/component by default ([#14181](https://github.com/Lightning-AI/lightning/pull/14181))
-
-
 - Unification of app template: moved `app.py` to root dir for `lightning init app <app_name>` template ([#13853](https://github.com/Lightning-AI/lightning/pull/13853))
+
+
+## [0.5.7] - 2022-08-22
+
+### Changed
+
+- Release LAI docs as stable ([#14250](https://github.com/Lightning-AI/lightning/pull/14250))
+- Compatibility for Python 3.10
+
+### Fixed
+
+- Pinning starsessions to 1.x ([#14333](https://github.com/Lightning-AI/lightning/pull/14333))
+- Parsed local package versions ([#13933](https://github.com/Lightning-AI/lightning/pull/13933))
+
+
+## [0.5.6] - 2022-08-16
+
+### Fixed
+
+- Resolved a bug where the `install` command was not installing the latest version of an app/component by default ([#14181](https://github.com/Lightning-AI/lightning/pull/14181))
 
 
 ## [0.5.5] - 2022-08-9

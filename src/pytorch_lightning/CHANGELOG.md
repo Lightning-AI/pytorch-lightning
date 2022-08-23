@@ -12,7 +12,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added prefix to log message in `seed_everything` with rank info ([#13290](https://github.com/Lightning-AI/lightning/issues/13290))
 
 
--
+- Added support for passing extra init-parameters to the `LightningDataModule.from_datasets` ([#14185](https://github.com/Lightning-AI/lightning/issues/14185))
+
 
 
 ### Changed
@@ -24,6 +25,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Replaced the unwrapping logic in strategies with direct access to unwrapped `LightningModule` ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
+
+
+- Enabled `on_before_batch_transfer` for `DPStrategy` and `IPUAccelerator` ([14023](https://github.com/Lightning-AI/lightning/pull/14023))
 
 
 
@@ -43,6 +47,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated the `pl_module` argument in `LightningParallelModule`, `LightningDistributedModule`, `LightningShardedDataParallel`, `LightningBaguaModule` and `LightningDeepSpeedModule` wrapper classes ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
 
+
+- Deprecated the `on_colab_kaggle` function ([#14247](https://github.com/Lightning-AI/lightning/pull/14247))
 
 
 ### Removed
@@ -66,6 +72,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an assertion error when using a `ReduceOnPlateau` scheduler with the Horovod strategy ([#14215](https://github.com/Lightning-AI/lightning/pull/14215))
 
+
+- Fixed an `AttributeError` when accessing `LightningModule.logger` and the Trainer has multiple loggers ([#14234](https://github.com/Lightning-AI/lightning/pull/14234))
+
+
+- Added back support for `log`ging in the `configure_gradient_clipping` hook after unintended removal in v1.7.2 ([#14298](https://github.com/Lightning-AI/lightning/issues/14298))
+
+
+- Fixed wrong num padding for `RichProgressBar` ([#14296](https://github.com/Lightning-AI/lightning/pull/14296))
 
 
 ## [1.7.2] - 2022-08-17
@@ -95,6 +109,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoided requiring the FairScale package to use precision with the fsdp native strategy ([#14092](https://github.com/Lightning-AI/lightning/pull/14092))
 - Fixed an issue in which the default name for a run in `WandbLogger` would be set to the project name instead of a randomly generated string ([#14145](https://github.com/Lightning-AI/lightning/pull/14145))
 - Fixed not preserving set attributes on `DataLoader` and `BatchSampler` when instantiated inside `*_dataloader` hooks ([#14212](https://github.com/Lightning-AI/lightning/pull/14212))
+
+
+- Fixed an issue to avoid the impact of sanity check on `reload_dataloaders_every_n_epochs` for validation ([#13964](https://github.com/Lightning-AI/lightning/pull/13964))
 
 
 ## [1.7.1] - 2022-08-09
