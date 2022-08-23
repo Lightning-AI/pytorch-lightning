@@ -12,7 +12,7 @@ def test_app_dag_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_dag")) as (_, _, fetch_logs, _):
 
         launch_log, finish_log = False, False
-        while not launch_log and not finish_log:
+        while not (launch_log and finish_log):
             for log in fetch_logs(["flow"]):
                 if "Launching a new DAG" in log:
                     launch_log = True
