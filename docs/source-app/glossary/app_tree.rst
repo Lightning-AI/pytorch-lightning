@@ -67,7 +67,45 @@ Is my application component tree static?
 
 No, Lightning supports dynamic flows and works.
 
+.. note:: 
+     ``__setattr__()`` has to be triggered in order for the state to be replicated.
+
+     Currently a state update is triggered if the ``__setattr__()`` function is called. For example, if you use ``status.run_script = True``,
+     then ``__setattr__()`` is called and the status is updated with all found changes.
+     But if you just use ``state.form_values["script_dir"]  = st_script_dir`` then ``__setattr__()`` is not called
+     so you only get attributes and assign values to the value retrieved (not the state).
+     So that assignemnt would not update the state and would not be visible in other components.
+
+     To work around that you could do something like this:
+
+     .. code-block:: python
+
+        form_values = {
+                       "sth1": ....
+                       ...: ...
+                       }
+                       state.form_values = form_values. # __setattr__ is triggered -> status is updated and propagated
+
 You can simply attach your components in the **run** method of a flow using the Python functions **hasattr**, **setattr**, and **getattr**.
+
+.. note:: 
+          ``__setattr__()``   has to be triggered in order for the state to be replicated.
+		  
+		   Currently a state update is triggered if the ``__setattr__()`` function is called. For example, if you use ``status.run_script = True``,
+		   ``__setattr__()`` is called and the status is updated with all found changes.
+		   But if you use  ``state.form_values["script_dir"]  = st_script_dir``  then ``__setattr__()`` is not called on for the state
+		   but you only get attributea and assign valuea to the value retrieved (not the state).
+		   So that assignemnt would not update the state and would not be visible in other components.
+
+          To work around that you could do something like this:
+
+        .. code-block:: python
+
+           form_values = {
+                          "sth1": ....
+                           ...: ...
+                         }
+                         state.form_values = form_values. # __setattr__ is triggered -> status is updated and propagated
 
 .. code-block:: python
 

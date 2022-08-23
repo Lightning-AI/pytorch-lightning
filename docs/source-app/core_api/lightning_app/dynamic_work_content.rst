@@ -46,6 +46,25 @@ There are a couple of ways you can add a dynamic Work:
 	        # Run the `Work` component.
             getattr(self,  "work").run()
 
+.. note:: 
+     ``__setattr__()`` has to be triggered in order for the state to be replicated.
+
+     Currently a state update is triggered if the ``__setattr__()`` function is called. For example, if you use ``status.run_script = True``,
+     then ``__setattr__()`` is called and the status is updated with all found changes.
+     But if you just use ``state.form_values["script_dir"]  = st_script_dir`` then ``__setattr__()`` is not called
+     so you only get attributes and assign values to the value retrieved (not the state).
+     So that assignemnt would not update the state and would not be visible in other components.
+
+     To work around that you could do something like this:
+
+     .. code-block:: python
+
+        form_values = {
+                       "sth1": ....
+                       ...: ...
+                       }
+                       state.form_values = form_values. # __setattr__ is triggered -> status is updated and propagated
+
 **OPTION 2:** Use the built-in Lightning classes :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List`
 
 .. code-block:: python
