@@ -17,11 +17,10 @@ import os
 import random
 import random as python_random
 from collections import defaultdict
-from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Iterator, List, Optional
+from typing import Iterable, Iterator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
 

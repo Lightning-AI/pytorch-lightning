@@ -43,9 +43,9 @@ Here is the full list of supported machine names:
      - GPUs
      - Memory
    * - default
-     - 2
+     - 1
      - 0
-     - 3 GB
+     - 4 GB
    * - cpu-small
      - 2
      - 0

@@ -692,6 +692,12 @@ def test_v1_8_0_logger_collection(tmpdir):
     with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
         _ = LoggerCollection([logger1, logger2])
 
+    model = BoringModel()
+    trainer = Trainer(logger=[logger1, logger2])
+    model.trainer = trainer
+    with pytest.deprecated_call(match="logger` will return the first logger"):
+        _ = model.logger
+
 
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
     class PrecisionPluginSaveHook(PrecisionPlugin):
