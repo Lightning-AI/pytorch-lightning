@@ -87,7 +87,7 @@ class LightningTestApp(LightningApp):
 
 @requires("click")
 def application_testing(
-    lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
+    lightning_app_cls: Type[LightningApp] = LightningTestApp, command_line: List[str] = []
 ) -> Any:
     from unittest import mock
 
