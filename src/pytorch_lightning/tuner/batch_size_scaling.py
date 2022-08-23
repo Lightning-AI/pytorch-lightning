@@ -130,13 +130,7 @@ def _run_power_scaling(
         garbage_collection_cuda()
 
         # reset after each try
-        if model.automatic_optimization:
-            optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress
-        else:
-            optim_progress = trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress
-
-        optim_progress.reset()
-        trainer.fit_loop.epoch_progress.current.reset()
+        _reset_progress(trainer)
 
         try:
             # Try fit
@@ -177,13 +171,7 @@ def _run_binsearch_scaling(
         garbage_collection_cuda()
 
         # reset after each try
-        if model.automatic_optimization:
-            optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress
-        else:
-            optim_progress = trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress
-
-        optim_progress.reset()
-        trainer.fit_loop.epoch_progress.current.reset()
+        _reset_progress(trainer)
 
         try:
             # Try fit
@@ -267,3 +255,12 @@ def _adjust_batch_size(
 def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer"):
     module = trainer.lightning_module or trainer.datamodule
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
+
+
+def _reset_progress(trainer: "pl.Trainer") -> None:
+    if trainer.lightning_module.automatic_optimization:
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.reset()
+    else:
+        trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress.reset()
+
+    trainer.fit_loop.epoch_progress.reset()
