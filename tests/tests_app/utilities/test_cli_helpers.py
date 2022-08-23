@@ -43,7 +43,7 @@ def test_arrow_time_callback():
 
     assert _arrow_time_callback(Mock(), Mock(), "2022-08-23 12:34:00.000") == arrow.Arrow(2022, 8, 23, 12, 34)
 
-    # Just check humanized format is parsed:
+    # Just check humanized format is parsed
     assert type(_arrow_time_callback(Mock(), Mock(), "48 hours ago")) == arrow.Arrow
 
     assert type(_arrow_time_callback(Mock(), Mock(), "60 minutes ago")) == arrow.Arrow
