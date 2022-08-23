@@ -156,7 +156,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p ${VIDEO_LOCATION}
-          HEADLESS=1 PACKAGE_LIGHTNING=1 python -m pytest tests/tests_app_examples/test_${{ matrix.app_name }}.py::test_${{ matrix.app_name }}_example_cloud --timeout=900 --capture=no -v --color=yes
+          HEADLESS=1 PACKAGE_LIGHTNING=1 python -m pytest tests/tests_app_examples/test_${{ matrix.app_name }}.py::test_${{ matrix.app_name }}_example_cloud --timeout=1200 --capture=no -v --color=yes
           # Delete the artifacts if successful
           rm -r ${VIDEO_LOCATION}/${{ matrix.app_name }}
 
