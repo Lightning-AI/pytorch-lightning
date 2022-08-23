@@ -157,7 +157,8 @@ def cluster():
     "--from",
     "from_time",
     default="24 hours ago",
-    help="The starting timestamp to query cluster logs from.",
+    help="The starting timestamp to query cluster logs from. Human-readable (e.g. '48 hours ago') or ISO 8601 "
+    "(e.g. '2022-08-23 12:34') formats.",
     callback=_arrow_time_callback,
 )
 @click.option(
@@ -166,7 +167,7 @@ def cluster():
     default="0 seconds ago",
     callback=_arrow_time_callback,
     help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
-    "-f/--follow).",
+    "-f/--follow). The same format as for --from option.",
 )
 @click.option("--limit", default=1000, help="The max number of log lines returned.")
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
