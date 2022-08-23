@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import Any, Callable, List, Optional, Sized, Tuple
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
 
 import torch
 from torch.utils.data.dataloader import DataLoader
