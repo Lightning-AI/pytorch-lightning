@@ -15,6 +15,7 @@
 
 import dataclasses
 import operator
+import platform
 from abc import ABC
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping, Sequence
@@ -27,7 +28,7 @@ import torch
 from torch import Tensor
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.imports import _compare_version, _TORCH_GREATER_EQUAL_1_12, _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 if _TORCHTEXT_LEGACY:
@@ -40,7 +41,10 @@ else:
 
 
 _CPU_DEVICES = ("cpu", torch.device("cpu"))
-_MPS_DEVICES = ("mps", torch.device("mps"))
+if _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64"):
+    _MPS_DEVICES = ("mps", torch.device("mps"))
+else:
+    _MPS_DEVICES = ("mps",)
 
 
 def to_dtype_tensor(
