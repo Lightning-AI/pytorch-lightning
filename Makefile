@@ -4,6 +4,8 @@
 export SLURM_LOCALID=0
 # assume you have installed need packages
 export SPHINX_MOCK_REQUIREMENTS=1
+# install only Lightning Trainer packages
+export PACKAGE_NAME=pytorch
 
 clean:
 	# clean all temp runs
