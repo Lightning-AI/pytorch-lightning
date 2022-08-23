@@ -129,8 +129,7 @@ def _arrow_time_callback(
     try:
         return arw_now.dehumanize(value)
     except ValueError:
-        raise click.ClickException(f"cannot parse time {value}")
-    try:
-        return arrow.get(value)
-    except ValueError:
-        raise click.ClickException(f"cannot parse time {value}")
+        try:
+            return arrow.get(value)
+        except (ValueError, TypeError):
+            raise click.ClickException(f"cannot parse time {value}")
