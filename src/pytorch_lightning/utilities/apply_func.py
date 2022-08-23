@@ -25,8 +25,9 @@ import numpy as np
 import torch
 from torch import Tensor
 
+from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version, _MPS_AVAILABLE, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 if _TORCHTEXT_LEGACY:

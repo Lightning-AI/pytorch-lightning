@@ -157,12 +157,6 @@ from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
-# For using the `MPSAccelerator`, user's machine should have `torch>=1.12`, Metal programming framework and
-# the ARM-based Apple Silicon processors.
-_MPS_AVAILABLE = (
-    _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
-)
-
 if _POPTORCH_AVAILABLE:
     import poptorch
 
