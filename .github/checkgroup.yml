@@ -6,15 +6,6 @@ subprojects:
     checks:
       - "test-on-tpus"
 
-  - id: "CI: Azure"
-    paths:
-      - ".azure/**"
-    checks:
-      - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
-      - "pytorch-lightning (HPUs)"
-      - "pytorch-lightning (IPUs)"
-
   - id: "pytorch_lightning"
     paths:
       # all examples don't need to be added because they aren't used in CI, but these are
@@ -59,6 +50,26 @@ subprojects:
       - "slow (ubuntu-20.04, 3.7, 1.11)"
       - "slow (windows-2022, 3.7, 1.11)"
       - "test-on-tpus"
+
+  - id: "pytorch_lightning: Azure GPU"
+    paths:
+      - ".azure/gpu-tests.yml"
+    checks:
+      - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
+
+  - id: "pytorch_lightning: Azure HPU"
+    paths:
+      - ".azure/hpu-tests.yml"
+    checks:
+      - "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (IPUs)"
+
+  - id: "pytorch_lightning: Azure IPU"
+    paths:
+      - ".azure/ipu-tests.yml"
+    checks:
+      - "pytorch-lightning (IPUs)"
 
   - id: "pytorch_lightning: Docs"
     paths:
@@ -107,7 +118,6 @@ subprojects:
 
   - id: "lightning_app"
     paths:
-      - ".azure/app-cloud-e2e.yml"
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
@@ -125,6 +135,12 @@ subprojects:
       - "pytest (ubuntu-20.04, 3.8, oldest)"
       - "pytest (windows-2022, 3.8, latest)"
       - "pytest (windows-2022, 3.8, oldest)"
+
+  - id: "lightning_app: Azure"
+    paths:
+      - ".azure/app-cloud-e2e.yml"
+    checks:
+      - "App.cloud-e2e"
 
   - id: "lightning_app: Docs"
     paths:
