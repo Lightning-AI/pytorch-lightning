@@ -24,6 +24,7 @@ from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profilers.profiler import Profiler
+from pytorch_lightning.utilities.device_parser import is_cuda_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -368,7 +369,7 @@ class PyTorchProfiler(Profiler):
             return activities
         if self._profiler_kwargs.get("use_cpu", True):
             activities.append(ProfilerActivity.CPU)
-        if self._profiler_kwargs.get("use_cuda", torch.cuda.is_available()):
+        if self._profiler_kwargs.get("use_cuda", is_cuda_available()):
             activities.append(ProfilerActivity.CUDA)
         return activities
 

@@ -15,7 +15,7 @@
             pass
 
 
-    class LightningCLI(pl.utilities.cli.LightningCLI):
+    class LightningCLI(pl.cli.LightningCLI):
         def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
             super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
@@ -62,23 +62,23 @@ Eliminate config boilerplate (Advanced)
 Customize the LightningCLI
 **************************
 
-The init parameters of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class can be used to customize some
+The init parameters of the :class:`~pytorch_lightning.cli.LightningCLI` class can be used to customize some
 things, namely: the description of the tool, enabling parsing of environment variables and additional arguments to
 instantiate the trainer and configuration parser.
 
 Nevertheless the init arguments are not enough for many use cases. For this reason the class is designed so that can be
 extended to customize different parts of the command line tool. The argument parser class used by
-:class:`~pytorch_lightning.utilities.cli.LightningCLI` is
-:class:`~pytorch_lightning.utilities.cli.LightningArgumentParser` which is an extension of python's argparse, thus
+:class:`~pytorch_lightning.cli.LightningCLI` is
+:class:`~pytorch_lightning.cli.LightningArgumentParser` which is an extension of python's argparse, thus
 adding arguments can be done using the :func:`add_argument` method. In contrast to argparse it has additional methods to
 add arguments, for example :func:`add_class_arguments` adds all arguments from the init of a class, though requiring
 parameters to have type hints. For more details about this please refer to the `respective documentation
 <https://jsonargparse.readthedocs.io/en/stable/#classes-methods-and-functions>`_.
 
-The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class has the
-:meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include
+The :class:`~pytorch_lightning.cli.LightningCLI` class has the
+:meth:`~pytorch_lightning.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include
 more arguments. After parsing, the configuration is stored in the :code:`config` attribute of the class instance. The
-:class:`~pytorch_lightning.utilities.cli.LightningCLI` class also has two methods that can be used to run code before
+:class:`~pytorch_lightning.cli.LightningCLI` class also has two methods that can be used to run code before
 and after the trainer runs: :code:`before_<subcommand>` and :code:`after_<subcommand>`.
 A realistic example for these would be to send an email before and after the execution.
 The code for the :code:`fit` subcommand would be something like:
@@ -104,7 +104,7 @@ instantiating the trainer class can be found in :code:`self.config['fit']['train
 
 .. tip::
 
-    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    Have a look at the :class:`~pytorch_lightning.cli.LightningCLI` class API reference to learn about other
     methods that can be extended to customize a CLI.
 
 ----
@@ -211,7 +211,7 @@ A more compact version that avoids writing a dictionary would be:
 ************************
 Connect two config files
 ************************
-Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
+Another case in which it might be desired to extend :class:`~pytorch_lightning.cli.LightningCLI` is that the
 model and data module depend on a common parameter. For example in some cases both classes require to know the
 :code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
 parser can be configured so that a value is only given once and then propagated accordingly. With a tool implemented

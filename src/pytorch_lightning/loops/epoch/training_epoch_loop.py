@@ -163,7 +163,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
+        if self.restarting and self._should_check_val_fx():
             # skip training and run validation in `on_advance_end`
             return
         # we are going to train first so the val loop does not need to restart
@@ -235,7 +235,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # -----------------------------------------
         # VALIDATE IF NEEDED
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch)
+        should_check_val = self._should_check_val_fx()
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
@@ -269,15 +269,16 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
 
+        trainer = self._trainer
         if (
-            self.trainer is not None
-            and self.trainer.state._fault_tolerant_mode.is_enabled
-            and self.trainer.train_dataloader is not None
+            trainer is not None
+            and trainer.state._fault_tolerant_mode.is_enabled
+            and trainer.train_dataloader is not None
             and not self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             and self.batch_progress.current.ready  # did start
         ):
-            loader: CombinedLoader = self.trainer.train_dataloader
+            loader: CombinedLoader = trainer.train_dataloader
             state = loader.state_dict(has_completed=self._has_completed())
             if state:
                 state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
@@ -287,7 +288,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
-        self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
+        # restore global step instead to make sure logging works correctly if checkpoints <v1.6.5 used to resume
+        self._batches_that_stepped = state_dict.get("_batches_that_stepped", self.global_step)
 
     def _run_validation(self) -> None:
         # reload dataloaders
@@ -495,13 +497,14 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         )
 
-    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
+    def _should_check_val_fx(self) -> bool:
         """Decide if we should run validation."""
         if not self._should_check_val_epoch():
             return False
 
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
+        is_last_batch = self.batch_progress.is_last_batch
         if is_last_batch and is_infinite_dataset:
             return True
 
@@ -511,13 +514,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
-            is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
+            is_val_check_batch = (self.batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
             # if `check_val_every_n_epoch is `None`, run a validation loop every n training batches
             # else condition it based on the batch_idx of the current epoch
-            current_iteration = (
-                self._batches_that_stepped if self.trainer.check_val_every_n_epoch is None else batch_idx
-            )
+            current_iteration = self.total_batch_idx if self.trainer.check_val_every_n_epoch is None else self.batch_idx
             is_val_check_batch = (current_iteration + 1) % self.trainer.val_check_batch == 0
 
         return is_val_check_batch

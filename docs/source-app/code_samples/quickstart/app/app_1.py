@@ -88,5 +88,5 @@ class RootFlow(L.LightningFlow):
 # Step 4: download a dataset to your local directory under `/data`
 download_data("https://pl-flash-data.s3.amazonaws.com/hymenoptera_data.zip", "./data")
 
-# Initalize your Lightning app with 5 epochs
+# Initialize your Lightning app with 5 epochs
 app = L.LightningApp(RootFlow(5, "./data/hymenoptera_data"))

@@ -17,11 +17,10 @@ import os
 import random
 import random as python_random
 from collections import defaultdict
-from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Iterator, List, Optional
+from typing import Iterable, Iterator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
@@ -34,7 +33,6 @@ from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, Se
 from torch.utils.data._utils.worker import _generate_state, get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.sampler import Sampler
 
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
@@ -700,16 +698,8 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-# TODO: test with `RandomGeneratorGetItemDataset`
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize(
-    "dataset_class",
-    [
-        SequentialGetItemDataset,
-        RandomGetItemDataset,
-        # RandomGeneratorGetItemDataset,
-    ],
-)
+@pytest.mark.parametrize("dataset_class", [SequentialGetItemDataset, RandomGetItemDataset])
 @pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
@@ -732,12 +722,11 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
         _ = next(prefetch_iter)
 
         state: List[MergedIteratorState] = fetcher.state
-        assert len(state) == 1
-        assert isinstance(state[0], MergedIteratorState)
+        assert isinstance(state, MergedIteratorState)
 
         assert len(fetcher.dataloader_iter.cache_states) == 1
         if num_workers == 0:
-            assert state[0].state[0].num_batches_fetched == num_batches_fetched
+            assert state.state[0].num_batches_fetched == num_batches_fetched
         return state
 
     dataset, random_sampler = create_dataset_sampler()
@@ -754,7 +743,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
 
     # (A) capture the state after fetching 4 batches
     state = fetch(fetcher, prefetch_iter, 4)
-    state = deepcopy(state[0])
+    state = deepcopy(state)
 
     # (B) simulate 2 additional batches
     batch05 = next(prefetch_iter)
@@ -1184,15 +1173,6 @@ def test_validate_fault_tolerant(tmpdir):
 
     dl = DataLoader(data(), sampler=CustomRandomSampler(data()))
     with pytest.raises(TypeError, match="RandomSampler"):
-        _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
-
-    class CustomBatchSampler(BatchSampler):
-        pass
-
-    sampler = Sampler(data())
-    batch_sampler = CustomBatchSampler(sampler, 2, False)
-    dl = DataLoader(data(), batch_sampler=batch_sampler)
-    with pytest.raises(TypeError, match="BatchSampler"):
         _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
 
     class CustomIterable(IterableDataset):

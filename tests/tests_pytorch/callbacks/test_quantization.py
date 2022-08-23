@@ -20,7 +20,7 @@ from torch.quantization import FakeQuantizeBase
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.accelerators import GPUAccelerator
+from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -38,9 +38,9 @@ from tests_pytorch.helpers.simple_models import RegressionModel
 @RunIf(quantization=True, max_torch="1.11")
 def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model."""
-    cuda_available = GPUAccelerator.is_available()
+    cuda_available = CUDAAccelerator.is_available()
 
-    if observe == "average" and not fuse and GPUAccelerator.is_available():
+    if observe == "average" and not fuse and CUDAAccelerator.is_available():
         pytest.xfail("TODO: flakiness in GPU CI")
 
     seed_everything(42)

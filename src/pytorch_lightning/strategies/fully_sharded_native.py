@@ -23,6 +23,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
+from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
@@ -35,28 +37,70 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 
-if _TORCH_GREATER_EQUAL_1_11:
+if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
         BackwardPrefetch,
         CPUOffload,
         FullyShardedDataParallel,
+        MixedPrecision,
     )
     from torch.distributed.fsdp.wrap import enable_wrap
-
+else:
+    MixedPrecision = None  # type: ignore[misc,assignment]
+    BackwardPrefetch = None  # type: ignore[misc,assignment]
+    CPUOffload = None  # type: ignore[misc,assignment]
 
 log = logging.getLogger(__name__)
 
 
 class DDPFullyShardedNativeStrategy(ParallelStrategy):
+    r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
+
+    .. warning:: ``DDPFullyShardedNativeStrategy`` is in BETA and subject to change. The interface can
+        bring breaking changes and new features with the next release of PyTorch.
+
+    Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
+    size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
+    at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
+    to ZeRO-Stage 3.
+
+    For more information `check out <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api>`__.
+
+    Defaults have been set and options have been exposed, but may require configuration
+    based on your level of memory/speed efficiency. We suggest having a look at
+    `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
+
+    Arguments:
+        cpu_offload:
+            CPU offloading config. Currently, only parameter and gradient CPU
+            offload is supported. It can be enabled via passing in
+            ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
+            currently implicitly enables gradient offloading to CPU in order for
+            params and grads to be on same device to work with optimizer. This
+            API is subject to change. Default is ``None`` in which case there
+            will be no offloading.
+        backward_prefetch:
+            This is an experimental feature that is subject to change in the
+            the near future. It allows users to enable two different backward_prefetch
+            algorithms to help backward communication and computation overlapping.
+            The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
+        mixed_precision:
+            Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16``
+            or BF16 if ``precision=bf16`` unless a config is passed in.
+            This is only available in PyTorch 1.12 and later.
+        \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
+
+    """
 
     strategy_name = "fsdp_native"
     _registered_strategies: List[str] = []
 
-    def __init__(  # type: ignore[no-untyped-def]
+    def __init__(
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -64,42 +108,15 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
-        cpu_offload=None,
-        backward_prefetch=None,
+        cpu_offload: Optional[CPUOffload] = None,
+        backward_prefetch: Optional[BackwardPrefetch] = None,
+        mixed_precision: Optional[MixedPrecision] = None,
+        **kwargs: Any,
     ) -> None:
-        """Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
-
-        Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
-        size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
-        at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
-        to ZeRO-Stage 3.
-        `For more information: https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/`.
-
-        .. warning:: ``DDPFullyShardedNativeStrategy`` is in beta and subject to change. The interface can
-        bring breaking changes and new features with the next release of Pytorch.
-
-        Defaults have been set and options have been exposed, but may require configuration
-        based on your level of memory/speed efficiency. We suggest having a look at this tutorial for
-        more information.
-        `https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html`
-
-        Arguments:
-            cpu_offload (Optional [CPUOffload]):
-                CPU offloading config. Currently, only parameter and gradient CPU
-                offload is supported. It can be enabled via passing in
-                ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
-                currently implicitly enables gradient offloading to CPU in order for
-                params and grads to be on same device to work with optimizer. This
-                API is subject to change. Default is ``None`` in which case there
-                will be no offloading.
-            backward_prefetch: (Optional[BackwardPrefetch]):
-                This is an experimental feature that is subject to change in the
-                the near future. It allows users to enable two different backward_prefetch
-                algorithms to help backward communication and computation overlapping.
-                Pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-        """
-        if not _TORCH_GREATER_EQUAL_1_11:
-            raise MisconfigurationException("DDPFullyShardedNativeStrategy is supported from pytorch v1.11.0 onwards.")
+        if not _TORCH_GREATER_EQUAL_1_12:
+            raise MisconfigurationException(
+                "`DDPFullyShardedNativeStrategy` is supported from PyTorch v1.12.0 onwards."
+            )
 
         super().__init__(
             accelerator=accelerator,
@@ -109,15 +126,22 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._process_group = None
-        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
-        self._process_group_backend: Optional[str] = process_group_backend
-        self.cpu_offload: Optional[CPUOffload] = cpu_offload
-        self.backward_prefetch: Optional[BackwardPrefetch] = backward_prefetch
+        self.num_nodes = 1
+        self._process_group_backend = process_group_backend
+        self.cpu_offload = cpu_offload
+        self.backward_prefetch = backward_prefetch
+        self.mixed_precision = mixed_precision
+        self._rank_0_will_call_children_scripts: bool = False
+        self.kwargs = kwargs
 
     @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_processes(self) -> int:
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def process_group(self) -> Optional[ProcessGroup]:
@@ -130,10 +154,28 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
+    @property
+    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+        if self.mixed_precision:
+            return self.mixed_precision
+        plugin = self.precision_plugin
+        if isinstance(plugin, FullyShardedNativeNativeMixedPrecisionPlugin):
+            return plugin.mixed_precision_config
+
+    @property
+    def distributed_sampler_kwargs(self) -> Dict:
+        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+
     def setup_environment(self) -> None:
+        log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
         # set warning rank
         rank_zero_only.rank = self.global_rank
+
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend)
@@ -146,15 +188,32 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             or get_default_process_group_backend_for_device(self.root_device)
         )
 
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
+    def _configure_launcher(self) -> None:
+        assert self.cluster_environment is not None
+        if not self.cluster_environment.creates_processes_externally:
+            self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+            self._rank_0_will_call_children_scripts = True
+
     def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
+        # share ddp pids to all processes
+        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
-        if not self.cpu_offload:
-            self.model_to_device()
+        # we set the device so that optimizers can be created with distributed comms.
+        assert self.lightning_module is not None
+        self.lightning_module._device = self.root_device
 
         self.barrier()
         self.setup_optimizers(trainer)
@@ -162,20 +221,19 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
     def model_to_device(self) -> None:
-        # ensure we update the device type in the lightning module
-        assert self.lightning_module is not None
-        log.info(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
-        self.lightning_module.to(self.root_device)
+        pass
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
-
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
+            mixed_precision=self.mixed_precision_config,
+            device_id=self.root_device.index,
+            **self.kwargs,
         ):
             yield
 
@@ -219,17 +277,25 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def teardown(self) -> None:
-        log.info(f"{self.__class__.__name__}: tearing down strategy...")
+        rank_zero_info(f"{self.__class__.__name__}: tearing down strategy...")
+
+        pl_module = self.lightning_module
         if (
-            self.lightning_module is not None
-            and self.lightning_module.trainer is not None
-            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            pl_module is not None
+            # `self.lightning_module._trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
+            and pl_module._trainer is not None
+            and pl_module._trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
             assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
-        super().teardown()
+        assert self.cluster_environment is not None
+        assert self.accelerator is not None
+        self.cluster_environment.teardown()
+        self.precision_plugin.teardown()
+        self.accelerator.teardown()
 
     @classmethod
     def get_registered_strategies(cls) -> List[str]:
@@ -237,7 +303,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        if _TORCH_GREATER_EQUAL_1_11:
+        if _TORCH_GREATER_EQUAL_1_12:
             strategy_registry.register(
                 "fsdp_native",
                 cls,

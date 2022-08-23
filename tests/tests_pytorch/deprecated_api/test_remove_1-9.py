@@ -13,11 +13,15 @@
 # limitations under the License.
 
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 
 import pytorch_lightning.loggers.base as logger_base
+import pytorch_lightning.utilities.cli as old_cli
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.cli import LightningCLI, SaveConfigCallback
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.profiler.advanced import AdvancedProfiler
@@ -26,13 +30,7 @@ from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
-from pytorch_lightning.utilities.cli import (
-    _deprecate_auto_registry_message,
-    _deprecate_registry_message,
-    CALLBACK_REGISTRY,
-    LightningCLI,
-    SaveConfigCallback,
-)
+from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
@@ -151,17 +149,32 @@ def test_deprecated_dataloader_reset():
 
 
 def test_lightningCLI_registries_register():
-    with pytest.deprecated_call(match=_deprecate_registry_message):
+    with pytest.deprecated_call(match=old_cli._deprecate_registry_message):
 
-        @CALLBACK_REGISTRY
+        @old_cli.CALLBACK_REGISTRY
         class CustomCallback(SaveConfigCallback):
             pass
 
 
 def test_lightningCLI_registries_register_automatically():
-    with pytest.deprecated_call(match=_deprecate_auto_registry_message):
+    with pytest.deprecated_call(match=old_cli._deprecate_auto_registry_message):
         with mock.patch("sys.argv", ["any.py"]):
             LightningCLI(BoringModel, run=False, auto_registry=True)
+
+
+def test_lightningCLI_old_module_deprecation():
+    with pytest.deprecated_call(match=r"LightningCLI.*deprecated in v1.7.*Use the equivalent class"):
+        with mock.patch("sys.argv", ["any.py"]):
+            old_cli.LightningCLI(BoringModel, run=False)
+
+    with pytest.deprecated_call(match=r"SaveConfigCallback.*deprecated in v1.7.*Use the equivalent class"):
+        old_cli.SaveConfigCallback(Mock(), Mock(), Mock())
+
+    with pytest.deprecated_call(match=r"LightningArgumentParser.*deprecated in v1.7.*Use the equivalent class"):
+        old_cli.LightningArgumentParser()
+
+    with pytest.deprecated_call(match=r"instantiate_class.*deprecated in v1.7.*Use the equivalent function"):
+        assert isinstance(old_cli.instantiate_class(tuple(), {"class_path": "pytorch_lightning.Trainer"}), Trainer)
 
 
 def test_profiler_deprecation_warning():
@@ -195,3 +208,32 @@ def test_pytorch_profiler_schedule_wrapper_deprecation_warning():
 def test_pytorch_profiler_register_record_function_deprecation_warning():
     with pytest.deprecated_call(match="RegisterRecordFunction` is deprecated in v1.7 and will be removed in in v1.9."):
         _ = RegisterRecordFunction(None)
+
+
+def test_gpu_accelerator_deprecation_warning():
+    with pytest.deprecated_call(
+        match=(
+            "The `GPUAccelerator` has been renamed to `CUDAAccelerator` and will be removed in v1.9."
+            + " Please use the `CUDAAccelerator` instead!"
+        )
+    ):
+        GPUAccelerator()
+
+
+def test_v1_9_0_deprecated_lightning_deepspeed_module():
+    with pytest.deprecated_call(match=r"has been deprecated in v1.7.1 and will be removed in v1.9."):
+        _ = LightningDeepSpeedModule(BoringModel(), 32)
+
+
+def test_meta_utility_deprecations():
+    import pytorch_lightning.utilities.meta as meta
+
+    pytest.deprecated_call(meta.is_meta_init, match="is_meta_init.*removed in v1.9")
+    pytest.deprecated_call(meta.init_meta, Mock(), match="init_meta.*removed in v1.9")
+    pytest.deprecated_call(meta.get_all_subclasses, Mock, match="get_all_subclasses.*removed in v1.9")
+    pytest.deprecated_call(meta.recursively_setattr, Mock(), "foo", 1, match="recursively_setattr.*removed in v1.9")
+    pytest.deprecated_call(meta.materialize_module, Mock(), match="materialize_module.*removed in v1.9")
+    with pytest.deprecated_call(match="init_meta_context.*removed in v1.9"):
+        with meta.init_meta_context():
+            pass
+    pytest.deprecated_call(meta.is_on_meta_device, LightningModule(), match="is_on_meta_device.*removed in v1.9")

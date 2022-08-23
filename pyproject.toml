@@ -15,10 +15,12 @@ profile = "black"
 line_length = 120
 force_sort_within_sections = "False"
 order_by_type = "False"
+skip = ["_notebooks"]
 
 
 [tool.black]
 line-length = 120
+exclude = '(_notebooks/.*)'
 
 
 [tool.mypy]
@@ -47,43 +49,19 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "pytorch_lightning.callbacks.model_checkpoint",
     "pytorch_lightning.callbacks.progress.rich_progress",
-    "pytorch_lightning.callbacks.quantization",
-    "pytorch_lightning.callbacks.stochastic_weight_avg",
     "pytorch_lightning.core.datamodule",
-    "pytorch_lightning.core.decorators",
-    "pytorch_lightning.core.mixins.device_dtype_mixin",
-    "pytorch_lightning.core.module",
-    "pytorch_lightning.core.saving",
     "pytorch_lightning.demos.boring_classes",
     "pytorch_lightning.demos.mnist_datamodule",
-    "pytorch_lightning.loggers.comet",
-    "pytorch_lightning.loggers.mlflow",
-    "pytorch_lightning.loggers.neptune",
-    "pytorch_lightning.loggers.tensorboard",
-    "pytorch_lightning.loggers.wandb",
-    "pytorch_lightning.profilers.advanced",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
-    "pytorch_lightning.profilers.simple",
-    "pytorch_lightning.strategies.ddp",
-    "pytorch_lightning.strategies.ddp_spawn",
-    "pytorch_lightning.strategies.deepspeed",
-    "pytorch_lightning.strategies.fully_sharded",
-    "pytorch_lightning.strategies.ipu",
     "pytorch_lightning.strategies.sharded",
-    "pytorch_lightning.strategies.sharded_spawn",
-    "pytorch_lightning.strategies.strategy",
-    "pytorch_lightning.strategies.tpu_spawn",
     "pytorch_lightning.trainer.callback_hook",
-    "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
-    "pytorch_lightning.utilities.meta",
 ]
 ignore_errors = "True"

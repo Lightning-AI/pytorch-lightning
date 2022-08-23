@@ -99,7 +99,7 @@ def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tens
     return gathered_result
 
 
-def _simple_gather_all_tensors(result: torch.Tensor, group: Any, world_size: int) -> List[torch.Tensor]:
+def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> List[Tensor]:
     gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
     torch.distributed.all_gather(gathered_result, result, group)
     return gathered_result

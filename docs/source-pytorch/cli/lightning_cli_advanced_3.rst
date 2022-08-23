@@ -15,7 +15,7 @@
             pass
 
 
-    class LightningCLI(pl.utilities.cli.LightningCLI):
+    class LightningCLI(pl.cli.LightningCLI):
         def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
             super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
@@ -88,7 +88,7 @@ Similar to the callbacks, any parameter in :class:`~pytorch_lightning.trainer.tr
 :class:`~pytorch_lightning.core.module.LightningModule` and
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class, can be
 configured the same way using :code:`class_path` and :code:`init_args`. If the package that defines a subclass is
-imported before the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class is run, the name can be used instead of
+imported before the :class:`~pytorch_lightning.cli.LightningCLI` class is run, the name can be used instead of
 the full import path.
 
 From command line the syntax is the following:
@@ -117,7 +117,7 @@ callback appended. Here is an example:
 
 .. note::
 
-    Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.utilities.cli.SaveConfigCallback`)
+    Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.cli.SaveConfigCallback`)
     always have the full ``class_path``'s, even when class name shorthand notation is used in command line or in input
     config files.
 
@@ -306,7 +306,7 @@ example can be when one wants to add support for multiple optimizers:
 
 .. code-block:: python
 
-    from pytorch_lightning.utilities.cli import instantiate_class
+    from pytorch_lightning.cli import instantiate_class
 
 
     class MyModel(LightningModule):
@@ -330,7 +330,7 @@ example can be when one wants to add support for multiple optimizers:
     cli = MyLightningCLI(MyModel)
 
 The value given to :code:`optimizer*_init` will always be a dictionary including :code:`class_path` and
-:code:`init_args` entries. The function :func:`~pytorch_lightning.utilities.cli.instantiate_class`
+:code:`init_args` entries. The function :func:`~pytorch_lightning.cli.instantiate_class`
 takes care of importing the class defined in :code:`class_path` and instantiating it using some positional arguments,
 in this case :code:`self.parameters()`, and the :code:`init_args`.
 Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.

@@ -104,8 +104,6 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         Args:
             kwargs: The kwargs passed down to the hooks.
         """
-        assert self.trainer is not None
-
         kwargs = self._build_kwargs(kwargs, self._hiddens)
 
         # manually capture logged metrics

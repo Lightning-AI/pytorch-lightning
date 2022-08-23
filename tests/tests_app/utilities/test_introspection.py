@@ -9,7 +9,7 @@ from lightning_app.utilities.introspection import Scanner
 
 if _is_pytorch_lightning_available():
     from pytorch_lightning import Trainer
-    from pytorch_lightning.utilities.cli import LightningCLI
+    from pytorch_lightning.cli import LightningCLI
 
 from tests_app import _PROJECT_ROOT
 

@@ -19,7 +19,7 @@ Convention:
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
 import torch
 from torch import Tensor
@@ -49,6 +49,43 @@ TRAIN_DATALOADERS = Union[
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 _DEVICE = Union[torch.device, str, int]
+_MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]]
+
+
+@runtime_checkable
+class TrainingStep(Protocol):
+    """This class is used to detect if an object implements the `training_step` hook using `isinstance(model,
+    TrainingStep)`."""
+
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        ...
+
+
+@runtime_checkable
+class ValidationStep(Protocol):
+    """This class is used to detect if an object implements the `validation_step` hook using `isinstance(model,
+    ValidationStep)`."""
+
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        ...
+
+
+@runtime_checkable
+class TestStep(Protocol):
+    """This class is used to detect if an object implements the `test_step` hook using `isinstance(model,
+    TestStep)`."""
+
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        ...
+
+
+@runtime_checkable
+class PredictStep(Protocol):
+    """This class is used to detect if an object implements the `predict_step` hook using `isinstance(model,
+    PredictStep)`."""
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        ...
 
 
 @runtime_checkable
@@ -131,6 +168,7 @@ class DistributedDataParallel(Protocol):
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
+LRSchedulerPLType = Union[_LRScheduler, ReduceLROnPlateau]
 
 
 @dataclass

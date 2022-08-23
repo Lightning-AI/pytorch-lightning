@@ -209,6 +209,7 @@ class LightningFlow:
                 LightningFlow._attach_backend(flow, backend)
             for work in structure.works:
                 backend._wrap_run_method(_LightningAppRef().get_current(), work)
+                work._backend = backend
 
         for name in flow._structures:
             getattr(flow, name)._backend = backend
@@ -356,8 +357,7 @@ class LightningFlow:
             class Flow(LightningFlow):
                 def run(self):
                     if self.schedule("hourly"):
-                        # run some code once every hour.
-                        print("run this every hour")
+                        print("run some code every hour")
 
         Arguments:
             cron_pattern: The cron pattern to provide. Learn more at https://crontab.guru/.
@@ -509,20 +509,16 @@ class LightningFlow:
                 # add your streamlit code here!
                 import streamlit as st
 
-                st.button("Hello!")
 
         **Example:** Arrange the UI of my children in tabs (default UI by Lightning).
 
         .. code-block:: python
 
             class Flow(LightningFlow):
-                ...
-
                 def configure_layout(self):
                     return [
                         dict(name="First Tab", content=self.child0),
                         dict(name="Second Tab", content=self.child1),
-                        # You can include direct URLs too
                         dict(name="Lightning", content="https://lightning.ai"),
                     ]
 
@@ -608,3 +604,66 @@ class LightningFlow:
             yield value
 
         self._calls[call_hash].update({"has_finished": True})
+
+    def configure_commands(self):
+        """Configure the commands of this LightningFlow.
+
+        Returns a list of dictionaries mapping a command name to a flow method.
+
+        .. code-block:: python
+
+            class Flow(LightningFlow):
+                def __init__(self):
+                    super().__init__()
+                    self.names = []
+
+                def configure_commands(self):
+                    return {"my_command_name": self.my_remote_method}
+
+                def my_remote_method(self, name):
+                    self.names.append(name)
+
+        Once the app is running with the following command:
+
+        .. code-block:: bash
+
+            lightning run app app.py
+
+        .. code-block:: bash
+
+            lightning my_command_name --args name=my_own_name
+        """
+        raise NotImplementedError
+
+    def configure_api(self):
+        """Configure the API routes of the LightningFlow.
+
+        Returns a list of HttpMethod such as Post or Get.
+
+        .. code-block:: python
+
+            from lightning_app import LightningFlow
+            from lightning_app.api import Post
+
+            from pydantic import BaseModel
+
+
+            class HandlerModel(BaseModel):
+                name: str
+
+
+            class Flow(L.LightningFlow):
+                def __init__(self):
+                    super().__init__()
+                    self.names = []
+
+                def handler(self, config: HandlerModel) -> None:
+                    self.names.append(config.name)
+
+                def configure_api(self):
+                    return [Post("/v1/api/request", self.handler)]
+
+        Once the app is running, you can access the Swagger UI of the app
+        under the ``/docs`` route.
+        """
+        raise NotImplementedError

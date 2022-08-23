@@ -22,7 +22,7 @@ jobs:
       pull-pkgs: ${{ steps.download.outputs.pkgs }}
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
     - run: |
@@ -65,7 +65,7 @@ jobs:
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -99,7 +99,7 @@ jobs:
       with:
         name: pypi-packages-${{ github.sha }}
         path: pypi
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -129,7 +129,7 @@ jobs:
         name: pypi-packages-${{ github.sha }}
         path: pypi
     - run: ls -lh pypi/
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -183,6 +183,7 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-package:
+    # fixme: each package needs to be signed with own auth token
     runs-on: ubuntu-20.04
     needs: build-meta-pkg
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
@@ -201,7 +202,7 @@ jobs:
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.5.1
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
@@ -209,7 +210,7 @@ jobs:
         verbose: true
 
     - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.5.1
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
@@ -221,7 +222,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 

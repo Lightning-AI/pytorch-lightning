@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -24,11 +23,13 @@ from typing_extensions import TypedDict
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
 
 _IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
@@ -522,20 +523,35 @@ class _ResultCollection(dict):
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
-                # always reduce on epoch end
                 should = result_metric.meta.sync.should
-                result_metric.meta.sync.should = True
+                if not should and distributed_available() and result_metric.is_tensor:
+                    # ensure sync happens for FT since during a failure, the metrics are synced and saved to the
+                    # checkpoint, so during restart, metrics on rank 0 are from the accumulated ones from the previous
+                    # run, and on other ranks, they are 0. So we need to make sure they are synced in further training
+                    # to ensure correct calculation.
+                    if _fault_tolerant_training():
+                        result_metric.meta.sync.should = True
+                    else:
+                        warning_cache.warn(
+                            f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
+                            " when logging on epoch level in distributed setting to accumulate the metric across"
+                            " devices.",
+                            category=PossibleUserWarning,
+                        )
                 result_metric.compute()
                 result_metric.meta.sync.should = should
+
             cache = result_metric._computed
+
         if cache is not None:
-            if not isinstance(cache, torch.Tensor):
+            if not isinstance(cache, Tensor):
                 raise ValueError(
                     f"The `.compute()` return of the metric logged as {result_metric.meta.name!r} must be a tensor."
                     f" Found {cache}"
                 )
             if not result_metric.meta.enable_graph:
                 return cache.detach()
+
         return cache
 
     def valid_items(self) -> Generator:

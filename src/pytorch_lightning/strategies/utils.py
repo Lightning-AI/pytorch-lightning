@@ -13,6 +13,24 @@
 # limitations under the License.
 import os
 
+import torch
+
+from pytorch_lightning.utilities.enums import PrecisionType
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+
 
 def on_colab_kaggle() -> bool:
+    rank_zero_deprecation(
+        "The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    )
     return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
+
+
+def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
+    if torch.is_floating_point(tensor):
+        if precision == PrecisionType.HALF:
+            return tensor.half()
+        if precision == PrecisionType.BFLOAT:
+            return tensor.bfloat16()
+
+    return tensor

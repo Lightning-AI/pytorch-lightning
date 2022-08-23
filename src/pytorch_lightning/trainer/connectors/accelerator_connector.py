@@ -22,7 +22,7 @@ from typing_extensions import Literal
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
@@ -53,8 +53,8 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
+from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
-    DDP2Strategy,
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -72,6 +72,7 @@ from pytorch_lightning.strategies import (
     StrategyRegistry,
     TPUSpawnStrategy,
 )
+from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _StrategyType,
@@ -87,6 +88,7 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
+    _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
@@ -186,6 +188,12 @@ class AcceleratorConnector:
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
+        if amp_level is not None:
+            rank_zero_deprecation(
+                "Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0 and will be removed"
+                " in v1.10.0. Please set it inside the specific precision plugin and pass it to the `Trainer`."
+            )
+
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
@@ -199,10 +207,14 @@ class AcceleratorConnector:
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
         # 2. Instantiate Accelerator
-        # handle `auto` and `None`
         self._set_accelerator_if_ipu_strategy_is_passed()
+
+        # handle `auto`, `None` and `gpu`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
-            self._accelerator_flag = self._choose_accelerator()
+            self._accelerator_flag = self._choose_auto_accelerator()
+        elif self._accelerator_flag == "gpu":
+            self._accelerator_flag = self._choose_gpu_accelerator_backend()
+
         self._set_parallel_devices_and_init_accelerator()
 
         # 3. Instantiate ClusterEnvironment
@@ -267,7 +279,7 @@ class AcceleratorConnector:
             if strategy == "ddp_cpu":
                 raise MisconfigurationException(
                     "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
-                    " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
+                    " you can use `Trainer(strategy='ddp'|'ddp_spawn'|'ddp_fork', accelerator='cpu')` instead."
                 )
             if strategy == "tpu_spawn":
                 raise MisconfigurationException(
@@ -278,7 +290,7 @@ class AcceleratorConnector:
         if (
             accelerator is not None
             and accelerator not in self._accelerator_types
-            and accelerator != "auto"
+            and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
@@ -370,12 +382,12 @@ class AcceleratorConnector:
                             )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
                             raise MisconfigurationException(
                                 f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
                                 f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                             )
-                        self._accelerator_flag = "gpu"
+                        self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
         amp_type = amp_type if isinstance(amp_type, str) else None
@@ -475,7 +487,7 @@ class AcceleratorConnector:
                 if tpu_cores:
                     self._accelerator_flag = "tpu"
                 if gpus:
-                    self._accelerator_flag = "gpu"
+                    self._accelerator_flag = "cuda"
                 if num_processes:
                     self._accelerator_flag = "cpu"
 
@@ -485,7 +497,7 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, IPUStrategy):
             self._accelerator_flag = "ipu"
 
-    def _choose_accelerator(self) -> str:
+    def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if self._accelerator_flag == "auto":
             if _TPU_AVAILABLE:
@@ -496,9 +508,18 @@ class AcceleratorConnector:
                 return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
-            if torch.cuda.is_available() and torch.cuda.device_count() > 0:
-                return "gpu"
+            if CUDAAccelerator.is_available():
+                return "cuda"
         return "cpu"
+
+    @staticmethod
+    def _choose_gpu_accelerator_backend() -> str:
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
+
+        raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
@@ -534,7 +555,7 @@ class AcceleratorConnector:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
-        if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, GPUAccelerator):
+        if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
             self._devices_flag = pick_multiple_gpus(self._gpus)
             log.info(f"Auto select gpus: {self._devices_flag}")
 
@@ -579,8 +600,8 @@ class AcceleratorConnector:
             return DDPStrategy.strategy_name
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
-            if isinstance(self._accelerator_flag, (GPUAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("gpu", "mps")
+            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
                 device = device_parser.determine_root_gpu_device(self._parallel_devices)
             else:
@@ -588,7 +609,9 @@ class AcceleratorConnector:
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
         if len(self._parallel_devices) > 1:
-            return DDPSpawnStrategy.strategy_name
+            if _IS_INTERACTIVE:
+                return "ddp_fork"
+            return "ddp_spawn"
 
         return DDPStrategy.strategy_name
 
@@ -609,12 +632,16 @@ class AcceleratorConnector:
         if (
             strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies()
             or isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
-        ) and self._accelerator_flag != "gpu":
+        ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise MisconfigurationException(
                 f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
                 "but GPU accelerator is not used."
             )
-
+        if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
+            raise ValueError(
+                f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
+                f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
+            )
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
@@ -632,7 +659,7 @@ class AcceleratorConnector:
             )
 
         hvd.init()
-        if isinstance(self.accelerator, GPUAccelerator):
+        if isinstance(self.accelerator, CUDAAccelerator):
             # Horovod assigns one local GPU per process
             self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
         else:
@@ -645,13 +672,6 @@ class AcceleratorConnector:
             # TODO lazy initialized and setup horovod strategy `global_rank`
             self._handle_horovod()
         if isinstance(self._strategy_flag, str):
-            if self._strategy_flag == "ddp2":
-                # TODO: remove this error in v1.8
-                raise ValueError(
-                    "The DDP2 strategy is no longer supported. For single-node use, we recommend `strategy='ddp'` or"
-                    " `strategy='dp'` as a replacement. If you need DDP2, you will need `torch < 1.9`,"
-                    " `pytorch-lightning < 1.5`, and set it as `accelerator='ddp2'`."
-                )
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
             self.strategy = self._strategy_flag
@@ -700,16 +720,14 @@ class AcceleratorConnector:
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                raise MisconfigurationException(
-                    "DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
-                )
 
             if self._amp_type_flag == AMPType.NATIVE:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
                     return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
+                if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
+                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
                 if isinstance(self.strategy, DDPFullyShardedStrategy):
                     return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
@@ -823,7 +841,6 @@ class AcceleratorConnector:
         if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
             return self.strategy.is_distributed
         distributed_strategy = (
-            DDP2Strategy,
             DDPStrategy,
             DDPSpawnShardedStrategy,
             DDPShardedStrategy,

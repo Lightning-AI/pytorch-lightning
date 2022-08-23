@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import multiprocessing
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
+import torch.cuda
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -250,7 +252,7 @@ def _get_all_available_cuda_gpus() -> List[int]:
     Returns:
          a list of all available CUDA gpus
     """
-    return list(range(torch.cuda.device_count()))
+    return list(range(num_cuda_devices()))
 
 
 def _check_unique(device_ids: List[int]) -> None:
@@ -330,3 +332,27 @@ def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
         raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
 
     return int(devices) if isinstance(devices, str) else devices
+
+
+def num_cuda_devices() -> int:
+    """Returns the number of GPUs available.
+
+    Unlike :func:`torch.cuda.device_count`, this function will do its best not to create a CUDA context for fork
+    support, if the platform allows it.
+    """
+    if "fork" not in torch.multiprocessing.get_all_start_methods():
+        return torch.cuda.device_count()
+    with multiprocessing.get_context("fork").Pool(1) as pool:
+        return pool.apply(torch.cuda.device_count)
+
+
+def is_cuda_available() -> bool:
+    """Returns a bool indicating if CUDA is currently available.
+
+    Unlike :func:`torch.cuda.is_available`, this function will do its best not to create a CUDA context for fork
+    support, if the platform allows it.
+    """
+    if "fork" not in torch.multiprocessing.get_all_start_methods():
+        return torch.cuda.is_available()
+    with multiprocessing.get_context("fork").Pool(1) as pool:
+        return pool.apply(torch.cuda.is_available)

@@ -14,7 +14,7 @@ issues:
     markComment: >
       This issue has been automatically marked as stale because it hasn't had any recent activity.
       This issue will be closed in 7 days if no further activity occurs.
-      Thank you for your contributions, Pytorch Lightning Team!
+      Thank you for your contributions, PyTorch Lightning Team!
     # Comment to post when closing a stale issue. Set to `false` to disable
     closeComment: false
 

@@ -249,8 +249,8 @@ Example::
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -312,27 +312,6 @@ Use PyTorch AMP ('native'), or NVIDIA apex ('apex').
 
     # using NVIDIA Apex
     trainer = Trainer(amp_backend="apex")
-
-amp_level
-^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_level.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_level.mp4"></video>
-
-|
-
-The optimization level to use (O1, O2, etc...)
-for 16-bit GPU precision (using NVIDIA apex under the hood).
-
-Check `NVIDIA apex docs <https://nvidia.github.io/apex/amp.html#opt-levels>`_ for level
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(amp_level='O2')
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
@@ -489,7 +468,7 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`. Callbacks run sequentially in the order defined here
+Add a list of :class:`~pytorch_lightning.callbacks.callback.Callback`. Callbacks run sequentially in the order defined here
 with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
 after all others to ensure all states are saved to the checkpoints.
 
@@ -603,8 +582,8 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -1188,13 +1167,18 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
     1. `Install apex. <https://github.com/NVIDIA/apex#quick-start>`__
 
-    2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
+    2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the ``amp_level`` flag
+       in the precision plugin.
 
     .. testcode::
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
+        from pytorch_lightning.plugins.apex_amp import ApexMixedPrecisionPlugin
+
+
+        apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, accelerator="gpu", devices=1)
+        trainer = Trainer(accelerator="gpu", devices=1, precision=16, plugins=[apex_plugin])
 
 profiler
 ^^^^^^^^
@@ -1479,7 +1463,8 @@ How often within one training epoch to check the validation set.
 Can specify as float or int.
 
 - pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
-- pass an ``int`` to check after a fixed number of training batches.
+- pass an ``int`` to check after a fixed number of training batches. An ``int`` value can only be higher than the number of training
+  batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across epochs or iteration-based training.
 
 .. testcode::
 
@@ -1489,10 +1474,13 @@ Can specify as float or int.
     # check validation set 4 times during a training epoch
     trainer = Trainer(val_check_interval=0.25)
 
-    # check validation set every 1000 training batches
+    # check validation set every 1000 training batches in the current epoch
+    trainer = Trainer(val_check_interval=1000)
+
+    # check validation set every 1000 training batches across complete epochs or during iteration-based training
     # use this when using iterableDataset and your dataset has no length
     # (ie: production cases with streaming data)
-    trainer = Trainer(val_check_interval=1000)
+    trainer = Trainer(val_check_interval=1000, check_val_every_n_epoch=None)
 
 
 .. code-block:: python

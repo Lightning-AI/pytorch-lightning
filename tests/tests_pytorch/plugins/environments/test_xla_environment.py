@@ -15,6 +15,7 @@ import os
 from unittest import mock
 
 import pytest
+import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import XLAEnvironment
@@ -23,7 +24,8 @@ from tests_pytorch.helpers.runif import RunIf
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_default_attributes():
+@mock.patch("torch_xla._XLAC._xla_get_default_device", return_value=torch.device("xla:0"))
+def test_default_attributes(*_):
     """Test the default attributes when no environment variables are set."""
     env = XLAEnvironment()
     assert not env.creates_processes_externally

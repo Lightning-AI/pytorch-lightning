@@ -59,7 +59,7 @@ def environment_combinations():
     "strategy_cls",
     [DDPStrategy, DDPShardedStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
+@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
@@ -85,8 +85,8 @@ def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strat
         dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
     ],
 )
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=4)
+@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=4)
 def test_ranks_available_automatic_strategy_selection(mock0, mock1, trainer_kwargs):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
