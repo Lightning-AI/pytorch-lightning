@@ -591,6 +591,10 @@ class ModelCheckpoint(Checkpoint):
             # the user has changed weights_save_path
             ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
         elif len(trainer.loggers) > 0:
+            if trainer.loggers[0].save_dir is not None:
+                save_dir = trainer.loggers[0].save_dir
+            else:
+                save_dir = trainer.default_root_dir
             save_dir = trainer.loggers[0].save_dir or trainer.default_root_dir
             name = trainer.loggers[0].name
             version = trainer.loggers[0].version
