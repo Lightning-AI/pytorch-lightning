@@ -21,7 +21,7 @@ jobs:
           # The matrix here is the same as the one in release-docker.yml.
           - {python_version: "3.9", pytorch_version: "1.9", cuda_version: "11.1.1"}
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
     steps:
       - uses: actions/checkout@v3
@@ -81,7 +81,7 @@ jobs:
           # so include at least all of the combinations in release-dockers.yml.
           - {python_version: "3.9", pytorch_version: "1.9", cuda_version: "11.1.1"}
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
           # Used in Lightning-AI/tutorials
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1.1"}
@@ -119,10 +119,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {python_version: "3.8", pytorch_version: "1.9"}
-          - {python_version: "3.8", pytorch_version: "1.10"}
-          - {python_version: "3.9", pytorch_version: "1.11"}
-          - {python_version: "3.9", pytorch_version: "1.12"}
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1.1"}
+          - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.3.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -136,6 +136,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
