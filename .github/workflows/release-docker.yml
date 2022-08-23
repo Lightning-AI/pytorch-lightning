@@ -17,9 +17,9 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           - {python_version: "3.9", pytorch_version: "1.9", cuda_version: "11.1.1"}
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.5.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.5.1"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.5.1"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2

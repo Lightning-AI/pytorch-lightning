@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG UBUNTU_VERSION=20.04
-ARG CUDA_VERSION=11.6.1
+ARG CUDA_VERSION=11.5.1
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
@@ -140,8 +140,9 @@ RUN \
 RUN \
     # install Bagua
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    CUDA_VERSION_MM=$(python -c "print([ver for ver in [115,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
     pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
-    python -c "import bagua_core; bagua_core.install_deps()" && \
+    # python -c "import bagua_core; bagua_core.install_deps()" && \
     python -c "import bagua; print(bagua.__version__)"
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py

@@ -11,7 +11,7 @@ git clone https://github.com/Lightning-AI/lightning.git
 docker image build -t pytorch-lightning:latest -f dockers/base-cuda/Dockerfile .
 
 # build with specific arguments
-docker image build -t pytorch-lightning:base-cuda-py3.9-torch1.11-cuda11.6.1 -f dockers/base-cuda/Dockerfile --build-arg PYTHON_VERSION=3.9 --build-arg PYTORCH_VERSION=1.11 --build-arg CUDA_VERSION=11.6.1 .
+docker image build -t pytorch-lightning:base-cuda-py3.9-torch1.11-cuda11.5.1 -f dockers/base-cuda/Dockerfile --build-arg PYTHON_VERSION=3.9 --build-arg PYTORCH_VERSION=1.11 --build-arg CUDA_VERSION=11.5.1 .
 ```
 
 To run your docker use
@@ -45,7 +45,7 @@ sudo systemctl restart docker
 and later run the docker image with `--gpus all`. For example,
 
 ```
-docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.11-cuda11.6.1
+docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.11-cuda11.5.1
 ```
 
 ## Run Jupyter server
