@@ -108,7 +108,7 @@ subprojects:
 
   - id: "lightning_app"
     paths:
-      - ".github/workflows/ci-app*.yml"
+      - ".azure/app-cloud-e2e.yml"
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
@@ -117,17 +117,7 @@ subprojects:
       # the examples are used in the app CI
       - "examples/app_*"
     checks:
-      - "Cloud Test (boring_app)"
-      - "Cloud Test (collect_failures)"
-      - "Cloud Test (commands_and_api)"
-      - "Cloud Test (custom_work_dependencies)"
-      - "Cloud Test (drive)"
-      - "Cloud Test (idle_timeout)"
-      - "Cloud Test (payload)"
-      - "Cloud Test (template_jupyterlab)"
-      - "Cloud Test (template_react_ui)"
-      - "Cloud Test (template_streamlit_ui)"
-      - "Cloud Test (v0_app)"
+      - "App.cloud-e2e"
       - "doctest (app)"
       - "make-docs (app)"
       - "pytest (macOS-11, 3.8, latest)"
