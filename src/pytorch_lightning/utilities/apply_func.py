@@ -40,6 +40,7 @@ else:
 
 
 _CPU_DEVICES = ("cpu", torch.device("cpu"))
+_MPS_DEVICES = ("mps", torch.device("mps"))
 
 
 def to_dtype_tensor(
@@ -343,7 +344,9 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 
         kwargs = {}
         # Don't issue non-blocking transfers to CPU
-        if isinstance(data, Tensor) and device not in _CPU_DEVICES:
+        # Don't issue non-blocking transfers to MPS due to race condition bug:
+        # https://github.com/pytorch/pytorch/issues/83015
+        if isinstance(data, Tensor) and device not in _CPU_DEVICES and device not in _MPS_DEVICES:
             kwargs["non_blocking"] = True
         data_output = data.to(device, **kwargs)
         if data_output is not None:
