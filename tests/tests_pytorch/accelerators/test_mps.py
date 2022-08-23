@@ -165,7 +165,7 @@ def test_single_gpu_batch_parse():
 
 
 @RunIf(mps=True)
-def test_data_is_no_changed_after_move_to_mps_device():
+def test_data_is_not_changed_after_move_to_mps_device():
     trainer = Trainer(accelerator="mps", devices=1)
     x = torch.zeros([10, 10])
     device = torch.device("mps")
