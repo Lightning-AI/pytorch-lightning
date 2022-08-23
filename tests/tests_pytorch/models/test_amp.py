@@ -226,6 +226,7 @@ def test_amp_with_apex_reload(tmpdir):
         devices=1,
     )
     trainer.fit(model)
+    trainer.fit_loop.max_steps = 2
 
     with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
         trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
