@@ -37,6 +37,7 @@ def test_quick_start_example(caplog, monkeypatch):
     result = application_testing(QuickStartApp, command_line)
     assert result.exit_code == 0
 
+
 @pytest.mark.cloud
 def test_quick_start_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "lightning-quick-start/")) as (_, view_page, _, _):
