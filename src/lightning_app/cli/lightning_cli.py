@@ -167,7 +167,7 @@ def cluster():
     default="0 seconds ago",
     callback=_arrow_time_callback,
     help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
-    "-f/--follow). The same format as for --from option.",
+    "-f/--follow). The same format as --from option has.",
 )
 @click.option("--limit", default=1000, help="The max number of log lines returned.")
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
