@@ -1,4 +1,7 @@
 custom_service_name: "Lightning CI required checker"
+# For security reasons, configuration is only loaded from the repository's default branch,
+# changes made in pull requests from different branches or forks are ignored. This means that changes to this file
+# will only be used after they are merged.
 subprojects:
   - id: "CI: CircleCI"
     paths:
@@ -43,7 +46,6 @@ subprojects:
       - "mypy"
       - "PR Gatekeeper (pytorch)"
       - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
       - "slow (macOS-11, 3.7, 1.11)"
@@ -54,16 +56,15 @@ subprojects:
   - id: "pytorch_lightning: Azure GPU"
     paths:
       - ".azure/gpu-tests.yml"
+      - "tests/tests_pytorch/run_standalone_*.sh"
     checks:
       - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
 
   - id: "pytorch_lightning: Azure HPU"
     paths:
       - ".azure/hpu-tests.yml"
     checks:
       - "pytorch-lightning (HPUs)"
-      - "pytorch-lightning (IPUs)"
 
   - id: "pytorch_lightning: Azure IPU"
     paths:
@@ -141,9 +142,7 @@ subprojects:
     paths:
       - ".azure/app-cloud-e2e.yml"
     checks:
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: template_streamlit_ui)'
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: boring_app)'
-      - 'App.cloud-e2e (App_cloud_e2e_testing App: v0_app)'
+      - "App.cloud-e2e"
 
   - id: "lightning_app: Docs"
     paths:
