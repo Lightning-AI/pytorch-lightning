@@ -50,20 +50,20 @@ It uses :class:`~pytorch_lightning.strategies.hpu_parallel.HPUParallelStrategy` 
 Scale-out on Gaudis
 -------------------
 
-To train a Lightning model using multiple HPU nodes, set the ``num_nodes`` parameter with the available nodes in the Trainer class
+To train a Lightning model using multiple HPU nodes, set the ``num_nodes`` parameter with the available nodes in the ``Trainer`` class.
 
 .. code-block:: python
 
     trainer = Trainer(accelerator="hpu", devices=8, strategy="hpu_parallel", num_nodes=2)
 
-In addition to this, the following environment variables needs to be set to establish communication across nodes. Check out the documentation on ` Cluster <https://pytorch-lightning.readthedocs.io/en/stable/clouds/cluster.html>`__ for more details.
+In addition to this, the following environment variables need to be set to establish communication across nodes. Check out the documentation on :doc:`Cluster Environment <../clouds/cluster>` for more details.
 
 - *MASTER_PORT* - required; has to be a free port on machine with NODE_RANK 0
 - *MASTER_ADDR* - required (except for NODE_RANK 0); address of NODE_RANK 0 node
 - *WORLD_SIZE* - required; how many workers are in the cluster
 - *NODE_RANK* - required; id of the node in the cluster
 
-The trainer needs to be instantiated on every node that is participating in the training
+The trainer needs to be instantiated on every node participating in the training.
 
 On Node 1:
 
