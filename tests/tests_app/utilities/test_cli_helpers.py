@@ -59,3 +59,6 @@ def test_arrow_time_callback():
 
     with pytest.raises(Exception, match="cannot parse time 2022.125.12"):
         _arrow_time_callback(Mock(), Mock(), "2022.125.12")
+
+    with pytest.raises(Exception, match="cannot parse time 1 time unit ago"):
+        _arrow_time_callback(Mock(), Mock(), "1 time unit ago")
