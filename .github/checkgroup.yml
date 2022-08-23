@@ -123,7 +123,7 @@ subprojects:
       # the examples are used in the app CI
       - "examples/app_*"
     checks:
-      - 'App.cloud-e2e'
+      - "App.cloud-e2e"
       - "doctest (app)"
       - "make-docs (app)"
       - "pytest (macOS-11, 3.8, latest)"
@@ -137,7 +137,7 @@ subprojects:
     paths:
       - ".azure/app-cloud-e2e.yml"
     checks:
-      - 'App.cloud-e2e'
+      - "App.cloud-e2e"
 
   - id: "lightning_app: Docs"
     paths:
