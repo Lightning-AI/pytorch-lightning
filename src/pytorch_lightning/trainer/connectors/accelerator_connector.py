@@ -610,7 +610,7 @@ class AcceleratorConnector:
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
         if len(self._parallel_devices) > 1:
-            if _IS_INTERACTIVE and not _is_forking_disabled():
+            if _IS_INTERACTIVE:
                 return "ddp_fork"
             return "ddp_spawn"
 
