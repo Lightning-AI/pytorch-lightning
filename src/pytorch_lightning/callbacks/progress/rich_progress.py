@@ -368,7 +368,6 @@ class RichProgressBar(ProgressBarBase):
     def on_validation_epoch_end(self, trainer, pl_module):
         if self.val_progress_bar_id is not None and trainer.state.fn == "fit":
             self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
-            self.progress.refresh()
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.state.fn == "fit":
