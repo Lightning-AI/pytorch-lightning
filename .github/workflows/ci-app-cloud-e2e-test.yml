@@ -54,7 +54,7 @@ jobs:
           - custom_work_dependencies
           - drive
           - payload
-          - commands
+          - commands_and_api
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v2
@@ -160,7 +160,7 @@ jobs:
           # Delete the artifacts if successful
           rm -r ${VIDEO_LOCATION}/${{ matrix.app_name }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
 
         if: ${{ always() }}
         with:

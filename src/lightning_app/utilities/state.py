@@ -130,7 +130,7 @@ class AppState:
 
     def send_delta(self) -> None:
         app_url = f"{self._url}/api/v1/delta"
-        deep_diff = DeepDiff(_LAST_STATE, _STATE)
+        deep_diff = DeepDiff(_LAST_STATE, _STATE, verbose_level=2)
         assert self._plugin is not None
         # TODO: Find how to prevent the infinite loop on refresh without storing the DeepDiff
         if self._plugin.should_update_app(deep_diff):

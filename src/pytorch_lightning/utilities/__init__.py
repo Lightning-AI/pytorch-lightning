@@ -21,7 +21,6 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     _AcceleratorType,
     _StrategyType,
     AMPType,
-    DistributedType,
     GradClipAlgorithmType,
     LightningEnum,
 )

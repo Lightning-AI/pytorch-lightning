@@ -413,7 +413,9 @@ def test_validate_precision_type(precision):
 
 
 def test_amp_level_raises_error_with_native():
-    with pytest.raises(MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"):
+    with pytest.deprecated_call(
+        match="Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0"
+    ), pytest.raises(MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"):
         _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 

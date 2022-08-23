@@ -254,7 +254,9 @@ class WorkRunnerPatch(WorkRunner):
                         "message": None,
                     }
                 )
-                self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+                self.delta_queue.put(
+                    ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
+                )
                 self.counter += 1
             except Exception as e:
                 logger.error(traceback.format_exc())
