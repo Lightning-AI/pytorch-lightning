@@ -1,4 +1,7 @@
 custom_service_name: "Lightning CI required checker"
+# For security reasons, configuration is only loaded from the repository's default branch,
+# changes made in pull requests from different branches or forks are ignored. This means that changes to this file
+# will only be used after they are merged.
 subprojects:
   - id: "CI: CircleCI"
     paths:
