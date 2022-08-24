@@ -106,7 +106,7 @@ Using HPUDataModule
 ``HPUDataModule`` class is a wrapper around the ``LightningDataModule`` class. It makes working with custom models easier on HPU devices.
 It uses HabanaDataloader for training, testing, and validation of user-provided models. Currently, it only supports the ``Imagenet`` dataset.
 
-The below snippet shows an example of how to use the ``HPUDataModule``.
+Here's an example of how to use the ``HPUDataModule``:
 
 .. code-block:: python
 
@@ -152,5 +152,5 @@ The below snippet shows an example of how to use the ``HPUDataModule``.
     trainer.fit(model, datamodule=data_module)
     trainer.validate(model, datamodule=data_module)
 
-A working example can be found at examples/pl_hpu/hpu_datamodule_sample.py
-For more details please refer to `Habana dataloader <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#habana-data-loader>`__.
+A working example can be found at ``examples/pl_hpu/hpu_datamodule_sample.py``.
+For more details refer to `Habana dataloader <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#habana-data-loader>`__.

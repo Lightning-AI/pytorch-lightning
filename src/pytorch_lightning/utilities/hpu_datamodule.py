@@ -120,7 +120,7 @@ class HPUDataModule(pl.LightningDataModule):
             raise ValueError("HabanaDataLoader does not support shuffle=True")
 
         if self.pin_memory is False:
-            raise ValueError("HabanaDataLoader supports only pin_memory=True")
+            raise ValueError("HabanaDataLoader only supports pin_memory=True")
 
         if self.num_workers != 8:
             raise ValueError("HabanaDataLoader only supports num_workers as 8")
