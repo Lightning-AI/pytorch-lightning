@@ -187,9 +187,6 @@ def test_manual_optimization_tpus(tmpdir):
         accelerator="tpu",
         devices=8,
     )
-
-    assert False
-
     trainer.fit(model)
 
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
