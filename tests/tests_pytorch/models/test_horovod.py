@@ -76,19 +76,19 @@ def _run_horovod(trainer_options):
     assert exit_code == 0
 
 
-# @RunIf(horovod=True, skip_windows=True)
-# def test_horovod_cpu(tmpdir):
-#     """Test Horovod running multi-process on CPU."""
-#     trainer_options = dict(
-#         default_root_dir=str(tmpdir),
-#         gradient_clip_val=1.0,
-#         enable_progress_bar=False,
-#         max_epochs=1,
-#         limit_train_batches=0.4,
-#         limit_val_batches=0.2,
-#         strategy="horovod",
-#     )
-#     _run_horovod(trainer_options)
+@RunIf(horovod=True, skip_windows=True)
+def test_horovod_cpu(tmpdir):
+    """Test Horovod running multi-process on CPU."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        gradient_clip_val=1.0,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        strategy="horovod",
+    )
+    _run_horovod(trainer_options)
 
 
 @RunIf(horovod=True, skip_windows=True)
