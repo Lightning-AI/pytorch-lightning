@@ -22,6 +22,7 @@ if _is_param_available():
     from param import ClassSelector, edit_constant, Parameterized
 else:
     Parameterized = object
+    ClassSelector = dict
 
 
 class AppStateWatcher(Parameterized):
