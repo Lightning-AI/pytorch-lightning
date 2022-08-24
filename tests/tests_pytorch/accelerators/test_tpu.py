@@ -318,6 +318,5 @@ def test_warning_if_tpus_not_used():
 )
 def test_trainer_config_device_ids(devices, expected_device_ids):
     trainer = Trainer(accelerator="tpu", devices=devices)
-    assert False
     assert trainer.device_ids == expected_device_ids
     assert trainer.num_devices == len(expected_device_ids)
