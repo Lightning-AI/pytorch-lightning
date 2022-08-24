@@ -39,8 +39,6 @@ local tputests = base.BaseTest {
       cd tests/tests_pytorch
       set -e
       coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
-      test_exit_code=$?
-      test $test_exit_code -eq 0
       echo "\n||| Running standalone tests |||\n"
       bash run_standalone_tests.sh
       test_exit_code=$?
