@@ -74,7 +74,7 @@ class AppStateWatcher(Parameterized):
 
     @requires("param")
     def __init__(self):
-        # Its critical to initialize only once
+        # It's critical to initialize only once
         # See https://github.com/holoviz/param/issues/643
         if not hasattr(self, "_initialized"):
             super().__init__(name="singleton")
