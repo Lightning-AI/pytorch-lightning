@@ -525,7 +525,11 @@ class LightningWork(abc.ABC):
 
     @abc.abstractmethod
     def run(self, *args, **kwargs):
-        """Override to add your own logic."""
+        """Override to add your own logic.
+
+        Raises:
+            LightningPlatformException: If resource exceeds platform quotas or other constraints.
+        """
         pass
 
     def on_exception(self, exception: BaseException):
