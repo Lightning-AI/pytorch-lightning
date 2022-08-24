@@ -12,14 +12,14 @@ import os
 
 from lightning_app.frontend.panel.app_state_comm import watch_app_state
 from lightning_app.frontend.utils import _get_flow_state
-from lightning_app.utilities.imports import requires, _is_param_available
+from lightning_app.utilities.imports import _is_param_available, requires
 from lightning_app.utilities.state import AppState
 
 _logger = logging.getLogger(__name__)
 
 
 if _is_param_available():
-    from param import Parameterized, ClassSelector, edit_constant
+    from param import ClassSelector, edit_constant, Parameterized
 else:
     Parameterized = object
 
