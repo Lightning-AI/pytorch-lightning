@@ -22,7 +22,7 @@ import lightning_app
 
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
-_PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements", "app")
+sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
@@ -306,11 +306,10 @@ def _package_list_from_file(file):
 PACKAGE_MAPPING = {
     "PyYAML": "yaml",
 }
-MOCK_PACKAGES = _package_list_from_file(os.path.join(_PATH_REQUIRE, "cloud.txt"))
-MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_REQUIRE, "ui.txt"))
+MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_REQUIRE, "base.txt"))
+    MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
