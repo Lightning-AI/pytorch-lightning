@@ -443,7 +443,7 @@ class Strategy(ABC):
         """Whether the plugin handles gradient accumulation internally."""
         return False
 
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
         """Returns model state."""
         assert self.lightning_module is not None
         return self.lightning_module.state_dict()

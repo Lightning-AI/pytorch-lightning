@@ -37,6 +37,11 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 log = logging.getLogger(__name__)
 
 
+class _DDPFullyShardedStrategyModuleWrapper(_LightningModuleWrapperBase):
+    def state_dict(self, *args: Any, **kwargs: Any):
+        return self._forward_module.state_dict(*args, **kwargs)
+
+
 class DDPFullyShardedStrategy(DDPStrategy):
 
     strategy_name = "ddp_fully_sharded"
@@ -133,6 +138,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
             self._process_group = torch.distributed.new_group()
         return self._process_group
 
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
+        """Returns model state."""
+        return self.model.module.state_dict()
+
     def setup_distributed(self) -> None:
         if not self.root_device.type == "cuda":
             raise MisconfigurationException(
@@ -150,7 +159,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 self.model = self._layer_sync.apply(self.model)
 
         self.configure_ddp()
-        self.model = _LightningModuleWrapperBase(self.model)
+        self.model = _DDPFullyShardedStrategyModuleWrapper(self.model)
         self.model = self._setup_model(self.model)
         self.setup_optimizers(self.lightning_module.trainer)
         optimizers_to_device(self.optimizers, self.root_device)

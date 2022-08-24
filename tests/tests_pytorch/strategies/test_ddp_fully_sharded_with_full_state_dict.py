@@ -69,16 +69,16 @@ class TestFSDPModelManualWrapped(BoringModel):
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
-    def on_train_start(self) -> None:
+    def on_train_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_test_start(self) -> None:
+    def on_test_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_validation_start(self) -> None:
+    def on_validation_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_prediction_start(self) -> None:
+    def on_prediction_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
@@ -87,8 +87,8 @@ class TestFSDPModelManualWrapped(BoringModel):
         assert isinstance(self.layer.module[2], FullyShardedDataParallel)
 
         # Assert that the nested layers are set reshard_after_forward to True
-        assert self.layer.module[0].reshard_after_forward is True
-        assert self.layer.module[2].reshard_after_forward is True
+        assert self.layer.module[0].reshard_after_forward
+        assert self.layer.module[2].reshard_after_forward
 
         if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
             assert self.layer.mixed_precision
@@ -104,31 +104,25 @@ class TestFSDPModelAutoWrapped(BoringModel):
     def configure_optimizers(self):
         return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
-    def on_train_start(self) -> None:
+    def on_train_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_test_start(self) -> None:
+    def on_test_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_validation_start(self) -> None:
+    def on_validation_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_prediction_start(self) -> None:
+    def on_prediction_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
-        assert isinstance(self.layer, FullyShardedDataParallel)
-        assert isinstance(self.layer.module[0], FullyShardedDataParallel)
-        assert isinstance(self.layer.module[2], FullyShardedDataParallel)
-
-        # Assert that the nested layers are set reshard_after_forward to True
-        assert self.layer.module[0].reshard_after_forward is True
-        assert self.layer.module[2].reshard_after_forward is True
+        assert isinstance(self.trainer.model, FullyShardedDataParallel)
+        # `disable_reshard_on_root=True` (default) in FSDP which turns-off resharding
+        assert not self.trainer.model.reshard_after_forward
 
         if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
-            assert self.layer.mixed_precision
-            assert self.layer.module[0].mixed_precision
-            assert self.layer.module[2].mixed_precision
+            assert self.trainer.model.mixed_precision
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
