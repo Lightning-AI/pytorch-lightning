@@ -23,8 +23,8 @@ import torch.nn.functional
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
-from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from lightning_lite.lite import LightningLite
+from lightning_lite.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
 from pytorch_lightning.utilities import _StrategyType
