@@ -361,24 +361,24 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             context.close()
             browser.close()
 
-            client = LightningClient()
-            project = _get_project(client)
-            print(f"DELETING App: {name} from Project: {project.project_id}")
-
-            list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
-            print(list_lightningapps)
-
-            for lightningapp in list_lightningapps.lightningapps:
-                if lightningapp.name != name:
-                    continue
-                try:
-                    res = client.lightningapp_instance_service_delete_lightningapp_instance(
-                        project_id=project.project_id,
-                        id=lightningapp.id,
-                    )
-                    assert res == {}
-                except ApiException as e:
-                    print(f"Failed to delete {lightningapp.name}. Exception {e}")
+            # client = LightningClient()
+            # project = _get_project(client)
+            # print(f"DELETING App: {name} from Project: {project.project_id}")
+            #
+            # list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+            # print(list_lightningapps)
+            #
+            # for lightningapp in list_lightningapps.lightningapps:
+            #     if lightningapp.name != name:
+            #         continue
+            #     try:
+            #         res = client.lightningapp_instance_service_delete_lightningapp_instance(
+            #             project_id=project.project_id,
+            #             id=lightningapp.id,
+            #         )
+            #         assert res == {}
+            #     except ApiException as e:
+            #         print(f"Failed to delete {lightningapp.name}. Exception {e}")
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
