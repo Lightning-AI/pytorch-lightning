@@ -55,6 +55,7 @@ TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_
 def _run_horovod(trainer_options):
     """Execute the training script across multiple workers in parallel."""
     devices = trainer_options.get("devices", 1)
+    os.environ["NCCL_DEBUG"] = "INFO"
     tutils.reset_seed()
     # TODO: Find out why coverage breaks CI.
     # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
