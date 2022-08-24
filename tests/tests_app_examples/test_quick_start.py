@@ -24,6 +24,7 @@ class QuickStartApp(LightningApp):
         return done
 
 
+@RunIf(pytorch_lightning=True, skip_windows=True)
 def test_quick_start_example(caplog, monkeypatch):
     """This test ensures the Quick Start example properly train and serve PyTorch Lightning."""
 
