@@ -75,12 +75,12 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
         self._bagua_module_name = f"{forward_module.__class__.__name__}{id(forward_module)}"
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        pl_module = unwrap_lightning_module(self.module)
-        trainer = pl_module.trainer
+        pl_module = self.lightning_module
+        trainer = pl_module._trainer
 
         if trainer is not None:
             if trainer.training:
-                output = self.module.training_step(*inputs, **kwargs)
+                output = self._forward_module.training_step(*inputs, **kwargs)
                 # In manual_optimization, we need to prevent DDP reducer as
                 # it is done manually in `LightningModule.manual_backward`
                 # `require_backward_grad_sync` will be reset in the
