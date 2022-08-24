@@ -221,7 +221,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
     trainer.save_checkpoint(model_path, weights_only=True)
 
-    _assert_save_equality(trainer, model_path, cls=TestFSDPModel)
+    _assert_save_equality(trainer, model_path, cls=model.__class__)
 
     # Test entry point
     trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
