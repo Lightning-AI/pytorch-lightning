@@ -70,7 +70,7 @@ class ScriptRunner(TracerPythonScript):
         requirements = [
             "protobuf<4.21.0",
             "pytorch-lightning<=1.6.3",
-            "pydantic<=1.9.0",
+            "pydantic==1.10.0a1",
         ]
         if Path(root_path, "requirements.txt").exists():
             # Requirements from the user's code folder
