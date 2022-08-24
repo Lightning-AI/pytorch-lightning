@@ -367,7 +367,7 @@ def test_hpu_datamodule_pin_memory():
         trainer.fit(model, datamodule=data_module)
 
     assert excinfo.type is ValueError
-    assert str(excinfo.value) == "HabanaDataLoader supports only pin_memory=True"
+    assert str(excinfo.value) == "HabanaDataLoader only supports pin_memory=True"
 
 
 @RunIf(hpu=True)
