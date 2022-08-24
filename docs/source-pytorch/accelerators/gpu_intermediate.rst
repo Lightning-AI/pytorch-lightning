@@ -47,8 +47,9 @@ after which the root node will aggregate the results.
     :doc:`Manual Optimization <../model/manual_optimization>` with DP. Use DDP which is more stable and at least 3x faster.
 
 .. warning:: DP only supports scattering and gathering primitive collections of tensors like lists, dicts, etc.
-    Therefore the :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` hook does not apply in
-    this mode and if you have overridden it, it will not be called.
+    Therefore :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` and
+    :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_after_batch_transfer`
+    do not apply in this mode and if you have overridden any of them, an exception will be raised.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
@@ -102,34 +103,6 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 - You have a nested script without a root package
 
 In these situations you should use `ddp_notebook` or `dp` instead.
-
-Distributed Data Parallel 2
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning::
-    The DDP2 strategy is no longer supported. For single-node use, we recommend ``strategy='ddp'`` or
-    ``strategy='dp'`` as a replacement. If you need DDP2, you will need ``torch < 1.9``,
-    ``pytorch-lightning < 1.5``, and set it as ``accelerator='ddp2'``.
-
-In certain cases, it's advantageous to use all batches on the same machine instead of a subset.
-For instance, you might want to compute a NCE loss where it pays to have more negative samples.
-
-In  this case, we can use DDP2 which behaves like DP in a machine and DDP across nodes. DDP2 does the following:
-
-1. Copies a subset of the data to each node.
-
-2. Inits a model on each node.
-
-3. Runs a forward and backward pass using DP.
-
-4. Syncs gradients across nodes.
-
-5. Applies the optimizer updates.
-
-.. code-block:: python
-
-    # train on 32 GPUs (4 nodes)
-    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp2", num_nodes=4)
 
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -96,8 +96,6 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
 
 @RunIf(min_cuda_gpus=2, min_torch="1.10")
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
@@ -120,8 +118,6 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(min_cuda_gpus=2)
@@ -162,9 +158,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     )
     trainer.fit(model)
 
-    # correct result and ok accuracy
-    assert trainer.state.finished, "amp + ddp model failed to complete"
-
     # test root model address
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
     assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
@@ -185,7 +178,6 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
     assert trainer.amp_backend is None
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert not bwd_mock.called
 
 
@@ -213,7 +205,6 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
     # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
     assert bwd_mock.call_count == 6

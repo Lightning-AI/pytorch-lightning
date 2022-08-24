@@ -143,7 +143,7 @@ Keep Learning
    :header: API Reference
    :description: Detailed description of each API package
    :col_css: col-md-6
-   :button_link: api_reference/api_references.html
+   :button_link: api_references.html
    :height: 180
 
 .. displayitem::
@@ -198,13 +198,13 @@ Keep Learning
 
 .. toctree::
    :maxdepth: 1
-   :caption: Practical Examples
+   :caption: Examples
 
-   Build a DAG <examples/dag/dag>
-   Build a File Server <examples/file_server/file_server>
-   Build a Github Repo Script Runner <examples/github_repo_runner/github_repo_runner>
-   Build a HPO Sweeper <examples/hpo/hpo>
-   Build a Model Server <examples/model_server_app/model_server_app>
+   Develop a DAG <examples/dag/dag>
+   Develop a File Server <examples/file_server/file_server>
+   Develop a Github Repo Script Runner <examples/github_repo_runner/github_repo_runner>
+   Develop a HPO Sweeper <examples/hpo/hpo>
+   Develop a Model Server <examples/model_server_app/model_server_app>
 
 ..
    [Docs under construction] Build a data exploring app  <examples/data_explore_app>
@@ -214,19 +214,21 @@ Keep Learning
 
 .. toctree::
    :maxdepth: 1
-   :caption: Common Workflows
+   :caption: How to...
 
+   Access the App State <workflows/access_app_state/access_app_state>
    Add a web user interface (UI) <workflows/add_web_ui/index>
    Add a web link  <workflows/add_web_link>
    Arrange app tabs <workflows/arrange_tabs/index>
-   Build a Lightning app <workflows/build_lightning_app/index>
-   Build a Lightning component <workflows/build_lightning_component/index>
+   Develop a Lightning App <workflows/build_lightning_app/index>
+   Develop a Lightning Component <workflows/build_lightning_component/index>
    Cache Work run calls  <workflows/run_work_once>
    Customize your cloud compute <core_api/lightning_work/compute>
    Extend an existing app <workflows/extend_app>
    Publish a Lightning component <workflows/build_lightning_component/publish_a_component>
    Run a server within a Lightning App <workflows/add_server/index>
-   Run an app on the cloud <workflows/run_app_on_cloud/index>
+   Run an App on the cloud <workflows/run_app_on_cloud/index>
+   Run Apps on your cloud account (BYOC) <workflows/byoc/index>
    Run work in parallel <workflows/run_work_in_parallel>
    Share an app  <workflows/share_app>
    Share files between components <workflows/share_files_between_components>

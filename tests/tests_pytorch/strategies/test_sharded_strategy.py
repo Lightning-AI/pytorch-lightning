@@ -7,9 +7,9 @@ import torch
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
@@ -41,7 +41,7 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
-def test_sharded_ddp_choice(tmpdir, strategy, expected):
+def test_sharded_ddp_choice(strategy, expected):
     """Test to ensure that strategy is correctly chosen."""
     trainer = Trainer(fast_dev_run=True, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
@@ -51,7 +51,7 @@ def test_sharded_ddp_choice(tmpdir, strategy, expected):
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
-def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
+def test_ddp_choice_sharded_amp(strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=1, precision=16, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
@@ -201,27 +201,12 @@ class ManualBoringModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, fairscale=True)
-def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
-    # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
+@pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
+def test_ddp_sharded_strategy_manual_optimization(tmpdir, strategy):
     model = ManualBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy="ddp_sharded_spawn",
-        fast_dev_run=2,
-        accelerator="gpu",
-        devices=2,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-
-
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, fairscale=True)
-def test_ddp_sharded_strategy_manual_optimization(tmpdir):
-    model = ManualBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="ddp_sharded",
+        strategy=strategy,
         fast_dev_run=2,
         accelerator="gpu",
         devices=2,
@@ -268,11 +253,11 @@ def test_configure_ddp(tmpdir):
 @RunIf(skip_windows=True, fairscale=True)
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_custom_kwargs_sharded(tmpdir, cls):
+def test_custom_kwargs_sharded(_, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     strategy = cls(reduce_fp16=True)
-    strategy.model = Mock(spec=LightningModule)
-    strategy.model.trainer = Mock()
+    strategy._lightning_module = Mock(spec=LightningModule)
+    strategy._lightning_module.trainer = Mock()
     strategy.parallel_devices = [Mock()]
     class_name = "sharded" if isinstance(strategy, DDPShardedStrategy) else "sharded_spawn"
 
@@ -287,12 +272,12 @@ def test_custom_kwargs_sharded(tmpdir, cls):
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize(["params", "expected_buffer_size"], [(dict(), 0), (dict(reduce_buffer_size=128), 128)])
 @pytest.mark.parametrize("num_nodes", [1, 2])
-def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffer_size, num_nodes):
+def test_custom_kwargs_sharded_reduce_buffer_size(_, params, expected_buffer_size, num_nodes):
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     strategy = DDPShardedStrategy(**params)
     strategy.num_nodes = num_nodes
-    strategy.model = Mock(spec=LightningModule)
-    strategy.model.trainer = Mock()
+    strategy._lightning_module = Mock(spec=LightningModule)
+    strategy._lightning_module.trainer = Mock()
     strategy.parallel_devices = [Mock()]
 
     with mock.patch("pytorch_lightning.strategies.sharded.ShardedDataParallel", autospec=True) as mock_sharded:
@@ -308,10 +293,24 @@ def test_custom_kwargs_sharded_reduce_buffer_size(tmpdir, params, expected_buffe
 
 
 @RunIf(skip_windows=True, fairscale=True)
-def test_block_backward_sync(tmpdir):
+def test_block_backward_sync():
     strategy = DDPShardedStrategy()
     model = mock.MagicMock(spec=ShardedDataParallel)
     with mock.patch.object(strategy, "_model", model):
         with strategy.block_backward_sync():
             pass
     model.no_sync.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp_sharded", {}),
+        ("ddp_sharded_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_sharded_spawn", {}),
+        ("ddp_sharded_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

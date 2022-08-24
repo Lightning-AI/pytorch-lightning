@@ -177,7 +177,7 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-@mock.patch("pytorch_lightning.lite.lite._replace_init_method")
+@mock.patch("pytorch_lightning.lite.lite._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
@@ -412,15 +412,21 @@ def test_deepspeed_multiple_models():
             model = BoringModel()
             optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
             model, optimizer = self.setup(model, optimizer)
-            state_dict = deepcopy(model.state_dict())
 
-            for _ in range(2):
+            for i in range(2):
                 optimizer.zero_grad()
                 x = model(torch.randn(1, 32).to(self.device))
                 loss = x.sum()
+                if i == 0:
+                    # the weights are not initialized with stage 3 until backward is run once
+                    assert all(w.nelement() == 0 for w in model.state_dict().values())
                 self.backward(loss, model=model)
+                if i == 0:
+                    # save for later to check that the weights were updated
+                    state_dict = deepcopy(model.state_dict())
                 optimizer.step()
 
+            # check that the model trained, the weights from step 1 do not match the weights from step 2
             for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
                 assert not torch.allclose(mw_b, mw_a)
 
@@ -438,6 +444,7 @@ def test_deepspeed_multiple_models():
             model_1, optimizer_1 = self.setup(model_1, optimizer_1)
             model_2, optimizer_2 = self.setup(model_2, optimizer_2)
 
+            # train model_1 first
             self.seed_everything(42)
             data_list = []
             for _ in range(2):
@@ -449,9 +456,11 @@ def test_deepspeed_multiple_models():
                 self.backward(loss, model=model_1)
                 optimizer_1.step()
 
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert not torch.allclose(mw_1, mw_2)
+            # the weights do not match
+            assert all(w.nelement() > 1 for w in model_1.state_dict().values())
+            assert all(w.nelement() == 0 for w in model_2.state_dict().values())
 
+            # now train model_2 with the same data
             for data in data_list:
                 optimizer_2.zero_grad()
                 x = model_2(data)
@@ -459,6 +468,7 @@ def test_deepspeed_multiple_models():
                 self.backward(loss, model=model_2)
                 optimizer_2.step()
 
+            # the weights should match
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
                 assert torch.allclose(mw_1, mw_2)
 

@@ -19,7 +19,6 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -54,10 +53,6 @@ class ParallelStrategy(Strategy, ABC):
     @abstractmethod
     def root_device(self) -> torch.device:
         """Return the root device."""
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        return unwrap_lightning_module(self.model) if self.model is not None else None
 
     @property
     def global_rank(self) -> int:

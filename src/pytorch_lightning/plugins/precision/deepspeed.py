@@ -20,17 +20,15 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.enums import PrecisionType
+from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.utilities.imports import _APEX_AVAILABLE, _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
 _DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
-_DEEPSPEED_GREATER_EQUAL_0_6 = _RequirementAvailable("deepspeed>=0.6.0")
-if TYPE_CHECKING:
-    if _DEEPSPEED_AVAILABLE:
-        import deepspeed
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
+    import deepspeed
 
 warning_cache = WarningCache()
 
@@ -53,13 +51,16 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
-        if precision == PrecisionType.BFLOAT and not _DEEPSPEED_GREATER_EQUAL_0_6:
-            raise MisconfigurationException(
-                f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported"
-                " with `deepspeed < v0.6`. Please upgrade it using `pip install -U deepspeed`."
-            )
+        if amp_type == AMPType.APEX:
+            if not _APEX_AVAILABLE:
+                raise MisconfigurationException(
+                    "You have asked for Apex AMP but `apex` is not installed."
+                    " Install `apex` using this guide: https://github.com/NVIDIA/apex"
+                )
 
-        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT, PrecisionType.MIXED)
+            amp_level = amp_level or "O2"
+
+        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
@@ -71,7 +72,25 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self.amp_type = amp_type
         self.amp_level = amp_level
 
-    def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
+    def backward(
+        self,
+        model: "pl.LightningModule",
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        r"""Performs back-propagation using DeepSpeed's engine.
+
+        Args:
+            model: the model to be optimized
+            closure_loss: the loss tensor
+            optimizer: ignored for DeepSpeed
+            optimizer_idx: ignored for DeepSpeed
+            \*args: additional positional arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
+            \**kwargs: additional keyword arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
+        """
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"

@@ -4,7 +4,8 @@ description: installing and validationg the package
 inputs:
   pkg-name:
     description: package name for import
-    required: true
+    required: false
+    default: ""
   pip-flags:
     description: additional pil install flags
     required: false
@@ -13,14 +14,24 @@ inputs:
 runs:
   using: "composite"
   steps:
+  - name: Determine package name
+    if: ${{ inputs.pkg-import == '' }}
+    working-directory: ./dist
+    run: python -c "import glob ; ls = glob.glob('*.tar.gz') ; name = '_'.join(ls[0].split('-')[:-1]) ; print(f'PKG_NAME={name}')" >> $GITHUB_ENV
+    shell: bash
+
+  - name: Pass package name
+    if: ${{ inputs.pkg-import != '' }}
+    run: echo "PKG_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
+    shell: bash
 
   - name: Install | Uninstall package - archive
     working-directory: ./dist
     run: |
       pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${{ inputs.pkg-name }} ; print(${{ inputs.pkg-name }}.__version__)"
-      pip uninstall -y ${{ inputs.pkg-name }}
+      python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
+      pip uninstall -y ${PKG_NAME}
     shell: bash
 
   - name: Install | Uninstall package - wheel
@@ -28,6 +39,6 @@ runs:
     run: |
       pip install *.whl ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${{ inputs.pkg-name }} ; print(${{ inputs.pkg-name }}.__version__)"
-      pip uninstall -y ${{ inputs.pkg-name }}
+      python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
+      pip uninstall -y ${PKG_NAME}
     shell: bash

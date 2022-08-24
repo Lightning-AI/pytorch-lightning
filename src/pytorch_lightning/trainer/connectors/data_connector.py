@@ -14,7 +14,7 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable, Collection, List, Optional, Tuple, Union
+from typing import Any, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_au
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _is_dataloader_shuffled,
-    _replace_init_method,
+    _replace_dunder_methods,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -61,13 +61,19 @@ class DataConnector:
     def _should_reload_train_dl(self) -> bool:
         """Check if train dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs)
+        return n_epochs and (
+            self.trainer._last_train_dl_reload_epoch is None
+            or self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
+        )
 
     @property
     def _should_reload_val_dl(self) -> bool:
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs)
+        return n_epochs and (
+            self.trainer._last_val_dl_reload_epoch is None
+            or self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
+        )
 
     def on_trainer_init(
         self,
@@ -298,10 +304,14 @@ class DataConnector:
 
             # update docs too once this is resolved
             trainer_fn = self.trainer.state.fn
-            if isinstance(sampler, DistributedSampler) and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING):
+            if (
+                isinstance(sampler, DistributedSampler)
+                and sampler.num_replicas > 1
+                and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING)
+            ):
                 rank_zero_warn(
-                    f"Using `DistributedSampler` with the dataloaders. During `trainer.{trainer_fn.value}()`,"
-                    " it is recommended to use `Trainer(devices=1)` to ensure each sample/batch gets evaluated"
+                    f"Using `DistributedSampler` with the dataloaders. During `trainer.{trainer_fn.value}()`, it is"
+                    " recommended to use `Trainer(devices=1, num_nodes=1)` to ensure each sample/batch gets evaluated"
                     " exactly once. Otherwise, multi-device settings use `DistributedSampler` that replicates"
                     " some samples to make sure all devices have same batch size in case of uneven inputs.",
                     category=PossibleUserWarning,
@@ -424,9 +434,11 @@ class DataConnector:
         """
         source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
 
-        with _replace_init_method(DataLoader, "dataset"), _replace_init_method(BatchSampler):
+        with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
-            # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning.
+            # Also, it records all attribute setting and deletion using patched `__setattr__` and `__delattr__`
+            # methods so that the re-instantiated object is as close to the original as possible.
             dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
@@ -516,7 +528,7 @@ class _DataLoaderSource:
         return not self.is_module() or is_overridden(self.name, self.instance)
 
     def is_module(self) -> bool:
-        """Returns whether the the DataLoader source is a LightningModule or a LightningDataModule.
+        """Returns whether the DataLoader source is a LightningModule or a LightningDataModule.
 
         It does not check whether ``*_dataloader`` methods are actually overridden.
         """
@@ -527,16 +539,16 @@ class _DataLoaderSource:
 
 @dataclass
 class _DataHookSelector:
-    """Stores the info about the shared DataHooks within LightningModule and LightningDataModule.
+    """Stores the info about the shared DataHooks within ``LightningModule`` and ``LightningDataModule``.
 
-    The hook source can be
+    The hook source can be:
 
-    1. a method from the :class:`~pytorch_lightning.core.module.LightningModule`,
-    2. a method from the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+    1. the :class:`~pytorch_lightning.core.module.LightningModule`,
+    2. the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
 
     Arguments:
-        model: A LightningModule
-        datamodule: A LightningDataModule
+        model: A ``LightningModule``
+        datamodule: A ``LightningDataModule``
     """
 
     model: "pl.LightningModule"
@@ -545,7 +557,7 @@ class _DataHookSelector:
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
-    def get_hook(self, hook_name: str) -> Callable:
+    def get_instance(self, hook_name: str) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         if hook_name not in self._valid_hooks:
             raise ValueError(
                 f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."
@@ -553,7 +565,7 @@ class _DataHookSelector:
             )
 
         if self.datamodule is None:
-            return getattr(self.model, hook_name)
+            return self.model
 
         if is_overridden(hook_name, self.datamodule):
             if is_overridden(hook_name, self.model):
@@ -561,11 +573,11 @@ class _DataHookSelector:
                     f"You have overridden `{hook_name}` in both `LightningModule` and `LightningDataModule`."
                     " It will use the implementation from `LightningDataModule` instance."
                 )
-            return getattr(self.datamodule, hook_name)
+            return self.datamodule
 
         if is_overridden(hook_name, self.model):
             warning_cache.warn(
                 f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
                 " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
             )
-        return getattr(self.model, hook_name)
+        return self.model

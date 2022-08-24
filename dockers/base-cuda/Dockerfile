@@ -18,7 +18,7 @@ ARG CUDA_VERSION=11.3.1
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.9
+ARG PYTORCH_VERSION=1.12
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -140,8 +140,9 @@ RUN \
 RUN \
     # install Bagua
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
-    python -c "import bagua_core; bagua_core.install_deps()" && \
+    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [115,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
+    pip install "bagua-cuda$CUDA_VERSION_BAGUA==0.9.0" && \
+    if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
     python -c "import bagua; print(bagua.__version__)"
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py

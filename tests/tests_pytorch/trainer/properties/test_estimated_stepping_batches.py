@@ -22,11 +22,10 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomIterableDataset
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -97,11 +96,10 @@ def test_num_stepping_batches_infinite_training():
 
 def test_num_stepping_batches_with_max_steps():
     """Test stepping batches with `max_steps`."""
-    max_steps = 7
+    max_steps = 2
     trainer = Trainer(max_steps=max_steps)
     model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
+    trainer.fit(model)
     assert trainer.estimated_stepping_batches == max_steps
 
 
