@@ -324,7 +324,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 
     if isinstance(device, str):
         device = torch.device(device)
-        
+
     assert isinstance(device, torch.device)
 
     def batch_to(data: Any) -> Any:
