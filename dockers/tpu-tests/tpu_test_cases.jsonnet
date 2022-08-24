@@ -37,6 +37,7 @@ local tputests = base.BaseTest {
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
       export PL_RUN_TPU_TESTS=1
       cd tests/tests_pytorch
+      set -e
       coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
       echo "\n||| Running standalone tests |||\n"
       bash run_standalone_tests.sh
