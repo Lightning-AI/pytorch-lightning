@@ -17,6 +17,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 import torch
 import torch.cuda
 
+from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
@@ -108,7 +109,6 @@ def parse_gpu_ids(
     gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
-    from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 
     if (
         TorchElasticEnvironment.detect()
