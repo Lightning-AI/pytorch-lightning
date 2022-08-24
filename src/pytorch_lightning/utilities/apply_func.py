@@ -325,9 +325,10 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     if isinstance(device, str):
         device = torch.device(device)
 
-    assert isinstance(device, torch.device)
-
     def batch_to(data: Any) -> Any:
+        # Check must happen inside the inner function else mypy won't register the casting in the outer function.
+        assert isinstance(device, torch.device)
+
         # try to move torchtext data first
         if _TORCHTEXT_LEGACY and isinstance(data, Batch):
             # TODO: also remove the torchtext dependency with Lightning 1.8
