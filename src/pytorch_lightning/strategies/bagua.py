@@ -93,7 +93,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
                 return output
             else:
                 return super().forward(*inputs, **kwargs)
-        return self.module(*inputs, **kwargs)
+        return self._forward_module(*inputs, **kwargs)
 
 
 class BaguaStrategy(DDPStrategy):
