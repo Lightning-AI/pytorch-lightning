@@ -266,11 +266,12 @@ class BaguaStrategy(DDPStrategy):
         return broadcast_object(obj, src)
 
     def post_training_step(self) -> None:
+        assert self.lightning_module is not None
         # Using bagua strategy, the model is redefined in model.inner
         # and cannot be accessed directly. We need to redefine the
         # post_training_step function to make manual backward work.
         if not self.lightning_module.automatic_optimization:
-            self.model.inner.require_backward_grad_sync = True
+            self.model.inner.require_backward_grad_sync = True  # type: ignore[union-attr]
 
     def reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
