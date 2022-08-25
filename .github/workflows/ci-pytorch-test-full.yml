@@ -20,20 +20,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
-        # TODO: Add {python-version: "3.10", requires: "oldest"} back when dropping PyTorch 1.9 support.
-        include:
-          - {os: "ubuntu-20.04", python-version: "3.7", requires: "oldest", release: "stable"}
-          - {os: "ubuntu-20.04", python-version: "3.7", requires: "latest", release: "stable"}
-          - {os: "ubuntu-20.04", python-version: "3.10", requires: "latest", release: "stable"}
-          - {os: "macos-11", python-version: "3.7", requires: "oldest", release: "stable"}
-          - {os: "macos-11", python-version: "3.7", requires: "latest", release: "stable"}
-          - {os: "macos-11", python-version: "3.10", requires: "latest", release: "stable"}
-          - {os: "windows-2022", python-version: "3.7", requires: "oldest", release: "stable"}
-          - {os: "windows-2022", python-version: "3.7", requires: "latest", release: "stable"}
-          - {os: "windows-2022", python-version: "3.10", requires: "latest", release: "stable"}
-          # Note: enable testing with release candidate as needed
-          # - {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
+        os: [ubuntu-20.04, windows-2022, macOS-11]
+        python-version: ["3.7", "3.10"]  # minimum, maximum
+        requires: ["oldest", "latest"]
+        release: ["stable"]
+        exclude:
+          # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
+          # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
+          - {python-version: "3.10", requires: "oldest"}
+        # TODO: re-enable RC testing
+        # include:
+        #   - {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 
     timeout-minutes: 40
 
