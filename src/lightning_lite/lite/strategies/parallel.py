@@ -13,24 +13,25 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import torch
-from torch import Tensor
+from torch import Module, Tensor
+from torch.optim import Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning.plugins import LayerSync
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.distributed import (
+import lightning_lite.lite as lite
+from lightning_lite.lite.plugins import LayerSync
+from lightning_lite.lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.strategy import Strategy
+from lightning_lite.lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     all_gather_ddp_if_available,
     get_default_process_group_backend_for_device,
     ReduceOp,
 )
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from lightning_lite.lite.utilities.rank_zero import rank_zero_deprecation
 
 
 class ParallelStrategy(Strategy, ABC):
@@ -38,7 +39,7 @@ class ParallelStrategy(Strategy, ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["lite.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -100,9 +101,6 @@ class ParallelStrategy(Strategy, ABC):
             return pg_backend
         return get_default_process_group_backend_for_device(self.root_device)
 
-    def reconciliate_processes(self, trace: str) -> None:
-        """Function to re-conciliate processes on failure."""
-
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
@@ -114,19 +112,21 @@ class ParallelStrategy(Strategy, ABC):
         return decision
 
     @contextmanager
-    def block_backward_sync(self) -> Generator:
+    def block_backward_sync(self, module: Module) -> Generator:
         """Blocks ddp sync gradients behaviour on backwards pass.
 
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        if isinstance(self.model, pl.utilities.types.DistributedDataParallel):
-            with self.model.no_sync():
+        if isinstance(module, lite.utilities.types.DistributedDataParallel):
+            with module.no_sync():
                 yield None
         else:
             yield None
 
-    def teardown(self) -> None:
+    def teardown(
+        self, modules: Iterable[Module] = (), optimizers: Iterable[Optimizer] = ()
+    ) -> Tuple[Iterable[Module], Iterable[Optimizer]]:
         assert self.cluster_environment is not None
         self.cluster_environment.teardown()
-        super().teardown()
+        return super().teardown(modules=modules, optimizers=optimizers)

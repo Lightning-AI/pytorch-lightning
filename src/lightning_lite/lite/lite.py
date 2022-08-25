@@ -257,7 +257,7 @@ class LightningLite(ABC):
                 # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
                 self._strategy.model = module
 
-        self._precision_plugin._run_backward(tensor, module, *args, **kwargs)
+        self._strategy.run_backward(tensor, module, *args, **kwargs)
 
     @contextmanager
     def autocast(self) -> Generator[None, None, None]:

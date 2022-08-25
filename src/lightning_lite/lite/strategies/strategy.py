@@ -116,7 +116,9 @@ class Strategy(ABC):
         """
         return dataloader
 
-    def setup_module_and_optimizers(self, module: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+    def setup_module_and_optimizers(
+        self, module: Module, optimizers: List[Optimizer]
+    ) -> Tuple[Module, List[Optimizer]]:
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
@@ -161,39 +163,16 @@ class Strategy(ABC):
         """
         yield
 
-    def pre_backward(self, closure_loss: Tensor) -> None:
+    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
         """Run before precision plugin executes backward."""
 
-    def backward(
-        self,
-        closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
-        optimizer_idx: Optional[int],
-        *args: Any,
-        **kwargs: Any,
-    ) -> Tensor:
-        r"""Forwards backward-calls to the precision plugin.
+    def run_backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
+        r"""Forwards backward-calls to the precision plugin."""
+        self.pre_backward(tensor, module)
+        self.precision_plugin.run_backward(tensor, module, *args, **kwargs)
+        self.post_backward(tensor, module)
 
-        Args:
-            closure_loss: a tensor holding the loss value to backpropagate
-            optimizer: An optional optimizer that gets passed down to the precision plugin's backward
-            optimizer_idx: An optional optimizer index that gets passed down to the precision plugin's backward
-            \*args: Positional arguments that get passed down to the precision plugin's backward, intended as arguments
-                for the actual function that performs the backward, like :meth:`~torch.Tensor.backward`.
-            \**kwargs: Keyword arguments for the same purpose as ``*args``.
-        """
-        self.pre_backward(closure_loss)
-        assert self.lightning_module is not None
-        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
-
-        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
-
-        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
-        self.post_backward(closure_loss)
-
-        return closure_loss
-
-    def post_backward(self, closure_loss: Tensor) -> None:
+    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
         """Run after precision plugin executes backward."""
 
     def optimizer_step(
@@ -313,24 +292,24 @@ class Strategy(ABC):
             self.checkpoint_io.remove_checkpoint(filepath)
 
     def teardown(
-        self, modules: Optional[Iterable[Module]] = None, optimizers: Optional[Iterable[Optimizer]] = None
-    ) -> None:
+        self, modules: Iterable[Module] = (), optimizers: Iterable[Optimizer] = ()
+    ) -> Tuple[Iterable[Module], Iterable[Optimizer]]:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
         """
-        if optimizers is not None:
-            optimizers_to_device(optimizers, torch.device("cpu"))
+        optimizers_to_device(optimizers, torch.device("cpu"))
 
-        if modules is not None:
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            for module in modules:
-                module.cpu()
+        log.detail(f"{self.__class__.__name__}: moving model to CPU")
+        for module in modules:
+            module.cpu()
 
         self.precision_plugin.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
         self.checkpoint_io.teardown()
+
+        return modules, optimizers
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
