@@ -11,12 +11,13 @@ from time import time
 from deepdiff import DeepDiff, Delta
 
 import lightning_app
+from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
 from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
-from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_command_requests
+from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
@@ -73,9 +74,7 @@ class LightningApp:
         # queues definition.
         self.delta_queue: t.Optional[BaseQueue] = None
         self.readiness_queue: t.Optional[BaseQueue] = None
-        self.commands_requests_queue: t.Optional[BaseQueue] = None
-        self.commands_responses_queue: t.Optional[BaseQueue] = None
-        self.commands_metadata_queue: t.Optional[BaseQueue] = None
+        self.api_response_queue: t.Optional[BaseQueue] = None
         self.api_publish_state_queue: t.Optional[BaseQueue] = None
         self.api_delta_queue: t.Optional[BaseQueue] = None
         self.error_queue: t.Optional[BaseQueue] = None
@@ -253,7 +252,7 @@ class LightningApp:
         """Returns all the works defined within this application with their names."""
         return self.root.named_works(recurse=True)
 
-    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[Delta]:
+    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[t.Union[Delta, APIRequest, CommandRequest]]:
         # The aggregation would try to get as many deltas as possible
         # from both the `api_delta_queue` and `delta_queue`
         # during the `state_accumulate_wait` time.
@@ -267,8 +266,12 @@ class LightningApp:
         while (time() - t0) < self.state_accumulate_wait:
 
             if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: Delta = self.get_state_changed_from_queue(self.api_delta_queue)  # TODO: rename
+                delta_from_api: t.Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(
+                    self.api_delta_queue
+                )  # TODO: rename
                 if delta_from_api:
+                    if isinstance(delta_from_api, DeltaRequest):
+                        delta_from_api = delta_from_api.delta
                     deltas.append(delta_from_api)
                 else:
                     should_get_delta_from_api = False
@@ -317,8 +320,19 @@ class LightningApp:
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
-        state = self.state
+        # 1: Process the API / Command Requests first as they might affect the state.
+        state_deltas = []
         for delta in deltas:
+            if isinstance(delta, (APIRequest, CommandRequest)):
+                _process_requests(self, delta)
+            else:
+                state_deltas.append(delta)
+
+        # 2: Collect the state
+        state = self.state
+
+        # 3: Apply the state delta
+        for delta in state_deltas:
             try:
                 state += delta
             except Exception as e:
@@ -350,8 +364,6 @@ class LightningApp:
 
         elif self.stage == AppStage.RESTARTING:
             return self._apply_restarting()
-
-        _process_command_requests(self)
 
         t0 = time()
 
@@ -410,8 +422,6 @@ class LightningApp:
             self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
-
-        _populate_commands_endpoint(self)
 
         while not done:
             done = self.run_once()

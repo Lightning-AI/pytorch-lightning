@@ -633,12 +633,12 @@ class Trainer(
         self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.num_val_batches = []
+        self.num_predict_batches = []
         self.test_dataloaders = None
         self.val_dataloaders = None
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
-
-        self.num_predict_batches = []
+        self.predict_dataloaders = None
+        self._last_train_dl_reload_epoch = None
+        self._last_val_dl_reload_epoch: Optional[int] = None
 
     def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
         r"""
@@ -711,7 +711,7 @@ class Trainer(
         """
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model
+        self.strategy._lightning_module = model
         self._call_and_handle_interrupt(
             self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -730,8 +730,6 @@ class Trainer(
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
-        self._last_train_dl_reload_epoch = float("-inf")
-        self._last_val_dl_reload_epoch = float("-inf")
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
@@ -793,7 +791,7 @@ class Trainer(
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _validate_impl(
@@ -883,7 +881,7 @@ class Trainer(
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _test_impl(
@@ -972,7 +970,7 @@ class Trainer(
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(
             self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
@@ -1937,12 +1935,17 @@ class Trainer(
         has_step = is_overridden("validation_step", pl_module)
         enable_validation = self.limit_val_batches > 0
         if source.is_defined() and has_step and enable_validation:
+            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+            # it should not reload again if it has already reloaded during sanity_check
+            if self.state.fn == TrainerFn.FITTING and (
+                (self.sanity_checking and self.fit_loop.epoch_loop._should_check_val_epoch())
+                or not self.sanity_checking
+            ):
+                self._last_val_dl_reload_epoch = self.current_epoch
+
             self.num_val_batches, self.val_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.VALIDATING, model=pl_module
             )
-
-            # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-            self._last_val_dl_reload_epoch = self.current_epoch
 
     def reset_test_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the test dataloader and determines the number of batches.

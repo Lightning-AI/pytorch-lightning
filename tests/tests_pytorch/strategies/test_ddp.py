@@ -21,60 +21,41 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy
+from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.strategies import ddp_model
-from tests_pytorch.utilities.distributed import call_training_script
-
-CLI_ARGS = "--max_epochs 1 --accelerator gpu --devices 2 --strategy ddp"
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("as_module", [True, False])
-def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
-    # call the script
-    call_training_script(ddp_model, CLI_ARGS, "fit", tmpdir, timeout=120, as_module=as_module)
-
-    # load the results of the script
-    result_path = os.path.join(tmpdir, "ddp.result")
-    result = torch.load(result_path)
-
-    # verify the file wrote the expected outputs
-    assert result["status"] == "complete"
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_multi_gpu_model_ddp_fit_only(tmpdir):
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("as_module", [True, False])
-def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
-    # call the script
-    call_training_script(ddp_model, CLI_ARGS, "test", tmpdir, as_module=as_module)
-
-    # load the results of the script
-    result_path = os.path.join(tmpdir, "ddp.result")
-    result = torch.load(result_path)
-
-    # verify the file wrote the expected outputs
-    assert result["status"] == "complete"
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_multi_gpu_model_ddp_test_only(tmpdir):
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer.test(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("as_module", [True, False])
-def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
-    # call the script
-    call_training_script(ddp_model, CLI_ARGS, "fit_test", tmpdir, timeout=20, as_module=as_module)
+@RunIf(min_cuda_gpus=2, standalone=True)
+def test_multi_gpu_model_ddp_fit_test(tmpdir):
+    seed_everything(4321)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer.fit(model, datamodule=dm)
+    result = trainer.test(model, datamodule=dm)
 
-    # load the results of the script
-    result_path = os.path.join(tmpdir, "ddp.result")
-    result = torch.load(result_path)
-
-    # verify the file wrote the expected outputs
-    assert result["status"] == "complete"
-
-    model_outs = result["result"]
-    for out in model_outs:
+    for out in result:
         assert out["test_acc"] > 0.7
 
 

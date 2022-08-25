@@ -1,6 +1,8 @@
 import re
 from typing import Dict, Optional
 
+import arrow
+import click
 import requests
 
 from lightning_app.core.constants import APP_SERVER_PORT
@@ -49,16 +51,42 @@ def _is_url(id: Optional[str]) -> bool:
     return False
 
 
+def _get_metadata_from_openapi(paths: Dict, path: str):
+    parameters = paths[path]["post"].get("parameters", {})
+    tag = paths[path]["post"].get("tags", [None])[0]
+    cls_path = paths[path]["post"].get("cls_path", None)
+    cls_name = paths[path]["post"].get("cls_name", None)
+
+    metadata = {"tag": tag, "parameters": {}}
+
+    if cls_path:
+        metadata["cls_path"] = cls_path
+
+    if cls_name:
+        metadata["cls_name"] = cls_name
+
+    if not parameters:
+        return metadata
+
+    metadata["parameters"].update({d["name"]: d["schema"]["type"] for d in parameters})
+    return metadata
+
+
+def _extract_command_from_openapi(openapi_resp: Dict) -> Dict[str, Dict[str, str]]:
+    command_paths = [p for p in openapi_resp["paths"] if p.startswith("/command/")]
+    return {p.replace("/command/", ""): _get_metadata_from_openapi(openapi_resp["paths"], p) for p in command_paths}
+
+
 def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Optional[str]):
     """This function is used to retrieve the current url associated with an id."""
 
     if _is_url(app_id_or_name_or_url):
         url = app_id_or_name_or_url
         assert url
-        resp = requests.get(url + "/api/v1/commands")
+        resp = requests.get(url + "/openapi.json")
         if resp.status_code != 200:
             raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-        return url, resp.json()
+        return url, _extract_command_from_openapi(resp.json())
 
     # 2: If no identifier has been provided, evaluate the local application
     failed_locally = False
@@ -66,10 +94,10 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
     if app_id_or_name_or_url is None:
         try:
             url = f"http://localhost:{APP_SERVER_PORT}"
-            resp = requests.get(f"{url}/api/v1/commands")
+            resp = requests.get(f"{url}/openapi.json")
             if resp.status_code != 200:
                 raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-            return url, resp.json()
+            return url, _extract_command_from_openapi(resp.json())
         except requests.exceptions.ConnectionError:
             failed_locally = True
 
@@ -88,8 +116,20 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
             if lightningapp.id == app_id_or_name_or_url or lightningapp.name == app_id_or_name_or_url:
                 if lightningapp.status.url == "":
                     raise Exception("The application is starting. Try in a few moments.")
-                resp = requests.get(lightningapp.status.url + "/api/v1/commands")
+                resp = requests.get(lightningapp.status.url + "/openapi.json")
                 if resp.status_code != 200:
                     raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-                return lightningapp.status.url, resp.json()
+                return lightningapp.status.url, _extract_command_from_openapi(resp.json())
     return None, None
+
+
+def _arrow_time_callback(
+    _ctx: "click.core.Context", _param: "click.core.Option", value: str, arw_now=arrow.utcnow()
+) -> arrow.Arrow:
+    try:
+        return arw_now.dehumanize(value)
+    except ValueError:
+        try:
+            return arrow.get(value)
+        except (ValueError, TypeError):
+            raise click.ClickException(f"cannot parse time {value}")
