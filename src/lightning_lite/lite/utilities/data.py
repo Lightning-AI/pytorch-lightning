@@ -21,13 +21,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, 
 
 import torch
 from torch import Tensor
-from torch.utils.data import (
-    BatchSampler,
-    DataLoader,
-    IterableDataset,
-    Sampler,
-)
-
+from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
 
 from lightning_lite.lite.utilities.enums import LightningEnum
 from lightning_lite.lite.utilities.meta import _get_all_subclasses
@@ -136,9 +130,7 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
     return float("inf")
 
 
-def _update_dataloader(
-    dataloader: DataLoader, sampler: Union[Sampler, Iterable]
-) -> DataLoader:
+def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
     dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
     return dataloader

@@ -30,7 +30,6 @@ from lightning_lite.lite.overrides.distributed import DistributedSamplerWrapper
 from lightning_lite.lite.plugins import PLUGIN_INPUT
 from lightning_lite.lite.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
 from lightning_lite.lite.strategies.strategy import TBroadcast
-from lightning_lite.lite.utilities.enums import _AcceleratorType, _StrategyType
 from lightning_lite.lite.utilities.apply_func import apply_to_collection, convert_to_tensors, move_data_to_device
 from lightning_lite.lite.utilities.data import (
     _auto_add_worker_init_fn,
@@ -38,6 +37,7 @@ from lightning_lite.lite.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
+from lightning_lite.lite.utilities.enums import _AcceleratorType, _StrategyType
 from lightning_lite.lite.utilities.seed import seed_everything
 from lightning_lite.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 

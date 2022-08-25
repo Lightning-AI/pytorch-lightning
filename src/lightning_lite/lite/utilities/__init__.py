@@ -52,4 +52,3 @@ from lightning_lite.lite.utilities.rank_zero import (  # noqa: F401
     rank_zero_only,
     rank_zero_warn,
 )
-

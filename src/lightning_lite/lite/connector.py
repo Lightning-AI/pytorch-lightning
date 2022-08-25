@@ -71,8 +71,8 @@ from lightning_lite.lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.lite.utilities import (
     _StrategyType,
     AMPType,
-    LightningEnum,
     device_parser,
+    LightningEnum,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,

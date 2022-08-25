@@ -186,9 +186,7 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
     all_available_gpus = _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            raise RuntimeError(
-                f"You requested gpu: {gpus}\n But your machine only has: {all_available_gpus}"
-            )
+            raise RuntimeError(f"You requested gpu: {gpus}\n But your machine only has: {all_available_gpus}")
     return gpus
 
 
