@@ -14,7 +14,7 @@
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -22,26 +22,16 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.plugins import TorchCheckpointIO
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-from pytorch_lightning.utilities.types import (
-    _PATH,
-    LRSchedulerConfig,
-    PredictStep,
-    STEP_OUTPUT,
-    TestStep,
-    TrainingStep,
-    ValidationStep,
-)
+import lightning_lite.lite as lite
+from lightning_lite.lite.plugins import TorchCheckpointIO
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.launchers.base import _Launcher
+from lightning_lite.lite.utilities.apply_func import move_data_to_device
+from lightning_lite.lite.utilities.distributed import ReduceOp
+from lightning_lite.lite.utilities.optimizer import optimizer_to_device, optimizers_to_device
+from lightning_lite.lite.utilities.types import _PATH
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -54,31 +44,35 @@ class Strategy(ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["lite.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
-        self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
+        self._accelerator: Optional["lite.accelerators.accelerator.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
-        self._lightning_module: Optional[pl.LightningModule] = None
-        self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None
-        self._optimizers: List[Optimizer] = []
-        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
-        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
-        self.optimizer_frequencies: List[int] = []
+
+    @property
+    @abstractmethod
+    def root_device(self) -> torch.device:
+        """Returns the root device."""
+
+    @property
+    @abstractmethod
+    def is_global_zero(self) -> bool:
+        """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @property
     def launcher(self) -> Optional[_Launcher]:
         return self._launcher
 
     @property
-    def accelerator(self) -> Optional["pl.accelerators.accelerator.Accelerator"]:
+    def accelerator(self) -> Optional["lite.accelerators.accelerator.Accelerator"]:
         return self._accelerator
 
     @accelerator.setter
-    def accelerator(self, accelerator: "pl.accelerators.accelerator.Accelerator") -> None:
+    def accelerator(self, accelerator: "lite.accelerators.accelerator.Accelerator") -> None:
         self._accelerator = accelerator
 
     @property
@@ -102,22 +96,6 @@ class Strategy(ABC):
     def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
         self._precision_plugin = precision_plugin
 
-    @property
-    def optimizers(self) -> List[Optimizer]:
-        return self._optimizers
-
-    @optimizers.setter
-    def optimizers(self, optimizers: List[Optimizer]) -> None:
-        self._optimizers = optimizers
-        self._lightning_optimizers = {
-            idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
-        }
-
-    def connect(self, model: "pl.LightningModule") -> None:
-        """Called by the accelerator to connect the accelerator and the model with this plugin."""
-        self._lightning_module = model
-        self.model = model
-
     def _configure_launcher(self) -> None:
         """Attach the launcher based on Strategy."""
 
@@ -130,47 +108,61 @@ class Strategy(ABC):
         assert self.accelerator is not None
         self.accelerator.setup_environment(self.root_device)
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        """Creates optimizers and schedulers.
+    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
+        """Wraps the dataloader if necessary.
 
         Args:
-            trainer: the Trainer, these optimizers should be connected to
+            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
         """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
-            return
-        assert self.lightning_module is not None
-        self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
-            self.lightning_module
-        )
+        return dataloader
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        """Setup plugins for the trainer fit and creates optimizers.
+    def setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Setup a model and multiple optimizers together.
+
+        The returned objects are expected to be in the same order they were passed in. The default implementation will
+        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+        """
+        model = self.setup_module(model)
+        optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
+        return model, optimizers
+
+    def setup_module(self, model: Module) -> Module:
+        """Performs setup for the model, e.g., by wrapping it by another class."""
+        return model
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Performs setup for the optimizer, e.g., by wrapping it by another class."""
+        return optimizer
+
+    @abstractmethod
+    def model_to_device(self) -> None:
+        """Moves the model to the correct device."""
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+        """Moves the batch to the correct device.
+
+        The returned batch is of the same type as the input batch, just
+        having all tensors on the correct device.
 
         Args:
-            trainer: the trainer instance
+            batch: The batch of samples to move to the correct device
+            device: The target device
         """
-        assert self.accelerator is not None
-        self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
+        device = device or self.root_device
+        return move_data_to_device(batch, device)
 
-    def setup_precision_plugin(self) -> None:
-        """Attaches the precision plugin to the accelerator."""
-        assert self.model is not None
-        model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
-            self.model, self.optimizers, self.lr_scheduler_configs
-        )
-        self.model = model
-        self.optimizers = optimizers
-        self.lr_scheduler_configs = lr_scheduler_configs
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator:
+        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
 
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
-        """Returns state of an optimizer.
-
-        Allows for syncing/collating optimizer state from processes in custom plugins.
+        Returns: Model parallel context.
         """
-        return optimizer.state_dict()
+        yield
+
+    def pre_backward(self, closure_loss: Tensor) -> None:
+        """Run before precision plugin executes backward."""
 
     def backward(
         self,
@@ -201,12 +193,15 @@ class Strategy(ABC):
 
         return closure_loss
 
+    def post_backward(self, closure_loss: Tensor) -> None:
+        """Run after precision plugin executes backward."""
+
     def optimizer_step(
         self,
         optimizer: Optimizer,
         opt_idx: int,
         closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
+        model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
@@ -218,60 +213,7 @@ class Strategy(ABC):
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        model = model or self.lightning_module
         return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
-
-    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
-        """Setup a model and multiple optimizers together.
-
-        The returned objects are expected to be in the same order they were passed in. The default implementation will
-        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
-        """
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
-        model = self._setup_model(model)
-        optimizers = [self._setup_optimizer(optimizer) for optimizer in optimizers]
-        return model, optimizers
-
-    def _setup_model(self, model: Module) -> Module:
-        """Performs setup for the model, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
-        return model
-
-    def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        """Performs setup for the optimizer, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
-        return optimizer
-
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
-        """Moves the batch to the correct device.
-
-        The returned batch is of the same type as the input batch, just
-        having all tensors on the correct device.
-
-        Args:
-            batch: The batch of samples to move to the correct device
-            device: The target device
-            dataloader_idx: The index of the dataloader to which the batch belongs.
-        """
-        model = self.lightning_module
-        device = device or self.root_device
-        if model is not None:
-            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
-        return move_data_to_device(batch, device)
-
-    @property
-    @abstractmethod
-    def root_device(self) -> torch.device:
-        """Returns the root device."""
-
-    @abstractmethod
-    def model_to_device(self) -> None:
-        """Moves the model to the correct device."""
-
-    @property
-    @abstractmethod
-    def is_global_zero(self) -> bool:
-        """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @abstractmethod
     def reduce(
@@ -320,124 +262,6 @@ class Strategy(ABC):
         """Reduce a boolean decision across all processes."""
         return decision
 
-    def pre_backward(self, closure_loss: Tensor) -> None:
-        """Run before precision plugin executes backward."""
-
-    def post_backward(self, closure_loss: Tensor) -> None:
-        """Run after precision plugin executes backward."""
-
-    @property
-    def model(self) -> Optional[Module]:
-        """Returns the potentially wrapped LightningModule."""
-        return self._model if self._model is not None else self._lightning_module
-
-    @model.setter
-    def model(self, new_model: Optional[Module]) -> None:
-        self._model = new_model
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        """Returns the pure LightningModule without potential wrappers."""
-        return self._lightning_module
-
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
-        torch.cuda.empty_cache()
-        return self.checkpoint_io.load_checkpoint(checkpoint_path)
-
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        assert self.lightning_module is not None
-        self.lightning_module.load_state_dict(checkpoint["state_dict"])
-
-    def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        optimizer_states = checkpoint["optimizer_states"]
-        for optimizer, opt_state in zip(self.optimizers, optimizer_states):
-            optimizer.load_state_dict(opt_state)
-            optimizer_to_device(optimizer, self.root_device)
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        """The actual training step.
-
-        See :meth:`~pytorch_lightning.core.module.LightningModule.training_step` for more details
-        """
-        with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
-            return self.model.training_step(*args, **kwargs)
-
-    def post_training_step(self) -> None:
-        pass
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """The actual validation step.
-
-        See :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` for more details
-        """
-        with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
-            return self.model.validation_step(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        """The actual test step.
-
-        See :meth:`~pytorch_lightning.core.module.LightningModule.test_step` for more details
-        """
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        """The actual predict step.
-
-        See :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` for more details
-        """
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
-
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
-        """Wraps the dataloader if necessary.
-
-        Args:
-            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
-        """
-        return dataloader
-
-    @property
-    def restore_checkpoint_after_setup(self) -> bool:
-        """Override to delay restoring from checkpoint till after pre-dispatch. This is useful when the plugin
-        requires all the setup hooks to run before loading checkpoint.
-
-        Returns:
-            If true, restore checkpoint after pre_dispatch.
-        """
-        return False
-
-    @property
-    def lightning_restore_optimizer(self) -> bool:
-        """Override to disable Lightning restoring optimizers/schedulers.
-
-        This is useful for plugins which manage restoring optimizers/schedulers.
-        """
-        return True
-
-    @property
-    def handles_gradient_accumulation(self) -> bool:
-        """Whether the plugin handles gradient accumulation internally."""
-        return False
-
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
-        """Returns model state."""
-        assert self.lightning_module is not None
-        return self.lightning_module.state_dict()
-
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
@@ -451,6 +275,34 @@ class Strategy(ABC):
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
+    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+        """Returns model state."""
+        return module.state_dict()
+
+    def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+        """Returns state of an optimizer.
+
+        Allows for syncing/collating optimizer state from processes in custom plugins.
+        """
+        return optimizer.state_dict()
+
+    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+        torch.cuda.empty_cache()
+        return self.checkpoint_io.load_checkpoint(checkpoint_path)
+
+    def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:
+        module.load_state_dict(checkpoint["state_dict"])
+
+    def load_optimizer_state_dict(
+        self, optimizers: Union[Optimizer, Iterable[Optimizer]], checkpoint: Mapping[str, Any]
+    ) -> None:
+        if not isinstance(optimizers, Iterable):
+            optimizers = [optimizers]
+        optimizer_states = checkpoint["optimizer_states"]
+        for optimizer, opt_state in zip(optimizers, optimizer_states):
+            optimizer.load_state_dict(opt_state)
+            optimizer_to_device(optimizer, self.root_device)
+
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
 
@@ -460,26 +312,21 @@ class Strategy(ABC):
         if self.is_global_zero:
             self.checkpoint_io.remove_checkpoint(filepath)
 
-    @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
-
-        Returns: Model parallel context.
-        """
-        yield
-
-    def teardown(self) -> None:
+    def teardown(
+        self, modules: Optional[Iterable[Module]] = None, optimizers: Optional[Iterable[Optimizer]] = None
+    ) -> None:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
         """
-        optimizers_to_device(self.optimizers, torch.device("cpu"))
+        if optimizers is not None:
+            optimizers_to_device(optimizers, torch.device("cpu"))
 
-        if self.lightning_module is not None:
+        if modules is not None:
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            self.lightning_module.cpu()
+            for module in modules:
+                module.cpu()
+
         self.precision_plugin.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
@@ -488,53 +335,3 @@ class Strategy(ABC):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
-
-    def on_train_start(self) -> None:
-        """Called when train begins."""
-        pass
-
-    def on_validation_start(self) -> None:
-        """Called when validation begins."""
-        pass
-
-    def on_test_start(self) -> None:
-        """Called when test begins."""
-        pass
-
-    def on_predict_start(self) -> None:
-        """Called when predict begins."""
-        pass
-
-    def on_train_end(self) -> None:
-        """Called when train ends."""
-        pass
-
-    def on_validation_end(self) -> None:
-        """Called when validation ends."""
-        pass
-
-    def on_test_end(self) -> None:
-        """Called when test end."""
-        pass
-
-    def on_predict_end(self) -> None:
-        """Called when predict ends."""
-        pass
-
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-        """Called in the training loop before anything happens for that batch."""
-        pass
-
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
-        self.precision_plugin.dispatch(trainer)
-
-    def __getstate__(self) -> Dict:
-        # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
-        state = dict(vars(self))  # copy
-        state["_lightning_optimizers"] = {}
-        return state
-
-    def __setstate__(self, state: Dict) -> None:
-        self.__dict__ = state
-        self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
