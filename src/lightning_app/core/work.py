@@ -12,8 +12,15 @@ from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef
-from lightning_app.utilities.component import _sanitize_state
-from lightning_app.utilities.enum import make_status, WorkFailureReasons, WorkStageStatus, WorkStatus, WorkStopReasons
+from lightning_app.utilities.component import _is_flow_context, _sanitize_state
+from lightning_app.utilities.enum import (
+    CacheCallsKeys,
+    make_status,
+    WorkFailureReasons,
+    WorkStageStatus,
+    WorkStatus,
+    WorkStopReasons,
+)
 from lightning_app.utilities.exceptions import LightningWorkException
 from lightning_app.utilities.introspection import _is_init_context
 from lightning_app.utilities.network import find_free_network_port
@@ -107,7 +114,21 @@ class LightningWork(abc.ABC):
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
         self._name = ""
-        self._calls = {"latest_call_hash": None}
+        # The ``self._calls`` is used to track whether the run
+        # method with a given set of input arguments has already been called.
+        # Example of its usage:
+        # {
+        #   'latest_call_hash': '167fe2e',
+        #   '167fe2e': {
+        #       'statuses': [
+        #           {'stage': 'pending', 'timestamp': 1659433519.851271},
+        #           {'stage': 'running', 'timestamp': 1659433519.956482},
+        #           {'stage': 'stopped', 'timestamp': 1659433520.055768}]}
+        #        ]
+        #    },
+        #    ...
+        # }
+        self._calls = {CacheCallsKeys.LATEST_CALL_HASH: None}
         self._changes = {}
         self._raise_exception = raise_exception
         self._paths = {}
@@ -215,13 +236,13 @@ class LightningWork(abc.ABC):
 
         All statuses are stored in the state.
         """
-        call_hash = self._calls["latest_call_hash"]
-        if call_hash:
+        call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        if call_hash in self._calls:
             statuses = self._calls[call_hash]["statuses"]
             # deltas aren't necessarily coming in the expected order.
             statuses = sorted(statuses, key=lambda x: x["timestamp"])
             latest_status = statuses[-1]
-            if latest_status["reason"] == WorkFailureReasons.TIMEOUT:
+            if latest_status.get("reason") == WorkFailureReasons.TIMEOUT:
                 return self._aggregate_status_timeout(statuses)
             return WorkStatus(**latest_status)
         return WorkStatus(stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
@@ -229,8 +250,8 @@ class LightningWork(abc.ABC):
     @property
     def statuses(self) -> List[WorkStatus]:
         """Return all the status of the work."""
-        call_hash = self._calls["latest_call_hash"]
-        if call_hash:
+        call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        if call_hash in self._calls:
             statuses = self._calls[call_hash]["statuses"]
             # deltas aren't necessarily coming in the expected order.
             statuses = sorted(statuses, key=lambda x: x["timestamp"])
@@ -398,10 +419,13 @@ class LightningWork(abc.ABC):
             return path
         return self.__getattribute__(item)
 
-    def _call_hash(self, fn, args, kwargs):
+    def _call_hash(self, fn, args, kwargs) -> str:
         hash_args = args[1:] if len(args) > 0 and args[0] == self else args
         call_obj = {"args": hash_args, "kwargs": kwargs}
-        return f"{fn.__name__}:{DeepHash(call_obj)[call_obj]}"
+        # Note: Generate a hash as 167fe2e.
+        # Seven was selected after checking upon Github default SHA length
+        # and to minimize hidden state size.
+        return str(DeepHash(call_obj)[call_obj])[:7]
 
     def _wrap_run_for_caching(self, fn):
         @wraps(fn)
@@ -415,11 +439,11 @@ class LightningWork(abc.ABC):
                 entry = self._calls[call_hash]
                 return entry["ret"]
 
-            self._calls[call_hash] = {"name": fn.__name__, "call_hash": call_hash}
+            self._calls[call_hash] = {}
 
             result = fn(*args, **kwargs)
 
-            self._calls[call_hash] = {"name": fn.__name__, "call_hash": call_hash, "ret": result}
+            self._calls[call_hash] = {"ret": result}
 
             return result
 
@@ -457,12 +481,48 @@ class LightningWork(abc.ABC):
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
             setattr(self, k, v)
+
         self._changes = provided_state["changes"]
-        self._calls.update(provided_state["calls"])
+
+        # Note, this is handled by the flow only.
+        if _is_flow_context():
+            self._cleanup_calls(provided_state["calls"])
+
+        self._calls = provided_state["calls"]
+
+    @staticmethod
+    def _cleanup_calls(calls: Dict[str, Any]):
+        # 1: Collect all the in_progress call hashes
+        in_progress_call_hash = [k for k in list(calls) if k not in (CacheCallsKeys.LATEST_CALL_HASH)]
+
+        for call_hash in in_progress_call_hash:
+            if "statuses" not in calls[call_hash]:
+                continue
+
+            # 2: Filter the statuses by timestamp
+            statuses = sorted(calls[call_hash]["statuses"], key=lambda x: x["timestamp"])
+
+            # If the latest status is succeeded, then drop everything before.
+            if statuses[-1]["stage"] == WorkStageStatus.SUCCEEDED:
+                status = statuses[-1]
+                status["timestamp"] = int(status["timestamp"])
+                calls[call_hash]["statuses"] = [status]
+            else:
+                # TODO: Some status are being duplicated,
+                # this seems related to the StateObserver.
+                final_statuses = []
+                for status in statuses:
+                    if status not in final_statuses:
+                        final_statuses.append(status)
+                calls[call_hash]["statuses"] = final_statuses
 
     @abc.abstractmethod
     def run(self, *args, **kwargs):
-        """Override to add your own logic."""
+        """Override to add your own logic.
+
+        Raises:
+            LightningPlatformException: If resource exceeds platform quotas or other constraints.
+        """
         pass
 
     def on_exception(self, exception: BaseException):
@@ -479,7 +539,7 @@ class LightningWork(abc.ABC):
         if succeeded_statuses:
             succeed_status_id = succeeded_statuses[-1] + 1
             statuses = statuses[succeed_status_id:]
-        timeout_statuses = [status for status in statuses if status["reason"] == WorkFailureReasons.TIMEOUT]
+        timeout_statuses = [status for status in statuses if status.get("reason") == WorkFailureReasons.TIMEOUT]
         assert statuses[0]["stage"] == WorkStageStatus.PENDING
         status = {**timeout_statuses[-1], "timestamp": statuses[0]["timestamp"]}
         return WorkStatus(**status, count=len(timeout_statuses))
@@ -493,6 +553,7 @@ class LightningWork(abc.ABC):
         pass
 
     def stop(self):
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
         if not self._backend:
             raise Exception(
                 "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
@@ -500,9 +561,8 @@ class LightningWork(abc.ABC):
             )
         if self.status.stage == WorkStageStatus.STOPPED:
             return
-        latest_hash = self._calls["latest_call_hash"]
-        self._calls[latest_hash]["statuses"].append(
-            make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.PENDING)
-        )
+        latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        stop_status = make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.PENDING)
+        self._calls[latest_hash]["statuses"].append(stop_status)
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)

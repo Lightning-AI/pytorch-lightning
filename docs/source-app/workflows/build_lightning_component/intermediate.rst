@@ -1,14 +1,15 @@
-##########################################
-Build a Lightning component (intermediate)
-##########################################
-**Audience:** Users who want to connect a UI to a Lightning component.
+############################################
+Develop a Lightning Component (intermediate)
+############################################
+
+**Audience:** Users who want to connect a UI to a Lightning Component (Component).
 
 ----
 
 *****************************
 Add a web user interface (UI)
 *****************************
-Every lightning component can have its own user interface (UI). Lightning components support any kind
+Every Lightning Component can have its own user interface (UI). Lightning Components support any kind
 of UI interface such as react.js, vue.js, streamlit, gradio, dash, web urls, etc...(`full list here <../add_web_ui/index.html>`_).
 
 Let's say that we have a user interface defined in html:
@@ -24,7 +25,7 @@ Let's say that we have a user interface defined in html:
     </body>
     </html>
 
-To *connect* this user interface to the component, define the configure_layout method:
+To *connect* this user interface to the Component, define the configure_layout method:
 
 .. code:: python
     :emphasize-lines: 5, 6
@@ -37,7 +38,7 @@ To *connect* this user interface to the component, define the configure_layout m
         def configure_layout(self):
             return StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
-Finally, route the component's UI through the root component's **configure_layout** method:
+Finally, route the Component's UI through the root Component's **configure_layout** method:
 
 .. code:: python
     :emphasize-lines: 14
@@ -63,7 +64,7 @@ Finally, route the component's UI through the root component's **configure_layou
 
     app = L.LightningApp(LitApp())
 
-Run your app and you'll see the UI on the Lightning App view:
+Run your App and you'll see the UI on the Lightning App view:
 
 .. code:: bash
 

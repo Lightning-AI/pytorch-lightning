@@ -17,10 +17,9 @@ import dataclasses
 import operator
 from abc import ABC
 from collections import defaultdict, OrderedDict
-from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -76,7 +75,7 @@ def apply_to_collection(
     dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
     *args: Any,
-    wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
+    wrong_dtype: Optional[Union[type, Tuple[type, ...]]] = None,
     include_none: bool = True,
     **kwargs: Any,
 ) -> Any:

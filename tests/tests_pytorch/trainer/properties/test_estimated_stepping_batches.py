@@ -14,19 +14,19 @@
 
 import logging
 from unittest import mock
+from unittest.mock import PropertyMock
 
 import pytest
+import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomIterableDataset
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import pl_multi_process_test
 
 
 def test_num_stepping_batches_basic():
@@ -96,11 +96,10 @@ def test_num_stepping_batches_infinite_training():
 
 def test_num_stepping_batches_with_max_steps():
     """Test stepping batches with `max_steps`."""
-    max_steps = 7
+    max_steps = 2
     trainer = Trainer(max_steps=max_steps)
     model = BoringModel()
-    trainer._data_connector.attach_data(model)
-    trainer.strategy.connect(model)
+    trainer.fit(model)
     assert trainer.estimated_stepping_batches == max_steps
 
 
@@ -135,16 +134,29 @@ def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
     assert trainer.estimated_stepping_batches == estimated_steps
 
 
-@RunIf(tpu=True)
-@pl_multi_process_test
-@pytest.mark.parametrize("devices,estimated_steps", [([1], 64), (8, 8)])
-def test_num_stepping_batches_with_tpu(devices, estimated_steps):
-    """Test stepping batches with TPU training which acts like DDP."""
-    trainer = Trainer(accelerator="tpu", devices=devices, max_epochs=1)
+@RunIf(tpu=True, standalone=True)
+def test_num_stepping_batches_with_tpu_single():
+    """Test stepping batches with the single-core TPU strategy."""
+    trainer = Trainer(accelerator="tpu", devices=1, max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
-    assert trainer.estimated_stepping_batches == estimated_steps
+    assert trainer.estimated_stepping_batches == len(model.train_dataloader())
+
+
+@RunIf(tpu=True)
+@mock.patch(
+    "pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device",
+    new_callable=PropertyMock,
+    return_value=torch.device("xla:0"),
+)
+def test_num_stepping_batches_with_tpu_multi(_):
+    """Test stepping batches with the TPU strategy across multiple devices."""
+    trainer = Trainer(accelerator="tpu", devices=8, max_epochs=1)
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    trainer.strategy.connect(model)
+    assert trainer.estimated_stepping_batches == len(model.train_dataloader()) // 8
 
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)

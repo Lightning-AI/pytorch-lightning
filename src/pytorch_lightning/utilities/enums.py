@@ -15,11 +15,9 @@
 from __future__ import annotations
 
 import os
-from enum import Enum, EnumMeta
-from typing import Any
+from enum import Enum
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class LightningEnum(str, Enum):
@@ -41,37 +39,6 @@ class LightningEnum(str, Enum):
         # re-enable hashtable so it can be used as a dict key or in a set
         # example: set(LightningEnum)
         return hash(self.value.lower())
-
-
-class _DeprecatedEnumMeta(EnumMeta):
-    """Enum that calls `deprecate()` whenever a member is accessed.
-
-    Adapted from: https://stackoverflow.com/a/62309159/208880
-    """
-
-    def __getattribute__(cls, name: str) -> Any:
-        obj = super().__getattribute__(name)
-        # ignore __dunder__ names -- prevents potential recursion errors
-        if not (name.startswith("__") and name.endswith("__")) and isinstance(obj, Enum):
-            obj.deprecate()
-        return obj
-
-    def __getitem__(cls, name: str) -> Any:
-        member: _DeprecatedEnumMeta = super().__getitem__(name)
-        member.deprecate()
-        return member
-
-    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
-        obj = super().__call__(*args, **kwargs)
-        if isinstance(obj, Enum):
-            obj.deprecate()
-        return obj
-
-
-class _DeprecatedEnum(LightningEnum, metaclass=_DeprecatedEnumMeta):
-    """_DeprecatedEnum calls an enum's `deprecate()` method on member access."""
-
-    pass
 
 
 class AMPType(LightningEnum):
@@ -110,67 +77,6 @@ class PrecisionType(LightningEnum):
         return [x.value for x in PrecisionType]
 
 
-class DistributedType(_DeprecatedEnum):
-    """Define type of training strategy.
-
-    Deprecated since v1.6.0 and will be removed in v1.8.0.
-
-    Use `_StrategyType` instead.
-    """
-
-    DP = "dp"
-    DDP = "ddp"
-    DDP2 = "ddp2"
-    DDP_SPAWN = "ddp_spawn"
-    TPU_SPAWN = "tpu_spawn"
-    DEEPSPEED = "deepspeed"
-    HOROVOD = "horovod"
-    DDP_SHARDED = "ddp_sharded"
-    DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
-    DDP_FULLY_SHARDED = "ddp_fully_sharded"
-    HPU_PARALLEL = "hpu_parallel"
-
-    @staticmethod
-    def interactive_compatible_types() -> list[DistributedType]:
-        """Returns a list containing interactive compatible DistributeTypes."""
-        return [
-            DistributedType.DP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP_SHARDED_SPAWN,
-            DistributedType.TPU_SPAWN,
-        ]
-
-    def is_interactive_compatible(self) -> bool:
-        """Returns whether self is interactive compatible."""
-        return self in DistributedType.interactive_compatible_types()
-
-    def deprecate(self) -> None:
-        rank_zero_deprecation(
-            "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            f" Use the string value `{self.value!r}` instead."
-        )
-
-
-class DeviceType(_DeprecatedEnum):
-    """Define Device type by its nature - accelerators.
-
-    Deprecated since v1.6.0 and will be removed in v1.8.0.
-
-    Use `_AcceleratorType` instead.
-    """
-
-    CPU = "CPU"
-    GPU = "GPU"
-    IPU = "IPU"
-    TPU = "TPU"
-
-    def deprecate(self) -> None:
-        rank_zero_deprecation(
-            "`DeviceType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            f" Use the string value `{self.value!r}` instead."
-        )
-
-
 class GradClipAlgorithmType(LightningEnum):
     """Define gradient_clip_algorithm types - training-tricks.
     NORM type means "clipping gradients by norm". This computed over all model parameters together.
@@ -203,16 +109,15 @@ class _StrategyType(LightningEnum):
     """Define type of training strategy.
 
     >>> # you can match the type with string
-    >>> _StrategyType.DDP == 'ddp'
+    >>> _StrategyType.DDP == 'DDP'
     True
     >>> # which is case invariant
-    >>> _StrategyType.DDP2 in ('ddp2', )
+    >>> _StrategyType.DP in ('dp', )
     True
     """
 
     DP = "dp"
     DDP = "ddp"
-    DDP2 = "ddp2"
     DDP_SPAWN = "ddp_spawn"
     DDP_FORK = "ddp_fork"
     TPU_SPAWN = "tpu_spawn"
@@ -244,7 +149,7 @@ class _AcceleratorType(LightningEnum):
     >>> _AcceleratorType.CPU == _AcceleratorType.from_str('cpu')
     True
     >>> # you can match the type with string
-    >>> _AcceleratorType.GPU == 'GPU'
+    >>> _AcceleratorType.CUDA == 'CUDA'
     True
     >>> # which is case invariant
     >>> _AcceleratorType.TPU in ('tpu', 'CPU')
@@ -252,7 +157,7 @@ class _AcceleratorType(LightningEnum):
     """
 
     CPU = "CPU"
-    GPU = "GPU"
+    CUDA = "CUDA"
     IPU = "IPU"
     TPU = "TPU"
     HPU = "HPU"

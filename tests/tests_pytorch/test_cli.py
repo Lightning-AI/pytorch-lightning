@@ -1271,7 +1271,8 @@ def test_lightning_cli_subcommands_common_default_config_files(tmpdir):
 def test_lightning_cli_reinstantiate_trainer():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, run=False)
-    assert cli.trainer.max_epochs == 1000
+
+    assert cli.trainer.max_epochs is None
 
     class TestCallback(Callback):
         ...
@@ -1414,21 +1415,47 @@ def _test_logger_init_args(logger_name, init, unresolved={}):
 
 @pytest.mark.skipif(not _COMET_AVAILABLE, reason="comet-ml is required")
 def test_comet_logger_init_args():
-    _test_logger_init_args("CometLogger", {"save_dir": "comet", "workspace": "comet"})
+    _test_logger_init_args(
+        "CometLogger",
+        {
+            "save_dir": "comet",  # Resolve from CometLogger.__init__
+            "workspace": "comet",  # Resolve from Comet{,Existing,Offline}Experiment.__init__
+        },
+    )
 
 
 @pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
 def test_neptune_logger_init_args():
-    _test_logger_init_args("NeptuneLogger", {"name": "neptune"}, {"description": "neptune"})
+    _test_logger_init_args(
+        "NeptuneLogger",
+        {
+            "name": "neptune",  # Resolve from NeptuneLogger.__init__
+        },
+        {
+            "description": "neptune",  # Unsupported resolving from neptune.new.internal.init.run.init_run
+        },
+    )
 
 
 def test_tensorboard_logger_init_args():
-    _test_logger_init_args("TensorBoardLogger", {"save_dir": "tb", "name": "tb"})
+    _test_logger_init_args(
+        "TensorBoardLogger",
+        {
+            "save_dir": "tb",  # Resolve from TensorBoardLogger.__init__
+            "comment": "tb",  # Resolve from tensorboard.writer.SummaryWriter.__init__
+        },
+    )
 
 
 @pytest.mark.skipif(not _WANDB_AVAILABLE, reason="wandb is required")
 def test_wandb_logger_init_args():
-    _test_logger_init_args("WandbLogger", {"save_dir": "wandb", "notes": "wandb"})
+    _test_logger_init_args(
+        "WandbLogger",
+        {
+            "save_dir": "wandb",  # Resolve from WandbLogger.__init__
+            "notes": "wandb",  # Resolve from wandb.sdk.wandb_init.init
+        },
+    )
 
 
 def test_cli_auto_seeding():
@@ -1512,13 +1539,13 @@ def test_pytorch_profiler_init_args():
     from pytorch_lightning.profilers import Profiler, PyTorchProfiler
 
     init = {
-        "dirpath": "profiler",
-        "row_limit": 10,
-        "group_by_input_shapes": True,
+        "dirpath": "profiler",  # Resolve from PyTorchProfiler.__init__
+        "row_limit": 10,  # Resolve from PyTorchProfiler.__init__
+        "group_by_input_shapes": True,  # Resolve from PyTorchProfiler.__init__
     }
     unresolved = {
-        "profile_memory": True,
-        "record_shapes": True,
+        "profile_memory": True,  # Not possible to resolve parameters from dynamically chosen Type[_PROFILER]
+        "record_shapes": True,  # Resolve from PyTorchProfiler.__init__, gets moved to init_args
     }
     cli_args = ["--trainer.profiler=PyTorchProfiler"]
     cli_args += [f"--trainer.profiler.{k}={v}" for k, v in init.items()]
@@ -1528,5 +1555,6 @@ def test_pytorch_profiler_init_args():
         cli = LightningCLI(TestModel, run=False)
 
     assert isinstance(cli.config_init.trainer.profiler, PyTorchProfiler)
+    init["record_shapes"] = unresolved.pop("record_shapes")  # Test move to init_args
     assert {k: cli.config.trainer.profiler.init_args[k] for k in init} == init
     assert cli.config.trainer.profiler.dict_kwargs == unresolved

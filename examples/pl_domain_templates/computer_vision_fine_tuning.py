@@ -150,7 +150,7 @@ class CatDogImageDataModule(LightningDataModule):
         return self.__dataloader(train=False)
 
 
-#  --- Pytorch-lightning module ---
+#  --- PyTorch Lightning module ---
 
 
 class TransferLearningModel(LightningModule):

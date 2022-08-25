@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from copy import deepcopy
 
@@ -19,6 +20,7 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -359,3 +361,55 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
         for curr_lr_finder in all_res[1:]
         for k in all_res[0].keys()
     )
+
+
+@pytest.mark.parametrize(
+    "skip_begin,skip_end,losses,expected_error",
+    [
+        (0, 0, [], True),
+        (10, 1, [], True),
+        (0, 2, [0, 1, 2], True),
+        (0, 1, [0, 1, 2], False),
+        (1, 1, [0, 1, 2], True),
+        (1, 1, [0, 1, 2, 3], False),
+        (0, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+        (4, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+    ],
+)
+def test_suggestion_not_enough_finite_points(losses, skip_begin, skip_end, expected_error, caplog):
+    """Tests the error handling when not enough finite points are available to make a suggestion."""
+    caplog.clear()
+    lr_finder = _LRFinder(
+        mode="exponential",
+        lr_min=1e-8,
+        lr_max=1,
+        num_training=100,
+    )
+    lrs = list(torch.arange(len(losses)))
+    lr_finder.results = {
+        "lr": lrs,
+        "loss": losses,
+    }
+    with caplog.at_level(logging.ERROR, logger="root.tuner.lr_finder"):
+        lr = lr_finder.suggestion(skip_begin=skip_begin, skip_end=skip_end)
+
+        if expected_error:
+            assert lr is None
+            assert "Failed to compute suggestion for learning rate" in caplog.text
+        else:
+            assert lr is not None
+
+
+def test_lr_attribute_when_suggestion_invalid(tmpdir):
+    """Tests learning rate finder ends before `num_training` steps."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.123
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+    lr_finder = trainer.tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
+    assert lr_finder.suggestion() is None
+    assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible

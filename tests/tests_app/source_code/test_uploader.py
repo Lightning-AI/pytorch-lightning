@@ -39,10 +39,11 @@ def test_file_uploader():
 @mock.patch("lightning_app.source_code.uploader.requests.Session", MockedRequestSession)
 def test_file_uploader_failing_when_no_etag():
     response["response"] = MagicMock(headers={})
+    presigned_url = "https://test-url"
     file_uploader = uploader.FileUploader(
-        presigned_url="https://test-url", source_file="test.txt", total_size=100, name="test.txt"
+        presigned_url=presigned_url, source_file="test.txt", total_size=100, name="test.txt"
     )
     file_uploader.progress = MagicMock()
 
-    with pytest.raises(ValueError, match="Unexpected response from S3, response"):
+    with pytest.raises(ValueError, match=f"Unexpected response from {presigned_url}, response"):
         file_uploader.upload()

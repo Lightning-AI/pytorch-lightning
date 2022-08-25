@@ -53,8 +53,8 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
+from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
-    DDP2Strategy,
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -188,6 +188,12 @@ class AcceleratorConnector:
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
+        if amp_level is not None:
+            rank_zero_deprecation(
+                "Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0 and will be removed"
+                " in v1.10.0. Please set it inside the specific precision plugin and pass it to the `Trainer`."
+            )
+
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
@@ -201,10 +207,14 @@ class AcceleratorConnector:
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
         # 2. Instantiate Accelerator
-        # handle `auto` and `None`
         self._set_accelerator_if_ipu_strategy_is_passed()
+
+        # handle `auto`, `None` and `gpu`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
-            self._accelerator_flag = self._choose_accelerator()
+            self._accelerator_flag = self._choose_auto_accelerator()
+        elif self._accelerator_flag == "gpu":
+            self._accelerator_flag = self._choose_gpu_accelerator_backend()
+
         self._set_parallel_devices_and_init_accelerator()
 
         # 3. Instantiate ClusterEnvironment
@@ -280,7 +290,7 @@ class AcceleratorConnector:
         if (
             accelerator is not None
             and accelerator not in self._accelerator_types
-            and accelerator != "auto"
+            and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
@@ -487,7 +497,7 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, IPUStrategy):
             self._accelerator_flag = "ipu"
 
-    def _choose_accelerator(self) -> str:
+    def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if self._accelerator_flag == "auto":
             if _TPU_AVAILABLE:
@@ -501,6 +511,15 @@ class AcceleratorConnector:
             if CUDAAccelerator.is_available():
                 return "cuda"
         return "cpu"
+
+    @staticmethod
+    def _choose_gpu_accelerator_backend() -> str:
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
+
+        raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
@@ -653,13 +672,6 @@ class AcceleratorConnector:
             # TODO lazy initialized and setup horovod strategy `global_rank`
             self._handle_horovod()
         if isinstance(self._strategy_flag, str):
-            if self._strategy_flag == "ddp2":
-                # TODO: remove this error in v1.8
-                raise ValueError(
-                    "The DDP2 strategy is no longer supported. For single-node use, we recommend `strategy='ddp'` or"
-                    " `strategy='dp'` as a replacement. If you need DDP2, you will need `torch < 1.9`,"
-                    " `pytorch-lightning < 1.5`, and set it as `accelerator='ddp2'`."
-                )
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
             self.strategy = self._strategy_flag
@@ -714,7 +726,9 @@ class AcceleratorConnector:
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
                     return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, (DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy)):
+                if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
+                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
+                if isinstance(self.strategy, DDPFullyShardedStrategy):
                     return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 
@@ -827,7 +841,6 @@ class AcceleratorConnector:
         if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
             return self.strategy.is_distributed
         distributed_strategy = (
-            DDP2Strategy,
             DDPStrategy,
             DDPSpawnShardedStrategy,
             DDPShardedStrategy,
