@@ -121,7 +121,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
 
 def _collect_rng_states() -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`,:mod:`numpy` and Python."""
+    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     return {
         "torch": torch.get_rng_state(),
         "torch.cuda": torch.cuda.get_rng_state_all(),
@@ -131,9 +131,11 @@ def _collect_rng_states() -> Dict[str, Any]:
 
 
 def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
+    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current process."""
     torch.set_rng_state(rng_state_dict["torch"])
-    torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
+    # torch.cuda rng_state is only included since v1.8.
+    if "torch.cuda" in rng_state_dict:
+        torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
     np.random.set_state(rng_state_dict["numpy"])
     version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))
