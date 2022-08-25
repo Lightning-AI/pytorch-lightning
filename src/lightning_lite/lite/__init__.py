@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.lite.lite import LightningLite
+from lightning_lite.lite.lite import LightningLite
 
 __all__ = ["LightningLite"]
