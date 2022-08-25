@@ -426,7 +426,8 @@ class RichProgressBar(ProgressBarBase):
             self._update(self.val_progress_bar_id, self.val_batch_idx)
 
         # TODO: Find out why an error occurs without refresh here.
-        self.progress.refresh()
+        if self.progress:
+            self.progress.refresh()
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._update(self.test_progress_bar_id, self.test_batch_idx)
