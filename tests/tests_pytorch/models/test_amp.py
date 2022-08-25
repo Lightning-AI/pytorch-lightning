@@ -67,34 +67,34 @@ class AMPTestModel(BoringModel):
             assert torch.is_autocast_enabled()
 
 
-@RunIf(min_torch="1.10")
-@pytest.mark.parametrize(
-    "strategy",
-    [
-        None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
-        "ddp_spawn",
-    ],
-)
-@pytest.mark.parametrize("precision", [16, "bf16"])
-@pytest.mark.parametrize("devices", [1, 2])
-def test_amp_cpus(tmpdir, strategy, precision, devices):
-    """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
+# @RunIf(min_torch="1.10")
+# @pytest.mark.parametrize(
+#     "strategy",
+#     [
+#         None,
+#         pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
+#         "ddp_spawn",
+#     ],
+# )
+# @pytest.mark.parametrize("precision", [16, "bf16"])
+# @pytest.mark.parametrize("devices", [1, 2])
+# def test_amp_cpus(tmpdir, strategy, precision, devices):
+#     """Make sure combinations of AMP and strategies work if supported."""
+#     tutils.reset_seed()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator="cpu",
-        devices=devices,
-        max_epochs=1,
-        strategy=strategy,
-        precision=precision,
-    )
+#     trainer = Trainer(
+#         default_root_dir=tmpdir,
+#         accelerator="cpu",
+#         devices=devices,
+#         max_epochs=1,
+#         strategy=strategy,
+#         precision=precision,
+#     )
 
-    model = AMPTestModel()
-    trainer.fit(model)
-    trainer.test(model)
-    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
+#     model = AMPTestModel()
+#     trainer.fit(model)
+#     trainer.test(model)
+#     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
 
 @RunIf(min_cuda_gpus=2, min_torch="1.10")
