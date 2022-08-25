@@ -89,7 +89,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
                     # Using bagua strategy, the model is redefined in model.inner
                     # and cannot be accessed directly. We need this to make manual
                     # backward work.
-                    trainer.model.inner.require_backward_grad_sync = False  # type: ignore[assignment]
+                    trainer.model.inner.require_backward_grad_sync = False  # type: ignore[union-attr]
                 return output
             else:
                 return super().forward(*inputs, **kwargs)
@@ -265,7 +265,7 @@ class BaguaStrategy(DDPStrategy):
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return broadcast_object(obj, src)
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         # Using bagua strategy, the model is redefined in model.inner
         # and cannot be accessed directly. We need to redefine the
         # post_training_step function to make manual backward work.
