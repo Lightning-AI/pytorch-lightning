@@ -22,9 +22,12 @@ jobs:
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
         python-version: ["3.7", "3.10"]  # minimum, maximum
+        pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
         requires: ["oldest", "latest"]
         release: ["stable"]
         exclude:
+          - {pytorch-version: "1.10", requires: "oldest"}
+          - {pytorch-version: "1.11", requires: "oldest"}
           # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
           - {python-version: "3.10", requires: "oldest"}
