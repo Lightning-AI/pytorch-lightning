@@ -37,10 +37,10 @@ RUN \
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update -qq --fix-missing && \
-    NCCL_VER=$(apt list libnccl2 | awk -F ' ' '{print $2}' | grep -ve '^\s*$') && \
+    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
-    MAX_ALLOWED_NCCL=2.11.4-1+cuda${CUDA_VERSION_MM} && \
-    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -t '.' -k 1,1 -k 2,2 -k 3,3 -g | head -n1) && \
+    MAX_ALLOWED_NCCL=2.11.4 && \
+    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
     apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
