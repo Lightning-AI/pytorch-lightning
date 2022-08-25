@@ -55,9 +55,7 @@ RUN \
         openmpi-bin \
         ssh \
         libnccl2=$TO_INSTALL_NCCL \
-        libnccl-dev=$TO_INSTALL_NCCL
-
-RUN \
+        libnccl-dev=$TO_INSTALL_NCCL && \
 # Install python
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
@@ -65,11 +63,8 @@ RUN \
         python${PYTHON_VERSION}-distutils \
         python${PYTHON_VERSION}-dev \
     && \
-
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
-    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
-
-RUN \
+    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
@@ -85,7 +80,6 @@ RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
-
     pip install -q fire && \
     # Disable cache \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
