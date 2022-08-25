@@ -37,7 +37,11 @@ RUN \
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update -qq --fix-missing && \
-    apt-get install -y --no-install-recommends \
+    NCCL_VER=$(apt list libnccl2 | awk -F ' ' '{print $2}' | grep -ve '^\s*$') && \
+    CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
+    MAX_ALLOWED_NCCL=2.11.4-1+cuda${CUDA_VERSION_MM} && \
+    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort | head -n1) && \
+    apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
         cmake \
@@ -50,8 +54,10 @@ RUN \
         libopenmpi-dev \
         openmpi-bin \
         ssh \
-    && \
+        libnccl2=$TO_INSTALL_NCCL \
+        libnccl-dev=$TO_INSTALL_NCCL
 
+RUN \
 # Install python
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
@@ -61,8 +67,9 @@ RUN \
     && \
 
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
-    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
 
+RUN \
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
@@ -90,16 +97,6 @@ RUN \
     # Install all requirements \
     pip install -r requirements/pytorch/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py
-
-RUN \
-    apt-get purge -y cmake && \
-    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-    tar -zxvf cmake-3.20.2.tar.gz && \
-    cd cmake-3.20.2 && \
-    ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-    make && \
-    make install && \
-    cmake  --version
 
 ENV \
     HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
