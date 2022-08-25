@@ -108,9 +108,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Pull legacy checkpoints
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      run: bash .actions/pull_legacy_checkpoints.sh
+    # - name: Pull legacy checkpoints
+    #   if: ${{ (steps.skip.outputs.continue == '1') }}
+    #   run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Install dependencies
       if: ${{ (steps.skip.outputs.continue == '1') }}
@@ -124,10 +124,10 @@ jobs:
         pip list
       shell: bash
 
-    - name: DocTests
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      working-directory: ./src
-      run: pytest pytorch_lightning --cov=pytorch_lightning
+    # - name: DocTests
+    #   if: ${{ (steps.skip.outputs.continue == '1') }}
+    #   working-directory: ./src
+    #   run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Install extra dependencies
       if: ${{ (steps.skip.outputs.continue == '1') }}
@@ -155,57 +155,57 @@ jobs:
         python -c "import horovod.torch"
       shell: bash
 
-    - name: Cache datasets
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      uses: actions/cache@v3
-      with:
-        path: Datasets
-        key: pl-dataset
+    # - name: Cache datasets
+    #   if: ${{ (steps.skip.outputs.continue == '1') }}
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: Datasets
+    #     key: pl-dataset
 
     - name: Sanity check
       if: ${{ (steps.skip.outputs.continue == '1') }}
       run: python requirements/pytorch/check-avail-extras.py
 
-    - name: Testing PyTorch
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      working-directory: tests/tests_pytorch
-      # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+    # - name: Testing PyTorch
+    #   if: ${{ (steps.skip.outputs.continue == '1') }}
+    #   working-directory: tests/tests_pytorch
+    #   # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+    #   run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
-    - name: Upload pytest results
-      if: ${{ (failure()) && (steps.skip.outputs.continue == '1') }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+    # - name: Upload pytest results
+    #   if: ${{ (failure()) && (steps.skip.outputs.continue == '1') }}
+    #   uses: actions/upload-artifact@v3
+    #   with:
+    #     name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
+    #     path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
-    - name: Prepare Examples
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      run: |
-        # adjust versions according installed Torch version
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
-        pip install -r requirements/pytorch/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+    # - name: Prepare Examples
+    #   if: ${{ (steps.skip.outputs.continue == '1') }}
+    #   run: |
+    #     # adjust versions according installed Torch version
+    #     python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
+    #     pip install -r requirements/pytorch/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
 
-    - name: Run Examples
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      working-directory: ./examples
-      run: python -m pytest test_pl_examples.py -v --durations=10
+    # - name: Run Examples
+    #   if: ${{ (steps.skip.outputs.continue == '1') }}
+    #   working-directory: ./examples
+    #   run: python -m pytest test_pl_examples.py -v --durations=10
 
-    - name: Statistics
-      if: ${{ (success()) && (steps.skip.outputs.continue == '1') }}
-      working-directory: tests/tests_pytorch
-      run: |
-        coverage report
-        coverage xml
+    # - name: Statistics
+    #   if: ${{ (success()) && (steps.skip.outputs.continue == '1') }}
+    #   working-directory: tests/tests_pytorch
+    #   run: |
+    #     coverage report
+    #     coverage xml
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      if: ${{ (always()) && (steps.skip.outputs.continue == '1') }}
-      # see: https://github.com/actions/toolkit/issues/399
-      continue-on-error: true
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/tests_pytorch/coverage.xml
-        flags: cpu,pytest,python${{ matrix.python-version }}
-        name: CPU-coverage
-        fail_ci_if_error: false
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v3
+    #   if: ${{ (always()) && (steps.skip.outputs.continue == '1') }}
+    #   # see: https://github.com/actions/toolkit/issues/399
+    #   continue-on-error: true
+    #   with:
+    #     token: ${{ secrets.CODECOV_TOKEN }}
+    #     file: tests/tests_pytorch/coverage.xml
+    #     flags: cpu,pytest,python${{ matrix.python-version }}
+    #     name: CPU-coverage
+    #     fail_ci_if_error: false
