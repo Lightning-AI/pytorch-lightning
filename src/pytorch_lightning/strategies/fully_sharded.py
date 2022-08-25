@@ -35,6 +35,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
+else:
+    FullyShardedDataParallel = None
 
 log = logging.getLogger(__name__)
 

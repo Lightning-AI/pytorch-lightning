@@ -221,7 +221,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
 def test_fsdp_gradient_clipping_raises(tmpdir):
     """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
-    model = BoringModel()
+    model = TestFSDPModelManualWrapped()
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy="fsdp",

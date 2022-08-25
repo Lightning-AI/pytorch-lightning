@@ -57,9 +57,9 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 
 .. _sharded-training:
 
-****************
-Sharded Training
-****************
+**************************
+FairScale Sharded Training
+**************************
 
 Lightning integration of optimizer sharded training provided by `FairScale <https://github.com/facebookresearch/fairscale>`_.
 The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
@@ -97,9 +97,8 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 .. _fully-sharded-training:
 
-********************************
-FairScale Fully Sharded Training
-********************************
+Fully Sharded Training
+======================
 
 .. warning::
     FairScale Fully Sharded Training is in BETA and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any problems.
@@ -109,7 +108,7 @@ FairScale Fully Sharded Training
 Fully Sharded Training alleviates the need to worry about balancing layers onto specific devices using some form of pipe parallelism, and optimizes for distributed communication with minimal effort.
 
 Shard Parameters to Reach 10+ Billion Parameters
-================================================
+------------------------------------------------
 
 To reach larger parameter sizes and to be memory efficient, we have to shard parameters. There are various ways to enable this.
 
@@ -119,10 +118,10 @@ To reach larger parameter sizes and to be memory efficient, we have to shard par
     This is a limitation of Fully Sharded Training that will be resolved in the future.
 
 Enabling Module Sharding for Maximum Memory Efficiency
-======================================================
+------------------------------------------------------
 
 Auto Wrapping
--------------
+^^^^^^^^^^^^^
 
 Model layers should be wrapped in FSDP in a nested way to save peak memory and enable communication and computation overlapping. The
 simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
@@ -136,7 +135,7 @@ have to ``wrap`` layers manually as in the case of manual wrapping.
 
 
 Manual Wrapping
----------------
+^^^^^^^^^^^^^^^
 
 Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model. To activate
 parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
@@ -201,8 +200,8 @@ Here's an example using both ``wrap`` and ``auto_wrap`` to create your model:
 
 .. _fairscale-activation-checkpointing:
 
-FairScale Activation Checkpointing
-==================================
+Activation Checkpointing
+------------------------
 
 Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed. Activation checkpointing is very useful when you have intermediate layers that produce large activations.
 
