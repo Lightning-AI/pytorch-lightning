@@ -27,7 +27,9 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -38,7 +40,7 @@ log = logging.getLogger(__name__)
 
 
 class _DDPFullyShardedStrategyModuleWrapper(_LightningModuleWrapperBase):
-    def state_dict(self, *args: Any, **kwargs: Any):
+    def state_dict(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
         return self._forward_module.state_dict(*args, **kwargs)
 
 
@@ -140,7 +142,22 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         """Returns model state."""
-        return self.model.module.state_dict()
+        assert self.model is not None
+        return self.model.state_dict()
+
+    def connect(self, model: "pl.LightningModule") -> None:
+        """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        # TODO: Wait for this issue to resolve and remove this blocker
+        # https://github.com/facebookresearch/fairscale/issues/648
+        # Also make sure to update the tests
+        if not is_overridden("configure_sharded_model", self.lightning_module) and len(list(model.parameters())) == 0:
+            assert self.lightning_module is not None
+            raise MisconfigurationException(
+                f"Using the same instance of model with `trainer.{self.lightning_module.trainer.state.fn}()` is not"
+                " supported with Fairscale FSDP auto-wrap. Please reinitialize your `LightningModule` and pass that."
+            )
+
+        super().connect(model)
 
     def setup_distributed(self) -> None:
         if not self.root_device.type == "cuda":
@@ -159,8 +176,11 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 self.model = self._layer_sync.apply(self.model)
 
         self.configure_ddp()
+        assert isinstance(self.model, pl.LightningModule)
         self.model = _DDPFullyShardedStrategyModuleWrapper(self.model)
-        self.model = self._setup_model(self.model)
+        assert self.lightning_module is not None
+        if not is_overridden("configure_sharded_model", self.lightning_module):
+            self.model = self._setup_model(self.model)
         self.setup_optimizers(self.lightning_module.trainer)
         optimizers_to_device(self.optimizers, self.root_device)
         self.barrier()
@@ -171,6 +191,11 @@ class DDPFullyShardedStrategy(DDPStrategy):
         """Wraps the model into a
         :class:`~fairscale.nn.data_parallel.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         log.detail(f"setting up `Fairscale FSDP` model with device id: {self.root_device.index}.")
+
+        rank_zero_info(
+            "When using FairScale FSDP auto-wrap, make sure to initalize your model using trainer else"
+            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
+        )
 
         return FullyShardedDataParallel(
             module=model,

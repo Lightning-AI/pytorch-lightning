@@ -195,16 +195,27 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     _assert_save_equality(trainer, model_path, cls=model.__class__)
 
     # Test entry point
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
     trainer.test(model)  # model is wrapped, will not call configure_shared_model
 
     # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-    trainer.test(ckpt_path=model_path)
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
+    trainer.test(model, ckpt_path=model_path)
 
     # Predict entry point
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
+
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
     trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
 
     # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-    trainer.predict(ckpt_path=model_path)
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
+    trainer.predict(model, ckpt_path=model_path)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
@@ -227,3 +238,21 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         MisconfigurationException, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"
     ):
         trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+def test_fsdp_rewrap_limitation(tmpdir):
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=1,
+        max_steps=1,
+        limit_val_batches=0,
+        limit_test_batches=1,
+        strategy="fsdp",
+    )
+    model = TestFSDPModelAutoWrapped()
+    trainer.fit(model)
+
+    with pytest.raises(MisconfigurationException, match="Using the same instance of model .* not supported"):
+        trainer.test(model)
