@@ -28,20 +28,13 @@ from torch.utils.data import (
     Sampler,
 )
 
-import pytorch_lightning as pl
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.auto_restart import FastForwardSampler
-from pytorch_lightning.utilities.enums import _FaultTolerantMode, LightningEnum
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.meta import _get_all_subclasses
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.seed import pl_worker_init_function
-from pytorch_lightning.utilities.warnings import WarningCache
+
+from lightning_lite.lite.utilities.enums import LightningEnum
+from lightning_lite.lite.utilities.meta import _get_all_subclasses
+from lightning_lite.lite.utilities.rank_zero import rank_zero_warn
+from lightning_lite.lite.utilities.seed import pl_worker_init_function
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
-
-warning_cache = WarningCache()
 
 
 class _WrapAttrTag(LightningEnum):
@@ -109,7 +102,7 @@ def has_len_all_ranks(
                 )
                 has_len = False
             else:
-                raise MisconfigurationException(
+                raise ValueError(
                     f"`{dataloader.__class__.__name__}` within local rank has zero length."
                     " Please make sure that it returns at least 1 batch."
                 )
@@ -144,9 +137,9 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 
 
 def _update_dataloader(
-    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
+    dataloader: DataLoader, sampler: Union[Sampler, Iterable]
 ) -> DataLoader:
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
+    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
     dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
     return dataloader
 
@@ -154,7 +147,6 @@ def _update_dataloader(
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
     sampler: Optional[Sampler],
-    mode: Optional[RunningStage] = None,
     disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
@@ -207,7 +199,7 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode, disallow_batch_sampler))
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, disallow_batch_sampler))
 
     required_args = {
         p.name
@@ -222,7 +214,7 @@ def _get_dataloader_init_args_and_kwargs(
         required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
         missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in required_args)
-        raise MisconfigurationException(
+        raise TypeError(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
             f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
@@ -236,7 +228,7 @@ def _get_dataloader_init_args_and_kwargs(
         if missing_kwargs:
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
-            raise MisconfigurationException(
+            raise TypeError(
                 f"Trying to inject parameters into the `{dataloader_cls_name}` instance. "
                 "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
                 f"The missing arguments are {missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` class, "
@@ -249,7 +241,6 @@ def _get_dataloader_init_args_and_kwargs(
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
     sampler: Optional[Sampler],
-    mode: Optional[RunningStage] = None,
     disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
@@ -262,9 +253,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
     automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
-    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
-    is_predicting = mode == RunningStage.PREDICTING
 
     if batch_sampler is not None:
         if disallow_batch_sampler:
@@ -274,29 +263,17 @@ def _dataloader_init_kwargs_resolve_sampler(
                 and batch_sampler.sampler == sampler
                 and dataloader.batch_size == batch_sampler.batch_size
             ):
-                raise MisconfigurationException(
+                raise TypeError(
                     "It is not possible to have a batch sampler in your dataloader, "
                     "when running on multiple IPU devices."
                 )
-        elif type(batch_sampler) is not BatchSampler or is_predicting:
+        elif type(batch_sampler) is not BatchSampler:
             batch_sampler_cls = type(batch_sampler)
             if hasattr(batch_sampler, "__pl_saved_args"):
                 args = batch_sampler.__pl_saved_args
                 kwargs = batch_sampler.__pl_saved_kwargs
                 default_kwargs = batch_sampler.__pl_saved_default_kwargs
                 arg_names = batch_sampler.__pl_saved_arg_names
-
-                if is_predicting:
-                    success, args, kwargs = _replace_value_in_saved_args(
-                        "drop_last", False, args, kwargs, default_kwargs, arg_names
-                    )
-                    if not success:
-                        rank_zero_warn(
-                            f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
-                            f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
-                            "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
-                            "the `__init__` method of your custom class."
-                        )
 
                 success, args, kwargs = _replace_value_in_saved_args(
                     "sampler", sampler, args, kwargs, default_kwargs, arg_names
@@ -314,7 +291,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                     batch_sampler = batch_sampler_cls(
                         sampler,
                         batch_size=batch_sampler.batch_size,
-                        drop_last=(False if is_predicting else batch_sampler.drop_last),
+                        drop_last=batch_sampler.drop_last,
                     )
                 except TypeError as e:
                     import re
@@ -326,18 +303,11 @@ def _dataloader_init_kwargs_resolve_sampler(
 
                     # There could either be too few or too many arguments. Customizing the message based on this doesn't
                     # make much sense since our MisconfigurationException is going to be raised from the original one.
-                    raise MisconfigurationException(
+                    raise TypeError(
                         "We tried to re-instantiate your custom batch sampler and failed. "
                         "To mitigate this, either follow the API of `BatchSampler` or instantiate "
                         "your custom batch sampler inside `*_dataloader` hooks of your module."
                     ) from e
-
-            if is_predicting:
-                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
-
-            if fault_tolerant_mode.is_automatic:
-                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-                fast_forward_sampler.setup(dataloader_batch_size=1)
 
             return {
                 "sampler": None,
@@ -346,10 +316,6 @@ def _dataloader_init_kwargs_resolve_sampler(
                 "batch_size": 1,
                 "drop_last": False,
             }
-
-    if fault_tolerant_mode.is_automatic:
-        fast_forward_sampler = sampler = FastForwardSampler(sampler)
-        fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
@@ -405,7 +371,7 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
             f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
             " This argument was automatically passed to your object by PyTorch Lightning."
         )
-        raise MisconfigurationException(message) from e
+        raise TypeError(message) from e
 
     attrs_record = getattr(orig_object, "__pl_attrs_record", list())
     for args, fn in attrs_record:

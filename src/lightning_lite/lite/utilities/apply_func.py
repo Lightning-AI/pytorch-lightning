@@ -25,9 +25,8 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from lightning_lite.lite.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from lightning_lite.lite.utilities.rank_zero import rank_zero_deprecation
 
 if _TORCHTEXT_LEGACY:
     if _compare_version("torchtext", operator.ge, "0.9.0"):
@@ -154,7 +153,7 @@ def apply_to_collection(
             try:
                 setattr(result, field_name, v)
             except dataclasses.FrozenInstanceError as e:
-                raise MisconfigurationException(
+                raise ValueError(
                     "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
                     " HINT: is your batch a frozen dataclass?"
                 ) from e
@@ -269,7 +268,7 @@ def apply_to_collections(
             try:
                 setattr(result, field_name, v)
             except dataclasses.FrozenInstanceError as e:
-                raise MisconfigurationException(
+                raise ValueError(
                     "A frozen dataclass was passed to `apply_to_collections` but this is not allowed."
                     " HINT: is your batch a frozen dataclass?"
                 ) from e

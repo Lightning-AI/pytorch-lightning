@@ -18,16 +18,15 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
-from typing_extensions import Literal
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-from pytorch_lightning.accelerators.hpu import HPUAccelerator
-from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry
-from pytorch_lightning.accelerators.tpu import TPUAccelerator
-from pytorch_lightning.plugins import (
+from lightning_lite.lite.accelerators.accelerator import Accelerator
+from lightning_lite.lite.accelerators.cuda import CUDAAccelerator
+from lightning_lite.lite.accelerators.hpu import HPUAccelerator
+from lightning_lite.lite.accelerators.ipu import IPUAccelerator
+from lightning_lite.lite.accelerators.mps import MPSAccelerator
+from lightning_lite.lite.accelerators.registry import AcceleratorRegistry
+from lightning_lite.lite.accelerators.tpu import TPUAccelerator
+from lightning_lite.lite.plugins import (
     CheckpointIO,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
@@ -41,7 +40,7 @@ from pytorch_lightning.plugins import (
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments import (
+from lightning_lite.lite.plugins.environments import (
     BaguaEnvironment,
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -50,8 +49,8 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
-from pytorch_lightning.strategies import (
+from lightning_lite.lite.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
+from lightning_lite.lite.strategies import (
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -68,19 +67,17 @@ from pytorch_lightning.strategies import (
     StrategyRegistry,
     TPUSpawnStrategy,
 )
-from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import (
+from lightning_lite.lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning_lite.lite.utilities import (
     _StrategyType,
     AMPType,
-    device_parser,
     LightningEnum,
+    device_parser,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import (
+from lightning_lite.lite.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
@@ -92,8 +89,6 @@ log = logging.getLogger(__name__)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-
-_LITERAL_WARN = Literal["warn"]
 
 
 class AcceleratorConnector:
@@ -672,7 +667,7 @@ class AcceleratorConnector:
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
 
-        from pytorch_lightning.utilities import _IS_INTERACTIVE
+        from lightning_lite.lite.utilities import _IS_INTERACTIVE
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
