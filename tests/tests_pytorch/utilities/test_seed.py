@@ -87,6 +87,14 @@ def test_isolate_rng():
         generated = [torch.rand(2) for _ in range(3)]
     assert torch.equal(torch.rand(2), generated[0])
 
+    # torch.cuda
+    if torch.cuda.is_available():
+        torch.cuda.FloatTensor(1, 1).rand_
+        torch.cuda.random(1)
+        with isolate_rng():
+            generated = [torch.cuda.FloatTensor(2, 2).rand_ for _ in range(3)]
+        assert torch.equal(torch.cuda.FloatTensor(2, 2).rand_, generated[0])
+
     # numpy
     np.random.rand(1)
     with isolate_rng():
