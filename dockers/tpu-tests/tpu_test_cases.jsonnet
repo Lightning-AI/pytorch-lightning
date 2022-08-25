@@ -32,7 +32,6 @@ local tputests = base.BaseTest {
       git checkout {SHA}
       export PACKAGE_NAME=pytorch
       export FREEZE_REQUIREMENTS=1
-      export PL_STANDALONE_TESTS_BATCH_SIZE=1
       pip install -e .[test]
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
@@ -40,6 +39,7 @@ local tputests = base.BaseTest {
       cd tests/tests_pytorch
       coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
       echo "\n||| Running standalone tests |||\n"
+      export PL_STANDALONE_TESTS_BATCH_SIZE=1
       bash run_standalone_tests.sh
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
