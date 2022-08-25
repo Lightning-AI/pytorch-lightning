@@ -116,26 +116,26 @@ class Strategy(ABC):
         """
         return dataloader
 
-    def setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
-        """Setup a model and multiple optimizers together.
+    def setup_module_and_optimizers(self, module: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
         call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
         """
-        model = self.setup_module(model)
+        module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
-        return model, optimizers
+        return module, optimizers
 
-    def setup_module(self, model: Module) -> Module:
+    def setup_module(self, module: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
-        return model
+        return module
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Performs setup for the optimizer, e.g., by wrapping it by another class."""
         return optimizer
 
     @abstractmethod
-    def model_to_device(self) -> None:
+    def module_to_device(self, module: Module) -> None:
         """Moves the model to the correct device."""
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
@@ -152,7 +152,7 @@ class Strategy(ABC):
         return move_data_to_device(batch, device)
 
     @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    def module_sharded_context(self) -> Generator:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
         initialization time.
