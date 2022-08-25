@@ -40,7 +40,7 @@ RUN \
     NCCL_VER=$(apt list libnccl2 | awk -F ' ' '{print $2}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
     MAX_ALLOWED_NCCL=2.11.4-1+cuda${CUDA_VERSION_MM} && \
-    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort | head -n1) && \
+    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V | head -n1) && \
     apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
