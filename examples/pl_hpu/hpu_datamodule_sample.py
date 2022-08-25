@@ -119,7 +119,7 @@ def main(args):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="PyLight ImageNet Training")
+    parser = argparse.ArgumentParser(description="Pytorch Lightning ImageNet Training")
     parser.add_argument("--data-path", default=_DATASETS_PATH, help="dataset")
     args = parser.parse_args()
 
