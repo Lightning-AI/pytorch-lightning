@@ -1,6 +1,8 @@
 import re
 from typing import Dict, Optional
 
+import arrow
+import click
 import requests
 
 from lightning_app.core.constants import APP_SERVER_PORT
@@ -119,3 +121,15 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
                     raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
                 return lightningapp.status.url, _extract_command_from_openapi(resp.json())
     return None, None
+
+
+def _arrow_time_callback(
+    _ctx: "click.core.Context", _param: "click.core.Option", value: str, arw_now=arrow.utcnow()
+) -> arrow.Arrow:
+    try:
+        return arw_now.dehumanize(value)
+    except ValueError:
+        try:
+            return arrow.get(value)
+        except (ValueError, TypeError):
+            raise click.ClickException(f"cannot parse time {value}")
