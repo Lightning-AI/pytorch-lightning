@@ -106,9 +106,12 @@ def test_isolate_rng():
         generated = [random.random() for _ in range(3)]
     assert random.random() == generated[0]
 
-def test_backward_compatibility_rng_states_dict() :
+
+def test_backward_compatibility_rng_states_dict():
     """Test that an older rng_states_dict without the "torch.cuda" key does not crash.
-    This test is only relevant when torch.cuda is available."""
+
+    This test is only relevant when torch.cuda is available.
+    """
     states = _collect_rng_states()
     assert "torch.cuda" in states
     states.pop("torch.cuda")
