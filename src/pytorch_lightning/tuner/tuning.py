@@ -151,12 +151,12 @@ class Tuner:
                     do a binary search between the last successful batch size and the batch size that failed.
 
             steps_per_trial: number of steps to run with a given batch size.
-                Ideally 1 should be enough to test if a OOM error occurs,
+                Ideally 1 should be enough to test if an OOM error occurs,
                 however in practise a few are needed
 
             init_val: initial batch size to start the search with
 
-            max_trials: max number of increase in batch size done before
+            max_trials: max number of increases in batch size done before
                algorithm is terminated
 
             batch_arg_name: name of the attribute that stores the batch size.

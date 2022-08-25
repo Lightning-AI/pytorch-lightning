@@ -142,7 +142,7 @@ def _run_power_scaling(
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
     for _ in range(max_trials):
-        _collect_garbage(trainer)
+        _collect_garbage()
 
         try:
             _try_loop_run(trainer, params)
@@ -155,7 +155,7 @@ def _run_power_scaling(
                 break
         except RuntimeError as exception:
             if is_oom_error(exception):
-                _collect_garbage(trainer)
+                _collect_garbage()
 
                 new_size, _ = _adjust_batch_size(trainer)
                 break
@@ -177,7 +177,7 @@ def _run_binary_scaling(
     high = None
     count = 0
     while True:
-        _collect_garbage(trainer)
+        _collect_garbage()
 
         try:
             # run loop
@@ -205,7 +205,7 @@ def _run_binary_scaling(
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
-                _collect_garbage(trainer)
+                _collect_garbage()
 
                 high = new_size
                 midval = (high + low) // 2
@@ -283,11 +283,8 @@ def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.T
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
 
 
-def _collect_garbage(trainer: "pl.Trainer") -> None:
-    from pytorch_lightning.accelerators.gpu import GPUAccelerator
-
-    if isinstance(trainer.accelerator, GPUAccelerator):
-        garbage_collection_cuda()
+def _collect_garbage() -> None:
+    garbage_collection_cuda()
 
 
 def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:

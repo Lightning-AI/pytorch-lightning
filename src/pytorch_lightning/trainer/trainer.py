@@ -110,7 +110,6 @@ from pytorch_lightning.utilities.exceptions import (
     MisconfigurationException,
 )
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
-from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
@@ -658,9 +657,6 @@ class Trainer(
 
         except _TunerExitException as exception:
             self.state.status = TrainerStatus.FINISHED
-            if distributed_available() and self.world_size > 1:
-                # try syncing remaing processes, kill otherwise
-                self.strategy.reconciliate_processes(traceback.format_exc())
             self._call_callback_hooks("on_exception", exception)
             self._teardown()
             self.state.stage = None

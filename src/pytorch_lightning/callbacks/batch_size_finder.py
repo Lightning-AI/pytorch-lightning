@@ -43,7 +43,7 @@ class BatchSizeFinder(Callback):
         an out of memory (OOM) error. It works with both training and evalation. All you need to do is add it as a
         callback inside Trainer and call ``trainer.fit/validate/test/predict()``. Internally it calls the
         respective step function ``steps_per_trial`` times for each batch size until one of the batch size
-        generates and OOM error.
+        generates an OOM error.
 
         Args:
             mode: search strategy to update the batch size:
@@ -53,12 +53,12 @@ class BatchSizeFinder(Callback):
                     do a binary search between the last successful batch size and the batch size that failed.
 
             steps_per_trial: number of steps to run with a given batch size.
-                Ideally 1 should be enough to test if a OOM error occurs,
+                Ideally 1 should be enough to test if an OOM error occurs,
                 however in practice a few are needed.
 
             init_val: initial batch size to start the search with.
 
-            max_trials: max number of increase in batch size done before
+            max_trials: max number of increases in batch size done before
                algorithm is terminated
 
             batch_arg_name: name of the attribute that stores the batch size.
@@ -69,10 +69,9 @@ class BatchSizeFinder(Callback):
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
-        # TODO: Add input validation.
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
-            raise MisconfigurationException(f"`mode` should be either of {self.SUPPORTED_MODES}")
+            raise ValueError(f"`mode` should be either of {self.SUPPORTED_MODES}")
 
         self.mode = mode
         self.steps_per_trial = steps_per_trial
@@ -84,7 +83,7 @@ class BatchSizeFinder(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if trainer._accelerator_connector.is_distributed:
-            raise MisconfigurationException("Batch size finder is not supported with distributed strategies.")
+            raise MisconfigurationException("The Batch size finder is not supported with distributed strategies.")
 
         running_stage = trainer.state.stage
         assert running_stage is not None
@@ -93,7 +92,7 @@ class BatchSizeFinder(Callback):
         # TODO: check if this can be enabled (#4040)
         if not trainer._data_connector._train_dataloader_source.is_module():
             raise MisconfigurationException(
-                "Batch size finder cannot be used with dataloaders passed directly to `.fit()`. Please disable"
+                "The Batch size finder cannot be used with dataloaders passed directly to `.fit()`. Please disable"
                 " the feature or incorporate the dataloader into your LightningModule or LightningDataModule."
             )
 
@@ -102,7 +101,7 @@ class BatchSizeFinder(Callback):
             dataloaders = dl_source.dataloader()
             if isinstance(dataloaders, list) and len(dataloaders) > 1:
                 raise MisconfigurationException(
-                    "Batch size finder cannot be used with multiple" f" {running_stage.dataloader_prefix} dataloaders."
+                    f"The Batch size finder cannot be used with multiple {running_stage.dataloader_prefix} dataloaders."
                 )
 
         if not lightning_hasattr(pl_module, self.batch_arg_name):
