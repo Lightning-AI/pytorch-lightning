@@ -20,5 +20,6 @@ ___________________
 
     ~python.popen.PopenPythonScript
     ~python.tracer.TracerPythonScript
+    ~training.LightningTrainingComponent
     ~serve.gradio.ServeGradio
     ~serve.serve.ModelInferenceAPI

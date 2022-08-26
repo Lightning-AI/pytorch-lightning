@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+import weakref
 from unittest.mock import Mock
 
 import pytest
@@ -416,3 +417,20 @@ def test_proper_refcount():
     lightning_module = LightningModule()
 
     assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)
+
+
+def test_trainer_reference_recursively():
+    ensemble = LightningModule()
+    inner = LightningModule()
+    ensemble.inner = inner
+
+    assert inner._trainer is None
+    with pytest.raises(RuntimeError, match="attached to a `Trainer"):
+        _ = ensemble.trainer
+
+    trainer = Mock()
+    ensemble.trainer = trainer
+    # references match
+    assert ensemble.trainer is inner.trainer
+    # and the trainer was weakly referenced
+    assert inner.trainer is weakref.proxy(trainer)

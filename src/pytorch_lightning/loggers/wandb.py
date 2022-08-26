@@ -26,7 +26,7 @@ import torch.nn as nn
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _WANDB_GREATER_EQUAL_0_10_22, _WANDB_GREATER_EQUAL_0_12_10
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -37,6 +37,10 @@ try:
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None  # type: ignore
+
+_WANDB_AVAILABLE = _RequirementAvailable("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = _RequirementAvailable("wandb>=0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = _RequirementAvailable("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
@@ -256,7 +260,7 @@ class WandbLogger(Logger):
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
-        project: Optional[str] = None,
+        project: str = "lightning_logs",
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
@@ -293,7 +297,7 @@ class WandbLogger(Logger):
         self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
-            name=name or project,
+            name=name,
             project=project,
             id=version or id,
             dir=save_dir,
@@ -302,6 +306,7 @@ class WandbLogger(Logger):
         )
         self._wandb_init.update(**kwargs)
         # extract parameters
+        self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
@@ -324,7 +329,7 @@ class WandbLogger(Logger):
 
     @property  # type: ignore[misc]
     @rank_zero_experiment
-    def experiment(self) -> Run:
+    def experiment(self) -> Union[Run, RunDisabled]:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -357,11 +362,13 @@ class WandbLogger(Logger):
                 self._experiment = wandb.init(**self._wandb_init)
 
                 # define default x-axis
-                if isinstance(self._experiment, Run) and getattr(self._experiment, "define_metric", None):
+                if isinstance(self._experiment, (Run, RunDisabled)) and getattr(
+                    self._experiment, "define_metric", None
+                ):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
-        assert isinstance(self._experiment, Run)
+        assert isinstance(self._experiment, (Run, RunDisabled))
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
@@ -375,7 +382,7 @@ class WandbLogger(Logger):
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -444,13 +451,13 @@ class WandbLogger(Logger):
 
     @property
     def name(self) -> Optional[str]:
-        """Gets the name of the experiment.
+        """The project name of this experiment.
 
         Returns:
-            The name of the experiment if the experiment exists else the name given to the constructor.
+            The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
+            name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
         """
-        # don't create an experiment if we don't have one
-        return self._experiment.name if self._experiment else self._name
+        return self._project
 
     @property
     def version(self) -> Optional[str]:

@@ -216,7 +216,7 @@ class TensorBoardLogger(Logger):
             writer.add_summary(sei)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -242,6 +242,7 @@ class TensorBoardLogger(Logger):
                 input_array = model.example_input_array
 
             if input_array is not None:
+                input_array = model._on_before_batch_transfer(input_array)
                 input_array = model._apply_batch_transfer_handler(input_array)
                 model._running_torchscript = True
                 self.experiment.add_graph(model, input_array)

@@ -1,17 +1,19 @@
 #############################
-Publish a Lightning component
+Publish a Lightning Component
 #############################
-**Audience:** Users who want to build a component to publish to the Lightning Gallery
+
+**Audience:** Users who want to build a Ligthtning Component (Component) to publish to the Lightning Gallery
 
 ----
 
-********************************
-Generate component from template
-********************************
-The fastest way to build a component that is ready to be published to the component Gallery is to use
+***********************************
+Develop a Component from a template
+***********************************
+
+The fastest way to build a Component that is ready to be published to the component Gallery is to use
 the default template.
 
-Generate your component template with this command:
+Generate your Component template with this command:
 
 .. code:: python
 
@@ -20,9 +22,10 @@ Generate your component template with this command:
 ----
 
 *****************
-Run the component
+Run the Component
 *****************
-To test that your component works, first install all dependencies:
+
+To test that your Component works, first install all dependencies:
 
 .. code:: bash
 
@@ -30,7 +33,7 @@ To test that your component works, first install all dependencies:
     pip install -r requirements.txt
     pip install -e .
 
-Now import your component and use it in an app:
+Now import your Component and use it in a Lightning App:
 
 .. code:: python
 

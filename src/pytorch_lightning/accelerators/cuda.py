@@ -52,7 +52,7 @@ class CUDAAccelerator(Accelerator):
     def set_nvidia_flags(local_rank: int) -> None:
         # set the correct cuda visible devices (using pci order)
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        all_gpu_ids = ",".join(str(x) for x in range(torch.cuda.device_count()))
+        all_gpu_ids = ",".join(str(x) for x in range(device_parser.num_cuda_devices()))
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
@@ -84,22 +84,16 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return torch.cuda.device_count()
+        return device_parser.num_cuda_devices()
 
     @staticmethod
     def is_available() -> bool:
-        return torch.cuda.device_count() > 0
+        return device_parser.num_cuda_devices() > 0
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
         accelerator_registry.register(
             "cuda",
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
-        # temporarily enable "gpu" to point to the CUDA Accelerator
-        accelerator_registry.register(
-            "gpu",
             cls,
             description=f"{cls.__class__.__name__}",
         )
@@ -162,6 +156,6 @@ def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cov
 def _get_gpu_id(device_id: int) -> str:
     """Get the unmasked real GPU IDs."""
     # All devices if `CUDA_VISIBLE_DEVICES` unset
-    default = ",".join(str(i) for i in range(torch.cuda.device_count()))
+    default = ",".join(str(i) for i in range(device_parser.num_cuda_devices()))
     cuda_visible_devices = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
     return cuda_visible_devices[device_id].strip()

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from pytorch_lightning.strategies.launchers.xla_spawn import _XLASpawnLauncher
+from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 
 __all__ = [
     "_Launcher",
-    "_SpawnLauncher",
+    "_MultiProcessingLauncher",
     "_SubprocessScriptLauncher",
-    "_XLASpawnLauncher",
+    "_XLALauncher",
 ]

@@ -17,6 +17,7 @@ from typing import Dict, Optional
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
@@ -54,6 +55,9 @@ class SingleHPUStrategy(SingleDeviceStrategy):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = HPUCheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = HPUCheckpointIO()
+
         return self._checkpoint_io
 
     @checkpoint_io.setter

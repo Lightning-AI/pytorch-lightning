@@ -23,7 +23,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
@@ -59,7 +59,7 @@ def test_ddp_cpu():
     trainer.fit(model)
 
 
-class CustomSpawnLauncher(_SpawnLauncher):
+class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
     def add_to_queue(self, trainer, queue) -> None:
         queue.put("test_val")
         return super().add_to_queue(trainer, queue)
@@ -71,7 +71,7 @@ class CustomSpawnLauncher(_SpawnLauncher):
 
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
     def _configure_launcher(self):
-        self._launcher = CustomSpawnLauncher(self)
+        self._launcher = CustomMultiProcessingLauncher(self)
 
 
 @RunIf(skip_windows=True)
@@ -178,3 +178,25 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     mock_init_process_group.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp_spawn", {}),
+        pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
+        ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_false",
+            {"find_unused_parameters": False},
+            marks=RunIf(skip_windows=True),
+        ),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

@@ -8,7 +8,6 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork, LightningWorkException
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.storage.requests import GetRequest
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
@@ -130,8 +129,8 @@ def test_fixing_flows_and_works(replacement):
         FlowFixed().run()
 
 
-@pytest.mark.parametrize("raise_exception", [False, True])
 @pytest.mark.parametrize("enable_exception", [False, True])
+@pytest.mark.parametrize("raise_exception", [False, True])
 def test_lightning_status(enable_exception, raise_exception):
     class Work(EmptyWork):
         def __init__(self, raise_exception, enable_exception=True):
@@ -143,17 +142,6 @@ def test_lightning_status(enable_exception, raise_exception):
             if self.enable_exception:
                 raise Exception("Custom Exception")
 
-    class BlockingQueue(MockQueue):
-        """A Mock for the file copier queues that keeps blocking until we want to end the thread."""
-
-        keep_blocking = True
-
-        def get(self, timeout: int = 0):
-            while BlockingQueue.keep_blocking:
-                pass
-            # A dummy request so the Copier gets something to process without an error
-            return GetRequest(source="src", name="dummy_path", path="test", hash="123", destination="dst")
-
     work = Work(raise_exception, enable_exception=enable_exception)
     work._name = "root.w"
     assert work.status.stage == WorkStageStatus.NOT_STARTED
@@ -163,9 +151,9 @@ def test_lightning_status(enable_exception, raise_exception):
     error_queue = MockQueue("error_queue")
     request_queue = MockQueue("request_queue")
     response_queue = MockQueue("response_queue")
-    copy_request_queue = BlockingQueue("copy_request_queue")
-    copy_response_queue = BlockingQueue("copy_response_queue")
-    call_hash = "run:fe3fa0f34fc1317e152e5afb023332995392071046f1ea51c34c7c9766e3676c"
+    copy_request_queue = MockQueue("copy_request_queue")
+    copy_response_queue = MockQueue("copy_response_queue")
+    call_hash = "fe3fa0f"
     work._calls[call_hash] = {
         "args": (),
         "kwargs": {},
@@ -203,14 +191,13 @@ def test_lightning_status(enable_exception, raise_exception):
     if enable_exception:
         exception_cls = Exception if raise_exception else Empty
         assert isinstance(error_queue._queue[0], exception_cls)
-        res[f"root['calls']['{call_hash}']['statuses'][0]"]["stage"] == "failed"
-        res[f"root['calls']['{call_hash}']['statuses'][0]"]["message"] == "Custom Exception"
+        res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["stage"] == "failed"
+        res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["message"] == "Custom Exception"
     else:
         assert res[f"root['calls']['{call_hash}']['statuses'][0]"]["stage"] == "running"
         assert res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["stage"] == "succeeded"
 
     # Stop blocking and let the thread join
-    BlockingQueue.keep_blocking = False
     work_runner.copier.join()
 
 
@@ -281,3 +268,15 @@ def test_work_state_change_with_path():
     assert flow.work.state["vars"]["none_to_path"] == Path("lit://none/to/path")
     assert flow.work.state["vars"]["path_to_none"] is None
     assert flow.work.state["vars"]["path_to_path"] == Path("lit://path/to/path")
+
+
+def test_lightning_work_calls():
+    class W(LightningWork):
+        def run(self, *args, **kwargs):
+            pass
+
+    w = W()
+    assert len(w._calls) == 1
+    w.run(1, [2], (3, 4), {"1": "3"})
+    assert len(w._calls) == 2
+    assert w._calls["0d824f7"] == {"ret": None}

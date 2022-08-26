@@ -163,8 +163,7 @@ class LoggerConnector:
         self.log_metrics(self.metrics["log"])
 
         # reset result collection for next epoch
-        assert self.trainer._results is not None
-        self.trainer._results.reset(metrics=True)
+        self.reset_results()
 
     """
     Utilities and properties

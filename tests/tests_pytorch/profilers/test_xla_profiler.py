@@ -35,7 +35,6 @@ def test_xla_profiler_instance(tmpdir):
 
     assert isinstance(trainer.profiler, XLAProfiler)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skipif(True, reason="XLA Profiler doesn't support Prog. capture yet")

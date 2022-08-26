@@ -109,6 +109,7 @@ celerybeat-schedule
 
 # dotenv
 .env
+.env_stagging
 
 # virtualenv
 .venv
@@ -160,3 +161,13 @@ tags
 .tags
 src/lightning_app/ui/*
 *examples/template_react_ui*
+hars*
+artifacts/*
+*docs/examples*
+*docs/source-app/api*
+
+# tutorials
+our_model.tar
+test.png
+saved_models
+data/

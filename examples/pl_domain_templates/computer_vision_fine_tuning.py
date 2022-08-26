@@ -56,7 +56,7 @@ from torchvision.datasets.utils import download_and_extract_archive
 
 from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 log = logging.getLogger(__name__)
@@ -150,7 +150,7 @@ class CatDogImageDataModule(LightningDataModule):
         return self.__dataloader(train=False)
 
 
-#  --- Pytorch-lightning module ---
+#  --- PyTorch Lightning module ---
 
 
 class TransferLearningModel(LightningModule):

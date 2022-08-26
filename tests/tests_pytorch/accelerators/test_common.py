@@ -18,8 +18,8 @@ from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, CUDAAcce
 from pytorch_lightning.strategies import DDPStrategy
 
 
-@mock.patch("torch.cuda.device_count", return_value=2)
-def test_auto_device_count(device_count_mock):
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2)
+def test_auto_device_count(_):
     assert CPUAccelerator.auto_device_count() == 1
     assert CUDAAccelerator.auto_device_count() == 2
     assert TPUAccelerator.auto_device_count() == 8

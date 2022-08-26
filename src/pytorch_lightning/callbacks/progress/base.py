@@ -169,8 +169,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
         """
-        assert self._trainer is not None
-        return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
+        return sum(self.trainer.num_val_batches) if self.trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
 
     @property
     def total_batches_current_epoch(self) -> Union[int, float]:

@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import functools
 import os
 import re
-import traceback
 from contextlib import contextmanager
 from typing import Optional, Type
 
@@ -78,40 +76,6 @@ def set_random_main_port():
 def init_checkpoint_callback(logger):
     checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
     return checkpoint
-
-
-def pl_multi_process_test(func):
-    """Wrapper for running multi-processing tests_pytorch."""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-
-        from multiprocessing import Process, Queue
-
-        queue = Queue()
-
-        def inner_f(queue, **kwargs):
-            try:
-                func(**kwargs)
-                queue.put(1)
-            except Exception:
-                _trace = traceback.format_exc()
-                print(_trace)
-                # code 17 means RuntimeError: tensorflow/compiler/xla/xla_client/mesh_service.cc:364 :
-                # Failed to meet rendezvous 'torch_xla.core.xla_model.save': Socket closed (14)
-                if "terminated with exit code 17" in _trace:
-                    queue.put(1)
-                else:
-                    queue.put(-1)
-
-        proc = Process(target=inner_f, args=(queue,), kwargs=kwargs)
-        proc.start()
-        proc.join()
-
-        result = queue.get()
-        assert result == 1, "expected 1, but returned %s" % result
-
-    return wrapper
 
 
 @contextmanager
