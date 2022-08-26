@@ -400,3 +400,15 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
 
     trainer.test(model, verbose=False)
     assert pbar.calls["test"] == []
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_padding():
+    progress_bar = RichProgressBar()
+    trainer = Mock()
+    trainer.max_epochs = 1
+    progress_bar._trainer = trainer
+
+    train_description = progress_bar._get_train_description(current_epoch=0)
+    assert "Epoch 0/0" in train_description
+    assert len(progress_bar.validation_description) == len(train_description)

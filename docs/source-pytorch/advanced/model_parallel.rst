@@ -212,14 +212,31 @@ PyTorch Fully Sharded Training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 PyTorch has it's own version of `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_ which is upstreamed from their `fairscale <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ project.
-It was introduced in their `v1.11.0 release <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_. The API is pretty similar to that of FairScale.
+It was introduced in their `v1.11.0 release <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_ but it is recommended to use it with PyTorch v1.12 or more and that's what
+Lightning supports. The API is pretty similar to that of FairScale.
 
-.. note::
-    Currently Fully Sharded Training relies on the user to wrap the model with Fully Sharded within the ``LightningModule``.
-    This means you must create a single model that is treated as a ``torch.nn.Module`` within the ``LightningModule``.
-    This is a limitation of Fully Sharded Training that will be resolved in the future.
 
-To activate parameter sharding, you must wrap your model using the``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
+Auto Wrapping
+"""""""""""""
+Model layers should be wrapped in FSDP in a nested way to save peak memory and enable communication and computation overlapping. The
+simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
+have to ``wrap`` layers manually as in the case of manual wrapping.
+
+.. code-block:: python
+
+    model = BoringModel()
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp_native", precision=16)
+    trainer.fit(model)
+
+
+Read more `here <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/#auto-wrapping>`__.
+
+
+Manual Wrapping
+"""""""""""""""
+
+Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model. To activate
+parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
 
 When not using Fully Sharded these wrap functions are a no-op. This means once the changes have been made, there is no need to remove the changes for other strategies.
 
