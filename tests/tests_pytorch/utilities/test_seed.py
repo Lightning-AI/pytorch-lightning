@@ -10,12 +10,7 @@ import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states, isolate_rng
-
-<<<<<<< HEAD
 from tests_pytorch.helpers.runif import RunIf
-
-=======
->>>>>>> origin/master
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
