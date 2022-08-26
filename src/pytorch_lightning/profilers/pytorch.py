@@ -117,7 +117,7 @@ class ScheduleWrapper:
     def pre_step(self, current_action: str) -> None:
         self._current_action = current_action
 
-    def reset(self):
+    def reset(self) -> None:
         # handle properly `fast_dev_run`. PyTorch Profiler will fail otherwise.
         self._num_training_step = 0
         self._num_validation_step = 0
