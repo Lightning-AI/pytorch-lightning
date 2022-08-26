@@ -145,10 +145,10 @@ class ModelIO:
 
 def _load_from_checkpoint(
     cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
-    checkpoint_path: Union[str, IO],
+    checkpoint_path: Union[_PATH, IO],
     map_location: _MAP_LOCATION_TYPE = None,
-    hparams_file: Optional[str] = None,
-    strict: bool = True,
+    hparams_file: Optional[_PATH] = None,
+    strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
@@ -157,7 +157,7 @@ def _load_from_checkpoint(
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     if hparams_file is not None:
-        extension = hparams_file.split(".")[-1]
+        extension = str(hparams_file).split(".")[-1]
         if extension.lower() == "csv":
             hparams = load_hparams_from_tags_csv(hparams_file)
         elif extension.lower() in ("yml", "yaml"):
@@ -175,8 +175,6 @@ def _load_from_checkpoint(
 
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
-    # allow cls to be evaluated as subclassed LightningModule or,
-    # as LightningModule for internal tests
     if issubclass(cls, pl.LightningModule):
         return _load_state(cls, checkpoint, strict=strict, **kwargs)
 
@@ -184,7 +182,7 @@ def _load_from_checkpoint(
 def _load_state(
     cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
-    strict: bool = True,
+    strict: Optional[bool] = None,
     **cls_kwargs_new: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
@@ -231,6 +229,7 @@ def _load_state(
         return obj
 
     # load the state_dict on the model automatically
+    assert strict is not None
     keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:
