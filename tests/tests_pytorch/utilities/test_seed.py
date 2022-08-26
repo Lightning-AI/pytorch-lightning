@@ -9,7 +9,7 @@ import pytest
 import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
-from pytorch_lightning.utilities.seed import isolate_rng
+from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states, isolate_rng
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -87,6 +87,13 @@ def test_isolate_rng():
         generated = [torch.rand(2) for _ in range(3)]
     assert torch.equal(torch.rand(2), generated[0])
 
+    # torch.cuda
+    if torch.cuda.is_available():
+        torch.cuda.FloatTensor(1).normal_()
+        with isolate_rng():
+            generated = [torch.cuda.FloatTensor(2).normal_() for _ in range(3)]
+        assert torch.equal(torch.cuda.FloatTensor(2).normal_(), generated[0])
+
     # numpy
     np.random.rand(1)
     with isolate_rng():
@@ -98,6 +105,17 @@ def test_isolate_rng():
     with isolate_rng():
         generated = [random.random() for _ in range(3)]
     assert random.random() == generated[0]
+
+
+def test_backward_compatibility_rng_states_dict():
+    """Test that an older rng_states_dict without the "torch.cuda" key does not crash.
+
+    This test is only relevant when torch.cuda is available.
+    """
+    states = _collect_rng_states()
+    assert "torch.cuda" in states
+    states.pop("torch.cuda")
+    _set_rng_states(states)
 
 
 @mock.patch("pytorch_lightning.utilities.seed.log.info")
