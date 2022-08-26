@@ -330,7 +330,7 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
                 raise RuntimeError
 
         def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 1000), batch_size=getattr(self, "batch_size", 1))
+            return DataLoader(RandomDataset(32, 1000), batch_size=self.batch_size)
 
     model = CustomBatchSizeModel(batch_size=16)
     model.validation_step = None
