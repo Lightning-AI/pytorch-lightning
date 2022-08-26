@@ -131,7 +131,10 @@ def _run_power_scaling(
     any_success = False
     for _ in range(max_trials):
         garbage_collection_cuda()
-        trainer.fit_loop.global_step = 0  # reset after each try
+
+        # reset after each try
+        _reset_progress(trainer)
+
         try:
             # Try fit
             trainer.tuner._run(model)
@@ -175,7 +178,10 @@ def _run_binsearch_scaling(
     count = 0
     while True:
         garbage_collection_cuda()
-        trainer.fit_loop.global_step = 0  # reset after each try
+
+        # reset after each try
+        _reset_progress(trainer)
+
         try:
             # Try fit
             trainer.tuner._run(model)
@@ -263,3 +269,12 @@ def _adjust_batch_size(
 def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer"):
     module = trainer.lightning_module or trainer.datamodule
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
+
+
+def _reset_progress(trainer: "pl.Trainer") -> None:
+    if trainer.lightning_module.automatic_optimization:
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.reset()
+    else:
+        trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress.reset()
+
+    trainer.fit_loop.epoch_progress.reset()

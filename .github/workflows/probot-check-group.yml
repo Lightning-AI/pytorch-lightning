@@ -1,0 +1,15 @@
+name: Probot
+
+on:
+  check_run: {}
+  pull_request: {}
+  issue_comment: {types: [created]}
+
+jobs:
+  required-jobs:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'issue_comment' || contains(github.event.comment.body, '@probot pls')
+    steps:
+      - uses: carmocca/probot@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
