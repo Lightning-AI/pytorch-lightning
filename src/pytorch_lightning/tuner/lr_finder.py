@@ -278,6 +278,7 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
         "callbacks": trainer.callbacks,
         "logger": trainer.logger,
         "max_steps": trainer.fit_loop.max_steps,
+        "setup_optimizers": trainer.strategy.setup_optimizers,
     }
 
 
@@ -297,6 +298,7 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     trainer.callbacks = params["callbacks"]
     trainer.logger = params["logger"]
     trainer.fit_loop.max_steps = params["max_steps"]
+    trainer.strategy.setup_optimizers = params["setup_optimizers"]  # type: ignore[assignment]
 
 
 class _LRCallback(Callback):
