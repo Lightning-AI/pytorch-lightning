@@ -42,7 +42,7 @@ if _KINETO_AVAILABLE:
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx] # type: ignore [valid-type]
+_PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]  # type: ignore [valid-type]
 
 
 class RegisterRecordFunction:
