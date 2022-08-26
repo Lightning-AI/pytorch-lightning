@@ -45,6 +45,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Included `torch.cuda` rng state to the aggregate `_collect_rng_states()` and `_set_rng_states()` ([#14384](https://github.com/Lightning-AI/lightning/pull/14384))
 
 
+- When using multiple loggers, by default checkpoints and profiler output now get saved to the log dir of the first logger in the list ([14325](https://github.com/Lightning-AI/lightning/pull/14325))
+
 
 
 ### Deprecated
