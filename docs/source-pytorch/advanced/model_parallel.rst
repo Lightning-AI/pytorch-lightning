@@ -250,7 +250,8 @@ Lightning supports. The API is pretty similar to that of FairScale.
 
 
 Auto Wrapping
-"""""""""""""
+=============
+
 Model layers should be wrapped in FSDP in a nested way to save peak memory and enable communication and computation overlapping. The
 simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
 have to ``wrap`` layers manually as in the case of manual wrapping.
@@ -266,7 +267,7 @@ Read more `here <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data
 
 
 Manual Wrapping
-"""""""""""""""
+===============
 
 Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model. To activate
 parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function. Internally in Lightning, we enable a context manager around the ``configure_sharded_model`` function to make sure the ``wrap`` parameters are passed correctly.
