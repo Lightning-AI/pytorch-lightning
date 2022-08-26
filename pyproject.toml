@@ -51,7 +51,6 @@ warn_no_return = "False"
 module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
     "pytorch_lightning.core.datamodule",
-    "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
     "pytorch_lightning.strategies.sharded",
