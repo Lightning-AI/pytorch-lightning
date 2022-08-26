@@ -27,7 +27,8 @@ def test_valid_org_app_name():
     assert result.exit_code
 
     # assert a good (and availablea name) works
-    real_app = "lightning/install-app"
+    # This should be an app that's always in the gallery
+    real_app = "lightning/invideo"
     result = runner.invoke(lightning_cli.install_app, [real_app])
     assert "Press enter to continue:" in result.output
 
@@ -145,7 +146,7 @@ def test_component_install(real_component, test_component_pip_name):
 
 def test_prompt_actions():
     # TODO: each of these installs must check that a package is installed in the environment correctly
-    app_to_use = "lightning/install-app"
+    app_to_use = "lightning/invideo"
 
     runner = CliRunner()
 
@@ -197,7 +198,7 @@ def test_version_arg_component(tmpdir, monkeypatch):
 def test_version_arg_app(tmpdir):
 
     # Version does not exist
-    app_name = "lightning/hackernews-app"
+    app_name = "lightning/invideo"
     version_arg = "NOT-EXIST"
     runner = CliRunner()
     result = runner.invoke(lightning_cli.install_app, [app_name, f"--version={version_arg}"])
@@ -205,24 +206,56 @@ def test_version_arg_app(tmpdir):
     assert result.exit_code == 1
 
     # Version exists
-    version_arg = "0.0.1"
+    version_arg = "0.0.2"
     runner = CliRunner()
     result = runner.invoke(lightning_cli.install_app, [app_name, f"--version={version_arg}", "--yes"])
     assert result.exit_code == 0
 
 
+@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning_app.cli.cmd_install._show_install_app_prompt")
+def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
+
+    app_name = "lightning/invideo"
+    runner = CliRunner()
+    with mock.patch("lightning_app.cli.cmd_install.requests.get") as get_api_mock:
+        get_api_mock.return_value.json.return_value = {
+            "apps": [
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.2",
+                    "name": "lightning/invideo",
+                },
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.4",
+                    "name": "lightning/invideo",
+                },
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.5",
+                    "name": "another_app",
+                },
+            ]
+        }
+        runner.invoke(lightning_cli.install_app, [app_name, "--yes"])  # no version specified so latest is installed
+        assert mock_show_install_app_prompt.called
+        assert mock_show_install_app_prompt.call_args[0][0]["version"] == "0.0.4"
+
+
 def test_proper_url_parsing():
 
-    name = "lightning/install-app"
+    name = "lightning/invideo"
 
     # make sure org/app-name name is correct
     org, app = cmd_install._validate_name(name, resource_type="app", example="lightning/lit-slack-component")
     assert org == "lightning"
-    assert app == "install-app"
+    assert app == "invideo"
 
     # resolve registry (orgs can have a private registry through their environment variables)
     registry_url = cmd_install._resolve_app_registry()
-    assert registry_url == "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/apps"
+    assert registry_url == "https://lightning.ai/v1/apps"
 
     # load the component resource
     component_entry = cmd_install._resolve_resource(registry_url, name=name, version_arg="latest", resource_type="app")
@@ -230,10 +263,9 @@ def test_proper_url_parsing():
     source_url, git_url, folder_name, git_sha = cmd_install._show_install_app_prompt(
         component_entry, app, org, True, resource_type="app"
     )
-    assert folder_name == "install-app"
+    assert folder_name == "LAI-InVideo-search-App"
     # FixMe: this need to be updated after release with updated org rename
-    assert source_url == "https://github.com/PyTorchLightning/install-app"
-    assert git_url.find("@") > 10  # TODO: this will be removed once the apps repos will be public
+    assert source_url == "https://github.com/Lightning-AI/LAI-InVideo-search-App"
     assert "#ref" not in git_url
     assert git_sha
 
@@ -286,20 +318,20 @@ def test_install_app_shows_error(tmpdir):
 # os.chdir(cwd)
 
 
-def test_public_app_registry():
-    registry = cmd_install._resolve_app_registry()
-    assert registry == "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/apps"
-
-
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_REGISTRY": "https://TODO/other_non_PL_registry"})
 def test_private_app_registry():
     registry = cmd_install._resolve_app_registry()
     assert registry == "https://TODO/other_non_PL_registry"
 
 
+def test_public_app_registry():
+    registry = cmd_install._resolve_app_registry()
+    assert registry == "https://lightning.ai/v1/apps"
+
+
 def test_public_component_registry():
     registry = cmd_install._resolve_component_registry()
-    assert registry == "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/components"
+    assert registry == "https://lightning.ai/v1/components"
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_COMPONENT_REGISTRY": "https://TODO/other_non_PL_registry"})

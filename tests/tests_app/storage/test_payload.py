@@ -1,3 +1,4 @@
+import os
 import pathlib
 import pickle
 from copy import deepcopy
@@ -146,3 +147,7 @@ def test_payload_works(tmpdir):
     with mock.patch("lightning_app.storage.path.storage_root_dir", lambda: pathlib.Path(tmpdir)):
         app = LightningApp(Flow(), debug=True)
         MultiProcessRuntime(app, start_server=False).dispatch()
+
+    os.remove("value_all")
+    os.remove("value_b")
+    os.remove("value_c")

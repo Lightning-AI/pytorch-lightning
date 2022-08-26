@@ -1271,7 +1271,8 @@ def test_lightning_cli_subcommands_common_default_config_files(tmpdir):
 def test_lightning_cli_reinstantiate_trainer():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, run=False)
-    assert cli.trainer.max_epochs == 1000
+
+    assert cli.trainer.max_epochs is None
 
     class TestCallback(Callback):
         ...

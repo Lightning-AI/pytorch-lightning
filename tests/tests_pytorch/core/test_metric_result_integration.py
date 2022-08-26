@@ -21,9 +21,11 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import torchmetrics
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
+import pytorch_lightning as pl
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -666,14 +668,22 @@ def test_compute_not_a_tensor_raises():
 
 
 @pytest.mark.parametrize("distributed_env", [True, False])
-def test_logger_sync_dist(distributed_env):
-    # self.log('bar', 7, ..., sync_dist=False)
+@pytest.mark.parametrize("log_val", [torch.tensor(0.5), torchmetrics.Accuracy()])
+def test_logger_sync_dist(distributed_env, log_val):
+    pl.trainer.connectors.logger_connector.result.warning_cache.clear()
+
+    # self.log('bar', 0.5, ..., sync_dist=False)
     meta = _Metadata("foo", "bar")
     meta.sync = _Sync(_should=False)
-    result_metric = _ResultMetric(metadata=meta, is_tensor=True)
-    result_metric.update(torch.tensor(7.0), 10)
+    is_tensor = isinstance(log_val, torch.Tensor)
 
-    warning_ctx = pytest.warns if distributed_env else no_warning_call
+    if not is_tensor:
+        log_val.update(torch.tensor([0, 1]), torch.tensor([0, 0], dtype=torch.long))
+
+    result_metric = _ResultMetric(metadata=meta, is_tensor=is_tensor)
+    result_metric.update(log_val, 10)
+
+    warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
 
     with mock.patch(
         "pytorch_lightning.trainer.connectors.logger_connector.result.distributed_available",
@@ -681,4 +691,4 @@ def test_logger_sync_dist(distributed_env):
     ):
         with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
             value = _ResultCollection._get_cache(result_metric, on_step=False)
-        assert value == 7.0
+        assert value == 0.5

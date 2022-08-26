@@ -97,7 +97,7 @@ Custom Checkpoint IO Plugin
 
 .. note::
 
-    Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+    Some ``Strategy``s like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
 
 
 **************************
