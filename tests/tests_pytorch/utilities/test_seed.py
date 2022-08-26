@@ -10,7 +10,12 @@ import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states, isolate_rng
+
+<<<<<<< HEAD
 from tests_pytorch.helpers.runif import RunIf
+
+=======
+>>>>>>> origin/master
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -111,6 +116,17 @@ def test_isolate_rng(with_torch_cuda):
 
 def test_backward_compatibility_rng_states_dict() :
     """Test that an older rng_states_dict without the "torch.cuda" key does not crash."""
+    states = _collect_rng_states()
+    assert "torch.cuda" in states
+    states.pop("torch.cuda")
+    _set_rng_states(states)
+
+
+def test_backward_compatibility_rng_states_dict():
+    """Test that an older rng_states_dict without the "torch.cuda" key does not crash.
+
+    This test is only relevant when torch.cuda is available.
+    """
     states = _collect_rng_states()
     assert "torch.cuda" in states
     states.pop("torch.cuda")

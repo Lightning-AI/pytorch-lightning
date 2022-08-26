@@ -321,14 +321,17 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
         holders.append(model)
 
     # Check if attribute in model.hparams, either namespace or dict
-    if hasattr(model, "hparams"):
-        if attribute in model.hparams:
-            holders.append(model.hparams)
+    if hasattr(model, "hparams") and attribute in model.hparams:
+        holders.append(model.hparams)
 
     trainer = model._trainer
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        holders.append(trainer.datamodule)
+    if trainer is not None and trainer.datamodule is not None:
+        if hasattr(trainer.datamodule, attribute):
+            holders.append(trainer.datamodule)
+
+        if hasattr(trainer.datamodule, "hparams") and attribute in trainer.datamodule.hparams:
+            holders.append(trainer.datamodule.hparams)
 
     return holders
 

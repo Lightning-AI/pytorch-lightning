@@ -131,7 +131,8 @@ def _collect_rng_states() -> Dict[str, Any]:
 
 
 def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current process."""
+    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
+    process."""
     torch.set_rng_state(rng_state_dict["torch"])
     # torch.cuda rng_state is only included since v1.8.
     if "torch.cuda" in rng_state_dict:
