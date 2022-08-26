@@ -58,7 +58,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated the `on_colab_kaggle` function ([#14247](https://github.com/Lightning-AI/lightning/pull/14247))
 
-- Deprecated the `on_hpc_save` and `on_hpc_load` override functions in `LightningModule`
+
+- Deprecated the `on_hpc_save` and `on_hpc_load` override functions in `LightningModule` ([#14407](https://github.com/Lightning-AI/lightning/pull/14407))
 
 
 ### Removed
