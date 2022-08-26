@@ -140,3 +140,6 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
         unlink.assert_called_once_with()
     else:
         unlink.assert_not_called()
+
+
+# TODO: test for the other commands
