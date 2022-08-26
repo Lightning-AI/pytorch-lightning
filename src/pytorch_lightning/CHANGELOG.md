@@ -59,6 +59,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `on_colab_kaggle` function ([#14247](https://github.com/Lightning-AI/lightning/pull/14247))
 
 
+- Deprecated the `lr_schedulers` from `Trainer` ([#14408](https://github.com/Lightning-AI/lightning/pull/14408/files))
+
 ### Removed
 
 - Removed the deprecated `Trainer.training_type_plugin` property in favor of `Trainer.strategy` ([#14011](https://github.com/Lightning-AI/lightning/pull/14011))
