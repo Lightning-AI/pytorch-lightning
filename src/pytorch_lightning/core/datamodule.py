@@ -18,6 +18,7 @@ from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Unio
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import _load_from_checkpoint
@@ -62,7 +63,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     def __init__(self) -> None:
         super().__init__()
         # Pointer to the trainer object
-        self.trainer = None
+        self.trainer: Optional["pl.Trainer"] = None
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
