@@ -27,7 +27,7 @@ from torch import Tensor
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 if _TORCHTEXT_LEGACY:
     if _compare_version("torchtext", operator.ge, "0.9.0"):
@@ -38,7 +38,7 @@ else:
     Batch = type(None)
 
 
-_CPU_DEVICES = ("cpu", torch.device("cpu"))
+_BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 
 
 def to_dtype_tensor(
@@ -322,6 +322,9 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
         - :class:`torch.device`
     """
 
+    if isinstance(device, str):
+        device = torch.device(device)
+
     def batch_to(data: Any) -> Any:
         # try to move torchtext data first
         if _TORCHTEXT_LEGACY and isinstance(data, Batch):
@@ -342,7 +345,8 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 
         kwargs = {}
         # Don't issue non-blocking transfers to CPU
-        if isinstance(data, Tensor) and device not in _CPU_DEVICES:
+        # Same with MPS due to a race condition bug: https://github.com/pytorch/pytorch/issues/83015
+        if isinstance(data, Tensor) and isinstance(device, torch.device) and device.type not in _BLOCKING_DEVICE_TYPES:
             kwargs["non_blocking"] = True
         data_output = data.to(device, **kwargs)
         if data_output is not None:
