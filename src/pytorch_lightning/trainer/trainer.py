@@ -2435,15 +2435,6 @@ class Trainer(
         return {k: v.default for k, v in init_signature.parameters.items()}
 
     @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated Trainer arguments."""
-        depr_arg_names = []
-        for name, val in cls.__dict__.items():
-            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
-
-    @classmethod
     def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs) -> Any:
         return from_argparse_args(cls, args, **kwargs)
 

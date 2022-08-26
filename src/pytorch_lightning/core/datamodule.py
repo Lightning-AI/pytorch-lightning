@@ -114,15 +114,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return get_init_arguments_and_types(cls)
 
     @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated DataModule arguments."""
-        depr_arg_names: List[str] = []
-        for name, val in cls.__dict__.items():
-            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
-
-    @classmethod
     def from_datasets(
         cls,
         train_dataset: Optional[Union[Dataset, Sequence[Dataset], Mapping[str, Dataset]]] = None,
