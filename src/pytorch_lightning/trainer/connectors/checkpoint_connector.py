@@ -237,7 +237,7 @@ class CheckpointConnector:
             if state:
                 # The Quantization callbacks have a special method that must be called before restoring the weights
                 # of the model
-                callback._load_before_model(self.trainer.model, deepcopy(state))
+                callback._load_before_model(self.trainer.lightning_module, deepcopy(state))
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""

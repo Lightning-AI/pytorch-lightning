@@ -183,12 +183,7 @@ class HookedModel(BoringModel):
     def __init__(self, not_supported):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
-        pl_module_hooks.difference_update(
-            {
-                "log",
-                "log_dict",
-            }
-        )
+        pl_module_hooks.difference_update({"log", "log_dict"})
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -236,8 +231,6 @@ def test_fx_validator_integration(tmpdir):
         "on_validation_model_eval": "You can't",
         "on_validation_model_train": "You can't",
         "lr_scheduler_step": "You can't",
-        "configure_gradient_clipping": "You can't",
-        "clip_gradients": "You can't",
         "on_save_checkpoint": "You can't",
         "on_load_checkpoint": "You can't",
         "on_exception": "You can't",

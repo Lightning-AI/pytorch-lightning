@@ -62,8 +62,8 @@ pull_request_rules:
       - -conflict # skip if conflict
       - -draft # filter-out GH draft PRs
       - label="ready"
-      - "#approved-reviews-by<3" # number of review approvals
-      - "#review-requested<3" # number of requested reviews
+      - "#approved-reviews-by<2" # number of review approvals
+      - "#review-requested<2" # number of requested reviews
     actions:
       request_reviews:
         teams:
