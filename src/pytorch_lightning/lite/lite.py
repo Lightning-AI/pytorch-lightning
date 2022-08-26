@@ -35,7 +35,7 @@ from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_da
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
-    _replace_init_method,
+    _replace_dunder_methods,
     _update_dataloader,
     has_iterable_dataset,
 )
@@ -403,9 +403,9 @@ class LightningLite(ABC):
 
     def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
-        with self._strategy.model_sharded_context(), _replace_init_method(DataLoader, "dataset"), _replace_init_method(
-            BatchSampler
-        ):
+        with self._strategy.model_sharded_context(), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
