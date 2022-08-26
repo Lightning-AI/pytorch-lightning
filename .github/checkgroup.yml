@@ -1,19 +1,13 @@
 custom_service_name: "Lightning CI required checker"
+# For security reasons, configuration is only loaded from the repository's default branch,
+# changes made in pull requests from different branches or forks are ignored. This means that changes to this file
+# will only be used after they are merged.
 subprojects:
   - id: "CI: CircleCI"
     paths:
       - ".circleci/**"
     checks:
       - "test-on-tpus"
-
-  - id: "CI: Azure"
-    paths:
-      - ".azure/**"
-    checks:
-      - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
-      - "pytorch-lightning (HPUs)"
-      - "pytorch-lightning (IPUs)"
 
   - id: "pytorch_lightning"
     paths:
@@ -52,13 +46,31 @@ subprojects:
       - "mypy"
       - "PR Gatekeeper (pytorch)"
       - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (GPUs) (testing PyTorch - stable)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
       - "slow (macOS-11, 3.7, 1.11)"
       - "slow (ubuntu-20.04, 3.7, 1.11)"
       - "slow (windows-2022, 3.7, 1.11)"
       - "test-on-tpus"
+
+  - id: "pytorch_lightning: Azure GPU"
+    paths:
+      - ".azure/gpu-tests.yml"
+      - "tests/tests_pytorch/run_standalone_*.sh"
+    checks:
+      - "pytorch-lightning (GPUs)"
+
+  - id: "pytorch_lightning: Azure HPU"
+    paths:
+      - ".azure/hpu-tests.yml"
+    checks:
+      - "pytorch-lightning (HPUs)"
+
+  - id: "pytorch_lightning: Azure IPU"
+    paths:
+      - ".azure/ipu-tests.yml"
+    checks:
+      - "pytorch-lightning (IPUs)"
 
   - id: "pytorch_lightning: Docs"
     paths:
@@ -73,7 +85,6 @@ subprojects:
   - id: "pytorch_lightning: Docker"
     paths:
       - "dockers/**"
-      - "!dockers/README.md"
       - "requirements.txt"
       - "requirements/*.txt"
       - "requirements/pytorch/*"
@@ -108,12 +119,10 @@ subprojects:
 
   - id: "lightning_app"
     paths:
-      - ".azure/app-cloud-e2e.yml"
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "tests/tests_app_examples/**"
-      - "tests/tests_clusters/**"
       # the examples are used in the app CI
       - "examples/app_*"
     checks:
@@ -126,6 +135,12 @@ subprojects:
       - "pytest (ubuntu-20.04, 3.8, oldest)"
       - "pytest (windows-2022, 3.8, latest)"
       - "pytest (windows-2022, 3.8, oldest)"
+
+  - id: "lightning_app: Azure"
+    paths:
+      - ".azure/app-cloud-e2e.yml"
+    checks:
+      - "App.cloud-e2e"
 
   - id: "lightning_app: Docs"
     paths:
