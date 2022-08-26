@@ -48,8 +48,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
     __verify_batch_transfer_support(trainer, model)
     _check_deprecated_callback_hooks(trainer)
-    # TODO: Delete _check_on_hpc_hooks in v1.8
-    _check_on_hpc_hooks(model)
     # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
     _check_on_epoch_start_end(model)
     # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
@@ -205,21 +203,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
                 "The model taking a `dataloader_iter` argument in your `training_step` "
                 "is incompatible with `truncated_bptt_steps > 0`."
             )
-
-
-# TODO: Delete _check_on_hpc_hooks in v1.8
-def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
-    if is_overridden("on_hpc_save", model):
-        rank_zero_deprecation(
-            "Method `LightningModule.on_hpc_save` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `LightningModule.on_save_checkpoint` instead."
-        )
-
-    if is_overridden("on_hpc_load", model):
-        rank_zero_deprecation(
-            "Method `LightningModule.on_hpc_load` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
-        )
 
 
 # TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
