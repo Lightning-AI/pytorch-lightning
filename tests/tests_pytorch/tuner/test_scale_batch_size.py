@@ -30,8 +30,8 @@ from tests_pytorch.helpers.utils import no_warning_call
 
 
 class BatchSizeDataModule(BoringDataModule):
-    def __init__(self, batch_size):
-        super().__init__()
+    def __init__(self, data_dir, batch_size):
+        super().__init__(data_dir)
         if batch_size is not None:
             self.batch_size = batch_size
 
@@ -59,7 +59,7 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
     tuner = Tuner(trainer)
 
     model = BatchSizeModel(model_bs)
-    datamodule = BatchSizeDataModule(dm_bs) if dm_bs != -1 else None
+    datamodule = BatchSizeDataModule(tmpdir, dm_bs) if dm_bs != -1 else None
 
     new_batch_size = tuner.scale_batch_size(model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule)
     assert new_batch_size == 16
@@ -141,47 +141,64 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     assert not os.path.exists(tmpdir / "scale_batch_size_temp_model.ckpt")
 
 
-@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("use_hparams", [True, False])
 def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
-    """Test that new batch size gets written to the correct hyperparameter attribute."""
+    """Test that new batch size gets written to the correct hyperparameter attribute for model."""
     tutils.reset_seed()
 
     hparams = {"batch_size": 2}
-    before_batch_size = hparams.get("batch_size")
+    before_batch_size = hparams["batch_size"]
 
-    class HparamsBatchSizeModel(BatchSizeModel):
+    class HparamsBatchSizeModel(BoringModel):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+            super().__init__()
             self.save_hyperparameters()
 
-        def dataloader(self, *args, **kwargs):
-            # artificially set batch_size so we can get a dataloader
-            # remove it immediately after, because we want only self.hparams.batch_size
-            setattr(self, "batch_size", before_batch_size)
-            dataloader = super().dataloader(*args, **kwargs)
-            del self.batch_size
-            return dataloader
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
+
+    model_class = HparamsBatchSizeModel if use_hparams else BatchSizeModel
+    model = model_class(**hparams)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
+    trainer.tune(model, scale_batch_size_kwargs={"steps_per_trial": 2, "max_trials": 4})
+    after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
+    assert before_batch_size != after_batch_size
+    assert after_batch_size <= len(trainer.train_dataloader.dataset)
+
+
+@pytest.mark.parametrize("use_hparams", [True, False])
+def test_auto_scale_batch_size_set_datamodule_attribute(tmpdir, use_hparams):
+    """Test that new batch size gets written to the correct hyperparameter attribute for datamodule."""
+    tutils.reset_seed()
+
+    hparams = {"batch_size": 2}
+    before_batch_size = hparams["batch_size"]
 
     class HparamsBatchSizeDataModule(BoringDataModule):
         def __init__(self, data_dir, batch_size):
             super().__init__(data_dir)
-            self.batch_size = batch_size
+            self.save_hyperparameters()
 
         def train_dataloader(self):
-            return DataLoader(self.random_train, batch_size=self.batch_size)
+            return DataLoader(self.random_train, batch_size=self.hparams.batch_size)
 
-    datamodule_fit = HparamsBatchSizeDataModule(data_dir=tmpdir, batch_size=before_batch_size)
-    model_class = HparamsBatchSizeModel if use_hparams else BatchSizeModel
-    model = model_class(**hparams)
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, accelerator="gpu", devices=1)
-    trainer.tune(model, datamodule_fit)
-    after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
-    assert trainer.datamodule == datamodule_fit
-    assert before_batch_size != after_batch_size
+    datamodule_class = HparamsBatchSizeDataModule if use_hparams else BatchSizeDataModule
+    datamodule = datamodule_class(data_dir=tmpdir, batch_size=before_batch_size)
+    model = BatchSizeModel(**hparams)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
+    trainer.tune(model, datamodule=datamodule, scale_batch_size_kwargs={"steps_per_trial": 2, "max_trials": 4})
+    after_batch_size = datamodule.hparams.batch_size if use_hparams else datamodule.batch_size
+    assert trainer.datamodule == datamodule
+    assert before_batch_size < after_batch_size
     assert after_batch_size <= len(trainer.train_dataloader.dataset)
-    assert datamodule_fit.batch_size == after_batch_size
 
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
