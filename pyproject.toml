@@ -50,7 +50,6 @@ warn_no_return = "False"
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
-    "pytorch_lightning.demos.boring_classes",
     "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
