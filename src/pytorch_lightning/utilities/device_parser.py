@@ -110,6 +110,7 @@ def parse_gpu_ids(
     gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
+
     if (
         TorchElasticEnvironment.detect()
         and len(gpus) != 1
