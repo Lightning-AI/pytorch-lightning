@@ -2,6 +2,11 @@ name: cloud-e2e-testing
 
 # Used to run the e2e tests on lightning.ai
 on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    paths:
+      - ".github/workflows/ci-app-cloud-e2e-test.yml"
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
