@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ci-app-cloud-e2e-test.yml"
+  workflow_dispatch: # TODO: add inputs for specific git_head
+
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
