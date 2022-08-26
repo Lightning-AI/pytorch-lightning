@@ -92,7 +92,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the experimental `pytorch_lightning.utiltiies.meta` functions in favor of built-in https://github.com/pytorch/torchdistx support ([#13868](https://github.com/Lightning-AI/lightning/pull/13868))
 
 
+- Removed the deprecated `LightningModule.{on_hpc_load,on_hpc_save}` hooks in favor of the general purpose hooks `LightningModule.{on_load_checkpoint,on_save_checkpoint}` ([#14315](https://github.com/Lightning-AI/lightning/pull/14315))
+
+
 - Removed deprecated support for old torchtext versions ([#14375](https://github.com/Lightning-AI/lightning/pull/14375))
+
 
 ### Fixed
 
