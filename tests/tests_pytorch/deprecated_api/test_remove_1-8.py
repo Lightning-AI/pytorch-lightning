@@ -28,8 +28,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.profiler import AbstractProfiler, BaseProfiler
-from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfiler
+from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
@@ -727,10 +726,6 @@ def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_8_0_abstract_profiler():
-    assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
-
-
 def test_v1_8_0_datamodule_checkpointhooks():
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
@@ -897,28 +892,6 @@ def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
         " Please use `Trainer.num_devices` instead."
     ):
         assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-def test_v1_8_0_base_profiler(tmpdir):
-    class CustomProfiler1(BaseProfiler):
-        def start(self, action_name: str) -> None:
-            pass
-
-        def stop(self, action_name: str) -> None:
-            pass
-
-    class CustomProfiler2(Profiler):
-        def start(self, action_name: str) -> None:
-            pass
-
-        def stop(self, action_name: str) -> None:
-            pass
-
-    with pytest.deprecated_call(match="`BaseProfiler` was deprecated in v1.6"):
-        CustomProfiler1()
-
-    # No deprecation message
-    CustomProfiler2()
 
 
 @pytest.mark.parametrize(
