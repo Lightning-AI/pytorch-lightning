@@ -34,6 +34,10 @@ RUN \
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update -qq --fix-missing && \
+    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
+    CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
+    MAX_ALLOWED_NCCL=2.11.4 && \
+    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
@@ -42,17 +46,15 @@ RUN \
         curl \
         unzip \
         ca-certificates \
-        libopenmpi-dev
-
-RUN \
+        libopenmpi-dev \
+        libnccl2=$TO_INSTALL_NCCL \
+        libnccl-dev=$TO_INSTALL_NCCL && \
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
-    rm ~/miniconda.sh
-
-RUN \
+    rm ~/miniconda.sh && \
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
