@@ -42,7 +42,7 @@ if _KINETO_AVAILABLE:
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
+_PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx] # type: ignore [valid-type]
 
 
 class RegisterRecordFunction:
@@ -486,7 +486,7 @@ class PyTorchProfiler(Profiler):
     def _cache_functions_events(self) -> None:
         if self._emit_nvtx:
             return
-        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events
+        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events  # type: ignore [union-attr]
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
