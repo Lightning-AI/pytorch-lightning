@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from datetime import timedelta
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed
@@ -56,9 +56,6 @@ class DDPStrategy(ParallelStrategy):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-        ddp_comm_state: Optional[object] = None,
-        ddp_comm_hook: Optional[Callable] = None,
-        ddp_comm_wrapper: Optional[Callable] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
@@ -72,14 +69,9 @@ class DDPStrategy(ParallelStrategy):
         )
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
-        self._ddp_kwargs = kwargs
-        self._ddp_comm_state = ddp_comm_state
-        self._ddp_comm_hook = ddp_comm_hook
-        self._ddp_comm_wrapper = ddp_comm_wrapper
-        self._pids: List[int] = []
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
-
+        self._ddp_kwargs = kwargs
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
