@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -18,12 +19,21 @@ import pytest
 import torch
 
 from pytorch_lightning.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from tests_pytorch.helpers.runif import RunIf
 
 
 @mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
 def test_multiprocessing_launcher_forking_on_unsupported_platform(_):
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
+
+
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize("start_method", ["fork", "forkserver"])
+@mock.patch.dict(os.environ, {"PL_DISABLE_FORK": "1"}, clear=True)
+def test_multiprocessing_launcher_disabled_forking(start_method):
+    with pytest.raises(ValueError, match="Forking is disabled in this environment"):
+        _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
 
 
 @pytest.mark.parametrize("start_method", ["spawn", "fork"])
