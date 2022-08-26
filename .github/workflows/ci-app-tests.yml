@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  pytest:
+  app-pytest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
