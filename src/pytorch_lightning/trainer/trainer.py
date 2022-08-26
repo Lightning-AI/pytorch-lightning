@@ -2234,7 +2234,7 @@ class Trainer(
         return self.strategy.is_global_zero
 
     @property
-    def distributed_sampler_kwargs(self) -> Optional[dict]:
+    def distributed_sampler_kwargs(self) -> Optional[Dict[str, Any]]:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
 
