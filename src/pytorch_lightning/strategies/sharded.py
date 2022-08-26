@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Optional, Tuple, Union
+from typing import Dict, Generator, List, Tuple, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -27,7 +27,6 @@ from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -119,20 +118,6 @@ class DDPShardedStrategy(DDPStrategy):
                 optimizers[x] = zero_optimizer
                 del optimizer
         return optimizers
-
-    def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer = optimizer._optimizer
-        optimizer.consolidate_state_dict()
-        return self._optim_state_dict(optimizer)
-
-    @rank_zero_only
-    def _optim_state_dict(self, optimizer):
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`consolidate_state_dict`.
-        """
-        return optimizer.state_dict()
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         pass
