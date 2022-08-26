@@ -8,3 +8,4 @@ playwright==1.22.0
 httpx
 trio
 pympler
+psutil
