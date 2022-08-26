@@ -60,7 +60,7 @@ def scale_batch_size(
     elif mode == "binsearch":
         new_size = _run_binary_scaling(trainer, model, new_size, batch_arg_name, max_trials, params)
 
-    _collect_garbage(trainer)
+    _collect_garbage()
 
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
