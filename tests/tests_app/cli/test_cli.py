@@ -57,6 +57,7 @@ def test_main_lightning_cli_help():
     assert "list    " in res
     assert "delete  " in res
     assert "create  " in res
+    assert "show    " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
@@ -67,10 +68,30 @@ def test_main_lightning_cli_help():
     assert "work" not in res
     assert "frontend" not in res
 
+    # inspect show group
+    res = os.popen("python -m lightning show --help").read()
+    assert "logs " in res
+    assert "cluster " in res
+
+    # inspect show cluster group
+    res = os.popen("python -m lightning show cluster --help").read()
+    assert "logs " in res
+
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
-def test_create_cluster(create: mock.MagicMock):
+@pytest.mark.parametrize(
+    "extra_arguments,expected_instance_types,expected_cost_savings_mode",
+    [
+        (["--instance-types", "t3.xlarge"], ["t3.xlarge"], True),
+        (["--instance-types", "t3.xlarge,t3.2xlarge"], ["t3.xlarge", "t3.2xlarge"], True),
+        ([], [], True),
+        (["--enable-performance"], [], False),
+    ],
+)
+def test_create_cluster(
+    create_command: mock.MagicMock, extra_arguments, expected_instance_types, expected_cost_savings_mode
+):
     runner = CliRunner()
     runner.invoke(
         create_cluster,
@@ -82,19 +103,18 @@ def test_create_cluster(create: mock.MagicMock):
             "dummy",
             "--role-arn",
             "arn:aws:iam::1234567890:role/lai-byoc",
-            "--instance-types",
-            "t2.small",
-        ],
+        ]
+        + extra_arguments,
     )
 
-    create.assert_called_once_with(
+    create_command.assert_called_once_with(
         cluster_name="test-7",
         region="us-east-1",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
         external_id="dummy",
-        instance_types=["t2.small"],
+        instance_types=expected_instance_types,
         edit_before_creation=False,
-        cost_savings=False,
+        cost_savings=expected_cost_savings_mode,
         wait=False,
     )
 

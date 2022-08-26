@@ -22,11 +22,11 @@ from pkg_resources import get_distribution
 
 from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
+    _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,

@@ -36,24 +36,11 @@ from pytorch_lightning.trainer.configuration_validator import _check_datamodule_
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from tests_pytorch.deprecated_api import no_deprecated_call
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
-
-
-def test_v1_8_0_deprecated_distributed_type_enum():
-
-    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
-        _ = DistributedType.DDP
-
-
-def test_v1_8_0_deprecated_device_type_enum():
-
-    with pytest.deprecated_call(match="has been deprecated in v1.6 and will be removed in v1.8."):
-        _ = DeviceType.CPU
 
 
 @pytest.mark.skipif(not _TORCHTEXT_LEGACY, reason="torchtext.legacy is deprecated.")
@@ -704,6 +691,12 @@ def test_v1_8_0_logger_collection(tmpdir):
         _ = trainer2.logger
     with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
         _ = LoggerCollection([logger1, logger2])
+
+    model = BoringModel()
+    trainer = Trainer(logger=[logger1, logger2])
+    model.trainer = trainer
+    with pytest.deprecated_call(match="logger` will return the first logger"):
+        _ = model.logger
 
 
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):

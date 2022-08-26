@@ -16,7 +16,7 @@ Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
 from copy import deepcopy
-from typing import Any, Callable, cast, List, Optional, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import torch
 from torch import nn, Tensor
@@ -24,6 +24,7 @@ from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _LRScheduler, LRSchedulerConfig
@@ -112,15 +113,22 @@ class StochasticWeightAveraging(Callback):
         if device is not None and not isinstance(device, (torch.device, str)):
             raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
 
+        self.n_averaged: Optional[torch.Tensor] = None
         self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
-        self._max_epochs: int
-        self._model_contains_batch_norm: bool
+        self._model_contains_batch_norm: Optional[bool] = None
         self._average_model: "pl.LightningModule"
+        self._initialized = False
+        self._swa_scheduler: Optional[_LRScheduler] = None
+        self._scheduler_state: Optional[Dict] = None
+        self._init_n_averaged = 0
+        self._latest_update_epoch = -1
+        self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
+        self._max_epochs: int
 
     @property
     def swa_start(self) -> int:
@@ -147,6 +155,9 @@ class StochasticWeightAveraging(Callback):
         if len(trainer.lr_scheduler_configs) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
+        if isinstance(trainer.strategy, (DDPFullyShardedStrategy, DeepSpeedStrategy)):
+            raise MisconfigurationException("SWA does not currently support sharded models.")
+
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
@@ -158,8 +169,13 @@ class StochasticWeightAveraging(Callback):
             assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs += 1
 
+        if self._scheduler_state is not None:
+            self._clear_schedulers(trainer)
+
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if trainer.current_epoch == self.swa_start:
+        if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
+            self._initialized = True
+
             # move average model to request device.
             self._average_model = self._average_model.to(self._device or pl_module.device)
 
@@ -180,6 +196,17 @@ class StochasticWeightAveraging(Callback):
                     last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
                 ),
             )
+            if self._scheduler_state is not None:
+                # Restore scheduler state from checkpoint
+                self._swa_scheduler.load_state_dict(self._scheduler_state)
+            elif trainer.current_epoch != self.swa_start:
+                # Log a warning if we're initializing after start without any checkpoint data,
+                # as behaviour will be different compared to having checkpoint data.
+                rank_zero_warn(
+                    "SWA is initializing after swa_start without any checkpoint data. "
+                    "This may be caused by loading a checkpoint from an older version of PyTorch Lightning."
+                )
+
             # We assert that there is only one optimizer on fit start, so know opt_idx is always 0
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler, opt_idx=0)
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
@@ -196,14 +223,18 @@ class StochasticWeightAveraging(Callback):
             else:
                 trainer.lr_scheduler_configs.append(default_scheduler_cfg)
 
-            self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
+            if self.n_averaged is None:
+                self.n_averaged = torch.tensor(self._init_n_averaged, dtype=torch.long, device=pl_module.device)
 
-        if self.swa_start <= trainer.current_epoch <= self.swa_end:
+        if (self.swa_start <= trainer.current_epoch <= self.swa_end) and (
+            trainer.current_epoch > self._latest_update_epoch
+        ):
+            assert self.n_averaged is not None
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self._avg_fn)
+            self._latest_update_epoch = trainer.current_epoch
 
         # Note: No > here in case the callback is saved with the model and training continues
         if trainer.current_epoch == self.swa_end + 1:
-
             # Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
 
@@ -265,6 +296,7 @@ class StochasticWeightAveraging(Callback):
 
     def reset_momenta(self) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
+        assert self.momenta is not None
         for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]
 
@@ -285,3 +317,35 @@ class StochasticWeightAveraging(Callback):
     def avg_fn(averaged_model_parameter: Tensor, model_parameter: Tensor, num_averaged: Tensor) -> Tensor:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97."""
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
+
+    def state_dict(self) -> Dict[str, Any]:
+        return {
+            "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
+            "latest_update_epoch": self._latest_update_epoch,
+            "scheduler_state": None if self._swa_scheduler is None else self._swa_scheduler.state_dict(),
+            "average_model_state": None if self._average_model is None else self._average_model.state_dict(),
+        }
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        self._init_n_averaged = state_dict["n_averaged"]
+        self._latest_update_epoch = state_dict["latest_update_epoch"]
+        self._scheduler_state = state_dict["scheduler_state"]
+        self._load_average_model_state(state_dict["average_model_state"])
+
+    @staticmethod
+    def _clear_schedulers(trainer: "pl.Trainer") -> None:
+        # If we have scheduler state saved, clear the scheduler configs so that we don't try to
+        # load state into the wrong type of schedulers when restoring scheduler checkpoint state.
+        # We'll configure the scheduler and re-load its state in on_train_epoch_start.
+        # Note that this relies on the callback state being restored before the scheduler state is
+        # restored, and doesn't work if restore_checkpoint_after_setup is True, but at the time of
+        # writing that is only True for deepspeed which is already not supported by SWA.
+        # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
+        if trainer.lr_scheduler_configs:
+            assert len(trainer.lr_scheduler_configs) == 1
+            trainer.lr_scheduler_configs.clear()
+
+    def _load_average_model_state(self, model_state: Any) -> None:
+        if self._average_model is None:
+            return
+        self._average_model.load_state_dict(model_state)

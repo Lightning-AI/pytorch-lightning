@@ -124,7 +124,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
                 assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
                 TPUSpawnStrategy._validate_dataloader(source.instance)
 
-    def connect(self, model: "pl.LightningModule") -> None:  # type: ignore
+    def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnStrategy._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
@@ -139,11 +139,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = "1"
 
-        assert self.model
-        shared_params = find_shared_parameters(self.model)
+        assert self.lightning_module
+        shared_params = find_shared_parameters(self.lightning_module)
         self.model_to_device()
-        assert isinstance(self.model.module, Module)
-        set_shared_parameters(self.model.module, shared_params)
+
+        set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
         if trainer.state.fn == TrainerFn.FITTING:
