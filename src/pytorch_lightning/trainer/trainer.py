@@ -70,7 +70,6 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -127,7 +126,6 @@ warnings.filterwarnings(
 
 
 class Trainer(
-    TrainerCallbackHookMixin,  # TODO: Remove in v1.8
     TrainerOptimizersMixin,  # TODO: Remove in v1.8
     TrainerDataLoadingMixin,  # TODO: Remove in v1.8
 ):
