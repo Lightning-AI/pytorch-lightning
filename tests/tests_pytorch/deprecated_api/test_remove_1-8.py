@@ -38,7 +38,6 @@ from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
-from tests_pytorch.deprecated_api import no_deprecated_call
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
@@ -582,55 +581,6 @@ def test_v1_8_0_weights_save_path(tmpdir):
         trainer = Trainer(weights_save_path=tmpdir)
     with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
         _ = trainer.weights_save_path
-
-
-def test_deprecated_epoch_outputs_format(tmpdir):
-    class DeprecationModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.truncated_bptt_steps = 1
-
-        def training_step(self, batch, batch_idx, optimizer_idx, hiddens):
-            output = super().training_step(batch, batch_idx)
-            output["hiddens"] = hiddens
-            return output
-
-        def tbptt_split_batch(self, batch, split_size):
-            return [batch, batch]
-
-        def training_epoch_end(self, outputs):
-            ...
-
-        def on_train_batch_end(self, outputs, batch, batch_idx) -> None:
-            ...
-
-        def configure_optimizers(self):
-            return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    model = DeprecationModel()
-    batch_match = r"on_train_batch_end.*will change in version v1.8 to \(tbptt_steps, n_optimizers\)"
-    with pytest.deprecated_call(match=batch_match):
-        trainer.fit(model)
-
-    class DeprecationModel2(DeprecationModel):
-        def on_train_batch_end(self, *args, new_format=True):
-            ...
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    model = DeprecationModel()
-    epoch_match = r"training_epoch_end.*will change in version v1.8 to \(n_batches, tbptt_steps, n_optimizers\)"
-    with pytest.deprecated_call(match=epoch_match):
-        trainer.fit(model)
-
-    class NoDeprecationModel(DeprecationModel2):
-        def training_epoch_end(self, outputs, new_format=True):
-            ...
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    model = NoDeprecationModel()
-    with no_deprecated_call(match="will change in version v1.8.*new_format=True"):
-        trainer.fit(model)
 
 
 @pytest.mark.flaky(reruns=3)
