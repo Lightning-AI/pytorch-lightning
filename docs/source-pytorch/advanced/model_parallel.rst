@@ -97,8 +97,8 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 .. _fully-sharded-training:
 
-Fully Sharded Training
-======================
+FairScale Fully Sharded Training
+================================
 
 .. warning::
     FairScale Fully Sharded Training is in BETA and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any problems.
@@ -127,9 +127,19 @@ Model layers should be wrapped in FSDP in a nested way to save peak memory and e
 simplest way to do it is auto wrapping, which can serve as a drop-in replacement for DDP without changing the rest of the code. You don't
 have to ``wrap`` layers manually as in the case of manual wrapping.
 
+.. note::
+    While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
+    PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
+    ``lightning_module.parameters()`` will return a generator with no params.
+
 .. code-block:: python
 
-    model = BoringModel()
+    class MyModel(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.AdamW(self.trainer.model.parameters(), lr=1e-2)
+
+
+    model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
@@ -186,7 +196,7 @@ Here's an example using both ``wrap`` and ``auto_wrap`` to create your model:
             self.model = nn.Sequential(linear_layer, nn.ReLU(), block, final_block)
 
         def configure_optimizers(self):
-            return torch.optim.AdamW(self.model.parameters())
+            return torch.optim.AdamW(self.model.parameters(), lr=1e-2)
 
 
     model = MyModel()
