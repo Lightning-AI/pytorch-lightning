@@ -82,7 +82,7 @@ RUN \
       -c nvidia -c pytorch -c pytorch-test && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
-    printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
+    printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
     python prune.py && \
     rm prune.py && \
     cat environment.yml && \
