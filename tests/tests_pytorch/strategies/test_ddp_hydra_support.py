@@ -165,12 +165,7 @@ def test_ddp_with_hydra_multirunjob_rerun(num_jobs):
         fn.write(yaml_file)
 
     # create fake multirun params based on `num_jobs`
-    fake_param = "+foo="
-    devices = 2
-    for i in range(num_jobs):
-        fake_param += f"{i}"
-        if i < num_jobs - 1:
-            fake_param += ","
+    fake_param = "+foo=" + ",".join(str(i) for i in range(num_jobs))
 
     # Run CLI
     run_process(
