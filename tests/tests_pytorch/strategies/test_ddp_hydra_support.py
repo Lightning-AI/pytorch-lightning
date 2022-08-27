@@ -6,10 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.strategies.launchers.subprocess_script import _HYDRA_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
-
-_HYDRA_AVAILABLE = bool(_RequirementAvailable("hydra-core"))
 
 if _HYDRA_AVAILABLE:
     from omegaconf import OmegaConf
@@ -144,3 +142,51 @@ def test_ddp_with_hydra_multirunjob(num_jobs):
 
     logs = list(Path.cwd().glob("**/*.log"))
     assert len(logs) == num_jobs
+
+
+yaml_file = """
+hydra:
+  callbacks:
+    save_job_info:
+      _target_: hydra.experimental.callbacks.PickleJobInfoCallback
+"""
+
+
+@RunIf(min_cuda_gpus=2)
+@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
+@pytest.mark.usefixtures("cleandir")
+@pytest.mark.parametrize("num_jobs", [1, 2])
+def test_ddp_with_hydra_multirunjob_rerun(num_jobs):
+    # Save script locally
+    with open("temp.py", "w") as fn:
+        fn.write(script)
+
+    with open("config.yaml", "w") as fn:
+        fn.write(yaml_file)
+
+    # create fake multirun params based on `num_jobs`
+    fake_param = "+foo="
+    devices = 2
+    for i in range(num_jobs):
+        fake_param += f"{i}"
+        if i < num_jobs - 1:
+            fake_param += ","
+
+    # Run CLI
+    run_process(
+        [
+            sys.executable,
+            "temp.py",
+            "-cp",
+            ".",
+            "-cn",
+            "config.yaml",
+            f"+devices={devices}",
+            '+strategy="ddp"',
+            fake_param,
+            "--multirun",
+        ]
+    )
+
+    pickles = sorted(Path.cwd().glob("**/.hydra/config.pickle"))
+    assert len(pickles) == num_jobs
