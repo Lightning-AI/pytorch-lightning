@@ -176,5 +176,4 @@ def _hydra_subprocess_cmd(local_rank: int) -> Sequence[str]:
             f"hydra.run.dir={hydra_cfg.runtime.output_dir}",
         ]
 
-    print("*********************", command)
     return command

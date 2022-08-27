@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 
 from pytorch_lightning.strategies.launchers.subprocess_script import _HYDRA_AVAILABLE
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from tests_pytorch.helpers.runif import RunIf
+
+_HYDRA_WITH_RERUN = _RequirementAvailable("hydra-core >= 1.2")
 
 if _HYDRA_AVAILABLE:
     from omegaconf import OmegaConf
@@ -119,25 +122,20 @@ def test_ddp_with_hydra_multirunjob(num_jobs):
         fn.write(script)
 
     # create fake multirun params based on `num_jobs`
-    fake_param = "+foo="
-    devices = 2
-    for i in range(num_jobs):
-        fake_param += f"{i}"
-        if i < num_jobs - 1:
-            fake_param += ","
+    fake_param = "+foo=" + ",".join(str(i) for i in range(num_jobs))
 
     # Run CLI
-    run_process([sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"', fake_param, "--multirun"])
+    run_process([sys.executable, "temp.py", "+devices=2", '+strategy="ddp"', fake_param, "--multirun"])
 
     # Make sure config.yaml was created for each job
     configs = sorted(Path.cwd().glob("**/.pl_ddp_hydra_*/config.yaml"))
-    assert len(configs) == num_jobs * (devices - 1)
+    assert len(configs) == num_jobs
 
     # Make sure the parameter was set and used for each job
     for i, config in enumerate(configs):
         cfg = OmegaConf.load(config)
         local_rank = int(config.parent.parent.parts[-1])
-        assert cfg.devices == devices
+        assert cfg.devices == 2
         assert cfg.foo == local_rank
 
     logs = list(Path.cwd().glob("**/*.log"))
@@ -153,7 +151,7 @@ hydra:
 
 
 @RunIf(min_cuda_gpus=2)
-@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
+@pytest.mark.skipif(not _HYDRA_WITH_RERUN, reason="Hydra with `rerun` not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("num_jobs", [1, 2])
 def test_ddp_with_hydra_multirunjob_rerun(num_jobs):
