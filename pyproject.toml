@@ -52,7 +52,6 @@ module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
-    "pytorch_lightning.strategies.sharded",
     "pytorch_lightning.trainer.callback_hook",
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
