@@ -482,7 +482,7 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 )
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
-def test_strategy_choice_ddp_slurm(strategy, *_):
+def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
@@ -598,7 +598,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(*_):
 @mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=0)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
-def test_strategy_choice_ddp_cpu_slurm(strategy, *_):
+def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
