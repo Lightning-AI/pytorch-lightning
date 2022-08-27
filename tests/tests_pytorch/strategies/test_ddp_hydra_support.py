@@ -181,7 +181,7 @@ def test_ddp_with_hydra_multirunjob_rerun(num_jobs):
             ".",
             "-cn",
             "config.yaml",
-            f"+devices={devices}",
+            "+devices=2",
             '+strategy="ddp"',
             fake_param,
             "--multirun",
