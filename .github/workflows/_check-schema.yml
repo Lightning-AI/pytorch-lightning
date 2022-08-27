@@ -1,0 +1,37 @@
+name: Reusable Check Schema
+
+on:
+  workflow_call:
+    inputs:
+      azure-dir:
+        description: 'Directory containing Azure Pipelines config files. Provide an empty string to skip checking on Azure Pipelines files.'
+        default: './.azure/'
+        required: false
+        type: string
+
+jobs:
+  schema:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: pip install check-jsonschema
+
+      - name: GitHub Actions - workflow
+        run: check-jsonschema $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
+
+      - name: GitHub Actions - action
+        run: |
+          if [ -d ".github/actions" ]; then
+            check-jsonschema .github/actions/*/*.yml --builtin-schema "github-actions"
+          fi
+
+      - name: Azure Pipelines
+        env:
+          SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.204.0/service-schema.json
+        run: |
+          if [ -d ${{ inputs.azure-dir }} ]; then
+            check-jsonschema ${{ inputs.azure-dir }}/*.yml --schemafile "$SCHEMA_FILE"
+          fi

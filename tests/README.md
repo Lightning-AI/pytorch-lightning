@@ -1,6 +1,6 @@
 # PyTorch-Lightning Tests
 
-Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/helpers/boring_model.py) under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
+Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/Lightning-AI/lightning/blob/master/src/pytorch_lightning/demos/boring_classes.py) under various trainer conditions (ddp, amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
 
 ## Running tests
 
@@ -9,10 +9,11 @@ To setup a local development environment, install both local and test dependenci
 
 ```bash
 # clone the repo
-git clone https://github.com/PyTorchLightning/pytorch-lightning
-cd pytorch-lightning
+git clone https://github.com/Lightning-AI/lightning.git
+cd lightning
 
 # install required depedencies
+export PACKAGE_NAME=pytorch
 python -m pip install ".[dev, examples]"
 # install pre-commit (optional)
 python -m pip install pre-commit
@@ -25,7 +26,7 @@ Additionally, for testing backward compatibility with older versions of PyTorch 
 bash .actions/pull_legacy_checkpoints.sh
 ```
 
-Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
+Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/Lightning-AI/lightning/blob/master/tests/legacy/README.md).
 
 You can run the full test suite in your terminal via this make script:
 
@@ -41,13 +42,13 @@ This is useful if you do not test against all required dependency versions.
 **Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
-python -m pytest pytorch_lightning tests pl_examples -v
+python -m pytest src/pytorch_lightning tests/tests_pytorch -v
 ```
 
 You can also run a single test as follows:
 
 ```bash
-python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
+python -m pytest -v tests/tests_pytorch/trainer/test_trainer_cli.py::test_default_args
 ```
 
 ### Conditional Tests
@@ -64,9 +65,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/trainer/
+PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/tests_pytorch/trainer/
 # or
-./tests/standalone_tests.sh tests/trainer
+./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
 ```
 
 ## Running Coverage
@@ -76,8 +77,8 @@ Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex 
 ```bash
 cd pytorch-lightning
 
-# generate coverage (coverage is also installed as part of dev dependencies under requirements/devel.txt)
-coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v
+# generate coverage (coverage is also installed as part of dev dependencies under requirements/pytorch/devel.txt)
+coverage run --source pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch pl_examples -v
 
 # print coverage stats
 coverage report -m

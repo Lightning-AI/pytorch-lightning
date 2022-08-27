@@ -2,20 +2,23 @@
 .DS_Store
 run_configs/
 model_weights/
-app/models/
 pip-wheel-metadata/
 lightning_logs/
 .vscode/
 
 # Documentations
-docs/source/api
-docs/source/*.md
-docs/source/generated
-docs/source/*/generated
-docs/source/notebooks
-docs/source/_static/images/course_UvA-DL
-docs/source/_static/images/lightning_examples
+docs/source-app/generated
+docs/source-app/*/generated
+docs/source-pytorch/api
+docs/source-pytorch/*.md
+docs/source-pytorch/generated
+docs/source-pytorch/*/generated
+docs/source-pytorch/notebooks
+docs/source-pytorch/_static/images/course_UvA-DL
+docs/source-pytorch/_static/images/lightning_examples
 
+# C extensions
+*.so
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -23,11 +26,6 @@ __pycache__/
 timit_data/
 grid_generated*
 grid_ori*
-
-
-
-# C extensions
-*.so
 
 # PyCharm
 .idea/
@@ -50,6 +48,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+src/lightning/*/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -110,6 +109,7 @@ celerybeat-schedule
 
 # dotenv
 .env
+.env_stagging
 
 # virtualenv
 .venv
@@ -137,7 +137,7 @@ ENV/
 Datasets/
 mnist/
 MNIST/
-legacy/checkpoints/
+tests/legacy/checkpoints/
 *.gz
 *ubyte
 
@@ -146,7 +146,6 @@ ml-runs/
 mlruns/
 *.zip
 *.ckpt
-pytorch\ lightning
 test-reports/
 wandb
 .forked/
@@ -160,3 +159,15 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
+src/lightning_app/ui/*
+*examples/template_react_ui*
+hars*
+artifacts/*
+*docs/examples*
+*docs/source-app/api*
+
+# tutorials
+our_model.tar
+test.png
+saved_models
+data/

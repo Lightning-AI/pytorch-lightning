@@ -23,7 +23,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.3.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -36,18 +36,19 @@ repos:
         args: ['--maxkb=350', '--enforce-all']
         exclude: |
             (?x)^(
-                CHANGELOG.md|
-                docs/source/_static/images/general/fast_2.gif|
-                docs/source/_static/images/mnist_imgs/pt_to_pl.jpg|
-                docs/source/_static/images/lightning_module/pt_to_pl.png|
-                docs/source/_static/images/general/pl_quick_start_full_compressed.gif|
-                docs/source/_static/images/general/pl_overview_flat.jpg|
-                docs/source/_static/images/general/pl_overview.gif
+                docs/source-pytorch/_static/images/general/fast_2.gif|
+                docs/source-pytorch/_static/images/mnist_imgs/pt_to_pl.jpg|
+                docs/source-pytorch/_static/images/lightning_module/pt_to_pl.png|
+                docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
+                docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
+                docs/source-pytorch/_static/images/general/pl_overview.gif|
+                src/lightning_app/cli/pl-app-template/ui/yarn.lock|
+                src/pytorch_lightning/CHANGELOG.md
             )$
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.1
+    rev: v2.34.0
     hooks:
       - id: pyupgrade
         args: [--py37-plus]
@@ -72,10 +73,11 @@ repos:
         name: Format imports
 
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 22.6.0
     hooks:
       - id: black
         name: Format code
+        exclude: docs/source-app
 
   - repo: https://github.com/asottile/blacken-docs
     rev: v1.12.1
@@ -83,6 +85,7 @@ repos:
       - id: blacken-docs
         args: [--line-length=120]
         additional_dependencies: [black==21.12b0]
+        exclude: docs/source-app
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.14
@@ -92,7 +95,11 @@ repos:
           - mdformat-gfm
           #- mdformat-black
           - mdformat_frontmatter
-        exclude: CHANGELOG.md
+        exclude: |
+            (?x)^(
+                src/pytorch_lightning/CHANGELOG.md|
+                src/lightning_app/CHANGELOG.md
+            )$
 
   - repo: https://github.com/PyCQA/flake8
     rev: 4.0.1

@@ -14,11 +14,15 @@ concurrency:
 jobs:
   doctest:
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: ["app", "pytorch"]
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -28,75 +32,85 @@ jobs:
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/base.txt') }}
+          key: ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-
+            ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-
 
       - name: Install dependencies
+        env:
+          FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install -q fire
           # python -m pip install --upgrade --user pip
-          pip install -r requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install -r requirements/devel.txt
-          pip install -r requirements/docs.txt
+          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/${{ matrix.pkg }}/devel.txt
           pip list
         shell: bash
 
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs
+        working-directory: ./docs/source-${{ matrix.pkg }}
         run: |
+          # ToDo: proper parametrize
           # First run the same pipeline as Read-The-Docs
           make doctest
           make coverage
 
   make-docs:
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: ["app", "pytorch"]
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
           # lfs: true
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
+          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-docs-make-pip-
 
       - name: Install dependencies
+        env:
+          FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install --requirement requirements/docs.txt
+          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs
+        working-directory: ./docs/source-${{ matrix.pkg }}
         run: |
+          # ToDo: rather use python cmd
           # First run the same pipeline as Read-The-Docs
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Upload built docs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: docs-results-${{ github.sha }}
           path: docs/build/html/

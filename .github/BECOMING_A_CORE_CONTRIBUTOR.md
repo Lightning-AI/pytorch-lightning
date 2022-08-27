@@ -53,7 +53,7 @@ Lightning should reflect the broader community it serves. As such we should have
 
 We have an active [Slack](https://www.pytorchlightning.ai/community) community, where questions are asked daily.
 This is a great way to show off your Lightning and PyTorch knowledge, and help out others.
-There's also [GitHub discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions).
+There's also [GitHub discussions](https://github.com/Lightning-AI/lightning/discussions).
 
 ## Applying
 
@@ -62,4 +62,4 @@ We are on the lookout for new people to join, however, if you feel like you meet
 
 ## Employment
 
-You can also become a [Grid.ai](https://www.grid.ai) employee or intern and work on Lightning. To get started, you can email `careers@grid.ai` with your resume or check out our [open job postings](https://boards.greenhouse.io/gridai).
+You can also become a [Lightning AI](https://lightning.ai/) employee or intern and work on Lightning. To get started, you can email `careers@lightning.ai` with your resume or check out our [open job postings](https://boards.greenhouse.io/lightningai).

@@ -12,96 +12,98 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""This is the main and only one setup entry point for installing each package as stand-alone as well as joint
+installation for all packages.
 
+There are considered three main scenarios for installing this project:
+
+1. Using PyPI registry when you can install `pytorch-lightning`, `lightning-app`, etc. or `lightning` for all.
+
+2. Installation from source code after cloning repository.
+    In such case we recommend to use command `pip install .` or `pip install -e .` for development version
+     (development ver. do not copy python files to your pip file system, just create links, so you can edit here)
+    In case you want to install just one package you need to export env. variable before calling `pip`
+
+     - for `pytorch-lightning` use `export PACKAGE_NAME=pytorch ; pip install .`
+     - for `lightning-app` use `export PACKAGE_NAME=app ; pip install .`
+
+3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
+    `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
+   In case you want to build just a particular package you would use exporting env. variable as above:
+   `export PACKAGE_NAME=pytorch|app ; python setup.py sdist bdist_wheel`
+
+4. Automated releasing with GitHub action is natural extension of 3) is composed of three consecutive steps:
+    a) determine which packages shall be released based on version increment in `__version__.py` and eventually
+     compared against PyPI registry
+    b) with a parameterization build desired packages in to standard `dist/` folder
+    c) validate packages and publish to PyPI
+
+
+| Installation   | PIP version *       | Pkg version **  |
+| -------------- | ------------------- | --------------- |
+| source         | calendar + branch   | semantic        |
+| PyPI           | semantic            | semantic        |
+
+* shown version while calling `pip list | grep lightning`
+** shown version in python `from <pytorch_lightning|lightning_app> import __version__`
+"""
 import os
 from importlib.util import module_from_spec, spec_from_file_location
+from types import ModuleType
 
-from pkg_resources import parse_requirements
-from setuptools import find_packages, setup
+from setuptools import setup
 
+_PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "")
+_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
+_REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
+_PATH_SRC = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
+_PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME or "lightning", "__setup__.py")
+_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
-def _load_py_module(fname, pkg="pytorch_lightning"):
-    spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_ROOT, pkg, fname))
+# Hardcode the env variable from time of package creation, otherwise it fails during installation
+with open(__file__) as fp:
+    lines = fp.readlines()
+for i, ln in enumerate(lines):
+    if ln.startswith("_PACKAGE_NAME = "):
+        lines[i] = f'_PACKAGE_NAME = "{_PACKAGE_NAME}"{os.linesep}'
+with open(__file__, "w") as fp:
+    fp.writelines(lines)
+
+
+def _load_py_module(name: str, location: str) -> ModuleType:
+    spec = spec_from_file_location(name, location)
+    assert spec, f"Failed to load module {name} from {location}"
     py = module_from_spec(spec)
+    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
     spec.loader.exec_module(py)
     return py
 
-
-about = _load_py_module("__about__.py")
-setup_tools = _load_py_module("setup_tools.py")
-
-# https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
-# Define package extras. These are only installed if you specify them.
-# From remote, use like `pip install pytorch-lightning[dev, docs]`
-# From local copy of repo, use like `pip install ".[dev, docs]"`
-extras = {
-    # 'docs': load_requirements(file_name='docs.txt'),
-    "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
-    "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
-    "extra": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
-    "strategies": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
-    "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
-}
-
-for req in parse_requirements(extras["strategies"]):
-    extras[req.key] = [str(req)]
-extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
-extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
-
-long_description = setup_tools._load_readme_description(
-    _PATH_ROOT, homepage=about.__homepage__, version=about.__version__
-)
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
-setup(
-    name="pytorch-lightning",
-    version=about.__version__,
-    description=about.__docs__,
-    author=about.__author__,
-    author_email=about.__author_email__,
-    url=about.__homepage__,
-    download_url="https://github.com/PyTorchLightning/pytorch-lightning",
-    license=about.__license__,
-    packages=find_packages(exclude=["tests*", "pl_examples*", "legacy*"]),
-    include_package_data=True,
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    zip_safe=False,
-    keywords=["deep learning", "pytorch", "AI"],
-    python_requires=">=3.7",
-    setup_requires=[],
-    install_requires=setup_tools._load_requirements(_PATH_REQUIRE),
-    extras_require=extras,
-    project_urls={
-        "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
-        "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
-        "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
-    },
-    classifiers=[
-        "Environment :: Console",
-        "Natural Language :: English",
-        "Development Status :: 5 - Production/Stable",
-        # Indicate who your project is intended for
-        "Intended Audience :: Developers",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence",
-        "Topic :: Scientific/Engineering :: Image Recognition",
-        "Topic :: Scientific/Engineering :: Information Analysis",
-        # Pick your license as you wish
-        "License :: OSI Approved :: Apache Software License",
-        "Operating System :: OS Independent",
-        # Specify the Python versions you support here.
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-    ],
-)
+if __name__ == "__main__":
+    _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
+
+    if _PACKAGE_NAME == "lightning":  # install just the meta package
+        _SETUP_TOOLS._adjust_require_versions(_PATH_SRC, _PATH_REQUIRE)
+    elif _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
+        _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+
+    if _PACKAGE_NAME not in _PACKAGE_MAPPING:
+        _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
+
+    for lit_name, pkg_name in _PACKAGE_MAPPING.items():
+        # fixme: if we run creation of meta pkg against stable we shall pull the source
+        _SETUP_TOOLS.create_meta_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
+
+    _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
+    _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
+    setup(**_SETUP_MODULE._setup_args(pkg_name=_REAL_PKG_NAME))
