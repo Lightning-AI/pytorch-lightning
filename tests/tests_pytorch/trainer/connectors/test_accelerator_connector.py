@@ -809,3 +809,12 @@ def test_accelerator_specific_checkpoint_io(*_):
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         Trainer(strategy=strategy)
+
+
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
+@mock.patch.dict(os.environ, {"PL_DISABLE_FORK": "1"}, clear=True)
+def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
+    """Test there is an error when forking is disabled via the environment variable and the user requests fork."""
+    with pytest.raises(ValueError, match="Forking is disabled in this environment"):
+        Trainer(devices=2, strategy=strategy)

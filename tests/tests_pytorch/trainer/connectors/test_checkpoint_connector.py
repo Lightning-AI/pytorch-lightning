@@ -22,22 +22,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.states import TrainerFn
 
 
-# TODO: remove HPCHookedModel in v1.8
-class HPCHookedModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.hpc_save_called = 0
-        self.hpc_load_called = 0
-
-    def on_hpc_save(self, checkpoint):
-        assert "state_dict" in checkpoint
-        self.hpc_save_called += 1
-
-    def on_hpc_load(self, checkpoint):
-        assert "state_dict" in checkpoint
-        self.hpc_load_called += 1
-
-
 def test_preloaded_checkpoint_lifecycle(tmpdir):
     """Tests that the preloaded checkpoint contents gets cleared from memory when it is not required anymore."""
     model = BoringModel()

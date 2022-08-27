@@ -147,6 +147,12 @@ class FitLoop(Loop[None]):
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
     @property
+    def _should_stop_early(self) -> bool:
+        met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
+        met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
+        return met_min_epochs and met_min_steps
+
+    @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
         if self.trainer.num_training_batches == 0:
@@ -169,20 +175,10 @@ class FitLoop(Loop[None]):
             rank_zero_info(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
             return True
 
-        if self.trainer.should_stop:
-            # early stopping
-            met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
-            if met_min_epochs and met_min_steps:
-                self.trainer.should_stop = True
-                rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
-                return True
-            else:
-                rank_zero_info(
-                    f"Trainer was signaled to stop but the required `min_epochs={self.min_epochs!r}` or"
-                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
-                )
-        self.trainer.should_stop = False
+        if self.trainer.should_stop and self._should_stop_early:
+            rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
+            return True
+
         return False
 
     @property

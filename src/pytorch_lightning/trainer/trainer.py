@@ -297,9 +297,8 @@ class Trainer(
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
-                provided and the `save_dir` property of that logger is not set, local files (checkpoints,
-                profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
-                of the individual loggers.
+                provided, local files (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of
+                the first logger.
                 Default: ``True``.
 
             log_every_n_steps: How often to log within steps.
@@ -2210,11 +2209,11 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        if len(self.loggers) == 1:
-            if isinstance(self.logger, TensorBoardLogger):
-                dirpath = self.logger.log_dir
+        if len(self.loggers) > 0:
+            if isinstance(self.loggers[0], TensorBoardLogger):
+                dirpath = self.loggers[0].log_dir
             else:
-                dirpath = self.logger.save_dir
+                dirpath = self.loggers[0].save_dir
         else:
             dirpath = self.default_root_dir
 
@@ -2234,7 +2233,7 @@ class Trainer(
         return self.strategy.is_global_zero
 
     @property
-    def distributed_sampler_kwargs(self) -> Optional[dict]:
+    def distributed_sampler_kwargs(self) -> Optional[Dict[str, Any]]:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
 
