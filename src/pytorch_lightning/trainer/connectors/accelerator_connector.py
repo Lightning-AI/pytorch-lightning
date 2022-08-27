@@ -572,7 +572,7 @@ class AcceleratorConnector:
         ):
             if env_type.detect():
                 # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
-                return env_type()  # type: ignore[abstract]
+                return env_type()
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
