@@ -637,7 +637,7 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
     return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
 
 
-class _StatefulDataLoaderIter(_BaseLoaderIter):
+class _StatefulDataLoaderIter(_BaseDataLoaderIter):
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
     def __accumulate_state(self, sampler_state: Dict[Union[int, str], Any]) -> None:
