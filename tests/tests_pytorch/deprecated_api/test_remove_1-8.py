@@ -117,12 +117,6 @@ def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
         _ = trainer.should_rank_save_checkpoint
 
 
-def test_v1_8_0_deprecated_lr_scheduler():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."):
-        assert trainer.lr_schedulers == []
-
-
 def test_v1_8_0_trainer_optimizers_mixin():
     trainer = Trainer()
     model = BoringModel()
@@ -762,32 +756,6 @@ def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
 def test_v1_8_0_deprecated_lightning_ipu_module():
     with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
         _ = LightningIPUModule(BoringModel(), 32)
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "expected_data_parallel_device_ids"],
-    [
-        ({}, None),
-        ({"devices": 1}, None),
-        ({"devices": "1"}, None),
-        ({"accelerator": "gpu", "devices": 1}, [0]),
-        ({"accelerator": "gpu", "devices": 2}, [0, 1]),
-        ({"accelerator": "gpu", "devices": [1]}, [1]),
-        ({"accelerator": "gpu", "devices": "0,"}, [0]),
-    ],
-)
-def test_trainer_data_parallel_device_ids(monkeypatch, trainer_kwargs, expected_data_parallel_device_ids):
-    """Test multi type argument with bool."""
-    if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 2)
-
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.deprecated_call(
-        match="`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-        " Please use `Trainer.device_ids` instead."
-    ):
-        assert trainer.data_parallel_device_ids == expected_data_parallel_device_ids
 
 
 def test_deprecated_mc_save_checkpoint():

@@ -2099,14 +2099,6 @@ class Trainer(
         return self.num_devices
 
     @property
-    def data_parallel_device_ids(self) -> Optional[List[int]]:
-        rank_zero_deprecation(
-            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.device_ids` instead."
-        )
-        return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
-
-    @property
     def lightning_module(self) -> "pl.LightningModule":
         # TODO: this is actually an optional return
         return self.strategy.lightning_module
@@ -2129,17 +2121,6 @@ class Trainer(
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_scheduler_configs
-
-    @property
-    def lr_schedulers(self) -> List[Dict[str, Any]]:
-        rank_zero_deprecation(
-            "`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."
-            " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
-            stacklevel=5,
-        )
-        from dataclasses import asdict
-
-        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:
