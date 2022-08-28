@@ -571,7 +571,6 @@ class AcceleratorConnector:
             LSFEnvironment,
         ):
             if env_type.detect():
-                # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
                 return env_type()
         return LightningEnvironment()
 
