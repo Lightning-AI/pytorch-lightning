@@ -2139,17 +2139,6 @@ class Trainer(
         return self.strategy.lr_scheduler_configs
 
     @property
-    def lr_schedulers(self) -> List[Dict[str, Any]]:
-        rank_zero_deprecation(
-            "`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."
-            " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
-            stacklevel=5,
-        )
-        from dataclasses import asdict
-
-        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
-
-    @property
     def optimizer_frequencies(self) -> List[int]:
         return self.strategy.optimizer_frequencies
 

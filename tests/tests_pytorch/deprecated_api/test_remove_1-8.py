@@ -117,12 +117,6 @@ def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
         _ = trainer.should_rank_save_checkpoint
 
 
-def test_v1_8_0_deprecated_lr_scheduler():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."):
-        assert trainer.lr_schedulers == []
-
-
 def test_v1_8_0_trainer_optimizers_mixin():
     trainer = Trainer()
     model = BoringModel()
