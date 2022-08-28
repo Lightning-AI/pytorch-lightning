@@ -35,10 +35,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
 from pytorch_lightning.utilities.types import _IntStateful, _Stateful
 
-if TYPE_CHECKING:
-    _BaseLoaderIter = _BaseDataLoaderIter
-else:
-    _BaseLoaderIter = object
 
 
 class IteratorStateDict(TypedDict):
