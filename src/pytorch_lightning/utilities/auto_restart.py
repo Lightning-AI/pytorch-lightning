@@ -36,7 +36,6 @@ from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_state
 from pytorch_lightning.utilities.types import _IntStateful, _Stateful
 
 
-
 class IteratorStateDict(TypedDict):
     dataset_state: Dict[int, Any]
     sampler_state: Dict[int, Any]
