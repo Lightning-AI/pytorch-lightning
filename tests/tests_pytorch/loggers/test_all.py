@@ -23,6 +23,7 @@ import torch
 
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
@@ -155,64 +156,6 @@ def _test_loggers_fit_test(tmpdir, logger_class):
             (1, ["epoch", "test_loss"]),
         ]
         assert log_metric_names == expected
-
-
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)
-def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch, logger_class):
-    """Test the combinations of save_dir, weights_save_path and default_root_dir."""
-
-    with contextlib.ExitStack() as stack:
-        for mgr in LOGGER_CTX_MANAGERS:
-            stack.enter_context(mgr)
-        _patch_comet_atexit(monkeypatch)
-        _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
-
-
-def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
-    class TestLogger(logger_class):
-        # for this test it does not matter what these attributes are
-        # so we standardize them to make testing easier
-        @property
-        def version(self):
-            return "version"
-
-        @property
-        def name(self):
-            return "name"
-
-    model = BoringModel()
-    trainer_args = dict(default_root_dir=tmpdir, max_steps=3)
-
-    # no weights_save_path given
-    save_dir = tmpdir / "logs"
-    weights_save_path = None
-    logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
-    trainer.fit(model)
-    assert trainer._weights_save_path_internal == trainer.default_root_dir
-    assert trainer.checkpoint_callback.dirpath == os.path.join(str(logger.save_dir), "name", "version", "checkpoints")
-    assert trainer.default_root_dir == tmpdir
-
-    # with weights_save_path given, the logger path and checkpoint path should be different
-    save_dir = tmpdir / "logs"
-    weights_save_path = tmpdir / "weights"
-    logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
-    trainer.fit(model)
-    assert trainer._weights_save_path_internal == weights_save_path
-    assert trainer.logger.save_dir == save_dir
-    assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
-    assert trainer.default_root_dir == tmpdir
-
-    # no logger given
-    weights_save_path = tmpdir / "weights"
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
-    trainer.fit(model)
-    assert trainer._weights_save_path_internal == weights_save_path
-    assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
-    assert trainer.default_root_dir == tmpdir
 
 
 @pytest.mark.parametrize(
