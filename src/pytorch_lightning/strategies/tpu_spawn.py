@@ -214,7 +214,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def setup_distributed(self) -> None:
         self._launched = True
-        reset_seed()
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 

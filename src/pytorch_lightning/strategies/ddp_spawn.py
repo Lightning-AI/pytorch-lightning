@@ -171,7 +171,6 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def setup_distributed(self) -> None:
         log.detail(f"{self.__class__.__name__}: setting up distributed...")
-        reset_seed()
         self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
