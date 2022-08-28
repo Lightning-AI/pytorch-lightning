@@ -478,7 +478,7 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy, job_name, e
         {
             "CUDA_VISIBLE_DEVICES": "0,1",
             "SLURM_NTASKS": "2",
-            "SLURM_JOB_NAME": expected_env,
+            "SLURM_JOB_NAME": job_name,
             "SLURM_NODEID": "0",
             "SLURM_PROCID": "1",
             "SLURM_LOCALID": "1",
