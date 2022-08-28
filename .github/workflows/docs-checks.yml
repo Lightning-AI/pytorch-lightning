@@ -48,8 +48,18 @@ jobs:
           sudo apt-get install -y cmake pandoc
           pip --version
           # python -m pip install --upgrade --user pip
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip install -r requirements/${{ matrix.pkg }}/devel.txt
+          pip list
+        shell: bash
+
+      - name: Install PyTorch Lightning from source for app docs (hotfix)
+        if: ${{ matrix.pkg == 'app' }}
+        env:
+          PACKAGE_NAME: pytorch
+        run: |
+          git checkout setup.py  # reverts _PAKCAGE_NAME = "app"
+          pip install -e . -U
           pip list
         shell: bash
 
@@ -96,9 +106,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+          pip list
+        shell: bash
+
+      - name: Install PyTorch Lightning from source for app docs
+        if: ${{ matrix.pkg == 'app' }}
+        env:
+          PACKAGE_NAME: pytorch
+        run: |
+          git checkout setup.py
+          pip install -e . -U
           pip list
         shell: bash
 
