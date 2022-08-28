@@ -13,7 +13,6 @@
 # limitations under the License.
 import contextlib
 import inspect
-import os
 import pickle
 from unittest import mock
 from unittest.mock import ANY
@@ -23,7 +22,6 @@ import torch
 
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
