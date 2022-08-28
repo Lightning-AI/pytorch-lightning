@@ -103,7 +103,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._local_rank = process_idx
+        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
