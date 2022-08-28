@@ -649,7 +649,6 @@ class Trainer(
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
-        # TODO(awaelchli): Unify both exceptions below, where `KeyboardError` doesn't re-raise
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
