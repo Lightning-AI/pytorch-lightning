@@ -97,3 +97,6 @@ def test_detect():
 
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
         assert SLURMEnvironment.detect()
+
+    with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "bash"}):
+        assert not SLURMEnvironment.detect()
