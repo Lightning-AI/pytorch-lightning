@@ -26,33 +26,25 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.strategies.utils import _fp_to_half
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import (
+from lightning_lite.lite.accelerators.cuda import CUDAAccelerator
+from lightning_lite.lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.ddp import DDPStrategy
+from lightning_lite.lite.strategies.utils import _fp_to_half
+from lightning_lite.lite.utilities import GradClipAlgorithmType
+from lightning_lite.lite.utilities.apply_func import apply_to_collection
+from lightning_lite.lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     get_default_process_group_backend_for_device,
     log,
 )
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
-from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _LRScheduler, _PATH, LRSchedulerConfig, ReduceLROnPlateau, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.lite.utilities.imports import _RequirementAvailable
+from lightning_lite.lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.lite.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from lightning_lite.lite.utilities.seed import reset_seed
+from lightning_lite.lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 
-warning_cache = WarningCache()
 
 _DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
 if _DEEPSPEED_AVAILABLE:
@@ -68,37 +60,6 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
         module._forward_pre_hooks = OrderedDict()
         module._state_dict_hooks = OrderedDict()
         module._load_state_dict_pre_hooks = OrderedDict()
-
-
-class LightningDeepSpeedModule(_LightningModuleWrapperBase):
-    """
-    .. deprecated:: v1.7.1
-        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
-    """
-
-    def __init__(
-        self,
-        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-        precision: Union[str, int] = 32,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-    ) -> None:
-        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.7.1 and will be removed in v1.9.0")
-        self._validate_init_arguments(pl_module, forward_module)
-        super().__init__(forward_module=(pl_module or forward_module))
-        self.precision = precision
-
-    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
-        return super().forward(*inputs, **kwargs)
-
-    def _batch_to(self, batch: Tensor) -> Tensor:
-        if torch.is_floating_point(batch):
-            if self.precision == PrecisionType.HALF:
-                return batch.half()
-            elif self.precision == PrecisionType.BFLOAT:
-                return batch.bfloat16()
-        return batch
-
 
 class DeepSpeedStrategy(DDPStrategy):
     strategy_name = "deepspeed"
@@ -460,54 +421,6 @@ class DeepSpeedStrategy(DDPStrategy):
             dist_init_required=False,
         )
         return deepspeed_engine, deepspeed_optimizer
-
-    def init_deepspeed(self) -> None:
-        assert self.lightning_module is not None
-        # deepspeed handles gradient clipping internally
-        if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
-            rank_zero_warn(
-                "Since DeepSpeed handles gradient clipping internally, the default"
-                " `LightningModule.configure_gradient_clipping` implementation will not actually clip gradients."
-                " The hook will still be called. Consider setting"
-                " `Trainer(gradient_clip_val=..., gradient_clip_algorithm='norm')`"
-                " which will use the internal mechanism."
-            )
-
-        if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
-
-        if not isinstance(self.accelerator, CUDAAccelerator):
-            raise MisconfigurationException(
-                f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
-            )
-
-        accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
-
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
-            )
-
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        model = _LightningModuleWrapperBase(forward_module=self.model)
-
-        if self.lightning_module.trainer and self.lightning_module.trainer.training:
-            self._initialize_deepspeed_train(model)
-        else:
-            self._initialize_deepspeed_inference(model)
-
-    def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
-        assert self.lightning_module is not None
-        optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
-        if len(optimizers) > 1 or len(lr_schedulers) > 1:
-            raise MisconfigurationException(
-                "DeepSpeed currently only supports single optimizer, single optional scheduler."
-            )
-        return (
-            optimizers[0],
-            lr_schedulers[0] if lr_schedulers else None,
-            optimizer_frequencies[0] if optimizer_frequencies else None,
-        )
 
     @property
     def zero_stage_3(self) -> bool:
@@ -950,18 +863,3 @@ class DeepSpeedStrategy(DDPStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
         return super().batch_to_device(batch, device, dataloader_idx)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.val_step_context():
-            return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.test_step_context():
-            return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.predict_step_context():
-            return self.model(*args, **kwargs)

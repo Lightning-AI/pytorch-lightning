@@ -161,4 +161,4 @@ if __name__ == "__main__":
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
     hparams = parser.parse_args()
 
-    Lite(accelerator="auto", devices="auto").run(hparams)
+    Lite(accelerator="cpu", strategy="ddp", devices=2).run(hparams)

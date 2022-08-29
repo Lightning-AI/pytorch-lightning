@@ -23,7 +23,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.rank_zero import _get_rank, rank_zero_only, rank_zero_warn
+from lightning_lite.lite.utilities.rank_zero import _get_rank, rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 

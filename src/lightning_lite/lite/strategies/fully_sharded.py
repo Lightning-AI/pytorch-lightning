@@ -17,17 +17,13 @@ from typing import Any, Dict, Generator, List, Optional
 
 import torch
 
-import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import PrecisionType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
+from lightning_lite.lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.ddp import DDPStrategy
+from lightning_lite.lite.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
+from lightning_lite.lite.utilities.enums import PrecisionType
+from lightning_lite.lite.utilities.optimizer import optimizers_to_device
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -199,29 +195,6 @@ class DDPFullyShardedStrategy(DDPStrategy):
         # ensure we update the device type in the lightning module
         assert self.lightning_module
         self.lightning_module.to(self.root_device)
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
-            return self.model.training_step(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
-            return self.model.validation_step(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
-
-    def post_training_step(self) -> None:
-        pass
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

@@ -153,7 +153,7 @@ _TORCHVISION_AVAILABLE = _package_available("torchvision")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
 
 
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
+from lightning_lite.lite.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
@@ -173,7 +173,7 @@ else:
 
 
 # experimental feature within PyTorch Lightning.
-def _fault_tolerant_training() -> bool:
-    from pytorch_lightning.utilities.enums import _FaultTolerantMode
-
-    return _FaultTolerantMode.detect_current_mode().is_enabled
+# def _fault_tolerant_training() -> bool:
+#     from pytorch_lightning.utilities.enums import _FaultTolerantMode
+#
+#     return _FaultTolerantMode.detect_current_mode().is_enabled

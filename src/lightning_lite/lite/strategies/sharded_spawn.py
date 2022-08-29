@@ -18,14 +18,10 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.lite.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_lite.lite.utilities.imports import _FAIRSCALE_AVAILABLE
+from lightning_lite.lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.lite.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -112,9 +108,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         return optimizer.state_dict()
 
     def pre_backward(self, closure_loss: Tensor) -> None:
-        pass
-
-    def post_training_step(self) -> None:
         pass
 
     @classmethod

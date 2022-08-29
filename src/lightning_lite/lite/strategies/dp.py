@@ -17,17 +17,12 @@ import torch
 from torch import Tensor
 from torch.nn import DataParallel, Module
 
-import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.overrides.data_parallel import LightningParallelModule
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.strategies.strategy import TBroadcast, TReduce
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.parallel import ParallelStrategy
+from lightning_lite.lite.strategies.strategy import TBroadcast, TReduce
+from lightning_lite.lite.utilities.apply_func import apply_to_collection
+from lightning_lite.lite.utilities.distributed import ReduceOp
 
 
 class DataParallelStrategy(ParallelStrategy):
@@ -67,12 +62,6 @@ class DataParallelStrategy(ParallelStrategy):
     def world_size(self) -> int:
         return 1
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        # model needs to be moved to the device before it is wrapped
-        self.model_to_device()
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        self.model = self._setup_model(LightningParallelModule(self.model))
-        super().setup(trainer)
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
@@ -127,38 +116,6 @@ class DataParallelStrategy(ParallelStrategy):
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
         return decision
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.train_step_context():
-            assert self.model is not None
-            return self.model(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert self.model is not None
-            return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert self.model is not None
-            return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert self.model is not None
-            return self.model(*args, **kwargs)
-
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        if is_overridden("training_step_end", self.lightning_module):
-            return output
-
-        if isinstance(output, dict) and "loss" in output:
-            output["loss"] = self.reduce(output["loss"])
-
-        elif isinstance(output, Tensor):
-            output = self.reduce(output)
-
-        return output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

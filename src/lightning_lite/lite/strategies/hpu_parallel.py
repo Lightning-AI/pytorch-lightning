@@ -17,19 +17,14 @@ from typing import Any, Callable, Dict, List, Optional
 
 import torch.distributed
 
-import pytorch_lightning as pl
-from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
-from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from lightning_lite.lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.io.hpu_plugin import HPUCheckpointIO
+from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.ddp import DDPStrategy
+from lightning_lite.lite.utilities.distributed import group as _group
+from lightning_lite.lite.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
@@ -137,20 +132,6 @@ class HPUParallelStrategy(DDPStrategy):
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
-
-    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
-
-    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

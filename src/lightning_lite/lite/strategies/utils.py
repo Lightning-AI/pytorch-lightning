@@ -14,7 +14,7 @@
 
 import torch
 
-from pytorch_lightning.utilities.enums import PrecisionType
+from lightning_lite.lite.utilities.enums import PrecisionType
 
 
 def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:

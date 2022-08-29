@@ -19,28 +19,24 @@ import torch
 from torch import Tensor
 from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
 
-import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
-from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import (
+from lightning_lite.lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from lightning_lite.lite.strategies.parallel import ParallelStrategy
+from lightning_lite.lite.strategies.strategy import TBroadcast
+from lightning_lite.lite.utilities import rank_zero_only
+from lightning_lite.lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
     get_default_process_group_backend_for_device,
 )
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
-from pytorch_lightning.utilities.seed import reset_seed
+from lightning_lite.lite.utilities.distributed import group as _group
+from lightning_lite.lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_lite.lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.lite.utilities.rank_zero import rank_zero_info
+from lightning_lite.lite.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (

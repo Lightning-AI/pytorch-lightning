@@ -24,33 +24,28 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
-import pytorch_lightning as pl
-from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.distributed import (
+from lightning_lite.lite.overrides.distributed import prepare_for_backward
+from lightning_lite.lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_lite.lite.strategies.parallel import ParallelStrategy
+from lightning_lite.lite.strategies.strategy import TBroadcast
+from lightning_lite.lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
     get_default_process_group_backend_for_device,
 )
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
+from lightning_lite.lite.utilities.distributed import group as _group
+from lightning_lite.lite.utilities.distributed import (
     init_dist_connection,
     ReduceOp,
     register_ddp_comm_hook,
     sync_ddp_if_available,
 )
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
+from lightning_lite.lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning_lite.lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.lite.utilities.rank_zero import rank_zero_info, rank_zero_only
 
 log = logging.getLogger(__name__)
 
@@ -277,39 +272,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         if isinstance(tensor, Tensor):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.train_step_context():
-            return self.model(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert self.lightning_module is not None
-            assert self.model is not None
-            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-                # used when calling `trainer.fit`
-                return self.model(*args, **kwargs)
-            else:
-                # used when calling `trainer.validate`
-                assert isinstance(self.model, ValidationStep)
-                return self.model.validation_step(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
-
-    def post_training_step(self) -> None:
-        assert self.lightning_module is not None
-        if not self.lightning_module.automatic_optimization:
-            assert self.model is not None
-            self.model.require_backward_grad_sync = True  # type: ignore[assignment]
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

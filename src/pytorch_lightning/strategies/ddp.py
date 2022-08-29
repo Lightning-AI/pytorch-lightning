@@ -37,7 +37,6 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import (
@@ -65,9 +64,9 @@ if _TORCH_GREATER_EQUAL_1_10 and torch.distributed.is_available():
 log = logging.getLogger(__name__)
 
 from lightning_lite.lite.accelerators import Accelerator
+from lightning_lite.lite.strategies import DDPStrategy as LiteDDPStrategy
 
-
-class DDPStrategy(ParallelStrategy):
+class DDPStrategy(LiteDDPStrategy):
     """Strategy for multi-process single-device training on one or multiple nodes."""
 
     strategy_name = "ddp"

@@ -18,16 +18,11 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import PrecisionType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.lite.strategies.ddp import DDPStrategy
+from lightning_lite.lite.utilities.enums import PrecisionType
+from lightning_lite.lite.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
+from lightning_lite.lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.lite.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -103,10 +98,8 @@ class DDPShardedStrategy(DDPStrategy):
 
         return self._reinit_optimizers_with_oss(optimizers)
 
-    def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
+    def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer]]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
-            if isinstance(optimizer, LightningOptimizer):
-                optimizer = optimizer._optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
@@ -121,8 +114,6 @@ class DDPShardedStrategy(DDPStrategy):
         return optimizers
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer = optimizer._optimizer
         optimizer.consolidate_state_dict()
         return self._optim_state_dict(optimizer)
 
