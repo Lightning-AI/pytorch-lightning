@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -184,3 +185,36 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     ) as advance_mocked:
         trainer.fit(model, ckpt_path=ckpt_path)
         assert advance_mocked.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg",
+    [
+        (None, None, 1, 4, True, True, False),
+        (None, None, 1, 10, True, True, False),
+        (4, None, 1, 4, False, False, True),
+        (4, 2, 1, 4, False, False, True),
+        (4, None, 1, 10, False, True, False),
+        (4, 3, 1, 3, False, False, True),
+        (4, 10, 1, 10, False, True, False),
+        (None, 4, 1, 4, True, True, False),
+    ],
+)
+def test_should_stop_early_stopping_conditions_not_met(
+    caplog, min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg
+):
+    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not
+    met."""
+    trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
+    trainer.num_training_batches = 10
+    trainer.should_stop = True
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = global_step
+    trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
+    trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
+
+    message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.loops"):
+        assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
+
+    assert (message in caplog.text) is raise_info_msg
+    assert trainer.fit_loop._should_stop_early is early_stop
