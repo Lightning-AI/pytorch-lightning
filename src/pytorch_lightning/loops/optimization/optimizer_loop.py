@@ -156,6 +156,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
     This loop implements what is known in Lightning as Automatic Optimization.
     """
 
+    closure_cls = Closure
     output_result_cls = ClosureResult
 
     def __init__(self) -> None:
@@ -266,7 +267,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         step_fn = self._make_step_fn(kwargs)
         backward_fn = self._make_backward_fn(optimizer, opt_idx)
         zero_grad_fn = self._make_zero_grad_fn(kwargs.get("batch_idx", 0), opt_idx, optimizer)
-        return Closure(step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn)
+        return self.closure_cls(step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn)
 
     def _make_step_fn(self, kwargs: OrderedDict) -> Callable[[], ClosureResult]:
         """Build the step function that runs the `training_step` and processes its output."""
