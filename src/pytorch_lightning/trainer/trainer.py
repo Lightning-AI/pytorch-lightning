@@ -70,7 +70,6 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -127,7 +126,6 @@ warnings.filterwarnings(
 
 
 class Trainer(
-    TrainerCallbackHookMixin,  # TODO: Remove in v1.8
     TrainerOptimizersMixin,  # TODO: Remove in v1.8
     TrainerDataLoadingMixin,  # TODO: Remove in v1.8
 ):
@@ -297,9 +295,8 @@ class Trainer(
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
-                provided and the `save_dir` property of that logger is not set, local files (checkpoints,
-                profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
-                of the individual loggers.
+                provided, local files (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of
+                the first logger.
                 Default: ``True``.
 
             log_every_n_steps: How often to log within steps.
@@ -2062,14 +2059,6 @@ class Trainer(
         return len(self.device_ids)
 
     @property
-    def num_processes(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.num_devices` instead."
-        )
-        return self.num_devices
-
-    @property
     def root_gpu(self) -> Optional[int]:
         rank_zero_deprecation(
             "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
@@ -2110,14 +2099,6 @@ class Trainer(
         return self.num_devices
 
     @property
-    def data_parallel_device_ids(self) -> Optional[List[int]]:
-        rank_zero_deprecation(
-            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.device_ids` instead."
-        )
-        return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
-
-    @property
     def lightning_module(self) -> "pl.LightningModule":
         # TODO: this is actually an optional return
         return self.strategy.lightning_module
@@ -2140,17 +2121,6 @@ class Trainer(
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_scheduler_configs
-
-    @property
-    def lr_schedulers(self) -> List[Dict[str, Any]]:
-        rank_zero_deprecation(
-            "`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."
-            " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
-            stacklevel=5,
-        )
-        from dataclasses import asdict
-
-        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:
@@ -2210,11 +2180,11 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        if len(self.loggers) == 1:
-            if isinstance(self.logger, TensorBoardLogger):
-                dirpath = self.logger.log_dir
+        if len(self.loggers) > 0:
+            if isinstance(self.loggers[0], TensorBoardLogger):
+                dirpath = self.loggers[0].log_dir
             else:
-                dirpath = self.logger.save_dir
+                dirpath = self.loggers[0].save_dir
         else:
             dirpath = self.default_root_dir
 
