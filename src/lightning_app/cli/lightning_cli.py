@@ -30,7 +30,6 @@ from lightning_app.utilities.cli_helpers import (
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.enum import OpenAPITags
-from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 
@@ -48,7 +47,7 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
 def main():
     if len(sys.argv) == 1:
         _main()
-    elif sys.argv[1] in _main.commands.keys() or sys.argv[1] == "--help":
+    elif sys.argv[1] in (_main.commands.keys() | {"--version", "--help"}):
         _main()
     else:
         app_command()
@@ -57,7 +56,7 @@ def main():
 @click.group()
 @click.version_option(ver)
 def _main():
-    register_all_external_components()
+    pass
 
 
 @_main.group()
