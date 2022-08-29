@@ -16,16 +16,14 @@ class TorchDynamo(Callback):
 
     Args:
         backend: A backend is either a function/callable taking a :class:`torch.fx.GraphModule` and
-            example_inputs and returning a python callable. Or, a string. This argument accepts that or a dictionary
+            ``example_inputs`` and returning a callable. Or, a string. This argument accepts a backend or a dictionary
             that maps training stages to backends. Backends may require installing additional packages.
 
     Raises:
         ModuleNotFoundError:
             if ``torchdynamo`` is not installed.
         ValueError:
-            If an invalid string backend is passed.
-        NotImplementedError:
-            If run in a distributed environment.
+            If an invalid string backend or invalid stage is passed.
 
     Example::
 
@@ -58,6 +56,11 @@ class TorchDynamo(Callback):
         self.previous_training_step: Optional[Callable] = None
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+        """Called when fit, validate, test, predict, or tune begins.
+
+        NotImplementedError:
+            If run in a distributed environment.
+        """
         if trainer._accelerator_connector.is_distributed:
             raise NotImplementedError(
                 f"`TorchDynamo` does not support the {type(trainer.strategy).__name__!r} at the moment."
