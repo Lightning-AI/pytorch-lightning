@@ -151,14 +151,6 @@ def _add_prefix(
     return metrics
 
 
-def _name(loggers: List[Any], separator: str = "_") -> str:
-    if len(loggers) == 1:
-        return loggers[0].name
-    else:
-        # Concatenate names together, removing duplicates and preserving order
-        return separator.join(dict.fromkeys(str(logger.name) for logger in loggers))
-
-
 def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     if len(loggers) == 1:
         return loggers[0].version

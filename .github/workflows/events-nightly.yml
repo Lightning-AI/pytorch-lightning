@@ -48,7 +48,7 @@ jobs:
       # report failure to Slack
       - name: Slack notification
         if: failure() && github.event_name == 'schedule'
-        uses: ravsamhq/notify-slack-action@v1
+        uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
