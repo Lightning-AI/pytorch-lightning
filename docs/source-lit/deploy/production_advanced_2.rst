@@ -1,1 +1,0 @@
-../../source-pytorch/deploy/production_advanced_2.rst

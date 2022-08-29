@@ -1,12 +1,1 @@
-:orphan:
-
-.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: {{ module }}
-
-
-{{ name | underline }}
-
-.. autoclass:: {{ name }}
-    :members:
-    :noindex:
+../../source-app/_templates/classtemplate_no_index.rst

@@ -1,1 +1,0 @@
-../../source-pytorch/accelerators/gpu_advanced.rst

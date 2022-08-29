@@ -1,1 +1,0 @@
-../../source-pytorch/strategies/hivemind_basic.rst
