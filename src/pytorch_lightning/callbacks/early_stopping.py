@@ -258,7 +258,7 @@ class EarlyStopping(Callback):
         return msg
 
     @staticmethod
-    def _log_info(trainer: "pl.Trainer", message: str, log_rank_zero_only: bool) -> None:
+    def _log_info(trainer: Optional["pl.Trainer"], message: str, log_rank_zero_only: bool) -> None:
         rank = _get_rank(trainer)
         if trainer is not None and trainer.world_size <= 1:
             rank = None
