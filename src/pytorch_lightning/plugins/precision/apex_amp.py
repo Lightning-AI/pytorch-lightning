@@ -41,6 +41,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         super().__init__()
         self.amp_level = amp_level
         self._connected = False
+        self._state_dict_loaded = False
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
@@ -83,6 +84,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
+        if self._state_dict_loaded:
+            raise RuntimeError(
+                "Resuming training with APEX is currently not supported. Set `amp_backend=None` for example or use a"
+                " different precision plugin."
+            )
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -99,4 +105,5 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return amp.state_dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        amp.load_state_dict(state_dict)
+        self._state_dict_loaded = True
+        return super().load_state_dict(state_dict)

@@ -15,7 +15,7 @@ import logging
 import os
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
