@@ -6,6 +6,7 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"]
   pull_request:
     paths:
+      - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "requirements/app/**"
@@ -16,7 +17,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  pytest:
+  app-pytest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
