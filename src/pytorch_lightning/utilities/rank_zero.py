@@ -37,7 +37,9 @@ def rank_zero_only(fn: Callable) -> Callable:
     return wrapped_fn
 
 
-def _get_rank() -> Optional[int]:
+def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:
+    if trainer is not None:
+        return trainer.global_rank if trainer.world_size > 1 else None
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
     rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")
@@ -101,22 +103,8 @@ class LightningDeprecationWarning(DeprecationWarning):
 rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
 
-def _rank_prefixed_message(
-    message: str, trainer: Optional["pl.Trainer"] = None, rank_zero_only: bool = False
-) -> Optional[str]:
-    if trainer:
-        # ignore logging in non-zero ranks if `rank_zero_only` flag is enabled
-        if rank_zero_only and trainer.global_rank != 0:
-            return None
-        if trainer.world_size > 1:
-            # specify the rank of the process being logged
-            return f"[rank: {trainer.global_rank}] {message}"
-    else:
-        rank = _get_rank()
-        # ignore logging in non-zero ranks if `rank_zero_only` flag is enabled
-        if rank_zero_only and rank:
-            return None
-        if rank is not None:
-            # specify the rank of the process being logged
-            return f"[rank: {rank}] {message}"
+def _rank_prefixed_message(message: str, rank: Optional[int]) -> str:
+    if rank is not None:
+        # specify the rank of the process being logged
+        return f"[rank: {rank}] {message}"
     return message

@@ -17,7 +17,6 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.rank_zero import _get_rank, _rank_prefixed_message
 
 
@@ -64,35 +63,10 @@ def test_rank_zero_priority(environ, expected_rank):
         assert _get_rank() == expected_rank
 
 
-@pytest.mark.parametrize("trainer", [Trainer(), None])
-@pytest.mark.parametrize(
-    "rank_zero_only, world_size, global_rank, expected_log",
-    [
-        (False, 1, 0, "bar"),
-        (False, 2, 0, "[rank: 0] bar"),
-        (False, 2, 1, "[rank: 1] bar"),
-        (True, 1, 0, "bar"),
-        (True, 2, 0, "[rank: 0] bar"),
-        (True, 2, 1, None),
-    ],
-)
-def test_rank_prefixed_message_with_trainer(trainer, rank_zero_only, world_size, global_rank, expected_log):
-    # set the global_rank and world_size if trainer is not None
-    # or else always expect the simple logging message
-    if trainer:
-        trainer.strategy.global_rank = global_rank
-        trainer.strategy.world_size = world_size
-    else:
-        expected_log = "bar"
-
-    message = _rank_prefixed_message("bar", trainer=trainer, rank_zero_only=rank_zero_only)
-    assert message == expected_log
-
-
 @pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"RANK": "1"}, {"RANK": "4"}])
 def test_rank_prefixed_message_with_env_vars(env_vars):
     with mock.patch.dict(os.environ, env_vars, clear=True):
         rank = _get_rank()
-        message = _rank_prefixed_message("bar")
+        message = _rank_prefixed_message("bar", rank)
 
     assert message == f"[rank: {rank}] bar"
