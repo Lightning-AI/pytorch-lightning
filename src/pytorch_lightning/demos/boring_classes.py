@@ -163,7 +163,7 @@ class BoringDataModule(LightningDataModule):
         self.checkpoint_state: Optional[str] = None
         self.random_full = RandomDataset(32, 64 * 4)
 
-    def setup(self, stage: str):
+    def setup(self, stage: str) -> None:
         if stage == "fit":
             self.random_train = Subset(self.random_full, indices=range(64))
 
