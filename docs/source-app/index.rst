@@ -242,6 +242,21 @@ Keep Learning
    [Docs under construction] Test an app  <workflows/test_an_app>
 
 .. toctree::
+   :maxdepth: 2
+   :name: pl_docs
+   :caption: Core API
+
+   source-pytorch/common/lightning_module
+   source-pytorch/common/trainer
+
+.. toctree::
+   :maxdepth: 2
+   :name: api
+   :caption: PL API Reference
+
+   source-pytorch/api_references
+
+.. toctree::
    :maxdepth: 1
    :caption: Core API Reference
 
