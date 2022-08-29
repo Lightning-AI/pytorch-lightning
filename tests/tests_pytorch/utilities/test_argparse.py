@@ -1,6 +1,6 @@
 import io
 from argparse import ArgumentParser, Namespace
-from typing import Generic, List, TypeVar
+from typing import Generic, TypeVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -118,10 +118,6 @@ class AddArgparseArgsExampleClass:
     def __init__(self, my_parameter: int = 0):
         pass
 
-    @staticmethod
-    def get_deprecated_arg_names() -> List[str]:
-        return []
-
 
 class AddArgparseArgsExampleClassViaInit:
     def __init__(self, my_parameter: int = 0):
@@ -207,7 +203,7 @@ def test_add_argparse_args(cls, name):
 
 
 def test_negative_add_argparse_args():
-    with pytest.raises(RuntimeError, match="Please only pass an ArgumentParser instance."):
+    with pytest.raises(RuntimeError, match="Please only pass an `ArgumentParser` instance."):
         parser = ArgumentParser()
         add_argparse_args(AddArgparseArgsExampleClass, parser.add_argument_group("bad workflow"))
 
