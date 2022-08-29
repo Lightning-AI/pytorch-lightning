@@ -14,18 +14,14 @@
 
 from typing import Dict, Optional
 
-import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
-from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
-from pytorch_lightning.utilities import _HPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _DEVICE, STEP_OUTPUT
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.io.hpu_plugin import HPUCheckpointIO
+from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.single_device import SingleDeviceStrategy
+from lightning_lite.lite.utilities import _HPU_AVAILABLE
+from lightning_lite.lite.utilities.types import _DEVICE
 
-if _HPU_AVAILABLE:
-    import habana_frameworks.torch.core as htcore
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):
@@ -42,7 +38,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
     ):
 
         if not _HPU_AVAILABLE:
-            raise MisconfigurationException("`SingleHPUStrategy` requires HPU devices to run")
+            raise RuntimeError("`SingleHPUStrategy` requires HPU devices to run")
 
         super().__init__(
             accelerator=accelerator,
@@ -77,21 +73,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)  # type: ignore
-
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
-
-    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
-
-    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

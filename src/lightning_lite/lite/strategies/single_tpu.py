@@ -14,13 +14,12 @@
 import os
 from typing import Dict, Optional
 
-import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.single_device import SingleDeviceStrategy
+from lightning_lite.lite.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm

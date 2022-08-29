@@ -20,26 +20,21 @@ from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
-from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.environments import XLAEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla import _XLALauncher
-from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from pytorch_lightning.utilities.types import _PATH, EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from lightning_lite.lite.plugins.environments import XLAEnvironment
+from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.lite.plugins.precision import PrecisionPlugin
+from lightning_lite.lite.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_lite.lite.strategies.launchers.xla import _XLALauncher
+from lightning_lite.lite.strategies.strategy import TBroadcast
+from lightning_lite.lite.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from lightning_lite.lite.utilities.apply_func import apply_to_collection
+from lightning_lite.lite.utilities.data import has_len
+from lightning_lite.lite.utilities.distributed import ReduceOp
+from lightning_lite.lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.lite.utilities.rank_zero import rank_zero_only
+from lightning_lite.lite.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -98,10 +93,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return xm.xla_device()
 
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
+    def _validate_dataloader(dataloaders: DataLoader) -> None:
         def check_has_len(dataloader: DataLoader) -> None:
             if not has_len(dataloader):
-                raise MisconfigurationException(
+                raise TypeError(
                     "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
                     " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
@@ -216,33 +211,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self._launched = True
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.val_step_context():
-            return self.model(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model is not None
-        with self.precision_plugin.test_step_context():
-            return self.model(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.predict_step_context():
-            return self.model(*args, **kwargs)
-
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        self._pod_progress_bar_force_stdout()
-        return output
 
     def _pod_progress_bar_force_stdout(self) -> None:
         # Why is it required? The way `pytorch_xla.distributed` streams logs
