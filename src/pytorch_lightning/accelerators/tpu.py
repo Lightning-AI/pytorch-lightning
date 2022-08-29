@@ -15,16 +15,21 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators.accelerator import PLAcceleratorInterface
+from lightning_lite.lite.accelerators.accelerator import Accelerator
+from lightning_lite.lite.utilities import device_parser
+from lightning_lite.lite.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 
-class TPUAccelerator(Accelerator):
+class TPUAccelerator(Accelerator, PLAcceleratorInterface):
     """Accelerator for TPU devices."""
+
+    def setup(self, trainer: "pl.Trainer") -> None:
+        pass
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Gets stats for the given TPU device.

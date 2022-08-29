@@ -14,7 +14,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.lite.utilities.types import _PATH
 
 
 class CheckpointIO(ABC):

@@ -15,9 +15,8 @@ import importlib
 from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.registry import _is_register_method_overridden
+from lightning_lite.lite.accelerators.accelerator import Accelerator
+from lightning_lite.lite.utilities.registry import _is_register_method_overridden
 
 
 class _AcceleratorRegistry(dict):

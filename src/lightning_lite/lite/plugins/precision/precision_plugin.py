@@ -20,13 +20,11 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
-from pytorch_lightning.utilities.types import _PARAMETERS
+from lightning_lite.lite.utilities import GradClipAlgorithmType
+from lightning_lite.lite.utilities.types import _PARAMETERS
 
 
-class PrecisionPlugin(CheckpointHooks):
+class PrecisionPlugin:
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
@@ -269,15 +267,3 @@ class PrecisionPlugin(CheckpointHooks):
             state_dict: the precision plugin state returned by ``state_dict``.
         """
         pass
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_save_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``state_dict`` instead.
-        """
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_load_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``load_state_dict`` instead.
-        """

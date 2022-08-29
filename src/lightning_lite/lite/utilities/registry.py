@@ -11,21 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+import inspect
+from typing import Any
 
 
-class GPUAccelerator(CUDAAccelerator):
-    """Accelerator for NVIDIA GPU devices.
+def _is_register_method_overridden(mod: type, base_cls: Any, method: str) -> bool:
+    mod_attr = getattr(mod, method)
+    previous_super_cls = inspect.getmro(mod)[1]
 
-    .. deprecated:: 1.9
+    if issubclass(previous_super_cls, base_cls):
+        super_attr = getattr(previous_super_cls, method)
+    else:
+        return False
 
-        Please use the ``CUDAAccelerator`` instead.
-    """
-
-    def __init__(self) -> None:
-        rank_zero_deprecation(
-            "The `GPUAccelerator` has been renamed to `CUDAAccelerator` and will be removed in v1.9."
-            " Please use the `CUDAAccelerator` instead!"
-        )
-        super().__init__()
+    return mod_attr.__code__ is not super_attr.__code__

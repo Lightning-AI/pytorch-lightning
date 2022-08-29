@@ -10,16 +10,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
-from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.gpu import GPUAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.hpu import HPUAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.ipu import IPUAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.mps import MPSAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry, call_register_accelerators  # noqa: F401
-from pytorch_lightning.accelerators.tpu import TPUAccelerator  # noqa: F401
+from lightning_lite.lite.accelerators.accelerator import Accelerator  # noqa: F401
+from lightning_lite.lite.accelerators.cpu import CPUAccelerator  # noqa: F401
+from lightning_lite.lite.accelerators.cuda import CUDAAccelerator  # noqa: F401
+from lightning_lite.lite.accelerators.gpu import GPUAccelerator  # noqa: F401
+from lightning_lite.lite.accelerators.hpu import HPUAccelerator  # noqa: F401
+from lightning_lite.lite.accelerators.ipu import IPUAccelerator  # noqa: F401
+from lightning_lite.lite.accelerators.mps import MPSAccelerator  # noqa: F401
+from lightning_lite.lite.accelerators.registry import AcceleratorRegistry, call_register_accelerators  # noqa: F401
+from lightning_lite.lite.accelerators.tpu import TPUAccelerator  # noqa: F401
 
-ACCELERATORS_BASE_MODULE = "pytorch_lightning.accelerators"
+ACCELERATORS_BASE_MODULE = "lightning_lite.lite.accelerators"
 
 call_register_accelerators(ACCELERATORS_BASE_MODULE)

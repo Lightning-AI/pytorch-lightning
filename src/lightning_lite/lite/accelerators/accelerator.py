@@ -16,8 +16,6 @@ from typing import Any, Dict, Union
 
 import torch
 
-import pytorch_lightning as pl
-
 
 class Accelerator(ABC):
     """The Accelerator Base Class. An Accelerator is meant to deal with one type of Hardware.
@@ -38,12 +36,12 @@ class Accelerator(ABC):
         environment before setup is complete.
         """
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        """Setup plugins for the trainer fit and creates optimizers.
-
-        Args:
-            trainer: the trainer instance
-        """
+    # def setup(self, trainer: "pl.Trainer") -> None:
+    #     """Setup plugins for the trainer fit and creates optimizers.
+    #
+    #     Args:
+    #         trainer: the trainer instance
+    #     """
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Get stats for a given device.

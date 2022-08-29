@@ -16,7 +16,8 @@ from contextlib import contextmanager
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import torch
-from torch import Module, Tensor
+from torch import Tensor
+from torch.nn import Module
 from torch.optim import Optimizer
 
 import lightning_lite.lite as lite

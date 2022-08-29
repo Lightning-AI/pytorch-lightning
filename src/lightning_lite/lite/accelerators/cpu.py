@@ -15,11 +15,10 @@ from typing import Any, Dict, List, Union
 
 import torch
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
-from pytorch_lightning.utilities.types import _DEVICE
+from lightning_lite.lite.accelerators.accelerator import Accelerator
+from lightning_lite.lite.utilities import device_parser
+from lightning_lite.lite.utilities.imports import _PSUTIL_AVAILABLE
+from lightning_lite.lite.utilities.types import _DEVICE
 
 
 class CPUAccelerator(Accelerator):
@@ -33,7 +32,7 @@ class CPUAccelerator(Accelerator):
         """
         super().setup_environment(root_device)
         if root_device.type != "cpu":
-            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
+            raise ValueError(f"Device should be CPU, got {root_device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""

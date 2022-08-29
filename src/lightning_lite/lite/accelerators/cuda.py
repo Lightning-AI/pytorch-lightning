@@ -19,11 +19,9 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-import pytorch_lightning as pl
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _DEVICE
+from lightning_lite.lite.accelerators.accelerator import Accelerator
+from lightning_lite.lite.utilities import device_parser
+from lightning_lite.lite.utilities.types import _DEVICE
 
 _log = logging.getLogger(__name__)
 
@@ -39,14 +37,14 @@ class CUDAAccelerator(Accelerator):
         """
         super().setup_environment(root_device)
         if root_device.type != "cuda":
-            raise MisconfigurationException(f"Device should be GPU, got {root_device} instead")
+            raise ValueError(f"Device should be GPU, got {root_device} instead")
         torch.cuda.set_device(root_device)
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        # TODO refactor input from trainer to local_rank @four4fish
-        self.set_nvidia_flags(trainer.local_rank)
-        # clear cache before training
-        torch.cuda.empty_cache()
+    # def setup(self, trainer: "pl.Trainer") -> None:
+    #     # TODO refactor input from trainer to local_rank @four4fish
+    #     self.set_nvidia_flags(trainer.local_rank)
+    #     # clear cache before training
+    #     torch.cuda.empty_cache()
 
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
