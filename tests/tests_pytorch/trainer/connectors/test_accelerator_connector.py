@@ -485,11 +485,9 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy, job_name, e
         },
     ):
         trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=2)
-    assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
-    assert isinstance(trainer.strategy.cluster_environment, expected_env)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
+        assert isinstance(trainer.accelerator, CUDAAccelerator)
+        assert isinstance(trainer.strategy, DDPStrategy)
+        assert isinstance(trainer.strategy.cluster_environment, expected_env)
 
 
 @mock.patch.dict(
