@@ -40,18 +40,14 @@ from lightning_lite.lite.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from lightning_lite.lite.plugins.precision.double import DoublePrecisionPlugin
 from lightning_lite.lite.strategies import (
-    DDPFullyShardedNativeStrategy,
-    DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
-    HorovodStrategy,
-    HPUParallelStrategy,
     SingleDeviceStrategy,
-    SingleHPUStrategy,
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
@@ -256,9 +252,7 @@ class AcceleratorConnector:
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
-                    raise ValueError(
-                        "accelerator set through both strategy class and accelerator flag, choose one"
-                    )
+                    raise ValueError("accelerator set through both strategy class and accelerator flag, choose one")
                 else:
                     self._accelerator_flag = self._strategy_flag._accelerator
             if self._strategy_flag._precision_plugin:
@@ -269,16 +263,12 @@ class AcceleratorConnector:
                     self._precision_plugin_flag = self._strategy_flag._precision_plugin
             if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
-                    raise ValueError(
-                        "checkpoint_io set through both strategy class and plugins, choose one"
-                    )
+                    raise ValueError("checkpoint_io set through both strategy class and plugins, choose one")
                 else:
                     self.checkpoint_io = self._strategy_flag._checkpoint_io
             if getattr(self._strategy_flag, "cluster_environment", None):
                 if self._cluster_environment_flag:
-                    raise ValueError(
-                        "cluster_environment set through both strategy class and plugins, choose one"
-                    )
+                    raise ValueError("cluster_environment set through both strategy class and plugins, choose one")
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
@@ -435,7 +425,7 @@ class AcceleratorConnector:
         if self._is_slurm_managing_tasks():
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
-        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
             if env_type.detect():
                 # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
                 return env_type()  # type: ignore[abstract]
@@ -451,19 +441,12 @@ class AcceleratorConnector:
         return num_slurm_tasks == total_requested_devices
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "hpu":
-            if self._parallel_devices and len(self._parallel_devices) > 1:
-                return HPUParallelStrategy.strategy_name
-            else:
-                return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return TPUSpawnStrategy.strategy_name
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
-        if _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ):
-            return HorovodStrategy.strategy_name
         if self._num_nodes_flag > 1:
             return DDPStrategy.strategy_name
         if len(self._parallel_devices) <= 1:
@@ -497,14 +480,6 @@ class AcceleratorConnector:
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
-        if (
-            strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies()
-            or isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
-            raise RuntimeError(
-                f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
-                "but GPU accelerator is not used."
-            )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
                 f"You selected `Lite(strategy='{strategy_flag}')` but process forking is not supported on this"
@@ -513,32 +488,8 @@ class AcceleratorConnector:
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
-    def _handle_horovod(self) -> None:
-        if self._num_nodes_flag > 1:
-            raise ValueError(
-                "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
-                "horovodrun / mpirun to configure the number of processes."
-            )
-
-        if not _HOROVOD_AVAILABLE:
-            raise ImportError(
-                'Requested `strategy="horovod"`, but Horovod is not installed.'
-                "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
-            )
-
-        hvd.init()
-        if isinstance(self.accelerator, CUDAAccelerator):
-            # Horovod assigns one local GPU per process
-            self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
-        else:
-            self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
-
     def _init_strategy(self) -> None:
         """Instantiate the Strategy given depending on the setting of ``_strategy_flag``."""
-        if isinstance(self._strategy_flag, HorovodStrategy) or self._strategy_flag == "horovod":
-            # handle horovod has to happen before initialize strategy because HorovodStrategy needs hvd.init() first.
-            # TODO lazy initialized and setup horovod strategy `global_rank`
-            self._handle_horovod()
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
@@ -585,9 +536,6 @@ class AcceleratorConnector:
 
             if self._amp_type_flag == AMPType.NATIVE:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-
-                if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
-                    return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
@@ -666,13 +614,9 @@ class AcceleratorConnector:
             DDPStrategy,
             DDPSpawnShardedStrategy,
             DDPShardedStrategy,
-            DDPFullyShardedNativeStrategy,
-            DDPFullyShardedStrategy,
             DDPSpawnStrategy,
             DeepSpeedStrategy,
             TPUSpawnStrategy,
-            HorovodStrategy,
-            HPUParallelStrategy,
         )
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):

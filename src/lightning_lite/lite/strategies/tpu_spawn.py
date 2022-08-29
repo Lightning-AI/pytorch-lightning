@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 
 from lightning_lite.lite.plugins.environments import XLAEnvironment
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
 from lightning_lite.lite.plugins.precision import PrecisionPlugin
 from lightning_lite.lite.strategies.ddp_spawn import DDPSpawnStrategy

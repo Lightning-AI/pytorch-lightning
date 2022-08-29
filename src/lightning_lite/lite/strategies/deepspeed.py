@@ -61,6 +61,7 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
         module._state_dict_hooks = OrderedDict()
         module._load_state_dict_pre_hooks = OrderedDict()
 
+
 class DeepSpeedStrategy(DDPStrategy):
     strategy_name = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"

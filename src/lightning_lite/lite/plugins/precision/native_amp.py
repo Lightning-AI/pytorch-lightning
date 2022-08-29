@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Optional, Union
+from typing import Any, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
@@ -44,9 +44,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     ) -> None:
         super().__init__()
         if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
-            raise ImportError(
-                "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
-            )
+            raise ImportError("To use bfloat16 with native amp you must install torch greater or equal to 1.10.")
         if scaler is None and precision == 16:
             scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
@@ -57,7 +55,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
-        with self.autocast_context_manager():
+        with self._autocast_context_manager():
             yield
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
@@ -80,23 +78,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             raise TypeError(f"Native AMP and the LBFGS optimizer are not compatible.")
 
         self.scaler.unscale_(optimizer)
-        skipped_backward = closure_result is None
-        # in manual optimization, the closure does not return a value
-        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
-            # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            step_output = self.scaler.step(optimizer, **kwargs)
-            self.scaler.update()
-            return step_output
-        return closure_result
 
-    def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
-        if _TORCH_GREATER_EQUAL_1_10:
-            # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-            # https://github.com/pytorch/pytorch/issues/67233
-            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
-        return old_autocast()
-
-
+        # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
+        step_output = self.scaler.step(optimizer, *args, **kwargs)
+        self.scaler.update()
+        return step_output
 
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
@@ -106,3 +92,10 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
+
+    def _autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
+        if _TORCH_GREATER_EQUAL_1_10:
+            # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
+            # https://github.com/pytorch/pytorch/issues/67233
+            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return old_autocast()

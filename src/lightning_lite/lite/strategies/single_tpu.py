@@ -15,7 +15,6 @@ import os
 from typing import Dict, Optional
 
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
 from lightning_lite.lite.plugins.precision import PrecisionPlugin
 from lightning_lite.lite.strategies.single_device import SingleDeviceStrategy

@@ -60,7 +60,6 @@ def run():
         accelerator="cpu",
         strategy="ddp",
         devices=2,
-
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)

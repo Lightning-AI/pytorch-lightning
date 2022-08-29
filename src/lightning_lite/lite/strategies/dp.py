@@ -62,7 +62,6 @@ class DataParallelStrategy(ParallelStrategy):
     def world_size(self) -> int:
         return 1
 
-
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
 

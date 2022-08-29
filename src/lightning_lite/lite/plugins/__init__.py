@@ -1,9 +1,7 @@
 from typing import Union
 
 from lightning_lite.lite.plugins.environments import ClusterEnvironment
-from lightning_lite.lite.plugins.io.async_plugin import AsyncCheckpointIO
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.lite.plugins.io.hpu_plugin import HPUCheckpointIO
 from lightning_lite.lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
 from lightning_lite.lite.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
@@ -17,11 +15,9 @@ PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO, Laye
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
-    "AsyncCheckpointIO",
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
-    "HPUCheckpointIO",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "TPUPrecisionPlugin",

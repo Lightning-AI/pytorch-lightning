@@ -14,7 +14,7 @@
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -25,7 +25,6 @@ from torch.utils.data import DataLoader
 import lightning_lite.lite as lite
 from lightning_lite.lite.plugins import TorchCheckpointIO
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.lite.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning_lite.lite.plugins.precision import PrecisionPlugin
 from lightning_lite.lite.strategies.launchers.base import _Launcher
 from lightning_lite.lite.utilities.apply_func import move_data_to_device

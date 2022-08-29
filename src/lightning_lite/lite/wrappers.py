@@ -56,10 +56,7 @@ class _LiteOptimizer:
 
     def step(self, *args, **kwargs) -> Any:
         return self._strategy.optimizer_step(
-            self.optimizer,
-            *args,
-            model=getattr(self._strategy, "model", None),
-            **kwargs
+            self.optimizer, *args, model=getattr(self._strategy, "model", None), **kwargs
         )
 
 

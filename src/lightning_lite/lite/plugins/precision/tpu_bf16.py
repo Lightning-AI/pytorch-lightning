@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, List, Tuple
-
-import torch.nn as nn
-from torch.optim import Optimizer
 
 from lightning_lite.lite.plugins.precision import TPUPrecisionPlugin
 
@@ -25,11 +21,9 @@ class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
 
     precision: str = "bf16"
 
-    def connect(
-        self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
-    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
+    def __init__(self):
+        super().__init__()
         os.environ["XLA_USE_BF16"] = "1"
-        return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)
 
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
