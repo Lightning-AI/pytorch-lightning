@@ -28,9 +28,8 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.imports import _compare_version
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.imports import Batch, Dataset, Example, Field, LabelField
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
@@ -268,33 +267,6 @@ def test_single_gpu_batch_parse():
 
     batch = trainer.strategy.batch_to_device(CustomBatchType(), torch.device("cuda:0"))
     assert batch.a.type() == "torch.cuda.FloatTensor"
-
-    # torchtext.data.Batch
-    if not _TORCHTEXT_LEGACY:
-        return
-
-    samples = [
-        {"text": "PyTorch Lightning is awesome!", "label": 0},
-        {"text": "Please make it work with torchtext", "label": 1},
-    ]
-
-    text_field = Field()
-    label_field = LabelField()
-    fields = {"text": ("text", text_field), "label": ("label", label_field)}
-
-    examples = [Example.fromdict(sample, fields) for sample in samples]
-    dataset = Dataset(examples=examples, fields=fields.values())
-    # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
-    text_field.build_vocab(dataset)
-    label_field.build_vocab(dataset)
-
-    batch = Batch(data=examples, dataset=dataset)
-
-    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
-        batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
-
-    assert batch.text.type() == "torch.cuda.LongTensor"
-    assert batch.label.type() == "torch.cuda.LongTensor"
 
 
 @RunIf(min_cuda_gpus=1)
