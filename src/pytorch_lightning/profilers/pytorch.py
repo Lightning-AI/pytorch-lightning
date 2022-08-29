@@ -42,7 +42,7 @@ if _KINETO_AVAILABLE:
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]  # type: ignore [valid-type]
+_PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
 
 
 class RegisterRecordFunction:
@@ -133,19 +133,19 @@ class ScheduleWrapper:
         self._start_action_name: Optional[str] = None
 
     @property
-    def is_training(self):
+    def is_training(self) -> bool:
         return self._current_action.endswith("training_step")
 
     @property
-    def is_validating(self):
+    def is_validating(self) -> bool:
         return self._current_action.endswith("validation_step")
 
     @property
-    def is_testing(self):
+    def is_testing(self) -> bool:
         return self._current_action.endswith("test_step")
 
     @property
-    def is_predicting(self):
+    def is_predicting(self) -> bool:
         return self._current_action.endswith("predict_step")
 
     @property
@@ -337,7 +337,9 @@ class PyTorchProfiler(Profiler):
         self._profiler_kwargs["with_stack"] = with_stack
 
     @property
-    def _total_steps(self) -> int:
+    def _total_steps(self) -> Union[int, float]:
+        assert self._schedule is not None
+        assert self._lightning_module is not None
         trainer = self._lightning_module.trainer
         if self._schedule.is_training:
             return trainer.num_training_batches
@@ -424,7 +426,7 @@ class PyTorchProfiler(Profiler):
                 self._schedule = None
                 self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
 
-            def on_trace_ready(profiler):
+            def on_trace_ready(profiler: _PROFILER) -> None:
                 if self.dirpath is not None:
                     if self._export_to_chrome:
                         handler = tensorboard_trace_handler(
@@ -486,7 +488,7 @@ class PyTorchProfiler(Profiler):
     def _cache_functions_events(self) -> None:
         if self._emit_nvtx:
             return
-        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events  # type: ignore [union-attr]
+        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
