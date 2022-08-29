@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple
+from typing import Any, Generator, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -214,12 +213,6 @@ def _reset_progress(loop: Loop) -> None:
             v.reset()
         elif isinstance(v, Loop):
             _reset_progress(v)
-
-
-# TODO: remove in v1.8
-def _v1_8_output_format(fx: Callable) -> bool:
-    parameters = inspect.signature(fx).parameters
-    return "new_format" in parameters and parameters["new_format"].default is True
 
 
 def _set_sampler_epoch(dataloader: DataLoader, epoch: int) -> None:
