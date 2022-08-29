@@ -91,8 +91,6 @@ def test_isolate_rng(with_torch_cuda):
 
     # torch.cuda
     if with_torch_cuda:
-        assert torch.cuda.is_available()
-    if torch.cuda.is_available():
         torch.cuda.FloatTensor(1).normal_()
         with isolate_rng():
             generated = [torch.cuda.FloatTensor(2).normal_() for _ in range(3)]
