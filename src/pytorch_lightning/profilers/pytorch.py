@@ -417,9 +417,8 @@ class PyTorchProfiler(Profiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
 
-        assert isinstance(self.profiler, torch.autograd.profiler.profile)
-
         if self.profiler is not None and any(action_name.endswith(func) for func in self.STEP_FUNCTIONS):
+            assert isinstance(self.profiler, torch.profiler.profile)
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 
