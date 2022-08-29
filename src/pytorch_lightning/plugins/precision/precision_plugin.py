@@ -98,7 +98,11 @@ class PrecisionPlugin(CheckpointHooks):
         model.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
 
-    def run_backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+        """Lightning-independent backward logic.
+
+        Currently only used by Lightning Lite. Subject to further refactors.
+        """
         tensor.backward(*args, **kwargs)
 
     def _after_closure(

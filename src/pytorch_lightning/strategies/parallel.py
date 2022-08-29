@@ -11,35 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC
-from typing import List, Optional, Any, Dict, Callable, Union, Iterable, Tuple
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from typing import Any, Dict, Generator, List, Optional
 
 import torch
 from torch import Tensor
-from torch.nn import Module
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.lite.utilities import move_data_to_device
-from lightning_lite.lite.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.interface import PLStrategyInterface
-from lightning_lite.lite.strategies.parallel import ParallelStrategy as CoreParallelStrategy
-from lightning_lite.lite.accelerators.accelerator import Accelerator as CoreAccelerator
-from pytorch_lightning.utilities.types import STEP_OUTPUT, LRSchedulerConfig, TrainingStep, ValidationStep, TestStep, \
-    PredictStep
+from pytorch_lightning.strategies.strategy import Strategy
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    all_gather_ddp_if_available,
+    get_default_process_group_backend_for_device,
+    ReduceOp,
+)
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
-class ParallelStrategy(CoreParallelStrategy, PLStrategyInterface, ABC):
+class ParallelStrategy(Strategy, ABC):
     """Plugin for training with multiple processes in parallel."""
 
     def __init__(
         self,
-        accelerator: Optional["CoreAccelerator"] = None,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -50,195 +49,84 @@ class ParallelStrategy(CoreParallelStrategy, PLStrategyInterface, ABC):
         self.cluster_environment = cluster_environment
         self._layer_sync: Optional[LayerSync] = None
 
-        self._lightning_module: Optional[pl.LightningModule] = None
-        self._model: Optional[Module] = None
-        self._optimizers: List[Optimizer] = []
-        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
-        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
-        self.optimizer_frequencies: List[int] = []
+    @property
+    @abstractmethod
+    def root_device(self) -> torch.device:
+        """Return the root device."""
 
     @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        """Returns the pure LightningModule without potential wrappers."""
-        return self._lightning_module
+    def global_rank(self) -> int:
+        return self.cluster_environment.global_rank() if self.cluster_environment is not None else 0
 
     @property
-    def model(self) -> Optional[Module]:
-        """Returns the potentially wrapped LightningModule."""
-        return self._model if self._model is not None else self._lightning_module
-
-    @model.setter
-    def model(self, new_model: Optional[Module]) -> None:
-        self._model = new_model
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
     @property
-    def optimizers(self) -> List[Optimizer]:
-        return self._optimizers
-
-    @optimizers.setter
-    def optimizers(self, optimizers: List[Optimizer]) -> None:
-        self._optimizers = optimizers
-        self._lightning_optimizers = {
-            idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
-        }
+    def node_rank(self) -> int:
+        return self.cluster_environment.node_rank() if self.cluster_environment is not None else 0
 
     @property
-    def restore_checkpoint_after_setup(self) -> bool:
-        return False
+    def world_size(self) -> int:
+        return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
     @property
-    def lightning_restore_optimizer(self) -> bool:
-        return True
+    def is_global_zero(self) -> bool:
+        return self.global_rank == 0
 
     @property
-    def handles_gradient_accumulation(self) -> bool:
-        return False
+    def parallel_devices(self) -> Optional[List[torch.device]]:
+        return self._parallel_devices
 
-    def connect(self, model: "pl.LightningModule") -> None:
-        """Called by the accelerator to connect the accelerator and the model with this plugin."""
-        self._lightning_module = model
-        self.model = model
+    @parallel_devices.setter
+    def parallel_devices(self, parallel_devices: Optional[List[torch.device]]) -> None:
+        self._parallel_devices = parallel_devices
 
-    def setup_environment(self) -> None:
-        assert self.accelerator is not None
-        self.accelerator.setup_environment(self.root_device)
-
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
-            return
-        assert self.lightning_module is not None
-        self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
-            self.lightning_module
+    @property
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+        distributed_sampler_kwargs = dict(
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
         )
+        return distributed_sampler_kwargs
 
-    def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator is not None
-        self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
-
-    def setup_precision_plugin(self) -> None:
-        """Attaches the precision plugin to the accelerator."""
-        assert self.model is not None
-        model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
-            self.model, self.optimizers, self.lr_scheduler_configs
+    @property
+    def torch_distributed_backend(self) -> str:
+        """Deprecated property."""
+        rank_zero_deprecation(
+            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
         )
-        self.model = model
-        self.optimizers = optimizers
-        self.lr_scheduler_configs = lr_scheduler_configs
-
-    def run_backward(
-            self, tensor: Tensor,
-            module: Optional[Module],
-            optimizer: Optional[Optimizer],
-            optimizer_idx: Optional[int],
-            *args: Any,
-            **kwargs: Any,
-    ) -> None:
-        self.pre_backward(tensor, module)
-        assert self.lightning_module is not None
-        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, tensor)
-
-        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args,
-                                       **kwargs)
-
-        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
-        self.post_backward(closure_loss, module)
-
-    def optimizer_step(
-        self,
-        optimizer: Optimizer,
-        opt_idx: int,
-        closure: Callable[[], Any],
-        model: Optional[Module] = None,
-        **kwargs: Any,
-    ) -> Any:
-        model = model or self.lightning_module
-        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
-
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
-        model = self.lightning_module
-        device = device or self.root_device
-        if model is not None:
-            return model._apply_batch_transfer_handler(batch, device=device, dataloader_idx=dataloader_idx)
-        return move_data_to_device(batch, device)
-
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
-            return self.model.training_step(*args, **kwargs)
-
-    def post_training_step(self) -> None:
-        pass
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
-            return self.model.validation_step(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
-
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
-
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
-        assert self.lightning_module is not None
-        return self.lightning_module.state_dict()
-
-    def on_train_start(self) -> None:
-        pass
-
-    def on_validation_start(self) -> None:
-        pass
-
-    def on_test_start(self) -> None:
-        pass
-
-    def on_predict_start(self) -> None:
-        pass
-
-    def on_train_end(self) -> None:
-        pass
-
-    def on_validation_end(self) -> None:
-        pass
-
-    def on_test_end(self) -> None:
-        pass
-
-    def on_predict_end(self) -> None:
-        pass
-
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-        pass
-
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        self.precision_plugin.dispatch(trainer)
+        pg_backend = _get_process_group_backend_from_env()
+        if pg_backend:
+            return pg_backend
+        return get_default_process_group_backend_for_device(self.root_device)
 
     def reconciliate_processes(self, trace: str) -> None:
         """Function to re-conciliate processes on failure."""
 
-    def __getstate__(self) -> Dict:
-        # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
-        state = dict(vars(self))  # copy
-        state["_lightning_optimizers"] = {}
-        return state
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+        """Perform a all_gather on all processes."""
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def __setstate__(self, state: Dict) -> None:
-        self.__dict__ = state
-        self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        decision = torch.tensor(int(decision), device=self.root_device)
+        decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
+        decision = bool(decision == self.world_size)
+        return decision
+
+    @contextmanager
+    def block_backward_sync(self) -> Generator:
+        """Blocks ddp sync gradients behaviour on backwards pass.
+
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(self.model, pl.utilities.types.DistributedDataParallel):
+            with self.model.no_sync():
+                yield None
+        else:
+            yield None
+
+    def teardown(self) -> None:
+        assert self.cluster_environment is not None
+        self.cluster_environment.teardown()
+        super().teardown()

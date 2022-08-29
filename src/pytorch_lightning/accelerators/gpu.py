@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-from lightning_lite.lite.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class GPUAccelerator(CUDAAccelerator):

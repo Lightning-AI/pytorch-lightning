@@ -19,7 +19,7 @@ import tempfile
 import time
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Iterable, Tuple
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -38,9 +38,20 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    distributed_available,
+    get_default_process_group_backend_for_device,
+)
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    ReduceOp,
     register_ddp_comm_hook,
+    sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.imports import (
@@ -50,7 +61,8 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_11,
 )
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 if _FAIRSCALE_AVAILABLE:
@@ -63,17 +75,15 @@ if _TORCH_GREATER_EQUAL_1_10 and torch.distributed.is_available():
 
 log = logging.getLogger(__name__)
 
-from lightning_lite.lite.accelerators import Accelerator
-from lightning_lite.lite.strategies import DDPStrategy as LiteDDPStrategy
 
-class DDPStrategy(LiteDDPStrategy):
+class DDPStrategy(ParallelStrategy):
     """Strategy for multi-process single-device training on one or multiple nodes."""
 
     strategy_name = "ddp"
 
     def __init__(
         self,
-        accelerator: Optional["Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -92,10 +102,10 @@ class DDPStrategy(LiteDDPStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
-            process_group_backend=process_group_backend,
-            timeout=timeout,
-            **kwargs,
         )
+        log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
+        self._num_nodes = 1
+        self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -104,12 +114,53 @@ class DDPStrategy(LiteDDPStrategy):
         self._pids: List[int] = []
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
+        self._process_group_backend: Optional[str] = process_group_backend
+        self._timeout: Optional[timedelta] = timeout
+
+    @property
+    def is_distributed(self) -> bool:
+        return True
+
+    @property
+    def root_device(self) -> torch.device:
+        assert self.parallel_devices is not None
+        return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_nodes(self) -> int:
+        return self._num_nodes
+
+    @num_nodes.setter
+    def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
+        self._num_nodes = num_nodes
+
+    @property
+    def num_processes(self) -> int:
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
+
+    @property
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+        distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return distributed_sampler_kwargs
+
+    @property
+    def _is_single_process_single_device(self) -> bool:
+        return True
+
+    @property
+    def process_group_backend(self) -> Optional[str]:
+        return self._process_group_backend
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
+
+    def setup_environment(self) -> None:
+        self.setup_distributed()
+        super().setup_environment()
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # share ddp pids to all processes
@@ -121,7 +172,7 @@ class DDPStrategy(LiteDDPStrategy):
         self.accelerator.setup(trainer)
 
         # move the model to the correct device
-        self.module_to_device(self.model)
+        self.model_to_device()
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
@@ -145,6 +196,47 @@ class DDPStrategy(LiteDDPStrategy):
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._enable_model_averaging()
+
+    def _setup_model(self, model: Module) -> DistributedDataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
+        device_ids = self.determine_ddp_device_ids()
+        log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
+
+    def setup_distributed(self) -> None:
+        log.detail(f"{self.__class__.__name__}: setting up distributed...")
+        reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
+        # set warning rank
+        rank_zero_only.rank = self.global_rank
+
+        self._process_group_backend = self._get_process_group_backend()
+        assert self.cluster_environment is not None
+        init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+
+    def _get_process_group_backend(self) -> str:
+        return (
+            self._process_group_backend
+            or _get_process_group_backend_from_env()
+            or get_default_process_group_backend_for_device(self.root_device)
+        )
+
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
+    def pre_configure_ddp(self) -> None:
+        # if unset, default `find_unused_parameters` `True`
+        # Many models require setting this parameter to True, as there are corner cases
+        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
+        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
+        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
 
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
@@ -192,7 +284,7 @@ class DDPStrategy(LiteDDPStrategy):
         optimizer: Optimizer,
         opt_idx: int,
         closure: Callable[[], Any],
-        model: Optional["pl.LightningModule"] = None,
+        model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
@@ -216,16 +308,61 @@ class DDPStrategy(LiteDDPStrategy):
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
+        self.pre_configure_ddp()
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        self.model = self.setup_module(LightningDistributedModule(self.model))
+        self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+    def determine_ddp_device_ids(self) -> Optional[List[int]]:
+        if self.root_device.type == "cpu":
+            return None
+        return [self.root_device.index]
+
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
+        if not distributed_available():
+            return
+        if torch.distributed.get_backend() == "nccl":
+            torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
+        else:
+            torch.distributed.barrier()
+
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        obj = [obj]
+        if self.global_rank != src:
+            obj = [None]  # type: ignore[list-item]
+        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        return obj[0]
+
+    def pre_backward(self, closure_loss: Tensor) -> None:
+        """Run before precision plugin executes backward."""
         if not isinstance(self.model, DistributedDataParallel):
             return
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
-            prepare_for_backward(self.model, tensor)
+            prepare_for_backward(self.model, closure_loss)
+
+    def model_to_device(self) -> None:
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
+        assert self.model is not None
+        self.model.to(self.root_device)
+
+    def reduce(
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> Tensor:
+        """Reduces a tensor from several distributed processes to one aggregated tensor.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            group: the process group to gather results from. Defaults to all processes (world)
+            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
+                Can also be a string 'sum' to calculate the sum during reduction.
+
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, Tensor):
+            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+        return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         assert self.model is not None
@@ -341,9 +478,7 @@ class DDPStrategy(LiteDDPStrategy):
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
-    def teardown(
-            self, modules: Iterable[Module] = (), optimizers: Iterable[Optimizer] = ()
-    ) -> Tuple[Iterable[Module], Iterable[Optimizer]]:
+    def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
 
         pl_module = self.lightning_module
@@ -371,4 +506,4 @@ class DDPStrategy(LiteDDPStrategy):
             assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
-        return super().teardown()
+        super().teardown()

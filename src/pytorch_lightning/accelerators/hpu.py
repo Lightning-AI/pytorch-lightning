@@ -16,10 +16,10 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from lightning_lite.lite.utilities import _HPU_AVAILABLE, device_parser
-from lightning_lite.lite.utilities.rank_zero import rank_zero_debug
+from pytorch_lightning.utilities import _HPU_AVAILABLE, device_parser
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.hpu as torch_hpu
@@ -27,9 +27,6 @@ if _HPU_AVAILABLE:
 
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        pass
 
     def setup_environment(self, root_device: torch.device) -> None:
         """
@@ -39,7 +36,7 @@ class HPUAccelerator(Accelerator):
         """
         super().setup_environment(root_device)
         if root_device.type != "hpu":
-            raise ValueError(f"Device should be HPU, got {root_device} instead.")
+            raise MisconfigurationException(f"Device should be HPU, got {root_device} instead.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Returns a map of the following metrics with their values:

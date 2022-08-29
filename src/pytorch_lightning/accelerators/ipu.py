@@ -15,16 +15,12 @@ from typing import Any, Dict, List, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from lightning_lite.lite.utilities import _IPU_AVAILABLE
+from pytorch_lightning.utilities import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        pass
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
