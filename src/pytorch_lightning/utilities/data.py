@@ -124,9 +124,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
                 f"`{dataloader.__class__.__name__}` returned 0 length. Please make sure this was your intention."
             )
         has_len = True
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
+    except (TypeError, NotImplementedError):
         has_len = False
 
     if has_len and has_iterable_dataset(dataloader):
@@ -170,9 +168,7 @@ def has_len_all_ranks(
         else:
             has_len = True
 
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
+    except (TypeError, NotImplementedError):
         has_len = False
 
     if has_len and has_iterable_dataset(dataloader):
