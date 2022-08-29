@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -21,9 +21,8 @@ from torch import Tensor
 from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim.optimizer import Optimizer
 
-import lightning_lite.lite as lite
+from lightning_lite.lite.accelerators import Accelerator
 from lightning_lite.lite.overrides.distributed import prepare_for_backward
 from lightning_lite.lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
@@ -51,7 +50,7 @@ class DDPStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["lite.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -170,18 +169,6 @@ class DDPStrategy(ParallelStrategy):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
-
-    def teardown(
-        self, modules: Iterable[Module] = (), optimizers: Iterable[Optimizer] = ()
-    ) -> Tuple[Iterable[Module], Iterable[Optimizer]]:
-        log.detail(f"{self.__class__.__name__}: tearing down strategy")
-
-        modules = [(module.module if isinstance(module, DistributedDataParallel) else module) for module in modules]
-
-        if self._layer_sync:
-            modules = [self._layer_sync.revert(module) for module in modules]
-
-        return super().teardown(modules=modules)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

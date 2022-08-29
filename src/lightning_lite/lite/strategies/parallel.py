@@ -13,12 +13,11 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional
 
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import Optimizer
 
 import lightning_lite.lite as lite
 from lightning_lite.lite.plugins import LayerSync
@@ -125,9 +124,7 @@ class ParallelStrategy(Strategy, ABC):
         else:
             yield None
 
-    def teardown(
-        self, modules: Iterable[Module] = (), optimizers: Iterable[Optimizer] = ()
-    ) -> Tuple[Iterable[Module], Iterable[Optimizer]]:
+    def teardown(self) -> None:
         assert self.cluster_environment is not None
         self.cluster_environment.teardown()
-        return super().teardown(modules=modules, optimizers=optimizers)
+        return super().teardown()

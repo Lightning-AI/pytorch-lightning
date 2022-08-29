@@ -78,9 +78,6 @@ class Strategy(ABC):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = TorchCheckpointIO()
-        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
-            self._checkpoint_io.checkpoint_io = TorchCheckpointIO()
-
         return self._checkpoint_io
 
     @checkpoint_io.setter
@@ -289,25 +286,15 @@ class Strategy(ABC):
         if self.is_global_zero:
             self.checkpoint_io.remove_checkpoint(filepath)
 
-    def teardown(
-        self, modules: Iterable[Module] = (), optimizers: Iterable[Optimizer] = ()
-    ) -> Tuple[Iterable[Module], Iterable[Optimizer]]:
+    def teardown(self) -> None:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
         """
-        optimizers_to_device(optimizers, torch.device("cpu"))
-
-        log.detail(f"{self.__class__.__name__}: moving model to CPU")
-        for module in modules:
-            module.cpu()
-
         self.precision_plugin.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
         self.checkpoint_io.teardown()
-
-        return modules, optimizers
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:

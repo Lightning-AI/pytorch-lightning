@@ -78,7 +78,6 @@ class _MultiProcessingLauncher(_Launcher):
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        self._check_torchdistx_support()
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
@@ -116,16 +115,6 @@ class _MultiProcessingLauncher(_Launcher):
 
         if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
-
-    def _check_torchdistx_support(self) -> None:
-        if self._start_method == "spawn":
-            from lightning_lite.lite.utilities.meta import _is_deferred
-
-            if _is_deferred(self._strategy.lightning_module):
-                raise NotImplementedError(
-                    f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
-                    f" initialization."
-                )
 
 
 @dataclass

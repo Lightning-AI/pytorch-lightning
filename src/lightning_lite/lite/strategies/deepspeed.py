@@ -45,7 +45,6 @@ from lightning_lite.lite.utilities.rank_zero import rank_zero_deprecation, rank_
 from lightning_lite.lite.utilities.seed import reset_seed
 from lightning_lite.lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 
-
 _DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
