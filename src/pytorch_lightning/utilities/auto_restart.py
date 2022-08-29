@@ -15,7 +15,7 @@ from collections.abc import Sized
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 from torch.utils.data import Dataset, DistributedSampler, get_worker_info, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import (
@@ -46,7 +46,7 @@ class IteratorStateDict(TypedDict):
 
 
 class MergedIteratorStateDict(TypedDict):
-    state: dict
+    state: Dict[str, Any]
     latest_worker_id: int
     represent_map_dataset: Optional[bool]
 
@@ -200,10 +200,8 @@ class MergedIteratorState:
         self.represent_map_dataset = generator_name is None
         latest_worker_id = new_state.worker_id
         if generator_name is None:
-            self.state = cast(Dict[int, IteratorState], self.state)
             self.state[latest_worker_id] = new_state
         else:
-            self.state = cast(Dict[str, Dict[int, IteratorState]], self.state)
             if generator_name not in self.state:
                 self.state[generator_name] = {}
             state = self.state[generator_name]
@@ -224,12 +222,10 @@ class MergedIteratorState:
     @classmethod
     def from_state_dict(cls, state_dict: MergedIteratorStateDict) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
-            state_dict["state"] = cast(Dict[int, IteratorState], state_dict["state"])
             state_dict["state"] = {
                 worker_id: IteratorState.from_state_dict(state) for worker_id, state in state_dict["state"].items()
             }
         else:
-            state_dict["state"] = cast(Dict[str, Dict[int, IteratorState]], state_dict["state"])
             state_dict["state"] = {
                 sampler_name: {
                     worker_id: IteratorState.from_state_dict(state) for worker_id, state in worker_state.items()
@@ -640,15 +636,17 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
 class _StatefulDataLoaderIter(_BaseDataLoaderIter):
     """This mixin is used to make PyTorch DataLoaderIter stateful."""
 
-    def __accumulate_state(self, sampler_state: Dict[Union[int, str], Any]) -> None:
+    def __accumulate_state(self, sampler_state: Dict[int, Any]) -> None:
         # store sampler state within a queue alongside its idx.
         self._sampler_state_idx: int = getattr(self, "_sampler_state_idx", 0) + 1
         self._sampler_state.append((sampler_state, self._sampler_state_idx))
 
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
-        sampler_state: Dict[Union[int, str], Any] = {
-            k: v.state_dict() for k, v in self._loader.__dict__.items() if isinstance(v, _Stateful) and k != "dataset"
+        sampler_state: Dict[int, Any] = {
+            k: v.state_dict()  # type: ignore[misc]
+            for k, v in self._loader.__dict__.items()
+            if isinstance(v, _Stateful) and k != "dataset"
         }
         self.__accumulate_state(sampler_state)
 
@@ -662,7 +660,7 @@ class _StatefulDataLoaderIter(_BaseDataLoaderIter):
         self._loader = loader
         self._data_fetcher: "pl.utilities.fetching.AbstractDataFetcher" = loader._lightning_fetcher
         self.num_batches_fetched = 0
-        self._sampler_state: List[Tuple[Dict[Union[int, str], Any], int]] = []
+        self._sampler_state: List[Tuple[Dict[int, Any], int]] = []
         self._sampler_state_idx = 0
 
     def __del__(self) -> None:
@@ -680,7 +678,6 @@ class _StatefulDataLoaderIter(_BaseDataLoaderIter):
         # there is no workers within the samplers
         worker_id = list(state.keys())[0]
 
-        sampler_state = cast(Dict[int, Any], sampler_state)
         state = [
             IteratorState(
                 num_workers=self._loader.num_workers,
