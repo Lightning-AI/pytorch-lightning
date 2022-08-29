@@ -18,7 +18,7 @@ import torch
 import torch.cuda
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.strategies.launchers.multiprocessing import _is_forking_disabled
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 
@@ -49,22 +49,6 @@ def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     root_gpu = gpus[0]
 
     return root_gpu
-
-
-def _parse_devices(
-    gpus: Optional[Union[List[int], str, int]],
-    auto_select_gpus: bool,
-    tpu_cores: Optional[Union[List[int], str, int]],
-    include_cuda: bool = False,
-    include_mps: bool = False,
-) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-    if auto_select_gpus and isinstance(gpus, int):
-        gpus = pick_multiple_gpus(gpus)
-
-    # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
-    gpu_ids = parse_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps)
-    tpu_cores = parse_tpu_cores(tpu_cores)
-    return gpu_ids, tpu_cores
 
 
 def parse_gpu_ids(
@@ -109,6 +93,7 @@ def parse_gpu_ids(
     gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
+
     if (
         TorchElasticEnvironment.detect()
         and len(gpus) != 1
@@ -340,7 +325,7 @@ def num_cuda_devices() -> int:
     Unlike :func:`torch.cuda.device_count`, this function will do its best not to create a CUDA context for fork
     support, if the platform allows it.
     """
-    if "fork" not in torch.multiprocessing.get_all_start_methods():
+    if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.device_count()
     with multiprocessing.get_context("fork").Pool(1) as pool:
         return pool.apply(torch.cuda.device_count)
@@ -352,7 +337,7 @@ def is_cuda_available() -> bool:
     Unlike :func:`torch.cuda.is_available`, this function will do its best not to create a CUDA context for fork
     support, if the platform allows it.
     """
-    if "fork" not in torch.multiprocessing.get_all_start_methods():
+    if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.is_available()
     with multiprocessing.get_context("fork").Pool(1) as pool:
         return pool.apply(torch.cuda.is_available)
