@@ -104,7 +104,7 @@ class _Stateful(Protocol):
 @runtime_checkable
 class _IntStateful(Protocol):
     """This class is used to detect if an object is stateful, whose states are integers, using `isinstance(obj,
-    _Stateful)`."""
+    _IntStateful)`."""
 
     def state_dict(self) -> Dict[int, Any]:
         ...
