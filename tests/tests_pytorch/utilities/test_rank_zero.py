@@ -66,7 +66,7 @@ def test_rank_zero_priority(environ, expected_rank):
 
 @pytest.mark.parametrize("trainer", [Trainer(), None])
 @pytest.mark.parametrize(
-    "log_rank_zero_only, world_size, global_rank, expected_log",
+    "rank_zero_only, world_size, global_rank, expected_log",
     [
         (False, 1, 0, "bar"),
         (False, 2, 0, "[rank: 0] bar"),
@@ -76,7 +76,7 @@ def test_rank_zero_priority(environ, expected_rank):
         (True, 2, 1, None),
     ],
 )
-def test_rank_prefixed_message_with_trainer(trainer, log_rank_zero_only, world_size, global_rank, expected_log):
+def test_rank_prefixed_message_with_trainer(trainer, rank_zero_only, world_size, global_rank, expected_log):
     # set the global_rank and world_size if trainer is not None
     # or else always expect the simple logging message
     if trainer:
@@ -85,7 +85,7 @@ def test_rank_prefixed_message_with_trainer(trainer, log_rank_zero_only, world_s
     else:
         expected_log = "bar"
 
-    message = _rank_prefixed_message("bar", trainer=trainer, log_rank_zero_only=log_rank_zero_only)
+    message = _rank_prefixed_message("bar", trainer=trainer, rank_zero_only=rank_zero_only)
     assert message == expected_log
 
 

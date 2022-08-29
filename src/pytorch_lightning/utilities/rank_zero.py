@@ -37,7 +37,6 @@ def rank_zero_only(fn: Callable) -> Callable:
     return wrapped_fn
 
 
-# TODO: this should be part of the cluster environment
 def _get_rank() -> Optional[int]:
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
@@ -103,19 +102,19 @@ rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWar
 
 
 def _rank_prefixed_message(
-    message: str, trainer: Optional["pl.Trainer"] = None, log_rank_zero_only: bool = False
+    message: str, trainer: Optional["pl.Trainer"] = None, rank_zero_only: bool = False
 ) -> Optional[str]:
     if trainer:
-        # ignore logging in non-zero ranks if `log_rank_zero_only` flag is enabled
-        if log_rank_zero_only and trainer.global_rank != 0:
+        # ignore logging in non-zero ranks if `rank_zero_only` flag is enabled
+        if rank_zero_only and trainer.global_rank != 0:
             return None
         if trainer.world_size > 1:
             # specify the rank of the process being logged
             return f"[rank: {trainer.global_rank}] {message}"
     else:
-        rank = _get_rank()  # TODO: this returns the local rank not global. Inconsistent with the trainer case
-        # ignore logging in non-zero ranks if `log_rank_zero_only` flag is enabled
-        if log_rank_zero_only and rank:
+        rank = _get_rank()
+        # ignore logging in non-zero ranks if `rank_zero_only` flag is enabled
+        if rank_zero_only and rank:
             return None
         if rank is not None:
             # specify the rank of the process being logged

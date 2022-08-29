@@ -259,6 +259,6 @@ class EarlyStopping(Callback):
 
     @staticmethod
     def _log_info(trainer: "pl.Trainer", message: str, log_rank_zero_only: bool) -> None:
-        message = _rank_prefixed_message(message, trainer=trainer, log_rank_zero_only=log_rank_zero_only)
-        if message is not None:  # can be None on some ranks with `log_rank_zero_only`
+        message = _rank_prefixed_message(message, trainer=trainer, rank_zero_only=log_rank_zero_only)
+        if message is not None:  # can be None on some ranks with `rank_zero_only`
             log.info(message)
