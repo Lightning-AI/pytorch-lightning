@@ -52,15 +52,14 @@ class _LiteOptimizer:
         return self._optimizer
 
     def state_dict(self) -> Dict[str, Tensor]:
-        return self._strategy.optimizer_state(self.optimizer)
+        return self._strategy.get_optimizer_state(self.optimizer)
 
-    def step(self, closure: Optional[Callable] = None) -> Any:
-        closure = closure or _do_nothing_closure
+    def step(self, *args, **kwargs) -> Any:
         return self._strategy.optimizer_step(
             self.optimizer,
-            opt_idx=0,
-            closure=closure,
-            model=self._strategy.model,
+            *args,
+            model=getattr(self._strategy, "model", None),
+            **kwargs
         )
 
 

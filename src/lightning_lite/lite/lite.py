@@ -27,7 +27,7 @@ from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 from lightning_lite.lite.accelerators.accelerator import Accelerator
 from lightning_lite.lite.connector import AcceleratorConnector
 from lightning_lite.lite.overrides.distributed import DistributedSamplerWrapper
-from lightning_lite.lite.plugins import PLUGIN_INPUT
+from lightning_lite.lite.plugins import PLUGIN_INPUT, PrecisionPlugin
 from lightning_lite.lite.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
 from lightning_lite.lite.strategies.strategy import TBroadcast
 from lightning_lite.lite.utilities.apply_func import apply_to_collection, convert_to_tensors, move_data_to_device
@@ -91,9 +91,9 @@ class LightningLite(ABC):
             gpus=gpus,
             tpu_cores=tpu_cores,
         )
-        self._strategy = self._accelerator_connector.strategy
-        self._accelerator = self._strategy.accelerator
-        self._precision_plugin = self._strategy.precision_plugin
+        self._strategy: Strategy = self._accelerator_connector.strategy
+        self._accelerator: Accelerator = self._strategy.accelerator
+        self._precision_plugin: PrecisionPlugin = self._strategy.precision_plugin
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -163,7 +163,7 @@ class LightningLite(ABC):
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
-        model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
+        model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
@@ -392,7 +392,7 @@ class LightningLite(ABC):
 
     def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
-        with self._strategy.model_sharded_context(), _replace_dunder_methods(
+        with self._strategy.module_sharded_context(), _replace_dunder_methods(
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)

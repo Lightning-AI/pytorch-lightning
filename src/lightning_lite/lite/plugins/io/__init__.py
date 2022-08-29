@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_lite.lite.plugins.io.async_plugin import AsyncCheckpointIO
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.lite.plugins.io.hpu_plugin import HPUCheckpointIO
 from lightning_lite.lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
 
-__all__ = ["AsyncCheckpointIO", "CheckpointIO", "HPUCheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]
+__all__ = ["CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]

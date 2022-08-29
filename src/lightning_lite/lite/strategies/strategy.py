@@ -169,7 +169,7 @@ class Strategy(ABC):
     def run_backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
         self.pre_backward(tensor, module)
-        self.precision_plugin.run_backward(tensor, module, *args, **kwargs)
+        self.precision_plugin.backward(tensor, module, *args, **kwargs)
         self.post_backward(tensor, module)
 
     def post_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
@@ -178,8 +178,7 @@ class Strategy(ABC):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        opt_idx: int,
-        closure: Callable[[], Any],
+        *args: Any,
         model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
@@ -192,7 +191,7 @@ class Strategy(ABC):
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(optimizer, *args, model=model, **kwargs)
 
     @abstractmethod
     def reduce(

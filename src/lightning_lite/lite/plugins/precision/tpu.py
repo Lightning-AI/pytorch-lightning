@@ -17,7 +17,7 @@ from typing import Any, Callable, Optional, Union
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning_lite.lite.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning_lite.lite.plugins.precision.precision import PrecisionPlugin
 from lightning_lite.lite.utilities import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:

@@ -28,7 +28,7 @@ from lightning_lite.lite.strategies.single_tpu import SingleTPUStrategy  # noqa:
 from lightning_lite.lite.strategies.strategy import Strategy  # noqa: F401
 from lightning_lite.lite.strategies.strategy_registry import call_register_strategies, StrategyRegistry  # noqa: F401
 from lightning_lite.lite.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
-#
-# STRATEGIES_BASE_MODULE = "lightning_lite.lite.strategies"
-#
-# call_register_strategies(STRATEGIES_BASE_MODULE)
+
+STRATEGIES_BASE_MODULE = "lightning_lite.lite.strategies"
+
+call_register_strategies(STRATEGIES_BASE_MODULE)

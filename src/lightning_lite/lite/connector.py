@@ -33,7 +33,6 @@ from lightning_lite.lite.plugins import (
     TPUPrecisionPlugin,
 )
 from lightning_lite.lite.plugins.environments import (
-    BaguaEnvironment,
     ClusterEnvironment,
     KubeflowEnvironment,
     LightningEnvironment,
@@ -205,16 +204,6 @@ class AcceleratorConnector:
 
         if strategy is not None:
             self._strategy_flag = strategy
-            if strategy == "ddp_cpu":
-                raise MisconfigurationException(
-                    "`Lite(strategy='ddp_cpu')` is not a valid strategy,"
-                    " you can use `Lite(strategy='ddp'|'ddp_spawn'|'ddp_fork', accelerator='cpu')` instead."
-                )
-            if strategy == "tpu_spawn":
-                raise MisconfigurationException(
-                    "`Lite(strategy='tpu_spawn')` is not a valid strategy,"
-                    " you can use `Lite(strategy='ddp_spawn', accelerator='tpu')` instead."
-                )
 
         if (
             accelerator is not None
@@ -231,7 +220,7 @@ class AcceleratorConnector:
 
         if precision is not None:
             if str(precision) not in self._precision_types:
-                raise MisconfigurationException(
+                raise ValueError(
                     f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
             self._precision_flag = precision
@@ -249,14 +238,14 @@ class AcceleratorConnector:
                     self._cluster_environment_flag = plugin
                     plugins_flags_types[ClusterEnvironment.__name__] += 1
                 else:
-                    raise MisconfigurationException(
+                    raise TypeError(
                         f"Found invalid type for plugin {plugin}. Expected one of: PrecisionPlugin, "
                         "CheckpointIO, ClusterEnviroment, or LayerSync."
                     )
 
             duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
             if duplicated_plugin_key:
-                raise MisconfigurationException(
+                raise ValueError(
                     f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
                     " Expected one value for each type at most."
                 )
@@ -267,7 +256,7 @@ class AcceleratorConnector:
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
-                    raise MisconfigurationException(
+                    raise ValueError(
                         "accelerator set through both strategy class and accelerator flag, choose one"
                     )
                 else:
@@ -275,19 +264,19 @@ class AcceleratorConnector:
             if self._strategy_flag._precision_plugin:
                 # [RFC] handle precision plugin set up conflict?
                 if self._precision_plugin_flag:
-                    raise MisconfigurationException("precision set through both strategy class and plugins, choose one")
+                    raise ValueError("precision set through both strategy class and plugins, choose one")
                 else:
                     self._precision_plugin_flag = self._strategy_flag._precision_plugin
             if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
-                    raise MisconfigurationException(
+                    raise ValueError(
                         "checkpoint_io set through both strategy class and plugins, choose one"
                     )
                 else:
                     self.checkpoint_io = self._strategy_flag._checkpoint_io
             if getattr(self._strategy_flag, "cluster_environment", None):
                 if self._cluster_environment_flag:
-                    raise MisconfigurationException(
+                    raise ValueError(
                         "cluster_environment set through both strategy class and plugins, choose one"
                     )
                 else:
@@ -297,14 +286,14 @@ class AcceleratorConnector:
                 if self._strategy_flag.parallel_devices:
                     if self._strategy_flag.parallel_devices[0].type == "cpu":
                         if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
-                            raise MisconfigurationException(
+                            raise ValueError(
                                 f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
                                 f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                             )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
                         if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
-                            raise MisconfigurationException(
+                            raise ValueError(
                                 f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
                                 f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                             )
@@ -330,7 +319,7 @@ class AcceleratorConnector:
                 if isinstance(self._accelerator_flag, Accelerator)
                 else self._accelerator_flag
             )
-            raise MisconfigurationException(
+            raise ValueError(
                 f"`Lite(devices={self._devices_flag!r})` value is not a valid input"
                 f" using {accelerator_name} accelerator."
             )
@@ -339,7 +328,7 @@ class AcceleratorConnector:
         self._map_deprecated_devices_specific_info_to_accelerator_and_device_flag(devices, gpus, tpu_cores)
 
         if self._devices_flag == "auto" and self._accelerator_flag is None:
-            raise MisconfigurationException(
+            raise ValueError(
                 f"You passed `devices={devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu'|'mps')` for the devices mapping."
             )
@@ -407,7 +396,7 @@ class AcceleratorConnector:
         if CUDAAccelerator.is_available():
             return "cuda"
 
-        raise MisconfigurationException("No supported gpu backend found!")
+        raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
@@ -420,7 +409,7 @@ class AcceleratorConnector:
             available_accelerator = [
                 acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
             ]
-            raise MisconfigurationException(
+            raise RuntimeError(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
                 " since the accelerator is not available. The following accelerator(s)"
                 " is available and can be passed into `accelerator` argument of"
@@ -512,7 +501,7 @@ class AcceleratorConnector:
             strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies()
             or isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
-            raise MisconfigurationException(
+            raise RuntimeError(
                 f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
                 "but GPU accelerator is not used."
             )
@@ -526,13 +515,13 @@ class AcceleratorConnector:
 
     def _handle_horovod(self) -> None:
         if self._num_nodes_flag > 1:
-            raise MisconfigurationException(
+            raise ValueError(
                 "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
                 "horovodrun / mpirun to configure the number of processes."
             )
 
         if not _HOROVOD_AVAILABLE:
-            raise MisconfigurationException(
+            raise ImportError(
                 'Requested `strategy="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
@@ -562,10 +551,6 @@ class AcceleratorConnector:
         if isinstance(self._precision_plugin_flag, PrecisionPlugin):
             return self._precision_plugin_flag
 
-        if isinstance(self.accelerator, IPUAccelerator):
-            return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
-        if isinstance(self.accelerator, HPUAccelerator):
-            return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 32:
                 return TPUPrecisionPlugin()
@@ -603,10 +588,6 @@ class AcceleratorConnector:
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
                     return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, DDPFullyShardedStrategy):
-                    return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
@@ -615,7 +596,7 @@ class AcceleratorConnector:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 64:
-                raise MisconfigurationException(
+                raise NotImplementedError(
                     "`Lite(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
@@ -627,13 +608,8 @@ class AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
-        if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in (16, "bf16", 32):
-                raise MisconfigurationException(
-                    f"`Lite(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
-                )
         if self._precision_flag == "bf16" and self._amp_type_flag != AMPType.NATIVE:
-            raise MisconfigurationException(
+            raise ValueError(
                 f"You passed `Lite(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but "  # type: ignore
                 "it's not supported. Try using `amp_type='native'` instead."
             )
@@ -661,7 +637,7 @@ class AcceleratorConnector:
         from lightning_lite.lite.utilities import _IS_INTERACTIVE
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
-            raise MisconfigurationException(
+            raise RuntimeError(
                 f"`Lite(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
                 f" Lite(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
@@ -676,14 +652,6 @@ class AcceleratorConnector:
         ):
             raise ValueError(
                 "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
-                f" found {self.strategy.__class__.__name__}."
-            )
-
-        if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
-            self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
-        ):
-            raise ValueError(
-                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 

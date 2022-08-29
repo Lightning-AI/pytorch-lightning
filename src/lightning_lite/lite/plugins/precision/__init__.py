@@ -13,7 +13,7 @@
 # limitations under the License.
 from lightning_lite.lite.plugins.precision.mixed import MixedPrecisionPlugin
 from lightning_lite.lite.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from lightning_lite.lite.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning_lite.lite.plugins.precision.precision import PrecisionPlugin
 from lightning_lite.lite.plugins.precision.tpu import TPUPrecisionPlugin
 from lightning_lite.lite.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 

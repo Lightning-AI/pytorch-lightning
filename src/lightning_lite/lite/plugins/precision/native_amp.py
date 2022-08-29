@@ -55,35 +55,31 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.device = device
         self.scaler = scaler
 
-    def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
-        if self.scaler is not None:
-            closure_loss = self.scaler.scale(closure_loss)
-        return super().pre_backward(model, closure_loss)
+    @contextmanager
+    def forward_context(self) -> Generator[None, None, None]:
+        with self.autocast_context_manager():
+            yield
 
-    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
-        super()._run_backward(tensor, model, *args, **kwargs)
+        super().backward(tensor, model, *args, **kwargs)
 
     def optimizer_step(
         self,
-        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
-        optimizer_idx: int,
-        closure: Callable[[], Any],
+        *args: Any,
+        model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
+
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(model, optimizer, optimizer_idx, closure, **kwargs)
+            return super().optimizer_step(optimizer, *args, model=model, **kwargs)
         if isinstance(optimizer, LBFGS):
-            raise TypeError(
-                f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
-            )
-        closure_result = closure()
-        # `unscale` after the closure is executed but before the `on_before_optimizer_step` hook.
+            raise TypeError(f"Native AMP and the LBFGS optimizer are not compatible.")
+
         self.scaler.unscale_(optimizer)
-        self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
@@ -100,11 +96,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
         return old_autocast()
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """Enable autocast context."""
-        with self.autocast_context_manager():
-            yield
+
 
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
