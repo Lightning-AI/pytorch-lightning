@@ -4,4 +4,3 @@ import jsonargparse  # noqa: F401
 import matplotlib  # noqa: F401
 import omegaconf  # noqa: F401
 import rich  # noqa: F401
-import torchtext  # noqa: F401

@@ -1745,3 +1745,63 @@ execution within that function, and the status of the Trainer.
     trainer.state.status
     # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
     trainer.state.stage
+
+should_stop
+***********
+
+If you want to terminate the training during ``.fit``, you can set ``trainer.should_stop=True`` to terminate the training
+as soon as possible. Note that, it will respect the arguments ``min_steps`` and ``min_epochs`` to check whether to stop. If these
+arguments are set and the ``current_epoch`` or ``global_step`` don't meet these minimum conditions, training will continue until
+both conditions are met. If any of these arguments is not set, it won't be considered for the final decision.
+
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` at any point of training will terminate it
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            self.trainer.should_stop = True
+
+
+    trainer = Trainer()
+    model = LitModel()
+    trainer.fit(model)
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` will stop training only after at least 5 epochs have run
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.current_epoch == 2:
+                self.trainer.should_stop = True
+
+
+    trainer = Trainer(min_epochs=5, max_epochs=100)
+    model = LitModel()
+    trainer.fit(model)
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` will stop training only after at least 5 steps have run
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.global_step == 2:
+                self.trainer.should_stop = True
+
+
+    trainer = Trainer(min_steps=5, max_epochs=100)
+    model = LitModel()
+    trainer.fit(model)
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` at any until both min_steps and min_epochs are satisfied
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.global_step == 7:
+                self.trainer.should_stop = True
+
+
+    trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100)
+    model = LitModel()
+    trainer.fit(model)

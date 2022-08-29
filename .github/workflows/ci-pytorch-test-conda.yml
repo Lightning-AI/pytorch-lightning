@@ -16,7 +16,7 @@ defaults:
     shell: bash -l {0}
 
 jobs:
-  conda:
+  pl-conda:
     runs-on: ubuntu-20.04
     container: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
     strategy:
@@ -37,7 +37,7 @@ jobs:
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v23.1
+      uses: tj-actions/changed-files@v29.0.1
 
     - name: Decide if the test should be skipped
       id: skip
