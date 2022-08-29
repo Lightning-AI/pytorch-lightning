@@ -14,8 +14,10 @@
 from abc import ABC, abstractmethod
 import pytorch_lightning as pl
 
+from lightning_lite.lite.accelerators import Accelerator as CoreAccelerator
 
-class PLAcceleratorInterface(ABC):
+
+class Accelerator(CoreAccelerator, ABC):
 
     @abstractmethod
     def setup(self, trainer: "pl.Trainer") -> None:

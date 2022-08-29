@@ -13,10 +13,10 @@
 # limitations under the License.
 from typing import TYPE_CHECKING, Union
 
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning_lite.lite.plugins.precision.precision_plugin import PrecisionPlugin
 
 if TYPE_CHECKING:
-    from pytorch_lightning.utilities import AMPType
+    from lightning_lite.lite.utilities import AMPType
 
 
 class MixedPrecisionPlugin(PrecisionPlugin):

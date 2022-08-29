@@ -15,9 +15,8 @@ import importlib
 from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
 
-from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.registry import _is_register_method_overridden
+from lightning_lite.lite.strategies.strategy import Strategy
+from lightning_lite.lite.utilities.registry import _is_register_method_overridden
 
 
 class _StrategyRegistry(dict):
@@ -65,7 +64,7 @@ class _StrategyRegistry(dict):
             raise TypeError(f"`name` must be a str, found {name}")
 
         if name in self and not override:
-            raise MisconfigurationException(f"'{name}' is already present in the registry. HINT: Use `override=True`.")
+            raise ValueError(f"'{name}' is already present in the registry. HINT: Use `override=True`.")
 
         data: Dict[str, Any] = {}
         data["description"] = description if description is not None else ""

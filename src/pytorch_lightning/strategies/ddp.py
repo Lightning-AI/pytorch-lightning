@@ -19,7 +19,7 @@ import tempfile
 import time
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Iterable, Tuple
 
 import torch
 import torch.distributed
@@ -38,20 +38,9 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    distributed_available,
-    get_default_process_group_backend_for_device,
-)
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    ReduceOp,
     register_ddp_comm_hook,
-    sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.imports import (
@@ -61,8 +50,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_11,
 )
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 if _FAIRSCALE_AVAILABLE:
@@ -205,7 +193,7 @@ class DDPStrategy(LiteDDPStrategy):
         optimizer: Optimizer,
         opt_idx: int,
         closure: Callable[[], Any],
-        model: Optional[pl.LightningModule] = None,
+        model: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
@@ -384,4 +372,4 @@ class DDPStrategy(LiteDDPStrategy):
             assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
-        super().teardown()
+        return super().teardown()

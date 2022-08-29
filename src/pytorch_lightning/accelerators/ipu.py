@@ -16,12 +16,11 @@ from typing import Any, Dict, List, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.accelerator import PLAcceleratorInterface
-from lightning_lite.lite.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from lightning_lite.lite.utilities import _IPU_AVAILABLE
 
 
-class IPUAccelerator(Accelerator, PLAcceleratorInterface):
+class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
     def setup(self, trainer: "pl.Trainer") -> None:

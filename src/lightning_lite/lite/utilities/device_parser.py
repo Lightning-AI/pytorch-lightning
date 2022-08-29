@@ -134,29 +134,6 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
     return tpu_cores
 
 
-def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
-    """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
-    :class:`~pytorch_lightning.trainer.Trainer`.
-
-    Args:
-        cpu_cores: An int > 0.
-
-    Returns:
-        an int representing the number of processes
-
-    Raises:
-        MisconfigurationException:
-            If cpu_cores is not an int > 0
-    """
-    if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
-        cpu_cores = int(cpu_cores)
-
-    if not isinstance(cpu_cores, int) or cpu_cores <= 0:
-        raise ValueError("`devices` selected with `CPUAccelerator` should be an int > 0.")
-
-    return cpu_cores
-
-
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
     if not isinstance(s, str):
         return s

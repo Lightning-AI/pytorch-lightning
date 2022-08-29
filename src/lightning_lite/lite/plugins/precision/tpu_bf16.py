@@ -17,7 +17,7 @@ from typing import Any, List, Tuple
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
+from lightning_lite.lite.plugins.precision import TPUPrecisionPlugin
 
 
 class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):

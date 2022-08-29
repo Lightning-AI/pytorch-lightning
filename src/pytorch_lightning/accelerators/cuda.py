@@ -17,14 +17,13 @@ import os
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.accelerator import PLAcceleratorInterface
-from lightning_lite.lite.accelerators import CUDAAccelerator as CoreCUDAAccelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 
 _log = logging.getLogger(__name__)
 
 
-class CUDAAccelerator(CoreCUDAAccelerator, PLAcceleratorInterface):
+class CUDAAccelerator(Accelerator):
     """Accelerator for NVIDIA CUDA devices."""
 
     def setup(self, trainer: "pl.Trainer") -> None:

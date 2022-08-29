@@ -17,10 +17,8 @@ from lightning_lite.lite.strategies.deepspeed import DeepSpeedStrategy  # noqa: 
 from lightning_lite.lite.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning_lite.lite.strategies.fully_sharded import DDPFullyShardedStrategy  # noqa: F401
 from lightning_lite.lite.strategies.fully_sharded_native import DDPFullyShardedNativeStrategy  # noqa: F401
-from lightning_lite.lite.strategies.hivemind import HivemindStrategy  # noqa: F401
 from lightning_lite.lite.strategies.horovod import HorovodStrategy  # noqa: F401
 from lightning_lite.lite.strategies.hpu_parallel import HPUParallelStrategy  # noqa: F401
-from lightning_lite.lite.strategies.ipu import IPUStrategy  # noqa: F401
 from lightning_lite.lite.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning_lite.lite.strategies.sharded import DDPShardedStrategy  # noqa: F401
 from lightning_lite.lite.strategies.sharded_spawn import DDPSpawnShardedStrategy  # noqa: F401
@@ -30,7 +28,7 @@ from lightning_lite.lite.strategies.single_tpu import SingleTPUStrategy  # noqa:
 from lightning_lite.lite.strategies.strategy import Strategy  # noqa: F401
 from lightning_lite.lite.strategies.strategy_registry import call_register_strategies, StrategyRegistry  # noqa: F401
 from lightning_lite.lite.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
-
-STRATEGIES_BASE_MODULE = "lightning_lite.lite.strategies"
-
-call_register_strategies(STRATEGIES_BASE_MODULE)
+#
+# STRATEGIES_BASE_MODULE = "lightning_lite.lite.strategies"
+#
+# call_register_strategies(STRATEGIES_BASE_MODULE)

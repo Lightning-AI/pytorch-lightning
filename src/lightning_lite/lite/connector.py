@@ -21,22 +21,14 @@ import torch
 
 from lightning_lite.lite.accelerators.accelerator import Accelerator
 from lightning_lite.lite.accelerators.cuda import CUDAAccelerator
-from lightning_lite.lite.accelerators.hpu import HPUAccelerator
-from lightning_lite.lite.accelerators.ipu import IPUAccelerator
 from lightning_lite.lite.accelerators.mps import MPSAccelerator
 from lightning_lite.lite.accelerators.registry import AcceleratorRegistry
 from lightning_lite.lite.accelerators.tpu import TPUAccelerator
 from lightning_lite.lite.plugins import (
     CheckpointIO,
-    DeepSpeedPrecisionPlugin,
-    DoublePrecisionPlugin,
-    FullyShardedNativeMixedPrecisionPlugin,
-    HPUPrecisionPlugin,
-    IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
@@ -49,7 +41,6 @@ from lightning_lite.lite.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_lite.lite.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from lightning_lite.lite.strategies import (
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,

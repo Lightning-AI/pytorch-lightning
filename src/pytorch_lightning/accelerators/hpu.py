@@ -17,8 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.accelerator import PLAcceleratorInterface
-from lightning_lite.lite.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from lightning_lite.lite.utilities import _HPU_AVAILABLE, device_parser
 from lightning_lite.lite.utilities.rank_zero import rank_zero_debug
 
@@ -26,7 +25,7 @@ if _HPU_AVAILABLE:
     import habana_frameworks.torch.hpu as torch_hpu
 
 
-class HPUAccelerator(Accelerator, PLAcceleratorInterface):
+class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
     def setup(self, trainer: "pl.Trainer") -> None:

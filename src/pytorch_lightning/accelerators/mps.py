@@ -17,8 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.accelerator import PLAcceleratorInterface
-from lightning_lite.lite.accelerators.accelerator import Accelerator
+from pytorch_lightning.accelerators.accelerator import Accelerator
 from lightning_lite.lite.utilities import device_parser
 from lightning_lite.lite.utilities.imports import _PSUTIL_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
 from lightning_lite.lite.utilities.types import _DEVICE
@@ -30,7 +29,7 @@ _MPS_AVAILABLE = (
 )
 
 
-class MPSAccelerator(Accelerator, PLAcceleratorInterface):
+class MPSAccelerator(Accelerator):
     """Accelerator for Metal Apple Silicon GPU devices."""
 
     def setup(self, trainer: "pl.Trainer") -> None:
