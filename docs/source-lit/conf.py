@@ -18,7 +18,7 @@ import sys
 
 import pt_lightning_sphinx_theme
 
-import lightning_app
+import lightning
 
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
@@ -30,13 +30,13 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # this name shall match the project name in Github as it is used for linking to code
 project = "lightning"
-copyright = lightning_app.__copyright__
-author = lightning_app.__author__
+copyright = lightning.__copyright__
+author = lightning.__author__
 
 # The short X.Y version
-version = lightning_app.__version__
+version = lightning.__version__
 # The full version, including alpha/beta/rc tags
-release = lightning_app.__version__
+release = lightning.__version__
 
 # Options for the linkcode extension
 # ----------------------------------
@@ -163,8 +163,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    "pytorch_project": lightning_app.__homepage__,
-    "canonical_url": lightning_app.__homepage__,
+    "pytorch_project": lightning.__homepage__,
+    "canonical_url": lightning.__homepage__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -230,7 +230,7 @@ texinfo_documents = [
         project + " Documentation",
         author,
         project,
-        lightning_app.__docs__,
+        lightning.__docs__,
         "Miscellaneous",
     ),
 ]
