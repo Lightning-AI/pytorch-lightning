@@ -498,8 +498,13 @@ class PyTorchProfiler(Profiler):
     def _cache_functions_events(self) -> None:
         if self._emit_nvtx:
             return
-        assert isinstance(self.profiler, torch.autograd.profiler.profile)
-        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events
+
+        if _KINETO_AVAILABLE:
+            assert isinstance(self.profiler, torch.profiler.profile)
+            self.function_events = self.profiler.events()
+        else:
+            assert isinstance(self.profiler, torch.autograd.profiler.profile)
+            self.function_events = self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
