@@ -1,5 +1,5 @@
 from functools import partial, wraps
-from typing import Any, Callable, ContextManager, Dict, Optional, Union
+from typing import Any, Callable, ContextManager, Dict, Optional, TYPE_CHECKING, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
@@ -10,9 +10,16 @@ from pytorch_lightning.utilities.imports import _RequirementAvailable
 _TORCHDYNAMO_AVAILABLE = _RequirementAvailable("torchdynamo")
 _BACKEND = Union[str, Callable]
 
+if TYPE_CHECKING and _TORCHDYNAMO_AVAILABLE:
+    from torchdynamo.eval_frame import OptimizeContext
+else:
+    OptimizeContext = object()
+
 
 class TorchDynamo(Callback):
-    """The TorchDynamo callback enables ``torchdynamo``'s optimizations.
+    """The ``TorchDynamo`` callback enables ``pytorch/torchdynamo``'s optimizations.
+
+    .. warning:: ``TorchDynamo`` is experimental and under active development.
 
     Args:
         backend: A backend is either a function/callable taking a :class:`torch.fx.GraphModule` and
@@ -54,6 +61,15 @@ class TorchDynamo(Callback):
 
         self.previous_closure_cls = Closure
         self.previous_training_step: Optional[Callable] = None
+        self.previous_validation_step: Optional[Callable] = None
+        self.previous_test_step: Optional[Callable] = None
+        self.previous_predict_step: Optional[Callable] = None
+
+    def _optimize_context(self) -> "OptimizeContext":
+        from torchdynamo import optimize
+
+        backend = self.backend if isinstance(self.backend, str) else self.backend["train"]
+        return optimize(backend)
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Called when fit, validate, test, predict, or tune begins.
@@ -67,10 +83,7 @@ class TorchDynamo(Callback):
             )
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        from torchdynamo import optimize
-
-        backend = self.backend if isinstance(self.backend, str) else self.backend["train"]
-        optimize_ctx_manager = optimize(backend)
+        optimize_ctx_manager = self._optimize_context()
 
         if pl_module.automatic_optimization:
             optimize_closure = partial(_ContextManagerClosure, optimize_ctx_manager)
@@ -78,35 +91,42 @@ class TorchDynamo(Callback):
             trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.closure_cls = optimize_closure
         else:
             self.previous_training_step = pl_module.training_step
-            pl_module.training_step = _torchdynamo_training_step(pl_module.training_step, optimize_ctx_manager)
+            pl_module.training_step = _wrap_step(pl_module.training_step, optimize_ctx_manager)
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if pl_module.automatic_optimization:
             trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.closure_cls = self.previous_closure_cls
         elif self.previous_training_step is not None:
-            # technically not necessary thanks to `functools.wraps`
             pl_module.training_step = self.previous_training_step
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        ...
+        if trainer.sanity_checking:
+            return
+        self.previous_validation_step = pl_module.validation_step
+        pl_module.validation_step = _wrap_step(pl_module.validation_step, self._optimize_context())
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        ...
+        if self.previous_validation_step is not None:
+            pl_module.validation_step = self.previous_validation_step
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        ...
+        self.previous_test_step = pl_module.test_step
+        pl_module.test_step = _wrap_step(pl_module.test_step, self._optimize_context())
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        ...
+        if self.previous_test_step is not None:
+            pl_module.test_step = self.previous_test_step
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        ...
+        self.previous_predict_step = pl_module.predict_step
+        pl_module.predict_step = _wrap_step(pl_module.predict_step, self._optimize_context())
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        ...
+        if self.previous_predict_step is not None:
+            pl_module.predict_step = self.previous_predict_step
 
 
-def _check_valid_backend(backend: str):
+def _check_valid_backend(backend: str) -> None:
     from torchdynamo import list_backends
 
     backends = list_backends()
@@ -124,10 +144,10 @@ class _ContextManagerClosure(Closure):
             return super().closure(*args, **kwargs)
 
 
-def _torchdynamo_training_step(training_step: Callable, context_manager: ContextManager) -> Callable:
-    @wraps(training_step)
+def _wrap_step(method: Callable, context_manager: ContextManager) -> Callable:
+    @wraps(method)
     def wrapped(self, *args: Any, **kwargs: Any) -> Any:
         with context_manager:
-            return training_step(self, *args, **kwargs)
+            return method(self, *args, **kwargs)
 
     return wrapped

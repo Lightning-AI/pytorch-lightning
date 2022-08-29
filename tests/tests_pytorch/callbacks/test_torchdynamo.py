@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import call, Mock
 
 import pytest
 
@@ -38,26 +39,45 @@ def test_torchdynamo_training_closure_cls_matches_default():
 @pytest.mark.skipif(not _TORCHDYNAMO_AVAILABLE, reason=_TORCHDYNAMO_AVAILABLE.message)
 @mock.patch("torchdynamo.optimize")
 @pytest.mark.parametrize("model_cls", (BoringModel, ManualOptimBoringModel))
-def test_torchdynamo_mocked_context_manager(optimize_mock, model_cls):
+def test_torchdynamo_mocked_context_manager(optimize_mock: Mock, model_cls):
     model = model_cls()
     trainer = Trainer(
         callbacks=TorchDynamo("eager"),
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        num_sanity_val_steps=1,
+        max_epochs=1,
         logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
+
     trainer.fit(model)
-
-    optimize_mock.assert_called_once_with("eager")
-    optimize_mock().__enter__.assert_called_once()
-
-    # test cleanup
+    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)] * 2
     if model.automatic_optimization:
         assert trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.closure_cls is Closure
     else:
         assert not is_overridden("training_step", instance=model, parent=model_cls)
+    if model_cls is not BoringModel:
+        return
+
+    optimize_mock.reset_mock()
+    trainer.validate(model)
+    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)]
+    assert not is_overridden("validation_step", instance=model, parent=model_cls)
+
+    optimize_mock.reset_mock()
+    trainer.test(model)
+    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)]
+    assert not is_overridden("test_step", instance=model, parent=model_cls)
+
+    optimize_mock.reset_mock()
+    trainer.predict(model)
+    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)]
+    assert not is_overridden("predict_step", instance=model, parent=model_cls)
 
 
 _NETWORKX_INSTALLED = _RequirementAvailable("networkx")
