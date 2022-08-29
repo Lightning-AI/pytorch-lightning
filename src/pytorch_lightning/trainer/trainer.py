@@ -2059,14 +2059,6 @@ class Trainer(
         return len(self.device_ids)
 
     @property
-    def num_processes(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.num_devices` instead."
-        )
-        return self.num_devices
-
-    @property
     def root_gpu(self) -> Optional[int]:
         rank_zero_deprecation(
             "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
@@ -2411,15 +2403,6 @@ class Trainer(
     def default_attributes(cls) -> dict:
         init_signature = inspect.signature(cls)
         return {k: v.default for k, v in init_signature.parameters.items()}
-
-    @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated Trainer arguments."""
-        depr_arg_names = []
-        for name, val in cls.__dict__.items():
-            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
 
     @classmethod
     def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs) -> Any:
