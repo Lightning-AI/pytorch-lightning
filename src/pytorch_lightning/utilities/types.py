@@ -24,7 +24,6 @@ from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Opti
 
 import torch
 from torch import Tensor
-from torch._C._distributed_c10d import ProcessGroup
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
@@ -141,29 +140,32 @@ class ReduceLROnPlateau(_Stateful, Protocol):
         ...
 
 
-# Inferred from `torch.nn.parallel.distributed.pyi`
-# Missing attributes were added to improve typing
-@runtime_checkable
-class DistributedDataParallel(Protocol):
-    def __init__(
-        self,
-        module: torch.nn.Module,
-        device_ids: Optional[List[Union[int, torch.device]]] = None,
-        output_device: Optional[Union[int, torch.device]] = None,
-        dim: int = 0,
-        broadcast_buffers: bool = True,
-        process_group: Optional[ProcessGroup] = None,
-        bucket_cap_mb: int = 25,
-        find_unused_parameters: bool = False,
-        check_reduction: bool = False,
-        gradient_as_bucket_view: bool = False,
-        static_graph: bool = False,
-    ) -> None:
-        ...
+if torch.distributed.is_available():
+    from torch._C._distributed_c10d import ProcessGroup
 
-    @contextmanager
-    def no_sync(self) -> Generator:
-        ...
+    # Inferred from `torch.nn.parallel.distributed.pyi`
+    # Missing attributes were added to improve typing
+    @runtime_checkable
+    class DistributedDataParallel(Protocol):
+        def __init__(
+            self,
+            module: torch.nn.Module,
+            device_ids: Optional[List[Union[int, torch.device]]] = None,
+            output_device: Optional[Union[int, torch.device]] = None,
+            dim: int = 0,
+            broadcast_buffers: bool = True,
+            process_group: Optional[ProcessGroup] = None,
+            bucket_cap_mb: int = 25,
+            find_unused_parameters: bool = False,
+            check_reduction: bool = False,
+            gradient_as_bucket_view: bool = False,
+            static_graph: bool = False,
+        ) -> None:
+            ...
+
+        @contextmanager
+        def no_sync(self) -> Generator:
+            ...
 
 
 # todo: improve LRSchedulerType naming/typing
