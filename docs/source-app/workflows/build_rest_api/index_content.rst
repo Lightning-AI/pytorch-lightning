@@ -1,6 +1,6 @@
-**************************************
-Develop a command line interface (CLI)
-**************************************
+**************
+Develop an API
+**************
 
 .. raw:: html
 
@@ -9,7 +9,7 @@ Develop a command line interface (CLI)
 
 .. displayitem::
    :header: Add an API Route to your App
-   :description: Learn how to develop a simple API for your application
+   :description: Learn how to develop a simple API for your App.
    :col_css: col-md-6
    :button_link: add_api.html
    :height: 150
@@ -38,8 +38,8 @@ Learn more
         <div class="row">
 
 .. displayitem::
-   :header: Develop a Command Line Interface
-   :description: Learn how to develop an CLI for your application.
+   :header: Develop a Command-line Interface
+   :description: Learn how to develop an CLI for your App.
    :col_css: col-md-6
    :button_link: ../build_command_line_interface/index.html
    :height: 150

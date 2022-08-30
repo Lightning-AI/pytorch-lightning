@@ -9,7 +9,7 @@ class Flow(L.LightningFlow):
         super().__init__()
         self.names = []
 
-    # 2. Optional, but used to validate names is modified
+    # 2. Optional, but used to validate names
     def run(self):
         print(self.names)
 
@@ -18,7 +18,7 @@ class Flow(L.LightningFlow):
         self.names.append(name)
         return f'The name {name} was registered'
 
-    # 4. Defines this component Restful API. You can have several routes.
+    # 4. Defines this Component's Restful API. You can have several routes.
     def configure_api(self):
         # Your own defined route and handler
         return [Post(route="/name", method=self.handle_post)]

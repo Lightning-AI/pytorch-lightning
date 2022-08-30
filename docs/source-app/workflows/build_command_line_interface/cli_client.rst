@@ -2,11 +2,13 @@
 Develop a CLI with client side code
 ***********************************
 
-In the previous section, we learned how to create a simple command line interface. In more realistic use-cases, an app builder wants to provide more complex functionalities where trusted code is executed on the client side.
+We've learned how to create a simple command-line interface. But in real-world use-cases, an App Builder wants to provide more complex functionalities where trusted code is executed on the client side.
 
-Lightning provides a flexible way to create complex CLI without effort.
+Lightning provides a flexible way to create complex CLI without much effort.
 
-In the example below, we create a CLI to dynamically run notebooks with the following structures.
+Here's an example:
+
+We're going to create a CLI to dynamically run Notebooks using the following:
 
 .. code-block:: bash
 
@@ -16,41 +18,43 @@ In the example below, we create a CLI to dynamically run notebooks with the foll
                 run.py
         app.py
 
-Furthermore, we are using the `Jupyter-Component <https://github.com/Lightning-AI/LAI-Jupyter-Component>`_. Follow the installation steps on the repo.
+We're also going to use the `Lightning Jupyter-Component <https://github.com/Lightning-AI/LAI-Jupyter-Component>`_. Follow the installation steps on the repo to install the Component.
 
-In the ``commands/notebook/run.py``, add the following code:
+#. In the ``commands/notebook/run.py`` file, add the following code:
 
-.. literalinclude:: commands/notebook/run.py
+     .. literalinclude:: commands/notebook/run.py
 
-And in the ``app.py``, add the following code:
+#.   In the ``app.py`` file, add the following code:
 
-.. literalinclude:: app.py
+     .. literalinclude:: app.py
 
-In your first terminal, run the following command and open the ``http://127.0.0.1:7501/view`` in browser.
+#. Open a terminal and run the following command:
 
-.. code-block:: bash
+     .. code-block:: bash
 
-    lightning run app app.py
-    Your Lightning App is starting. This won't take long.
-    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+         lightning run app app.py
+         Your Lightning App is starting. This won't take long.
+         INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
 
-And a second terminal, run a first notebook
+#. Open this link ``http://127.0.0.1:7501/view`` in a web browser.
 
-.. code-block:: bash
+#. Open a second terminal, and run this notebook:
 
-    lightning run-notebook --name="my_notebook"
-    WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
-    The notebook my_notebook was created.
+     .. code-block:: bash
 
-And run a second notebook.
+         lightning run-notebook --name="my_notebook"
+         WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
+         The notebook my_notebook was created.
 
-.. code-block:: bash
+#. Now run a second notebook:
 
-    lightning run-notebook --name="my_notebook_2"
-    WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
-    The notebook my_notebook_2 was created.
+     .. code-block:: bash
 
-Here is a recording of the Lightning App described above.
+         lightning run-notebook --name="my_notebook_2"
+         WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
+         The notebook my_notebook_2 was created.
+
+This is what the App is going to look like:
 
 .. raw:: html
 
@@ -73,15 +77,15 @@ Learn more
         <div class="row">
 
 .. displayitem::
-   :header: Develop a CLI with server side code only
-   :description: Learn how to develop a simple API for your application
+   :header: Develop a CLI with server side code only.
+   :description: Learn how to develop a simple CLI for your App.
    :col_css: col-md-6
    :button_link: cli.html
    :height: 150
 
 .. displayitem::
-   :header: Develop a RESTful API
-   :description: Learn how to develop an API for your application.
+   :header: Develop a RESTful API.
+   :description: Learn how to develop an API for your App.
    :col_css: col-md-6
    :button_link: ../build_rest_api/index.html
    :height: 150

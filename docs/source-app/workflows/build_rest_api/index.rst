@@ -1,31 +1,31 @@
-#####################
-Develop a RESTful API
-#####################
+###########
+RESTful API
+###########
 
-**Audience:** Users looking to create an API in their application to let users activate functionalities from external sources.
+**Audience:** Users looking to create an API in their App to allow users to activate functionalities from external sources.
 
 ----
 
-***********************
-What is a RESTful API ?
-***********************
+**********************
+What is a RESTful API?
+**********************
 
-A RESTful API is a set of external url routes exposed by a server that enables clients to trigger some functionalities such as getting or putting some data, uploading files, etc..
+A RESTful API is a set of external URL routes exposed by a server that enables clients to trigger some functionalities, such as getting or putting some data, uploading files, etc..
 
-This provides great flexibility for clients as they can easily discover functionalities made available by the App Builders.
+This provides great flexibility for users as they can easily discover functionalities made available by the App Builders.
 
-The Lightning App framework supports the 4 traditional http methods.
+The Lightning App framework supports the four primary HTTP methods: `GET`, `POST`, `PUT`, `DELETE`.
 
-They are guidelines to organize your RESTful Services and help clients understand your functionalities.
+These methods are guidelines to organize your RESTful Services and help users understand your functionalities.
 
-* **Get** is used to read data from the server.
-* **Post** is used to create new resources.
-* **Put** is used to update/replace existing resources.
-* **Delete** is used to delete resources.
+* **`GET`:** Reads data from the server.
+* **`POST`:** Creates new resources.
+* **`PUT`:** Updates/replaces existing resources.
+* **`DELETE`:** Deletes resources.
 
-Learn more with `HTTP Methods for RESTful Services <https://www.restapitutorial.com/lessons/httpmethods.html#:~:text=The%20primary%20or%20most%2Dcommonly,but%20are%20utilized%20less%20frequently.>`_.
+Learn more about `HTTP Methods for RESTful Services here <https://www.restapitutorial.com/lessons/httpmethods.html#:~:text=The%20primary%20or%20most%2Dcommonly,but%20are%20utilized%20less%20frequently.>`_.
 
-The Lightning App framework uses the popular `FastAPI <https://fastapi.tiangolo.com/>`_ and `Pydantic <https://pydantic-docs.helpmanual.io/>`_ frameworks under the hood e.g you can use all their features while building your application.
+The Lightning App framework uses the popular `FastAPI <https://fastapi.tiangolo.com/>`_ and `Pydantic <https://pydantic-docs.helpmanual.io/>`_ frameworks under the hood. This means you can use all their features while building your App.
 
 ----
 

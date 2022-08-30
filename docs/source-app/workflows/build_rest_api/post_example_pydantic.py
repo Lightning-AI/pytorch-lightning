@@ -6,10 +6,12 @@ from lightning.app.api import Post
 
 class Flow(L.LightningFlow):
 
+    # 1. Define the state
     def __init__(self):
         super().__init__()
         self.names = []
 
+    # 2. Optional, but used to validate names
     def run(self):
         print(self.names)
 
@@ -18,6 +20,7 @@ class Flow(L.LightningFlow):
         self.names.append(config.name)
         return f'The name {config} was registered'
 
+    # 4. Defines this Component's Restful API. You can have several routes.
     def configure_api(self):
         return [
             Post(
