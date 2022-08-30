@@ -1,3 +1,5 @@
+:orphan:
+
 ***********************************
 Develop a CLI with client side code
 ***********************************
@@ -10,7 +12,7 @@ Here's an example:
 
 We're going to create a CLI to dynamically run Notebooks using the following:
 
-.. code-block:: bash
+.. code-block:: python
 
     app_folder/
         commands/
@@ -30,7 +32,7 @@ We're also going to use the `Lightning Jupyter-Component <https://github.com/Lig
 
 #. Open a terminal and run the following command:
 
-     .. code-block:: bash
+     .. code-block:: python
 
          lightning run app app.py
          Your Lightning App is starting. This won't take long.
@@ -40,7 +42,7 @@ We're also going to use the `Lightning Jupyter-Component <https://github.com/Lig
 
 #. Open a second terminal, and run this notebook:
 
-     .. code-block:: bash
+     .. code-block:: python
 
          lightning run-notebook --name="my_notebook"
          WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
@@ -48,7 +50,7 @@ We're also going to use the `Lightning Jupyter-Component <https://github.com/Lig
 
 #. Now run a second notebook:
 
-     .. code-block:: bash
+     .. code-block:: python
 
          lightning run-notebook --name="my_notebook_2"
          WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.

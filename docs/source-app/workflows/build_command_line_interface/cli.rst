@@ -1,3 +1,5 @@
+:orphan:
+
 **************************************
 Develop a CLI without client side code
 **************************************
@@ -12,13 +14,13 @@ Here's an example:
 
 #. Execute the following command in a terminal:
 
-     .. code-block:: bash
+     .. code-block:: python
 
          lightning run app app.py
 
      The following appears:
 
-     .. code-block:: bash
+     .. code-block:: python
 
      Your Lightning App is starting. This won't take long.
      INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
@@ -26,14 +28,14 @@ Here's an example:
 
 #. In another terminal, trigger the command line exposed by your App:
 
-     .. code-block:: bash
+     .. code-block:: python
 
          lightning add --name=my_name
          WARNING: Lightning Command-line Interface is an experimental feature and unannounced changes are likely.
 
 #. In your first terminal, **Received name: my_name** and **["my_name"]** are printed.
 
-     .. code-block:: bash
+     .. code-block:: python
 
          Your Lightning App is starting. This won't take long.
          INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
