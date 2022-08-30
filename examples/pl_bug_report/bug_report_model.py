@@ -57,9 +57,6 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         enable_model_summary=False,
-        accelerator="cpu",
-        strategy="ddp",
-        devices=2,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)
