@@ -36,8 +36,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.lite.accelerators import Accelerator
 from pytorch_lightning.accelerators import (
+    Accelerator,
     CUDAAccelerator,
     HPUAccelerator,
     IPUAccelerator,
