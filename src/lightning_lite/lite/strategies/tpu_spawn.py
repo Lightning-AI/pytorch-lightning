@@ -20,6 +20,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
+from lightning_lite.lite.accelerators import Accelerator
 from lightning_lite.lite.plugins.environments import XLAEnvironment
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
@@ -27,18 +28,16 @@ from lightning_lite.lite.plugins.precision import PrecisionPlugin
 from lightning_lite.lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.lite.strategies.strategy import TBroadcast
-from lightning_lite.lite.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from lightning_lite.lite.utilities import _TPU_AVAILABLE
 from lightning_lite.lite.utilities.apply_func import apply_to_collection
 from lightning_lite.lite.utilities.data import has_len
 from lightning_lite.lite.utilities.distributed import ReduceOp
-from lightning_lite.lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.lite.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
     from torch_xla.core.xla_model import rendezvous
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 else:
@@ -53,11 +52,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-        debug: bool = False,
         **_: Any,
     ) -> None:
         super().__init__(
@@ -69,21 +67,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             start_method="fork",
         )
         self._checkpoint_io: Optional[CheckpointIO]
-        self.debug = debug
         self._launched = False
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
-            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
-
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
-        self._checkpoint_io = io
 
     @property
     def root_device(self) -> torch.device:
@@ -91,61 +75,15 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
         return xm.xla_device()
 
-    @staticmethod
-    def _validate_dataloader(dataloaders: DataLoader) -> None:
-        def check_has_len(dataloader: DataLoader) -> None:
-            if not has_len(dataloader):
-                raise TypeError(
-                    "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
-                    " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
-                )
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = XLACheckpointIO()
+        return self._checkpoint_io
 
-        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)
-
-    @staticmethod
-    def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
-        """Validate and fail fast if the dataloaders were passed directly to fit."""
-        connector: DataConnector = model.trainer._data_connector
-        sources = (
-            connector._train_dataloader_source,
-            connector._val_dataloader_source,
-            connector._test_dataloader_source,
-            connector._predict_dataloader_source,
-        )
-        for source in sources:
-            if not source.is_module():
-                assert source.instance is not None
-                assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
-                TPUSpawnStrategy._validate_dataloader(source.instance)
-
-    def connect(self, model: "pl.LightningModule") -> None:
-        TPUSpawnStrategy._validate_patched_dataloaders(model)
-        self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
-        return super().connect(model)
-
-    def _configure_launcher(self) -> None:
-        self._launcher = _XLALauncher(self)
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator
-        self.accelerator.setup(trainer)
-
-        if self.debug:
-            os.environ["PT_XLA_DEBUG"] = "1"
-
-        assert self.lightning_module
-        shared_params = find_shared_parameters(self.lightning_module)
-        self.model_to_device()
-
-        set_shared_parameters(self.lightning_module, shared_params)
-        self.setup_precision_plugin()
-
-        if trainer.state.fn == TrainerFn.FITTING:
-            self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
-
-    def _setup_model(self, model: Module) -> Module:  # type: ignore
-        return model
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
@@ -156,34 +94,21 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         # HOST_WORLD_SIZE is not set outside the xmp.spawn process
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
+    def _configure_launcher(self) -> None:
+        self._launcher = _XLALauncher(self)
+
+    def setup_module(self, module: Module) -> Module:
+        return module
+
+    def module_to_device(self, module: Module) -> None:
+        module.to(self.root_device)
+
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnStrategy._validate_dataloader(dataloader)
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
         return dataloader
-
-    def configure_ddp(self) -> None:
-        pass
-
-    def model_to_device(self) -> None:
-        self.model = self.wrapped_model.to(self.root_device)
-
-    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        if self.is_distributed:
-            rendezvous(name)
-
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not self.is_distributed:
-            return obj
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
-        data = xm.all_gather(data_tensor)
-        buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
-        return obj
 
     def reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
@@ -206,18 +131,35 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def _worker_setup(self, process_idx: int) -> None:
-        self._launched = True
-        self.set_world_ranks(process_idx)
-        rank_zero_only.rank = self.global_rank
+    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
+        if self.is_distributed:
+            rendezvous(name)
 
-    def _pod_progress_bar_force_stdout(self) -> None:
-        # Why is it required? The way `pytorch_xla.distributed` streams logs
-        # from different vms to the main worker doesn't work well with tqdm
-        # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
-        # The print statement seems to force tqdm to flush stdout.
-        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
-            print()
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not self.is_distributed:
+            return obj
+        buffer = io.BytesIO()
+        torch.save(obj, buffer)
+        data = bytearray(buffer.getbuffer())
+        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
+        data = xm.all_gather(data_tensor)
+        buffer = io.BytesIO(data.cpu().byte().numpy())
+        obj = torch.load(buffer)
+        return obj
+
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+        """
+        Function to gather a tensor from several distributed processes
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: not available with TPUs
+            sync_grads: not available with TPUs
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        if isinstance(tensor, Tensor) and tensor.dim() == 0:
+            tensor = tensor.unsqueeze(0)
+        return xm.all_gather(tensor)
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -241,20 +183,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """
-        Function to gather a tensor from several distributed processes
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: not available with TPUs
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        if isinstance(tensor, Tensor) and tensor.dim() == 0:
-            tensor = tensor.unsqueeze(0)
-        return xm.all_gather(tensor)
-
     def teardown(self) -> None:
         super().teardown()
         os.environ.pop("PT_XLA_DEBUG", None)
@@ -262,11 +190,23 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
-            "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
-        )
-
-        strategy_registry.register(
             cls.strategy_name,
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def _worker_setup(self, process_idx: int) -> None:
+        self._launched = True
+        self.set_world_ranks(process_idx)
+        rank_zero_only.rank = self.global_rank
+
+    @staticmethod
+    def _validate_dataloader(dataloaders: DataLoader) -> None:
+        def check_has_len(dataloader: DataLoader) -> None:
+            if not has_len(dataloader):
+                raise TypeError(
+                    "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
+                    " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
+                )
+
+        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)

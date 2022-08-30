@@ -14,11 +14,12 @@
 import os
 from typing import Dict, Optional
 
+from lightning_lite.lite.accelerators import Accelerator
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.lite.plugins.io.xla_plugin import XLACheckpointIO
 from lightning_lite.lite.plugins.precision import PrecisionPlugin
 from lightning_lite.lite.strategies.single_device import SingleDeviceStrategy
-from lightning_lite.lite.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from lightning_lite.lite.utilities import _TPU_AVAILABLE
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -32,7 +33,7 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     def __init__(
         self,
         device: int,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional[Accelerator] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
@@ -49,9 +50,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
-        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
-            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
-
         return self._checkpoint_io
 
     @checkpoint_io.setter
@@ -61,16 +59,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     @property
     def is_distributed(self) -> bool:
         return False
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.model, "self.model must be set before find_shared_parameters(self.model)"
-        shared_params = find_shared_parameters(self.model)
-        self.model_to_device()
-        set_shared_parameters(self.model, shared_params)
-        super().setup(trainer)
-
-        if self.debug:
-            os.environ["PT_XLA_DEBUG"] = str(1)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

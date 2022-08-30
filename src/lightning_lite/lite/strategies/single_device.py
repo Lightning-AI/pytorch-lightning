@@ -44,6 +44,17 @@ class SingleDeviceStrategy(Strategy):
         self.local_rank = 0
         self.world_size = 1
 
+    @property
+    def root_device(self) -> torch.device:
+        return self._root_device
+
+    @property
+    def is_global_zero(self) -> bool:
+        return True
+
+    def module_to_device(self, module: Module) -> None:
+        module.to(self.root_device)
+
     def reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
         operates with a single device, the reduction is simply the identity.
@@ -61,17 +72,6 @@ class SingleDeviceStrategy(Strategy):
     def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return tensor
-
-    @property
-    def root_device(self) -> torch.device:
-        return self._root_device
-
-    def module_to_device(self, module: Module) -> None:
-        module.to(self.root_device)
-
-    @property
-    def is_global_zero(self) -> bool:
-        return True
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass

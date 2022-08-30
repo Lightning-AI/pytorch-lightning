@@ -21,8 +21,6 @@ from torch.optim import Optimizer
 from lightning_lite.lite.strategies.ddp import DDPStrategy
 from lightning_lite.lite.utilities.enums import PrecisionType
 from lightning_lite.lite.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
-from lightning_lite.lite.utilities.optimizer import optimizers_to_device
-from lightning_lite.lite.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -37,66 +35,48 @@ class DDPShardedStrategy(DDPStrategy):
     strategy_name = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
 
-    def connect(self, model: "pl.LightningModule") -> None:
-        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
-            raise MisconfigurationException(
-                "`DDPShardedStrategy` requires `fairscale` to be installed."
-                " Install it by running `pip install fairscale`."
-            )
-        return super().connect(model)
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        # share ddp pids to all processes
-        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
-        if self._should_run_deadlock_detection():
-            self._share_information_to_prevent_deadlock()
-
-        self.accelerator.setup(trainer)
-
-        # move the model to the correct device
-        self.model_to_device()
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            if self._layer_sync:
-                self.model = self._layer_sync.apply(self.model)
-
-        self.setup_precision_plugin()
-
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
-
-    def configure_ddp(self) -> None:
-        self._set_ddp_kwargs()
-        self.setup_optimizers(self.model.trainer)
-        self.model, self.optimizers = self._setup_model_and_optimizers(
-            model=_LightningModuleWrapperBase(self.model),
-            optimizers=self.optimizers,
-        )
-        optimizers_to_device(self.optimizers, self.root_device)
-
-    def _set_ddp_kwargs(self) -> None:
-        if "reduce_buffer_size" not in self._ddp_kwargs:
-            # For multi-node training, enabling bucketing will improve performance.
-            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
-
-    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+    def setup_module_and_optimizers(
+        self, module: Module, optimizers: List[Optimizer]
+    ) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
 
         Return:
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = self._wrap_optimizers(optimizers)
-        model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
+        optimizers = self._reinit_optimizers_with_oss(optimizers)
+        model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
-    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
-            return optimizers
+    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+        pass
 
-        return self._reinit_optimizers_with_oss(optimizers)
+    @contextmanager
+    def block_backward_sync(self, module: Module) -> Generator:
+        """Blocks syncing gradients behaviour on backwards pass.
+
+        This is useful for skipping sync when accumulating gradients, reducing communication overhead
+        Returns: context manager with sync behaviour off
+        """
+        if isinstance(module, ShardedDataParallel):
+            with module.no_sync():
+                yield None
+        else:
+            yield None
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            "ddp_sharded_find_unused_parameters_false",
+            cls,
+            description="DDP Sharded Strategy with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer]]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
@@ -112,48 +92,3 @@ class DDPShardedStrategy(DDPStrategy):
                 optimizers[x] = zero_optimizer
                 del optimizer
         return optimizers
-
-    def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        optimizer.consolidate_state_dict()
-        return self._optim_state_dict(optimizer)
-
-    @rank_zero_only
-    def _optim_state_dict(self, optimizer):
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`consolidate_state_dict`.
-        """
-        return optimizer.state_dict()
-
-    def pre_backward(self, closure_loss: Tensor) -> None:
-        pass
-
-    @contextmanager
-    def block_backward_sync(self) -> Generator:
-        """Blocks syncing gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(self.model, ShardedDataParallel):
-            with self.model.no_sync():
-                yield None
-        else:
-            yield None
-
-    def post_training_step(self):
-        pass
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_sharded_find_unused_parameters_false",
-            cls,
-            description="DDP Sharded Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )

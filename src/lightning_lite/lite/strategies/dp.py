@@ -17,6 +17,7 @@ import torch
 from torch import Tensor
 from torch.nn import DataParallel, Module
 
+from lightning_lite.lite.accelerators import Accelerator
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.lite.plugins.precision import PrecisionPlugin
 from lightning_lite.lite.strategies.parallel import ParallelStrategy
@@ -33,7 +34,7 @@ class DataParallelStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -45,6 +46,11 @@ class DataParallelStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
+
+    @property
+    def root_device(self) -> torch.device:
+        assert self.parallel_devices is not None
+        return self.parallel_devices[0]
 
     @property
     def global_rank(self) -> int:
@@ -62,6 +68,13 @@ class DataParallelStrategy(ParallelStrategy):
     def world_size(self) -> int:
         return 1
 
+    def setup_module(self, module: Module) -> DataParallel:
+        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
+        return DataParallel(module=module, device_ids=self.parallel_devices)
+
+    def module_to_device(self, module: Module) -> None:
+        module.to(self.root_device)
+
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         """Moves the batch to the correct device.
 
@@ -74,10 +87,6 @@ class DataParallelStrategy(ParallelStrategy):
         """
         # DataParallel handles the transfer of batch to the device
         return batch
-
-    def _setup_model(self, model: Module) -> DataParallel:
-        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
-        return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(
         self, collection: TReduce, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
@@ -97,15 +106,6 @@ class DataParallelStrategy(ParallelStrategy):
             return t.float().mean().to(original_dtype)
 
         return apply_to_collection(collection, Tensor, mean)
-
-    @property
-    def root_device(self) -> torch.device:
-        assert self.parallel_devices is not None
-        return self.parallel_devices[0]
-
-    def model_to_device(self) -> None:
-        assert self.model is not None
-        self.model.to(self.root_device)
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
