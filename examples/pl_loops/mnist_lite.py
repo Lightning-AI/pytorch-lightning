@@ -22,7 +22,7 @@ import torchvision.transforms as T
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics import Accuracy
 
-from lightning_lite.lite import LightningLite
+from lightning_lite import LightningLite
 from pytorch_lightning import seed_everything
 from pytorch_lightning.demos.boring_classes import Net
 from pytorch_lightning.demos.mnist_datamodule import MNIST

@@ -12,6 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_lite.lite import LightningLite
+import torch
 
-__all__ = ["LightningLite"]
+from lightning_lite.utilities.enums import PrecisionType
+
+
+def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
+    if torch.is_floating_point(tensor):
+        if precision == PrecisionType.HALF:
+            return tensor.half()
+        if precision == PrecisionType.BFLOAT:
+            return tensor.bfloat16()
+
+    return tensor

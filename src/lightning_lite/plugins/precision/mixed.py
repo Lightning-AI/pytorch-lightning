@@ -11,7 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import TYPE_CHECKING, Union
 
-from lightning_lite.lite import LightningLite
+from lightning_lite.plugins.precision.precision import PrecisionPlugin
 
-__all__ = ["LightningLite"]
+if TYPE_CHECKING:
+    from lightning_lite.utilities import AMPType
+
+
+class MixedPrecisionPlugin(PrecisionPlugin):
+    """Base Class for mixed precision."""
+
+    backend: "AMPType"
+    precision: Union[str, int] = "mixed"

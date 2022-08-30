@@ -27,11 +27,11 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from lightning_lite.lite import LightningLite
-from lightning_lite.lite.plugins.environments.lightning_environment import find_free_network_port
-from lightning_lite.lite.strategies.ddp_spawn import DDPSpawnStrategy
-from lightning_lite.lite.utilities.apply_func import apply_to_collection, move_data_to_device
-from lightning_lite.lite.utilities.cloud_io import atomic_save
+from lightning_lite import LightningLite
+from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
+from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.cloud_io import atomic_save
 from pytorch_lightning.demos.boring_classes import RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 

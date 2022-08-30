@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import ANY, Mock
+from unittest.mock import Mock
 
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_lite.lite import LightningLite
-from lightning_lite.lite.device_dtype_mixin import DeviceDtypeModuleMixin
-from lightning_lite.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from lightning_lite import LightningLite
+from lightning_lite.device_dtype_mixin import DeviceDtypeModuleMixin
+from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests_pytorch.helpers.runif import RunIf
 
 

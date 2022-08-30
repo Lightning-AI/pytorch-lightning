@@ -12,6 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_lite.lite import LightningLite
-
-__all__ = ["LightningLite"]
+__all__ = ["CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]

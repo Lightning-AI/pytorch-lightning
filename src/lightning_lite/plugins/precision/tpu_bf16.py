@@ -11,7 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
-from lightning_lite.lite import LightningLite
+from lightning_lite.plugins.precision import TPUPrecisionPlugin
 
-__all__ = ["LightningLite"]
+
+class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
+    """Plugin that enables bfloats on TPUs."""
+
+    precision: str = "bf16"
+
+    def __init__(self):
+        super().__init__()
+        os.environ["XLA_USE_BF16"] = "1"
+
+    def teardown(self) -> None:
+        os.environ.pop("XLA_USE_BF16", None)
