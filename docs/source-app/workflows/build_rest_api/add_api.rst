@@ -22,7 +22,7 @@ lightning run app app.py
 
 The following appears:
 
-.. code-block:: bash
+.. code-block::
 
      Your Lightning App is starting. This won't take long.
      INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
@@ -33,16 +33,13 @@ You can access it by accessing the following URL: ``http://127.0.0.1:7501/docs``
 
 .. raw:: html
 
-<br />
 <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_png.png" width="100%">
 <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_post.mp4" type="video/mp4" width="100%">
 </video>
-<br />
-<br />
 
 Alternatively, you can invoke the route directly from a second terminal using `curl <https://curl.se/>`_.
 
-.. code-block:: bash
+.. code-block:: curl
 
      curl -X 'POST' \
      'http://127.0.0.1:7501/name?name=my_name' \
@@ -53,7 +50,7 @@ Alternatively, you can invoke the route directly from a second terminal using `c
 
 And you can see the following in your first terminal running your App.
 
-.. code-block:: bash
+.. code-block:: 
 
      Your Lightning App is starting. This won't take long.
      INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
