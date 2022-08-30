@@ -103,9 +103,9 @@ class TorchDynamo(Callback):
             )
         else:
             self._previous_training_step = pl_module.training_step
-            pl_module.training_step = _wrap_step(
+            pl_module.training_step = _wrap_step(  # type: ignore[assignment]
                 pl_module.training_step, optimize_ctx_manager
-            )  # type: ignore[assignment]
+            )
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if pl_module.automatic_optimization:
@@ -118,9 +118,9 @@ class TorchDynamo(Callback):
         if trainer.sanity_checking:
             return
         self._previous_validation_step = pl_module.validation_step
-        pl_module.validation_step = _wrap_step(
+        pl_module.validation_step = _wrap_step(  # type: ignore[assignment]
             pl_module.validation_step, self._optimize_context(RunningStage.VALIDATING)
-        )  # type: ignore[assignment]
+        )
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._previous_validation_step is not None:
@@ -129,9 +129,9 @@ class TorchDynamo(Callback):
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._previous_test_step = pl_module.test_step
-        pl_module.test_step = _wrap_step(
+        pl_module.test_step = _wrap_step(  # type: ignore[assignment]
             pl_module.test_step, self._optimize_context(RunningStage.TESTING)
-        )  # type: ignore[assignment]
+        )
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._previous_test_step is not None:
@@ -140,9 +140,9 @@ class TorchDynamo(Callback):
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._previous_predict_step = pl_module.predict_step
-        pl_module.predict_step = _wrap_step(
+        pl_module.predict_step = _wrap_step(  # type: ignore[assignment]
             pl_module.predict_step, self._optimize_context(RunningStage.PREDICTING)
-        )  # type: ignore[assignment]
+        )
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._previous_predict_step is not None:
