@@ -1,3 +1,5 @@
+:orphan:
+
 **************************************
 Develop a CLI without client side code
 **************************************
@@ -8,13 +10,13 @@ In order to create your first CLI, you need to override the :class:`~lightning_a
 
 After copy-pasting the code above to a file ``app.py``, execute the following command in your terminal in your first terminal.
 
-.. code-block:: bash
+.. code-block::
 
     lightning run app app.py
 
 And you find the following:
 
-.. code-block:: bash
+.. code-block::
 
     Your Lightning App is starting. This won't take long.
     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
@@ -22,14 +24,14 @@ And you find the following:
 
 In another terminal, you can trigger the command line exposed by your application.
 
-.. code-block:: bash
+.. code-block::
 
     lightning add --name=my_name
     WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
 
 In your first terminal, **Received name: my_name** and **["my_name"]** are printed.
 
-.. code-block:: bash
+.. code-block::
 
     Your Lightning App is starting. This won't take long.
     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
