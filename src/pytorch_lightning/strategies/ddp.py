@@ -35,6 +35,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.environments.sagemaker_environment import SageMakerEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
@@ -397,20 +398,6 @@ class DDPStrategy(ParallelStrategy):
             assert self.model is not None
             self.model.require_backward_grad_sync = True  # type: ignore[assignment]
 
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_find_unused_parameters_false",
-            cls,
-            description="DDP Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
-
     def _should_run_deadlock_detection(self) -> bool:
         """Determines whether the plugin will perform process reconciliation in case of errors.
 
@@ -507,3 +494,24 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            "ddp_find_unused_parameters_false",
+            cls,
+            description="DDP Strategy with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            "smddp",
+            cls,
+            description="SageMaker Data Parallel Strategy",
+            cluster_environment=SageMakerEnvironment(),
+            process_group_backend="smddp",
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
