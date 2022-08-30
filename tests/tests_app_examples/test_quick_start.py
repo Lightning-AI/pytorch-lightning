@@ -48,7 +48,6 @@ def test_quick_start_example_cloud() -> None:
         wait_for(view_page, click_gradio_demo)
 
         def check_examples(*_, **__):
-            view_page.reload()
             locator = view_page.frame_locator("iframe").locator('button:has-text("Submit")')
             locator.wait_for(timeout=10 * 1000)
             if len(locator.all_text_contents()) > 0:
