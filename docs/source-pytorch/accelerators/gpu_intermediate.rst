@@ -274,6 +274,25 @@ See the official `Horovod documentation <https://horovod.readthedocs.io/en/stabl
 on installation and performance tuning.
 
 
+SageMaker Distributed Data Parallel
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`SageMaker Distributed Data Parallel <https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel-intro.html>`_ library extends SageMaker’s training capabilities on deep learning models with
+near-linear scaling efficiency, achieving fast time-to-train with minimal code changes.
+
+With SageMaker data parallel library v1.4.0, the library is available as a backend option for `torch.distributed <https://pytorch.org/tutorials/beginner/dist_overview.html>`_, and could be easily used with PyTorch Lightning by updating the `strategy` flag.
+
+.. code-block:: python
+
+    # train on 4 GPUs (using SageMaker Distributed Data Parallel)
+    trainer = Trainer(strategy="smddp", accelerator="gpu", devices=4)
+
+    # train on all available GPUs (using SageMaker Distributed Data Parallel)
+    trainer = Trainer(strategy="smddp", accelerator="gpu")
+
+You could read it `here <https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel-intro.html>`_ on how they speed up the training process.
+
+
 Bagua
 ^^^^^
 `Bagua <https://github.com/BaguaSys/bagua>`_ is a deep learning training acceleration framework which supports
