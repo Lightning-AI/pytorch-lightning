@@ -6,8 +6,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import threading
-from typing import Callable
+from threading import Thread
+from typing import Callable, Optional
 
 import websockets
 
@@ -16,7 +16,7 @@ from lightning_app.core.constants import APP_SERVER_PORT
 _logger = logging.getLogger(__name__)
 
 _CALLBACKS = []
-_THREAD = None
+_THREAD: Optional[Thread] = None
 
 
 def _get_ws_port():
