@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from typing import List, Tuple, Union
 
+import arrow
 import click
 import rich
 from requests.exceptions import ConnectionError
@@ -11,6 +12,7 @@ from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.cli.commands.app_commands import _run_app_command
 from lightning_app.cli.commands.connection import (
     _list_app_commands,
@@ -21,12 +23,13 @@ from lightning_app.cli.commands.connection import (
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
+from lightning_app.core.constants import get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_logs import _app_logs_reader
-from lightning_app.utilities.cli_helpers import _format_input_env_variables
+from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
@@ -39,7 +42,7 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
         lightning_app = args[0]
         return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}"
     else:
-        return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
+        return "http://127.0.0.1:7501/view"
 
 
 def main():
@@ -156,6 +159,94 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
         color = colors[log_event.component_name]
         rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
+
+
+@show.group()
+def cluster():
+    """Groups cluster commands inside show."""
+    pass
+
+
+@cluster.command(name="logs")
+@click.argument("cluster_name", required=True)
+@click.option(
+    "--from",
+    "from_time",
+    default="24 hours ago",
+    help="The starting timestamp to query cluster logs from. Human-readable (e.g. '48 hours ago') or ISO 8601 "
+    "(e.g. '2022-08-23 12:34') formats.",
+    callback=_arrow_time_callback,
+)
+@click.option(
+    "--to",
+    "to_time",
+    default="0 seconds ago",
+    callback=_arrow_time_callback,
+    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
+    "-f/--follow). The same format as --from option has.",
+)
+@click.option("--limit", default=1000, help="The max number of log lines returned.")
+@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
+def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
+    """Show cluster logs.
+
+    Example uses:
+
+        Print cluster logs:
+
+            $ lightning show cluster logs my-cluster
+
+
+        Print cluster logs and wait for new logs:
+
+            $ lightning show cluster logs my-cluster --follow
+
+
+        Print cluster logs, from 48 hours ago to now:
+
+            $ lightning show cluster logs my-cluster --from "48 hours ago"
+
+
+        Print cluster logs, 10 most recent lines:
+
+            $ lightning show cluster logs my-cluster --limit 10
+    """
+
+    client = LightningClient()
+    cluster_manager = AWSClusterManager()
+    existing_cluster_list = cluster_manager.get_clusters()
+
+    clusters = {cluster.name: cluster.id for cluster in existing_cluster_list.clusters}
+
+    if not clusters:
+        raise click.ClickException("You don't have any clusters.")
+
+    if not cluster_name:
+        raise click.ClickException(
+            f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
+        )
+
+    if cluster_name not in clusters:
+        raise click.ClickException(
+            f"The cluster '{cluster_name}' does not exist."
+            f" Please select one of the following: [{', '.join(clusters.keys())}]"
+        )
+
+    log_reader = _cluster_logs_reader(
+        client=client,
+        cluster_id=clusters[cluster_name],
+        start=from_time.int_timestamp,
+        end=to_time.int_timestamp,
+        limit=limit,
+        follow=follow,
+    )
+
+    colors = {"error": "red", "warn": "yellow", "info": "green"}
+
+    for log_event in log_reader:
+        date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+        color = colors.get(log_event.labels.level, "green")
+        rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
 
 
 @_main.command()

@@ -9,8 +9,9 @@ Develop a Lightning Component (intermediate)
 *****************************
 Add a web user interface (UI)
 *****************************
-Every Lightning Component can have its own user interface (UI). Lightning Components support any kind
-of UI interface such as react.js, vue.js, streamlit, gradio, dash, web urls, etc...(`full list here <../add_web_ui/index.html>`_).
+Every lightning component can have its own user interface (UI). Lightning components support any kind
+of UI interface such as dash, gradio, panel, react.js, streamlit, vue.js, web urls,
+etc...(`full list here <../add_web_ui/index.html>`_).
 
 Let's say that we have a user interface defined in html:
 

@@ -23,7 +23,6 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
@@ -168,15 +167,8 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        model = self.trainer.lightning_module
-
         # hook: give user access to checkpoint if needed.
         self.trainer._call_lightning_module_hook("on_load_checkpoint", self._loaded_checkpoint)
-
-        # TODO: remove this in v1.8.
-        # call hpc specific hook
-        if self._hpc_resume_path is not None:
-            model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
         self.trainer.strategy.load_model_state_dict(self._loaded_checkpoint)
@@ -245,7 +237,7 @@ class CheckpointConnector:
             if state:
                 # The Quantization callbacks have a special method that must be called before restoring the weights
                 # of the model
-                callback._load_before_model(self.trainer.model, deepcopy(state))
+                callback._load_before_model(self.trainer.lightning_module, deepcopy(state))
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
@@ -437,11 +429,6 @@ class CheckpointConnector:
         self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
         if datamodule is not None:
             self.trainer._call_lightning_datamodule_hook("on_save_checkpoint", checkpoint)
-
-        # TODO: remove this in v1.8.
-        environment = self.trainer._accelerator_connector.cluster_environment
-        if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
-            model.on_hpc_save(checkpoint)
 
         return checkpoint
 

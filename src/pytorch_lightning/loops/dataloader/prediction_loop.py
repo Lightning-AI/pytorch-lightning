@@ -60,7 +60,8 @@ class PredictionLoop(DataLoaderLoop):
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns all prediction dataloaders."""
-        return self.trainer.predict_dataloaders
+        dataloaders = self.trainer.predict_dataloaders
+        return [] if dataloaders is None else dataloaders
 
     @property
     def skip(self) -> bool:
