@@ -16,7 +16,7 @@ from lightning_app.core.constants import APP_SERVER_PORT
 _logger = logging.getLogger(__name__)
 
 _CALLBACKS = []
-_THREAD: Optional[Thread] = None
+_THREAD: Thread | None = None
 
 
 def _get_ws_port():
