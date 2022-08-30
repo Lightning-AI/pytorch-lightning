@@ -26,6 +26,7 @@ class _ClusterLogEventLabels:
     issuer: Optional[str] = None
     error: Optional[str] = None
     errorVerbose: Optional[str] = None
+    dir: Optional[str] = None
 
 
 @dataclass
