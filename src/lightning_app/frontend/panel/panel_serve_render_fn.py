@@ -42,11 +42,12 @@ def _get_render_fn():
     return render_fn
 
 
-if __name__ == '__main__':
-    import panel as pn
-
-    # I use caching for efficiency reasons. It shaves off 10ms from having
-    # to get_render_fn_from_environment every time
-    if "lightning_render_fn" not in pn.state.cache:
-        pn.state.cache["lightning_render_fn"] = _get_render_fn()
-    pn.state.cache["lightning_render_fn"]()
+# TODO: this is not friendly with generating the meta-package
+# if __name__.startswith("bokeh"):
+#     import panel as pn
+#
+#     # I use caching for efficiency reasons. It shaves off 10ms from having
+#     # to get_render_fn_from_environment every time
+#     if "lightning_render_fn" not in pn.state.cache:
+#         pn.state.cache["lightning_render_fn"] = _get_render_fn()
+#     pn.state.cache["lightning_render_fn"]()
