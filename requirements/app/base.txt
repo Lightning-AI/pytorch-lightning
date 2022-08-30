@@ -7,4 +7,3 @@ s3fs>=2022.1.0, <=2022.7.1
 croniter # for now until we found something more robust.
 traitlets<5.2.0 # Traitlets 5.2.X fails: https://github.com/ipython/traitlets/issues/741
 arrow>=1.2.0, <=1.2.2
-panel>=0.12, <=0.13.1
