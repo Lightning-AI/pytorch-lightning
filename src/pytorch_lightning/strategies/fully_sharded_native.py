@@ -44,7 +44,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-if _TORCH_GREATER_EQUAL_1_12:
+if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
         BackwardPrefetch,
         CPUOffload,
@@ -121,7 +121,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         mixed_precision: Optional[MixedPrecision] = None,
         **kwargs: Any,
     ) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
+        if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
             raise MisconfigurationException(
                 "`DDPFullyShardedNativeStrategy` is supported from PyTorch v1.12.0 onwards."
             )
@@ -362,7 +362,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        if _TORCH_GREATER_EQUAL_1_12:
+        if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
             strategy_registry.register(
                 "fsdp_native",
                 cls,
