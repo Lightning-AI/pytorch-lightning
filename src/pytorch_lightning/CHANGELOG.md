@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added an environment variable `PL_DISABLE_FORK` that can be used to disable all forking in the Trainer ([#14319](https://github.com/Lightning-AI/lightning/issues/14319))
 
 
+- Added (experimental) support for `pytorch/torchdynamo` via the `TorchDynamo` callback ([#14442](https://github.com/Lightning-AI/lightning/issues/14442))
+
 
 ### Changed
 
