@@ -45,7 +45,7 @@ jobs:
             # install dev versions of app and pl to build app docs
             echo PACKAGE_NAME="" >> $GITHUB_ENV
           else
-            echo PACKAGE_NAME="pytorch" >> $GITHUB_ENV
+            echo PACKAGE_NAME=${{ matrix.pkg }} >> $GITHUB_ENV
           fi
 
       - name: Install dependencies
@@ -103,7 +103,7 @@ jobs:
             # install dev versions of app and pl to build app docs
             echo PACKAGE_NAME="" >> $GITHUB_ENV
           else
-            echo PACKAGE_NAME=pytorch >> $GITHUB_ENV
+            echo PACKAGE_NAME=${{ matrix.pkg }} >> $GITHUB_ENV
           fi
 
       - name: Install dependencies
