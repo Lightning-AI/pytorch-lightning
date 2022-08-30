@@ -45,6 +45,7 @@ callbacks
     RichProgressBar
     StochasticWeightAveraging
     Timer
+    TorchDynamo
     TQDMProgressBar
 
 cli

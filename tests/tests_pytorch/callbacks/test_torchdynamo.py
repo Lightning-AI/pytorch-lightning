@@ -19,6 +19,8 @@ def test_torchdynamo_raises():
         TorchDynamo("foobar")
     with pytest.raises(ValueError, match="backend 'foobar' must be"):
         TorchDynamo({"train": "foobar"})
+    with pytest.raises(ValueError, match="empty dictionary"):
+        TorchDynamo({})
 
     with pytest.raises(ValueError, match=r"foobar' should be one of \['train'"):
         TorchDynamo({"foobar": "eager"})
@@ -33,7 +35,7 @@ def test_torchdynamo_raises():
 def test_torchdynamo_training_closure_cls_matches_default():
     td = TorchDynamo("eager")
     # if this fails, somebody forgot to update one
-    assert td.previous_closure_cls is OptimizerLoop.closure_cls
+    assert td._previous_closure_cls is OptimizerLoop.closure_cls
 
 
 @pytest.mark.skipif(not _TORCHDYNAMO_AVAILABLE, reason=_TORCHDYNAMO_AVAILABLE.message)
@@ -41,8 +43,13 @@ def test_torchdynamo_training_closure_cls_matches_default():
 @pytest.mark.parametrize("model_cls", (BoringModel, ManualOptimBoringModel))
 def test_torchdynamo_mocked_context_manager(optimize_mock: Mock, model_cls):
     model = model_cls()
+
+    compile_fn_mock = Mock()
+    torchdynamo = TorchDynamo({"train": "ipex", "validate": compile_fn_mock})
+    torchdynamo.default_backend = "aot_autograd"
+
     trainer = Trainer(
-        callbacks=TorchDynamo("eager"),
+        callbacks=torchdynamo,
         limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
@@ -56,7 +63,14 @@ def test_torchdynamo_mocked_context_manager(optimize_mock: Mock, model_cls):
     )
 
     trainer.fit(model)
-    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)] * 2
+    assert optimize_mock.mock_calls == [
+        call("ipex"),
+        call().__enter__(),
+        call().__exit__(None, None, None),
+        call(compile_fn_mock),
+        call().__enter__(),
+        call().__exit__(None, None, None),
+    ]
     if model.automatic_optimization:
         assert trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.closure_cls is Closure
     else:
@@ -66,17 +80,17 @@ def test_torchdynamo_mocked_context_manager(optimize_mock: Mock, model_cls):
 
     optimize_mock.reset_mock()
     trainer.validate(model)
-    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)]
+    assert optimize_mock.mock_calls == [call(compile_fn_mock), call().__enter__(), call().__exit__(None, None, None)]
     assert not is_overridden("validation_step", instance=model, parent=model_cls)
 
     optimize_mock.reset_mock()
     trainer.test(model)
-    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)]
+    assert optimize_mock.mock_calls == [call("aot_autograd"), call().__enter__(), call().__exit__(None, None, None)]
     assert not is_overridden("test_step", instance=model, parent=model_cls)
 
     optimize_mock.reset_mock()
     trainer.predict(model)
-    assert optimize_mock.mock_calls == [call("eager"), call().__enter__(), call().__exit__(None, None, None)]
+    assert optimize_mock.mock_calls == [call("aot_autograd"), call().__enter__(), call().__exit__(None, None, None)]
     assert not is_overridden("predict_step", instance=model, parent=model_cls)
 
 
@@ -88,7 +102,7 @@ _NETWORKX_INSTALLED = _RequirementAvailable("networkx")
 @pytest.mark.parametrize(
     "backend",
     (
-        "eager",
+        None,
         pytest.param(
             "aot_autograd",
             marks=pytest.mark.skipif(not _NETWORKX_INSTALLED, reason=_NETWORKX_INSTALLED.message),

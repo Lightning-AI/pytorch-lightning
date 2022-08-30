@@ -28,6 +28,7 @@ from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from pytorch_lightning.callbacks.timer import Timer
+from pytorch_lightning.callbacks.torchdynamo import TorchDynamo
 
 __all__ = [
     "BackboneFinetuning",
@@ -49,5 +50,6 @@ __all__ = [
     "RichProgressBar",
     "StochasticWeightAveraging",
     "Timer",
+    "TorchDynamo",
     "TQDMProgressBar",
 ]
