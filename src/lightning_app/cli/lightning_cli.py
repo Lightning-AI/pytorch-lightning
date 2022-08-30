@@ -54,10 +54,15 @@ def main():
         app_name, app_id = _retrieve_connection_to_an_app()
         if app_name:
             # 3: Handle development use case.
-            if app_name == "localhost" and sys.argv[1:3] == ["run", "app"]:
+            is_local_app = app_name == "localhost"
+            if is_local_app and sys.argv[1:3] == ["run", "app"]:
                 _main()
             else:
-                click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+                if is_local_app:
+                    click.echo("You are connected to the local Lightning App.")
+                else:
+                    click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+
                 if "help" in sys.argv[1]:
                     _list_app_commands()
                 else:

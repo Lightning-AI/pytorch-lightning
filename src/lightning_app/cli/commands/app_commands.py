@@ -39,7 +39,9 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
         _handle_command_without_client(command, metadata, url)
     else:
         _handle_command_with_client(command, metadata, app_name, app_id, url)
-    print("Your command execution was successful.")
+
+    if sys.argv[-1] != "--help":
+        print("Your command execution was successful.")
 
 
 def _handle_command_without_client(command: str, metadata: Dict, url: str) -> None:

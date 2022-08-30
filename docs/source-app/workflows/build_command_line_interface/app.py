@@ -26,7 +26,7 @@ class Flow(L.LightningFlow):
     def configure_commands(self):
         # 3. Returns a list of dictionaries with the format:
         # {"command_name": CustomClientCommand(method=self.custom_server_handler)}
-        return [{"run-notebook": RunNotebook(method=self.run_notebook)}]
+        return [{"run notebook": RunNotebook(method=self.run_notebook)}]
 
     def configure_layout(self):
         # 4. Dynamically display the notebooks in the Lightning App View.
