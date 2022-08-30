@@ -1,3 +1,6 @@
+from lightning_lite.lite import LightningLite
+
+
 def test_placeholder(tmpdir):
     assert True
 
