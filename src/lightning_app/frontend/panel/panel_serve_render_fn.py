@@ -42,7 +42,7 @@ def _get_render_fn():
     return render_fn
 
 
-if __name__.startswith("bokeh"):
+if __name__ == '__main__':
     import panel as pn
 
     # I use caching for efficiency reasons. It shaves off 10ms from having
