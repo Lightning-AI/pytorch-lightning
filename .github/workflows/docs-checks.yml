@@ -110,9 +110,9 @@ jobs:
         run: |
           if [ ${{ matrix.pkg }} == "app" ]; then
             # install dev versions of app and pl to build app docs
-            echo PACKAGE_NAME=\"\" >> $GITHUB_ENV
+            echo PACKAGE_NAME="" >> $GITHUB_ENV
           else
-            echo PACKAGE_NAME="pytorch" >> $GITHUB_ENV
+            echo PACKAGE_NAME=pytorch >> $GITHUB_ENV
           fi
 
       - name: Install dependencies
