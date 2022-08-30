@@ -42,7 +42,7 @@ def _get_render_fn():
     return render_fn
 
 
-if __name__ == "__main__":
+def main():
     import panel as pn
 
     # I use caching for efficiency reasons. It shaves off 10ms from having
@@ -50,3 +50,7 @@ if __name__ == "__main__":
     if "lightning_render_fn" not in pn.state.cache:
         pn.state.cache["lightning_render_fn"] = _get_render_fn()
     pn.state.cache["lightning_render_fn"]()
+
+
+if __name__ == "__main__":
+    main()
