@@ -51,6 +51,7 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ env.PACKAGE_NAME }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
@@ -118,6 +119,7 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ env.PACKAGE_NAME }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
