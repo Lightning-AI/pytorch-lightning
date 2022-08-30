@@ -19,7 +19,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import torch
 import torch.distributed
 from torch import Tensor
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
@@ -79,7 +78,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[Callable] = None,
         ddp_comm_wrapper: Optional[Callable] = None,
         process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        timeout: Optional[timedelta] = timedelta(seconds=1800),
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
         **kwargs: Any,
     ):

@@ -24,7 +24,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import torch
 import torch.distributed
 from torch import Tensor
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
@@ -93,7 +92,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_wrapper: Optional[Callable] = None,
         model_averaging_period: Optional[int] = None,
         process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
+        timeout: Optional[timedelta] = timedelta(seconds=1800),
         **kwargs: Any,
     ) -> None:
         super().__init__(
