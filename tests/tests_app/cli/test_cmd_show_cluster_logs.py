@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1Cluster
@@ -7,9 +8,10 @@ from lightning_app.cli.cmd_clusters import ClusterList
 from lightning_app.cli.lightning_cli import cluster_logs
 
 
+@mock.patch("lightning_app.cli.lightning_cli.LightningClient", MagicMock())
+@mock.patch("lightning_app.cli.cmd_clusters.LightningClient", MagicMock())
 @mock.patch("lightning_app.cli.lightning_cli.AWSClusterManager.get_clusters")
-@mock.patch("lightning_app.cli.lightning_cli.LightningClient")
-def test_show_logs_errors(client, get_clusters):
+def test_show_logs_errors(get_clusters):
     """Test that the CLI prints the errors for the show logs command."""
 
     runner = CliRunner()
