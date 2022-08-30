@@ -105,10 +105,6 @@ class DDPStrategy(ParallelStrategy):
         return distributed_sampler_kwargs
 
     @property
-    def _is_single_process_single_device(self) -> bool:
-        return True
-
-    @property
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
