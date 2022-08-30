@@ -105,7 +105,7 @@ class LightningModule(
         self._use_amp: bool = False
 
         # the precision used
-        self.precision: int = 32
+        self.precision: Union[int, str] = 32
 
         # optionally can be set by user
         self._example_input_array = None
@@ -294,6 +294,7 @@ class LightningModule(
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
             datahook_selector = self._trainer._data_connector._datahook_selector
+            assert datahook_selector is not None
             obj = datahook_selector.get_instance(hook_name)
             if isinstance(obj, self.__class__):
                 trainer_method = self._trainer._call_lightning_module_hook
