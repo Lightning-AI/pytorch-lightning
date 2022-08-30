@@ -280,7 +280,7 @@ SageMaker Distributed Data Parallel
 `SageMaker Distributed Data Parallel <https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel-intro.html>`_ library extends SageMaker’s training capabilities on deep learning models with
 near-linear scaling efficiency, achieving fast time-to-train with minimal code changes.
 
-With SageMaker data parallel library v1.4.0, the library is available as a backend option for `torch.distributed <https://pytorch.org/tutorials/beginner/dist_overview.html>`_, and could be easily used with PyTorch Lightning by updating the `strategy` flag.
+With SageMaker data parallel library v1.4.0, the library is available as a backend option for `torch.distributed <https://pytorch.org/tutorials/beginner/dist_overview.html>`_, and could be easily used with PyTorch Lightning by updating the ``strategy`` flag.
 
 .. code-block:: python
 
@@ -290,7 +290,8 @@ With SageMaker data parallel library v1.4.0, the library is available as a backe
     # train on all available GPUs (using SageMaker Distributed Data Parallel)
     trainer = Trainer(strategy="smddp", accelerator="gpu")
 
-You could read it `here <https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel-intro.html>`_ on how they speed up the training process.
+You can learn more about how they speed up the training process `here <https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel-intro.html>`_.
+There's also a blog about how it powers `Amazon Search <https://aws.amazon.com/blogs/machine-learning/run-pytorch-lightning-and-native-pytorch-ddp-on-amazon-sagemaker-training-featuring-amazon-search/>`_.
 
 
 Bagua
