@@ -41,7 +41,7 @@ jobs:
 
       - name: Determine PACKAGE_NAME env var
         run: |
-          if [ ${{ matrix.pkg }} == "app" ]; then
+          if [ "${{ matrix.pkg }}" = "app" ]; then
             # install dev versions of app and pl to build app docs
             echo PACKAGE_NAME="" >> $GITHUB_ENV
           else
@@ -99,7 +99,7 @@ jobs:
 
       - name: Determine PACKAGE_NAME env var
         run: |
-          if [ ${{ matrix.pkg }} == "app" ]; then
+          if [ "${{ matrix.pkg }}" = "app" ]; then
             # install dev versions of app and pl to build app docs
             echo PACKAGE_NAME="" >> $GITHUB_ENV
           else
