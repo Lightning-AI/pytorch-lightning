@@ -106,6 +106,11 @@ def _is_streamlit_available() -> bool:
 
 
 @functools.lru_cache()
+def _is_param_available() -> bool:
+    return _module_available("param")
+
+
+@functools.lru_cache()
 def _is_streamlit_tensorboard_available() -> bool:
     return _module_available("streamlit_tensorboard")
 
