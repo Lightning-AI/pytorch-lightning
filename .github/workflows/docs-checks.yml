@@ -39,10 +39,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-
 
+      - name: Determine PACKAGE_NAME env var
+        run: |
+          if [ ${{ matrix.pkg }} == "app" ]; then
+            # install dev versions of app and pl to build app docs
+            echo PACKAGE_NAME=\"\" >> $GITHUB_ENV
+          else
+            echo PACKAGE_NAME="pytorch" >> $GITHUB_ENV
+          fi
+
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
-          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
@@ -98,10 +106,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docs-make-pip-
 
+      - name: Determine PACKAGE_NAME env var
+        run: |
+          if [ ${{ matrix.pkg }} == "app" ]; then
+            # install dev versions of app and pl to build app docs
+            echo PACKAGE_NAME=\"\" >> $GITHUB_ENV
+          else
+            echo PACKAGE_NAME="pytorch" >> $GITHUB_ENV
+          fi
+
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
-          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
