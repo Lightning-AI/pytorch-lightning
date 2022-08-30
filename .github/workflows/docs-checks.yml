@@ -43,7 +43,7 @@ jobs:
         run: |
           if [ ${{ matrix.pkg }} == "app" ]; then
             # install dev versions of app and pl to build app docs
-            echo PACKAGE_NAME=\"\" >> $GITHUB_ENV
+            echo PACKAGE_NAME="" >> $GITHUB_ENV
           else
             echo PACKAGE_NAME="pytorch" >> $GITHUB_ENV
           fi
@@ -62,15 +62,6 @@ jobs:
           pip list
         shell: bash
 
-      - name: Install PyTorch Lightning from source for app docs (hotfix)
-        if: ${{ matrix.pkg == 'app' }}
-        env:
-          PACKAGE_NAME: pytorch
-        run: |
-          git checkout setup.py  # reverts _PAKCAGE_NAME = "app"
-          pip install -e . -U
-          pip list
-        shell: bash
 
       - name: Test Documentation
         env:
@@ -127,16 +118,6 @@ jobs:
           pip install -e . -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
-          pip list
-        shell: bash
-
-      - name: Install PyTorch Lightning from source for app docs
-        if: ${{ matrix.pkg == 'app' }}
-        env:
-          PACKAGE_NAME: pytorch
-        run: |
-          git checkout setup.py
-          pip install -e . -U
           pip list
         shell: bash
 
