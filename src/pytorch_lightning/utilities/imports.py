@@ -149,6 +149,7 @@ _RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operat
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHVISION_AVAILABLE = _package_available("torchvision")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
+_SMDIST_AVAILABLE = _module_available("smdistributed")
 
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402

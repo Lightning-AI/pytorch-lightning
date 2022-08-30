@@ -15,12 +15,22 @@ import logging
 import os
 
 from pytorch_lightning.plugins.environments.lightning_environment import LightningEnvironment
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _SMDIST_AVAILABLE
+
+if _SMDIST_AVAILABLE:
+    import smdistributed.dataparallel.torch.torch_smddp  # noqa: F401
 
 log = logging.getLogger(__name__)
 
 
 class SageMakerEnvironment(LightningEnvironment):
     """Environment for distributed training on SageMaker."""
+
+    def __init__(self) -> None:
+        if not _SMDIST_AVAILABLE:
+            raise MisconfigurationException("`smdistributed` module is not available.")
+        super().__init__()
 
     def world_size(self) -> int:
         return int(os.environ["WORLD_SIZE"])
