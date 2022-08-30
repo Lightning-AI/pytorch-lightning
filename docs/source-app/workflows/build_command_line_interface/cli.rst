@@ -88,7 +88,7 @@ In your first terminal, **Received name: my_name** and **["my_name"]** are print
 .. code-block::
 
     lightning disconnect
-    You are disconnected of the local Lightning App.
+    You are disconnected from the local Lightning App.
 
 ----
 

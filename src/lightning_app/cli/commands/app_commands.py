@@ -60,9 +60,8 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
     if any("=" not in param for param in provided_params):
         raise Exception("Please, use --x=y syntax when providing the command arguments.")
 
-    for param in provided_params:
-        if param.split("=")[0] not in supported_params:
-            raise Exception(f"Some arguments need to be provided. The keys are {supported_params}.")
+    if any(param.split("=")[0] not in supported_params for param in provided_params):
+        raise Exception(f"Some arguments need to be provided. The keys are {supported_params}.")
 
     # TODO: Encode the parameters and validate their type.
     query_parameters = "&".join(provided_params)

@@ -73,7 +73,7 @@ def test_connect_disconnect_local(monkeypatch):
 
     messages = []
     disconnect()
-    assert messages == ["You are disconnected of the local Lightning App."]
+    assert messages == ["You are disconnected from the local Lightning App."]
     messages = []
     disconnect()
     assert messages == [
@@ -172,7 +172,7 @@ def test_connect_disconnect_cloud(monkeypatch):
 
     messages = []
     disconnect()
-    assert messages == ["You are disconnected of the cloud Lightning App: example."]
+    assert messages == ["You are disconnected from the cloud Lightning App: example."]
     messages = []
     disconnect()
     assert messages == [

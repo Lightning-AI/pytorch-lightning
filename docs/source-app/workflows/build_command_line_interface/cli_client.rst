@@ -127,7 +127,7 @@ Here is a recording of the Lightning App described above.
 .. code-block::
 
     lightning disconnect
-    You are disconnected of the local Lightning App.
+    You are disconnected from the local Lightning App.
 
 ----
 

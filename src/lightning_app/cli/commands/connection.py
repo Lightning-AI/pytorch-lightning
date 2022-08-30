@@ -124,7 +124,7 @@ def connect(app_name_or_id: str, yes: bool = False):
 
 
 def disconnect():
-    """Disconnect to a Lightning Application."""
+    """Disconnect from an App."""
     home = os.path.expanduser("~")
     lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
     connected_file = os.path.join(lightning_folder, "connect.txt")
@@ -138,9 +138,9 @@ def disconnect():
             shutil.rmtree(commands_folder)
 
         if result == "localhost":
-            click.echo("You are disconnected of the local Lightning App.")
+            click.echo("You are disconnected from the local Lightning App.")
         else:
-            click.echo(f"You are disconnected of the cloud Lightning App: {result}.")
+            click.echo(f"You are disconnected from the cloud Lightning App: {result}.")
     else:
         click.echo(
             "You aren't connected to any Lightning App. "
