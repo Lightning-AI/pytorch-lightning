@@ -472,9 +472,8 @@ def test_early_stopping_squeezes():
         (True, 2, 1, None),
     ],
 )
-def test_early_stopping_log_info(tmpdir, trainer, log_rank_zero_only, world_size, global_rank, expected_log):
-    """checks if log.info() gets called with expected message when used within EarlyStopping."""
-
+def test_early_stopping_log_info(trainer, log_rank_zero_only, world_size, global_rank, expected_log):
+    """Checks if log.info() gets called with expected message when used within EarlyStopping."""
     # set the global_rank and world_size if trainer is not None
     # or else always expect the simple logging message
     if trainer:

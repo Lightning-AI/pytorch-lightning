@@ -1,0 +1,1 @@
+../../../source-app/core_api/lightning_app/dynamic_work.rst

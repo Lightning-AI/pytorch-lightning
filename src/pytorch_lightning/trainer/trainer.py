@@ -2059,14 +2059,6 @@ class Trainer(
         return len(self.device_ids)
 
     @property
-    def num_processes(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.num_devices` instead."
-        )
-        return self.num_devices
-
-    @property
     def root_gpu(self) -> Optional[int]:
         rank_zero_deprecation(
             "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
@@ -2107,14 +2099,6 @@ class Trainer(
         return self.num_devices
 
     @property
-    def data_parallel_device_ids(self) -> Optional[List[int]]:
-        rank_zero_deprecation(
-            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.device_ids` instead."
-        )
-        return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
-
-    @property
     def lightning_module(self) -> "pl.LightningModule":
         # TODO: this is actually an optional return
         return self.strategy.lightning_module
@@ -2137,17 +2121,6 @@ class Trainer(
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_scheduler_configs
-
-    @property
-    def lr_schedulers(self) -> List[Dict[str, Any]]:
-        rank_zero_deprecation(
-            "`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."
-            " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
-            stacklevel=5,
-        )
-        from dataclasses import asdict
-
-        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:
@@ -2430,15 +2403,6 @@ class Trainer(
     def default_attributes(cls) -> dict:
         init_signature = inspect.signature(cls)
         return {k: v.default for k, v in init_signature.parameters.items()}
-
-    @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated Trainer arguments."""
-        depr_arg_names = []
-        for name, val in cls.__dict__.items():
-            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
 
     @classmethod
     def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs) -> Any:
