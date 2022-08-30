@@ -12,7 +12,7 @@ from lightning_app.utilities.network import LightningClient
 @click.argument("app_name_or_id", required=True)
 @click.option("-y", "--yes", required=False, is_flag=True, help="Whether to download the commands automatically.")
 def connect(app_name_or_id: str, yes: bool = False):
-    """Connect to a Lightning Application."""
+    """Connect to a Lightning App."""
     from lightning_app.utilities.commands.base import _download_command
 
     home = os.path.expanduser("~")
@@ -77,7 +77,7 @@ def connect(app_name_or_id: str, yes: bool = False):
             project = _get_project(client)
             lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
             click.echo(
-                "We didn't a matching app. Here are the available apps to be "
+                "We didn't find a matching App. Here are the available Apps that could be "
                 f"connected to {[app.name for app in lightningapps.lightningapps]}."
             )
             return
@@ -86,7 +86,7 @@ def connect(app_name_or_id: str, yes: bool = False):
 
         if not yes:
             yes = click.confirm(
-                f"The Lightning App `{app_name_or_id}` provides a client interface (CLI). "
+                f"The Lightning App `{app_name_or_id}` provides a command-line (CLI). "
                 "Do you want to proceed and install its CLI ?"
             )
             click.echo(" ")
@@ -144,7 +144,7 @@ def disconnect():
     else:
         click.echo(
             "You aren't connected to any Lightning App. "
-            "Please, use `lightning connect app_name_or_id` to connect to one."
+            "Please use `lightning connect app_name_or_id` to connect to one."
         )
 
 

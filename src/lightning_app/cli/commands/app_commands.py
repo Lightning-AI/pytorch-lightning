@@ -11,11 +11,11 @@ from lightning_app.utilities.enum import OpenAPITags
 
 
 def _run_app_command(app_name: str, app_id: Optional[str]):
-    """Execute a function in a running application from its name."""
+    """Execute a function in a running App from its name."""
     # 1: Collect the url and comments from the running application
-    url, api_commands = _retrieve_application_url_and_available_commands(app_id)
+    url, api_commands, _ = _retrieve_application_url_and_available_commands(app_id)
     if url is None or api_commands is None:
-        raise Exception("We couldn't find any matching running app.")
+        raise Exception("We couldn't find any matching running App.")
 
     if not api_commands:
         raise Exception("This application doesn't expose any commands yet.")
