@@ -17,7 +17,9 @@ from typing import Any
 
 import torch
 from torch import Tensor
+from torch.nn import Module
 
+from lightning_lite.lite.accelerators import Accelerator
 from lightning_lite.lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.lite.plugins.precision import PrecisionPlugin
 from lightning_lite.lite.strategies.strategy import Strategy, TBroadcast
@@ -32,7 +34,7 @@ class SingleDeviceStrategy(Strategy):
     def __init__(
         self,
         device: _DEVICE = "cpu",
-        accelerator: pl.accelerators.accelerator.Accelerator | None = None,
+        accelerator: Accelerator | None = None,
         checkpoint_io: CheckpointIO | None = None,
         precision_plugin: PrecisionPlugin | None = None,
     ):
@@ -64,13 +66,8 @@ class SingleDeviceStrategy(Strategy):
     def root_device(self) -> torch.device:
         return self._root_device
 
-    def model_to_device(self) -> None:
-        assert self.model is not None, "self.model must be set before self.model.to()"
-        self.model.to(self.root_device)
-
-    def setup(self, trainer: pl.Trainer) -> None:
-        self.model_to_device()
-        super().setup(trainer)
+    def module_to_device(self, module: Module) -> None:
+        module.to(self.root_device)
 
     @property
     def is_global_zero(self) -> bool:

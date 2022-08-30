@@ -26,6 +26,7 @@ from lightning_lite.lite.accelerators.registry import AcceleratorRegistry
 from lightning_lite.lite.accelerators.tpu import TPUAccelerator
 from lightning_lite.lite.plugins import (
     CheckpointIO,
+    DeepSpeedPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
@@ -63,18 +64,9 @@ from lightning_lite.lite.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
-from lightning_lite.lite.utilities.imports import (
-    _HOROVOD_AVAILABLE,
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _IS_INTERACTIVE,
-    _TPU_AVAILABLE,
-)
+from lightning_lite.lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
 
 log = logging.getLogger(__name__)
-
-if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
 
 
 class AcceleratorConnector:

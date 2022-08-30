@@ -71,11 +71,6 @@ class DDPStrategy(ParallelStrategy):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._ddp_kwargs = kwargs
-        # if unset, default `find_unused_parameters` `True`
-        # Many models require setting this parameter to True, as there are corner cases
-        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
-        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
 
     @property
     def root_device(self) -> torch.device:

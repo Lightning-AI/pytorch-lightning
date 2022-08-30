@@ -24,12 +24,11 @@ from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
+from lightning_lite.lite.plugins import PrecisionPlugin
+from lightning_lite.lite.strategies import DeepSpeedStrategy, Strategy
+from lightning_lite.lite.utilities import _StrategyType
+from lightning_lite.lite.utilities.seed import pl_worker_init_function
 from lightning_lite.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.plugins import PrecisionPlugin
-from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
-from pytorch_lightning.utilities import _StrategyType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -50,13 +49,13 @@ class BoringModel(nn.Module):
 
 def test_unsupported_accelerator():
     accelerator = "coconut"
-    with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
+    with pytest.raises(ValueError, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):
         EmptyLite(accelerator=accelerator)
 
 
 def test_unsupported_strategy():
     strategy = "coconut"
-    with pytest.raises(MisconfigurationException, match=f"`strategy={repr(strategy)}` is not a valid choice"):
+    with pytest.raises(ValueError, match=f"`strategy={repr(strategy)}` is not a valid choice"):
         EmptyLite(strategy=strategy)
 
 
@@ -80,7 +79,7 @@ def test_run_input_output():
     assert lite.run_kwargs == {"three": 3}
 
 
-@mock.patch("pytorch_lightning.strategies.ddp.DistributedDataParallel")
+@mock.patch("lightning_lite.lite.strategies.ddp.DistributedDataParallel")
 def test_setup_model(ddp_mock):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
     lite = EmptyLite(accelerator="cpu", strategy="ddp", devices=2)
@@ -128,11 +127,11 @@ def test_setup_twice_fails():
     optimizer = torch.optim.Adam(model.parameters())
 
     lite_model, lite_optimizer = lite.setup(model, optimizer)
-    with pytest.raises(MisconfigurationException, match="A model should be passed only once to the"):
+    with pytest.raises(ValueError, match="A model should be passed only once to the"):
         lite.setup(lite_model, optimizer)
 
     lite_model, lite_optimizer = lite.setup(model, optimizer)
-    with pytest.raises(MisconfigurationException, match="An optimizer should be passed only once to the"):
+    with pytest.raises(ValueError, match="An optimizer should be passed only once to the"):
         lite.setup(model, lite_optimizer)
 
 
@@ -153,7 +152,7 @@ def test_setup_tracks_num_models():
 def test_setup_dataloaders_unsupported_type():
     """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
     lite = EmptyLite()
-    with pytest.raises(MisconfigurationException, match="Only PyTorch DataLoader are currently supported"):
+    with pytest.raises(ValueError, match="Only PyTorch DataLoader are currently supported"):
         lite.setup_dataloaders(range(2))  # type: ignore
 
 
@@ -200,7 +199,7 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
             super().__init__(range(5), *args, **kwargs)
 
     with pytest.raises(
-        MisconfigurationException,
+        TypeError,
         match=(
             r"Trying to inject custom `Sampler` into the `CustomDataLoader` instance.*"
             r"The missing attributes are \['new_arg'\]"
@@ -217,7 +216,7 @@ def test_setup_dataloaders_twice_fails():
     dataloader = DataLoader(range(2))
     lite_dataloader = lite.setup_dataloaders(dataloader)
 
-    with pytest.raises(MisconfigurationException, match="A dataloader should be passed only once to the"):
+    with pytest.raises(ValueError, match="A dataloader should be passed only once to the"):
         lite.setup_dataloaders(lite_dataloader)
 
 
@@ -283,7 +282,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
     # explicitly asking to replace when a custom sampler is already configured raises an exception
     lite = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
     if lite._accelerator_connector.is_distributed:
-        with pytest.raises(MisconfigurationException, match="You seem to have configured a sampler in your DataLoader"):
+        with pytest.raises(TypeError, match="You seem to have configured a sampler in your DataLoader"):
             lite.setup_dataloaders(dataloader, replace_sampler=True)
 
     # setting `replace_sampler=False` leaves the sampler untouched
@@ -366,10 +365,10 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     lite = EmptyLite()
-    lite._precision_plugin = Mock(spec=PrecisionPlugin)
+    lite._strategy._precision_plugin = Mock(spec=PrecisionPlugin)
     loss = Mock()
     lite.backward(loss, "arg", keyword="kwarg")
-    lite._precision_plugin._run_backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    lite._strategy._precision_plugin.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True)
@@ -383,14 +382,14 @@ def test_backward_model_input_required():
     optimizer0 = torch.optim.Adam(model0.parameters())
     optimizer1 = torch.optim.Adam(model1.parameters())
 
-    lite._strategy._setup_model_and_optimizer = lambda *args: args
+    lite._strategy.setup_module_and_optimizers = lambda *args: args
 
     lite.setup(model0, optimizer0)
     lite.setup(model1, optimizer1)
 
     loss = model0(torch.randn(1, 1)).sum()
 
-    with pytest.raises(MisconfigurationException, match="please provide the model used to perform"):
+    with pytest.raises(ValueError, match="please provide the model used to perform"):
         lite.backward(loss)
 
 

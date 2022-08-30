@@ -162,7 +162,7 @@ class Strategy(ABC):
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
         """Run before precision plugin executes backward."""
 
-    def run_backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
         self.pre_backward(tensor, module)
         self.precision_plugin.backward(tensor, module, *args, **kwargs)

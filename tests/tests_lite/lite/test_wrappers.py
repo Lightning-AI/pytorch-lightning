@@ -18,8 +18,8 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from lightning_lite.lite import LightningLite
+from lightning_lite.lite.device_dtype_mixin import DeviceDtypeModuleMixin
 from lightning_lite.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -216,7 +216,7 @@ def test_lite_optimizer_state_dict():
     strategy = Mock()
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.state_dict()
-    strategy.optimizer_state.assert_called_with(optimizer)
+    strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
 def test_lite_optimizer_steps():
@@ -228,4 +228,4 @@ def test_lite_optimizer_steps():
     step_output = lite_optimizer.step()
     assert step_output == 123
     strategy.optimizer_step.assert_called_once()
-    strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)
+    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model)

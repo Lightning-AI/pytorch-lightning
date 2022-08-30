@@ -81,12 +81,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_kwargs = kwargs
         self._local_rank = 0
 
-        # if unset, default `find_unused_parameters` `True`
-        # Many models require setting this parameter to True, as there are corner cases
-        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
-        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-
     @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
