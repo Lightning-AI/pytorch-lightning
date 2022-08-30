@@ -1,8 +1,8 @@
 :orphan:
 
-***********************************
+###################################
 Develop a CLI with client side code
-***********************************
+###################################
 
 We've learned how to create a simple command-line interface. But in real-world use-cases, an App Builder wants to provide more complex functionalities where trusted code is executed on the client side.
 
@@ -22,25 +22,25 @@ We're going to create a CLI to dynamically run Notebooks using the following:
 
 We're also going to use the `Lightning Jupyter-Component <https://github.com/Lightning-AI/LAI-Jupyter-Component>`_. Follow the installation steps on the repo to install the Component.
 
-#. In the ``commands/notebook/run.py`` file, add the following code:
+**Step 1:** In the ``commands/notebook/run.py`` file, add the following code:
 
-     .. literalinclude:: commands/notebook/run.py
+.. literalinclude:: commands/notebook/run.py
 
-#.   In the ``app.py`` file, add the following code:
+**Step 2:** In the ``app.py`` file, add the following code:
 
-     .. literalinclude:: app.py
+.. literalinclude:: app.py
 
-#. Open a terminal and run the following command:
+**Step 3:** Open a terminal and run the following command:
 
-     .. code-block:: python
+.. code-block:: python
 
-         lightning run app app.py
-         Your Lightning App is starting. This won't take long.
-         INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+     lightning run app app.py
+     Your Lightning App is starting. This won't take long.
+     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
 
-#. Open this link ``http://127.0.0.1:7501/view`` in a web browser.
+**Step 4:** Open this link ``http://127.0.0.1:7501/view`` in a web browser.
 
-#. Open a second terminal, and run this notebook:
+**Step 5:** Open a second terminal, and run this notebook:
 
      .. code-block:: python
 
@@ -48,7 +48,7 @@ We're also going to use the `Lightning Jupyter-Component <https://github.com/Lig
          WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
          The notebook my_notebook was created.
 
-#. Now run a second notebook:
+**Step 6:** Now run a second notebook:
 
      .. code-block:: python
 

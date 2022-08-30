@@ -10,55 +10,55 @@ Here's an example:
 
 We're going to create a single route ``/name`` that takes a string input ``name`` and stores the value within the ``names`` attribute of the flow state.
 
-#. Create a file called ``app.py`` and copy-paste the following code in to the file:
+**Step 1:** Create a file called ``app.py`` and copy-paste the following code in to the file:
 
-     .. literalinclude:: post_example.py
+.. literalinclude:: post_example.py
 
-#. Execute the following command in a terminal:
+**Step 2:** Execute the following command in a terminal:
 
-     .. code-block:: bash
+.. code-block:: python
 
-         lightning run app app.py
+lightning run app app.py
 
-     The following appears:
+The following appears:
 
-     .. code-block:: bash
+.. code-block:: bash
 
-         Your Lightning App is starting. This won't take long.
-         INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+     Your Lightning App is starting. This won't take long.
+     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
 
-     The Lightning App framework automatically generates API documentation from your App using `Swagger UI <https://fastapi.tiangolo.com/features/#automatic-docs>`_.
+The Lightning App framework automatically generates API documentation from your App using `Swagger UI <https://fastapi.tiangolo.com/features/#automatic-docs>`_.
 
-     You can access it by accessing the following URL: ``http://127.0.0.1:7501/docs`` in your browser and validate your API with the route ``/name`` directly from the documentation page as shown below.
+You can access it by accessing the following URL: ``http://127.0.0.1:7501/docs`` in your browser and validate your API with the route ``/name`` directly from the documentation page as shown below.
 
-     .. raw:: html
+.. raw:: html
 
-         <br />
-         <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_png.png" width="100%">
-         <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_post.mp4" type="video/mp4" width="100%">
-         </video>
-         <br />
-         <br />
+<br />
+<video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_png.png" width="100%">
+<source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_post.mp4" type="video/mp4" width="100%">
+</video>
+<br />
+<br />
 
-     Alternatively, you can invoke the route directly from a second terminal using `curl <https://curl.se/>`_.
+Alternatively, you can invoke the route directly from a second terminal using `curl <https://curl.se/>`_.
 
-     .. code-block:: bash
+.. code-block:: bash
 
-         curl -X 'POST' \
-         'http://127.0.0.1:7501/name?name=my_name' \
-         -H 'accept: application/json' \
-         -d ''
+     curl -X 'POST' \
+     'http://127.0.0.1:7501/name?name=my_name' \
+     -H 'accept: application/json' \
+     -d ''
 
-         "The name my_name was registered"
+     "The name my_name was registered"
 
-     And you can see the following in your first terminal running your App.
+And you can see the following in your first terminal running your App.
 
-     .. code-block:: bash
+.. code-block:: bash
 
-         Your Lightning App is starting. This won't take long.
-         INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
-         []
-         ["my_name"]
+     Your Lightning App is starting. This won't take long.
+     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+     []
+     ["my_name"]
 
 **************************************
 Develop a command line interface (CLI)

@@ -1,49 +1,47 @@
 :orphan:
 
-**************************************
+######################################
 Develop a CLI without client side code
-**************************************
+######################################
 
 In order to create your first CLI, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_commands` hook and return a list of dictionaries where the keys are the commands and the values are the server side handlers.
 
 Here's an example:
 
-#. Create a file called ``app.py`` and copy-paste the following code in to the file:
+**Step 1:** Create a file called ``app.py`` and copy-paste the following code in to the file:
 
-     .. literalinclude:: example_command.py
+.. literalinclude:: example_command.py
 
-#. Execute the following command in a terminal:
+**Step 2:** Execute the following command in a terminal:
 
-     .. code-block:: python
+.. code-block:: python
 
-         lightning run app app.py
+     lightning run app app.py
 
-     The following appears:
+The following appears:
 
-     .. code-block:: python
+.. code-block:: python
 
      Your Lightning App is starting. This won't take long.
      INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
      []
 
-#. In another terminal, trigger the command line exposed by your App:
+**Step 3:** In another terminal, trigger the command line exposed by your App:
 
-     .. code-block:: python
+.. code-block:: python
 
-         lightning add --name=my_name
-         WARNING: Lightning Command-line Interface is an experimental feature and unannounced changes are likely.
+     lightning add --name=my_name
+     WARNING: Lightning Command-line Interface is an experimental feature and unannounced changes are likely.
 
-#. In your first terminal, **Received name: my_name** and **["my_name"]** are printed.
+In your first terminal, **Received name: my_name** and **["my_name"]** are printed.
 
-     .. code-block:: python
+.. code-block:: python
 
-         Your Lightning App is starting. This won't take long.
-         INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
-         []
-          Received name: my_name
-         ["my_name]
-
-----
+     Your Lightning App is starting. This won't take long.
+     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+     []
+     Received name: my_name
+     ["my_name]
 
 **********
 Learn more
