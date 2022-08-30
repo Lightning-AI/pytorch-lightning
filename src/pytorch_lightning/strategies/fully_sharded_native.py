@@ -17,7 +17,6 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -58,6 +57,11 @@ else:
     MixedPrecision = None  # type: ignore[misc,assignment]
     BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
+
+if torch.distributed.is_available():
+    from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
+else:
+    ProcessGroup = None
 
 log = logging.getLogger(__name__)
 
