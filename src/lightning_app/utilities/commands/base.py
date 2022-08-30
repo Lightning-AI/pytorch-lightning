@@ -98,9 +98,10 @@ def _download_command(
                 response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
                 for artifact in response.artifacts:
                     if f"commands/{command_name}.py" == artifact.filename:
-                        r = requests.get(artifact.url, allow_redirects=True)
+                        resp = requests.get(artifact.url, allow_redirects=True)
+
                         with open(target_file, "wb") as f:
-                            f.write(r.content)
+                            f.write(resp.content)
         else:
             shutil.copy(cls_path, target_file)
 
