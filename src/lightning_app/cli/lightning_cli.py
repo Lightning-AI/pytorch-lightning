@@ -345,7 +345,7 @@ def app_command():
     """Execute a function in a running application from its name."""
     from lightning_app.utilities.commands.base import _download_command
 
-    logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
+    logger.warn("Lightning Command Line Interface is an experimental feature and unannounced changes are likely.")
 
     debug_mode = bool(int(os.getenv("DEBUG", "0")))
 
