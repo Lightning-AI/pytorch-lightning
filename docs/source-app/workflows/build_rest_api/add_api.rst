@@ -50,7 +50,7 @@ Alternatively, you can invoke the route directly from a second terminal using `c
 
 And you can see the following in your first terminal running your App.
 
-.. code-block:: 
+.. code-block::
 
      Your Lightning App is starting. This won't take long.
      INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
