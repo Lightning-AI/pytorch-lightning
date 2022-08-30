@@ -7,7 +7,7 @@ import asyncio
 import logging
 import os
 from threading import Thread
-from typing import Callable, Optional
+from typing import Callable
 
 import websockets
 
@@ -16,7 +16,7 @@ from lightning_app.core.constants import APP_SERVER_PORT
 _logger = logging.getLogger(__name__)
 
 _CALLBACKS = []
-_THREAD: Thread | None = None
+_THREAD: Thread = None
 
 
 def _get_ws_port():
@@ -62,7 +62,7 @@ def _start_websocket():
     global _THREAD  # pylint: disable=global-statement
     if not _THREAD:
         _logger.debug("Starting the watch_app_state thread.")
-        _THREAD = threading.Thread(target=_target_fn)
+        _THREAD = Thread(target=_target_fn)
         _THREAD.setDaemon(True)
         _THREAD.start()
         _logger.debug("thread started")
