@@ -62,7 +62,6 @@ jobs:
           pip list
         shell: bash
 
-
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
