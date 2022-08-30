@@ -61,7 +61,9 @@ _REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_SRC = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
-_PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME or "lightning", "__setup__.py")
+_PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME, "__setup__.py")
+if not os.path.isfile(_PATH_SETUP):
+    _PATH_SETUP = os.path.join(_PATH_SRC, "lightning", "__setup__.py")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
