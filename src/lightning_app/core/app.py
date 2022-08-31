@@ -125,7 +125,7 @@ class LightningApp:
         # Lazily enable debugging.
         if debug or DEBUG_ENABLED:
             if not DEBUG_ENABLED:
-                os.environ["DEBUG"] = "2"
+                os.environ["LIGHTNING_DEBUG"] = "2"
             _console.setLevel(logging.DEBUG)
 
     def get_component_by_name(self, component_name: str):
@@ -563,6 +563,6 @@ class LightningApp:
             flow._disable_running_schedules()
 
     def _on_run_end(self):
-        if os.getenv("DEBUG") == "2":
-            del os.environ["DEBUG"]
+        if os.getenv("LIGHTNING_DEBUG") == "2":
+            del os.environ["LIGHTNING_DEBUG"]
             _console.setLevel(logging.INFO)

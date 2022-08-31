@@ -347,7 +347,7 @@ def app_command():
 
     logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
 
-    debug_mode = bool(int(os.getenv("DEBUG", "0")))
+    debug_mode = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 
     parser = ArgumentParser()
     parser.add_argument("--app_id", default=None, type=str, help="Optional argument to identify an application.")

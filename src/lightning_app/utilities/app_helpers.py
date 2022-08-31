@@ -430,5 +430,5 @@ class Logger:
         """Lazily set the level once set by the users."""
         # Set on the first from either log, warn, debug or error call.
         if self.level is None:
-            self.level = logging.DEBUG if bool(int(os.getenv("DEBUG", "0"))) else logging.INFO
+            self.level = logging.DEBUG if bool(int(os.getenv("LIGHTNING_DEBUG", "0"))) else logging.INFO
             self.logger.setLevel(self.level)
