@@ -4,18 +4,15 @@ from unittest import mock
 
 import pytest
 import torch
+from fairscale.nn import FullyShardedDataParallel, wrap
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPFullyShardedStrategy
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-
-if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import FullyShardedDataParallel, wrap
 
 
 def test_invalid_on_cpu(tmpdir):
@@ -31,7 +28,7 @@ def test_invalid_on_cpu(tmpdir):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
 @mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-@RunIf(fairscale_fully_sharded=True)
+@RunIf(fairscale=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(
@@ -96,7 +93,7 @@ class TestFSDPModel(BoringModel):
             assert self.layer.module[2].mixed_precision
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
 def test_fully_sharded_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
@@ -114,7 +111,7 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+@RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
 def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
@@ -162,7 +159,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.test(ckpt_path=model_path)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
 def test_fsdp_gradient_clipping_raises(tmpdir):
     """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
     model = BoringModel()
