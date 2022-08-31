@@ -101,13 +101,13 @@ class TensorBoardLogger(Logger):
         super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._save_dir = save_dir
         self._name = name or ""
-        self._version = version
         self._sub_dir = sub_dir
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
-
+        self._version = version if version is not None else self._get_next_version()
+        
         self._experiment: Optional["SummaryWriter"] = None
         self.hparams: Union[Dict[str, Any], Namespace] = {}
         self._kwargs = kwargs
