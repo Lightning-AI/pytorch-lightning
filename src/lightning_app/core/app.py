@@ -346,7 +346,6 @@ class LightningApp:
         # new_state = self.populate_changes(self.last_state, state)
         self.set_state(state)
         self._has_updated = True
-        print([d.to_dict() for d in state_deltas])
 
     def run_once(self):
         """Method used to collect changes and run the root Flow once."""
