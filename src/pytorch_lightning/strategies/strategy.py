@@ -33,7 +33,7 @@ from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
+from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import (
     LRSchedulerConfig,
     PredictStep,

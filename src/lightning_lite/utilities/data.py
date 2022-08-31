@@ -18,13 +18,12 @@ import os
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Type, Union, Set
 
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
 
 from lightning_lite.utilities.enums import LightningEnum
 from lightning_lite.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.meta import _get_all_subclasses
 from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.seed import pl_worker_init_function
 
@@ -409,3 +408,17 @@ def _replace_value_in_saved_args(
         return True, args, kwargs
 
     return False, args, kwargs
+
+
+# https://stackoverflow.com/a/63851681/9201239
+def _get_all_subclasses(cls: Type) -> Set[Type]:
+    subclass_list = []
+
+    def recurse(cl: Type) -> None:
+        for subclass in cl.__subclasses__():
+            subclass_list.append(subclass)
+            recurse(subclass)
+
+    recurse(cls)
+
+    return set(subclass_list)

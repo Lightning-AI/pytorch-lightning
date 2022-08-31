@@ -19,11 +19,9 @@ from lightning_lite.utilities.enums import (  # noqa: F401
     _AcceleratorType,
     _StrategyType,
     AMPType,
-    GradClipAlgorithmType,
     LightningEnum,
 )
 from lightning_lite.utilities.imports import (  # noqa: F401
-    _APEX_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,
     _GROUP_AVAILABLE,
@@ -34,18 +32,13 @@ from lightning_lite.utilities.imports import (  # noqa: F401
     _IS_INTERACTIVE,
     _IS_WINDOWS,
     _module_available,
-    _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
     _TORCH_GREATER_EQUAL_1_12,
-    _TORCH_QUANTIZE_AVAILABLE,
-    _TORCHTEXT_AVAILABLE,
-    _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
-from lightning_lite.utilities.parameter_tying import find_shared_parameters, set_shared_parameters  # noqa: F401
 from lightning_lite.utilities.rank_zero import (  # noqa: F401
     rank_zero_deprecation,
     rank_zero_info,

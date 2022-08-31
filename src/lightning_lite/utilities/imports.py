@@ -20,7 +20,6 @@ from importlib.util import find_spec
 from typing import Callable
 
 import pkg_resources
-import torch
 from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
@@ -133,7 +132,6 @@ _TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0")
 _TORCH_GREATER_EQUAL_1_13 = _compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_DALI_AVAILABLE = _module_available("nvidia.dali")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
@@ -141,15 +139,9 @@ _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.grou
 _HABANA_FRAMEWORK_AVAILABLE = _package_available("habana_frameworks")
 _HIVEMIND_AVAILABLE = _package_available("hivemind")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
-_KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = _package_available("omegaconf")
 _POPTORCH_AVAILABLE = _package_available("poptorch")
 _PSUTIL_AVAILABLE = _package_available("psutil")
-_RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
-_TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCHTEXT_AVAILABLE = _package_available("torchtext")
-_TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
-_TORCHVISION_AVAILABLE = _package_available("torchvision")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
 
 
@@ -170,10 +162,3 @@ if _HABANA_FRAMEWORK_AVAILABLE:
     _HPU_AVAILABLE = is_habana_avaialble()
 else:
     _HPU_AVAILABLE = False
-
-
-# experimental feature within PyTorch Lightning.
-# def _fault_tolerant_training() -> bool:
-#     from pytorch_lightning.utilities.enums import _FaultTolerantMode
-#
-#     return _FaultTolerantMode.detect_current_mode().is_enabled
