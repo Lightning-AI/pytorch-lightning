@@ -1,0 +1,1 @@
+../../../source-app/workflows/build_lightning_component/index_content.rst
