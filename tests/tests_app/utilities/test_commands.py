@@ -131,6 +131,7 @@ def target():
 
 
 def test_configure_commands(monkeypatch):
+    """This test validates command can be used locally with connect and disconnect."""
     process = Process(target=target)
     process.start()
     time_left = 15
