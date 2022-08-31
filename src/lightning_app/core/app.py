@@ -312,7 +312,7 @@ class LightningApp:
         if not deltas:
             # Path and Drive aren't processed by DeepDiff, so we need to convert them to dict.
             last_state = apply_to_collection(self.last_state, (Path, Drive), lambda x: x.to_dict())
-            state = apply_to_collection(self.last_state, (Path, Drive), lambda x: x.to_dict())
+            state = apply_to_collection(self.state, (Path, Drive), lambda x: x.to_dict())
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
             deep_diff = DeepDiff(last_state, state, verbose_level=2)
