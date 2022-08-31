@@ -1,8 +1,8 @@
 # Devtools
 
-[![UnitTests](https://github.com/Lightning-AI/devtools/actions/workflows/ci_testing.yml/badge.svg?event=push)](https://github.com/Lightning-AI/devtools/actions/workflows/ci_testing.yml)
-[![Apply checks](https://github.com/Lightning-AI/devtools/actions/workflows/ci_use-checks.yml/badge.svg?event=push)](https://github.com/Lightning-AI/devtools/actions/workflows/ci_use-checks.yml)
-[![Documentation Status](https://readthedocs.org/projects/pt-dev-toolbox/badge/?version=latest)](https://pt-dev-toolbox.readthedocs.io/en/latest/?badge=latest)
+[![UnitTests](https://github.com/Lightning-AI/devtools/actions/workflows/ci-testing.yml/badge.svg?event=push)](https://github.com/Lightning-AI/devtools/actions/workflows/ci-testing.yml)
+[![Apply checks](https://github.com/Lightning-AI/devtools/actions/workflows/ci-use-checks.yml/badge.svg?event=push)](https://github.com/Lightning-AI/devtools/actions/workflows/ci-use-checks.yml)
+[![Documentation Status](https://readthedocs.org/projects/lightning-devtools/badge/?version=latest)](https://lightning-devtools.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Lightning-AI/devtools/main.svg?badge_token=mqheL1-cTn-280Vx4cJUdg)](https://results.pre-commit.ci/latest/github/Lightning-AI/devtools/main?badge_token=mqheL1-cTn-280Vx4cJUdg)
 
 __This repository covers the following use-cases:__
