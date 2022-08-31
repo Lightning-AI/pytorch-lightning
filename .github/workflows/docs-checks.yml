@@ -12,12 +12,13 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  doctest:
+  make-doctest:
     runs-on: ubuntu-20.04
+    needs: make-html  # make it depending on build docs to reduce load
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch"]
+        pkg: ["app", "pytorch"]  # TODO: , "lit"
     steps:
       - uses: actions/checkout@v2
         with:
@@ -63,12 +64,12 @@ jobs:
           make doctest
           make coverage
 
-  make-docs:
+  make-html:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch"]
+        pkg: ["app", "pytorch", "lit"]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -112,7 +113,7 @@ jobs:
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
-          name: docs-results-${{ github.sha }}
+          name: docs-${{ matrix.pkg }}-${{ github.sha }}
           path: docs/build/html/
         # Use always() to always run this step to publish test results when there are test failures
         if: success()
