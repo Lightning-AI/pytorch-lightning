@@ -1,4 +1,3 @@
-import logging
 import os
 import platform
 from typing import List, Union
@@ -6,6 +5,7 @@ from typing import List, Union
 from packaging.version import Version
 
 import lightning_app
+from lightning_app.utilities.app_helpers import Logger
 
 _PACKAGE_REGISTRY_COMMANDS = {
     "quick-start": [
@@ -14,7 +14,7 @@ _PACKAGE_REGISTRY_COMMANDS = {
     ]
 }
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 _PYTHON_GREATER_EQUAL_3_8_0 = Version(platform.python_version()) >= Version("3.8.0")
 _LIGHTNING_ENTRYPOINT = "lightning_app.external_components"

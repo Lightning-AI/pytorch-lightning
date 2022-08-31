@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 from argparse import ArgumentParser
@@ -21,6 +20,7 @@ from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.core.constants import get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import (
     _arrow_time_callback,
@@ -34,7 +34,7 @@ from lightning_app.utilities.install_components import register_all_external_com
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def get_app_url(runtime_type: RuntimeType, *args) -> str:

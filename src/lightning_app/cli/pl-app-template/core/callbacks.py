@@ -1,11 +1,11 @@
 import inspect
-import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
 from core.state import ProgressBarState, TrainerState
 
 import pytorch_lightning as pl
 from lightning.app.storage import Path
+from lightning_app.utilities.app_helpers import Logger
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks.progress.base import get_standard_metrics
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -14,7 +14,8 @@ from pytorch_lightning.utilities.parsing import collect_init_args
 if TYPE_CHECKING:
     from core.components.script_runner import ScriptRunner
 
-_log = logging.getLogger(__name__)
+
+_log = Logger(__name__)
 
 
 class PLAppProgressTracker(Callback):

@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import os
 import shutil
 import subprocess
@@ -36,7 +35,9 @@ if _is_playwright_available():
     from playwright.sync_api import HttpCredentials, sync_playwright
 
 
-_logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+_logger = Logger(__name__)
 
 
 class LightningTestApp(LightningApp):

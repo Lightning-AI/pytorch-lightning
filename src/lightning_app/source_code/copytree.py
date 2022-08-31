@@ -1,13 +1,13 @@
 import fnmatch
-import logging
 import os
 from pathlib import Path
 from shutil import copy2, copystat, Error
 from typing import Callable, List, Set, Union
 
 from lightning_app.core.constants import DOT_IGNORE_FILENAME
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def copytree(

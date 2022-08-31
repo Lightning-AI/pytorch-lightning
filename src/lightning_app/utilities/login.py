@@ -1,6 +1,5 @@
 import base64
 import json
-import logging
 import os
 import pathlib
 from dataclasses import dataclass
@@ -16,9 +15,10 @@ from starlette.background import BackgroundTask
 from starlette.responses import RedirectResponse
 
 from lightning_app.core.constants import get_lightning_cloud_url, LIGHTNING_CREDENTIAL_PATH
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.network import find_free_network_port
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class Keys(Enum):
