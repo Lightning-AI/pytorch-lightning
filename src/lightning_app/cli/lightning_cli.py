@@ -271,6 +271,7 @@ def login():
 def logout():
     """Log out of your lightning.ai account."""
     Auth().clear()
+    disconnect(logout=True)
 
 
 def _run_app(

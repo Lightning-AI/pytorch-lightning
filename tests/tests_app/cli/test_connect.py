@@ -47,13 +47,13 @@ def test_connect_disconnect_local(monkeypatch):
     connect("localhost", True)
     assert _retrieve_connection_to_an_app() == ("localhost", None)
     commands = _list_app_commands()
-    assert commands == ["nested_command", "command_without_client", "command_with_client"]
+    assert commands == ["nested command", "command without client", "command with client"]
     command_path = _resolve_command_path("nested_command")
     assert not os.path.exists(command_path)
     command_path = _resolve_command_path("command_with_client")
     assert os.path.exists(command_path)
     home = os.path.expanduser("~")
-    assert messages == [
+    expected = [
         f"Storing `command_with_client` under {home}/.lightning/lightning_connection/commands/command_with_client.py",
         f"You can review all the downloaded commands under {home}/.lightning/lightning_connection/commands folder.",
         "You are connected to the local Lightning App.",
@@ -62,10 +62,11 @@ def test_connect_disconnect_local(monkeypatch):
         "  --help     Show this message and exit.",
         "",
         "Lightning App Commands",
-        "  nested_command         Description",
-        "  command_without_client Description",
-        "  command_with_client    Description",
+        "  nested command         Description",
+        "  command without client Description",
+        "  command with client    Description",
     ]
+    assert messages == expected
 
     messages = []
     connect("localhost", True)
@@ -77,7 +78,7 @@ def test_connect_disconnect_local(monkeypatch):
     messages = []
     disconnect()
     assert messages == [
-        "You aren't connected to any Lightning App. Please, use `lightning connect app_name_or_id` to connect to one."
+        "You aren't connected to any Lightning App. Please use `lightning connect app_name_or_id` to connect to one."
     ]
 
     assert _retrieve_connection_to_an_app() == (None, None)
@@ -140,19 +141,21 @@ def test_connect_disconnect_cloud(monkeypatch):
     connect("example", True)
     assert _retrieve_connection_to_an_app() == ("example", "1234")
     commands = _list_app_commands()
-    assert commands == ["nested_command", "command_without_client", "command_with_client"]
+    assert commands == ["nested command", "command without client", "command with client"]
     command_path = _resolve_command_path("nested_command")
     assert not os.path.exists(command_path)
     command_path = _resolve_command_path("command_with_client")
     assert os.path.exists(command_path)
     home = os.path.expanduser("~")
-    long_line = "lightning ['command_without_client', 'command_with_client', 'nested_command']"
     expected = [
         f"Storing `command_with_client` under {home}/.lightning/lightning_connection/commands/command_with_client.py",
         f"You can review all the downloaded commands under {home}/.lightning/lightning_connection/commands folder.",
         " ",
         "The client interface has been successfully installed. ",
-        f"You can now run the following commands `{long_line}`.",
+        "You can now run the following commands:",
+        "    lightning command_without_client",
+        "    lightning command_with_client",
+        "    lightning nested_command",
         " ",
         "You are connected to the cloud Lightning App: example.",
         "Usage: lightning [OPTIONS] COMMAND [ARGS]...",
@@ -160,9 +163,9 @@ def test_connect_disconnect_cloud(monkeypatch):
         "  --help     Show this message and exit.",
         "",
         "Lightning App Commands",
-        "  nested_command         Description",
-        "  command_without_client Description",
-        "  command_with_client    Description",
+        "  nested command         Description",
+        "  command without client Description",
+        "  command with client    Description",
     ]
     assert messages == expected
 
@@ -176,7 +179,7 @@ def test_connect_disconnect_cloud(monkeypatch):
     messages = []
     disconnect()
     assert messages == [
-        "You aren't connected to any Lightning App. Please, use `lightning connect app_name_or_id` to connect to one."
+        "You aren't connected to any Lightning App. Please use `lightning connect app_name_or_id` to connect to one."
     ]
 
     assert _retrieve_connection_to_an_app() == (None, None)

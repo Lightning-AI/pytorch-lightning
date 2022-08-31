@@ -10,7 +10,8 @@ from pydantic import BaseModel
 
 from lightning import LightningFlow
 from lightning_app import LightningApp
-from lightning_app.cli.lightning_cli import app_command
+from lightning_app.cli.commands.connection import connect, disconnect
+from lightning_app.cli.lightning_cli import _run_app_command
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.testing.helpers import RunIf
@@ -143,13 +144,14 @@ def test_configure_commands(monkeypatch):
 
     sleep(0.5)
     monkeypatch.setattr(sys, "argv", ["lightning", "user_command", "--name=something"])
-    app_command()
+    connect("localhost")
+    _run_app_command("localhost", None)
     sleep(0.5)
     state = AppState()
     state._request_state()
     assert state.names == ["something"]
     monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name=my_name", "--num_trials=1"])
-    app_command()
+    _run_app_command("localhost", None)
     time_left = 15
     while time_left > 0:
         if process.exitcode == 0:
@@ -157,3 +159,4 @@ def test_configure_commands(monkeypatch):
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
+    disconnect()
