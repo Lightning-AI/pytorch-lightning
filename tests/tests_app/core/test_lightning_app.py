@@ -973,7 +973,7 @@ def test_debug_mode_logging():
     app = LightningApp(A4(), debug=True)
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    assert len(records) == 3
+    assert len(records) in (3, 4)
     assert os.getenv("DEBUG") is None
     records = []
 
