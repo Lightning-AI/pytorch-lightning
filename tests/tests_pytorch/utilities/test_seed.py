@@ -1,8 +1,6 @@
 import os
 import random
-from typing import Mapping
 from unittest import mock
-from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -116,19 +114,3 @@ def test_backward_compatibility_rng_states_dict():
     assert "torch.cuda" in states
     states.pop("torch.cuda")
     _set_rng_states(states)
-
-
-@mock.patch("pytorch_lightning.utilities.seed.log.info")
-@pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"RANK": "1"}, {"RANK": "4"}])
-def test_seed_everything_log_info(log_mock: MagicMock, env_vars: Mapping[str, str]):
-    """Test that log message prefix with correct rank info."""
-    with mock.patch.dict(os.environ, env_vars, clear=True):
-        from pytorch_lightning.utilities.rank_zero import _get_rank
-
-        rank = _get_rank()
-
-        seed_utils.seed_everything(123)
-
-    expected_log = f"[rank: {rank}] Global seed set to 123"
-
-    log_mock.assert_called_once_with(expected_log)

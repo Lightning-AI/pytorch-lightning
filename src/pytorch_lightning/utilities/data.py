@@ -139,14 +139,14 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
 
 def has_len_all_ranks(
     dataloader: DataLoader,
-    training_type: "pl.Strategy",
+    strategy: "pl.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
         local_length = len(dataloader)
-        total_length = training_type.reduce(torch.tensor(local_length).to(model.device), reduce_op="sum")
+        total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
 
         if total_length == 0:
             rank_zero_warn(
