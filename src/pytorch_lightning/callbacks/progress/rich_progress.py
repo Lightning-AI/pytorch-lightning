@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-import operator
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
-from pl_devtools.imports import package_available
-from torchmetrics.utilities.imports import _compare_version
+from pl_devtools.imports import RequirementCache
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 
-_RICH_AVAILABLE: bool = package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
+_RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
 
 Task, Style = None, None
 if _RICH_AVAILABLE:

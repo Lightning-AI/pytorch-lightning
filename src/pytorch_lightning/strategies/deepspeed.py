@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from pl_devtools.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -44,7 +45,6 @@ from pytorch_lightning.utilities.distributed import (
 )
 from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -54,7 +54,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 
-_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
