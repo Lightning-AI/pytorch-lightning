@@ -10,6 +10,7 @@ jobs:
   auto-cc:
     runs-on: ubuntu-latest
     if: github.event_name == 'issue' || github.event.pull_request.draft == false
+    timeout-minutes: 5
     steps:
       - uses: carmocca/probot@v1
         env:
