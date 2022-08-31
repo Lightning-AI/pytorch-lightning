@@ -20,6 +20,8 @@ from functools import partial, wraps
 from platform import python_version
 from typing import Any, Callable, Optional, Union
 
+import pytorch_lightning as pl
+
 log = logging.getLogger(__name__)
 
 
@@ -35,8 +37,9 @@ def rank_zero_only(fn: Callable) -> Callable:
     return wrapped_fn
 
 
-# TODO: this should be part of the cluster environment
-def _get_rank() -> int:
+def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:
+    if trainer is not None:
+        return trainer.global_rank
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
     rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")
@@ -44,11 +47,12 @@ def _get_rank() -> int:
         rank = os.environ.get(key)
         if rank is not None:
             return int(rank)
-    return 0
+    # None to differentiate whether an environment variable was set at all
+    return None
 
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
-rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
+rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank() or 0)
 
 
 def _info(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
@@ -76,13 +80,6 @@ def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
 
 
 def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> None:
-    if type(stacklevel) is type and issubclass(stacklevel, Warning):
-        rank_zero_deprecation(
-            "Support for passing the warning category positionally is deprecated in v1.6 and will be removed in v1.8"
-            f" Please, use `category={stacklevel.__name__}`."
-        )
-        kwargs["category"] = stacklevel
-        stacklevel = kwargs.pop("stacklevel", 2)
     warnings.warn(message, stacklevel=stacklevel, **kwargs)
 
 
@@ -97,3 +94,10 @@ class LightningDeprecationWarning(DeprecationWarning):
 
 
 rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
+
+
+def _rank_prefixed_message(message: str, rank: Optional[int]) -> str:
+    if rank is not None:
+        # specify the rank of the process being logged
+        return f"[rank: {rank}] {message}"
+    return message
