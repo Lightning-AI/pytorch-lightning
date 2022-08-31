@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -e '.[test]' --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip install mypy  # don't use --upgrade to respect the version installed via setup.py
+        pip install mypy types-setuptools # don't use --upgrade to respect the version installed via setup.py
         pip list
 
     - name: Check typing
