@@ -15,7 +15,6 @@ import inspect
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
 
-from deprecate import void
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
@@ -225,14 +224,12 @@ class Loop(ABC, Generic[T]):
 
         Accepts all arguments passed to :attr:`run`.
         """
-        void(*args, **kwargs)
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         """Hook to be called each time before :attr:`advance` is called.
 
         Accepts all arguments passed to :attr`run`.
         """
-        void(*args, **kwargs)
 
     @abstractmethod
     def advance(self, *args: Any, **kwargs: Any) -> None:

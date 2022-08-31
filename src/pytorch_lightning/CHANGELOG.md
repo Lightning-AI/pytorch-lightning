@@ -48,6 +48,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `trainer.should_stop` to not stop in between an epoch and run until `min_steps/min_epochs` only ([#13890](https://github.com/Lightning-AI/lightning/pull/13890))
 
 
+- The `pyDeprecate` dependency is no longer installed ([#14472](https://github.com/Lightning-AI/lightning/pull/14472))
+
+
 - When using multiple loggers, by default checkpoints and profiler output now get saved to the log dir of the first logger in the list ([14325](https://github.com/Lightning-AI/lightning/pull/14325))
 
 
