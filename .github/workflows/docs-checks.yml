@@ -14,6 +14,7 @@ concurrency:
 jobs:
   make-doctest:
     runs-on: ubuntu-20.04
+    needs: make-html  # make it depending on build docs to reduce load
     strategy:
       fail-fast: false
       matrix:
