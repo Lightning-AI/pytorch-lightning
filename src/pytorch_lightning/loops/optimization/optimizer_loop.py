@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
+from lightning_lite.utilities import AMPType
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
@@ -29,7 +30,6 @@ from pytorch_lightning.loops.utilities import (
     _extract_hiddens,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from lightning_lite.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache

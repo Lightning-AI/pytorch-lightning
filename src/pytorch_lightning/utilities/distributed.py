@@ -17,17 +17,23 @@ from typing import Any, Callable, Dict, Optional
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+# For backward-compatibility
+# TODO: deprecate usage
+from lightning_lite.utilities.distributed import (  # noqa: F401
+    all_gather_ddp_if_available,
+    AllGatherGrad,
+    distributed_available,
+    gather_all_tensors,
+    get_default_process_group_backend_for_device,
+    init_dist_connection,
+    sync_ddp,
+    sync_ddp_if_available,
+    tpu_distributed,
+)
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
-
-# For backward-compatibility
-# TODO: deprecate usage
-from lightning_lite.utilities.distributed import (  # noqa: F401
-    gather_all_tensors, distributed_available, sync_ddp_if_available, sync_ddp, AllGatherGrad, all_gather_ddp_if_available,
-    init_dist_connection, tpu_distributed, get_default_process_group_backend_for_device
-)
 
 
 def register_ddp_comm_hook(

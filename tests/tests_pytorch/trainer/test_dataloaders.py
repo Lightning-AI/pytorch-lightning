@@ -23,6 +23,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
+from lightning_lite.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import (
@@ -33,7 +34,6 @@ from pytorch_lightning.demos.boring_classes import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import has_len_all_ranks
-from lightning_lite.utilities.data import has_iterable_dataset, _auto_add_worker_init_fn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf

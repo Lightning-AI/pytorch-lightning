@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 from lightning_lite.utilities import _AcceleratorType
 from lightning_lite.utilities.enums import PrecisionType
+from pytorch_lightning.utilities.enums import GradClipAlgorithmType
 
 
 def test_consistency():

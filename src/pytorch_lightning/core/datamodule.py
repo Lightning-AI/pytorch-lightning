@@ -19,6 +19,7 @@ from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Unio
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import _load_from_checkpoint
@@ -29,7 +30,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_argparser,
 )
 from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, EVAL_DATALOADERS, TRAIN_DATALOADERS
-from lightning_lite.utilities.types import _PATH
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):

@@ -21,10 +21,10 @@ import torch
 
 import lightning_lite.utilities.device_parser
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.types import _DEVICE
 
 _log = logging.getLogger(__name__)
 

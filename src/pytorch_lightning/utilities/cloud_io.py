@@ -15,4 +15,4 @@
 
 # For backward-compatibility
 # TODO: deprecate usage
-from lightning_lite.utilities.cloud_io import load, atomic_save, get_filesystem  # noqa: F401
+from lightning_lite.utilities.cloud_io import atomic_save, get_filesystem, load  # noqa: F401

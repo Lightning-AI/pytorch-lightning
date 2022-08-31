@@ -17,9 +17,9 @@ import sys
 import numpy as np
 import torch
 
+from lightning_lite.utilities import AllGatherGrad
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from lightning_lite.utilities import AllGatherGrad
 from tests_pytorch.helpers.runif import RunIf
 
 

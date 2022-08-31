@@ -21,6 +21,10 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.data import has_len
+from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -33,14 +37,10 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from lightning_lite.utilities.apply_func import apply_to_collection
-from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
-from lightning_lite.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv

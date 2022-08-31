@@ -36,6 +36,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import AMPType
+from lightning_lite.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.data import _auto_add_worker_init_fn
+from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.accelerators import (
     Accelerator,
     CUDAAccelerator,
@@ -83,15 +89,7 @@ from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
-from pytorch_lightning.utilities import (
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TPU_AVAILABLE,
-    GradClipAlgorithmType,
-    parsing,
-)
-from lightning_lite.utilities import AMPType
-from lightning_lite.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE, GradClipAlgorithmType, parsing
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,
@@ -100,10 +98,7 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
-from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import has_len_all_ranks
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -116,7 +111,6 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerConfig,
     TRAIN_DATALOADERS,
 )
-from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)

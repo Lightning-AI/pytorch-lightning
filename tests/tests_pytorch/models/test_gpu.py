@@ -20,10 +20,9 @@ from unittest.mock import patch
 import pytest
 import torch
 
+import lightning_lite.utilities.device_parser
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-
-import lightning_lite.utilities.device_parser
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel

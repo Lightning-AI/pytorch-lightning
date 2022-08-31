@@ -16,12 +16,10 @@ from __future__ import annotations
 
 import os
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-
 # For backward-compatibility
 # TODO: deprecate usage
-from lightning_lite.utilities.enums import LightningEnum, PrecisionType, AMPType  # noqa: F401
+from lightning_lite.utilities.enums import AMPType, LightningEnum, PrecisionType  # noqa: F401
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class GradClipAlgorithmType(LightningEnum):

@@ -16,12 +16,12 @@
 # For backward-compatibility
 # TODO: deprecate usage
 from lightning_lite.utilities.apply_func import (  # noqa: F401
-    to_dtype_tensor,
-    from_numpy,
-    CONVERSION_DTYPES,
     apply_to_collection,
     apply_to_collections,
-    TransferableDataType,
+    CONVERSION_DTYPES,
+    convert_to_tensors,
+    from_numpy,
     move_data_to_device,
-    convert_to_tensors
+    to_dtype_tensor,
+    TransferableDataType,
 )

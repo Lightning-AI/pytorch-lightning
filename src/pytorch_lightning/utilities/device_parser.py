@@ -13,14 +13,17 @@
 # limitations under the License.
 from typing import List, Optional, Union
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 # For backward-compatibility
 # TODO: deprecate usage
 from lightning_lite.utilities.device_parser import (  # noqa: F401
-determine_root_gpu_device, parse_gpu_ids,
-parse_tpu_cores, parse_cpu_cores, num_cuda_devices, is_cuda_available
+    determine_root_gpu_device,
+    is_cuda_available,
+    num_cuda_devices,
+    parse_cpu_cores,
+    parse_gpu_ids,
+    parse_tpu_cores,
 )
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:

@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
+from lightning_lite.utilities.data import _replace_dunder_methods
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -18,7 +19,6 @@ from pytorch_lightning.utilities.data import (
     has_len_all_ranks,
     warning_cache,
 )
-from lightning_lite.utilities.data import _replace_dunder_methods
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.utils import no_warning_call
 

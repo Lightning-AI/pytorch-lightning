@@ -20,8 +20,8 @@ Aids in saving predictions
 from typing import Any, Optional, Sequence
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.callback import Callback
 from lightning_lite.utilities import LightningEnum
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

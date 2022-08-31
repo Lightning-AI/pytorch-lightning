@@ -18,10 +18,10 @@ from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import AMPType
+from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _APEX_AVAILABLE, _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden

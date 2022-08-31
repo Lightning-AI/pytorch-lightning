@@ -28,14 +28,18 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.data import has_iterable_dataset, has_len, _reinstantiate_wrapped_cls, \
-    _replace_value_in_saved_args
+from lightning_lite.utilities import LightningEnum
+from lightning_lite.utilities.apply_func import _is_dataclass_instance
+from lightning_lite.utilities.data import (
+    _reinstantiate_wrapped_cls,
+    _replace_value_in_saved_args,
+    has_iterable_dataset,
+    has_len,
+)
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
-from lightning_lite.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
-from lightning_lite.utilities import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
