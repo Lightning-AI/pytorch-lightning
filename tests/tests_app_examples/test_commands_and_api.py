@@ -20,15 +20,18 @@ def test_commands_and_api_example_cloud() -> None:
         # 1: Collect the app_id
         app_id = admin_page.url.split("/")[-1]
 
-        # 2: Send the first command with the client
-        cmd = f"lightning command with client --name=this --app_id {app_id}"
+        # 2: Connect to the App
+        Popen(f"lightning connect {app_id}", shell=True).wait()
+
+        # 3: Send the first command with the client
+        cmd = "lightning command with client --name=this"
         Popen(cmd, shell=True).wait()
 
-        # 3: Send the second command without a client
-        cmd = f"lightning command without client --name=is --app_id {app_id}"
+        # 4: Send the second command without a client
+        cmd = "lightning command without client --name=is"
         Popen(cmd, shell=True).wait()
 
-        # 4: Send a request to the Rest API directly.
+        # 5: Send a request to the Rest API directly.
         base_url = view_page.url.replace("/view", "").replace("/child_flow", "")
         resp = requests.post(base_url + "/user/command_without_client?name=awesome")
         assert resp.status_code == 200, resp.json()
@@ -40,3 +43,6 @@ def test_commands_and_api_example_cloud() -> None:
                 if "['this', 'is', 'awesome']" in log:
                     has_logs = True
             sleep(1)
+
+        # 5: Disconnect from the App
+        Popen("lightning disconnect", shell=True).wait()

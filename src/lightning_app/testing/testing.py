@@ -377,6 +377,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 except ApiException as e:
                     print(f"Failed to delete {lightningapp.name}. Exception {e}")
 
+            Popen("lightning disconnect", shell=True).wait()
+
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
     import playwright
