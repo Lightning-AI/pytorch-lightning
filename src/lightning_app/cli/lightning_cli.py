@@ -437,7 +437,7 @@ def install():
 def install_app(name, yes, version, overwrite: bool = False):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
@@ -460,7 +460,7 @@ def install_app(name, yes, version, overwrite: bool = False):
 def install_component(name, yes, version):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )

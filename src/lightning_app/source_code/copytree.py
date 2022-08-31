@@ -159,7 +159,7 @@ def _ignore_filename_spell_check(src: Path):
     possible_spelling_mistakes.extend([p.lstrip(".") for p in possible_spelling_mistakes])
     for path in src.iterdir():
         if path.is_file() and path.name in possible_spelling_mistakes:
-            logger.warning(
+            logger.warn(
                 f"Lightning uses `{DOT_IGNORE_FILENAME}` as the ignore file but found {path.name} at "
                 f"{path.parent} instead. If this was a mistake, please rename the file."
             )

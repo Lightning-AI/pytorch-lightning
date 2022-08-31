@@ -331,4 +331,4 @@ class CloudRuntime(Runtime):
                 )
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
-            logger.warning(warning_msg)
+            logger.warn(warning_msg)

@@ -128,6 +128,8 @@ class LightningApp:
                 os.environ["LIGHTNING_DEBUG"] = "2"
             _console.setLevel(logging.DEBUG)
 
+        logger.debug(f"ENV: {os.environ}")
+
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
         from lightning_app.structures import Dict, List

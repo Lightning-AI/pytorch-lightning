@@ -165,7 +165,7 @@ class AuthServer:
                 auth.save(token=token, username=user_id, user_id=user_id, api_key=key)
                 logger.info("Authentication Successful")
             else:
-                logger.warning(
+                logger.warn(
                     "Authentication Failed. This is most likely because you're using an older version of the CLI. \n"  # noqa E501
                     "Please try to update the CLI or open an issue with this information \n"  # E501
                     f"expected token in {request.query_params.items()}"
