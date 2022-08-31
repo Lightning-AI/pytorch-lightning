@@ -27,6 +27,9 @@ class _ClusterLogEventLabels:
     error: Optional[str] = None
     errorVerbose: Optional[str] = None
     dir: Optional[str] = None
+    bucket: Optional[str] = None
+    prefix: Optional[str] = None
+    loki_s3: Optional[str] = None
 
 
 @dataclass
