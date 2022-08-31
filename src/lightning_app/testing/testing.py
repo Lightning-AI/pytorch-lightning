@@ -82,46 +82,6 @@ def print_logs(app_id: str):
                 print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
 
 
-def _fetch_logs(
-    component_names: Optional[List[str]],
-    client: LightningClient,
-    app_id,
-    project,
-    identifiers=[],
-    return_log_event: bool = False,
-) -> Generator:
-    """This methods creates websockets connection in threads and returns the logs to the main thread."""
-
-    if not component_names:
-        works = client.lightningwork_service_list_lightningwork(
-            project_id=project.project_id,
-            app_id=app_id,
-        ).lightningworks
-        component_names = ["flow"] + [w.name for w in works]
-
-    def on_error_callback(ws_app, *_):
-        print(traceback.print_exc())
-        ws_app.close()
-
-    gen = _app_logs_reader(
-        client=client,
-        project_id=project.project_id,
-        app_id=app_id,
-        component_names=component_names,
-        follow=False,
-        on_error_callback=on_error_callback,
-    )
-    for log_event in gen:
-        if log_event in identifiers:
-            continue
-        else:
-            identifiers.append(log_event)
-        if return_log_event:
-            yield log_event
-        else:
-            yield log_event.message
-
-
 class LightningTestApp(LightningApp):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -272,7 +232,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
 
     os.environ["LIGHTNING_APP_NAME"] = name
 
-    # 3. Launch the application in the cloud from the Lightning CLI.
+    # 3. Disconnect from the App if any.
+    Popen("lightning disconnect", shell=True).wait()
+
+    # 4. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
@@ -303,10 +266,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         )
         process.wait()
 
-    # 4. Print your application name
+    # 5. Print your application name
     print(f"The Lightning App Name is: [bold magenta]{name}[/bold magenta]")
 
-    # 5. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
+    # 6. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
         payload = {"apiKey": Config.api_key, "username": Config.username, "duration": "120000"}
@@ -472,6 +435,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                     has_finished = True
                 except Exception:
                     pass
+
+            Popen("lightning disconnect", shell=True).wait()
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
