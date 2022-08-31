@@ -45,7 +45,6 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
 
 
 def _handle_command_without_client(command: str, metadata: Dict, url: str) -> None:
-    # TODO: Improve what is current supported
     supported_params = list(metadata["parameters"])
     if "--help" == sys.argv[-1]:
         print(f"Usage: lightning {command} [ARGS]...")
@@ -57,6 +56,7 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
 
     provided_params = [param.replace("--", "") for param in sys.argv[2:]]
 
+    # TODO: Add support for more argument types.
     if any("=" not in param for param in provided_params):
         raise Exception("Please, use --x=y syntax when providing the command arguments.")
 
