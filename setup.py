@@ -53,7 +53,7 @@ from types import ModuleType
 
 from setuptools import setup
 
-_PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "")
+_PACKAGE_NAME = ""
 _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
 _REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 # https://packaging.python.org/guides/single-sourcing-package-version/
