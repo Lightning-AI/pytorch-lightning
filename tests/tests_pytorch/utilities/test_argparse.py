@@ -1,6 +1,6 @@
 import io
 from argparse import ArgumentParser, Namespace
-from typing import Generic, List, TypeVar
+from typing import Generic, TypeVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -117,10 +117,6 @@ class AddArgparseArgsExampleClass:
 
     def __init__(self, my_parameter: int = 0):
         pass
-
-    @staticmethod
-    def get_deprecated_arg_names() -> List[str]:
-        return []
 
 
 class AddArgparseArgsExampleClassViaInit:

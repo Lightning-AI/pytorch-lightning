@@ -212,8 +212,6 @@ def add_argparse_args(
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
     ignore_arg_names = ["self", "args", "kwargs"]
-    if hasattr(cls, "get_deprecated_arg_names"):
-        ignore_arg_names += cls.get_deprecated_arg_names()
 
     allowed_types = (str, int, float, bool)
 
