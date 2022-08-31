@@ -958,7 +958,8 @@ def test_non_updated_flow(caplog):
 
 
 def test_debug_mode_logging():
-    """Tests debug messages are collected when activated by the App."""
+    """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and
+    cleanup once finished."""
 
     from lightning_app.core.app import logger
 
