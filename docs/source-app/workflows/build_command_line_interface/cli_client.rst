@@ -8,9 +8,13 @@ We've learned how to create a simple command-line interface. But in real-world u
 
 Lightning provides a flexible way to create complex CLI without much effort.
 
-Here's an example:
+----
 
-We're going to create a CLI to dynamically run Notebooks using the following:
+**************************
+1. Implement a complex CLI
+**************************
+
+In this example, we'll create a CLI to dynamically run Notebooks using the following structures:
 
 .. code-block:: python
 
@@ -20,52 +24,122 @@ We're going to create a CLI to dynamically run Notebooks using the following:
                 run.py
         app.py
 
-We're also going to use the `Lightning Jupyter-Component <https://github.com/Lightning-AI/LAI-Jupyter-Component>`_. Follow the installation steps on the repo to install the Component.
+We'll use the `Jupyter-Component <https://github.com/Lightning-AI/LAI-Jupyter-Component>`_. Follow the installation steps on the repo to install the Component.
 
-**Step 1:** In the ``commands/notebook/run.py`` file, add the following code:
+Add the following code to ``commands/notebook/run.py``:
 
 .. literalinclude:: commands/notebook/run.py
 
-**Step 2:** In the ``app.py`` file, add the following code:
+Add the following code to ``app.py``:
 
 .. literalinclude:: app.py
 
-**Step 3:** Open a terminal and run the following command:
+----
+
+**********************************************
+2. Run the App and check the API documentation
+**********************************************
+
+In a terminal, run the following command and open ``http://127.0.0.1:7501/view`` in a browser.
 
 .. code-block:: python
 
-     lightning run app app.py
-     Your Lightning App is starting. This won't take long.
-     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+    lightning run app app.py
+    Your Lightning App is starting. This won't take long.
+    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
 
-**Step 4:** Open this link ``http://127.0.0.1:7501/view`` in a web browser.
+----
 
-**Step 5:** Open a second terminal, and run this notebook:
+***************************
+3. Connect to a running App
+***************************
 
-     .. code-block:: python
+In another terminal, connect to the running App.
+When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning disconnect``.
 
-         lightning run-notebook --name="my_notebook"
-         WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
-         The notebook my_notebook was created.
+.. code-block::
 
-**Step 6:** Now run a second notebook:
+    lightning connect localhost
 
-     .. code-block:: python
+    Storing `run_notebook` under /Users/thomas/.lightning/lightning_connection/commands/run_notebook.py
+    You can review all the downloaded commands under /Users/thomas/.lightning/lightning_connection/commands folder.
+    You are connected to the local Lightning App.
 
-         lightning run-notebook --name="my_notebook_2"
-         WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
-         The notebook my_notebook_2 was created.
+To see a list of available commands:
 
-This is what the App is going to look like:
+.. code-block::
+
+    lightning --help
+
+    You are connected to the cloud Lightning App: localhost.
+    Usage: lightning [OPTIONS] COMMAND [ARGS]...
+
+    --help     Show this message and exit.
+
+    Lightning App Commands
+        run notebook Description
+
+
+To find the arguments of the commands:
+
+.. code-block::
+
+    lightning run notebook --help
+
+    You are connected to the cloud Lightning App: localhost.
+    usage: notebook [-h] [--name NAME] [--cloud_compute CLOUD_COMPUTE]
+
+    Run Notebook Parser
+
+    optional arguments:
+        -h, --help            show this help message and exit
+        --name NAME
+        --cloud_compute CLOUD_COMPUTE
+
+----
+
+********************
+4. Execute a command
+********************
+
+And then you can trigger the command-line exposed by your App.
+
+Run the first Notebook with the following command:
+
+.. code-block:: python
+
+    lightning run notebook --name="my_notebook"
+    WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
+    The notebook my_notebook was created.
+
+And run a second Notebook by changing its name:
+
+.. code-block:: python
+
+    lightning run notebook --name="my_notebook_2"
+    WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
+    The notebook my_notebook_2 was created.
+
+Here is a recording of the Lightning App:
 
 .. raw:: html
 
     <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/commands.png" width="100%">
-        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/commands.mp4" type="video/mp4" width="100%">
+    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/commands_1.png" width="100%">
+        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/commands_1.mp4" type="video/mp4" width="100%">
     </video>
     <br />
     <br />
+
+5. Disconnect from the App
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To exit the App CLI, you need to run ``lightning disconnect``.
+
+.. code-block::
+
+    lightning disconnect
+    You are disconnected from the local Lightning App.
 
 ----
 
@@ -79,14 +153,14 @@ Learn more
         <div class="row">
 
 .. displayitem::
-   :header: Develop a CLI with server side code only.
+   :header: Develop a CLI with server side code only
    :description: Learn how to develop a simple CLI for your App.
    :col_css: col-md-6
    :button_link: cli.html
    :height: 150
 
 .. displayitem::
-   :header: Develop a RESTful API.
+   :header: Develop a RESTful API
    :description: Learn how to develop an API for your App.
    :col_css: col-md-6
    :button_link: ../build_rest_api/index.html

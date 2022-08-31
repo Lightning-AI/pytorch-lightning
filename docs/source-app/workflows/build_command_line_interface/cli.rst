@@ -4,44 +4,112 @@
 Develop a CLI without client side code
 ######################################
 
-In order to create your first CLI, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_commands` hook and return a list of dictionaries where the keys are the commands and the values are the server side handlers.
+----
 
-Here's an example:
+*************************
+1. Implement a simple CLI
+*************************
 
-**Step 1:** Create a file called ``app.py`` and copy-paste the following code in to the file:
+To create your first CLI, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_commands` hook and return a list of dictionaries where the keys are the commands and the values are the server side handlers.
+
+First, create a file ``app.py`` and copy-paste the following code in to the file:
 
 .. literalinclude:: example_command.py
 
-**Step 2:** Execute the following command in a terminal:
+----
 
-.. code-block:: python
+**************
+2. Run the App
+**************
 
-     lightning run app app.py
+Execute the following command in a terminal:
 
-The following appears:
+.. code-block::
 
-.. code-block:: python
+    lightning run app app.py
 
-     Your Lightning App is starting. This won't take long.
-     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
-     []
+The following appears the terminal:
 
-**Step 3:** In another terminal, trigger the command line exposed by your App:
+.. code-block::
 
-.. code-block:: python
+    Your Lightning App is starting. This won't take long.
+    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+    []
 
-     lightning add --name=my_name
-     WARNING: Lightning Command-line Interface is an experimental feature and unannounced changes are likely.
+----
+
+***************************
+3. Connect to a running App
+***************************
+
+In another terminal, connect to the running App.
+When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning disconnect``.
+
+.. code-block::
+
+    lightning connect localhost
+
+To see a list of available commands:
+
+.. code-block::
+
+    lightning --help
+    You are connected to the cloud Lightning App: localhost.
+    Usage: lightning [OPTIONS] COMMAND [ARGS]...
+
+    --help     Show this message and exit.
+
+    Lightning App Commands
+        add Description
+
+To find the arguments of the commands:
+
+.. code-block::
+
+    lightning add --help
+    You are connected to the cloud Lightning App: localhost.
+    Usage: lightning add [ARGS]...
+
+    Options
+        name: Add description
+
+----
+
+********************
+4. Execute a command
+********************
+
+Trigger the command line exposed by your App:
+
+.. code-block::
+
+    lightning add --name=my_name
+    WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
 
 In your first terminal, **Received name: my_name** and **["my_name"]** are printed.
 
-.. code-block:: python
+.. code-block::
 
-     Your Lightning App is starting. This won't take long.
-     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
-     []
-     Received name: my_name
-     ["my_name]
+    Your Lightning App is starting. This won't take long.
+    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+    []
+    Received name: my_name
+    ["my_name]
+
+----
+
+**************************
+5. Disconnect from the App
+**************************
+
+To exit the App CLI, you need to run ``lightning disconnect``.
+
+.. code-block::
+
+    lightning disconnect
+    You are disconnected from the local Lightning App.
+
+----
 
 **********
 Learn more
@@ -54,14 +122,14 @@ Learn more
 
 .. displayitem::
    :header: Develop a CLI with server and client code execution
-   :description: Learn how to develop a complex API for your App.
+   :description: Learn how to develop a complex API for your application
    :col_css: col-md-6
    :button_link: cli_client.html
    :height: 150
 
 .. displayitem::
    :header: Develop a RESTful API
-   :description: Learn how to develop an API for your App.
+   :description: Learn how to develop an API for your application.
    :col_css: col-md-6
    :button_link: ../build_rest_api/index.html
    :height: 150

@@ -1,22 +1,32 @@
 :orphan:
 
-****************************
+############################
 Add an API Route to your App
-****************************
+############################
 
 In order to add a new route, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_api` hook and return a list of :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.HttpMethod` such as :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Get`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Post`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Put`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Delete`.
 
-Here's an example:
+----
+
+**********************
+1. Create a simple App
+**********************
 
 We're going to create a single route ``/name`` that takes a string input ``name`` and stores the value within the ``names`` attribute of the flow state.
 
-**Step 1:** Create a file called ``app.py`` and copy-paste the following code in to the file:
+Create a file called ``app.py`` and copy-paste the following code in to the file:
 
 .. literalinclude:: post_example.py
 
-**Step 2:** Execute the following command in a terminal:
+----
 
-.. code-block:: python
+**************
+2. Run the App
+**************
+
+Execute the following command in a terminal:
+
+.. code-block::
 
 lightning run app app.py
 
@@ -26,6 +36,12 @@ The following appears:
 
      Your Lightning App is starting. This won't take long.
      INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+
+----
+
+****************
+3. Check the API 
+****************
 
 The Lightning App framework automatically generates API documentation from your App using `Swagger UI <https://fastapi.tiangolo.com/features/#automatic-docs>`_.
 
