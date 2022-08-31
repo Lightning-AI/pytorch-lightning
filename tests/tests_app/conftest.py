@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -82,26 +81,3 @@ def another_tmpdir(tmp_path: Path) -> py.path.local:
     random_dir = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
     tmp_path = os.path.join(tmp_path, random_dir)
     return py.path.local(tmp_path)
-
-
-@pytest.mark.tryfirst
-def pytest_timeout_cancel_timer(item):
-    """This hook fetches and prints the logs when timeout triggers."""
-
-    if re.search(r"test_*_cloud", item.name):
-        from lightning_app.testing.testing import _fetch_logs
-        from lightning_app.utilities.cloud import _get_project
-        from lightning_app.utilities.network import LightningClient
-
-        TEST_APP_NAME = os.getenv("TEST_APP_NAME")
-
-        print(f"Timeout was triggered. Fetching all the logs for the App {TEST_APP_NAME}.")
-
-        client = LightningClient()
-        project = _get_project(client)
-        app_id = os.getenv("LIGHTNING_APP_ID")
-
-        for log in _fetch_logs(client, app_id, project):
-            print(log)
-
-    return True

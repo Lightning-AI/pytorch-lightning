@@ -428,8 +428,7 @@ class Logger:
 
     def _set_level(self):
         """Lazily set the level once set by the users."""
+        # Set on the first from either log, warn, debug or error call.
         if self.level is None:
-            if bool(int(os.getenv("DEBUG", "0"))):
-                self.logger.setLevel(logging.DEBUG)
-            else:
-                self.logger.setLevel(logging.INFO)
+            self.level = logging.DEBUG if bool(int(os.getenv("DEBUG", "0"))) else logging.INFO
+            self.logger.setLevel(self.level)

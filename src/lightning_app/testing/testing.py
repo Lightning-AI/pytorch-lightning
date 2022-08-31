@@ -41,12 +41,12 @@ _logger = Logger(__name__)
 
 
 def _fetch_logs(
+    component_names: Optional[List[str]],
     client: LightningClient,
     app_id,
     project,
     identifiers=[],
     rich_colors=list(ANSI_COLOR_NAMES),
-    component_names: Optional[List[str]] = None,
 ) -> Generator:
     """This methods creates websockets connection in threads and returns the logs to the main thread."""
 
@@ -222,11 +222,16 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     # 2. Create the right application name.
     basename = app_folder.split("/")[-1]
     PR_NUMBER = os.getenv("PR_NUMBER", None)
+
     TEST_APP_NAME = os.getenv("TEST_APP_NAME", basename)
+    os.environ["TEST_APP_NAME"] = TEST_APP_NAME
+
     if PR_NUMBER:
         name = f"test-{PR_NUMBER}-{TEST_APP_NAME}-" + str(int(time.time()))
     else:
         name = f"test-{TEST_APP_NAME}-" + str(int(time.time()))
+
+    os.environ["LIGHTNING_APP_NAME"] = name
 
     # 3. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -353,12 +358,12 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
 
         # 5. Print your application ID
         app_id = str(view_page.url).split(".")[0].split("//")[-1]
-        os.environ["LIGHTNING_APP_ID"] = app_id
 
         print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
         fetch_logs = partial(
             _fetch_logs,
+            component_names=None,
             client=client,
             app_id=admin_page.url.split("/")[-1],
             project=project,
