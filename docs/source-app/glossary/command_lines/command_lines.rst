@@ -12,7 +12,7 @@ Command-line Interface (CLI)
 What is a CLI?
 **************
 
-A CLI is a text-based user interface (UI) used to run programs, manage computer files and interact with the computer. CLIs are also called command-line user interfaces, console user interfaces and character user interfaces.
+A Command-line Interface (CLI) is an user interface (UI) in a terminal to interact with a specific program.
 
 .. note::
 
