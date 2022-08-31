@@ -91,7 +91,7 @@ class AWSClusterManager:
         if wait:
             _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
-        click.echo(f"${resp.id} cluster is ${resp.status.phase}")
+        click.echo(f"{resp.id} cluster is {resp.status.phase}")
 
     def get_clusters(self):
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
