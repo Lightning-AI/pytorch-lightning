@@ -27,7 +27,7 @@ from pytorch_lightning.loggers import Logger, LoggerCollection, TensorBoardLogge
 from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities import rank_zero_only
 
 
 def test_logger_collection():

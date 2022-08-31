@@ -22,7 +22,7 @@ from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnviro
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from lightning_lite.utilities import rank_zero_deprecation
 
 
 class LoggerConnector:

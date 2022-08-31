@@ -32,11 +32,11 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
+from lightning_lite.utilities import rank_zero_warn, rank_zero_deprecation
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:

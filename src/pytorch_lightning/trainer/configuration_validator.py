@@ -18,7 +18,7 @@ from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn, rank_zero_deprecation
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 

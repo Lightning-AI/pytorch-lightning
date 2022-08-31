@@ -28,7 +28,7 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import LightningEnum
+from lightning_lite.utilities import LightningEnum, rank_zero_warn
 from lightning_lite.utilities.apply_func import _is_dataclass_instance
 from lightning_lite.utilities.data import (
     _reinstantiate_wrapped_cls,
@@ -41,7 +41,6 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]

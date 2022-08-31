@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.data import _is_dataloader_shuffled, _update_da
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
 

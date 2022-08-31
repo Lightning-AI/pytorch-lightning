@@ -213,7 +213,7 @@ def _get_all_available_mps_gpus() -> List[int]:
         a list of all available MPS gpus
     """
     # lazy import to avoid circular dependencies
-    from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
+    from lightning_lite.accelerators.mps import _MPS_AVAILABLE
 
     return [0] if _MPS_AVAILABLE else []
 

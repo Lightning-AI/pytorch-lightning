@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks.device_stats_monitor import _prefix_metric_keys
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 

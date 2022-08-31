@@ -33,7 +33,7 @@ from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)

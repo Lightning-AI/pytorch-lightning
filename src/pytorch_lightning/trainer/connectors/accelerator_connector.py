@@ -22,7 +22,8 @@ from typing_extensions import Literal
 
 import lightning_lite.utilities.device_parser
 from lightning_lite.strategies.launchers.multiprocessing import _is_forking_disabled
-from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum
+from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum, rank_zero_info, rank_zero_warn, \
+    rank_zero_deprecation
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
@@ -77,7 +78,7 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import device_parser, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,

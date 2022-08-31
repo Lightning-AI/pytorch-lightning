@@ -39,7 +39,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities import rank_zero_only
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 if _TPU_AVAILABLE:

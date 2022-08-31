@@ -32,7 +32,7 @@ from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug
+from lightning_lite.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
 
 

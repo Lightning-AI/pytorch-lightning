@@ -36,12 +36,11 @@ from pytorch_lightning.strategies.launchers.subprocess_script import _Subprocess
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_only
+from lightning_lite.utilities import rank_zero_only, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 

@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 

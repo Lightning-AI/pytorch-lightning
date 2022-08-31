@@ -36,7 +36,7 @@ def datadir():
 @pytest.fixture(scope="function", autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from pytorch_lightning.utilities.rank_zero import rank_zero_only
+    from lightning_lite.utilities import rank_zero_only
 
     rank = getattr(rank_zero_only, "rank", None)
     yield

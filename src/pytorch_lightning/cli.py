@@ -25,7 +25,8 @@ from pytorch_lightning import Callback, LightningDataModule, LightningModule, se
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn, rank_zero_deprecation
+from lightning_lite.utilities.rank_zero import _warn
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.12.0")
 

@@ -36,7 +36,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import AMPType
+from lightning_lite.utilities import AMPType, rank_zero_info, rank_zero_warn, rank_zero_deprecation
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.data import _auto_add_worker_init_fn
@@ -102,7 +102,6 @@ from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,

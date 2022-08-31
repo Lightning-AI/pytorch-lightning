@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import rank_zero_deprecation
+from lightning_lite.utilities import rank_zero_deprecation
 
 
 class TrainerDataLoadingMixin(ABC):

@@ -27,7 +27,7 @@ else:
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug
+from lightning_lite.utilities.rank_zero import rank_zero_debug
 
 _PAD_SIZE = 5
 

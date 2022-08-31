@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.types import _LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
-from pytorch_lightning.utilities import rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HIVEMIND_AVAILABLE

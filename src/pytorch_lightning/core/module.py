@@ -46,7 +46,8 @@ from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn, rank_zero_deprecation
+from lightning_lite.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _METRIC_COLLECTION,

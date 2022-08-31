@@ -14,7 +14,7 @@
 from typing import Any
 
 from pytorch_lightning.core.module import LightningModule as NewLightningModule
-from pytorch_lightning.utilities import rank_zero_deprecation
+from lightning_lite.utilities import rank_zero_deprecation
 
 
 class LightningModule(NewLightningModule):

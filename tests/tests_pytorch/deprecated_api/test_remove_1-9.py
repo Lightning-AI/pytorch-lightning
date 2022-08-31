@@ -32,7 +32,7 @@ from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 

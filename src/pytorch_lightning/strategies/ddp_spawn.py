@@ -45,7 +45,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning_lite.utilities import rank_zero_only, rank_zero_info
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 log = logging.getLogger(__name__)

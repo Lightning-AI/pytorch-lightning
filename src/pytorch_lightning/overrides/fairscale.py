@@ -21,7 +21,7 @@ from pytorch_lightning.overrides.base import (
     _LightningPrecisionModuleWrapperBase,
     unwrap_lightning_module,
 )
-from pytorch_lightning.utilities import rank_zero_deprecation
+from lightning_lite.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.imports import _IS_WINDOWS, _module_available
 
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")

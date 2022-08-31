@@ -21,11 +21,10 @@ from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import LightningEnum
+from lightning_lite.utilities import LightningEnum, rank_zero_info
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 log = logging.getLogger(__name__)
 

@@ -16,9 +16,9 @@
 import warnings
 from typing import Any
 
-from pytorch_lightning.utilities.rank_zero import LightningDeprecationWarning as NewLightningDeprecationWarning
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation as new_rank_zero_deprecation
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
+from lightning_lite.utilities.rank_zero import LightningDeprecationWarning as NewLightningDeprecationWarning
+from lightning_lite.utilities import rank_zero_warn as new_rank_zero_warn, \
+    rank_zero_deprecation as new_rank_zero_deprecation
 
 # enable our warnings
 warnings.simplefilter("default", category=NewLightningDeprecationWarning)
