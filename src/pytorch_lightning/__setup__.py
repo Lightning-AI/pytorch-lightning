@@ -87,7 +87,9 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
-        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"),
+        install_requires=_setup_tools.load_requirements(
+            _PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"
+        ),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
