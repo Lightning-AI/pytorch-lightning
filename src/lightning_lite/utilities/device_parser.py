@@ -1,23 +1,11 @@
-# Copyright The PyTorch Lightning team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 import multiprocessing
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
-import torch.cuda
 
 from lightning_lite.plugins.environments import TorchElasticEnvironment
+from lightning_lite.strategies.launchers.multiprocessing import _is_forking_disabled
+from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
 
 
@@ -90,7 +78,8 @@ def parse_gpu_ids(
     gpus = _normalize_parse_gpu_string_input(gpus)
     gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
     if not gpus:
-        raise RuntimeError("GPUs requested but none are available.")
+        raise MisconfigurationException("GPUs requested but none are available.")
+
     if (
         TorchElasticEnvironment.detect()
         and len(gpus) != 1
@@ -129,7 +118,7 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
         tpu_cores = _parse_tpu_cores_str(tpu_cores.strip())
 
     if not _tpu_cores_valid(tpu_cores):
-        raise ValueError("`tpu_cores` can only be 1, 8 or [<1-8>]")
+        raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
     return tpu_cores
 
@@ -152,7 +141,7 @@ def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
         cpu_cores = int(cpu_cores)
 
     if not isinstance(cpu_cores, int) or cpu_cores <= 0:
-        raise ValueError("`devices` selected with `CPUAccelerator` should be an int > 0.")
+        raise MisconfigurationException("`devices` selected with `CPUAccelerator` should be an int > 0.")
 
     return cpu_cores
 
@@ -186,7 +175,9 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
     all_available_gpus = _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)
     for gpu in gpus:
         if gpu not in all_available_gpus:
-            raise RuntimeError(f"You requested gpu: {gpus}\n But your machine only has: {all_available_gpus}")
+            raise MisconfigurationException(
+                f"You requested gpu: {gpus}\n But your machine only has: {all_available_gpus}"
+            )
     return gpus
 
 
@@ -246,7 +237,7 @@ def _check_unique(device_ids: List[int]) -> None:
             If ``device_ids`` of GPUs aren't unique
     """
     if len(device_ids) != len(set(device_ids)):
-        raise ValueError("Device ID's (GPU) must be unique.")
+        raise MisconfigurationException("Device ID's (GPU) must be unique.")
 
 
 def _check_data_type(device_ids: Any) -> None:
@@ -266,9 +257,9 @@ def _check_data_type(device_ids: Any) -> None:
     elif isinstance(device_ids, (MutableSequence, tuple)):
         for id_ in device_ids:
             if type(id_) is not int:
-                raise TypeError(f"{msg} a sequence of {type(id_).__name__}.")
+                raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}.")
     elif type(device_ids) not in (int, str):
-        raise TypeError(f"{msg} {type(device_ids).__name__}.")
+        raise MisconfigurationException(f"{msg} {type(device_ids).__name__}.")
 
 
 def _tpu_cores_valid(tpu_cores: Any) -> bool:
@@ -293,34 +284,13 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
 
 
-def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
-    """
-    Parses the hpus given in the format as accepted by the
-    :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
-
-    Args:
-        devices: An integer that indicates the number of Gaudi devices to be used
-
-    Returns:
-        Either an integer or ``None`` if no devices were requested
-
-    Raises:
-        MisconfigurationException:
-            If devices aren't of type `int` or `str`
-    """
-    if devices is not None and not isinstance(devices, (int, str)):
-        raise TypeError("`devices` for `HPUAccelerator` must be int, string or None.")
-
-    return int(devices) if isinstance(devices, str) else devices
-
-
 def num_cuda_devices() -> int:
     """Returns the number of GPUs available.
 
     Unlike :func:`torch.cuda.device_count`, this function will do its best not to create a CUDA context for fork
     support, if the platform allows it.
     """
-    if "fork" not in torch.multiprocessing.get_all_start_methods():
+    if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.device_count()
     with multiprocessing.get_context("fork").Pool(1) as pool:
         return pool.apply(torch.cuda.device_count)
@@ -332,7 +302,7 @@ def is_cuda_available() -> bool:
     Unlike :func:`torch.cuda.is_available`, this function will do its best not to create a CUDA context for fork
     support, if the platform allows it.
     """
-    if "fork" not in torch.multiprocessing.get_all_start_methods():
+    if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.is_available()
     with multiprocessing.get_context("fork").Pool(1) as pool:
         return pool.apply(torch.cuda.is_available)

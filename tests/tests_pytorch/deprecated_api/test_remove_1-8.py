@@ -586,7 +586,7 @@ def test_v1_8_0_lightning_module_use_amp():
 
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
 def test_v1_8_0_torch_distributed_backend_env():
-    from pytorch_lightning.utilities.distributed import _get_process_group_backend_from_env
+    from lightning_lite.utilities.distributed import _get_process_group_backend_from_env
 
     with pytest.deprecated_call(
         match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"

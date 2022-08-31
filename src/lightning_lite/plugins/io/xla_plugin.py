@@ -15,9 +15,9 @@ import os
 from typing import Any, Dict, Optional
 
 from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
-from lightning_lite.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.imports import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from lightning_lite.utilities.types import _PATH
 
 if _TPU_AVAILABLE:

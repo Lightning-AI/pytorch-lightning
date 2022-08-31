@@ -26,12 +26,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:

@@ -23,7 +23,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import PrecisionType
+from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
 from pytorch_lightning.utilities.optimizer import optimizers_to_device

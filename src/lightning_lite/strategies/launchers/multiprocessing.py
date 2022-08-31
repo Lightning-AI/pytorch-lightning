@@ -162,3 +162,8 @@ class _GlobalStateSnapshot:
             torch.use_deterministic_algorithms(self.use_deterministic_algorithms)
         torch.backends.cudnn.benchmark = self.cudnn_benchmark
         _set_rng_states(self.rng_states)
+
+
+def _is_forking_disabled() -> bool:
+    """Returns whether forking is disabled through the environment variable ``PL_DISABLE_FORK``."""
+    return bool(int(os.environ.get("PL_DISABLE_FORK", "0")))

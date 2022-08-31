@@ -31,6 +31,7 @@ from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 from typing_extensions import Literal
 
+import lightning_lite.utilities.distributed
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -40,9 +41,9 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
+from lightning_lite.utilities.apply_func import apply_to_collection, convert_to_tensors
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
@@ -600,7 +601,7 @@ class LightningModule(
             A tensor of shape (world_size, batch, ...), or if the input was a collection
             the output will also be a collection with tensors of this shape.
         """
-        group = group if group is not None else torch.distributed.group.WORLD
+        group = group if group is not None else lightning_lite.utilities.distributed.group.WORLD
         all_gather = self.trainer.strategy.all_gather
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)

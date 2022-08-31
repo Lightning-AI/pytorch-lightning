@@ -21,8 +21,8 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning_lite.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
+from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
 @dataclasses.dataclass

@@ -26,16 +26,15 @@ from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, U
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
+from lightning_lite.utilities.data import _replace_dunder_methods
 from pytorch_lightning.utilities.data import (
-    _auto_add_worker_init_fn,
     _is_dataloader_shuffled,
-    _replace_dunder_methods,
     _update_dataloader,
-    has_iterable_dataset,
     has_len_all_ranks,
 )
+from lightning_lite.utilities.data import has_iterable_dataset, _auto_add_worker_init_fn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden

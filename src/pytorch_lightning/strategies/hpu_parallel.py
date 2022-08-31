@@ -26,7 +26,7 @@ from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.utilities.distributed import group as _group
+from lightning_lite.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
 from pytorch_lightning.utilities.types import STEP_OUTPUT

@@ -17,8 +17,8 @@ from typing import Iterable
 from torch import Tensor
 from torch.optim import Optimizer
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.types import _DEVICE
+from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.types import _DEVICE
 
 
 def optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> None:

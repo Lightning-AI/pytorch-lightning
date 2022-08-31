@@ -15,14 +15,10 @@
 
 import numpy
 
-from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
-from pytorch_lightning.utilities.distributed import AllGatherGrad  # noqa: F401
+from lightning_lite.utilities.apply_func import move_data_to_device  # noqa: F401
+from lightning_lite.utilities import AllGatherGrad, LightningEnum, AMPType, _StrategyType, _AcceleratorType
 from pytorch_lightning.utilities.enums import (  # noqa: F401
-    _AcceleratorType,
-    _StrategyType,
-    AMPType,
     GradClipAlgorithmType,
-    LightningEnum,
 )
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401

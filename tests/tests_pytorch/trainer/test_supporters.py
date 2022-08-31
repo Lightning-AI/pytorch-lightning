@@ -33,7 +33,7 @@ from pytorch_lightning.trainer.supporters import (
     CycleIterator,
     TensorRunningAccum,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

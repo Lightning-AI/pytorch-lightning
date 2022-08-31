@@ -23,7 +23,7 @@ import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import AMPType
+from lightning_lite.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call

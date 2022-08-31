@@ -21,7 +21,8 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
+from lightning_lite.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:

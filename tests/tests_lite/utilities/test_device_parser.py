@@ -16,7 +16,7 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning.utilities import device_parser
+import lightning_lite.utilities.device_parser
 
 
 @pytest.mark.skipif(
@@ -27,5 +27,5 @@ from pytorch_lightning.utilities import device_parser
 def test_num_cuda_devices_without_forking(*_):
     """This merely tests that on platforms without fork support our helper functions fall back to the default
     implementation for determining cuda availability."""
-    assert device_parser.is_cuda_available()
-    assert device_parser.num_cuda_devices() == 2
+    assert lightning_lite.utilities.device_parser.is_cuda_available()
+    assert lightning_lite.utilities.device_parser.num_cuda_devices() == 2

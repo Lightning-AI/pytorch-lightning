@@ -24,6 +24,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 
+import lightning_lite.utilities.distributed
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import AcceleratorConnector
 from lightning_lite.overrides.distributed import DistributedSamplerWrapper
@@ -340,7 +341,7 @@ class LightningLite(ABC):
             A tensor of shape (world_size, batch, ...), or if the input was a collection
             the output will also be a collection with tensors of this shape.
         """
-        group = group if group is not None else torch.distributed.group.WORLD
+        group = group if group is not None else lightning_lite.utilities.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
 

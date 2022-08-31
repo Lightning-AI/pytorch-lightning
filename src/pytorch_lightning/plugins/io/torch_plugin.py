@@ -17,10 +17,10 @@ from typing import Any, Callable, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.cloud_io import atomic_save, get_filesystem
+from lightning_lite.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 

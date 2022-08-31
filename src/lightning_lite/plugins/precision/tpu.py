@@ -17,7 +17,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.plugins.precision.precision import PrecisionPlugin
-from lightning_lite.utilities import _XLA_AVAILABLE
+from lightning_lite.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm

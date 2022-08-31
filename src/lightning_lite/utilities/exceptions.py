@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utilities related to data saving/loading."""
 
-# For backward-compatibility
-# TODO: deprecate usage
-from lightning_lite.utilities.cloud_io import load, atomic_save, get_filesystem  # noqa: F401
+
+class MisconfigurationException(Exception):
+    """Exception used to inform users of misuse with Lightning."""

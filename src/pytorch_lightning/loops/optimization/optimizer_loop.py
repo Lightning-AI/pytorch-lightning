@@ -29,7 +29,7 @@ from pytorch_lightning.loops.utilities import (
     _extract_hiddens,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from pytorch_lightning.utilities import AMPType
+from lightning_lite.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache

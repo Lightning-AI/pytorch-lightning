@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
+import lightning_lite.utilities.device_parser
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
@@ -47,7 +48,7 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[Union[int, List[int]]]:
         """Accelerator device parsing logic."""
-        return device_parser.parse_tpu_cores(devices)
+        return lightning_lite.utilities.device_parser.parse_tpu_cores(devices)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[int]:

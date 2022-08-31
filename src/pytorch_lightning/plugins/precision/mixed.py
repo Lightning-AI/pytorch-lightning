@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Union
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 
 if TYPE_CHECKING:
-    from pytorch_lightning.utilities import AMPType
+    from lightning_lite.utilities import AMPType
 
 
 class MixedPrecisionPlugin(PrecisionPlugin):

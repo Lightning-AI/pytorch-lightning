@@ -22,6 +22,7 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
+import lightning_lite.utilities.types
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
@@ -128,7 +129,7 @@ class _LRFinder:
 
             args = (optimizer, self.lr_max, self.num_training)
             scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-            scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
+            scheduler = cast(lightning_lite.utilities.types._LRScheduler, scheduler)
 
             trainer.strategy.optimizers = [optimizer]
             trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]

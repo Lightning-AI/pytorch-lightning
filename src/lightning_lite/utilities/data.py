@@ -11,24 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import functools
 import inspect
 import os
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Type, Union
 
-import torch
-from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
 
 from lightning_lite.utilities.enums import LightningEnum
+from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.meta import _get_all_subclasses
 from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.seed import pl_worker_init_function
-
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
 
 class _WrapAttrTag(LightningEnum):
@@ -57,9 +55,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
                 f"`{dataloader.__class__.__name__}` returned 0 length. Please make sure this was your intention."
             )
         has_len = True
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
+    except (TypeError, NotImplementedError):
         has_len = False
 
     if has_len and has_iterable_dataset(dataloader):
@@ -70,64 +66,6 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
             " to avoid having duplicate data."
         )
     return has_len
-
-
-def has_len_all_ranks(
-    dataloader: DataLoader,
-    training_type: "pl.Strategy",
-    model: Union["pl.LightningModule", "pl.LightningDataModule"],
-) -> bool:
-    """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
-    infinite dataloader."""
-    try:
-        local_length = len(dataloader)
-        total_length = training_type.reduce(torch.tensor(local_length).to(model.device), reduce_op="sum")
-
-        if total_length == 0:
-            rank_zero_warn(
-                f"Total length of `{dataloader.__class__.__name__}` across ranks is zero."
-                " Please make sure this was your intention."
-            )
-        if total_length > 0 and local_length == 0:
-            if model.allow_zero_length_dataloader_with_multiple_devices:
-                rank_zero_warn(
-                    f"Total length of `{dataloader.__class__.__name__}` across ranks is zero, but local rank has zero"
-                    " length. Please be cautious of uneven batch length."
-                )
-                has_len = False
-            else:
-                raise ValueError(
-                    f"`{dataloader.__class__.__name__}` within local rank has zero length."
-                    " Please make sure that it returns at least 1 batch."
-                )
-        else:
-            has_len = True
-
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
-        has_len = False
-
-    if has_len and has_iterable_dataset(dataloader):
-        rank_zero_warn(
-            "Your `IterableDataset` has `__len__` defined."
-            " In combination with multi-process data loading (when num_workers > 1),"
-            " `__len__` could be inaccurate if each worker is not configured independently"
-            " to avoid having duplicate data."
-        )
-    return has_len
-
-
-def get_len(dataloader: DataLoader) -> Union[int, float]:
-    """Return the length of the given DataLoader.
-
-    If ``__len__`` method is not implemented, return float('inf').
-    """
-
-    if has_len(dataloader):
-        return len(dataloader)
-
-    return float("inf")
 
 
 def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]) -> DataLoader:
@@ -238,10 +176,6 @@ def _dataloader_init_kwargs_resolve_sampler(
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
 
-    If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
-    Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
-    `FastForwardSampler`.
-
     If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
     automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
@@ -255,7 +189,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                 and batch_sampler.sampler == sampler
                 and dataloader.batch_size == batch_sampler.batch_size
             ):
-                raise TypeError(
+                raise MisconfigurationException(
                     "It is not possible to have a batch sampler in your dataloader, "
                     "when running on multiple IPU devices."
                 )
@@ -312,30 +246,6 @@ def _dataloader_init_kwargs_resolve_sampler(
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
 
-def _replace_value_in_saved_args(
-    replace_key: str,
-    replace_value: Any,
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
-    default_kwargs: Dict[str, Any],
-    arg_names: Tuple[str, ...],
-) -> Tuple[bool, Tuple[Any, ...], Dict[str, Any]]:
-    """Tries to replace an argument value in a saved list of args and kwargs.
-
-    Returns a tuple indicating success of the operation and modified saved args and kwargs
-    """
-
-    if replace_key in arg_names:
-        replace_index = arg_names.index(replace_key)
-        args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
-        return True, args, kwargs
-    elif replace_key in kwargs or replace_key in default_kwargs:
-        kwargs[replace_key] = replace_value
-        return True, args, kwargs
-
-    return False, args, kwargs
-
-
 def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
     if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
@@ -363,7 +273,7 @@ def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optio
             f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
             " This argument was automatically passed to your object by PyTorch Lightning."
         )
-        raise TypeError(message) from e
+        raise MisconfigurationException(message) from e
 
     attrs_record = getattr(orig_object, "__pl_attrs_record", list())
     for args, fn in attrs_record:
@@ -475,3 +385,27 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
             if f"__old{patched_name}" in cls.__dict__:
                 setattr(cls, patched_name, getattr(cls, f"__old{patched_name}"))
                 delattr(cls, f"__old{patched_name}")
+
+
+def _replace_value_in_saved_args(
+    replace_key: str,
+    replace_value: Any,
+    args: Tuple[Any, ...],
+    kwargs: Dict[str, Any],
+    default_kwargs: Dict[str, Any],
+    arg_names: Tuple[str, ...],
+) -> Tuple[bool, Tuple[Any, ...], Dict[str, Any]]:
+    """Tries to replace an argument value in a saved list of args and kwargs.
+
+    Returns a tuple indicating success of the operation and modified saved args and kwargs
+    """
+
+    if replace_key in arg_names:
+        replace_index = arg_names.index(replace_key)
+        args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
+        return True, args, kwargs
+    elif replace_key in kwargs or replace_key in default_kwargs:
+        kwargs[replace_key] = replace_value
+        return True, args, kwargs
+
+    return False, args, kwargs

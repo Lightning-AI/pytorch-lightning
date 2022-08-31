@@ -20,7 +20,8 @@ from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 from lightning_lite.plugins.precision.mixed import MixedPrecisionPlugin
-from lightning_lite.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
+from lightning_lite.utilities.enums import AMPType
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast

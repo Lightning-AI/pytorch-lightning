@@ -14,7 +14,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from pytorch_lightning.utilities import LightningEnum
+from lightning_lite.utilities import LightningEnum
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 
 

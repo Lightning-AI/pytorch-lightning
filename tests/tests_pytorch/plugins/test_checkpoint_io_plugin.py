@@ -25,7 +25,7 @@ from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH
 
 
 class CustomCheckpointIO(CheckpointIO):

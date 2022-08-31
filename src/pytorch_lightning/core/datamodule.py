@@ -28,7 +28,8 @@ from pytorch_lightning.utilities.argparse import (
     get_init_arguments_and_types,
     parse_argparser,
 )
-from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, _PATH, EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, EVAL_DATALOADERS, TRAIN_DATALOADERS
+from lightning_lite.utilities.types import _PATH
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
