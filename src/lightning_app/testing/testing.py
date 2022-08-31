@@ -189,6 +189,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
+        env_copy["DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
