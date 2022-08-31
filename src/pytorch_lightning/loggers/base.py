@@ -17,7 +17,7 @@ from typing import Callable, Dict, Mapping, Optional, Sequence
 import numpy as np
 
 import pytorch_lightning.loggers.logger as logger
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
