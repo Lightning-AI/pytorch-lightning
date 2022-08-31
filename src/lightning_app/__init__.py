@@ -12,8 +12,8 @@ _console.setLevel(logging.INFO)
 formatter = logging.Formatter("%(levelname)s: %(message)s")
 _console.setFormatter(formatter)
 
-# # if root logger has handlers, propagate messages up and let root logger process them,
-# # otherwise use our own handler
+# if root logger has handlers, propagate messages up and let root logger process them,
+# otherwise use our own handler
 if not _root_logger.hasHandlers():
     _logger.addHandler(_console)
     _logger.propagate = False
