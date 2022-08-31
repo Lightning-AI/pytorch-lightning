@@ -46,7 +46,7 @@
 /src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
 /src/pytorch_lightning/utilities            @borda @tchaton @carmocca
 
-/src/lightning_app                          @tchaton @manskx @LAI-platform
+/src/lightning_app                          @tchaton @manskx @Lightning-AI/lai-platform
 /src/lightning_app/cli/pl-app-template      @tchaton @awaelchli @Borda
 /src/lightning_app/core                     @tchaton @awaelchli @manskx
 /src/lightning_app/core/queues.py           @tchaton @hhsecond @manskx
