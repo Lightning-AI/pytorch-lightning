@@ -442,7 +442,7 @@ class LightningApp:
 
             self._has_updated = False
 
-        self.on_run_end()
+        self._on_run_end()
 
         return True
 
@@ -562,7 +562,7 @@ class LightningApp:
         for flow in self.flows:
             flow._disable_running_schedules()
 
-    def on_run_end(self):
+    def _on_run_end(self):
         if os.getenv("DEBUG") == "2":
             del os.environ["DEBUG"]
             _console.setLevel(logging.INFO)
