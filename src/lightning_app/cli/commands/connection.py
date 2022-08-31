@@ -114,7 +114,9 @@ def connect(app_name_or_id: str, yes: bool = False):
 
             click.echo(" ")
             click.echo("The client interface has been successfully installed. ")
-            click.echo(f"You can now run the following commands `lightning {[c for c in api_commands]}`.")
+            click.echo("You can now run the following commands:")
+            for command in api_commands:
+                click.echo(f"    lightning {command}")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")

@@ -12,6 +12,6 @@ class CustomConfig(BaseModel):
 class CustomCommand(ClientCommand):
     def run(self):
         parser = ArgumentParser()
-        parser.add_argument("--name", type=str, required=True)
+        parser.add_argument("--name", type=str)
         args = parser.parse_args()
         self.invoke_handler(config=CustomConfig(name=args.name))
