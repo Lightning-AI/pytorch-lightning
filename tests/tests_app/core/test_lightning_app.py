@@ -20,6 +20,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue, SingleProcessQueue
 from lightning_app.frontend import StreamlitFrontend
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import RunIf
 from lightning_app.testing.testing import LightningTestApp
@@ -955,3 +956,43 @@ def test_non_updated_flow(caplog):
         MultiProcessRuntime(app, start_server=False).dispatch()
     assert caplog.messages == ["Hello World"]
     assert app.counter == 3
+
+
+class WorkPath(LightningWork):
+    def __init__(self):
+        super().__init__()
+        self.path = None
+
+    def run(self):
+        self.path = Path(__file__)
+
+
+class FlowPath(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkPath()
+
+    def run(self):
+        self.w.run()
+        breakpoint()
+
+
+class TestLightningHasUpdatedApp(LightningApp):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = 0
+
+    def run_once(self):
+        res = super().run_once()
+        if self.root.w.path is not None:
+            self.counter += 1
+
+        if self.counter == 2:
+            assert not self._has_updated
+            return True
+        return res
+
+
+def test_lightning_app_has_updated():
+    app = TestLightningHasUpdatedApp(FlowPath())
+    MultiProcessRuntime(app, start_server=False).dispatch()

@@ -15,8 +15,10 @@ from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaReq
 from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
+from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
+from lightning_app.utilities.apply_func import apply_to_collection
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -308,9 +310,12 @@ class LightningApp:
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
         if not deltas:
+            # Path and Drive aren't processed by DeepDiff, so we need to convert them to dict.
+            last_state = apply_to_collection(self.last_state, (Path, Drive), lambda x: x.to_dict())
+            state = apply_to_collection(self.last_state, (Path, Drive), lambda x: x.to_dict())
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            deep_diff = DeepDiff(self.last_state, self.state, verbose_level=2)
+            deep_diff = DeepDiff(last_state, state, verbose_level=2)
             if deep_diff:
                 # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
