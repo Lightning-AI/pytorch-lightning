@@ -120,6 +120,7 @@ class LightningApp:
         _convert_paths_after_init(self.root)
 
         if debug:
+            # Lazily enable debugging.
             os.environ["DEBUG"] = "1"
             _console.setLevel(logging.DEBUG)
 
