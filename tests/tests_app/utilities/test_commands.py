@@ -55,7 +55,7 @@ class FlowCommands(LightningFlow):
         return True
 
     def configure_commands(self):
-        return [{"user_command": self.trigger_method}, {"sweep": SweepCommand(self.sweep)}]
+        return [{"user command": self.trigger_method}, {"sweep": SweepCommand(self.sweep)}]
 
 
 class DummyConfig(BaseModel):
@@ -143,7 +143,7 @@ def test_configure_commands(monkeypatch):
             time_left -= 0.1
 
     sleep(0.5)
-    monkeypatch.setattr(sys, "argv", ["lightning", "user_command", "--name=something"])
+    monkeypatch.setattr(sys, "argv", ["lightning", "user", "command", "--name=something"])
     connect("localhost")
     _run_app_command("localhost", None)
     sleep(0.5)
