@@ -14,6 +14,7 @@
 from typing import Optional, Union
 
 import torch.nn as nn
+from pl_devtools.imports import module_available
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import (
@@ -22,9 +23,9 @@ from pytorch_lightning.overrides.base import (
     unwrap_lightning_module,
 )
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _module_available
+from pytorch_lightning.utilities.imports import _IS_WINDOWS
 
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
 
 
 if _FAIRSCALE_AVAILABLE:  # pragma: no-cover
