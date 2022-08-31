@@ -1,9 +1,9 @@
 import logging
 import os
 import warnings
-from functools import wraps, partial
+from functools import partial, wraps
 from platform import python_version
-from typing import Callable, Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import lightning_lite as lite
 

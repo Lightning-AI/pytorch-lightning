@@ -4,8 +4,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_lite.utilities.rank_zero import _rank_prefixed_message
-from lightning_lite.utilities.rank_zero import _get_rank
+from lightning_lite.utilities.rank_zero import _get_rank, _rank_prefixed_message
 
 
 @pytest.mark.parametrize(

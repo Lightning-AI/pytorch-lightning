@@ -1,15 +1,15 @@
 import logging
 import os
 import random
-from random import getstate as python_get_rng_state, setstate as python_set_rng_state
-from typing import Optional, Dict, Any
+from random import getstate as python_get_rng_state
+from random import setstate as python_set_rng_state
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
 
-from lightning_lite.utilities import rank_zero_warn, rank_zero_only
-from lightning_lite.utilities.rank_zero import _rank_prefixed_message
-from lightning_lite.utilities.rank_zero import _get_rank
+from lightning_lite.utilities import rank_zero_only, rank_zero_warn
+from lightning_lite.utilities.rank_zero import _get_rank, _rank_prefixed_message
 
 log = logging.getLogger(__name__)
 

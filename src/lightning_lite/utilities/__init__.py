@@ -15,12 +15,7 @@
 
 from lightning_lite.utilities.apply_func import move_data_to_device  # noqa: F401
 from lightning_lite.utilities.distributed import AllGatherGrad  # noqa: F401
-from lightning_lite.utilities.enums import (  # noqa: F401
-    _AcceleratorType,
-    _StrategyType,
-    AMPType,
-    LightningEnum,
-)
+from lightning_lite.utilities.enums import _AcceleratorType, _StrategyType, AMPType, LightningEnum  # noqa: F401
 from lightning_lite.utilities.imports import (  # noqa: F401
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,

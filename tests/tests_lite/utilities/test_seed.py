@@ -5,8 +5,8 @@ import pytest
 import torch
 
 import lightning_lite.utilities
-from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities import seed as seed_utils
+from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 
 
 @mock.patch.dict(os.environ, {}, clear=True)

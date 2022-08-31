@@ -18,7 +18,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from lightning_lite import LightningLite
-from lightning_lite.device_dtype_mixin import DeviceDtypeModuleMixin
+from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests_pytorch.helpers.runif import RunIf
 

@@ -19,10 +19,10 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from lightning_lite.device_dtype_mixin import DeviceDtypeModuleMixin
 from lightning_lite.plugins import PrecisionPlugin
 from lightning_lite.strategies import Strategy
 from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
 
 def _do_nothing_closure() -> None:
