@@ -439,19 +439,13 @@ def _install_app(
     # activate and install reqs
     # TODO: remove shell=True... but need to run command in venv
 
-    logger.info("⚡ python -m pip --version")
-    subprocess.call("python -m pip --version", shell=True)
-
-    logger.info("⚡ pip --version")
-    subprocess.call("pip --version", shell=True)
-
     logger.info("⚡ RUN: install requirements (pip install -r requirements.txt)")
-    subprocess.call("python3 -m pip install -r requirements.txt", shell=True)
+    subprocess.call("pip install -r requirements.txt", shell=True)
 
     # install project
     # TODO: remove shell=True... but need to run command in venv
     logger.info("⚡ RUN: setting up project (pip install -e .)")
-    subprocess.call("python3 -m pip install -e .", shell=True)
+    subprocess.call("pip install -e .", shell=True)
 
     m = f"""
     ⚡ Installed! ⚡ to use your app:
