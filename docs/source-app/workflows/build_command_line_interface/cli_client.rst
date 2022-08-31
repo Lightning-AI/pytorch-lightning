@@ -1,18 +1,23 @@
 :orphan:
 
-***********************************
-Develop a CLI with client side code
-***********************************
+######################################################
+2. Develop a CLI with server and client code execution
+######################################################
+
+We've learned how to create a simple command-line interface. But in real-world use-cases, an App Builder wants to provide more complex functionalities where trusted code is executed on the client side.
+
+Lightning provides a flexible way to create complex CLI without much effort.
+
+In this example, we’ll create a CLI to dynamically run Notebooks:
 
 
-In the previous section, we learned how to create a simple command line interface. In more realistic use-cases, an app builder wants to provide more complex functionalities where trusted code is executed on the client side.
+----
 
-Lightning provides a flexible way to create complex CLI without effort.
-
+**************************
 1. Implement a complex CLI
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+**************************
 
-In the example below, we create a CLI to dynamically run notebooks with the following structures.
+First of all, lets' create the following file structure:
 
 .. code-block:: python
 
@@ -22,21 +27,23 @@ In the example below, we create a CLI to dynamically run notebooks with the foll
                 run.py
         app.py
 
-Furthermore, we are using the `Jupyter-Component <https://github.com/Lightning-AI/LAI-Jupyter-Component>`_. Follow the installation steps on the repo.
+We'll use the `Jupyter-Component <https://github.com/Lightning-AI/LAI-Jupyter-Component>`_. Follow the installation steps on the repo to install the Component.
 
-In the ``commands/notebook/run.py``, add the following code:
+Add the following code to ``commands/notebook/run.py``:
 
 .. literalinclude:: commands/notebook/run.py
 
-And in the ``app.py``, add the following code:
+Add the following code to ``app.py``:
 
 .. literalinclude:: app.py
 
+----
 
+**********************************************
 2. Run the App and check the API documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**********************************************
 
-In your first terminal, run the following command and open the ``http://127.0.0.1:7501/view`` in browser.
+In a terminal, run the following command and open ``http://127.0.0.1:7501/docs`` in a browser.
 
 .. code-block:: python
 
@@ -44,11 +51,14 @@ In your first terminal, run the following command and open the ``http://127.0.0.
     Your Lightning App is starting. This won't take long.
     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
 
-3. Connect to a running App
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----
 
-In another terminal, you connect to the running application.
-When you connect to an application, Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run `lightning disconnect`.
+***************************
+3. Connect to a running App
+***************************
+
+In another terminal, connect to the running App.
+When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning disconnect``.
 
 .. code-block::
 
@@ -58,7 +68,7 @@ When you connect to an application, Lightning CLI is replaced by the App CLI. To
     You can review all the downloaded commands under /Users/thomas/.lightning/lightning_connection/commands folder.
     You are connected to the local Lightning App.
 
-And list of the available commands:
+To see a list of available commands:
 
 .. code-block::
 
@@ -73,7 +83,7 @@ And list of the available commands:
         run notebook Description
 
 
-And you can find the arguments of the commands.
+To find the arguments of the commands:
 
 .. code-block::
 
@@ -89,12 +99,15 @@ And you can find the arguments of the commands.
         --name NAME
         --cloud_compute CLOUD_COMPUTE
 
+----
+
+********************
 4. Execute a command
-^^^^^^^^^^^^^^^^^^^^
+********************
 
-And then you can trigger the command line exposed by your application.
+And then you can trigger the command-line exposed by your App.
 
-Run a first notebook with the following command:
+Run the first Notebook with the following command:
 
 .. code-block:: python
 
@@ -102,7 +115,7 @@ Run a first notebook with the following command:
     WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
     The notebook my_notebook was created.
 
-And run a second notebook by changing its name as follows:
+And run a second notebook.
 
 .. code-block:: python
 
@@ -110,7 +123,7 @@ And run a second notebook by changing its name as follows:
     WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
     The notebook my_notebook_2 was created.
 
-Here is a recording of the Lightning App described above.
+Here is a recording of the Lightning App:
 
 .. raw:: html
 
@@ -121,8 +134,11 @@ Here is a recording of the Lightning App described above.
     <br />
     <br />
 
+**************************
 5. Disconnect from the App
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+**************************
+
+To exit the App CLI, you need to run **lightning disconnect**.
 
 .. code-block::
 
@@ -141,15 +157,15 @@ Learn more
         <div class="row">
 
 .. displayitem::
-   :header: Develop a CLI with server side code only
-   :description: Learn how to develop a simple API for your application
+   :header: 1. Develop a CLI with server side code only
+   :description: Learn how to develop a simple CLI for your App.
    :col_css: col-md-6
    :button_link: cli.html
    :height: 150
 
 .. displayitem::
    :header: Develop a RESTful API
-   :description: Learn how to develop an API for your application.
+   :description: Learn how to develop an API for your App.
    :col_css: col-md-6
    :button_link: ../build_rest_api/index.html
    :height: 150

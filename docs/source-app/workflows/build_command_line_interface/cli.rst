@@ -1,26 +1,38 @@
 :orphan:
 
-**************************************
-Develop a CLI without client side code
-**************************************
+###########################################
+1. Develop a CLI with server side code only
+###########################################
 
+We are going to learn how to create a simple command-line interface.
+
+Lightning provides a flexible way to create complex CLI without much effort.
+
+----
+
+*************************
 1. Implement a simple CLI
-^^^^^^^^^^^^^^^^^^^^^^^^^
+*************************
 
-In order to create your first CLI, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_commands` hook and return a list of dictionaries where the keys are the commands and the values are the server-side handlers.
+To create your first CLI, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_commands` hook and return a list of dictionaries where the keys are the commands and the values are the server side handlers.
+
+First, create a file ``app.py`` and copy-paste the following code in to the file:
 
 .. literalinclude:: example_command.py
 
-After copy-pasting the code above to a file ``app.py``, execute the following command in your terminal in your first terminal.
+----
 
+**************
 2. Run the App
-^^^^^^^^^^^^^^
+**************
+
+Execute the following command in a terminal:
 
 .. code-block::
 
     lightning run app app.py
 
-And you can find the following in your terminal:
+The following appears the terminal:
 
 .. code-block::
 
@@ -28,17 +40,20 @@ And you can find the following in your terminal:
     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
     []
 
-3. Connect to a running App
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----
 
-In another terminal, you connect to the running application.
-When you connect to an application, Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run `lightning disconnect`.
+***************************
+3. Connect to a running App
+***************************
+
+In another terminal, connect to the running App.
+When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning disconnect``.
 
 .. code-block::
 
     lightning connect localhost
 
-And list of the available commands:
+To see a list of available commands:
 
 .. code-block::
 
@@ -51,7 +66,7 @@ And list of the available commands:
     Lightning App Commands
         add Description
 
-And you can find the arguments of the commands.
+To find the arguments of the commands:
 
 .. code-block::
 
@@ -62,10 +77,13 @@ And you can find the arguments of the commands.
     Options
         name: Add description
 
-4. Execute a command
-^^^^^^^^^^^^^^^^^^^^
+----
 
-And then you can trigger the command line exposed by your application.
+********************
+4. Execute a command
+********************
+
+Trigger the command line exposed by your App:
 
 .. code-block::
 
@@ -82,8 +100,13 @@ In your first terminal, **Received name: my_name** and **["my_name"]** are print
     Received name: my_name
     ["my_name]
 
-5. Disconnect
-^^^^^^^^^^^^^
+----
+
+**************************
+5. Disconnect from the App
+**************************
+
+To exit the App CLI, you need to run ``lightning disconnect``.
 
 .. code-block::
 
@@ -102,7 +125,7 @@ Learn more
         <div class="row">
 
 .. displayitem::
-   :header: Develop a CLI with server and client code execution
+   :header: 2. Implement a CLI with client side code execution
    :description: Learn how to develop a complex API for your application
    :col_css: col-md-6
    :button_link: cli_client.html

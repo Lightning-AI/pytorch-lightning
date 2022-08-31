@@ -20,7 +20,7 @@ class RunNotebook(ClientCommand):
         parser.add_argument("--cloud_compute", type=str, default="cpu")
         hparams = parser.parse_args()
 
-        # 2. Invoke the server-side handler by sending a payload.
+        # 2. Invoke the server side handler by sending a payload.
         response = self.invoke_handler(
             config=RunNotebookConfig(
                 name=hparams.name or str(uuid4()),

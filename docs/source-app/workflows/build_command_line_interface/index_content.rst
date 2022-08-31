@@ -8,14 +8,14 @@ Develop a command line interface (CLI)
         <div class="row">
 
 .. displayitem::
-   :header: Develop a CLI with server side code only
+   :header: 1. Develop a CLI with server side code only
    :description: Learn how to develop a simple CLI for your application
    :col_css: col-md-6
    :button_link: cli.html
    :height: 150
 
 .. displayitem::
-   :header: Develop a CLI with server and client code execution
+   :header: 2. Develop a CLI with server and client code execution
    :description: Learn how to develop a complex CLI for your application
    :col_css: col-md-6
    :button_link: cli_client.html

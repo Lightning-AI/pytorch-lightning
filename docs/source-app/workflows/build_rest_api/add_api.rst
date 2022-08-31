@@ -1,60 +1,77 @@
 :orphan:
 
-****************************
+############################
 Add an API Route to your App
-****************************
+############################
 
 In order to add a new route, you need to override the :class:`~lightning_app.core.flow.LightningFlow.configure_api` hook and return a list of :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.HttpMethod` such as :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Get`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Post`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Put`, :class:`~lightning_app.api.:class:`~lightning_app.api.http_methods.Delete`.
 
-Below, we create a single route ``/name`` that takes a string input ``name`` and stores the value within the ``names`` attribute of the flow state.
+----
+
+**********************
+1. Create a simple App
+**********************
+
+We're going to create a single route ``/name`` that takes a string input ``name`` and stores the value within the ``names`` attribute of the flow state.
+
+Create a file called ``app.py`` and copy-paste the following code in to the file:
 
 .. literalinclude:: post_example.py
 
-After copy-pasting the code above to a file ``app.py``, execute the following command in your terminal:
+----
 
-.. code-block:: bash
+**************
+2. Run the App
+**************
 
-    lightning run app app.py
+Execute the following command in a terminal:
 
-And you find the following:
+.. code-block::
 
-.. code-block:: bash
+lightning run app app.py
 
-    Your Lightning App is starting. This won't take long.
-    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+The following appears:
 
-The Lightning App framework automatically generates an API documentation from your application traditionally a `Swagger UI <https://fastapi.tiangolo.com/features/#automatic-docs>`_.
+.. code-block::
 
-You can access it by accessing the following url: ``http://127.0.0.1:7501/docs`` in your browser and validate your API with the route ``/name`` directly from the documentation page as showed below.
+     Your Lightning App is starting. This won't take long.
+     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+
+----
+
+****************
+3. Check the API
+****************
+
+The Lightning App framework automatically generates API documentation from your App using `Swagger UI <https://fastapi.tiangolo.com/features/#automatic-docs>`_.
+
+You can access it by accessing the following URL: ``http://127.0.0.1:7501/docs`` in your browser and validate your API with the route ``/name`` directly from the documentation page as shown below.
 
 .. raw:: html
 
-    <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_png.png" width="100%">
-        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_post.mp4" type="video/mp4" width="100%">
-    </video>
-    <br />
-    <br />
+     <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_png.png" width="100%">
+     <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/rest_post.mp4" type="video/mp4" width="100%">
+     </video>
 
 Alternatively, you can invoke the route directly from a second terminal using `curl <https://curl.se/>`_.
 
-.. code-block:: bash
+.. code-block::
 
-    curl -X 'POST' \
-    'http://127.0.0.1:7501/name?name=my_name' \
-    -H 'accept: application/json' \
-    -d ''
+     curl -X 'POST' \
+     'http://127.0.0.1:7501/name?name=my_name' \
+     -H 'accept: application/json' \
+     -d ''
 
-    "The name my_name was registered"
+     "The name my_name was registered"
 
-And you will observe the following your first terminal running your application.
+And you can see the following in your first terminal running your App.
 
-.. code-block:: bash
+.. code-block::
 
-    Your Lightning App is starting. This won't take long.
-    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
-    []
-    ["my_name"]
+     Your Lightning App is starting. This won't take long.
+     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+     []
+     ["my_name"]
 
 **************************************
 Develop a command line interface (CLI)
@@ -74,7 +91,7 @@ Develop a command line interface (CLI)
 
 .. displayitem::
    :header: Develop a Command Line Interface (CLI)
-   :description: Learn how to develop an CLI for your application.
+   :description: Learn how to develop an CLI for your App.
    :col_css: col-md-6
    :button_link: ../build_command_line_interface/index.html
    :height: 150

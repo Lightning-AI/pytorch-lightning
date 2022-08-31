@@ -20,6 +20,7 @@ class Flow(L.LightningFlow):
 
     # 4. Defines this Component's Restful API. You can have several routes.
     def configure_api(self):
+        # Your own defined route and handler
         return [Post(route="/name", method=self.handle_post)]
 
 
