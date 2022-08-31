@@ -20,6 +20,7 @@ concurrency:
 
 jobs:
   app-examples:
+    if: github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
