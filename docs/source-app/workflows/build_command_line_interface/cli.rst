@@ -4,8 +4,6 @@
 Develop a CLI without client side code
 ######################################
 
-----
-
 *************************
 1. Implement a simple CLI
 *************************
