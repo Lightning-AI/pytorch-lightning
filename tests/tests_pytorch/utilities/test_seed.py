@@ -1,15 +1,13 @@
 import os
 import random
-from typing import Mapping
 from unittest import mock
-from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
-from pytorch_lightning.utilities.seed import isolate_rng
+from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states, isolate_rng
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -87,6 +85,13 @@ def test_isolate_rng():
         generated = [torch.rand(2) for _ in range(3)]
     assert torch.equal(torch.rand(2), generated[0])
 
+    # torch.cuda
+    if torch.cuda.is_available():
+        torch.cuda.FloatTensor(1).normal_()
+        with isolate_rng():
+            generated = [torch.cuda.FloatTensor(2).normal_() for _ in range(3)]
+        assert torch.equal(torch.cuda.FloatTensor(2).normal_(), generated[0])
+
     # numpy
     np.random.rand(1)
     with isolate_rng():
@@ -100,17 +105,12 @@ def test_isolate_rng():
     assert random.random() == generated[0]
 
 
-@mock.patch("pytorch_lightning.utilities.seed.log.info")
-@pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"RANK": "1"}, {"RANK": "4"}])
-def test_seed_everything_log_info(log_mock: MagicMock, env_vars: Mapping[str, str]):
-    """Test that log message prefix with correct rank info."""
-    with mock.patch.dict(os.environ, env_vars, clear=True):
-        from pytorch_lightning.utilities.rank_zero import _get_rank
+def test_backward_compatibility_rng_states_dict():
+    """Test that an older rng_states_dict without the "torch.cuda" key does not crash.
 
-        rank = _get_rank()
-
-        seed_utils.seed_everything(123)
-
-    expected_log = f"[rank: {rank}] Global seed set to 123"
-
-    log_mock.assert_called_once_with(expected_log)
+    This test is only relevant when torch.cuda is available.
+    """
+    states = _collect_rng_states()
+    assert "torch.cuda" in states
+    states.pop("torch.cuda")
+    _set_rng_states(states)

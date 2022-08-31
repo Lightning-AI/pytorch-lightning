@@ -23,7 +23,7 @@ local tputests = base.BaseTest {
       source ~/.bashrc
       set -e
       conda activate lightning
-      mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
+      mkdir -p /home/runner/work/lightning && cd /home/runner/work/lightning
       git clone https://github.com/Lightning-AI/lightning.git
       cd lightning
       echo $PWD

@@ -4,7 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [0.6.0] - 2022-08-DD
+
+## [0.7.0] - 2022-MM-DD
+
+### Added
+
+- Adds `PanelFrontend` to easily create complex UI in Python ([#13531](https://github.com/Lightning-AI/lightning/pull/13531))
+
+
+
+
+## [0.6.0] - 2022-08-23
 
 ### Added
 
