@@ -21,8 +21,6 @@ import tests_pytorch.helpers.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import MPSAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from tests_pytorch.helpers.imports import Batch, Dataset, Example, Field, LabelField
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -135,30 +133,3 @@ def test_single_gpu_batch_parse():
 
     batch = trainer.strategy.batch_to_device(CustomBatchType(), torch.device("mps"))
     assert batch.a.type() == "torch.mps.FloatTensor"
-
-    # torchtext.data.Batch
-    if not _TORCHTEXT_LEGACY:
-        return
-
-    samples = [
-        {"text": "PyTorch Lightning is awesome!", "label": 0},
-        {"text": "Please make it work with torchtext", "label": 1},
-    ]
-
-    text_field = Field()
-    label_field = LabelField()
-    fields = {"text": ("text", text_field), "label": ("label", label_field)}
-
-    examples = [Example.fromdict(sample, fields) for sample in samples]
-    dataset = Dataset(examples=examples, fields=fields.values())
-    # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
-    text_field.build_vocab(dataset)
-    label_field.build_vocab(dataset)
-
-    batch = Batch(data=examples, dataset=dataset)
-
-    with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
-        batch = trainer.strategy.batch_to_device(batch, torch.device("mps"))
-
-    assert batch.text.type() == "torch.mps.LongTensor"
-    assert batch.label.type() == "torch.mps.LongTensor"

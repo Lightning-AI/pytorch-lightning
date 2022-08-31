@@ -184,7 +184,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     else:
         name = f"test-{TEST_APP_NAME}-" + str(int(time.time()))
 
-    # 3. Launch the application in the cloud from the Lightning CLI.
+    # 3. Disconnect from the App if any.
+    Popen("lightning disconnect", shell=True).wait()
+
+    # 4. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
@@ -214,10 +217,10 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         )
         process.wait()
 
-    # 4. Print your application name
+    # 5. Print your application name
     print(f"The Lightning App Name is: [bold magenta]{name}[/bold magenta]")
 
-    # 5. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
+    # 6. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
         payload = {"apiKey": Config.api_key, "username": Config.username, "duration": "120000"}
@@ -343,7 +346,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                     print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
                 yield message
 
-        # 5. Print your application ID
+        # 7. Print your application ID
         print(
             f"The Lightning Id Name : [bold magenta]{str(view_page.url).split('.')[0].split('//')[-1]}[/bold magenta]"
         )
@@ -376,6 +379,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                     assert res == {}
                 except ApiException as e:
                     print(f"Failed to delete {lightningapp.name}. Exception {e}")
+
+            Popen("lightning disconnect", shell=True).wait()
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
