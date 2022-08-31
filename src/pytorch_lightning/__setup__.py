@@ -29,7 +29,7 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS)
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
         "examples": _setup_tools.load_requirements(file_name="examples.txt", **common_args),
@@ -87,7 +87,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
-        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
+        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
