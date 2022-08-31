@@ -8,8 +8,8 @@ import tempfile
 import time
 import traceback
 from contextlib import contextmanager
-from functools import partial
 from subprocess import Popen
+from threading import Thread
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Type
 
@@ -40,13 +40,54 @@ from lightning_app.utilities.app_helpers import Logger
 _logger = Logger(__name__)
 
 
+def _on_error_callback(ws_app, *_):
+    print(traceback.print_exc())
+    ws_app.close()
+
+
+def print_logs(app_id: str):
+    client = LightningClient()
+    project = _get_project(client)
+
+    works = client.lightningwork_service_list_lightningwork(
+        project_id=project.project_id,
+        app_id=app_id,
+    ).lightningworks
+    component_names = ["flow"] + [w.name for w in works]
+
+    rich_colors = list(ANSI_COLOR_NAMES)
+    colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
+
+    max_length = max(len(c.replace("root.", "")) for c in component_names)
+    identifiers = []
+
+    while True:
+        gen = _app_logs_reader(
+            client=client,
+            project_id=project.project_id,
+            app_id=app_id,
+            component_names=component_names,
+            follow=False,
+            on_error_callback=_on_error_callback,
+        )
+        for log_event in gen:
+            message = log_event.message
+            identifier = f"{log_event.timestamp}{log_event.message}"
+            if identifier not in identifiers:
+                date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+                identifiers.append(identifier)
+                color = colors[log_event.component_name]
+                padding = (max_length - len(log_event.component_name)) * " "
+                print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
+
+
 def _fetch_logs(
     component_names: Optional[List[str]],
     client: LightningClient,
     app_id,
     project,
     identifiers=[],
-    rich_colors=list(ANSI_COLOR_NAMES),
+    return_log_event: bool = False,
 ) -> Generator:
     """This methods creates websockets connection in threads and returns the logs to the main thread."""
 
@@ -61,7 +102,6 @@ def _fetch_logs(
         print(traceback.print_exc())
         ws_app.close()
 
-    colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
     gen = _app_logs_reader(
         client=client,
         project_id=project.project_id,
@@ -70,17 +110,15 @@ def _fetch_logs(
         follow=False,
         on_error_callback=on_error_callback,
     )
-    max_length = max(len(c.replace("root.", "")) for c in component_names)
     for log_event in gen:
-        message = log_event.message
-        identifier = f"{log_event.timestamp}{log_event.message}"
-        if identifier not in identifiers:
-            date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-            identifiers.append(identifier)
-            color = colors[log_event.component_name]
-            padding = (max_length - len(log_event.component_name)) * " "
-            print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
-        yield message
+        if log_event in identifiers:
+            continue
+        else:
+            identifiers.append(log_event)
+        if return_log_event:
+            yield log_event
+        else:
+            yield log_event.message
 
 
 class LightningTestApp(LightningApp):
@@ -352,23 +390,43 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
-        client = LightningClient()
-        project = _get_project(client)
-        identifiers = []
-
         # 5. Print your application ID
         app_id = str(view_page.url).split(".")[0].split("//")[-1]
 
         print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
-        fetch_logs = partial(
-            _fetch_logs,
-            component_names=None,
-            client=client,
-            app_id=admin_page.url.split("/")[-1],
-            project=project,
-            identifiers=identifiers,
-        )
+        thread = Thread(target=print_logs, kwargs={"app_id": app_id})
+        thread.setDaemon(True)
+        thread.start()
+
+        client = LightningClient()
+        project = _get_project(client)
+
+        def fetch_logs(component_names: Optional[List[str]] = None) -> Generator:
+            """This methods creates websockets connection in threads and returns the logs to the main thread."""
+            app_id = admin_page.url.split("/")[-1]
+
+            if not component_names:
+                works = client.lightningwork_service_list_lightningwork(
+                    project_id=project.project_id,
+                    app_id=app_id,
+                ).lightningworks
+                component_names = ["flow"] + [w.name for w in works]
+
+            def on_error_callback(ws_app, *_):
+                print(traceback.print_exc())
+                ws_app.close()
+
+            gen = _app_logs_reader(
+                client=client,
+                project_id=project.project_id,
+                app_id=app_id,
+                component_names=component_names,
+                follow=False,
+                on_error_callback=on_error_callback,
+            )
+            for log_event in gen:
+                yield log_event.message
 
         try:
             yield admin_page, view_page, fetch_logs, name
@@ -398,6 +456,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                     assert res == {}
                 except ApiException as e:
                     print(f"Failed to delete {lightningapp.name}. Exception {e}")
+
+            thread.join(5)
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
