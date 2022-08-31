@@ -134,7 +134,6 @@ _TORCH_GREATER_EQUAL_1_13 = _compare_version("torch", operator.ge, "1.13.0", use
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _DALI_AVAILABLE = _module_available("nvidia.dali")
-_GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HABANA_FRAMEWORK_AVAILABLE = _package_available("habana_frameworks")
 _HIVEMIND_AVAILABLE = _package_available("hivemind")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
