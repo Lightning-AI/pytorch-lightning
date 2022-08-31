@@ -33,6 +33,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
+import lightning_lite.utilities.seed
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities.cloud_io import load as pl_load
@@ -63,7 +64,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning_lite.utilities.seed import seed_everything
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -1069,7 +1070,7 @@ def test_on_exception_hook(tmpdir):
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1099,7 +1100,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
 
     trainer = Trainer(
         default_root_dir=tmpdir,

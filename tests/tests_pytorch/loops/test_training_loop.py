@@ -17,7 +17,8 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops import FitLoop
 

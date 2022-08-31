@@ -19,7 +19,8 @@ import torch
 from torch.quantization import FakeQuantizeBase
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.demos.boring_classes import RandomDataset

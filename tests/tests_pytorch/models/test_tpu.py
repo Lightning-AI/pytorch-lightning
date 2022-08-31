@@ -22,6 +22,8 @@ from torch.utils.data import DataLoader
 import lightning_lite.utilities.distributed
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+
+import lightning_lite.utilities.seed
 from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
@@ -49,7 +51,7 @@ class SerialLoaderBoringModel(BoringModel):
 @RunIf(tpu=True, standalone=True)
 def test_model_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -68,7 +70,7 @@ def test_model_tpu_devices_1(tmpdir):
 @RunIf(tpu=True, standalone=True)
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -87,7 +89,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
 @RunIf(tpu=True)
 def test_model_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -106,7 +108,7 @@ def test_model_tpu_devices_8(tmpdir):
 @RunIf(tpu=True, standalone=True)
 def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
@@ -126,7 +128,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 @RunIf(tpu=True, standalone=True)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
@@ -146,7 +148,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 @RunIf(tpu=True)
 def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
@@ -173,7 +175,7 @@ def test_model_tpu_early_stop(tmpdir):
             self.log("val_loss", out["x"])
             return out
 
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     model = CustomBoringModel()
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor="val_loss")],
@@ -192,7 +194,7 @@ def test_model_tpu_early_stop(tmpdir):
 @RunIf(tpu=True, standalone=True)
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -211,7 +213,7 @@ def test_tpu_grad_norm(tmpdir):
 @RunIf(tpu=True, standalone=True)
 def test_tpu_clip_grad_by_value(tmpdir):
     """Test if clip_gradients by value works on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -231,7 +233,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
 @RunIf(tpu=True)
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="tpu", devices=8)
@@ -328,7 +330,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
 
     TODO: Fix (test fails with parametrize)
     """
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -394,7 +396,7 @@ def test_tpu_debug_mode(tmpdir):
         def teardown(self, stage):
             assert "PT_XLA_DEBUG" not in os.environ
 
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -418,7 +420,7 @@ def test_tpu_host_world_size(tmpdir):
         def on_train_start(self):
             assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
 
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,

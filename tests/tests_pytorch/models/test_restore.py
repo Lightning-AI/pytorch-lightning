@@ -26,6 +26,8 @@ import torch.nn.functional as F
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+
+import lightning_lite.utilities.seed
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -500,7 +502,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -539,7 +541,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 @pytest.mark.parametrize("model_template", [ValTestLossBoringModel, GenericValTestLossBoringModel])
 def test_load_model_from_checkpoint(tmpdir, model_template):
     """Verify test() on pretrained model."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     model = model_template()
 
     trainer_options = dict(

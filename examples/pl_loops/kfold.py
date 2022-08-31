@@ -27,7 +27,8 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Dataset, Subset
 from torchmetrics.classification.accuracy import Accuracy
 
-from pytorch_lightning import LightningDataModule, seed_everything, Trainer
+from pytorch_lightning import LightningDataModule, Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import Net
 from pytorch_lightning.demos.mnist_datamodule import MNIST

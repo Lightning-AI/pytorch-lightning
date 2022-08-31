@@ -44,7 +44,8 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
 
-from pytorch_lightning import cli_lightning_logo, LightningModule, seed_everything, Trainer
+from pytorch_lightning import cli_lightning_logo, LightningModule, Trainer
+from lightning_lite.utilities.seed import seed_everything
 
 
 class DQN(nn.Module):

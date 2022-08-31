@@ -20,6 +20,8 @@ from torch import optim
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils
+
+import lightning_lite.utilities.seed
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.plugins.environments import SLURMEnvironment
@@ -80,7 +82,7 @@ class AMPTestModel(BoringModel):
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_cpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -103,7 +105,7 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_gpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
 
     trainer = Trainer(
         default_root_dir=tmpdir,

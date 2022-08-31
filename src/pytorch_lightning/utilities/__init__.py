@@ -43,7 +43,7 @@ from pytorch_lightning.utilities.parameter_tying import find_shared_parameters, 
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
 
 
-from lightning_lite.utilities import AllGatherGrad, AMPType, LightningEnum, rank_zero_only, rank_zero_info, rank_zero_warn, rank_zero_deprecation
+from lightning_lite.utilities import AllGatherGrad, AMPType, LightningEnum, rank_zero_only, rank_zero_info, rank_zero_warn, rank_zero_deprecation  # noqa: F401
 from lightning_lite.utilities.apply_func import move_data_to_device  # noqa: F401
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps

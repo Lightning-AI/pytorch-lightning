@@ -48,7 +48,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.seed import reset_seed
+from lightning_lite.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 

@@ -19,7 +19,7 @@ from typing import Optional, Type
 
 import pytest
 
-from pytorch_lightning import seed_everything
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger

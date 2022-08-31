@@ -18,7 +18,8 @@ from copy import deepcopy
 import pytest
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

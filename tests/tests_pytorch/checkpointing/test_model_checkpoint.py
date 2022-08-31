@@ -30,10 +30,12 @@ import torch
 import yaml
 from torch import optim
 
+import lightning_lite.utilities.seed
 import pytorch_lightning as pl
 import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities.cloud_io import load as pl_load
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -298,7 +300,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
     """Test that dirpath=None in checkpoint callback is valid and that ckpt_path is set correctly."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     model = LogInTwoMethods()
 
     checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}", save_top_k=save_top_k)
@@ -317,7 +319,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     """Test that None in checkpoint callback is valid and that chkp_path is set correctly."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     model = LogInTwoMethods()
 
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=save_top_k)
@@ -335,7 +337,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 @pytest.mark.parametrize("logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")])
 def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     model = LogInTwoMethods()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 

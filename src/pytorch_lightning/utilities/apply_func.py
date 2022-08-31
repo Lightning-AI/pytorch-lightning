@@ -14,7 +14,7 @@
 """Utilities used for collections."""
 
 # For backward-compatibility
-# TODO: deprecate usage
+# TODO(lite): deprecate usage
 from lightning_lite.utilities.apply_func import (  # noqa: F401
     apply_to_collection,
     apply_to_collections,

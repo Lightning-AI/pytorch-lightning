@@ -16,7 +16,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, DistributedSampler
 
-from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning import LightningModule, Trainer
+from lightning_lite.utilities.seed import seed_everything
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -1,29 +1,15 @@
-# Copyright The PyTorch Lightning team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""Utilities to help with reproducibility of models."""
-
 import logging
 import os
 import random
-from random import getstate as python_get_rng_state
-from random import setstate as python_set_rng_state
-from typing import Any, Dict, Optional
+from random import getstate as python_get_rng_state, setstate as python_set_rng_state
+from typing import Optional, Dict, Any
 
 import numpy as np
 import torch
 
-from lightning_lite.utilities.rank_zero import _get_rank, rank_zero_only, rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn, rank_zero_only
+from lightning_lite.utilities.rank_zero import _rank_prefixed_message
+from lightning_lite.utilities.rank_zero import _get_rank
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +51,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    log.info(f"[rank: {_get_rank()}] Global seed set to {seed}")
+    log.info(_rank_prefixed_message(f"Global seed set to {seed}", _get_rank()))
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -120,13 +106,22 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
 
 def _collect_rng_states() -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`numpy` and Python."""
-    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
+    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
+    return {
+        "torch": torch.get_rng_state(),
+        "torch.cuda": torch.cuda.get_rng_state_all(),
+        "numpy": np.random.get_state(),
+        "python": python_get_rng_state(),
+    }
 
 
 def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
+    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
+    process."""
     torch.set_rng_state(rng_state_dict["torch"])
+    # torch.cuda rng_state is only included since v1.8.
+    if "torch.cuda" in rng_state_dict:
+        torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
     np.random.set_state(rng_state_dict["numpy"])
     version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))

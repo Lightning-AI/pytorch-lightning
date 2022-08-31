@@ -17,6 +17,8 @@ import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+
+import lightning_lite.utilities.seed
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -104,7 +106,7 @@ def test_early_stopping_cpu_model(tmpdir):
             self.log("val_loss", output["x"])
             return output
 
-    tutils.reset_seed()
+    lightning_lite.utilities.seed.reset_seed()
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
         callbacks=[stopping],

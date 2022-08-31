@@ -29,7 +29,8 @@ import yaml
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,

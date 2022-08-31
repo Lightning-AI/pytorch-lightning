@@ -22,7 +22,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchmetrics import Accuracy
 
 import pytorch_lightning as pl
-from pytorch_lightning import LightningDataModule, LightningModule, seed_everything
+from pytorch_lightning import LightningDataModule, LightningModule
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.callbacks import EarlyStopping
 
 PATH_LEGACY = os.path.dirname(__file__)

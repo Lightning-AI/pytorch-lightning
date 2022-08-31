@@ -20,7 +20,8 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DistributedSampler
 
-from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning import Callback, Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel

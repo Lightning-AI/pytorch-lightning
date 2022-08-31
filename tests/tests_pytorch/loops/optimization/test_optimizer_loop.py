@@ -19,7 +19,8 @@ import pytest
 import torch
 from torch.optim import Adam, SGD
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult

@@ -19,7 +19,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning_lite.utilities.seed import seed_everything
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.strategies.test_dp import CustomClassificationModelDP

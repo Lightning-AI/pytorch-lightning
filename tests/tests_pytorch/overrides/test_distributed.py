@@ -17,7 +17,7 @@ import pytest
 from torch.utils.data import BatchSampler, SequentialSampler
 
 from lightning_lite.utilities.data import has_len
-from pytorch_lightning import seed_everything
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 
 
