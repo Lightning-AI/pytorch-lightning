@@ -1233,7 +1233,7 @@ reload_dataloaders_every_n_epochs
 |
 
 Set to a positive integer to reload dataloaders every n epochs from your currently used data source.
-DataSource can be a ``LightningModule`` or a ``LightningDataModule`.
+DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
 
 
 .. code-block:: python
