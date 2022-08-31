@@ -17,7 +17,7 @@ from typing import Any, Callable, Generator, Mapping, Optional, Set, Type, Union
 from torch import Tensor
 from torch.nn import Module, Parameter
 
-from pytorch_lightning.utilities import rank_zero_deprecation
+from lightning_lite.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.imports import _module_available
 
 

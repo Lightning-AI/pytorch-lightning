@@ -11,27 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_lite.utilities.types import _Stateful
+import inspect
+from typing import Any
 
 
-def test_stateful_protocol():
-    class StatefulClass:
-        def state_dict(self):
-            pass
+def _is_register_method_overridden(mod: type, base_cls: Any, method: str) -> bool:
+    mod_attr = getattr(mod, method)
+    previous_super_cls = inspect.getmro(mod)[1]
 
-        def load_state_dict(self, state_dict):
-            pass
+    if issubclass(previous_super_cls, base_cls):
+        super_attr = getattr(previous_super_cls, method)
+    else:
+        return False
 
-    assert isinstance(StatefulClass(), _Stateful)
-
-    class NotStatefulClass:
-        def state_dict(self):
-            pass
-
-    assert not isinstance(NotStatefulClass(), _Stateful)
-
-    class NotStateful2Class:
-        def load_state_dict(self, state_dict):
-            pass
-
-    assert not isinstance(NotStateful2Class(), _Stateful)
+    return mod_attr.__code__ is not super_attr.__code__

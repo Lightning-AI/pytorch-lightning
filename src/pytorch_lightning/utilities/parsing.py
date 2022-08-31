@@ -25,7 +25,7 @@ from torch import nn
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:

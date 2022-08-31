@@ -19,7 +19,8 @@ import os
 from contextlib import redirect_stderr
 from io import StringIO
 
-from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
+from lightning_lite.utilities import rank_zero_warn, rank_zero_deprecation
+from lightning_lite.utilities.rank_zero import _warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
 standalone = os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1"
