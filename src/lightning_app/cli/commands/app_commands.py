@@ -54,7 +54,7 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
             print(f"  {param}: Add description")
         return
 
-    provided_params = [param.replace("--", "") for param in sys.argv[2:]]
+    provided_params = [param.replace("--", "") for param in sys.argv[1 + len(command.split("_")) :]]
 
     # TODO: Add support for more argument types.
     if any("=" not in param for param in provided_params):

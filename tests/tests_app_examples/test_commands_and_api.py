@@ -21,7 +21,7 @@ def test_commands_and_api_example_cloud() -> None:
         app_id = admin_page.url.split("/")[-1]
 
         # 2: Connect to the App
-        Popen(f"lightning connect {app_id}", shell=True).wait()
+        Popen(f"lightning connect {app_id} -y", shell=True).wait()
 
         # 3: Send the first command with the client
         cmd = "lightning command with client --name=this"
