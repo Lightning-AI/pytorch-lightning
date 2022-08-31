@@ -442,7 +442,7 @@ class LightningApp:
 
             self._has_updated = False
 
-        self.on_run_end()
+        self._on_run_end()
 
         return True
 
