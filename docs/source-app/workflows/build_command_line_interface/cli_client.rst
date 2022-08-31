@@ -1,12 +1,15 @@
 :orphan:
 
-###################################
-Develop a CLI with client side code
-###################################
+######################################################
+2. Develop a CLI with server and client code execution
+######################################################
 
 We've learned how to create a simple command-line interface. But in real-world use-cases, an App Builder wants to provide more complex functionalities where trusted code is executed on the client side.
 
 Lightning provides a flexible way to create complex CLI without much effort.
+
+In this example, we’ll create a CLI to dynamically run Notebooks:
+
 
 ----
 
@@ -14,7 +17,7 @@ Lightning provides a flexible way to create complex CLI without much effort.
 1. Implement a complex CLI
 **************************
 
-In this example, we'll create a CLI to dynamically run Notebooks using the following structures:
+First of all, lets' create the following file structure:
 
 .. code-block:: python
 
@@ -40,7 +43,7 @@ Add the following code to ``app.py``:
 2. Run the App and check the API documentation
 **********************************************
 
-In a terminal, run the following command and open ``http://127.0.0.1:7501/view`` in a browser.
+In a terminal, run the following command and open ``http://127.0.0.1:7501/docs`` in a browser.
 
 .. code-block:: python
 
@@ -112,7 +115,7 @@ Run the first Notebook with the following command:
     WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
     The notebook my_notebook was created.
 
-And run a second Notebook by changing its name:
+And run a second notebook.
 
 .. code-block:: python
 
@@ -131,10 +134,11 @@ Here is a recording of the Lightning App:
     <br />
     <br />
 
+**************************
 5. Disconnect from the App
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+**************************
 
-To exit the App CLI, you need to run ``lightning disconnect``.
+To exit the App CLI, you need to run **lightning disconnect**.
 
 .. code-block::
 
@@ -153,7 +157,7 @@ Learn more
         <div class="row">
 
 .. displayitem::
-   :header: Develop a CLI with server side code only
+   :header: 1. Develop a CLI with server side code only
    :description: Learn how to develop a simple CLI for your App.
    :col_css: col-md-6
    :button_link: cli.html

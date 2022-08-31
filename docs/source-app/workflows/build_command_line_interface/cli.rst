@@ -1,8 +1,14 @@
 :orphan:
 
-######################################
-Develop a CLI without client side code
-######################################
+###########################################
+1. Develop a CLI with server side code only
+###########################################
+
+We are going to learn how to create a simple command-line interface.
+
+Lightning provides a flexible way to create complex CLI without much effort.
+
+----
 
 *************************
 1. Implement a simple CLI
@@ -119,7 +125,7 @@ Learn more
         <div class="row">
 
 .. displayitem::
-   :header: Develop a CLI with server and client code execution
+   :header: 2. Implement a CLI with client side code execution
    :description: Learn how to develop a complex API for your application
    :col_css: col-md-6
    :button_link: cli_client.html
