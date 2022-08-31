@@ -965,10 +965,20 @@ def test_debug_mode_logging():
 
     records = []
 
-    def fn(record):
-        records.append(record)
+    def callHandlers(record):
+        c = logger.logger
+        found = 0
+        while c:
+            for hdlr in c.handlers:
+                found = found + 1
+                if record.levelno >= hdlr.level:
+                    records.append(record)
+            if not c.propagate:
+                c = None  # break out
+            else:
+                c = c.parent
 
-    logger.logger.handle = fn
+    logger.logger.callHandlers = callHandlers
 
     app = LightningApp(A4(), debug=True)
     MultiProcessRuntime(app, start_server=False).dispatch()
