@@ -32,7 +32,7 @@ And you can find the following in your terminal:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In another terminal, you connect to the running application.
-When you connect to an application, Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run lightning disconnect.
+When you connect to an application, Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run `lightning disconnect`.
 
 .. code-block::
 
