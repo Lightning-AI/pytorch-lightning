@@ -107,12 +107,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated support for old torchtext versions ([#14375](https://github.com/Lightning-AI/lightning/pull/14375))
 
 
-- Removed the deprecated `pytorch_lightning.utilities.distributed.rank_zero_only` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_only` ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
-- Removed the deprecated `pytorch_lightning.utilities.distributed.rank_zero_debug` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_debug` ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
-- Removed the deprecated `pytorch_lightning.utilities.distributed.rank_zero_info` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_info` ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
-  - Removed the deprecated `pytorch_lightning.utilities.warnings.rank_zero_warn` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_warn` ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
-- Removed the deprecated `pytorch_lightning.utilities.warnings.rank_zero_deprecation` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_deprecation` ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
-- Removed the deprecated `pytorch_lightning.utilities.warnings.LightningDeprecationWarning` in favor of `pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning` ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
+- Remove the deprecated ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
+  * `pytorch_lightning.utilities.distributed.rank_zero_only` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_only` 
+  * `pytorch_lightning.utilities.distributed.rank_zero_debug` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_debug`
+  * `pytorch_lightning.utilities.distributed.rank_zero_info` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_info`
+  * `pytorch_lightning.utilities.warnings.rank_zero_warn` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_warn`
+  * `pytorch_lightning.utilities.warnings.rank_zero_deprecation` in favor of `pytorch_lightning.utilities.rank_zero.rank_zero_deprecation`
+  * `pytorch_lightning.utilities.warnings.LightningDeprecationWarning` in favor of `pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning`
 
 
 - Removed deprecated `Trainer.num_processes` attribute in favour of `Trainer.num_devices` ([#14423](https://github.com/Lightning-AI/lightning/pull/14423))
