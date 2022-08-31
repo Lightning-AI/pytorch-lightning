@@ -40,7 +40,7 @@ The following appears:
 ----
 
 ****************
-3. Check the API 
+3. Check the API
 ****************
 
 The Lightning App framework automatically generates API documentation from your App using `Swagger UI <https://fastapi.tiangolo.com/features/#automatic-docs>`_.
