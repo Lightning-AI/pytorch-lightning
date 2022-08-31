@@ -107,7 +107,7 @@ class TensorBoardLogger(Logger):
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
         self._version = version if version is not None else self._get_next_version()
-        
+
         self._experiment: Optional["SummaryWriter"] = None
         self.hparams: Union[Dict[str, Any], Namespace] = {}
         self._kwargs = kwargs
