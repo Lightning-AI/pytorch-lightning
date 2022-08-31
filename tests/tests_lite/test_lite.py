@@ -1,6 +1,6 @@
-from lightning_lite.lite import LightningLite  # noqa: F401
-
 from tests_lite.helpers.runif import RunIf
+
+from lightning_lite.lite import LightningLite  # noqa: F401
 
 
 def test_placeholder(tmpdir):
