@@ -8,6 +8,7 @@ import tempfile
 import time
 import traceback
 from contextlib import contextmanager
+from functools import partial
 from subprocess import Popen
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Type
@@ -34,10 +35,52 @@ if _is_playwright_available():
     import playwright
     from playwright.sync_api import HttpCredentials, sync_playwright
 
-
 from lightning_app.utilities.app_helpers import Logger
 
 _logger = Logger(__name__)
+
+
+def _fetch_logs(
+    client: LightningClient,
+    app_id,
+    project,
+    identifiers=[],
+    rich_colors=list(ANSI_COLOR_NAMES),
+    component_names: Optional[List[str]] = None,
+) -> Generator:
+    """This methods creates websockets connection in threads and returns the logs to the main thread."""
+
+    if not component_names:
+        works = client.lightningwork_service_list_lightningwork(
+            project_id=project.project_id,
+            app_id=app_id,
+        ).lightningworks
+        component_names = ["flow"] + [w.name for w in works]
+
+    def on_error_callback(ws_app, *_):
+        print(traceback.print_exc())
+        ws_app.close()
+
+    colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
+    gen = _app_logs_reader(
+        client=client,
+        project_id=project.project_id,
+        app_id=app_id,
+        component_names=component_names,
+        follow=False,
+        on_error_callback=on_error_callback,
+    )
+    max_length = max(len(c.replace("root.", "")) for c in component_names)
+    for log_event in gen:
+        message = log_event.message
+        identifier = f"{log_event.timestamp}{log_event.message}"
+        if identifier not in identifiers:
+            date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+            identifiers.append(identifier)
+            color = colors[log_event.component_name]
+            padding = (max_length - len(log_event.component_name)) * " "
+            print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
+        yield message
 
 
 class LightningTestApp(LightningApp):
@@ -307,47 +350,19 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         client = LightningClient()
         project = _get_project(client)
         identifiers = []
-        rich_colors = list(ANSI_COLOR_NAMES)
-
-        def fetch_logs(component_names: Optional[List[str]] = None) -> Generator:
-            """This methods creates websockets connection in threads and returns the logs to the main thread."""
-            app_id = admin_page.url.split("/")[-1]
-
-            if not component_names:
-                works = client.lightningwork_service_list_lightningwork(
-                    project_id=project.project_id,
-                    app_id=app_id,
-                ).lightningworks
-                component_names = ["flow"] + [w.name for w in works]
-
-            def on_error_callback(ws_app, *_):
-                print(traceback.print_exc())
-                ws_app.close()
-
-            colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
-            gen = _app_logs_reader(
-                client=client,
-                project_id=project.project_id,
-                app_id=app_id,
-                component_names=component_names,
-                follow=False,
-                on_error_callback=on_error_callback,
-            )
-            max_length = max(len(c.replace("root.", "")) for c in component_names)
-            for log_event in gen:
-                message = log_event.message
-                identifier = f"{log_event.timestamp}{log_event.message}"
-                if identifier not in identifiers:
-                    date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-                    identifiers.append(identifier)
-                    color = colors[log_event.component_name]
-                    padding = (max_length - len(log_event.component_name)) * " "
-                    print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
-                yield message
 
         # 5. Print your application ID
-        print(
-            f"The Lightning Id Name : [bold magenta]{str(view_page.url).split('.')[0].split('//')[-1]}[/bold magenta]"
+        app_id = str(view_page.url).split(".")[0].split("//")[-1]
+        os.environ["LIGHTNING_APP_ID"] = app_id
+
+        print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
+
+        fetch_logs = partial(
+            _fetch_logs,
+            client=client,
+            app_id=admin_page.url.split("/")[-1],
+            project=project,
+            identifiers=identifiers,
         )
 
         try:
