@@ -34,7 +34,7 @@ class WorkWithCustomBaseImage(LightningWork):
 
     def run(self):
         # checking the existence of the file - this file had been added to the custom base image
-        assert ".e2e_test" in os.listdir("/content/"), "file not found"
+        assert ".e2e_test" in os.listdir("/testdir/"), "file not found"
 
 
 class CustomWorkBuildConfigChecker(LightningFlow):
