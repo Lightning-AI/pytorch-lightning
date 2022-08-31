@@ -17,6 +17,7 @@ import pytest
 import torch
 
 
+# TODO(lite): Add all RunIf conditions once the relevant utilities have moved to lite source dir
 class RunIf:
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
