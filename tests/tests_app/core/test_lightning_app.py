@@ -955,3 +955,28 @@ def test_non_updated_flow(caplog):
         MultiProcessRuntime(app, start_server=False).dispatch()
     assert caplog.messages == ["Hello World"]
     assert app.counter == 3
+
+
+def test_debug_mode_logging():
+    """Tests debug messages are collected when activated by the App."""
+
+    from lightning_app.core.app import logger
+
+    records = []
+
+    def fn(record):
+        records.append(record)
+
+    logger.logger.handle = fn
+
+    app = LightningApp(A4(), debug=True)
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+    assert len(records) == 3
+    assert os.getenv("DEBUG") is None
+    records = []
+
+    app = LightningApp(A4())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+    assert records == []

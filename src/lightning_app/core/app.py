@@ -122,9 +122,10 @@ class LightningApp:
         # is only available after all Flows and Works have been instantiated.
         _convert_paths_after_init(self.root)
 
+        # Lazily enable debugging.
         if debug or DEBUG_ENABLED:
-            # Lazily enable debugging.
-            os.environ["DEBUG"] = "1"
+            if not DEBUG_ENABLED:
+                os.environ["DEBUG"] = "2"
             _console.setLevel(logging.DEBUG)
 
     def get_component_by_name(self, component_name: str):
@@ -441,6 +442,8 @@ class LightningApp:
 
             self._has_updated = False
 
+        self.on_run_end()
+
         return True
 
     def _update_layout(self) -> None:
@@ -558,3 +561,8 @@ class LightningApp:
         # disable any flow schedules.
         for flow in self.flows:
             flow._disable_running_schedules()
+
+    def on_run_end(self):
+        if os.getenv("DEBUG") == "2":
+            del os.environ["DEBUG"]
+            _console.setLevel(logging.INFO)
