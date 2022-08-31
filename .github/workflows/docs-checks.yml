@@ -61,6 +61,10 @@ jobs:
           pip install -e . -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip install -r requirements/${{ matrix.pkg }}/devel.txt
           pip list
+          echo "### ${{ strategy.matrix }}" >> $GITHUB_STEP_SUMMARY
+          echo \`\`\` >> $GITHUB_STEP_SUMMARY
+          pip list >> $GITHUB_STEP_SUMMARY
+          echo \`\`\` >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: Test Documentation
@@ -119,6 +123,10 @@ jobs:
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list
+          echo "### ${{ strategy.matrix }}" >> $GITHUB_STEP_SUMMARY
+          echo \`\`\` >> $GITHUB_STEP_SUMMARY
+          pip list >> $GITHUB_STEP_SUMMARY
+          echo \`\`\` >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: Make Documentation
