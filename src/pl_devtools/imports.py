@@ -13,6 +13,7 @@
 # limitations under the License.
 import importlib
 import operator
+from functools import lru_cache
 from importlib.util import find_spec
 from typing import Callable
 
@@ -20,6 +21,7 @@ import pkg_resources
 from packaging.version import Version
 
 
+@lru_cache()
 def package_available(package_name: str) -> bool:
     """Check if a package is available in your environment.
 
@@ -34,6 +36,7 @@ def package_available(package_name: str) -> bool:
         return False
 
 
+@lru_cache()
 def module_available(module_path: str) -> bool:
     """Check if a module path is available in your environment.
 
