@@ -624,7 +624,6 @@ class DataHooks:
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
-        - :class:`torchtext.data.batch.Batch`
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
@@ -665,6 +664,9 @@ class DataHooks:
             MisconfigurationException:
                 If using data-parallel, ``Trainer(strategy='dp')``.
 
+            MisconfigurationException:
+                If using IPUs, ``Trainer(accelerator='ipu')``.
+
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
@@ -695,10 +697,6 @@ class DataHooks:
             def on_before_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = transforms(batch['x'])
                 return batch
-
-        Raises:
-            MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -734,6 +732,9 @@ class DataHooks:
         Raises:
             MisconfigurationException:
                 If using data-parallel, ``Trainer(strategy='dp')``.
+
+            MisconfigurationException:
+                If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

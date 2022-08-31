@@ -7,13 +7,14 @@ import torch
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
+    from fairscale.optim import OSS
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
@@ -70,8 +71,8 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
-    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param.to("cpu"), shard_param)
+    for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
@@ -87,8 +88,8 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
-    for ddp_param, shard_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(ddp_param.to("cpu"), shard_param)
+    for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
@@ -256,8 +257,8 @@ def test_configure_ddp(tmpdir):
 def test_custom_kwargs_sharded(_, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
     strategy = cls(reduce_fp16=True)
-    strategy.model = Mock(spec=LightningModule)
-    strategy.model.trainer = Mock()
+    strategy._lightning_module = Mock(spec=LightningModule)
+    strategy._lightning_module.trainer = Mock()
     strategy.parallel_devices = [Mock()]
     class_name = "sharded" if isinstance(strategy, DDPShardedStrategy) else "sharded_spawn"
 
@@ -276,8 +277,8 @@ def test_custom_kwargs_sharded_reduce_buffer_size(_, params, expected_buffer_siz
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
     strategy = DDPShardedStrategy(**params)
     strategy.num_nodes = num_nodes
-    strategy.model = Mock(spec=LightningModule)
-    strategy.model.trainer = Mock()
+    strategy._lightning_module = Mock(spec=LightningModule)
+    strategy._lightning_module.trainer = Mock()
     strategy.parallel_devices = [Mock()]
 
     with mock.patch("pytorch_lightning.strategies.sharded.ShardedDataParallel", autospec=True) as mock_sharded:
@@ -300,3 +301,41 @@ def test_block_backward_sync():
         with strategy.block_backward_sync():
             pass
     model.no_sync.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp_sharded", {}),
+        ("ddp_sharded_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_sharded_spawn", {}),
+        ("ddp_sharded_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
+
+
+class BoringFairScaleOptimizerModel(BoringModel):
+    def configure_optimizers(self):
+        base_optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        return OSS(params=base_optimizer.param_groups, optim=type(base_optimizer), **base_optimizer.defaults)
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
+@pytest.mark.parametrize("strategy", (pytest.param("ddp_sharded", marks=RunIf(standalone=True)), "ddp_sharded_spawn"))
+def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
+    """Test to ensure that checkpoint is saved correctly when using fairscale optimizers."""
+    model = BoringFairScaleOptimizerModel()
+    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
+
+    trainer.fit(model)
+
+    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    trainer.save_checkpoint(checkpoint_path)
+    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+
+    # Assert model parameters are identical after loading
+    for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
+        assert torch.equal(trained_param.to("cpu"), loaded_param)

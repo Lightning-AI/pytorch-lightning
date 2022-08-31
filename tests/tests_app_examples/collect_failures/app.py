@@ -11,7 +11,7 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 class SimpleWork(LightningWork):
     def __init__(self):
-        super().__init__(cache_calls=False, parallel=True)
+        super().__init__(cache_calls=False, parallel=True, raise_exception=False)
         self.is_running_now = False
 
     def run(self):

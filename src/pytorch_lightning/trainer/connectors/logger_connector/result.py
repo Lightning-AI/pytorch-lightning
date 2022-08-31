@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Generator
 from dataclasses import asdict, dataclass, replace
 from functools import partial, wraps
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -525,7 +524,7 @@ class _ResultCollection(dict):
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
-                if not result_metric.meta.sync.should and distributed_available():
+                if not should and distributed_available() and result_metric.is_tensor:
                     # ensure sync happens for FT since during a failure, the metrics are synced and saved to the
                     # checkpoint, so during restart, metrics on rank 0 are from the accumulated ones from the previous
                     # run, and on other ranks, they are 0. So we need to make sure they are synced in further training

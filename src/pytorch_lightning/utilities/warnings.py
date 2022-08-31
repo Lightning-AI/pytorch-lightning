@@ -18,6 +18,7 @@ from typing import Any
 
 from pytorch_lightning.utilities.rank_zero import LightningDeprecationWarning as NewLightningDeprecationWarning
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation as new_rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
 # enable our warnings
@@ -38,6 +39,11 @@ class WarningCache(set):
         if message not in self:
             self.add(message)
             new_rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
+
+    def info(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
+        if message not in self:
+            self.add(message)
+            new_rank_zero_info(message, stacklevel=stacklevel, **kwargs)
 
 
 def rank_zero_warn(*args: Any, **kwargs: Any) -> Any:

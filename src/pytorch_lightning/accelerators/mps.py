@@ -24,7 +24,9 @@ from pytorch_lightning.utilities.types import _DEVICE
 
 # For using the `MPSAccelerator`, user's machine should have `torch>=1.12`, Metal programming framework and
 # the ARM-based Apple Silicon processors.
-_MPS_AVAILABLE = _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.platform() == "arm"
+_MPS_AVAILABLE = (
+    _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
+)
 
 
 class MPSAccelerator(Accelerator):

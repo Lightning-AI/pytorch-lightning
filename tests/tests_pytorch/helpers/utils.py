@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import os
 import re
 from contextlib import contextmanager
@@ -76,6 +77,10 @@ def set_random_main_port():
 def init_checkpoint_callback(logger):
     checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
     return checkpoint
+
+
+def getattr_recursive(obj, attr):
+    return functools.reduce(getattr, [obj] + attr.split("."))
 
 
 @contextmanager

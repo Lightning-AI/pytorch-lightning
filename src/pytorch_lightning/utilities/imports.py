@@ -124,6 +124,7 @@ class _RequirementAvailable:
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
+_PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 _TORCH_LESSER_EQUAL_1_10_2 = _compare_version("torch", operator.le, "1.10.2")
@@ -140,16 +141,12 @@ _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.grou
 _HABANA_FRAMEWORK_AVAILABLE = _package_available("habana_frameworks")
 _HIVEMIND_AVAILABLE = _package_available("hivemind")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
-_HYDRA_AVAILABLE = _package_available("hydra")
-_HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = _package_available("omegaconf")
 _POPTORCH_AVAILABLE = _package_available("poptorch")
 _PSUTIL_AVAILABLE = _package_available("psutil")
 _RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCHTEXT_AVAILABLE = _package_available("torchtext")
-_TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
 _TORCHVISION_AVAILABLE = _package_available("torchvision")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
 

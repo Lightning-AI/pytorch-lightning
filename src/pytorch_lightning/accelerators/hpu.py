@@ -17,8 +17,9 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import _HPU_AVAILABLE, device_parser
+from pytorch_lightning.utilities.device_parser import parse_hpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 if _HPU_AVAILABLE:
@@ -39,14 +40,29 @@ class HPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be HPU, got {root_device} instead.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-        """HPU device stats aren't supported yet."""
-        rank_zero_debug("HPU device stats aren't supported yet.")
-        return {}
+        """Returns a map of the following metrics with their values:
+
+        - Limit: amount of total memory on HPU device.
+        - InUse: amount of allocated memory at any instance.
+        - MaxInUse: amount of total active memory allocated.
+        - NumAllocs: number of allocations.
+        - NumFrees: number of freed chunks.
+        - ActiveAllocs: number of active allocations.
+        - MaxAllocSize: maximum allocated size.
+        - TotalSystemAllocs: total number of system allocations.
+        - TotalSystemFrees: total number of system frees.
+        - TotalActiveAllocs: total number of active allocations.
+        """
+        try:
+            return torch_hpu.hpu.memory_stats(device)
+        except (AttributeError, NameError):
+            rank_zero_debug("HPU `get_device_stats` failed")
+            return {}
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[int]:
         """Accelerator device parsing logic."""
-        return device_parser.parse_hpus(devices)
+        return parse_hpus(devices)
 
     @staticmethod
     def get_parallel_devices(devices: int) -> List[torch.device]:
