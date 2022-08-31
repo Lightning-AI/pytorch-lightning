@@ -21,11 +21,11 @@ def test_commands_and_api_example_cloud() -> None:
         app_id = admin_page.url.split("/")[-1]
 
         # 2: Send the first command with the client
-        cmd = f"lightning command_with_client --name=this --app_id {app_id}"
+        cmd = f"lightning command with client --name=this --app_id {app_id}"
         Popen(cmd, shell=True).wait()
 
         # 3: Send the second command without a client
-        cmd = f"lightning command_without_client --name=is --app_id {app_id}"
+        cmd = f"lightning command without client --name=is --app_id {app_id}"
         Popen(cmd, shell=True).wait()
 
         # 4: Send a request to the Rest API directly.

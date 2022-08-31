@@ -47,7 +47,7 @@ def test_connect_disconnect_local(monkeypatch):
     connect("localhost", True)
     assert _retrieve_connection_to_an_app() == ("localhost", None)
     commands = _list_app_commands()
-    assert commands == ["nested command", "command without client", "command with client"]
+    assert commands == ["command with client", "command without client", "nested command"]
     command_path = _resolve_command_path("nested_command")
     assert not os.path.exists(command_path)
     command_path = _resolve_command_path("command_with_client")
@@ -62,9 +62,9 @@ def test_connect_disconnect_local(monkeypatch):
         "  --help     Show this message and exit.",
         "",
         "Lightning App Commands",
-        "  nested command         Description",
-        "  command without client Description",
         "  command with client    Description",
+        "  command without client Description",
+        "  nested command         Description",
     ]
     assert messages == expected
 
@@ -141,7 +141,7 @@ def test_connect_disconnect_cloud(monkeypatch):
     connect("example", True)
     assert _retrieve_connection_to_an_app() == ("example", "1234")
     commands = _list_app_commands()
-    assert commands == ["nested command", "command without client", "command with client"]
+    assert commands == ["command with client", "command without client", "nested command"]
     command_path = _resolve_command_path("nested_command")
     assert not os.path.exists(command_path)
     command_path = _resolve_command_path("command_with_client")
@@ -163,9 +163,9 @@ def test_connect_disconnect_cloud(monkeypatch):
         "  --help     Show this message and exit.",
         "",
         "Lightning App Commands",
-        "  nested command         Description",
-        "  command without client Description",
         "  command with client    Description",
+        "  command without client Description",
+        "  nested command         Description",
     ]
     assert messages == expected
 

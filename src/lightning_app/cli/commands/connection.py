@@ -176,11 +176,11 @@ def _resolve_command_path(command: str) -> str:
 
 
 def _list_app_commands() -> List[str]:
-    command_names = [
+    command_names = sorted(
         n.replace(".py", "").replace(".txt", "").replace("_", " ")
         for n in os.listdir(_get_commands_folder())
         if n != "__pycache__"
-    ]
+    )
     if not command_names:
         click.echo("The current Lightning App doesn't have commands.")
         return []
