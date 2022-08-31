@@ -41,5 +41,3 @@ def test_commands_and_api_example_cloud() -> None:
                 if "['this', 'is', 'awesome']" in log:
                     has_logs = True
             sleep(1)
-
-        sleep(1000)
