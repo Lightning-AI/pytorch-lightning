@@ -974,7 +974,6 @@ class FlowPath(LightningFlow):
 
     def run(self):
         self.w.run()
-        breakpoint()
 
 
 class TestLightningHasUpdatedApp(LightningApp):
