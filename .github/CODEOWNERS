@@ -47,18 +47,18 @@
 /src/pytorch_lightning/utilities            @borda @tchaton @carmocca
 
 /src/lightning_app                          @tchaton @manskx @Lightning-AI/lai-platform
-/src/lightning_app/cli/pl-app-template      @tchaton @awaelchli @Borda
-/src/lightning_app/core                     @tchaton @awaelchli @manskx
-/src/lightning_app/core/queues.py           @tchaton @hhsecond @manskx
-/src/lightning_app/runners/cloud.py         @tchaton @hhsecond
-/src/lightning_app/testing                  @tchaton @manskx
+/src/lightning_app/cli/pl-app-template      @tchaton @awaelchli @Borda @Lightning-AI/lai-platform
+/src/lightning_app/core                     @tchaton @awaelchli @manskx @Lightning-AI/lai-platform
+/src/lightning_app/core/queues.py           @tchaton @hhsecond @manskx @Lightning-AI/lai-platform
+/src/lightning_app/runners/cloud.py         @tchaton @hhsecond @Lightning-AI/lai-platform
+/src/lightning_app/testing                  @tchaton @manskx @Lightning-AI/lai-platform
 /src/lightning_app/__about__.py             @nohalon @edenlightning @lantiga
 
 # Examples
-/examples/app_*                             @tchaton @awaelchli @manskx @hhsecond
+/examples/app_*                             @tchaton @awaelchli @manskx @hhsecond @Lightning-AI/lai-platform
 # App tests
-/tests/tests_app                            @tchaton @awaelchli @manskx @hhsecond
-/tests/tests_app_examples                   @tchaton @awaelchli @manskx @hhsecond
+/tests/tests_app                            @tchaton @awaelchli @manskx @hhsecond @Lightning-AI/lai-platform
+/tests/tests_app_examples                   @tchaton @awaelchli @manskx @hhsecond @Lightning-AI/lai-platform
 
 # Specifics
 /src/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
