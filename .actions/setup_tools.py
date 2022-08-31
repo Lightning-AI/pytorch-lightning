@@ -21,10 +21,13 @@ import tarfile
 import tempfile
 import urllib.request
 from datetime import datetime
+from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain, groupby
 from types import ModuleType
 from typing import List
+
+from pkg_resources import parse_requirements
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
@@ -42,12 +45,67 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
+def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all") -> str:
+    """Adjust the upper version contrains.
+
+    Args:
+        ln: raw line from requirement
+        comment_char: charter marking comment
+        unfreeze: Enum or "all"|"major"|""
+
+    Returns:
+        adjusted requirement
+
+    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # anything", unfreeze="")
+    'arrow>=1.2.0, <=1.2.2'
+    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="")
+    'arrow>=1.2.0, <=1.2.2  # strict'
+    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # my name", unfreeze="all")
+    'arrow>=1.2.0'
+    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="all")
+    'arrow>=1.2.0, <=1.2.2  # strict'
+    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # cool", unfreeze="major")
+    'arrow>=1.2.0, <2.0  # strict'
+    >>> _augment_requirement("arrow>=1.2.0", unfreeze="major")
+    'arrow>=1.2.0, <2.0  # strict'
+    """
+    # filer all comments
+    if comment_char in ln:
+        comment = ln[ln.index(comment_char) :]
+        ln = ln[: ln.index(comment_char)]
+    else:
+        comment = ""
+    req = ln.strip()
+    # skip directly installed dependencies
+    if not req or req.startswith("http") or "@http" in req:
+        return ""
+    # extract the major version form all listed versions
+    if unfreeze == "major":
+        req_ = list(parse_requirements([req]))[0]
+        vers = [LooseVersion(v) for s, v in req_.specs if s not in ("==", "~=")]
+        ver_major = sorted(vers)[-1].version[0] if vers else None
+    else:
+        ver_major = None
+
+    # remove version restrictions unless they are strict
+    if unfreeze and "<" in req and "strict" not in comment:
+        req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+    if ver_major is not None:
+        req += f", <{int(ver_major) + 1}.0"
+
+    # adding strict back to the comment
+    if "strict" in comment or ver_major is not None:
+        req += "  # strict"
+
+    return req
+
+
 def load_requirements(
-    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
+    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: str = "all"
 ) -> List[str]:
     """Loading requirements from a file.
 
-    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
+    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements", unfreeze="major")
     >>> load_requirements(path_req)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['numpy...', 'torch...', ...]
     """
@@ -55,24 +113,7 @@ def load_requirements(
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []
     for ln in lines:
-        # filer all comments
-        comment = ""
-        if comment_char in ln:
-            comment = ln[ln.index(comment_char) :]
-            ln = ln[: ln.index(comment_char)]
-        req = ln.strip()
-        # skip directly installed dependencies
-        if not req or req.startswith("http") or "@http" in req:
-            continue
-        # remove version restrictions unless they are strict
-        if unfreeze and "<" in req and "strict" not in comment:
-            req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
-
-        # adding strict back to the comment
-        if "strict" in comment:
-            req += "  # strict"
-
-        reqs.append(req)
+        reqs.append(_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze))
     return reqs
 
 
@@ -439,7 +480,7 @@ def _download_frontend(root: str = _PROJECT_ROOT):
         print("The Lightning UI downloading has failed!")
 
 
-def _adjust_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
+def _relax_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
     """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`."""
     reqs = load_requirements(req_dir, file_name="base.txt")
     for i, req in enumerate(reqs):
