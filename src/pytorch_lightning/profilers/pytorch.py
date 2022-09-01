@@ -505,7 +505,7 @@ class PyTorchProfiler(Profiler):
             self._register.__exit__(None, None, None)
             self._register = None
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: str) -> None:
         self._delete_profilers()
 
         for k in list(self._recording_map):
