@@ -58,17 +58,17 @@ jobs:
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
-      if: ${{ (runner.os == 'macOS') }}
+      if: runner.os == 'macOS'
       run: |
         brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
 
     - name: Setup Windows
-      if: ${{ (runner.os == 'windows') }}
+      if: runner.os == 'windows'
       run: |
         python .actions/assistant.py requirements_prune_pkgs horovod
 
     - name: Set min. dependencies
-      if: ${{ (matrix.requires == 'oldest') }}
+      if: matrix.requires == 'oldest'
       run: |
         python .actions/assistant.py replace_oldest_ver
 
