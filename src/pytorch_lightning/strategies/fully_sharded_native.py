@@ -121,7 +121,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         mixed_precision: Optional[MixedPrecision] = None,
         **kwargs: Any,
     ) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
+        if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException(
                 "`DDPFullyShardedNativeStrategy` is supported from PyTorch v1.12.0 onwards."
             )
