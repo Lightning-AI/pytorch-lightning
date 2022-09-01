@@ -52,7 +52,7 @@ def test_torchdynamo_training_closure_cls_matches_default():
 @pytest.mark.skipif(not _TORCHDYNAMO_AVAILABLE, reason=str(_TORCHDYNAMO_CACHE))
 @mock.patch("torchdynamo.optimize")
 @pytest.mark.parametrize("model_cls", (BoringModel, ManualOptimBoringModel))
-def test_torchdynamo_mocked_context_manager(optimize_mock: Mock, model_cls):
+def test_torchdynamo_mocked_context_manager(optimize_mock: Mock, tmpdir, model_cls):
     model = model_cls()
 
     compile_fn_mock = Mock()
@@ -60,6 +60,7 @@ def test_torchdynamo_mocked_context_manager(optimize_mock: Mock, model_cls):
     default_backend = "inductor"
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=torchdynamo,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -115,9 +116,10 @@ _TRITON_CACHE = _RequirementAvailable("triton")
 )
 # `fit` runs validate already, and it should be equal to `test`, so skip it
 @pytest.mark.parametrize("entrypoint", ("fit", "test", "predict"))
-def test_torchdynamo(model_cls, backend, entrypoint):
+def test_torchdynamo(tmpdir, model_cls, backend, entrypoint):
     model = model_cls()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         accelerator="auto",
         devices=1,
         callbacks=TorchDynamo(backend),
