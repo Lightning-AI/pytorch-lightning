@@ -1,1 +1,0 @@
-tests/tests_pytorch/run_standalone_tasks.sh
