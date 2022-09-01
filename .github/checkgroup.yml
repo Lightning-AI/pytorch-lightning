@@ -61,11 +61,11 @@ subprojects:
       - "pytorch-lightning (GPUs)"
 
   - id: "lightning_lite: Azure GPU"
-      paths:
-        - ".azure/gpu-tests-lite.yml"
-        - "tests/tests_lite/run_standalone_*.sh"
-      checks:
-        - "lightning-lite (GPUs)"
+    paths:
+      - ".azure/gpu-tests-lite.yml"
+      - "tests/tests_lite/run_standalone_*.sh"
+    checks:
+      - "lightning-lite (GPUs)"
 
   - id: "pytorch_lightning: Azure HPU"
     paths:
@@ -148,13 +148,6 @@ subprojects:
       - "app-pytest (ubuntu-20.04, 3.8, oldest)"
       - "app-pytest (windows-2022, 3.8, latest)"
       - "app-pytest (windows-2022, 3.8, oldest)"
-
-  - id: "lightning_lite: Azure GPU"
-    paths:
-      - ".azure/gpu-tests-lite.yml"
-      - "tests/tests_lite/run_standalone_*.sh"
-    checks:
-      - "lightning-lite (GPUs)"
 
   - id: "lightning_app: Azure"
     paths:
