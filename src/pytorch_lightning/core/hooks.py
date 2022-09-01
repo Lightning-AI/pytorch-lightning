@@ -380,7 +380,7 @@ class DataHooks:
             model.predict_dataloader()
         """
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict. This is a good hook when
         you need to build models dynamically or adjust something about them. This hook is called on every process
         when using DDP.
@@ -406,7 +406,7 @@ class DataHooks:
                     self.l1 = nn.Linear(28, data.num_classes)
         """
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: str) -> None:
         """Called at the end of fit (train + validate), validate, test, or predict.
 
         Args:
