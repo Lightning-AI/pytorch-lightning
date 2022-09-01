@@ -321,3 +321,26 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
 
     assert trainer.train_dataloader.loaders.batch_size == new_batch_size
     assert trainer.val_dataloaders[0].batch_size == new_batch_size
+
+
+@pytest.mark.parametrize("scale_method, expected_batch_size", [("power", 62), ("binsearch", 100)])
+@patch("pytorch_lightning.tuner.batch_size_scaling.is_oom_error", return_value=True)
+def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expected_batch_size):
+    class CustomBatchSizeModel(BatchSizeModel):
+        def training_step(self, *_, **__):
+            if self.batch_size > 100:
+                raise RuntimeError
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 1000), batch_size=self.batch_size)
+
+    model = CustomBatchSizeModel(batch_size=16)
+    model.validation_step = None
+    model.training_epoch_end = None
+    scale_batch_size_kwargs = {"max_trials": 10, "steps_per_trial": 1, "init_val": 500, "mode": scale_method}
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, auto_scale_batch_size=True)
+    new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
+    assert new_batch_size == model.batch_size
+    assert new_batch_size == expected_batch_size
+    assert trainer.train_dataloader.loaders.batch_size == expected_batch_size

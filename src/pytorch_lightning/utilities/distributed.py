@@ -126,12 +126,12 @@ def register_ddp_comm_hook(
     ddp_comm_hook: Callable = ddp_comm_hook
 
     if ddp_comm_wrapper is not None:
-        new_rank_zero_info(
+        rank_zero_info(
             f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
         )
         ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
-    new_rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
+    rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
     model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)  # type: ignore[operator]
 
 
@@ -155,21 +155,3 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
     if not distributed_available():
         return {0: state}
     return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}
-
-
-def rank_zero_info(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
-        " and will be removed in v1.8."
-        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
-    )
-    return new_rank_zero_info(*args, **kwargs)
-
-
-def rank_zero_debug(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
-        " and will be removed in v1.8."
-        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
-    )
-    return new_rank_zero_debug(*args, **kwargs)

@@ -2,7 +2,6 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Tuple
 
 import torch
-from deprecate import void
 
 from lightning_lite.utilities.apply_func import move_data_to_device
 from pytorch_lightning.loops.loop import Loop
@@ -63,7 +62,6 @@ class PredictionEpochLoop(Loop):
             dl_max_batches: the maximum number of batches the current loader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter, dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
         # this call requires that `self.return_predictions` is set

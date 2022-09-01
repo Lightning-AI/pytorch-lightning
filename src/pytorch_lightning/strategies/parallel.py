@@ -25,12 +25,7 @@ from lightning_lite.utilities.distributed import (
     get_default_process_group_backend_for_device,
     ReduceOp,
 )
-from pytorch_lightning.plugins import LayerSync
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class ParallelStrategy(Strategy, ABC):
