@@ -1,4 +1,4 @@
-name: Test PyTorch full
+name: Test Lite full
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
 
-  pl-cpu:
+  lite-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:
@@ -45,7 +45,7 @@ jobs:
       id: skip
       shell: bash -l {0}
       run: |
-        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*'
+        FILTER='src/lightning_lite|requirements/lite|tests/tests_lite'
         echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
         MATCHES=$(cat changed_files.txt | grep -E $FILTER)
         echo $MATCHES
@@ -73,12 +73,6 @@ jobs:
         pip --version
         pip install -q fire
 
-    # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
-    - name: Setup macOS
-      if: ${{ (runner.os == 'macOS') && (steps.skip.outputs.continue == '1') }}
-      run: |
-        brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
-
     - name: Setup Windows
       if: ${{ (runner.os == 'windows') && (steps.skip.outputs.continue == '1') }}
       run: |
@@ -101,55 +95,20 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
-
-    - name: Pull legacy checkpoints
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Install dependencies
       if: ${{ (steps.skip.outputs.continue == '1') }}
       env:
-        PACKAGE_NAME: pytorch
+        PACKAGE_NAME: pytorch  # TODO(lite) does this need to say lite?
         FREEZE_REQUIREMENTS: 1
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
         pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         pip list
-      shell: bash
-
-    - name: DocTests
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      working-directory: ./src
-      run: pytest pytorch_lightning --cov=pytorch_lightning
-
-    - name: Install extra dependencies
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      run: |
-        # adjust versions according installed Torch version
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install -r ./requirements/pytorch/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip list
-      shell: bash
-
-    - name: Reinstall Horovod if necessary
-      if: ${{ (runner.os != 'windows') && (steps.skip.outputs.continue == '1') }}
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
-      run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
-        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-          pip uninstall -y horovod
-          grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
-          pip install --no-cache-dir -r requirements/pytorch/horovod.txt
-        fi
-        horovodrun --check-build
-        python -c "import horovod.torch"
       shell: bash
 
     - name: Cache datasets
@@ -159,38 +118,22 @@ jobs:
         path: Datasets
         key: pl-dataset
 
-    - name: Sanity check
+    - name: Testing Lite
       if: ${{ (steps.skip.outputs.continue == '1') }}
-      run: python requirements/pytorch/check-avail-extras.py
-
-    - name: Testing PyTorch
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      working-directory: tests/tests_pytorch
+      working-directory: tests/tests_lite
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source lightning_lite -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: ${{ (failure()) && (steps.skip.outputs.continue == '1') }}
       uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Prepare Examples
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      run: |
-        # adjust versions according installed Torch version
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
-        pip install -r requirements/pytorch/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-
-    - name: Run Examples
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      working-directory: ./examples
-      run: python -m pytest test_pl_examples.py -v --durations=10
+        path: tests/tests_lite/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Statistics
       if: ${{ (success()) && (steps.skip.outputs.continue == '1') }}
-      working-directory: tests/tests_pytorch
+      working-directory: tests/tests_lite
       run: |
         coverage report
         coverage xml
@@ -202,7 +145,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/tests_pytorch/coverage.xml
+        file: tests/tests_lite/coverage.xml
         flags: cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false
