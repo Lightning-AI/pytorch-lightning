@@ -1,0 +1,1 @@
+../../../source-app/glossary/lightning_app_overview/index.rst

@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  slow:
+  pl-slow:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:

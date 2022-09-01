@@ -22,7 +22,7 @@ defaults:
     shell: bash -l {0}
 
 jobs:
-  conda:
+  pl-conda:
     runs-on: ubuntu-20.04
     container: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
     strategy:

@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
 
-  cpu:
+  pl-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:

@@ -17,7 +17,6 @@ import sys
 from collections import ChainMap, OrderedDict
 from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
-from deprecate.utils import void
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
@@ -124,8 +123,6 @@ class EvaluationLoop(DataLoaderLoop):
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
-        void(*args, **kwargs)
-
         data_fetcher_cls = _select_data_fetcher_type(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
@@ -137,8 +134,6 @@ class EvaluationLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader."""
-        void(*args, **kwargs)
-
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.current_dataloader
 

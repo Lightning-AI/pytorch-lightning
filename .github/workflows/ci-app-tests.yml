@@ -7,16 +7,17 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
   pull_request:
     paths:
       - ".github/workflows/ci-app-tests.yml"
-      - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
+      - "requirements/app/**"
+      - "setup.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  pytest:
+  app-pytest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
