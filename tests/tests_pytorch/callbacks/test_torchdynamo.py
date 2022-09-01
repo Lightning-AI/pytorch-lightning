@@ -113,7 +113,8 @@ _TRITON_CACHE = _RequirementAvailable("triton")
         pytest.param("nvfuser", marks=RunIf(min_cuda_gpus=1)),
     ),
 )
-@pytest.mark.parametrize("entrypoint", ("fit", "validate", "test", "predict"))
+# `fit` runs validate already, and it should be equal to `test`, so skip it
+@pytest.mark.parametrize("entrypoint", ("fit", "test", "predict"))
 def test_torchdynamo(model_cls, backend, entrypoint):
     model = model_cls()
     trainer = Trainer(

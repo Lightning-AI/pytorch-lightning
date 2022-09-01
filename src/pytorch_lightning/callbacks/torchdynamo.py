@@ -99,7 +99,8 @@ class TorchDynamo(Callback):
         NotImplementedError:
             If run in a distributed environment.
         """
-        # TODO: maybe this doesn't apply to evaluation and prediciton
+        # TODO: maybe this doesn't apply to evaluation and prediction
+        # https://github.com/pytorch/torchdynamo/issues/43
         if trainer._accelerator_connector.is_distributed:
             raise NotImplementedError(
                 f"`TorchDynamo` does not support the {type(trainer.strategy).__name__!r} at the moment."
