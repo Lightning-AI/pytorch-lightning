@@ -1278,8 +1278,7 @@ def test_collect_states_with_collection():
     assert generated == [{"a": {0: state}, "b": [{"a": {0: state}}]}]
 
 
-# FIXME(@tchaton): >0 num_workers failing
-@pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=[RunIf(slow=True), pytest.mark.xfail()])])
+@pytest.mark.parametrize("num_workers", [0, 2])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "2"})
 def test_stateful_workers(num_workers):
     seed_everything(42)

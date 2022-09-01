@@ -601,10 +601,11 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
     on."""
     if num_workers == 0:
         return state
+    # the state of the first worker is the same as the state of all workers.
+    if len(state) == 1:
+        state = {i: state[0] for i in range(num_workers)}
     if latest_worker_id > num_workers - 1:
         raise MisconfigurationException("The `latest_worker_id` should be within [0, num_workers - 1].")
-    if len(state) != num_workers:
-        raise MisconfigurationException("The `state` should contain `num_workers - 1` values.")
     next_worker_id = latest_worker_id + 1
     old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
     return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
