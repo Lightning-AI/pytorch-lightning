@@ -118,7 +118,8 @@ def load_requirements(
     reqs = []
     for ln in lines:
         reqs.append(_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze))
-    return reqs
+    # filter empty lines
+    return [req for req in reqs if req]
 
 
 def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
