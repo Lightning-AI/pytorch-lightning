@@ -18,7 +18,7 @@ from typing import Any
 
 from lightning_lite.utilities import rank_zero_deprecation
 from lightning_lite.utilities import rank_zero_warn
-from lightning_lite.utilities.rank_zero import LightningDeprecationWarning
+from lightning_lite.utilities.rank_zero import LightningDeprecationWarning, rank_zero_info
 
 # enable our warnings
 warnings.simplefilter("default", category=LightningDeprecationWarning)
@@ -38,3 +38,8 @@ class WarningCache(set):
         if message not in self:
             self.add(message)
             rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
+
+    def info(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
+        if message not in self:
+            self.add(message)
+            rank_zero_info(message, stacklevel=stacklevel, **kwargs)

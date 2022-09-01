@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoader
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from lightning_lite.utilities import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 

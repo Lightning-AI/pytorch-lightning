@@ -110,7 +110,7 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerConfig,
     TRAIN_DATALOADERS,
 )
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from lightning_lite.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer

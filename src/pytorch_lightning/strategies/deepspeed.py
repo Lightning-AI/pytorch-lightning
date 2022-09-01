@@ -50,7 +50,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)

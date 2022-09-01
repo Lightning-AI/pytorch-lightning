@@ -28,7 +28,7 @@ from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from lightning_lite.utilities import rank_zero_warn
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList

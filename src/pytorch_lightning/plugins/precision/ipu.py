@@ -22,7 +22,7 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 

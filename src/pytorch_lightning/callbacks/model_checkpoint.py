@@ -40,7 +40,7 @@ from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities import rank_zero_info, rank_zero_warn, rank_zero_deprecation
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()

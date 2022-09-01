@@ -32,7 +32,7 @@ from pytorch_lightning.loops.utilities import (
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 
 @dataclass

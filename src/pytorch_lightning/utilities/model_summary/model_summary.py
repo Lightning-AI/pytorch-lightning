@@ -24,7 +24,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
