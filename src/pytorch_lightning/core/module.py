@@ -424,6 +424,7 @@ class LightningModule(
             )
 
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
+        value = apply_to_collection(value, torch.Tensor, torch.squeeze)
         apply_to_collection(value, torch.Tensor, self.__check_numel_1, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
