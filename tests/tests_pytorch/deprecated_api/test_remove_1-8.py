@@ -34,7 +34,7 @@ from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -76,11 +76,6 @@ def test_v1_8_0_deprecated_call_hook():
     )
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
         trainer.call_hook("test_hook")
-
-
-def test_v1_8_0_deprecated_warning_positional_category():
-    with pytest.deprecated_call(match=r"use `category=FutureWarning."):
-        rank_zero_warn("foo", FutureWarning)
 
 
 def test_v1_8_0_deprecated_run_stage():
@@ -278,40 +273,6 @@ def test_v1_8_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
         match="The `LightningModule.on_pretrain_routine_end` hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
-
-
-def test_v1_8_0_rank_zero_imports():
-
-    import warnings
-
-    from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_info
-    from pytorch_lightning.utilities.warnings import LightningDeprecationWarning, rank_zero_deprecation, rank_zero_warn
-
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_debug("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_info("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.rank_zero_warn has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_warn("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.rank_zero_deprecation has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_deprecation("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.LightningDeprecationWarning has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        warnings.warn("foo", LightningDeprecationWarning, stacklevel=5)
 
 
 def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):

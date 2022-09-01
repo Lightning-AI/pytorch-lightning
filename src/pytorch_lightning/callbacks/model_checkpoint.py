@@ -253,7 +253,7 @@ class ModelCheckpoint(Checkpoint):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.__resolve_ckpt_dir(trainer)
         assert self.dirpath is not None
         if trainer.is_global_zero and stage == "fit":
