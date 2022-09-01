@@ -1245,7 +1245,7 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     # Case - 2
     # Make sure that everything runs when dirpath is not initialized explicitly
     cb_restore = CustomModelCheckpoint()
-    cb_restore.setup(Trainer(), BoringModel())
+    cb_restore.setup(Trainer(), BoringModel(), stage="fit")
     with pytest.warns(UserWarning, match="The dirpath has changed from*"):
         cb_restore.load_state_dict(written_ckpt)
     make_assertions(cb_restore, written_ckpt)
