@@ -1,1 +1,1 @@
-tests/tests_pytorch/run_standalone_tests.sh
+../tests_pytorch/run_standalone_tests.sh

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -e
-# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
+# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_<package> DIRECTORY
 
 # Batch size for testing: Determines how many standalone test invocations run in parallel
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
