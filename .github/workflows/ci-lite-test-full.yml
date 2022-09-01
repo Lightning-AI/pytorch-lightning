@@ -88,12 +88,6 @@ jobs:
         pip list
       shell: bash
 
-    - name: Cache datasets
-      uses: actions/cache@v3
-      with:
-        path: Datasets
-        key: pl-dataset
-
     - name: Testing Lite
       working-directory: tests/tests_lite
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
