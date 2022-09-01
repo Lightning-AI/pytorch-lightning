@@ -30,7 +30,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 

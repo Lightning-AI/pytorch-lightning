@@ -41,7 +41,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
 
 warning_cache = WarningCache()
 

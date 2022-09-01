@@ -7,7 +7,6 @@ from torch import Tensor
 from torch.distributed import group
 from torch.nn import functional as F
 
-from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_deprecation
 from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
@@ -205,7 +204,7 @@ def all_gather_ddp_if_available(
 
 
 def init_dist_connection(
-    cluster_environment: ClusterEnvironment,
+    cluster_environment: "ClusterEnvironment",  # TODO(lite): Fix this type error
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,

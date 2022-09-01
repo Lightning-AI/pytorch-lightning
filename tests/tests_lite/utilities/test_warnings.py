@@ -21,7 +21,7 @@ from io import StringIO
 
 from lightning_lite.utilities import rank_zero_warn, rank_zero_deprecation
 from lightning_lite.utilities.rank_zero import _warn
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 standalone = os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1"
 if standalone and __name__ == "__main__":
@@ -59,7 +59,7 @@ if standalone and __name__ == "__main__":
     from pytorch_lightning import _DETAIL
 
     root_logger = logging.getLogger()
-    lightning_logger = logging.getLogger("pytorch_lightning")
+    lightning_logger = logging.getLogger("lightning_lite")
     # should have a `StreamHandler`
     assert lightning_logger.hasHandlers() and len(lightning_logger.handlers) == 1
     # set our own stream for testing

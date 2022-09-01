@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _APEX_AVAILABLE, _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 _DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:

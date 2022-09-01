@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 

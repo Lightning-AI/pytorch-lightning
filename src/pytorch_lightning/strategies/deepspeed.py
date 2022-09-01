@@ -50,7 +50,7 @@ from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _LRScheduler, _PATH, LRSchedulerConfig, ReduceLROnPlateau, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 

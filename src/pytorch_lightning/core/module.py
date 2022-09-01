@@ -55,7 +55,7 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerTypeUnion,
     STEP_OUTPUT,
 )
-from pytorch_lightning.utilities.warnings import WarningCache
+from lightning_lite.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)

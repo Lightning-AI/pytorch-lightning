@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from lightning_lite.utilities.warnings import PossibleUserWarning
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:

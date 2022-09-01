@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,13 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Warning-related utilities."""
+set -e
+# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_lite DIRECTORY
 
-# For backward-compatibility
-# TODO(lite): deprecate usage
-from lightning_lite.utilities.rank_zero import (  # noqa: F401
-    LightningDeprecationWarning,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+# needs to run outside of `pytest`
+echo "Running utilities/test_warnings.py"
+python utilities/test_warnings.py
