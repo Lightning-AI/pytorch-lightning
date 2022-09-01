@@ -33,7 +33,7 @@ from pytorch_lightning.trainer.supporters import (
     CycleIterator,
     TensorRunningAccum,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -314,8 +314,8 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("use_fault_tolerant", [False, True])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 def test_combined_data_loader_validation_test(

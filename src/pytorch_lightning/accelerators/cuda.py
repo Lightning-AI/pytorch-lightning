@@ -21,7 +21,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
+from lightning_lite.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 

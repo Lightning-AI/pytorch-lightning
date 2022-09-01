@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 
 # For backward-compatibility
-# TODO: deprecate usage
+# TODO(lite): deprecate usage
 from lightning_lite.utilities.enums import AMPType, LightningEnum, PrecisionType  # noqa: F401
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

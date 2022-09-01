@@ -91,7 +91,7 @@ from pytorch_lightning.utilities import (
     GradClipAlgorithmType,
     parsing,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,
@@ -100,9 +100,10 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
-from pytorch_lightning.utilities.distributed import distributed_available
+from lightning_lite.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.data import has_len_all_ranks
+from lightning_lite.utilities.data import _auto_add_worker_init_fn
+from lightning_lite.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
 from pytorch_lightning.utilities.model_helpers import is_overridden

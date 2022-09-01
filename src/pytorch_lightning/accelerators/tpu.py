@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
+from lightning_lite.utilities import device_parser
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:

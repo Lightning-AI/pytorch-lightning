@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import Strategy
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
 def _do_nothing_closure() -> None:

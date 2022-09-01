@@ -24,9 +24,9 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _Light
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import PrecisionType
+from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import optimizers_to_device
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel

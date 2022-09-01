@@ -18,7 +18,7 @@ from typing import Dict, List
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
-from pytorch_lightning.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import get_filesystem
 
 
 class LSFEnvironment(ClusterEnvironment):

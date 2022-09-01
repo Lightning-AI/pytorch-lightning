@@ -30,17 +30,17 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import (
+from lightning_lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
     get_default_process_group_backend_for_device,
 )
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import group as _group
+from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT

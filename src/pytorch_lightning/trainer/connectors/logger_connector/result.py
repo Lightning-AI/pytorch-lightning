@@ -23,7 +23,7 @@ from typing_extensions import TypedDict
 from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
-from pytorch_lightning.utilities.distributed import distributed_available
+from lightning_lite.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach

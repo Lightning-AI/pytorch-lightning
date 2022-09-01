@@ -28,7 +28,7 @@ from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,

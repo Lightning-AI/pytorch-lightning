@@ -29,7 +29,7 @@ from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _save_spawn
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.distributed import ReduceOp
+from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
