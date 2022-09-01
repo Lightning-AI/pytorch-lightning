@@ -60,9 +60,9 @@ class ClientCommand:
     def run(self, **cli_kwargs) -> None:
         """Overrides with the logic to execute on the client side."""
 
-    def invoke_handler(self, config: BaseModel) -> Dict[str, Any]:
+    def invoke_handler(self, config: Optional[BaseModel] = None) -> Dict[str, Any]:
         command = self.command_name.replace(" ", "_")
-        resp = requests.post(self.app_url + f"/command/{command}", data=config.json())
+        resp = requests.post(self.app_url + f"/command/{command}", data=config.json() if config else None)
         assert resp.status_code == 200, resp.json()
         return resp.json()
 

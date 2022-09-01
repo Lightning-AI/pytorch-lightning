@@ -36,6 +36,12 @@ class SweepCommand(ClientCommand):
         assert response is True
 
 
+class ListSweepsCommand(ClientCommand):
+    def run(self) -> None:
+        response = self.invoke_handler()
+        assert response == ["sweep_1", "sweep_2"]
+
+
 class FlowCommands(LightningFlow):
     def __init__(self):
         super().__init__()
@@ -54,8 +60,15 @@ class FlowCommands(LightningFlow):
         self.has_sweep = True
         return True
 
+    def list_sweeps(self):
+        return ["sweep_1", "sweep_2"]
+
     def configure_commands(self):
-        return [{"user command": self.trigger_method}, {"sweep": SweepCommand(self.sweep)}]
+        return [
+            {"user command": self.trigger_method},
+            {"sweep": SweepCommand(self.sweep)},
+            {"list sweeps": ListSweepsCommand(self.list_sweeps)},
+        ]
 
 
 class DummyConfig(BaseModel):
@@ -160,4 +173,6 @@ def test_configure_commands(monkeypatch):
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
+    monkeypatch.setattr(sys, "argv", ["lightning", "list", "sweeps"])
+    _run_app_command("localhost", None)
     disconnect()
