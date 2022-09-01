@@ -980,12 +980,16 @@ def test_debug_mode_logging():
 
     logger.logger.callHandlers = callHandlers
 
+    print("With debug")
+
     app = LightningApp(A4(), debug=True)
     MultiProcessRuntime(app, start_server=False).dispatch()
 
     assert len(records) in (3, 4)
     assert os.getenv("LIGHTNING_DEBUG") is None
     records = []
+
+    print("Without debug")
 
     app = LightningApp(A4())
     MultiProcessRuntime(app, start_server=False).dispatch()
