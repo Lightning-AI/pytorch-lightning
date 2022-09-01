@@ -80,13 +80,6 @@ def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
 
 
 def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> None:
-    if type(stacklevel) is type and issubclass(stacklevel, Warning):
-        rank_zero_deprecation(
-            "Support for passing the warning category positionally is deprecated in v1.6 and will be removed in v1.8"
-            f" Please, use `category={stacklevel.__name__}`."
-        )
-        kwargs["category"] = stacklevel
-        stacklevel = kwargs.pop("stacklevel", 2)
     warnings.warn(message, stacklevel=stacklevel, **kwargs)
 
 

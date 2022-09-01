@@ -8,6 +8,7 @@ import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states, isolate_rng
+from tests_pytorch.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -77,7 +78,8 @@ def test_reset_seed_everything(workers):
     assert torch.allclose(before, after)
 
 
-def test_isolate_rng():
+@pytest.mark.parametrize("with_torch_cuda", [False, pytest.param(True, marks=RunIf(min_cuda_gpus=1))])
+def test_isolate_rng(with_torch_cuda):
     """Test that the isolate_rng context manager isolates the random state from the outer scope."""
     # torch
     torch.rand(1)
@@ -86,7 +88,7 @@ def test_isolate_rng():
     assert torch.equal(torch.rand(2), generated[0])
 
     # torch.cuda
-    if torch.cuda.is_available():
+    if with_torch_cuda:
         torch.cuda.FloatTensor(1).normal_()
         with isolate_rng():
             generated = [torch.cuda.FloatTensor(2).normal_() for _ in range(3)]
@@ -106,10 +108,7 @@ def test_isolate_rng():
 
 
 def test_backward_compatibility_rng_states_dict():
-    """Test that an older rng_states_dict without the "torch.cuda" key does not crash.
-
-    This test is only relevant when torch.cuda is available.
-    """
+    """Test that an older rng_states_dict without the "torch.cuda" key does not crash."""
     states = _collect_rng_states()
     assert "torch.cuda" in states
     states.pop("torch.cuda")
