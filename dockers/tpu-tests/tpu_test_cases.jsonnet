@@ -41,7 +41,6 @@ local tputests = base.BaseTest {
       echo "\n||| Running standalone tests |||\n"
       export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
       export PL_STANDALONE_TESTS_BATCH_SIZE=1
-      export PL_STANDALONE_TESTS_DIR="tests/tests_pytorch"
       bash run_standalone_tests.sh
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
