@@ -21,11 +21,11 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 
 if _FAIRSCALE_AVAILABLE:
@@ -114,12 +114,11 @@ class DDPShardedStrategy(DDPStrategy):
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
-                    # For multi-node training, compressing the model shards in fp16 before broadcasting
-                    # improves performance. When using PyTorch AMP, it will not degrade
-                    # the model performance.
-                    zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
+                is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
+                # For multi-node training, compressing the model shards in fp16 before broadcasting
+                # improves performance. When using PyTorch AMP, it will not degrade
+                # the model performance.
+                zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
                 optimizers[x] = zero_optimizer
                 del optimizer
         return optimizers
