@@ -95,7 +95,8 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     if unfreeze and "<" in req and "strict" not in comment:
         req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
     if ver_major is not None:
-        req += f", <{int(ver_major) + 1}.0"
+        # add , only if there are already some versions
+        req += f"{',' if any(c in req for c in '<=>') else ''} <{int(ver_major) + 1}.0"
 
     # adding strict back to the comment
     if "strict" in comment or ver_major is not None:
@@ -119,7 +120,7 @@ def load_requirements(
     for ln in lines:
         reqs.append(_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze))
     # filter empty lines
-    return [req for req in reqs if req]
+    return [str(req) for req in reqs if req]
 
 
 def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
