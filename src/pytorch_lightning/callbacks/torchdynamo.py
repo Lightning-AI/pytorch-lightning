@@ -93,7 +93,7 @@ class TorchDynamo(Callback):
 
         return torchdynamo.optimize(self.backends[entrypoint])
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Called when fit, validate, test, predict, or tune begins.
 
         NotImplementedError:
@@ -170,7 +170,7 @@ class TorchDynamo(Callback):
             pl_module.predict_step = self._previous_predict_step  # type: ignore[assignment]
             self._previous_predict_step = None
 
-    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         import torchdynamo
 
         torchdynamo.reset()
@@ -182,7 +182,9 @@ class TorchDynamo(Callback):
         self._previous_predict_step = None
 
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
-        self.teardown(trainer, pl_module, trainer.state.stage)
+        stage = trainer.state.stage
+        assert stage is not None
+        self.teardown(trainer, pl_module, stage)
 
 
 class _ContextManagerClosure(Closure):
