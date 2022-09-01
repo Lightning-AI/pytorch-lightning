@@ -4,11 +4,11 @@ from typing import Any, Callable, ContextManager, Dict, Optional, TYPE_CHECKING,
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.loops.optimization.optimizer_loop import Closure
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.device_parser import is_cuda_available
-from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.imports import _RequirementAvailable, _TORCH_GREATER_EQUAL_1_13
 
-_TORCHDYNAMO_AVAILABLE = _RequirementAvailable("torchdynamo")
+_TORCHDYNAMO_CACHE = _RequirementAvailable("torchdynamo")
+_TORCHDYNAMO_AVAILABLE = _TORCH_GREATER_EQUAL_1_13 and bool(_TORCHDYNAMO_CACHE)
 _BACKEND = Union[str, Callable]
 
 if TYPE_CHECKING and _TORCHDYNAMO_AVAILABLE:
@@ -25,61 +25,73 @@ class TorchDynamo(Callback):
     Args:
         backend: A backend is either a function/callable taking a :class:`torch.fx.GraphModule` and
             ``example_inputs`` and returning a callable. Or, a string. This argument accepts a backend or a dictionary
-            that maps training stages to backends. Backends may require installing additional packages.
+            that maps trainer entrypoints to backends. Backends may require installing additional packages.
 
     Raises:
         ModuleNotFoundError:
             if ``torchdynamo`` is not installed.
         ValueError:
-            If an invalid string backend or invalid stage is passed.
+            If an invalid string backend or invalid entrypoint is passed.
 
     Example::
 
-        from pytorch_lightning import Trainer
         from pytorch_lightning.callbacks import TorchDynamo
 
-        # defaults to using `"nvfuser"` in a CUDA environment and `"nnc"` otherwise for all stages
-        trainer = Trainer(callbacks=TorchDynamo())
-
-        # custom backend per stage
-        trainer = Trainer(callbacks=TorchDynamo({"train": "nvfuser", "predict": "fx2trt"})
+        # defaults to using `"inductor"`
+        callback = TorchDynamo()
+        # equivalent to
+        callback = TorchDynamo("inductor")
+        # custom backend per entrypoint. entrypoint not defined will use the default backend
+        callback = TorchDynamo({"fit": "nvfuser", "predict": "fx2trt"})
     """
 
     def __init__(self, backend: Optional[Union[_BACKEND, Dict[str, _BACKEND]]] = None) -> None:
         if not _TORCHDYNAMO_AVAILABLE:
-            raise ModuleNotFoundError(_TORCHDYNAMO_AVAILABLE.message)
+            raise ModuleNotFoundError(str(_TORCHDYNAMO_CACHE))
 
+        # choose a default backend. inductor seems to be the fastest and most reliable one at this moment
+        # https://dev-discuss.pytorch.org/t/torchinductor-a-pytorch-native-compiler-with-define-by-run-ir-and-symbolic-shapes/747
+        default_backend = "inductor"
+
+        # `OptimizeContext` does not allow changing the backend without resetting the state:
+        # https://github.com/pytorch/torchdynamo/blob/11873be7ec66b71cc065ca756bc6b5c292bef820/torchdynamo/eval_frame.py#L182-L187
+        # so we either map entrypoints to backends or training stages to stages where we reset the state between fit's
+        # training and validation. we choose the former in case there's a large performance impact caused by resetting
+        # too often
+        entrypoints = [e.value for e in list(TrainerFn)]
+
+        # convert the input to a dictionary
+        self.backends: Dict[str, _BACKEND]
+        if backend is None:
+            backend = default_backend
         if isinstance(backend, str):
-            _check_valid_backend(backend)
+            self.backends = dict.fromkeys(entrypoints, backend)
         elif isinstance(backend, dict):
-            if not backend:
-                raise ValueError("You passed an empty dictionary as the backend options.")
-            for key, value in backend.items():
-                if key not in list(RunningStage):
-                    stages = [stage.value for stage in list(RunningStage)]
-                    raise ValueError(f"The stage {key!r} should be one of {stages}.")
-                if isinstance(value, str):
-                    _check_valid_backend(value)
+            self.backends = dict.fromkeys(entrypoints, default_backend)
+            self.backends.update(backend)
+        else:
+            raise ValueError(f"Unexpected backend argument: {backend!r}")
 
-        self.default_backend: str = "nvfuser" if is_cuda_available() else "nnc"
-        self._backend = backend
+        # argument validation
+        from torchdynamo import list_backends
+
+        supported_backends = list_backends()
+        for key, value in self.backends.items():
+            if key not in entrypoints:
+                raise ValueError(f"The entrypoint {key!r} should be one of {entrypoints}.")
+            if isinstance(value, str) and value not in supported_backends:
+                raise ValueError(f"TorchDynamo's backend {backend!r} must be one of {supported_backends}")
+
         self._previous_closure_cls = Closure
         self._previous_training_step: Optional[Callable] = None
         self._previous_validation_step: Optional[Callable] = None
         self._previous_test_step: Optional[Callable] = None
         self._previous_predict_step: Optional[Callable] = None
 
-    def _optimize_context(self, stage: RunningStage) -> "OptimizeContext":
-        from torchdynamo import optimize
+    def _optimize_context(self, entrypoint: TrainerFn) -> "OptimizeContext":
+        import torchdynamo
 
-        backend: Union[str, Callable]
-        if self._backend is None:
-            backend = self.default_backend
-        elif isinstance(self._backend, dict):
-            backend = self._backend.get(stage, self.default_backend)
-        else:
-            backend = self._backend
-        return optimize(backend)
+        return torchdynamo.optimize(self.backends[entrypoint])
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         """Called when fit, validate, test, predict, or tune begins.
@@ -87,13 +99,16 @@ class TorchDynamo(Callback):
         NotImplementedError:
             If run in a distributed environment.
         """
+        # TODO: maybe this doesn't apply to evaluation and prediciton
         if trainer._accelerator_connector.is_distributed:
             raise NotImplementedError(
                 f"`TorchDynamo` does not support the {type(trainer.strategy).__name__!r} at the moment."
             )
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        optimize_ctx_manager = self._optimize_context(RunningStage.TRAINING)
+        entrypoint = trainer.state.fn
+        assert entrypoint is not None
+        optimize_ctx_manager = self._optimize_context(entrypoint)
         if pl_module.automatic_optimization:
             optimize_closure = partial(_ContextManagerClosure, optimize_ctx_manager)
             update_wrapper(optimize_closure, _ContextManagerClosure)
@@ -118,8 +133,10 @@ class TorchDynamo(Callback):
         if trainer.sanity_checking:
             return
         self._previous_validation_step = pl_module.validation_step
+        entrypoint = trainer.state.fn
+        assert entrypoint is not None
         pl_module.validation_step = _wrap_step(  # type: ignore[assignment]
-            pl_module.validation_step, self._optimize_context(RunningStage.VALIDATING)
+            pl_module.validation_step, self._optimize_context(entrypoint)
         )
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -129,8 +146,10 @@ class TorchDynamo(Callback):
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._previous_test_step = pl_module.test_step
+        entrypoint = trainer.state.fn
+        assert entrypoint is not None
         pl_module.test_step = _wrap_step(  # type: ignore[assignment]
-            pl_module.test_step, self._optimize_context(RunningStage.TESTING)
+            pl_module.test_step, self._optimize_context(entrypoint)
         )
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -140,8 +159,10 @@ class TorchDynamo(Callback):
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._previous_predict_step = pl_module.predict_step
+        entrypoint = trainer.state.fn
+        assert entrypoint is not None
         pl_module.predict_step = _wrap_step(  # type: ignore[assignment]
-            pl_module.predict_step, self._optimize_context(RunningStage.PREDICTING)
+            pl_module.predict_step, self._optimize_context(entrypoint)
         )
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -149,13 +170,19 @@ class TorchDynamo(Callback):
             pl_module.predict_step = self._previous_predict_step  # type: ignore[assignment]
             self._previous_predict_step = None
 
+    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        import torchdynamo
 
-def _check_valid_backend(backend: str) -> None:
-    from torchdynamo import list_backends
+        torchdynamo.reset()
 
-    backends = list_backends()
-    if backend not in backends:
-        raise ValueError(f"TorchDynamo's backend {backend!r} must be one of {backends}")
+        self._previous_closure_cls = Closure
+        self._previous_training_step = None
+        self._previous_validation_step = None
+        self._previous_test_step = None
+        self._previous_predict_step = None
+
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+        self.teardown(trainer, pl_module, trainer.state.stage)
 
 
 class _ContextManagerClosure(Closure):
