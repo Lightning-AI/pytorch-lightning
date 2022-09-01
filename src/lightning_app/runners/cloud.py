@@ -45,6 +45,7 @@ from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.storage import Drive
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.secrets import _names_to_ids
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
@@ -96,8 +97,13 @@ class CloudRuntime(Runtime):
 
         print(f"The name of the app is: {app_config.name}")
 
-        work_reqs: List[V1Work] = []
+        secret_names_to_ids = _names_to_ids(self.secrets.values())
+        env_vars_from_secrets = [V1EnvVar(name=k, from_secret=secret_names_to_ids[v]) for k, v in self.secrets.items()]
+
         v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in self.env_vars.items()]
+        v1_env_vars.extend(env_vars_from_secrets)
+
+        work_reqs: List[V1Work] = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
                 work_requirements = "\n".join(work.cloud_build_config.requirements)

@@ -283,6 +283,7 @@ def _run_app(
     blocking: bool,
     open_ui: bool,
     env: tuple,
+    secret: tuple,
 ):
     file = _prepare_file(file)
 
@@ -298,9 +299,16 @@ def _run_app(
                 "Caching is a property of apps running in cloud. "
                 "Using the flag --no-cache in local execution is not supported."
             )
+        if secret:
+            raise click.ClickException(
+                "Secrets can only be used for apps running in cloud. "
+                "Using the flag --secret in local execution is not supported."
+            )
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
+
+    secrets = _format_input_env_variables(secret)
 
     def on_before_run(*args):
         if open_ui and not without_server:
@@ -320,6 +328,7 @@ def _run_app(
         on_before_run=on_before_run,
         name=name,
         env_vars=env_vars,
+        secrets=secrets,
         cluster_id=cluster_id,
     )
     if runtime_type == RuntimeType.CLOUD:
@@ -345,6 +354,7 @@ def run():
 @click.option("--blocking", "blocking", type=bool, default=False)
 @click.option("--open-ui", type=bool, default=True, help="Decide whether to launch the app UI in a web browser")
 @click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
+@click.option("--secret", type=str, default=[], multiple=True, help="Secret variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
     file: str,
@@ -356,10 +366,11 @@ def run_app(
     blocking: bool,
     open_ui: bool,
     env: tuple,
+    secret: tuple,
     app_args: List[str],
 ):
     """Run an app from a file."""
-    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
 
 
 @_main.group(hidden=True)
