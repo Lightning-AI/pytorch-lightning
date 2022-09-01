@@ -30,6 +30,9 @@ def makedirs(path: str):
 
 
 class ClientCommand:
+
+    DESCRIPTION = ""
+
     def __init__(self, method: Callable, requirements: Optional[List[str]] = None) -> None:
         self.method = method
         flow = getattr(method, "__self__", None)
@@ -58,7 +61,8 @@ class ClientCommand:
         """Overrides with the logic to execute on the client side."""
 
     def invoke_handler(self, config: BaseModel) -> Dict[str, Any]:
-        resp = requests.post(self.app_url + f"/command/{self.command_name}", data=config.json())
+        command = self.command_name.replace(" ", "_")
+        resp = requests.post(self.app_url + f"/command/{command}", data=config.json())
         assert resp.status_code == 200, resp.json()
         return resp.json()
 
@@ -75,31 +79,39 @@ def _download_command(
     cls_name: str,
     app_id: Optional[str] = None,
     debug_mode: bool = False,
+    target_file: Optional[str] = None,
 ) -> ClientCommand:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
-    tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
-    makedirs(tmpdir)
-    target_file = osp.join(tmpdir, f"{command_name}.py")
-    if app_id:
-        client = LightningClient()
-        project_id = _get_project(client).project_id
-        response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
-        for artifact in response.artifacts:
-            if f"commands/{command_name}.py" == artifact.filename:
-                r = requests.get(artifact.url, allow_redirects=True)
-                with open(target_file, "wb") as f:
-                    f.write(r.content)
-    else:
-        if not debug_mode:
+    command_name = command_name.replace(" ", "_")
+    tmpdir = None
+    if not target_file:
+        tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
+        makedirs(tmpdir)
+        target_file = osp.join(tmpdir, f"{command_name}.py")
+
+    if not debug_mode:
+        if app_id:
+            if not os.path.exists(target_file):
+                client = LightningClient()
+                project_id = _get_project(client).project_id
+                response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
+                for artifact in response.artifacts:
+                    if f"commands/{command_name}.py" == artifact.filename:
+                        resp = requests.get(artifact.url, allow_redirects=True)
+
+                        with open(target_file, "wb") as f:
+                            f.write(resp.content)
+        else:
             shutil.copy(cls_path, target_file)
 
-    spec = spec_from_file_location(cls_name, cls_path if debug_mode else target_file)
+    spec = spec_from_file_location(cls_name, target_file)
     mod = module_from_spec(spec)
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
     command = getattr(mod, cls_name)(method=None, requirements=[])
-    shutil.rmtree(tmpdir)
+    if tmpdir and os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
     return command
 
 
@@ -184,6 +196,7 @@ def _process_api_request(app, request: APIRequest) -> None:
 def _process_command_requests(app, request: CommandRequest) -> None:
     for command in app.commands:
         for command_name, method in command.items():
+            command_name = command_name.replace(" ", "_")
             if request.method_name == command_name:
                 # 2.1: Evaluate the method associated to a specific command.
                 # Validation is done on the CLI side.
@@ -213,6 +226,7 @@ def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) 
     api = []
     for command in commands:
         for k, v in command.items():
+            k = k.replace(" ", "_")
             api.append(
                 Post(
                     f"/command/{k}",
