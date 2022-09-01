@@ -29,7 +29,7 @@ from lightning_lite.strategies import DeepSpeedStrategy, Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.seed import pl_worker_init_function
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from tests_pytorch.helpers.runif import RunIf
+from tests_lite.helpers.runif import RunIf
 
 
 class EmptyLite(LightningLite):
