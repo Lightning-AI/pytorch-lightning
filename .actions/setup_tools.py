@@ -64,10 +64,14 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     'arrow>=1.2.0'
     >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="all")
     'arrow>=1.2.0, <=1.2.2  # strict'
+    >>> _augment_requirement("arrow", unfreeze="all")
+    'arrow'
     >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # cool", unfreeze="major")
     'arrow>=1.2.0, <2.0  # strict'
     >>> _augment_requirement("arrow>=1.2.0", unfreeze="major")
     'arrow>=1.2.0, <2.0  # strict'
+    >>> _augment_requirement("arrow", unfreeze="major")
+    'arrow'
     """
     # filer all comments
     if comment_char in ln:
@@ -105,9 +109,9 @@ def load_requirements(
 ) -> List[str]:
     """Loading requirements from a file.
 
-    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements", unfreeze="major")
-    >>> load_requirements(path_req)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ['numpy...', 'torch...', ...]
+    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
+    >>> load_requirements(path_req, unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ['pytorch_lightning...', 'lightning_app...']
     """
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
@@ -121,7 +125,7 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     """Load readme as decribtion.
 
     >>> load_readme_description(_PROJECT_ROOT, "", "")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    '<div align="center">...'
+    '...'
     """
     path_readme = os.path.join(path_dir, "README.md")
     text = open(path_readme, encoding="utf-8").read()
@@ -483,9 +487,8 @@ def _download_frontend(root: str = _PROJECT_ROOT):
 def _relax_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
     """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`."""
     reqs = load_requirements(req_dir, file_name="base.txt")
-    for i, req in enumerate(reqs):
-        pkg_name = req[: min(req.index(c) for c in ">=" if c in req)]
-        ver_ = parse_version_from_file(os.path.join(source_dir, pkg_name))
+    for i, req in enumerate(parse_requirements(reqs)):
+        ver_ = parse_version_from_file(os.path.join(source_dir, req.name))
         if not ver_:
             continue
         ver2 = ".".join(ver_.split(".")[:2] + ["*"])
