@@ -29,6 +29,11 @@ from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
+if torch.distributed.is_available():
+    from torch._C._distributed_c10d import ProcessGroup
+else:
+    ProcessGroup = None
+
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
@@ -140,32 +145,29 @@ class ReduceLROnPlateau(_Stateful, Protocol):
         ...
 
 
-if torch.distributed.is_available():
-    from torch._C._distributed_c10d import ProcessGroup
+# Inferred from `torch.nn.parallel.distributed.pyi`
+# Missing attributes were added to improve typing
+@runtime_checkable
+class DistributedDataParallel(Protocol):
+    def __init__(
+        self,
+        module: torch.nn.Module,
+        device_ids: Optional[List[Union[int, torch.device]]] = None,
+        output_device: Optional[Union[int, torch.device]] = None,
+        dim: int = 0,
+        broadcast_buffers: bool = True,
+        process_group: Optional[ProcessGroup] = None,
+        bucket_cap_mb: int = 25,
+        find_unused_parameters: bool = False,
+        check_reduction: bool = False,
+        gradient_as_bucket_view: bool = False,
+        static_graph: bool = False,
+    ) -> None:
+        ...
 
-    # Inferred from `torch.nn.parallel.distributed.pyi`
-    # Missing attributes were added to improve typing
-    @runtime_checkable
-    class DistributedDataParallel(Protocol):
-        def __init__(
-            self,
-            module: torch.nn.Module,
-            device_ids: Optional[List[Union[int, torch.device]]] = None,
-            output_device: Optional[Union[int, torch.device]] = None,
-            dim: int = 0,
-            broadcast_buffers: bool = True,
-            process_group: Optional[ProcessGroup] = None,
-            bucket_cap_mb: int = 25,
-            find_unused_parameters: bool = False,
-            check_reduction: bool = False,
-            gradient_as_bucket_view: bool = False,
-            static_graph: bool = False,
-        ) -> None:
-            ...
-
-        @contextmanager
-        def no_sync(self) -> Generator:
-            ...
+    @contextmanager
+    def no_sync(self) -> Generator:
+        ...
 
 
 # todo: improve LRSchedulerType naming/typing

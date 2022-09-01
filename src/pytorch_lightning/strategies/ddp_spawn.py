@@ -51,6 +51,11 @@ from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
+if torch.distributed.is_available():
+    from torch.distributed.constants import default_pg_timeout
+else:
+    default_pg_timeout = timedelta(seconds=1800)
+
 log = logging.getLogger(__name__)
 
 _DDP_FORK_ALIASES = (
@@ -78,7 +83,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[Callable] = None,
         ddp_comm_wrapper: Optional[Callable] = None,
         process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = timedelta(seconds=1800),
+        timeout: Optional[timedelta] = default_pg_timeout,
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
         **kwargs: Any,
     ):

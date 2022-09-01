@@ -71,6 +71,10 @@ else:
 if _TORCH_GREATER_EQUAL_1_10 and torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
+if torch.distributed.is_available():
+    from torch.distributed.constants import default_pg_timeout
+else:
+    default_pg_timeout = timedelta(seconds=1800)
 
 log = logging.getLogger(__name__)
 
@@ -92,7 +96,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_wrapper: Optional[Callable] = None,
         model_averaging_period: Optional[int] = None,
         process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = timedelta(seconds=1800),
+        timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
     ) -> None:
         super().__init__(
