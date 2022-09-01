@@ -164,8 +164,13 @@ def test_configure_commands(monkeypatch):
     state = AppState()
     state._request_state()
     assert state.names == ["something"]
+
     monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name=my_name", "--num_trials=1"])
     _run_app_command("localhost", None)
+
+    monkeypatch.setattr(sys, "argv", ["lightning", "list sweeps"])
+    _run_app_command("localhost", None)
+
     time_left = 15
     while time_left > 0:
         if process.exitcode == 0:
@@ -173,6 +178,4 @@ def test_configure_commands(monkeypatch):
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
-    monkeypatch.setattr(sys, "argv", ["lightning", "list", "sweeps"])
-    _run_app_command("localhost", None)
     disconnect()
