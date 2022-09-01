@@ -485,7 +485,10 @@ def _download_frontend(root: str = _PROJECT_ROOT):
 
 
 def _relax_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
-    """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`."""
+    """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`.
+
+    >>> _relax_require_versions("../src", "../requirements")
+    """
     reqs = load_requirements(req_dir, file_name="base.txt")
     for i, req in enumerate(parse_requirements(reqs)):
         ver_ = parse_version_from_file(os.path.join(source_dir, req.name))
