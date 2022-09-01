@@ -21,6 +21,7 @@ import pytest
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
@@ -30,7 +31,6 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 

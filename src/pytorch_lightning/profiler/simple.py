@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.profilers.simple import SimpleProfiler as NewSimpleProfiler
 from lightning_lite.utilities import rank_zero_deprecation
+from pytorch_lightning.profilers.simple import SimpleProfiler as NewSimpleProfiler
 
 
 class SimpleProfiler(NewSimpleProfiler):

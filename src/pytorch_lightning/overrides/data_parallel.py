@@ -19,9 +19,9 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_warn
 from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from lightning_lite.utilities import rank_zero_warn
 
 
 def _ignore_scalar_return_in_dp() -> None:

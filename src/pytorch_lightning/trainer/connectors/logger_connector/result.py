@@ -20,16 +20,16 @@ from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
+from lightning_lite.utilities import rank_zero_warn
 from lightning_lite.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
-from lightning_lite.utilities import rank_zero_warn
-from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
 
 _IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[Tensor, Dict[str, Tensor]]

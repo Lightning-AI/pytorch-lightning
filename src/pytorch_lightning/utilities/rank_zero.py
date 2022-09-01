@@ -19,13 +19,17 @@ from typing import Optional
 
 import pytorch_lightning as pl
 
-
 log = logging.getLogger(__name__)
 
 
 # For backward-compatibility
 # TODO: deprecate usage
-from lightning_lite.utilities.rank_zero import rank_zero_only, rank_zero_info, rank_zero_warn, rank_zero_deprecation    # noqa: F401
+from lightning_lite.utilities.rank_zero import (  # noqa: F401
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_only,
+    rank_zero_warn,
+)
 
 
 def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:

@@ -34,8 +34,8 @@ import lightning_lite.utilities.seed
 import pytorch_lightning as pl
 import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities.cloud_io import load as pl_load
-from pytorch_lightning import Trainer
 from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger

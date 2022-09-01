@@ -18,6 +18,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from lightning_lite.utilities import rank_zero_only
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT, get_cpu_stats
 from pytorch_lightning.callbacks import DeviceStatsMonitor
@@ -25,7 +26,6 @@ from pytorch_lightning.callbacks.device_stats_monitor import _prefix_metric_keys
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 

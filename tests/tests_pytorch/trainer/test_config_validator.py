@@ -15,12 +15,12 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.warnings import PossibleUserWarning
 
 
 def test_wrong_train_setting(tmpdir):

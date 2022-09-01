@@ -15,8 +15,8 @@ from functools import partial
 
 import pytest
 
-from pytorch_lightning import Trainer
 from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.models.test_hooks import get_members

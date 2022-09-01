@@ -20,6 +20,7 @@ from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_deprecation, rank_zero_warn
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.data import _reinstantiate_wrapped_cls
@@ -33,7 +34,6 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
-from lightning_lite.utilities import rank_zero_warn, rank_zero_deprecation
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden

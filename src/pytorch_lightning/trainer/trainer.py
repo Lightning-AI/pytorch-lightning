@@ -36,12 +36,13 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import AMPType, rank_zero_info, rank_zero_warn, rank_zero_deprecation
+from lightning_lite.utilities import AMPType, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.data import _auto_add_worker_init_fn
 from lightning_lite.utilities.distributed import distributed_available
 from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
     Accelerator,
     CUDAAccelerator,
@@ -110,7 +111,6 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerConfig,
     TRAIN_DATALOADERS,
 )
-from lightning_lite.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer

@@ -16,6 +16,8 @@ import os
 from typing import Any, Optional, Type
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_info, rank_zero_warn
+from lightning_lite.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
@@ -32,8 +34,6 @@ from pytorch_lightning.utilities.fetching import (
     InterBatchParallelDataFetcher,
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from lightning_lite.utilities import rank_zero_info, rank_zero_warn
-from lightning_lite.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)

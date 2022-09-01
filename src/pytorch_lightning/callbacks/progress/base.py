@@ -14,9 +14,9 @@
 from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_warn
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.logger import _version
-from lightning_lite.utilities import rank_zero_warn
 
 
 class ProgressBarBase(Callback):

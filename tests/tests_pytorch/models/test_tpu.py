@@ -20,10 +20,9 @@ import torch
 from torch.utils.data import DataLoader
 
 import lightning_lite.utilities.distributed
+import lightning_lite.utilities.seed
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-
-import lightning_lite.utilities.seed
 from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator

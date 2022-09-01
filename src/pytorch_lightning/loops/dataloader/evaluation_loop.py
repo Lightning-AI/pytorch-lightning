@@ -21,6 +21,7 @@ from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_warn
 from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
@@ -36,7 +37,6 @@ from pytorch_lightning.utilities.fetching import (
     DataLoaderIterDataFetcher,
     InterBatchParallelDataFetcher,
 )
-from lightning_lite.utilities import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 

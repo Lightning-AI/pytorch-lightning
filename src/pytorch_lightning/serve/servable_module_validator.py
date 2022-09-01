@@ -8,13 +8,13 @@ import torch
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_only
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.serve.servable_module import ServableModule
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from lightning_lite.utilities import rank_zero_only
 
 _NOT_SUPPORTED_STRATEGIES = (
     DeepSpeedStrategy,

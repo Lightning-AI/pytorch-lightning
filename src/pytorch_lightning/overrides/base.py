@@ -19,8 +19,8 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from lightning_lite.utilities import rank_zero_deprecation
+from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):

@@ -21,8 +21,8 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning import Trainer
 from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy

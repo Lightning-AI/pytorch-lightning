@@ -19,9 +19,8 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-import tests_pytorch.helpers.utils as tutils
-
 import lightning_lite.utilities.seed
+import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities import AMPType
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset

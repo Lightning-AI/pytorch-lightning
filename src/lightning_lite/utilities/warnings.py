@@ -16,8 +16,7 @@
 import warnings
 from typing import Any
 
-from lightning_lite.utilities import rank_zero_deprecation
-from lightning_lite.utilities import rank_zero_warn
+from lightning_lite.utilities import rank_zero_deprecation, rank_zero_warn
 from lightning_lite.utilities.rank_zero import LightningDeprecationWarning, rank_zero_info
 
 # enable our warnings

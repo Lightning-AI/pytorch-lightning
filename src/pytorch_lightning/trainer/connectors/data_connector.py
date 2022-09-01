@@ -21,8 +21,10 @@ from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSample
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_warn
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
+from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
@@ -33,9 +35,7 @@ from pytorch_lightning.utilities.data import _is_dataloader_shuffled, _update_da
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from lightning_lite.utilities import rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
 
 warning_cache = WarningCache()
 

@@ -24,10 +24,9 @@ import pytest
 import torch
 import torch.nn.functional as F
 
+import lightning_lite.utilities.seed
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-
-import lightning_lite.utilities.seed
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel

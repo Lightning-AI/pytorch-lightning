@@ -17,6 +17,10 @@ from typing import Any, Callable, Dict, Optional
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from lightning_lite.utilities import rank_zero_deprecation
+from lightning_lite.utilities import rank_zero_info as new_rank_zero_info
+from lightning_lite.utilities import rank_zero_only
+
 # For backward-compatibility
 # TODO: deprecate usage
 from lightning_lite.utilities.distributed import (  # noqa: F401
@@ -31,7 +35,6 @@ from lightning_lite.utilities.distributed import (  # noqa: F401
     tpu_distributed,
 )
 from lightning_lite.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
-from lightning_lite.utilities import rank_zero_only, rank_zero_info as new_rank_zero_info, rank_zero_deprecation
 
 
 def register_ddp_comm_hook(

@@ -25,6 +25,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_info, rank_zero_only
 from lightning_lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
@@ -32,6 +33,7 @@ from lightning_lite.utilities.distributed import (
 )
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
@@ -44,8 +46,6 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
-from lightning_lite.utilities.optimizer import optimizers_to_device
-from lightning_lite.utilities import rank_zero_only, rank_zero_info
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 log = logging.getLogger(__name__)

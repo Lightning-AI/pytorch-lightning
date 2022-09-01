@@ -48,9 +48,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import _logger as log
 from pytorch_lightning import LightningModule, Trainer
-from lightning_lite.utilities.seed import seed_everything
 
 
 class RandomGetItemDataset(Dataset):

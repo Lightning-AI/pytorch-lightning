@@ -36,12 +36,12 @@ from lightning_lite.utilities.data import (
     has_iterable_dataset,
     has_len,
 )
+from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.warnings import WarningCache
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 

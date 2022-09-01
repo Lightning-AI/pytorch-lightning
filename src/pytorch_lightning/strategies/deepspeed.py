@@ -27,14 +27,17 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import AMPType, rank_zero_info, rank_zero_warn, rank_zero_deprecation
+from lightning_lite.utilities import AMPType, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     get_default_process_group_backend_for_device,
 )
 from lightning_lite.utilities.enums import PrecisionType
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -47,10 +50,7 @@ from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from lightning_lite.utilities.optimizer import optimizers_to_device
-from lightning_lite.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
-from lightning_lite.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)

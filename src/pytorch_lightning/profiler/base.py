@@ -15,9 +15,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from lightning_lite.utilities import rank_zero_deprecation
 from pytorch_lightning.profilers.base import PassThroughProfiler as NewPassThroughProfiler
 from pytorch_lightning.profilers.profiler import Profiler
-from lightning_lite.utilities import rank_zero_deprecation
 
 
 class AbstractProfiler(ABC):

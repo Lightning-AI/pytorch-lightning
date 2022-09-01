@@ -26,11 +26,7 @@ log = logging.getLogger(__name__)
 
 # For backward-compatibility
 # TODO(lite): deprecate usage
-from lightning_lite.utilities.seed import (  # noqa: F401
-    seed_everything,
-    pl_worker_init_function,
-    reset_seed
-)
+from lightning_lite.utilities.seed import pl_worker_init_function, reset_seed, seed_everything  # noqa: F401
 
 
 @contextmanager

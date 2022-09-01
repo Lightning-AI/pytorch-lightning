@@ -21,9 +21,8 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
-
 import lightning_lite.utilities.seed
+import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (

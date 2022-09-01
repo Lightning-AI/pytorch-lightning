@@ -21,9 +21,11 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_only
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.data import has_len
 from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.environments import XLAEnvironment
@@ -38,8 +40,6 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.optimizer import optimizers_to_device
-from lightning_lite.utilities import rank_zero_only
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 if _TPU_AVAILABLE:

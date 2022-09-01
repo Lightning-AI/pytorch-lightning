@@ -20,6 +20,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 from lightning_lite.utilities import AMPType
+from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
@@ -32,7 +33,6 @@ from pytorch_lightning.loops.utilities import (
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from lightning_lite.utilities.warnings import WarningCache
 
 
 @dataclass

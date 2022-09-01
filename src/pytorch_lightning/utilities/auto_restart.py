@@ -27,11 +27,11 @@ from torch.utils.data.dataloader import (
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities.types import _Stateful
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 
 
 class FastForwardSampler(Sampler):

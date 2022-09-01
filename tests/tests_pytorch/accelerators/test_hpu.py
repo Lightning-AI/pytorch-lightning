@@ -16,8 +16,8 @@ import os
 import pytest
 import torch
 
-from pytorch_lightning import Callback, Trainer
 from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.accelerators import HPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy

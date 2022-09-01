@@ -22,8 +22,14 @@ from typing_extensions import Literal
 
 import lightning_lite.utilities.device_parser
 from lightning_lite.strategies.launchers.multiprocessing import _is_forking_disabled
-from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum, rank_zero_info, rank_zero_warn, \
-    rank_zero_deprecation
+from lightning_lite.utilities import (
+    _StrategyType,
+    AMPType,
+    LightningEnum,
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_warn,
+)
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator

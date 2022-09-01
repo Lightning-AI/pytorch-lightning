@@ -23,11 +23,11 @@ from torch import nn, Tensor
 from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.types import _LRScheduler
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 _AVG_FN = Callable[[Tensor, Tensor, Tensor], Tensor]

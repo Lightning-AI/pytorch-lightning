@@ -16,12 +16,12 @@ from typing import Optional, Union
 import torch.nn as nn
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import rank_zero_deprecation
 from pytorch_lightning.overrides.base import (
     _LightningModuleWrapperBase,
     _LightningPrecisionModuleWrapperBase,
     unwrap_lightning_module,
 )
-from lightning_lite.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.imports import _IS_WINDOWS, _module_available
 
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")

@@ -14,4 +14,4 @@
 
 # For backward-compatibility
 # TODO: deprecate usage
-from lightning_lite.utilities.optimizer import optimizers_to_device, optimizer_to_device  # noqa: F401
+from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device  # noqa: F401

@@ -22,6 +22,7 @@ from torch.multiprocessing import ProcessContext
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.strategies.launchers.multiprocessing import (
     _FakeQueue,
     _GlobalStateSnapshot,
@@ -30,7 +31,6 @@ from pytorch_lightning.strategies.launchers.multiprocessing import (
 )
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
-from lightning_lite.utilities.rank_zero import rank_zero_debug
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
