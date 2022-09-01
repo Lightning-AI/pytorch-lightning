@@ -18,6 +18,7 @@ set -e
 # Batch size for testing: Determines how many standalone test invocations run in parallel
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
 test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
+tests_dir="${PL_STANDALONE_TESTS_DIR}"
 source="${PL_STANDALONE_TESTS_SOURCE}"
 
 # this environment variable allows special tests to run
@@ -39,7 +40,7 @@ else
   parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
 # remove the "tests/tests_pytorch" path suffixes
-parametrizations=${parametrizations//"tests/tests_pytorch/"/}
+parametrizations=${parametrizations//tests_dir/}
 parametrizations_arr=($parametrizations)
 
 # tests to skip - space separated
