@@ -55,8 +55,10 @@ subprojects:
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
-      - ".azure/gpu-tests.yml"
+      - ".azure/gpu-tests-pytorch.yml"
+      - ".azure/gpu-tests-lite.yml"
       - "tests/tests_pytorch/run_standalone_*.sh"
+      - "tests/tests_lite/run_standalone_*.sh"
     checks:
       - "pytorch-lightning (GPUs)"
 
