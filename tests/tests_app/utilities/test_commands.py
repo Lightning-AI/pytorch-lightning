@@ -36,7 +36,7 @@ class SweepCommand(ClientCommand):
         assert response is True
 
 
-class ListSweepsCommand(ClientCommand):
+class ListEntitiesCommand(ClientCommand):
     def run(self) -> None:
         response = self.invoke_handler()
         assert response == ["sweep_1", "sweep_2"]
@@ -67,7 +67,7 @@ class FlowCommands(LightningFlow):
         return [
             {"user command": self.trigger_method},
             {"sweep": SweepCommand(self.sweep)},
-            {"list sweeps": ListSweepsCommand(self.list_sweeps)},
+            {"listentities": ListEntitiesCommand(self.entitles)},
         ]
 
 
@@ -168,7 +168,8 @@ def test_configure_commands(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name=my_name", "--num_trials=1"])
     _run_app_command("localhost", None)
 
-    monkeypatch.setattr(sys, "argv", ["lightning", "list sweeps"])
+    sleep(0.5)
+    monkeypatch.setattr(sys, "argv", ["lightning", "listentities"])
     _run_app_command("localhost", None)
 
     time_left = 15
