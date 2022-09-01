@@ -125,7 +125,7 @@ class ImageNetLightningModel(LightningModule):
         scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: 0.1 ** (epoch // 30))
         return [optimizer], [scheduler]
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: str):
         if isinstance(self.trainer.strategy, ParallelStrategy):
             # When using a single GPU per process and per `DistributedDataParallel`, we need to divide the batch size
             # ourselves based on the total number of GPUs we have
@@ -133,7 +133,7 @@ class ImageNetLightningModel(LightningModule):
             self.batch_size = int(self.batch_size / num_processes)
             self.workers = int(self.workers / num_processes)
 
-        if stage in (None, "fit"):
+        if stage == "fit":
             normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             train_dir = os.path.join(self.data_path, "train")
             self.train_dataset = datasets.ImageFolder(
