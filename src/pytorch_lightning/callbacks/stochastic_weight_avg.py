@@ -144,7 +144,7 @@ class StochasticWeightAveraging(Callback):
     def pl_module_contains_batch_norm(pl_module: "pl.LightningModule") -> bool:
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         if isinstance(trainer.strategy, (DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy, DeepSpeedStrategy)):
             raise MisconfigurationException("SWA does not currently support sharded models.")
 
