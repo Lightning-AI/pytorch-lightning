@@ -23,7 +23,6 @@ from lightning_lite.utilities.rank_zero import (
 )
 
 # enable our warnings
-
 warnings.simplefilter("default", category=LightningDeprecationWarning)
 
 

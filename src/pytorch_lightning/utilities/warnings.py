@@ -13,11 +13,18 @@
 # limitations under the License.
 """Warning-related utilities."""
 
-# For backward-compatibility
-# TODO(lite): deprecate usage
-from lightning_lite.utilities.rank_zero import (  # noqa: F401
-    LightningDeprecationWarning,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from lightning_lite.utilities.rank_zero import rank_zero_deprecation
+from lightning_lite.utilities.warnings import WarningCache as NewWarningCache
+
+
+class PossibleUserWarning(UserWarning):
+    """Warnings that could be false positives."""
+
+
+class WarningCache(NewWarningCache):
+    def __init__(self) -> None:
+        rank_zero_deprecation(
+            "`pytorch_lightning.utilities.warnings.WarningCache` has been deprecated in v1.8.0 and will be"
+            " removed in v1.10.0. Please use `lightning_lite.utilities.warnings.WarningCache` instead."
+        )
+        super().__init__()
