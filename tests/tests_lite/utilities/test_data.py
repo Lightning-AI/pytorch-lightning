@@ -454,34 +454,6 @@ def test_custom_batch_sampler():
     assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
 
-def test_custom_batch_sampler_no_drop_last():
-    """Tests whether appropriate warning is raised when the custom `BatchSampler` does not support `drop_last` and
-    we want to reset it."""
-
-    class MyBatchSampler(BatchSampler):
-        # Custom batch sampler with extra argument, but without `drop_last`
-        def __init__(self, sampler, extra_arg):
-            self.extra_arg = extra_arg
-            super().__init__(sampler, 10, False)
-
-    sampler = RandomSampler(range(10))
-    with _replace_dunder_methods(BatchSampler):
-        # instantiate within `_replace_dunder_method` context manager, simulating `*_dataloader` hooks
-        batch_sampler = MyBatchSampler(sampler, "random_str")
-
-    dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
-
-    # assert that passed information got saved
-    assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
-    assert dataloader.batch_sampler.__pl_saved_kwargs == {}
-    assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
-    assert dataloader.batch_sampler.__pl_saved_default_kwargs == {}
-
-    # Assert that warning is raised
-    with pytest.warns(UserWarning, match="drop_last=False"):
-        dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-
 def test_custom_batch_sampler_no_sampler():
     """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler
     argument."""
