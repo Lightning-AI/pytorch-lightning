@@ -53,7 +53,7 @@ class AppStateWatcher(Parameterized):
 
     This would print ``The counter was updated to 2``.
 
-    The `AppStateWatcher  is built on top of Param which is a framework like dataclass, attrs and
+    The `AppStateWatcher` is built on top of Param which is a framework like dataclass, attrs and
     Pydantic which additionally provides powerful and unique features for building reactive apps.
 
     Please note the `AppStateWatcher` is a singleton, i.e. only one instance is instantiated

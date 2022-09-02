@@ -87,7 +87,8 @@ class PanelFrontend(Frontend):
     Start the Lightning server with `lightning run app app_basic.py`.
 
     For development you can get Panel autoreload by setting the `PANEL_AUTORELOAD`
-    environment variable to 'yes'.
+    environment variable to 'yes', i.e. run
+    `PANEL_AUTORELOAD=yes lightning run app app_basic.py`
     """
 
     @requires("panel")
