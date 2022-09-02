@@ -12,6 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# For backward-compatibility
-# TODO: deprecate usage
-from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device  # noqa: F401
+from typing import Any
+
+from lightning_lite.utilities import rank_zero_deprecation
+from lightning_lite.utilities.optimizer import optimizer_to_device as new_optimizer_to_device
+from lightning_lite.utilities.optimizer import optimizers_to_device as new_optimizers_to_device
+
+
+def optimizers_to_device(*args: Any, **kwargs: Any) -> None:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.optimizer.optimizers_to_device` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.optimizer.optimizers_to_device` instead."
+    )
+    return new_optimizers_to_device(*args, **kwargs)
+
+
+def optimizer_to_device(*args: Any, **kwargs: Any) -> None:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.optimizer.optimizer_to_device` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.optimizer.optimizer_to_device` instead."
+    )
+    return new_optimizer_to_device(*args, **kwargs)

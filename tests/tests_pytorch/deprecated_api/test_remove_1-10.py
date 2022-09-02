@@ -60,6 +60,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
     tpu_distributed,
 )
+from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -229,3 +230,11 @@ def test_v1_10_deprecated_distributed_utilities():
 
     with pytest.deprecated_call(match="distributed.tpu_distributed` has been deprecated in v1.8.0"):
         tpu_distributed()
+
+
+def test_v1_10_deprecated_optimizer_utilities():
+    with pytest.deprecated_call(match="optimizer.optimizers_to_device` has been deprecated in v1.8.0"):
+        optimizers_to_device([torch.optim.Adam(torch.nn.Linear(1, 1).parameters())], "cpu")
+
+    with pytest.deprecated_call(match="optimizer.optimizer_to_device` has been deprecated in v1.8.0"):
+        optimizer_to_device(torch.optim.Adam(torch.nn.Linear(1, 1).parameters()), "cpu")
