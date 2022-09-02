@@ -86,7 +86,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     # skip directly installed dependencies
     if not req or req.startswith("http") or "@http" in req:
         return ""
-    # extract the major version form all listed versions
+    # extract the major version from all listed versions
     if unfreeze == "major":
         req_ = list(parse_requirements([req]))[0]
         vers = [LooseVersion(v) for s, v in req_.specs if s not in ("==", "~=")]
