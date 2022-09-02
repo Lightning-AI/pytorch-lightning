@@ -77,10 +77,7 @@ def test_reset_seed_everything(workers):
 
 
 def test_backward_compatibility_rng_states_dict():
-    """Test that an older rng_states_dict without the "torch.cuda" key does not crash.
-
-    This test is only relevant when torch.cuda is available.
-    """
+    """Test that an older rng_states_dict without the "torch.cuda" key does not crash."""
     states = _collect_rng_states()
     assert "torch.cuda" in states
     states.pop("torch.cuda")

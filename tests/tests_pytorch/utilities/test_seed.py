@@ -1,12 +1,15 @@
 import random
 
 import numpy as np
+import pytest
 import torch
 
 from pytorch_lightning.utilities.seed import isolate_rng
+from tests_pytorch.helpers.runif import RunIf
 
 
-def test_isolate_rng():
+@pytest.mark.parametrize("with_torch_cuda", [False, pytest.param(True, marks=RunIf(min_cuda_gpus=1))])
+def test_isolate_rng(with_torch_cuda):
     """Test that the isolate_rng context manager isolates the random state from the outer scope."""
     # torch
     torch.rand(1)
@@ -15,7 +18,7 @@ def test_isolate_rng():
     assert torch.equal(torch.rand(2), generated[0])
 
     # torch.cuda
-    if torch.cuda.is_available():
+    if with_torch_cuda:
         torch.cuda.FloatTensor(1).normal_()
         with isolate_rng():
             generated = [torch.cuda.FloatTensor(2).normal_() for _ in range(3)]
