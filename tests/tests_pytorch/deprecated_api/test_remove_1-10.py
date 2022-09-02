@@ -63,6 +63,7 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -256,3 +257,14 @@ def test_v1_10_deprecated_seed_utilities():
 def test_v1_10_deprecated_warning_utilities():
     with pytest.deprecated_call(match="warnings.WarningCache` has been deprecated in v1.8.0"):
         WarningCache()
+
+
+def test_v1_10_deprecated_xla_device_utilities():
+    with pytest.deprecated_call(match="xla_device.inner_f` has been deprecated in v1.8.0"):
+        inner_f(mock.Mock(), mock.Mock())
+
+    with pytest.deprecated_call(match="xla_device.pl_multi_process` has been deprecated in v1.8.0"):
+        pl_multi_process(mock.Mock)
+
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+        XLADeviceUtils()

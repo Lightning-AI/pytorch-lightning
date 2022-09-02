@@ -15,10 +15,10 @@
 from multiprocessing import Queue
 from typing import Any, Callable
 
+from lightning_lite.utilities import rank_zero_deprecation
 from lightning_lite.utilities.xla_device import inner_f as new_inner_f
 from lightning_lite.utilities.xla_device import pl_multi_process as new_pl_multi_process
 from lightning_lite.utilities.xla_device import XLADeviceUtils as NewXLADeviceUtils
-from pytorch_lightning.utilities import rank_zero_deprecation  # TODO(lite): update to lightning_lite.utilities
 
 
 def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
