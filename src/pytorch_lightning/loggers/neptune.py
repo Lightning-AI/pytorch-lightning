@@ -26,7 +26,7 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 import pytorch_lightning as pl

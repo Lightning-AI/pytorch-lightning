@@ -401,7 +401,7 @@ import torch
 import pytorch_lightning as pl
 from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
-from pl_devtools.import import module_available
+from lightning_utilities.core.import import module_available
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cli import LightningCLI, _JSONARGPARSE_AVAILABLE

@@ -14,7 +14,7 @@
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Mapping, Optional, Set, Type, Union
 
-from pl_devtools.imports import module_available
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.nn import Module, Parameter
 

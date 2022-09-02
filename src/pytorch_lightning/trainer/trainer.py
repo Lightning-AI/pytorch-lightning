@@ -30,8 +30,8 @@ from weakref import proxy
 
 import torch
 import torch.distributed as dist
+from lightning_utilities.core.imports import module_available
 from packaging.version import Version
-from pl_devtools.imports import module_available
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader

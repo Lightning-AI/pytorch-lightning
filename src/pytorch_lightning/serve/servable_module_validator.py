@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 import requests
 import torch
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import Literal
 
 import pytorch_lightning as pl

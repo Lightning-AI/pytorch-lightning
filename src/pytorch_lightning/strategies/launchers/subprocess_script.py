@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional
 
 import __main__
 import numpy as np
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment

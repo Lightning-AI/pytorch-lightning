@@ -24,7 +24,7 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer

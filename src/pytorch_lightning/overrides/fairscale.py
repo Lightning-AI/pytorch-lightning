@@ -14,7 +14,7 @@
 from typing import Optional, Union
 
 import torch.nn as nn
-from pl_devtools.imports import module_available
+from lightning_utilities.core.imports import module_available
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import (

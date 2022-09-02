@@ -17,7 +17,7 @@ from types import MethodType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import torch
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl

@@ -22,7 +22,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import torch.nn as nn
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment

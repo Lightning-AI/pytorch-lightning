@@ -17,7 +17,7 @@ import platform
 import sys
 
 import torch
-from pl_devtools.imports import compare_version, module_available, package_available
+from lightning_utilities.core.imports import compare_version, module_available, package_available
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765

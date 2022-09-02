@@ -21,7 +21,7 @@ import os
 from argparse import Namespace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
-from pl_devtools.imports import module_available
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 
 import pytorch_lightning as pl

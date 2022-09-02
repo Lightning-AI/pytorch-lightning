@@ -20,7 +20,7 @@ from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHE
 
 import numpy as np
 import torch
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl

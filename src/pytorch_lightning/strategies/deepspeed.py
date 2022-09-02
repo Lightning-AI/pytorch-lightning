@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer

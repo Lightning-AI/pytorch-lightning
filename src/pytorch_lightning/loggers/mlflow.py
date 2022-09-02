@@ -22,7 +22,7 @@ from argparse import Namespace
 from time import time
 from typing import Any, Dict, Mapping, Optional, Union
 
-from pl_devtools.imports import module_available
+from lightning_utilities.core.imports import module_available
 
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict

@@ -16,7 +16,7 @@ import functools
 import os
 from typing import List, Union
 
-from pl_devtools.imports import module_available
+from lightning_utilities.core.imports import module_available
 
 
 def requires(module_paths: Union[str, List]):

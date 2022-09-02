@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
-from pl_devtools.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase

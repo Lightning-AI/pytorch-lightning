@@ -2,7 +2,7 @@
 import logging
 import os
 
-from pl_devtools.imports import module_available
+from lightning_utilities.core.imports import module_available
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)

@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict, List, Optional, Union
 
 import torch
-from pl_devtools.imports import package_available
+from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.nn import Module
 
