@@ -215,8 +215,8 @@ def _get_all_available_mps_gpus() -> List[int]:
         a list of all available MPS gpus
     """
     # lazy import to avoid circular dependencies
-    from lightning_lite.accelerators.mps import _MPS_AVAILABLE
-
+    # from lightning_lite.accelerators.mps import _MPS_AVAILABLE
+    _MPS_AVAILABLE = False  # TODO(lite): revert this once MPS utils have moved
     return [0] if _MPS_AVAILABLE else []
 
 

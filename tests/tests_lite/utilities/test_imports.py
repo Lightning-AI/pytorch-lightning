@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
-
-from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
+import torch
+from lightning_lite.utilities import (
     _HOROVOD_AVAILABLE,
     _module_available,
-    _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
 )
-from pytorch_lightning.utilities.imports import _compare_version, _FAIRSCALE_AVAILABLE, _RequirementAvailable, torch
+from lightning_lite.utilities.imports import _compare_version, _FAIRSCALE_AVAILABLE, _RequirementAvailable
 
 
 def test_module_exists():
@@ -60,26 +56,14 @@ def test_requirement_avaliable():
 
 
 def test_imports():
-    try:
-        import apex  # noqa
-    except ModuleNotFoundError:
-        assert not _APEX_AVAILABLE
-    else:
-        assert _APEX_AVAILABLE
 
-    try:
-        import bagua  # noqa
-    except ModuleNotFoundError:
-        assert not _BAGUA_AVAILABLE
-    else:
-        assert _BAGUA_AVAILABLE
-
-    try:
-        import deepspeed  # noqa
-    except ModuleNotFoundError:
-        assert not _DEEPSPEED_AVAILABLE
-    else:
-        assert _DEEPSPEED_AVAILABLE
+    # TODO(lite): re-enable these once deepspeed strategy has moved
+    # try:
+    #     import deepspeed  # noqa
+    # except ModuleNotFoundError:
+    #     assert not _DEEPSPEED_AVAILABLE
+    # else:
+    #     assert _DEEPSPEED_AVAILABLE
 
     try:
         import fairscale.nn  # noqa
@@ -94,13 +78,6 @@ def test_imports():
         assert not _HOROVOD_AVAILABLE
     else:
         assert _HOROVOD_AVAILABLE
-
-    try:
-        import omegaconf  # noqa
-    except ModuleNotFoundError:
-        assert not _OMEGACONF_AVAILABLE
-    else:
-        assert _OMEGACONF_AVAILABLE
 
     try:
         import poptorch  # noqa

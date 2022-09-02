@@ -11,10 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-import numpy as np
+import os
 
-# generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
+from lightning_lite.utilities.seed import seed_everything
+from tests_lite import RANDOM_PORTS
 
-logging.basicConfig(level=logging.ERROR)
+
+def reset_seed(seed=0):
+    seed_everything(seed)
+
+
+def set_random_main_port():
+    reset_seed()
+    port = RANDOM_PORTS.pop()
+    os.environ["MASTER_PORT"] = str(port)
