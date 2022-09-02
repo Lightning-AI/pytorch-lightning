@@ -68,6 +68,8 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     'arrow'
     >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # cool", unfreeze="major")
     'arrow>=1.2.0, <2.0  # strict'
+    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="major")
+    'arrow>=1.2.0, <=1.2.2  # strict'
     >>> _augment_requirement("arrow>=1.2.0", unfreeze="major")
     'arrow>=1.2.0, <2.0  # strict'
     >>> _augment_requirement("arrow", unfreeze="major")
@@ -77,8 +79,9 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     if comment_char in ln:
         comment = ln[ln.index(comment_char) :]
         ln = ln[: ln.index(comment_char)]
+        is_strict = "strict" in comment
     else:
-        comment = ""
+        is_strict = False
     req = ln.strip()
     # skip directly installed dependencies
     if not req or req.startswith("http") or "@http" in req:
@@ -92,14 +95,14 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         ver_major = None
 
     # remove version restrictions unless they are strict
-    if unfreeze and "<" in req and "strict" not in comment:
+    if unfreeze and "<" in req and not is_strict:
         req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
-    if ver_major is not None:
+    if ver_major is not None and not is_strict:
         # add , only if there are already some versions
         req += f"{',' if any(c in req for c in '<=>') else ''} <{int(ver_major) + 1}.0"
 
     # adding strict back to the comment
-    if "strict" in comment or ver_major is not None:
+    if is_strict or ver_major is not None:
         req += "  # strict"
 
     return req
