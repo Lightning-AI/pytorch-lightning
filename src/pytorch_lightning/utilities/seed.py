@@ -19,14 +19,17 @@ from typing import Generator
 
 import torch
 
-from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
-
-log = logging.getLogger(__name__)
-
-
 # For backward-compatibility
 # TODO(lite): deprecate usage
-from lightning_lite.utilities.seed import pl_worker_init_function, reset_seed, seed_everything  # noqa: F401
+from lightning_lite.utilities.seed import (  # noqa: F401
+    _collect_rng_states,
+    _set_rng_states,
+    pl_worker_init_function,
+    reset_seed,
+    seed_everything,
+)
+
+log = logging.getLogger(__name__)
 
 
 @contextmanager

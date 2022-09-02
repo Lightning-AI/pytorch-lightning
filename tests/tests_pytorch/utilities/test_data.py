@@ -13,6 +13,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
+    _update_dataloader,
     extract_batch_size,
     get_len,
     has_len_all_ranks,

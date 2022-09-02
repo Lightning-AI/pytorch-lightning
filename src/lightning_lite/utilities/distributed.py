@@ -4,7 +4,6 @@ from typing import Any, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
-from torch.distributed import group
 from torch.nn import functional as F
 
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE

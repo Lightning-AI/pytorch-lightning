@@ -22,12 +22,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import apply_to_collection
-from lightning_lite.utilities.data import (
-    _auto_add_worker_init_fn,
-    _replace_dunder_methods,
-    _update_dataloader,
-    has_iterable_dataset,
-)
+from lightning_lite.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
 from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
