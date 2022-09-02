@@ -5,7 +5,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   push:
     branches: [master, "release/*", "refactor/lightning-lite/main"]  # TODO(lite): undo this
   pull_request:
-    branches: [master, "*"]  # TODO(lite): undo this
+    branches: [master, "release/*", "refactor/lightning-lite/main"]  # TODO(lite): undo this
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
