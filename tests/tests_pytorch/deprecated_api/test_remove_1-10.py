@@ -41,6 +41,14 @@ from pytorch_lightning.utilities.apply_func import (
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
+from pytorch_lightning.utilities.device_parser import (
+    determine_root_gpu_device,
+    is_cuda_available,
+    num_cuda_devices,
+    parse_cpu_cores,
+    parse_gpu_ids,
+    parse_tpu_cores,
+)
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -157,3 +165,23 @@ def test_v1_10_deprecated_data_utilities():
 
     with pytest.deprecated_call(match="data.has_len` has been deprecated in v1.8.0"):
         has_len(DataLoader(RandomDataset(2, 4)))
+
+
+def test_v1_10_deprecated_device_parser_utilities():
+    with pytest.deprecated_call(match="device_parser.determine_root_gpu_device` has been deprecated in v1.8.0"):
+        determine_root_gpu_device(None)
+
+    with pytest.deprecated_call(match="device_parser.is_cuda_available` has been deprecated in v1.8.0"):
+        is_cuda_available()
+
+    with pytest.deprecated_call(match="device_parser.num_cuda_devices` has been deprecated in v1.8.0"):
+        num_cuda_devices()
+
+    with pytest.deprecated_call(match="device_parser.parse_cpu_cores` has been deprecated in v1.8.0"):
+        parse_cpu_cores(1)
+
+    with pytest.deprecated_call(match="device_parser.parse_gpu_ids` has been deprecated in v1.8.0"):
+        parse_gpu_ids(None)
+
+    with pytest.deprecated_call(match="device_parser.parse_tpu_cores` has been deprecated in v1.8.0"):
+        parse_tpu_cores(None)
