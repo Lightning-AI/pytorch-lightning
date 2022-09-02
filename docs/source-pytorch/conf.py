@@ -336,7 +336,6 @@ PACKAGE_MAPPING = {
     "comet-ml": "comet_ml",
     "neptune-client": "neptune",
     "hydra-core": "hydra",
-    "pyDeprecate": "deprecate",
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:

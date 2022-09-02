@@ -860,7 +860,7 @@ def test_no_datamodule_for_hparams(tmpdir):
     model = SaveHparamsModel({"arg1": 5, "arg2": "abc"})
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     data = DataModuleWithoutHparams()
-    data.setup()
+    data.setup("fit")
 
     mock_logger = _get_mock_logger(tmpdir)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)

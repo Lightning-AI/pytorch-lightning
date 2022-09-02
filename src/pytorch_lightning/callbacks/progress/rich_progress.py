@@ -474,7 +474,7 @@ class RichProgressBar(ProgressBarBase):
         if self._metric_component:
             self._metric_component.update(metrics)
 
-    def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
+    def teardown(self, trainer, pl_module, stage: str) -> None:
         self._stop_progress()
 
     def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
