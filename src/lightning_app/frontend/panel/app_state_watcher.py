@@ -1,9 +1,9 @@
-"""The AppStateWatcher enables a Frontend to.
+"""The `AppStateWatcher` enables a Frontend to
 
 - subscribe to App state changes
 - to access and change the App state.
 
-This is particularly useful for the PanelFrontend but can be used by other Frontends too.
+This is particularly useful for the `PanelFrontend` but can be used by other frontends too.
 """
 from __future__ import annotations
 
@@ -21,15 +21,16 @@ _logger = logging.getLogger(__name__)
 
 
 class AppStateWatcher(param.Parameterized):
-    """The AppStateWatcher enables a Frontend to:
+    """The `AppStateWatcher` enables a Frontend to:
 
     - Subscribe to any App state changes.
     - To access and change the App state from the UI.
 
-    This is particularly useful for the PanelFrontend, but can be used by
-    other Frontend's too.
+    This is particularly useful for the `PanelFrontend , but can be used by
+    other frontends too.
 
-    Example:
+    Example
+    -------
 
     .. code-block:: python
 
@@ -39,20 +40,18 @@ class AppStateWatcher(param.Parameterized):
 
         app.state.counter = 1
 
-
         @param.depends(app.param.state, watch=True)
         def update(state):
             print(f"The counter was updated to {state.counter}")
-
 
         app.state.counter += 1
 
     This would print ``The counter was updated to 2``.
 
-    The AppStateWatcher is built on top of Param which is a framework like dataclass, attrs and
+    The `AppStateWatcher  is built on top of Param which is a framework like dataclass, attrs and
     Pydantic which additionally provides powerful and unique features for building reactive apps.
 
-    Please note the AppStateWatcher is a singleton, i.e. only one instance is instantiated
+    Please note the `AppStateWatcher` is a singleton, i.e. only one instance is instantiated
     """
 
     state: AppState = param.ClassSelector(

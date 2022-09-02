@@ -27,17 +27,32 @@ def has_panel_autoreload() -> bool:
 
 
 class PanelFrontend(Frontend):
-    """The PanelFrontend enables you to serve Panel code as a Frontend for your LightningFlow.
+    """The `PanelFrontend` enables you to serve Panel code as a Frontend for your LightningFlow.
 
-    To use this frontend, you must first install the `panel` package:
+    Reference: https://lightning.ai/lightning-docs/workflows/add_web_ui/panel/
+
+    Parameters
+    ----------
+    entry_point : The path to a .py or .ipynb file, or a pure function. 
+        The file or function must contain your Panel code.
+        The function can optionally accept an `AppStateWatcher` argument.
+
+    Raises
+    ------
+    TypeError : Raised if the `entry_point`provided is a class method
+    
+    Example
+    -------
+
+    To use the `PanelFrontend`, you must first install the `panel` package:
 
     .. code-block:: bash
 
         pip install panel
+    
+    Create the files `panel_app_basic.py` and `app_basic.py` with the content below.
 
-    Example:
-
-    `panel_app_basic.py`
+    **panel_app_basic.py**
 
     .. code-block:: python
 
@@ -45,7 +60,7 @@ class PanelFrontend(Frontend):
 
         pn.panel("Hello **Panel ⚡** World").servable()
 
-    `app_basic.py`
+    **app_basic.py**
 
     .. code-block:: python
 
@@ -69,20 +84,14 @@ class PanelFrontend(Frontend):
 
         app = L.LightningApp(LitApp())
 
-    You can start the Lightning server with Panel autoreload by setting the `PANEL_AUTORELOAD`
-    environment variable to 'yes': `AUTORELOAD=yes lightning run app app_basic.py`.
+    Start the Lightning server with `lightning run app app_basic.py`.
 
-    Args:
-        entry_point: A pure function or the path to a .py or .ipynb file.
-        The function must be a pure function that contains your Panel code.
-        The function can optionally accept an `AppStateWatcher` argument.
-
-    Raises:
-        TypeError: Raised if the entry_point is a class method
+    For development you can get Panel autoreload by setting the `PANEL_AUTORELOAD`
+    environment variable to 'yes'. 
     """
 
     @requires("panel")
-    def __init__(self, entry_point: Callable | str):
+    def __init__(self, entry_point: str | Callable):
         super().__init__()
 
         if inspect.ismethod(entry_point):
