@@ -41,6 +41,15 @@ subprojects:
       - "pl-cpu (windows-2022, 3.10, latest, stable)"
       - "pl-cpu (windows-2022, 3.7, latest, stable)"
       - "pl-cpu (windows-2022, 3.7, oldest, stable)"
+      - "lite-cpu (macOS-11, 3.10, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, oldest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "lite-cpu (windows-2022, 3.10, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, oldest, stable)"
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "mypy"
@@ -59,6 +68,13 @@ subprojects:
       - "tests/tests_pytorch/run_standalone_*.sh"
     checks:
       - "pytorch-lightning (GPUs)"
+
+  - id: "lightning_lite: Azure GPU"
+    paths:
+      - ".azure/gpu-tests-lite.yml"
+      - "tests/tests_lite/run_standalone_*.sh"
+    checks:
+      - "lightning-lite (GPUs)"
 
   - id: "pytorch_lightning: Azure HPU"
     paths:
