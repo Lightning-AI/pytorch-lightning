@@ -45,9 +45,11 @@ class AppStateWatcher(Parameterized):
 
         app.state.counter = 1
 
+
         @param.depends(app.param.state, watch=True)
         def update(state):
             print(f"The counter was updated to {state.counter}")
+
 
         app.state.counter += 1
 
