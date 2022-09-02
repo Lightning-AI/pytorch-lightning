@@ -1,4 +1,4 @@
-"""The `AppStateWatcher` enables a Frontend to
+"""The `AppStateWatcher` enables a Frontend to.
 
 - subscribe to App state changes
 - to access and change the App state.
@@ -40,9 +40,11 @@ class AppStateWatcher(param.Parameterized):
 
         app.state.counter = 1
 
+
         @param.depends(app.param.state, watch=True)
         def update(state):
             print(f"The counter was updated to {state.counter}")
+
 
         app.state.counter += 1
 
