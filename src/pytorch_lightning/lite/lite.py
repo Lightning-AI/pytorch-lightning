@@ -40,7 +40,7 @@ from lightning_lite.utilities.data import (
     has_iterable_dataset,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning_lite.utilities.seed import seed_everything
 
 
 class LightningLite(ABC):

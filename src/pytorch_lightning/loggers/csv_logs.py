@@ -29,7 +29,7 @@ from torch import Tensor
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning_lite.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 

@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.fetching import (
     DataLoaderIterDataFetcher,
     InterBatchParallelDataFetcher,
 )
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 

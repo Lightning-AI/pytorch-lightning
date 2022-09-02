@@ -14,7 +14,7 @@ from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPFully
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities.rank_zero import rank_zero_only
 
 _NOT_SUPPORTED_STRATEGIES = (
     DeepSpeedStrategy,

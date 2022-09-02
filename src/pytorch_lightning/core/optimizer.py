@@ -23,8 +23,9 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import _Stateful, LRSchedulerConfig, LRSchedulerTypeTuple, ReduceLROnPlateau
+from lightning_lite.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
+from lightning_lite.utilities.types import _Stateful, ReduceLROnPlateau
 
 
 def do_nothing_closure() -> None:

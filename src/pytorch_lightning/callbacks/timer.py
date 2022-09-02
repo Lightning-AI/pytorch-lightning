@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from lightning_lite.utilities.rank_zero import rank_zero_info
 
 log = logging.getLogger(__name__)
 

@@ -27,7 +27,7 @@ from pytorch_lightning import callbacks, cli_lightning_logo, LightningDataModule
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.demos.mnist_datamodule import MNIST
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities.rank_zero import rank_zero_only
 
 if _TORCHVISION_AVAILABLE:
     import torchvision

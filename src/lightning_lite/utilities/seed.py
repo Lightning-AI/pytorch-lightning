@@ -31,7 +31,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         workers: if set to ``True``, will properly configure all dataloaders passed to the
             Trainer with a ``worker_init_fn``. If the user already provides such a function
             for their dataloaders, setting this argument will have no influence. See also:
-            :func:`~pytorch_lightning.utilities.seed.pl_worker_init_function`.
+            :func:`~lightning_lite.utilities.seed.pl_worker_init_function`.
     """
     if seed is None:
         env_seed = os.environ.get("PL_GLOBAL_SEED")
@@ -68,9 +68,9 @@ def _select_seed_randomly(min_seed_value: int = min_seed_value, max_seed_value: 
 
 
 def reset_seed() -> None:
-    """Reset the seed to the value that :func:`pytorch_lightning.utilities.seed.seed_everything` previously set.
+    """Reset the seed to the value that :func:`lightning_lite.utilities.seed.seed_everything` previously set.
 
-    If :func:`pytorch_lightning.utilities.seed.seed_everything` is unused, this function will do nothing.
+    If :func:`lightning_lite.utilities.seed.seed_everything` is unused, this function will do nothing.
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)
     if seed is None:

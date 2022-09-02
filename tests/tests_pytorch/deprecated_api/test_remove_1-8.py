@@ -34,7 +34,7 @@ from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from lightning_lite.utilities import device_parser
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 

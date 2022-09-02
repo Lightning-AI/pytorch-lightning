@@ -29,7 +29,7 @@ from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
 from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import pl_worker_init_function
+from lightning_lite.utilities.seed import pl_worker_init_function
 from tests_pytorch.helpers.runif import RunIf
 
 

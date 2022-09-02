@@ -14,7 +14,7 @@
 from typing import Any
 
 from pytorch_lightning.callbacks.callback import Callback as NewCallback
-from pytorch_lightning.utilities import rank_zero_deprecation
+from lightning_lite.utilities import rank_zero_deprecation
 
 
 class Callback(NewCallback):

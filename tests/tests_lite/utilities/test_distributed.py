@@ -5,6 +5,7 @@ import torch
 from torch import multiprocessing as mp
 
 from lightning_lite.utilities.distributed import gather_all_tensors
+from tests_lite.helpers.runif import RunIf
 
 
 def _test_all_gather_uneven_tensors(rank, world_size, backend):

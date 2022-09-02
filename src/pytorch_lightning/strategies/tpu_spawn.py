@@ -38,8 +38,9 @@ from lightning_lite.utilities.data import has_len
 from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from pytorch_lightning.utilities.types import _PATH, EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from lightning_lite.utilities.rank_zero import rank_zero_only
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from lightning_lite.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv

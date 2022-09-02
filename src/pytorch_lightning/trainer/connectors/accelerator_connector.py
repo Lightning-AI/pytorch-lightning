@@ -75,7 +75,7 @@ from pytorch_lightning.strategies import (
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.launchers.multiprocessing import _is_forking_disabled
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import (
+from lightning_lite.utilities import (
     _StrategyType,
     AMPType,
     device_parser,

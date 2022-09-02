@@ -22,7 +22,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC
 from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from lightning_lite.utilities.rank_zero import rank_zero_deprecation
 
 
 class LoggerConnector:

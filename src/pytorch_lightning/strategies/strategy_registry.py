@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.registry import _is_register_method_overridden
+from lightning_lite.utilities.registry import _is_register_method_overridden
 
 
 class _StrategyRegistry(dict):

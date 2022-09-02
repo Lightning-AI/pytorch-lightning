@@ -27,7 +27,7 @@ from pytorch_lightning.profilers.profiler import Profiler
 from lightning_lite.utilities.device_parser import is_cuda_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:

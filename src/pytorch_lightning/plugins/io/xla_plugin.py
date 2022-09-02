@@ -18,7 +18,7 @@ from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm

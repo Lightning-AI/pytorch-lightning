@@ -20,7 +20,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.device_parser import parse_hpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug
+from lightning_lite.utilities.rank_zero import rank_zero_debug
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.hpu as torch_hpu

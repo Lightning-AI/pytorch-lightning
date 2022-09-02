@@ -33,8 +33,8 @@ from pytorch_lightning.trainer.states import TrainerFn
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.utilities.types import (
-    _PATH,
     LRSchedulerConfig,
     PredictStep,
     STEP_OUTPUT,

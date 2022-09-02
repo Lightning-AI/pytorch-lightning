@@ -30,7 +30,7 @@ from lightning_lite.utilities.distributed import group as dist_group
 from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities.rank_zero import rank_zero_only
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd

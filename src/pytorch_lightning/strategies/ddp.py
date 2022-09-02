@@ -59,8 +59,8 @@ from lightning_lite.utilities.distributed import (
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_11
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.seed import reset_seed
+from lightning_lite.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from lightning_lite.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
 if _FAIRSCALE_AVAILABLE:

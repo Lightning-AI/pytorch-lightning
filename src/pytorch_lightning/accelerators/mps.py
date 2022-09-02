@@ -20,7 +20,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from lightning_lite.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.types import _DEVICE
+from lightning_lite.utilities.types import _DEVICE
 
 # For using the `MPSAccelerator`, user's machine should have `torch>=1.12`, Metal programming framework and
 # the ARM-based Apple Silicon processors.
