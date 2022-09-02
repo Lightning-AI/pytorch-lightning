@@ -10,17 +10,22 @@ from __future__ import annotations
 import logging
 import os
 
-import param
-
 from lightning_app.frontend.panel.app_state_comm import watch_app_state
 from lightning_app.frontend.utils import _get_flow_state
-from lightning_app.utilities.imports import requires
+from lightning_app.utilities.imports import _is_param_available, requires
 from lightning_app.utilities.state import AppState
 
 _logger = logging.getLogger(__name__)
 
 
-class AppStateWatcher(param.Parameterized):
+if _is_param_available():
+    from param import ClassSelector, edit_constant, Parameterized
+else:
+    Parameterized = object
+    ClassSelector = dict
+
+
+class AppStateWatcher(Parameterized):
     """The `AppStateWatcher` enables a Frontend to:
 
     - Subscribe to any App state changes.
@@ -54,7 +59,7 @@ class AppStateWatcher(param.Parameterized):
     Please note the `AppStateWatcher` is a singleton, i.e. only one instance is instantiated
     """
 
-    state: AppState = param.ClassSelector(
+    state: AppState = ClassSelector(
         class_=AppState,
         constant=True,
         doc="The AppState holds the state of the app reduced to the scope of the Flow",
@@ -69,7 +74,7 @@ class AppStateWatcher(param.Parameterized):
 
     @requires("param")
     def __init__(self):
-        # Its critical to initialize only once
+        # It is critical to initialize only once
         # See https://github.com/holoviz/param/issues/643
         if not hasattr(self, "_initialized"):
             super().__init__(name="singleton")
@@ -95,6 +100,6 @@ class AppStateWatcher(param.Parameterized):
     def _update_flow_state(self):
         # Todo: Consider whether to only update if ._state changed
         # This might be much more performant.
-        with param.edit_constant(self):
+        with edit_constant(self):
             self.state = self._get_flow_state()
         _logger.debug("Requested App State.")
