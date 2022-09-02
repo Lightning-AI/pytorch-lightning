@@ -13,8 +13,9 @@
 # limitations under the License.
 import os
 
-from lightning_lite.utilities.seed import seed_everything
 from tests_lite import RANDOM_PORTS
+
+from lightning_lite.utilities.seed import seed_everything
 
 
 def reset_seed(seed=0):

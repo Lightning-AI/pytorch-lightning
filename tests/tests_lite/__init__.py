@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+
 import numpy as np
 
 # generate a list of random seeds for each test

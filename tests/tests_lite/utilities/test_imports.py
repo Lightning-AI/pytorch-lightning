@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
+
 import torch
-from lightning_lite.utilities import (
-    _HOROVOD_AVAILABLE,
-    _module_available,
-    _POPTORCH_AVAILABLE,
-)
+
+from lightning_lite.utilities import _HOROVOD_AVAILABLE, _module_available, _POPTORCH_AVAILABLE
 from lightning_lite.utilities.imports import _compare_version, _FAIRSCALE_AVAILABLE, _RequirementAvailable
 
 
@@ -59,7 +57,7 @@ def test_imports():
 
     # TODO(lite): re-enable these once deepspeed strategy has moved
     # try:
-    #     import deepspeed  # noqa
+    #     import deepspeed
     # except ModuleNotFoundError:
     #     assert not _DEEPSPEED_AVAILABLE
     # else:

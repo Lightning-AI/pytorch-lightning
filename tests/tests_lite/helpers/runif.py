@@ -20,8 +20,8 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE
 from lightning_lite.utilities.imports import (
+    _FAIRSCALE_AVAILABLE,
     _PSUTIL_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
     _TPU_AVAILABLE,
