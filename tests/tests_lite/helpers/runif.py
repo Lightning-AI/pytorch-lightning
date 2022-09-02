@@ -47,7 +47,6 @@ class RunIf:
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
-        slow: bool = False,
         psutil: bool = False,
         **kwargs,
     ):
@@ -62,8 +61,6 @@ class RunIf:
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             fairscale: Require that facebookresearch/fairscale is installed.
-            slow: Mark the test as slow, our CI will run it in a separate job.
-                This requires that the ``PL_RUN_SLOW_TESTS=1`` environment variable is set.
             psutil: Require that psutil is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
@@ -109,13 +106,6 @@ class RunIf:
                 )
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
-
-        if slow:
-            env_flag = os.getenv("PL_RUN_SLOW_TESTS", "0")
-            conditions.append(env_flag != "1")
-            reasons.append("Slow test")
-            # used in tests/conftest.py::pytest_collection_modifyitems
-            kwargs["slow"] = True
 
         if psutil:
             conditions.append(not _PSUTIL_AVAILABLE)
