@@ -38,7 +38,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
-# remove the "tests/tests_pytorch" path suffixes
+# remove the "tests/tests_pytorch/" path suffixes
 path_suffix=$(basename "$(dirname "$(pwd)")")/$(basename "$(pwd)")"/"  # https://stackoverflow.com/a/8223345
 parametrizations=${parametrizations//$path_suffix/}
 parametrizations_arr=($parametrizations)
