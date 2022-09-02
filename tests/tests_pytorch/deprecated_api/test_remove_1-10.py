@@ -25,6 +25,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
+from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.ipu import LightningIPUModule
@@ -48,6 +49,16 @@ from pytorch_lightning.utilities.device_parser import (
     parse_cpu_cores,
     parse_gpu_ids,
     parse_tpu_cores,
+)
+from pytorch_lightning.utilities.distributed import (
+    all_gather_ddp_if_available,
+    distributed_available,
+    gather_all_tensors,
+    get_default_process_group_backend_for_device,
+    init_dist_connection,
+    sync_ddp,
+    sync_ddp_if_available,
+    tpu_distributed,
 )
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
@@ -185,3 +196,36 @@ def test_v1_10_deprecated_device_parser_utilities():
 
     with pytest.deprecated_call(match="device_parser.parse_tpu_cores` has been deprecated in v1.8.0"):
         parse_tpu_cores(None)
+
+
+def test_v1_10_deprecated_distributed_utilities():
+    with pytest.deprecated_call(match="distributed.all_gather_ddp_if_available` has been deprecated in v1.8.0"):
+        all_gather_ddp_if_available(torch.tensor(1))
+
+    with pytest.deprecated_call(match="distributed.distributed_available` has been deprecated in v1.8.0"):
+        distributed_available()
+
+    with mock.patch("torch.distributed.get_world_size", return_value=2), mock.patch(
+        "torch.distributed.barrier"
+    ), mock.patch("torch.distributed.all_gather"):
+        with pytest.deprecated_call(match="distributed.gather_all_tensors` has been deprecated in v1.8.0"):
+            gather_all_tensors(torch.tensor(1))
+
+    with pytest.deprecated_call(
+        match="distributed.get_default_process_group_backend_for_device` has been deprecated in v1.8.0"
+    ):
+        get_default_process_group_backend_for_device(torch.device("cpu"))
+
+    with mock.patch("torch.distributed.is_initialized", return_value=True):
+        with pytest.deprecated_call(match="distributed.init_dist_connection` has been deprecated in v1.8.0"):
+            init_dist_connection(LightningEnvironment(), "gloo")
+
+    with pytest.deprecated_call(match="distributed.sync_ddp_if_available` has been deprecated in v1.8.0"):
+        sync_ddp_if_available(torch.tensor(1))
+
+    with mock.patch("torch.distributed.barrier"), mock.patch("torch.distributed.all_reduce"):
+        with pytest.deprecated_call(match="distributed.sync_ddp` has been deprecated in v1.8.0"):
+            sync_ddp(torch.tensor(1))
+
+    with pytest.deprecated_call(match="distributed.tpu_distributed` has been deprecated in v1.8.0"):
+        tpu_distributed()
