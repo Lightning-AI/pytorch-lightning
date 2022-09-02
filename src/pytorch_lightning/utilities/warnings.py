@@ -14,11 +14,8 @@
 """Warning-related utilities."""
 
 from lightning_lite.utilities.rank_zero import rank_zero_deprecation
+from lightning_lite.utilities.warnings import PossibleUserWarning  # noqa: F401
 from lightning_lite.utilities.warnings import WarningCache as NewWarningCache
-
-
-class PossibleUserWarning(UserWarning):
-    """Warnings that could be false positives."""
 
 
 class WarningCache(NewWarningCache):

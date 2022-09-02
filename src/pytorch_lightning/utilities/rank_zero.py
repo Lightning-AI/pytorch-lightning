@@ -18,6 +18,7 @@ import os
 from typing import Any, Optional, Union
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.rank_zero import LightningDeprecationWarning  # noqa: F401
 from lightning_lite.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from lightning_lite.utilities.rank_zero import rank_zero_deprecation as new_rank_zero_deprecation
 from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
@@ -44,10 +45,6 @@ def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
 new_rank_zero_only.rank = getattr(new_rank_zero_only, "rank", _get_rank() or 0)
-
-
-class LightningDeprecationWarning(DeprecationWarning):
-    """Deprecation warnings raised by PyTorch Lightning."""
 
 
 # TODO(lite): Does stacklevel need to be increased?
