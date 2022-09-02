@@ -1232,12 +1232,15 @@ reload_dataloaders_every_n_epochs
 
 |
 
-Set to a positive integer to reload dataloaders every n epochs.
+Set to a positive integer to reload dataloaders every n epochs from your currently used data source.
+DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
+
 
 .. code-block:: python
 
     # if 0 (default)
     train_loader = model.train_dataloader()
+    # or if using data module: datamodule.train_dataloader()
     for epoch in epochs:
         for batch in train_loader:
             ...
@@ -1246,8 +1249,11 @@ Set to a positive integer to reload dataloaders every n epochs.
     for epoch in epochs:
         if not epoch % reload_dataloaders_every_n_epochs:
             train_loader = model.train_dataloader()
+            # or if using data module: datamodule.train_dataloader()
         for batch in train_loader:
             ...
+
+The pseudocode applies also to the ``val_dataloader``.
 
 .. _replace-sampler-ddp:
 

@@ -34,7 +34,7 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
-        pkg: ["app", "pytorch"]
+        pkg: ["app", "lite", "pytorch"]
         python-version: [3.8]  # , 3.9
 
     steps:
@@ -110,6 +110,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Dowload package
+        # todo: download also lite after it is fist published
         run: |
           pip install -q fire requests
           for pkg in 'app' 'pytorch' ; do
