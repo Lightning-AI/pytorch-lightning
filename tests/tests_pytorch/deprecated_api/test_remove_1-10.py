@@ -38,6 +38,7 @@ from pytorch_lightning.utilities.apply_func import (
     to_dtype_tensor,
     TransferableDataType,
 )
+from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -135,3 +136,14 @@ def test_v1_10_deprecated_apply_func_utilities():
 
     with pytest.deprecated_call(match="apply_func.TransferableDataType` has been deprecated in v1.8.0"):
         MyModule()
+
+
+def test_v1_10_deprecated_cloud_io_utilities(tmpdir):
+    with pytest.deprecated_call(match="cloud_io.atomic_save` has been deprecated in v1.8.0"):
+        atomic_save({}, tmpdir / "atomic_save.ckpt")
+
+    with pytest.deprecated_call(match="cloud_io.get_filesystem` has been deprecated in v1.8.0"):
+        get_filesystem(tmpdir)
+
+    with pytest.deprecated_call(match="cloud_io.load` has been deprecated in v1.8.0"):
+        load(str(tmpdir / "atomic_save.ckpt"))
