@@ -9,7 +9,7 @@ To enable your code to work with Lightning, perform the following to organize Py
 --------
 
 *******************************
-1. Keep your Computational Code
+1. Keep Your Computational Code
 *******************************
 
 Keep your regular nn.Module architecture
