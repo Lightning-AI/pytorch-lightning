@@ -94,7 +94,7 @@ def caplog(caplog):
     """
     import logging
 
-    lightning_logger = logging.getLogger("pytorch_lightning")
+    lightning_logger = logging.getLogger("lightning_lite")
     propagate = lightning_logger.propagate
     lightning_logger.propagate = True
     yield caplog
