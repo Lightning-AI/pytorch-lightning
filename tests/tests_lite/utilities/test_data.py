@@ -16,7 +16,7 @@ from lightning_lite.utilities.data import (
 )
 from lightning_lite.utilities.exceptions import MisconfigurationException
 
-# TODO: provide boring classes in Lite
+# TODO(lite): provide boring classes in Lite
 from pytorch_lightning.demos.boring_classes import RandomDataset, RandomIterableDataset
 
 

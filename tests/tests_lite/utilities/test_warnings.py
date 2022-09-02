@@ -56,7 +56,7 @@ if standalone and __name__ == "__main__":
     # check that logging is properly configured
     import logging
 
-    from pytorch_lightning import _DETAIL
+    from lightning_lite import _DETAIL
 
     root_logger = logging.getLogger()
     lightning_logger = logging.getLogger("lightning_lite")
