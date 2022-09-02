@@ -3,9 +3,9 @@ name: Test Lite full
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*", "refactor/lightning-lite/main"]
+    branches: [master, "release/*", "refactor/lightning-lite/main"]  # TODO(lite): undo
   pull_request:
-    branches: [master, "release/*", "refactor/lightning-lite/main"]
+    branches: [master, "release/*", "refactor/lightning-lite/main"]  # TODO(lite): undo
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
       - "requirements/lite/**"
