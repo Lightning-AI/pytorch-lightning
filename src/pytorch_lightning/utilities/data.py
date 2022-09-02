@@ -28,14 +28,11 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import LightningEnum, rank_zero_warn
+from lightning_lite.utilities import LightningEnum, rank_zero_deprecation, rank_zero_warn
 from lightning_lite.utilities.apply_func import _is_dataclass_instance
-from lightning_lite.utilities.data import (
-    _reinstantiate_wrapped_cls,
-    _replace_value_in_saved_args,
-    has_iterable_dataset,
-    has_len,
-)
+from lightning_lite.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
+from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterable_dataset
+from lightning_lite.utilities.data import has_len as new_has_len
 from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
@@ -434,3 +431,19 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
     if isinstance(sampler, SequentialSampler):
         return False
     return isinstance(sampler, RandomSampler)
+
+
+def has_iterable_dataset(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.data.has_iterable_dataset` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.data.has_iterable_dataset` instead."
+    )
+    return new_has_iterable_dataset(*args, **kwargs)
+
+
+def has_len(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.data.has_len` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.data.has_len` instead."
+    )
+    return new_has_len(*args, **kwargs)

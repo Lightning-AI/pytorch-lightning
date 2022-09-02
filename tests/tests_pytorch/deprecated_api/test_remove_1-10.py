@@ -17,10 +17,11 @@ from unittest import mock
 import numpy
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
@@ -39,6 +40,7 @@ from pytorch_lightning.utilities.apply_func import (
     TransferableDataType,
 )
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
+from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -147,3 +149,11 @@ def test_v1_10_deprecated_cloud_io_utilities(tmpdir):
 
     with pytest.deprecated_call(match="cloud_io.load` has been deprecated in v1.8.0"):
         load(str(tmpdir / "atomic_save.ckpt"))
+
+
+def test_v1_10_deprecated_data_utilities():
+    with pytest.deprecated_call(match="data.has_iterable_dataset` has been deprecated in v1.8.0"):
+        has_iterable_dataset(DataLoader(RandomDataset(2, 4)))
+
+    with pytest.deprecated_call(match="data.has_len` has been deprecated in v1.8.0"):
+        has_len(DataLoader(RandomDataset(2, 4)))
