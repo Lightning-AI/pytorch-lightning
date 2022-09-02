@@ -22,6 +22,8 @@ import pytest
 import torch
 
 import pytorch_lightning
+from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.rank_zero import rank_zero_only
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
@@ -33,8 +35,6 @@ from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
-from lightning_lite.utilities import device_parser
-from lightning_lite.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 

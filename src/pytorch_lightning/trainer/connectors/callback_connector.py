@@ -18,6 +18,7 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.callbacks import (
     Callback,
     Checkpoint,
@@ -32,7 +33,6 @@ from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 
 _log = logging.getLogger(__name__)
 

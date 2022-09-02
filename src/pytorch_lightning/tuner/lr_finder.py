@@ -23,13 +23,13 @@ import torch
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
-from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto

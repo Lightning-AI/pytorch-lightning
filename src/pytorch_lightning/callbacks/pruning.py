@@ -26,11 +26,11 @@ from torch import nn, Tensor
 from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.rank_zero import rank_zero_debug, rank_zero_only
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.module import LightningModule
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.rank_zero import rank_zero_debug, rank_zero_only
 
 log = logging.getLogger(__name__)
 

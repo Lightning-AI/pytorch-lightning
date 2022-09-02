@@ -19,6 +19,7 @@ import pytest
 
 import pytorch_lightning.loggers.base as logger_base
 import pytorch_lightning.utilities.cli as old_cli
+from lightning_lite.utilities.rank_zero import rank_zero_only
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.cli import LightningCLI, SaveConfigCallback
@@ -32,7 +33,6 @@ from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
-from lightning_lite.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 

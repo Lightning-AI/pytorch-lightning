@@ -16,9 +16,9 @@ import os
 import socket
 from typing import Dict, List
 
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning import _logger as log
 from pytorch_lightning.plugins.environments import ClusterEnvironment
-from lightning_lite.utilities.cloud_io import get_filesystem
 
 
 class LSFEnvironment(ClusterEnvironment):

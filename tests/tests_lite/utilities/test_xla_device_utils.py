@@ -15,10 +15,10 @@ import time
 from unittest.mock import patch
 
 import pytest
+from tests_lite.helpers.runif import RunIf
 
 import lightning_lite.utilities.xla_device as xla_utils
 from lightning_lite.utilities.imports import _XLA_AVAILABLE
-from tests_lite.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")

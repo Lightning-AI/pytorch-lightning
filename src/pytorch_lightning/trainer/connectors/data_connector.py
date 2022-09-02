@@ -21,30 +21,26 @@ from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSample
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
-from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from lightning_lite.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
 from lightning_lite.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,
     _update_dataloader,
     has_iterable_dataset,
 )
-from pytorch_lightning.utilities.data import (
-    _is_dataloader_shuffled,
-    _update_dataloader,
-    has_len_all_ranks,
-)
+from lightning_lite.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
+from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
+from pytorch_lightning.strategies import DDPSpawnStrategy
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
+from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
+from pytorch_lightning.utilities.data import _is_dataloader_shuffled, _update_dataloader, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
 
 warning_cache = WarningCache()
 

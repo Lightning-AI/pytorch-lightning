@@ -17,9 +17,9 @@ import os
 
 import torch.distributed
 
+from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_9_1
-from lightning_lite.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 

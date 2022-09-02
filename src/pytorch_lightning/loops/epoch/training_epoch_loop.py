@@ -19,6 +19,9 @@ import numpy as np
 import torch
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.rank_zero import rank_zero_warn
+from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
@@ -26,14 +29,11 @@ from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_li
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from lightning_lite.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 

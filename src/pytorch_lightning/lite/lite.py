@@ -24,6 +24,14 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 
+from lightning_lite.utilities.apply_func import apply_to_collection, convert_to_tensors
+from lightning_lite.utilities.data import (
+    _auto_add_worker_init_fn,
+    _replace_dunder_methods,
+    _update_dataloader,
+    has_iterable_dataset,
+)
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
@@ -32,15 +40,7 @@ from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnSt
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
-from lightning_lite.utilities.apply_func import apply_to_collection, convert_to_tensors
-from lightning_lite.utilities.data import (
-    _auto_add_worker_init_fn,
-    _replace_dunder_methods,
-    _update_dataloader,
-    has_iterable_dataset,
-)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.seed import seed_everything
 
 
 class LightningLite(ABC):

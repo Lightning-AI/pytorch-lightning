@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import Any
 
-from pytorch_lightning.callbacks.callback import Callback as NewCallback
 from lightning_lite.utilities import rank_zero_deprecation
+from pytorch_lightning.callbacks.callback import Callback as NewCallback
 
 
 class Callback(NewCallback):

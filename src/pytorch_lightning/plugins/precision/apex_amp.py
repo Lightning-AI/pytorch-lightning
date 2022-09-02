@@ -18,10 +18,10 @@ from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PARAMETERS
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
     from apex import amp

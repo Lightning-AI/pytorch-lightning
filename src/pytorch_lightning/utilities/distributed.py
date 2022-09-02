@@ -30,7 +30,7 @@ from lightning_lite.utilities.distributed import (  # noqa: F401
     sync_ddp_if_available,
     tpu_distributed,
 )
-from lightning_lite.utilities.rank_zero import rank_zero_info, rank_zero_debug
+from lightning_lite.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 
 def register_ddp_comm_hook(

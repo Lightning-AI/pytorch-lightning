@@ -25,9 +25,9 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 

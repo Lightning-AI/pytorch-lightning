@@ -13,7 +13,7 @@
 # limitations under the License.
 """"""
 
-from pytorch_lightning.trainer.trainer import Trainer
 from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning.trainer.trainer import Trainer
 
 __all__ = ["Trainer", "seed_everything"]

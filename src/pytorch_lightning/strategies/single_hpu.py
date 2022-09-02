@@ -15,6 +15,7 @@
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
@@ -22,7 +23,6 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
