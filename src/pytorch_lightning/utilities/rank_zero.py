@@ -15,23 +15,20 @@
 """Utilities that can be used for calling functions on a particular rank."""
 import logging
 import os
-from typing import Optional
+from typing import Any, Optional, Union
 
 import pytorch_lightning as pl
-
-# For backward-compatibility
-# TODO: deprecate usage
-from lightning_lite.utilities.rank_zero import (  # noqa: F401
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_only,
-    rank_zero_warn,
-)
+from lightning_lite.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
+from lightning_lite.utilities.rank_zero import rank_zero_deprecation as new_rank_zero_deprecation
+from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
+from lightning_lite.utilities.rank_zero import rank_zero_only as new_rank_zero_only
+from lightning_lite.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
 log = logging.getLogger(__name__)
 
 
 def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:
+    # TODO(lite): Refactor usages in PL to lightning_lite.utilities._get_rank
     if trainer is not None:
         return trainer.global_rank
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
@@ -46,8 +43,41 @@ def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:
 
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
-rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank() or 0)
+new_rank_zero_only.rank = getattr(new_rank_zero_only, "rank", _get_rank() or 0)
 
 
 class LightningDeprecationWarning(DeprecationWarning):
     """Deprecation warnings raised by PyTorch Lightning."""
+
+
+# TODO(lite): Does stacklevel need to be increased?
+@new_rank_zero_only
+def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log debug-level messages only on global rank 0."""
+    new_rank_zero_deprecation(
+        "`pytorch_lightning.utilities.rank_zero.rank_zero_debug` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.rank_zero.rank_zero_debug` instead."
+    )
+    new_rank_zero_debug(*args, stacklevel=stacklevel, **kwargs)
+
+
+# TODO(lite): Does stacklevel need to be increased?
+@new_rank_zero_only
+def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log info-level messages only on global rank 0."""
+    new_rank_zero_deprecation(
+        "`pytorch_lightning.utilities.rank_zero.rank_zero_info` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.rank_zero.rank_zero_info` instead."
+    )
+    new_rank_zero_info(*args, stacklevel=stacklevel, **kwargs)
+
+
+# TODO(lite): Does stacklevel need to be increased?
+@new_rank_zero_only
+def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
+    """Function used to log warn-level messages only on global rank 0."""
+    new_rank_zero_deprecation(
+        "`pytorch_lightning.utilities.rank_zero.rank_zero_warn` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.rank_zero.rank_zero_warn` instead."
+    )
+    new_rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
