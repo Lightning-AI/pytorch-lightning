@@ -43,7 +43,8 @@ repos:
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
                 src/lightning_app/cli/pl-app-template/ui/yarn.lock|
-                src/pytorch_lightning/CHANGELOG.md
+                src/pytorch_lightning/CHANGELOG.md|
+                src/lightning_lite/CHANGELOG.md
             )$
       - id: detect-private-key
 
@@ -98,7 +99,8 @@ repos:
         exclude: |
             (?x)^(
                 src/pytorch_lightning/CHANGELOG.md|
-                src/lightning_app/CHANGELOG.md
+                src/lightning_app/CHANGELOG.md|
+                src/lightning_lite/CHANGELOG.md
             )$
 
   - repo: https://github.com/PyCQA/flake8

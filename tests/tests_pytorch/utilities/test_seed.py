@@ -1,15 +1,14 @@
 import os
 import random
-from typing import Mapping
 from unittest import mock
-from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
-from pytorch_lightning.utilities.seed import isolate_rng
+from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states, isolate_rng
+from tests_pytorch.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -79,13 +78,21 @@ def test_reset_seed_everything(workers):
     assert torch.allclose(before, after)
 
 
-def test_isolate_rng():
+@pytest.mark.parametrize("with_torch_cuda", [False, pytest.param(True, marks=RunIf(min_cuda_gpus=1))])
+def test_isolate_rng(with_torch_cuda):
     """Test that the isolate_rng context manager isolates the random state from the outer scope."""
     # torch
     torch.rand(1)
     with isolate_rng():
         generated = [torch.rand(2) for _ in range(3)]
     assert torch.equal(torch.rand(2), generated[0])
+
+    # torch.cuda
+    if with_torch_cuda:
+        torch.cuda.FloatTensor(1).normal_()
+        with isolate_rng():
+            generated = [torch.cuda.FloatTensor(2).normal_() for _ in range(3)]
+        assert torch.equal(torch.cuda.FloatTensor(2).normal_(), generated[0])
 
     # numpy
     np.random.rand(1)
@@ -100,17 +107,9 @@ def test_isolate_rng():
     assert random.random() == generated[0]
 
 
-@mock.patch("pytorch_lightning.utilities.seed.log.info")
-@pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"RANK": "1"}, {"RANK": "4"}])
-def test_seed_everything_log_info(log_mock: MagicMock, env_vars: Mapping[str, str]):
-    """Test that log message prefix with correct rank info."""
-    with mock.patch.dict(os.environ, env_vars, clear=True):
-        from pytorch_lightning.utilities.rank_zero import _get_rank
-
-        rank = _get_rank()
-
-        seed_utils.seed_everything(123)
-
-    expected_log = f"[rank: {rank}] Global seed set to 123"
-
-    log_mock.assert_called_once_with(expected_log)
+def test_backward_compatibility_rng_states_dict():
+    """Test that an older rng_states_dict without the "torch.cuda" key does not crash."""
+    states = _collect_rng_states()
+    assert "torch.cuda" in states
+    states.pop("torch.cuda")
+    _set_rng_states(states)
