@@ -214,7 +214,7 @@ class ColossalAIStrategy(DDPStrategy):
         pass
 
     def optimizer_step(self, optimizer, opt_idx: int, closure, model=None, **kwargs: Any) -> Any:
-        model = model or self.model
+        model = model or self.lightning_module
         return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def lightning_module_state_dict(self):
