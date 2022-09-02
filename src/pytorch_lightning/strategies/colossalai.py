@@ -207,7 +207,7 @@ class ColossalAIStrategy(DDPStrategy):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         if isinstance(self.model, ZeroDDP):
-            return unwrap_lightning_module(self.model.module)
+            return self.model.module.lightning_module
         return super().lightning_module
 
     def teardown(self) -> None:
