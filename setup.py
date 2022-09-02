@@ -11,7 +11,7 @@ _PATH_SOURCE = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
 
 
-def _load_py_module(fname, pkg="pl_devtools"):
+def _load_py_module(fname, pkg="lightning_tools"):
     spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_SOURCE, pkg, fname))
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
@@ -25,13 +25,13 @@ with open(os.path.join(_PATH_ROOT, "README.md")) as fp:
     readme = fp.read()
 
 setup(
-    name="lightning-devtools",
+    name="lightning_tools",
     version=about.__version__,
     description=about.__docs__,
     author=about.__author__,
     author_email=about.__author_email__,
     url=about.__homepage__,
-    download_url="https://github.com/Lightning-AI/devtools",
+    download_url="https://github.com/Lightning-AI/lightning-tools",
     license=about.__license__,
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -44,9 +44,9 @@ setup(
     setup_requires=[],
     install_requires=requirements,
     project_urls={
-        "Bug Tracker": "https://github.com/Lightning-AI/devtools/issues",
+        "Bug Tracker": "https://github.com/Lightning-AI/lightning-tools/issues",
         "Documentation": "https://dev-toolbox.rtfd.io/en/latest/",  # TODO: Update domain
-        "Source Code": "https://github.com/Lightning-AI/devtools",
+        "Source Code": "https://github.com/Lightning-AI/lightning-tools",
     },
     classifiers=[
         "Environment :: Console",

@@ -22,8 +22,8 @@ jobs:
   check-package:
     uses: ./.github/workflows/check-package.yml
     with:
-      import-name: "pl_devtools"
-      pypi-name: "lightning-devtools"
+      import-name: "lightning_tools"
+      pypi-name: "lightning-tools"
 
   check-docs:
     uses: ./.github/workflows/check-docs.yml

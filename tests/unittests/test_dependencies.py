@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pl_devtools.dependencies import prune_pkgs_in_requirements, replace_oldest_ver
+from lightning_tools.dependencies import prune_pkgs_in_requirements, replace_oldest_ver
 
 _PATH_ROOT = Path(__file__).parent.parent.parent
 
