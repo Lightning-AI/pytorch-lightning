@@ -13,9 +13,4 @@
 # limitations under the License.
 import logging
 
-import numpy as np
-
-# generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
-
 logging.basicConfig(level=logging.ERROR)

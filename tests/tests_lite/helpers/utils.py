@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-
-from tests_lite import RANDOM_PORTS
+import numpy as np
 
 from lightning_lite.utilities.seed import seed_everything
+
+# generate a list of random seeds for each test
+RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 
 
 def reset_seed(seed=0):
