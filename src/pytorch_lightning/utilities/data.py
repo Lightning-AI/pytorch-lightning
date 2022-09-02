@@ -140,7 +140,7 @@ def has_len_all_ranks(
     except (TypeError, NotImplementedError):
         has_len = False
 
-    if has_len and has_iterable_dataset(dataloader):
+    if has_len and new_has_iterable_dataset(dataloader):
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
