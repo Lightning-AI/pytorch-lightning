@@ -18,4 +18,3 @@ from lightning_lite.plugins.environments.lsf_environment import LSFEnvironment  
 from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment  # noqa: F401
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401
 from lightning_lite.plugins.environments.xla_environment import XLAEnvironment  # noqa: F401
-from pytorch_lightning.plugins.environments.bagua_environment import BaguaEnvironment  # noqa: F401
