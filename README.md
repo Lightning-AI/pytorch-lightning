@@ -1,9 +1,9 @@
 # Devtools
 
-[![UnitTests](https://github.com/Lightning-AI/lightning-tools/actions/workflows/ci-testing.yml/badge.svg?event=push)](https://github.com/Lightning-AI/lightning-tools/actions/workflows/ci-testing.yml)
-[![Apply checks](https://github.com/Lightning-AI/lightning-tools/actions/workflows/ci-use-checks.yml/badge.svg?event=push)](https://github.com/Lightning-AI/lightning-tools/actions/workflows/ci-use-checks.yml)
+[![UnitTests](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml)
+[![Apply checks](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yml)
 [![Documentation Status](https://readthedocs.org/projects/lightning_tools/badge/?version=latest)](https://lightning-tools.readthedocs.io/en/latest/?badge=latest)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Lightning-AI/lightning-tools/main.svg?badge_token=mqheL1-cTn-280Vx4cJUdg)](https://results.pre-commit.ci/latest/github/Lightning-AI/devtools/main?badge_token=mqheL1-cTn-280Vx4cJUdg)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Lightning-AI/utilities/main.svg?badge_token=mqheL1-cTn-280Vx4cJUdg)](https://results.pre-commit.ci/latest/github/Lightning-AI/devtools/main?badge_token=mqheL1-cTn-280Vx4cJUdg)
 
 __This repository covers the following use-cases:__
 
@@ -23,16 +23,16 @@ on: [push]
 
 jobs:
   check-schema:
-    uses: Lightning-AI/lightning-tools/.github/workflows/check-schema.yml@main
+    uses: Lightning-AI/utilities/.github/workflows/check-schema.yml@main
     with:
       azure-dir: ""
 ```
 
-See usage of other workflows in [.github/workflows/ci_use-checks.yml](https://github.com/Lightning-AI/lightning-tools/tree/main/.github/workflows/ci_use-checks.yml).
+See usage of other workflows in [.github/workflows/ci_use-checks.yml](https://github.com/Lightning-AI/utilities/tree/main/.github/workflows/ci_use-checks.yml).
 
 ## 2. Reusable composite actions
 
-See available composite actions [.github/actions/](https://github.com/Lightning-AI/lightning-tools/tree/main/.github/actions).
+See available composite actions [.github/actions/](https://github.com/Lightning-AI/utilities/tree/main/.github/actions).
 
 __Usage:__
 
@@ -49,7 +49,7 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: 3.9
-    - uses: Lightning-AI/lightning-tools/.github/actions/cache
+    - uses: Lightning-AI/utilities/.github/actions/cache
       with:
         python-version: 3.9
         requires: oldest
@@ -65,7 +65,7 @@ The package provides common CLI commands.
 From source:
 
 ```bash
-pip install https://github.com/Lightning-AI/lightning-tools/archive/refs/heads/main.zip
+pip install https://github.com/Lightning-AI/utilities/archive/refs/heads/main.zip
 ```
 
 From pypi:
