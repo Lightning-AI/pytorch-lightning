@@ -33,14 +33,14 @@ class PanelFrontend(Frontend):
 
     Parameters
     ----------
-    entry_point : The path to a .py or .ipynb file, or a pure function. 
+    entry_point : The path to a .py or .ipynb file, or a pure function.
         The file or function must contain your Panel code.
         The function can optionally accept an `AppStateWatcher` argument.
 
     Raises
     ------
     TypeError : Raised if the `entry_point`provided is a class method
-    
+
     Example
     -------
 
@@ -49,7 +49,7 @@ class PanelFrontend(Frontend):
     .. code-block:: bash
 
         pip install panel
-    
+
     Create the files `panel_app_basic.py` and `app_basic.py` with the content below.
 
     **panel_app_basic.py**
@@ -87,7 +87,7 @@ class PanelFrontend(Frontend):
     Start the Lightning server with `lightning run app app_basic.py`.
 
     For development you can get Panel autoreload by setting the `PANEL_AUTORELOAD`
-    environment variable to 'yes'. 
+    environment variable to 'yes'.
     """
 
     @requires("panel")
