@@ -74,7 +74,7 @@ def to_dtype_tensor(*args: Any, **kwargs: Any) -> Any:
 
 
 class TransferableDataType(NewTransferableDataType):
-    def __init__(self):
+    def __init__(self) -> None:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.apply_func.TransferableDataType` has been deprecated in v1.8.0 and will be"
             " removed in v1.10.0. Please use `lightning_lite.utilities.apply_func.TransferableDataType` instead."
