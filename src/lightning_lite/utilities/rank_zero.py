@@ -10,7 +10,7 @@ import lightning_lite as lite
 log = logging.getLogger(__name__)
 
 
-def _get_rank(strategy: Optional["lite.strategies.Strategy"] = None) -> Optional[int]:
+def _get_rank(strategy: Optional["lite.strategies.Strategy"] = None) -> Optional[int]:  # type: ignore[name-defined]
     if strategy is not None:
         return strategy.global_rank
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
@@ -65,13 +65,6 @@ def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
 
 
 def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> None:
-    if type(stacklevel) is type and issubclass(stacklevel, Warning):
-        rank_zero_deprecation(
-            "Support for passing the warning category positionally is deprecated in v1.6 and will be removed in v1.8"
-            f" Please, use `category={stacklevel.__name__}`."
-        )
-        kwargs["category"] = stacklevel
-        stacklevel = kwargs.pop("stacklevel", 2)
     warnings.warn(message, stacklevel=stacklevel, **kwargs)
 
 

@@ -203,7 +203,8 @@ def all_gather_ddp_if_available(
 
 
 def init_dist_connection(
-    cluster_environment: "ClusterEnvironment",  # noqa: F821  # TODO(lite): Fix this type error
+    # TODO(lite): Fix this type error
+    cluster_environment: "ClusterEnvironment",  # type: ignore[name-defined] # noqa: F821
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
