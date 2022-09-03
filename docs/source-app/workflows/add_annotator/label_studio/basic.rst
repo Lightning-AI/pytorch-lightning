@@ -47,7 +47,7 @@ Use Conda for Lightning and use ``venv`` for Label Studio. Label Studio and Ligh
 
 .. code:: python
 
-    virtualenv ~/venv-label-studio 
+    virtualenv ~/venv-label-studio
     git clone https://github.com/robert-s-lee/label-studio; pushd label-studio; git checkout x-frame-options; popd source ~/venv-label-studio/bin/activate; pushd label-studio; which python; python -m pip install -e .; popd; deactivate
 
 

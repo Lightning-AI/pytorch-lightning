@@ -21,4 +21,3 @@ Annotators
 
         </div>
     </div>
-
