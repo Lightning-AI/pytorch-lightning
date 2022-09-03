@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_TO_HUB: ${{ github.event_name == 'schedule' }}
+  PUSH_TO_HUB: true
 
 jobs:
   build-pl:
