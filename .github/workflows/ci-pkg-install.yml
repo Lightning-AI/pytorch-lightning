@@ -23,6 +23,8 @@ defaults:
 
 jobs:
 
+  # TODO: build and upload lightning-lite
+
   install-pkg:
     runs-on: ${{ matrix.os }}
     strategy:
