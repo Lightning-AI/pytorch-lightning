@@ -37,6 +37,14 @@ You can extend a Lightning App by using community components or building your ow
    :tag: basic
 
 .. displayitem::
+   :header: Add an annotator
+   :description: Extend an App by adding an annotator
+   :col_css: col-md-4
+   :button_link: add_annotator/index.html
+   :height: 150
+   :tag: basic
+
+.. displayitem::
    :header: Build a Component
    :description: Extend an App by building a Component
    :col_css: col-md-4
