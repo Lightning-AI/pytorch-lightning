@@ -39,7 +39,7 @@ setup(
     long_description_content_type="text/markdown",
     include_package_data=True,
     zip_safe=False,
-    keywords=["DevOps", "CI/CD"],
+    keywords=["Utilities", "DevOps", "CI/CD"],
     python_requires=">=3.7",
     setup_requires=[],
     install_requires=requirements,

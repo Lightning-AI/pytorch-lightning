@@ -1,6 +1,6 @@
 import fire
 
-from lightning_utilities.dependencies import prune_pkgs_in_requirements, replace_oldest_ver
+from lightning_utilities.dev.dependencies import prune_pkgs_in_requirements, replace_oldest_ver
 
 
 def main() -> None:

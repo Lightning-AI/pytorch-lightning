@@ -79,7 +79,7 @@ pip install lightning_utilities
 __Usage:__
 
 ```bash
-python -m lightning_utilities [group] [command]
+python -m lightning_utilities.dev [group] [command]
 ```
 
 <details>
@@ -92,7 +92,7 @@ codecov>=2.1
 pytest>=6.0
 pytest-cov
 pytest-timeout
-$ python -m lightning_utilities requirements set-oldest
+$ python -m lightning_utilities.dev requirements set-oldest
 $ cat requirements/test.txt
 coverage==5.0
 codecov==2.1

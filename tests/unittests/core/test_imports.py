@@ -1,6 +1,6 @@
 import operator
 
-from lightning_utilities.imports import compare_version, module_available, RequirementCache
+from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
 
 
 def test_module_exists():
