@@ -294,6 +294,15 @@ class TensorBoardLogger(Logger):
             self._version = self._get_next_version()
         return self._version
 
+    @property
+    def experiment_dir(self) -> str:
+        """Get the experiment directory.
+
+        Returns:
+            The (relative) path to where logs and artifacts get saved for the current version.
+        """
+        return self.log_dir
+
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
 

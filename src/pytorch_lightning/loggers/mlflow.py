@@ -292,3 +292,12 @@ class MLFlowLogger(Logger):
             The run id.
         """
         return self.run_id
+
+    @property
+    def experiment_dir(self) -> str:
+        """Get the experiment directory.
+
+        Returns:
+            The (relative) path to where logs and artifacts get saved for the current version.
+        """
+        return os.path.join(self.save_dir, self.name, self.version)

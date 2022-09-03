@@ -497,6 +497,15 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
+    @property
+    def experiment_dir(self) -> str:
+        """Get the experiment directory.
+
+        Returns:
+            The (relative) path to where logs and artifacts get saved for the current version.
+        """
+        return os.path.join(self.save_dir, self.name, self.version)
+
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         # log checkpoints as artifacts
         if (
