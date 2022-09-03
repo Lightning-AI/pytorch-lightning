@@ -143,7 +143,7 @@ def _get_dataloader_init_args_and_kwargs(
         required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
         missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in required_args)
-        raise TypeError(
+        raise MisconfigurationException(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
             f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
