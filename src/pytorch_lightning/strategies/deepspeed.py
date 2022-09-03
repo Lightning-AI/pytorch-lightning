@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, cast, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -77,10 +77,14 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
     """
 
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        precision: Union[str, int] = 32,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
         rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.7.1 and will be removed in v1.9.0")
-        super().__init__(pl_module)
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
@@ -485,7 +489,7 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        model = _LightningModuleWrapperBase(pl_module=self.model)
+        model = _LightningModuleWrapperBase(forward_module=self.model)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -612,14 +616,6 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        # the model may not be wrapped with DeepEngine & _LightningModuleWrapperBase if calling this too early
-        module = getattr(self.model, "module", self.model)
-        module = module.module if isinstance(module, _LightningModuleWrapperBase) else module
-        assert isinstance(module, pl.LightningModule) or module is None
-        return module
-
-    @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
@@ -696,7 +692,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+        if self.precision_plugin.precision == PrecisionType.HALF:
             if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -831,7 +827,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
-            checkpoint_path = cast(_PATH, self.broadcast(checkpoint_path))
+            checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information

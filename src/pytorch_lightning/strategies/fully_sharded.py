@@ -18,18 +18,18 @@ from typing import Any, Dict, Generator, List, Optional
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
 
-if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
+if _FAIRSCALE_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
@@ -60,19 +60,22 @@ class DDPFullyShardedStrategy(DDPStrategy):
     ):
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
+        .. warning:: ``DDPFullyShardedStrategy`` is in beta and subject to change.
+
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
         at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
         to ZeRO-Stage 3 but has been built for upstreaming to PyTorch.
-        `For more information: https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`.
-        .. warning:: ``FullyShardedPlugin`` is in beta and subject to change.
+
+        For more information
+        `check out FairScale's docs <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__.
 
         Defaults have been set and options have been exposed, but may require configuration
-        based on your level of memory/speed efficiency. We suggest having a look at this PR for more information.
-        `https://github.com/facebookresearch/fairscale/pull/413`
+        based on your level of memory/speed efficiency. We suggest having a look at
+        `this PR for more information <https://github.com/facebookresearch/fairscale/pull/413>`__.
 
-        Many of the helpful doc strings below came from the original FairScale documentation:
-        `https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`
+        Many of the helpful doc strings below came from the original
+        `FairScale documentation <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__.
 
         Arguments:
             cpu_offload: Offload FP32 params to CPU. Only usable in precision=16 mode.

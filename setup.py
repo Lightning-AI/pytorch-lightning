@@ -54,14 +54,16 @@ from types import ModuleType
 from setuptools import setup
 
 _PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "")
-_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
+_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
 _REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_SRC = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
-_PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME or "lightning", "__setup__.py")
+_PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME, "__setup__.py")
+if not os.path.isfile(_PATH_SETUP):
+    _PATH_SETUP = os.path.join(_PATH_SRC, "lightning", "__setup__.py")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 

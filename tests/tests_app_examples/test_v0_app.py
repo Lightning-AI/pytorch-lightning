@@ -45,7 +45,7 @@ def run_v0_app(fetch_logs, view_page):
     wait_for(view_page, check_content, "TAB_2", "Hello from component B")
     has_logs = False
     while not has_logs:
-        for log in fetch_logs():
+        for log in fetch_logs(["flow"]):
             if "'a': 'a', 'b': 'b'" in log:
                 has_logs = True
         sleep(1)
@@ -74,5 +74,6 @@ def test_v0_app_example_cloud() -> None:
         _,
         view_page,
         fetch_logs,
+        _,
     ):
         run_v0_app(fetch_logs, view_page)

@@ -82,11 +82,8 @@ class Backend(ABC):
         kw = dict(queue_id=self.queue_id)
         app.delta_queue = self.queues.get_delta_queue(**kw)
         app.readiness_queue = self.queues.get_readiness_queue(**kw)
-        app.commands_requests_queue = self.queues.get_commands_requests_queue(**kw)
-        app.commands_responses_queue = self.queues.get_commands_responses_queue(**kw)
-        app.commands_metadata_queue = self.queues.get_commands_metadata_queue(**kw)
+        app.api_response_queue = self.queues.get_api_response_queue(**kw)
         app.error_queue = self.queues.get_error_queue(**kw)
-        app.delta_queue = self.queues.get_delta_queue(**kw)
         app.api_publish_state_queue = self.queues.get_api_state_publish_queue(**kw)
         app.api_delta_queue = self.queues.get_api_delta_queue(**kw)
         app.request_queues = {}

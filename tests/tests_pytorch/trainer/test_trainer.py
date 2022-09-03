@@ -41,7 +41,12 @@ from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationSched
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import (
+    BoringModel,
+    RandomDataset,
+    RandomIterableDataset,
+    RandomIterableDatasetWithLen,
+)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import (
@@ -60,7 +65,6 @@ from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, Mi
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.seed import seed_everything
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
@@ -618,7 +622,10 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
             self.log("loss", output["loss"])
             self.training_step_invoked += 1
-            assert not self.trainer.should_stop
+            if self.current_epoch < 2:
+                assert not self.trainer.should_stop
+            else:
+                assert self.trainer.should_stop
             return output
 
     model = TestModel()
@@ -637,7 +644,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
 
     message = f"min_epochs={min_epochs}` or `min_steps=None` has not been met. Training will continue"
     num_messages = sum(1 for record in caplog.records if message in record.message)
-    assert num_messages == min_epochs - 2
+    assert num_messages == 1
     assert model.training_step_invoked == min_epochs * 2
 
 

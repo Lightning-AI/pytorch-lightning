@@ -53,6 +53,7 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
+from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
@@ -72,6 +73,7 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from pytorch_lightning.strategies.launchers.multiprocessing import _is_forking_disabled
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _StrategyType,
@@ -641,6 +643,10 @@ class AcceleratorConnector:
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
                 f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
             )
+        if strategy_flag in _DDP_FORK_ALIASES and _is_forking_disabled():
+            raise ValueError(
+                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different strategy."
+            )
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
@@ -725,7 +731,9 @@ class AcceleratorConnector:
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
                     return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, (DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy)):
+                if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
+                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
+                if isinstance(self.strategy, DDPFullyShardedStrategy):
                     return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 

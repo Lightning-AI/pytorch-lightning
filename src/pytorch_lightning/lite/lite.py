@@ -35,12 +35,11 @@ from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_da
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
-    _replace_init_method,
+    _replace_dunder_methods,
     _update_dataloader,
     has_iterable_dataset,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.seed import seed_everything
 
 
@@ -105,8 +104,6 @@ class LightningLite(ABC):
         self._accelerator = self._strategy.accelerator
         self._precision_plugin = self._strategy.precision_plugin
         self._models_setup: int = 0
-
-        self._check_deepspeed_support()
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
@@ -406,9 +403,9 @@ class LightningLite(ABC):
 
     def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
-        with self._strategy.model_sharded_context(), _replace_init_method(DataLoader, "dataset"), _replace_init_method(
-            BatchSampler
-        ):
+        with self._strategy.model_sharded_context(), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -457,18 +454,6 @@ class LightningLite(ABC):
             raise MisconfigurationException(
                 f"`strategy={repr(strategy)}` is not a valid choice."
                 f" Choose one of {supported} or pass in a `Strategy` instance."
-            )
-
-    def _check_deepspeed_support(self) -> None:
-        if (
-            isinstance(self._strategy, DeepSpeedStrategy)
-            and self._strategy.zero_stage_3
-            and _RequirementAvailable("deepspeed>=0.6.5")
-        ):
-            # https://github.com/microsoft/DeepSpeed/issues/2139
-            raise RuntimeError(
-                "DeepSpeed ZeRO-3 is not supported with this version of Lightning Lite and `deepspeed>=0.6.5`."
-                " Please downgrade deepspeed to 0.6.4 or check if a newer version of Lightning is available."
             )
 
     @staticmethod

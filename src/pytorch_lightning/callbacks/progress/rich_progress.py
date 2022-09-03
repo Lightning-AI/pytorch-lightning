@@ -451,13 +451,12 @@ class RichProgressBar(ProgressBarBase):
 
     def _get_train_description(self, current_epoch: int) -> str:
         train_description = f"Epoch {current_epoch}"
+        if self.trainer.max_epochs is not None:
+            train_description += f"/{self.trainer.max_epochs - 1}"
         if len(self.validation_description) > len(train_description):
             # Padding is required to avoid flickering due of uneven lengths of "Epoch X"
             # and "Validation" Bar description
-            num_digits = len(str(current_epoch))
-            required_padding = (len(self.validation_description) - len(train_description) + 1) - num_digits
-            for _ in range(required_padding):
-                train_description += " "
+            train_description = f"{train_description:{len(self.validation_description)}}"
         return train_description
 
     def _stop_progress(self) -> None:
@@ -477,7 +476,7 @@ class RichProgressBar(ProgressBarBase):
         if self._metric_component:
             self._metric_component.update(metrics)
 
-    def teardown(self, trainer, pl_module, stage: Optional[str] = None) -> None:
+    def teardown(self, trainer, pl_module, stage: str) -> None:
         self._stop_progress()
 
     def on_exception(self, trainer, pl_module, exception: BaseException) -> None:
