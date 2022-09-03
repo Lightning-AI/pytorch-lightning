@@ -32,9 +32,10 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
+from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger, LoggerCollection
