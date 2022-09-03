@@ -1,16 +1,16 @@
-# Devtools
+# Lightning Utilities
 
 [![UnitTests](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml)
 [![Apply checks](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yml)
-[![Documentation Status](https://readthedocs.org/projects/lightning_tools/badge/?version=latest)](https://lightning-tools.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/lightning_utilities/badge/?version=latest)](https://lightning-tools.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Lightning-AI/utilities/main.svg?badge_token=mqheL1-cTn-280Vx4cJUdg)](https://results.pre-commit.ci/latest/github/Lightning-AI/devtools/main?badge_token=mqheL1-cTn-280Vx4cJUdg)
 
 __This repository covers the following use-cases:__
 
 1. **GitHub workflows**
 1. **GitHub actions**
-1. **CLI `lightning_tools`**
-1. **General Python utilities**
+1. **CLI `lightning_utilities.dev`**
+1. **General Python utilities in `lightning_utilities.core`**
 
 ## 1. Reusable workflows
 
@@ -71,7 +71,7 @@ pip install https://github.com/Lightning-AI/utilities/archive/refs/heads/main.zi
 From pypi:
 
 ```bash
-pip install lightning_tools
+pip install lightning_utilities
 ```
 
 </details>
@@ -79,7 +79,7 @@ pip install lightning_tools
 __Usage:__
 
 ```bash
-python -m lightning_tools [group] [command]
+python -m lightning_utilities [group] [command]
 ```
 
 <details>
@@ -92,7 +92,7 @@ codecov>=2.1
 pytest>=6.0
 pytest-cov
 pytest-timeout
-$ python -m lightning_tools requirements set-oldest
+$ python -m lightning_utilities requirements set-oldest
 $ cat requirements/test.txt
 coverage==5.0
 codecov==2.1

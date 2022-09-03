@@ -30,7 +30,7 @@ jobs:
       if: matrix.requires == 'oldest'
       run: |
         pip install -e .
-        python -m lightning_tools requirements set-oldest
+        python -m lightning_utilities requirements set-oldest
 
     - uses: ./.github/actions/cache
       with:
@@ -48,7 +48,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         pytorch-version: ${{ matrix.pytorch-version }}
-        pkg-name: "lightning_tools"
+        pkg-name: "lightning_utilities"
         pytest-args: "--timeout=120"
 
     - name: Upload coverage to Codecov

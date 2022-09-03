@@ -11,7 +11,7 @@ _PATH_SOURCE = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
 
 
-def _load_py_module(fname, pkg="lightning_tools"):
+def _load_py_module(fname, pkg="lightning_utilities"):
     spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_SOURCE, pkg, fname))
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
@@ -25,7 +25,7 @@ with open(os.path.join(_PATH_ROOT, "README.md")) as fp:
     readme = fp.read()
 
 setup(
-    name="lightning_tools",
+    name="lightning_utilities",
     version=about.__version__,
     description=about.__docs__,
     author=about.__author__,

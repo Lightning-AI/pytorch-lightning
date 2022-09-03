@@ -12,11 +12,11 @@ test:
 	# use this to run tests
 	rm -rf _ckpt_*
 	rm -rf ./lightning_logs
-	python -m coverage run --source src/lightning_tools -m pytest src/lightning_tools tests -v --flake8
+	python -m coverage run --source src/lightning_utilities -m pytest src/lightning_utilities tests -v --flake8
 	python -m coverage report
 
 	# specific file
-	# python -m coverage run --source src/lightning_tools -m pytest --flake8 --durations=0 -v -k
+	# python -m coverage run --source src/lightning_utilities -m pytest --flake8 --durations=0 -v -k
 
 docs: clean
 	pip install -e . -q -r requirements/docs.txt

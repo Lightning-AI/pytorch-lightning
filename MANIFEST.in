@@ -5,7 +5,7 @@ recursive-exclude __pycache__  *.py[cod] *.orig
 
 # Include the README and CHANGELOG
 include *.md
-recursive-include src/lightning_tools *.md
+recursive-include src/lightning_utilities *.md
 
 # Include the license file
 include LICENSE

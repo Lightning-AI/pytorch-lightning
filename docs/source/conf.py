@@ -18,7 +18,7 @@ import sys
 
 import pt_lightning_sphinx_theme
 
-import lightning_tools
+import lightning_utilities
 
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
@@ -28,13 +28,13 @@ SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
 # this name shall match the project name in Github as it is used for linking to code
 project = "Lightning-Dev-Tools"
-copyright = lightning_tools.__copyright__
-author = lightning_tools.__author__
+copyright = lightning_utilities.__copyright__
+author = lightning_utilities.__author__
 
 # The short X.Y version
-version = lightning_tools.__version__
+version = lightning_utilities.__version__
 # The full version, including alpha/beta/rc tags
-release = lightning_tools.__version__
+release = lightning_utilities.__version__
 
 # Options for the linkcode extension
 # ----------------------------------
@@ -162,8 +162,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    "pytorch_project": lightning_tools.__homepage__,
-    "canonical_url": lightning_tools.__homepage__,
+    "pytorch_project": lightning_utilities.__homepage__,
+    "canonical_url": lightning_utilities.__homepage__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -229,7 +229,7 @@ texinfo_documents = [
         project + " Documentation",
         author,
         project,
-        lightning_tools.__docs__,
+        lightning_utilities.__docs__,
         "Miscellaneous",
     ),
 ]
