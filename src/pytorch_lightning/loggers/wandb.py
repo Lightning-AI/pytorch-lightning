@@ -31,10 +31,9 @@ from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _fl
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
+    import wandb
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
-
-    import wandb
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None  # type: ignore
