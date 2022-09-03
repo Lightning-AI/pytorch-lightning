@@ -128,6 +128,11 @@ class Logger(ABC):
     def version(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
 
+    @property
+    @abstractmethod
+    def experiment_dir(self) -> str:
+        """Returns the (relative) path to where logs and artifacts get saved for the current version."""
+
 
 class DummyExperiment:
     """Dummy experiment."""
