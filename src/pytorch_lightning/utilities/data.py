@@ -33,9 +33,9 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
