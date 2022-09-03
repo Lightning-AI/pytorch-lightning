@@ -36,6 +36,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.accelerators import (
     Accelerator,
@@ -92,7 +93,6 @@ from pytorch_lightning.utilities import (
     GradClipAlgorithmType,
     parsing,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,

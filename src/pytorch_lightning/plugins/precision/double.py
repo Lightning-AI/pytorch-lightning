@@ -20,9 +20,9 @@ from torch import FloatTensor, Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
