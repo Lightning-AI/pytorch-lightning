@@ -61,6 +61,12 @@ def test_wandb_logger_init(wandb, monkeypatch):
         name=None, dir=".", id=None, project="test_project", resume="allow", anonymous=None
     )
 
+    # test wandb.init set save_dir correctly after created
+    wandb.run = None
+    wandb.init.reset_mock()
+    logger = WandbLogger(project="test_project")
+    assert logger.save_dir is not None
+
     # test wandb.init and setting logger experiment externally
     wandb.run = None
     run = wandb.init()
