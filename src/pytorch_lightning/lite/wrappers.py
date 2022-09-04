@@ -99,7 +99,7 @@ class _LiteModule(DeviceDtypeModuleMixin):
             32: torch.float32,
             64: torch.float64,
         }
-        # TODO (@awaelchli): let the precision plugin handle the conversion
+        # TODO: let the precision plugin handle the conversion
         to_type = precision_to_type[precision]
 
         def _convert_float_tensor(t: Tensor) -> Tensor:

@@ -490,7 +490,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.trainer.should_stop:
             return True
 
-        # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
+        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (self.batch_idx + 1) % self.trainer.limit_train_batches == 0
