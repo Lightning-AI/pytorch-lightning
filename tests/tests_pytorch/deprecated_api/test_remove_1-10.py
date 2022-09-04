@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.10.0."""
+from unittest import mock
+
 import pytest
 
 from pytorch_lightning import Trainer
@@ -24,6 +26,7 @@ from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
+from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -78,3 +81,20 @@ def test_v1_10_deprecated_device_dtype_module_mixin():
 
     with pytest.deprecated_call(match="mixins.DeviceDtypeModuleMixin` has been deprecated in v1.8.0"):
         MyModule()
+
+
+def test_v1_10_deprecated_xla_device_utilities():
+    with pytest.deprecated_call(match="xla_device.inner_f` has been deprecated in v1.8.0"):
+        inner_f(mock.Mock(), mock.Mock())
+
+    with pytest.deprecated_call(match="xla_device.pl_multi_process` has been deprecated in v1.8.0"):
+        pl_multi_process(mock.Mock)
+
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+        XLADeviceUtils()
+
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+        XLADeviceUtils.xla_available()
+
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+        XLADeviceUtils.tpu_device_exists()

@@ -75,6 +75,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `pl.core.mixins.DeviceDtypeModuleMixin` in favor of `lightning_lite.utilities.DeviceDtypeModuleMixin` ([#14511](https://github.com/Lightning-AI/lightning/pull/14511))
 
 
+- Deprecated all functions in `pytorch_lightning.utilities.xla_device` in favor of `lightning_lite.utilities.xla_device` ([#14514](https://github.com/Lightning-AI/lightning/pull/14514))
+
+
+
 ### Removed
 
 - Removed the deprecated `Trainer.training_type_plugin` property in favor of `Trainer.strategy` ([#14011](https://github.com/Lightning-AI/lightning/pull/14011))
