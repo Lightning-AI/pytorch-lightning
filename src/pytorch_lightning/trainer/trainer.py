@@ -161,6 +161,7 @@ class Trainer(
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
+        inference_grad_mode: Optional[str] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
@@ -397,6 +398,9 @@ class Trainer(
                 across epochs or during iteration-based training.
                 Default: ``1.0``.
 
+            inference_grad_mode: The grads mode used for inference. 
+                Default: ``None``.
+
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
@@ -528,6 +532,11 @@ class Trainer(
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
+
+        if inference_grad_mode not in {'enable_grad', 'no_grad', 'inference_mode', None}:
+            raise MisconfigurationException(f"`inference_grad_mode` {inference_grad_mode} is invalid. "
+                                            f"Allowed modes: enable_grad, no_grad, inference or None.")
+        self._inference_grad_mode: str = inference_grad_mode
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
@@ -1301,7 +1310,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator):
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator, self._inference_grad_mode):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1317,7 +1326,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context(self.accelerator):
+        with _evaluation_context(self.accelerator, self._inference_grad_mode):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -2751,14 +2760,22 @@ class Trainer(
 
 
 @contextmanager
-def _evaluation_context(accelerator: Accelerator) -> Generator:
+def _evaluation_context(accelerator: Accelerator, grad_mode: Optional[str]=None) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
-    context_manager_class = (
+    if grad_mode == 'inference_mode':
+        assert not (dist.is_initialized() and dist.get_backend() == "gloo"), "Inference mode is not supported with gloo backend"
+        assert not isinstance(accelerator, (HPUAccelerator, TPUAccelerator)), "Inference mode is not supported with TPU & TPU accelerators"
+        context_manager_class = torch.inference_mode
+    elif grad_mode == 'enable_grad':
+        context_manager_class = torch.enable_grad
+    elif grad_mode == 'no_grad':
+        context_manager_class = torch.no_grad
+    elif grad_mode is None:
+        context_manager_class = (
         torch.inference_mode
         if not (dist.is_initialized() and dist.get_backend() == "gloo")
-        and not isinstance(accelerator, HPUAccelerator)
-        and not isinstance(accelerator, TPUAccelerator)
+        and not isinstance(accelerator, (HPUAccelerator, TPUAccelerator))
         else torch.no_grad
     )
     with context_manager_class():
