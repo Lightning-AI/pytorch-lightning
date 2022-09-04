@@ -134,10 +134,6 @@ _TORCH_GREATER_EQUAL_1_13 = _compare_version("torch", operator.ge, "1.13.0", use
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _DALI_AVAILABLE = _module_available("nvidia.dali")
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
-_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
-_FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
-_GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HABANA_FRAMEWORK_AVAILABLE = _package_available("habana_frameworks")
 _HIVEMIND_AVAILABLE = _package_available("hivemind")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
