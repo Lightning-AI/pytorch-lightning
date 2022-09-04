@@ -280,9 +280,13 @@ class LightningApp:
                 component_output: t.Optional[ComponentDelta] = self.get_state_changed_from_queue(self.delta_queue)
                 if component_output:
                     logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
-                    work = self.get_component_by_name(component_output.id)
-                    new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
-                    deltas.append(new_work_delta)
+                    try:
+                        work = self.get_component_by_name(component_output.id)
+                        new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
+                        deltas.append(new_work_delta)
+                    except KeyError:
+                        # The component has been deleted.
+                        pass
                 else:
                     should_get_component_output = False
 
