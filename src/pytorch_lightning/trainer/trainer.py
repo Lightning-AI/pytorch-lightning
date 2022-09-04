@@ -398,7 +398,7 @@ class Trainer(
                 across epochs or during iteration-based training.
                 Default: ``1.0``.
 
-            inference_grad_mode: The grads mode used for inference. 
+            inference_grad_mode: The grads mode used for inference.
                 Default: ``None``.
 
             enable_model_summary: Whether to enable model summarization by default.
@@ -533,9 +533,11 @@ class Trainer(
         )
         self.track_grad_norm: float = float(track_grad_norm)
 
-        if inference_grad_mode not in {'enable_grad', 'no_grad', 'inference_mode', None}:
-            raise MisconfigurationException(f"`inference_grad_mode` {inference_grad_mode} is invalid. "
-                                            f"Allowed modes: enable_grad, no_grad, inference or None.")
+        if inference_grad_mode not in {"enable_grad", "no_grad", "inference_mode", None}:
+            raise MisconfigurationException(
+                f"`inference_grad_mode` {inference_grad_mode} is invalid. "
+                f"Allowed modes: enable_grad, no_grad, inference or None."
+            )
         self._inference_grad_mode: str = inference_grad_mode
 
         self._detect_anomaly: bool = detect_anomaly
@@ -1310,7 +1312,9 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator, self._inference_grad_mode):
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(
+            self.accelerator, self._inference_grad_mode
+        ):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -2760,24 +2764,28 @@ class Trainer(
 
 
 @contextmanager
-def _evaluation_context(accelerator: Accelerator, grad_mode: Optional[str]=None) -> Generator:
+def _evaluation_context(accelerator: Accelerator, grad_mode: Optional[str] = None) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
-    if grad_mode == 'inference_mode':
-        assert not (dist.is_initialized() and dist.get_backend() == "gloo"), "Inference mode is not supported with gloo backend"
-        assert not isinstance(accelerator, (HPUAccelerator, TPUAccelerator)), "Inference mode is not supported with TPU & TPU accelerators"
+    if grad_mode == "inference_mode":
+        assert not (
+            dist.is_initialized() and dist.get_backend() == "gloo"
+        ), "Inference mode is not supported with gloo backend"
+        assert not isinstance(
+            accelerator, (HPUAccelerator, TPUAccelerator)
+        ), "Inference mode is not supported with TPU & TPU accelerators"
         context_manager_class = torch.inference_mode
-    elif grad_mode == 'enable_grad':
+    elif grad_mode == "enable_grad":
         context_manager_class = torch.enable_grad
-    elif grad_mode == 'no_grad':
+    elif grad_mode == "no_grad":
         context_manager_class = torch.no_grad
     elif grad_mode is None:
         context_manager_class = (
-        torch.inference_mode
-        if not (dist.is_initialized() and dist.get_backend() == "gloo")
-        and not isinstance(accelerator, (HPUAccelerator, TPUAccelerator))
-        else torch.no_grad
-    )
+            torch.inference_mode
+            if not (dist.is_initialized() and dist.get_backend() == "gloo")
+            and not isinstance(accelerator, (HPUAccelerator, TPUAccelerator))
+            else torch.no_grad
+        )
     with context_manager_class():
         yield
 

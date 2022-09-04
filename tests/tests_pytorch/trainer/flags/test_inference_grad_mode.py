@@ -24,11 +24,13 @@ class _BoringModelForEnableGrad(BoringModel):
         assert not torch.is_inference_mode_enabled()
         return super().on_test_epoch_start()
 
+
 class _BoringModelForNoGrad(BoringModel):
     def on_test_epoch_start(self) -> None:
         assert not torch.is_grad_enabled()
         assert not torch.is_inference_mode_enabled()
         return super().on_test_epoch_start()
+
 
 class _BoringModelForInferenceMode(BoringModel):
     def on_test_epoch_start(self) -> None:
@@ -36,15 +38,14 @@ class _BoringModelForInferenceMode(BoringModel):
         assert torch.is_inference_mode_enabled()
         return super().on_test_epoch_start()
 
+
 def test_inference_grad_mode():
     """Testing overwriting trainer arguments."""
-    trainer = Trainer(logger=False, inference_grad_mode='enable_grad')
+    trainer = Trainer(logger=False, inference_grad_mode="enable_grad")
     trainer.test(_BoringModelForEnableGrad())
-    trainer = Trainer(logger=False, inference_grad_mode='no_grad')
+    trainer = Trainer(logger=False, inference_grad_mode="no_grad")
     trainer.test(_BoringModelForNoGrad())
-    trainer = Trainer(logger=False, inference_grad_mode='inference_mode')
+    trainer = Trainer(logger=False, inference_grad_mode="inference_mode")
     trainer.test(_BoringModelForInferenceMode())
     trainer = Trainer(logger=False)
     trainer.test(_BoringModelForInferenceMode())
-
-
