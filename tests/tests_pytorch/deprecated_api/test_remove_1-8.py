@@ -20,7 +20,6 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
-from torch import optim
 
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
@@ -35,7 +34,7 @@ from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -79,11 +78,6 @@ def test_v1_8_0_deprecated_call_hook():
         trainer.call_hook("test_hook")
 
 
-def test_v1_8_0_deprecated_warning_positional_category():
-    with pytest.deprecated_call(match=r"use `category=FutureWarning."):
-        rank_zero_warn("foo", FutureWarning)
-
-
 def test_v1_8_0_deprecated_run_stage():
     trainer = Trainer()
     trainer._run_stage = Mock()
@@ -118,12 +112,6 @@ def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
         _ = trainer.should_rank_save_checkpoint
 
 
-def test_v1_8_0_deprecated_lr_scheduler():
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."):
-        assert trainer.lr_schedulers == []
-
-
 def test_v1_8_0_trainer_optimizers_mixin():
     trainer = Trainer()
     model = BoringModel()
@@ -140,102 +128,6 @@ def test_v1_8_0_trainer_optimizers_mixin():
         "v1.8."
     ):
         trainer.convert_to_lightning_optimizers()
-
-
-def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
-    methods_with_self = [
-        "on_before_accelerator_backend_setup",
-        "on_configure_sharded_model",
-        "on_init_start",
-        "on_init_end",
-        "on_fit_start",
-        "on_fit_end",
-        "on_sanity_check_start",
-        "on_sanity_check_end",
-        "on_train_epoch_start",
-        "on_train_epoch_end",
-        "on_validation_epoch_start",
-        "on_validation_epoch_end",
-        "on_test_epoch_start",
-        "on_test_epoch_end",
-        "on_predict_epoch_start",
-        "on_epoch_start",
-        "on_epoch_end",
-        "on_train_start",
-        "on_train_end",
-        "on_pretrain_routine_start",
-        "on_pretrain_routine_end",
-        "on_batch_start",
-        "on_batch_end",
-        "on_validation_start",
-        "on_validation_end",
-        "on_test_start",
-        "on_test_end",
-        "on_predict_start",
-        "on_predict_end",
-        "on_after_backward",
-    ]
-    methods_with_stage = [
-        "setup",
-        "teardown",
-    ]
-    methods_with_batch_batch_idx_dataloader_idx = [
-        "on_validation_batch_start",
-        "on_test_batch_start",
-        "on_predict_batch_start",
-    ]
-    methods_with_outputs_batch_batch_idx_dataloader_idx = [
-        "on_validation_batch_end",
-        "on_test_batch_end",
-        "on_predict_batch_end",
-    ]
-    methods_with_checkpoint = ["on_save_checkpoint", "on_load_checkpoint"]
-    trainer = Trainer(
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-        enable_progress_bar=False,
-        logger=False,
-    )
-    model = BoringModel()
-    # need to attach model to trainer for testing of `on_pretrain_routine_start`
-    trainer.strategy.connect(model)
-    for method_name in methods_with_self:
-        fn = getattr(trainer, method_name, None)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-            fn()
-    for method_name in methods_with_stage:
-        fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-            fn(stage="test")
-    for method_name in methods_with_batch_batch_idx_dataloader_idx:
-        fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-            fn(batch={}, batch_idx=0, dataloader_idx=0)
-    for method_name in methods_with_outputs_batch_batch_idx_dataloader_idx:
-        fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-            fn(outputs=torch.tensor([[1.0, -1.0], [1.0, -1.0]]), batch={}, batch_idx=0, dataloader_idx=0)
-    for method_name in methods_with_checkpoint:
-        fn = getattr(trainer, method_name)
-        with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-            fn(checkpoint={})
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-        trainer.on_train_batch_start(batch={}, batch_idx=0)
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-        trainer.on_train_batch_end(outputs=torch.tensor([[1.0, -1.0], [1.0, -1.0]]), batch={}, batch_idx=0)
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-        trainer.on_predict_epoch_end(outputs=torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-        trainer.on_exception(exception=Exception)
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-        trainer.on_before_backward(loss=torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-        trainer.on_before_optimizer_step(
-            optimizer=optim.SGD(model.parameters(), lr=0.01, momentum=0.9), optimizer_idx=0
-        )
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
-        trainer.on_before_zero_grad(optimizer=optim.SGD(model.parameters(), lr=0.01, momentum=0.9))
 
 
 def test_v1_8_0_deprecate_trainer_data_loading_mixin():
@@ -381,40 +273,6 @@ def test_v1_8_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
         match="The `LightningModule.on_pretrain_routine_end` hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
-
-
-def test_v1_8_0_rank_zero_imports():
-
-    import warnings
-
-    from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_info
-    from pytorch_lightning.utilities.warnings import LightningDeprecationWarning, rank_zero_deprecation, rank_zero_warn
-
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_debug("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_info("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.rank_zero_warn has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_warn("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.rank_zero_deprecation has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_deprecation("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.LightningDeprecationWarning has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        warnings.warn("foo", LightningDeprecationWarning, stacklevel=5)
 
 
 def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
@@ -859,54 +717,6 @@ def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
 def test_v1_8_0_deprecated_lightning_ipu_module():
     with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
         _ = LightningIPUModule(BoringModel(), 32)
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "expected_num_processes"],
-    [
-        ({}, 1),
-        ({"devices": 1}, 1),
-        ({"devices": 4}, 4),
-        ({"accelerator": "cpu", "devices": 1}, 0),
-        ({"accelerator": "gpu", "devices": 4}, 4),
-    ],
-)
-def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_processes):
-    if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.deprecated_call(
-        match="`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
-        "Please use `Trainer.num_devices` instead."
-    ):
-        trainer.num_processes == expected_num_processes
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "expected_data_parallel_device_ids"],
-    [
-        ({}, None),
-        ({"devices": 1}, None),
-        ({"devices": "1"}, None),
-        ({"accelerator": "gpu", "devices": 1}, [0]),
-        ({"accelerator": "gpu", "devices": 2}, [0, 1]),
-        ({"accelerator": "gpu", "devices": [1]}, [1]),
-        ({"accelerator": "gpu", "devices": "0,"}, [0]),
-    ],
-)
-def test_trainer_data_parallel_device_ids(monkeypatch, trainer_kwargs, expected_data_parallel_device_ids):
-    """Test multi type argument with bool."""
-    if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 2)
-
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.deprecated_call(
-        match="`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-        " Please use `Trainer.device_ids` instead."
-    ):
-        assert trainer.data_parallel_device_ids == expected_data_parallel_device_ids
 
 
 def test_deprecated_mc_save_checkpoint():

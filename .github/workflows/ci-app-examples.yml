@@ -6,13 +6,21 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    paths:
+      - ".github/workflows/ci-app-examples.yml"
+      - "src/lightning_app/**"
+      - "tests/tests_app_examples/**"
+      - "examples/app_*"
+      - "requirements/app/**"
+      - "setup.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  pytest:
+  app-examples:
+    if: github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

@@ -1,0 +1,1 @@
+../../../source-app/workflows/add_web_ui/glossary_ui.rst
