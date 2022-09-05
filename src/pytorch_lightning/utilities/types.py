@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
