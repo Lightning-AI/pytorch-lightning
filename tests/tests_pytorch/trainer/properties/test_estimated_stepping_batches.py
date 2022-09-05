@@ -95,9 +95,9 @@ def test_num_stepping_batches_infinite_training():
     assert trainer.estimated_stepping_batches == float("inf")
 
 
-def test_num_stepping_batches_with_max_steps():
+@pytest.mark.parametrize("max_steps", [2, 100])
+def test_num_stepping_batches_with_max_steps(max_steps):
     """Test stepping batches with `max_steps`."""
-    max_steps = 2
     trainer = Trainer(max_steps=max_steps)
     model = BoringModel()
     trainer.fit(model)
