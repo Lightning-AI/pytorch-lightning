@@ -30,8 +30,6 @@ from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
-T = TypeVar("T")
-
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
@@ -92,21 +90,24 @@ class PredictStep(Protocol):
         ...
 
 
+_DictKey = TypeVar("_DictKey")
+
+
 @runtime_checkable
-class _Stateful(Protocol[T]):
+class _Stateful(Protocol[_DictKey]):
     """This class is used to detect if an object is stateful using `isinstance(obj, _Stateful)`."""
 
-    def state_dict(self) -> Dict[T, Any]:
+    def state_dict(self) -> Dict[_DictKey, Any]:
         ...
 
-    def load_state_dict(self, state_dict: Dict[T, Any]) -> None:
+    def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None:
         ...
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
-class _LRScheduler(_Stateful, Protocol):
+class _LRScheduler(_Stateful[str], Protocol):
     optimizer: Optimizer
     base_lrs: List[float]
 
@@ -120,7 +121,7 @@ class _LRScheduler(_Stateful, Protocol):
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
-class ReduceLROnPlateau(_Stateful, Protocol):
+class ReduceLROnPlateau(_Stateful[str], Protocol):
     in_cooldown: bool
     optimizer: Optimizer
 
