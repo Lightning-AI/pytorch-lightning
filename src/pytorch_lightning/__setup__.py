@@ -81,12 +81,13 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         download_url="https://github.com/Lightning-AI/lightning",
         license=_about.__license__,
         packages=find_packages(
-            where="src", include=[
+            where="src",
+            include=[
                 "pytorch_lightning",
                 "pytorch_lightning.*",
                 "lightning_lite",  # TODO: remove lite after fist LLite release
                 "lightning_lite.*",  # TODO: remove lite after fist LLite release
-            ]
+            ],
         ),
         package_dir={"": "src"},
         include_package_data=True,
