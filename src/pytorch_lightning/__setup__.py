@@ -53,6 +53,8 @@ def _adjust_manifest(**__: Any) -> None:
     lines += [
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
+        "recursive-include requirements/lite *.txt" + os.linesep,  # TODO: remove lite after fist LLite release
+        "recursive-include src/lightning_lite *.md" + os.linesep,  # TODO: remove lite after fist LLite release
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
         "include src/pytorch_lightning/py.typed" + os.linesep,  # marker file for PEP 561
@@ -78,7 +80,14 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         url=_about.__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
         license=_about.__license__,
-        packages=find_packages(where="src", include=["pytorch_lightning", "pytorch_lightning.*"]),
+        packages=find_packages(
+            where="src", include=[
+                "pytorch_lightning",
+                "pytorch_lightning.*",
+                "lightning_lite",  # TODO: remove lite after fist LLite release
+                "lightning_lite.*",  # TODO: remove lite after fist LLite release
+            ]
+        ),
         package_dir={"": "src"},
         include_package_data=True,
         long_description=_long_description,
