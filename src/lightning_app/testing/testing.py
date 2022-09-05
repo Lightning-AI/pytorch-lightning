@@ -365,22 +365,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 pass
             context.close()
             browser.close()
-
-            # list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
-            #
-            # for lightningapp in list_lightningapps.lightningapps:
-            #     if lightningapp.name != name:
-            #         continue
-            #     try:
-            #         res = client.lightningapp_instance_service_delete_lightningapp_instance(
-            #             project_id=project.project_id,
-            #             id=lightningapp.id,
-            #         )
-            #         assert res == {}
-            #     except ApiException as e:
-            #         print(f"Failed to delete {lightningapp.name}. Exception {e}")
-            #
-            # Popen("lightning disconnect", shell=True).wait()
+            Popen("lightning disconnect", shell=True).wait()
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
