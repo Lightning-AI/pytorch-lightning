@@ -37,9 +37,9 @@ def rank_zero_only(fn: Callable) -> Callable:
     return wrapped_fn
 
 
-def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:
-    if trainer is not None:
-        return trainer.global_rank
+def _get_rank(strategy: Optional["pl.strategies.Strategy"] = None) -> Optional[int]:
+    if strategy is not None:
+        return strategy.global_rank
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
     rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")
