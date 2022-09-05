@@ -268,14 +268,3 @@ def test_v1_10_deprecated_seed_utilities():
 def test_v1_10_deprecated_warning_utilities():
     with pytest.deprecated_call(match="warnings.WarningCache` has been deprecated in v1.8.0"):
         WarningCache()
-
-
-def test_v1_10_deprecated_xla_device_utilities():
-    with pytest.deprecated_call(match="xla_device.inner_f` has been deprecated in v1.8.0"):
-        inner_f(mock.Mock(), mock.Mock())
-
-    with pytest.deprecated_call(match="xla_device.pl_multi_process` has been deprecated in v1.8.0"):
-        pl_multi_process(mock.Mock)
-
-    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
-        XLADeviceUtils()
