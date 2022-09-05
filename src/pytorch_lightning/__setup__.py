@@ -53,8 +53,10 @@ def _adjust_manifest(**__: Any) -> None:
     lines += [
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
-        "recursive-include requirements/lite *.txt" + os.linesep,  # TODO: remove after the first standalone Lite release
-        "recursive-include src/lightning_lite *.md" + os.linesep,  # TODO: remove after the first standalone Lite release
+        "recursive-include requirements/lite *.txt"
+        + os.linesep,  # TODO: remove after the first standalone Lite release
+        "recursive-include src/lightning_lite *.md"
+        + os.linesep,  # TODO: remove after the first standalone Lite release
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
         "include src/pytorch_lightning/py.typed" + os.linesep,  # marker file for PEP 561
