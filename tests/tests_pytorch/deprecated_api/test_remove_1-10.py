@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.10.0."""
+from unittest import mock
+
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
@@ -23,6 +26,8 @@ from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
+from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
+from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -69,3 +74,39 @@ def test_v1_10_deprecated_unwrap_lightning_module_sharded():
 def test_v1_10_deprecated_on_colab_kaggle_func():
     with pytest.deprecated_call(match="The function `on_colab_kaggle` has been deprecated in v1.8.0"):
         on_colab_kaggle()
+
+
+def test_v1_10_deprecated_device_dtype_module_mixin():
+    class MyModule(DeviceDtypeModuleMixin):
+        pass
+
+    with pytest.deprecated_call(match="mixins.DeviceDtypeModuleMixin` has been deprecated in v1.8.0"):
+        MyModule()
+
+
+def test_v1_10_deprecated_xla_device_utilities():
+    with pytest.deprecated_call(match="xla_device.inner_f` has been deprecated in v1.8.0"):
+        inner_f(mock.Mock(), mock.Mock())
+
+    with pytest.deprecated_call(match="xla_device.pl_multi_process` has been deprecated in v1.8.0"):
+        pl_multi_process(mock.Mock)
+
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+        XLADeviceUtils()
+
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+        XLADeviceUtils.xla_available()
+
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+        XLADeviceUtils.tpu_device_exists()
+
+
+def test_v1_10_deprecated_cloud_io_utilities(tmpdir):
+    with pytest.deprecated_call(match="cloud_io.atomic_save` has been deprecated in v1.8.0"):
+        atomic_save({}, tmpdir / "atomic_save.ckpt")
+
+    with pytest.deprecated_call(match="cloud_io.get_filesystem` has been deprecated in v1.8.0"):
+        get_filesystem(tmpdir)
+
+    with pytest.deprecated_call(match="cloud_io.load` has been deprecated in v1.8.0"):
+        load(str(tmpdir / "atomic_save.ckpt"))

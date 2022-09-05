@@ -32,16 +32,17 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
+from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
@@ -423,8 +424,7 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx`"
             )
 
-        value = apply_to_collection(value, numbers.Number, self.__to_tensor)
-        apply_to_collection(value, torch.Tensor, self.__check_numel_1, name)
+        value = apply_to_collection(value, (torch.Tensor, numbers.Number), self.__to_tensor, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -556,16 +556,15 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: numbers.Number) -> Tensor:
-        return torch.tensor(value, device=self.device)
-
-    @staticmethod
-    def __check_numel_1(value: Tensor, name: str) -> None:
+    def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
+        value = torch.tensor(value, device=self.device)
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
                 f" You can try doing `self.log({name}, {value}.mean())`"
             )
+        value = value.squeeze()
+        return value
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
