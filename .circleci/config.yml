@@ -130,10 +130,11 @@ jobs:
           destination: html
 
 workflows:
-  when: << pipeline.parameters.GHA_Action >>
   #build-docs:  # FixMe
+  #  when: << pipeline.parameters.GHA_Action >>
   #  jobs:
   #    - build-Docs
   test-on-tpus:
+    when: << pipeline.parameters.GHA_Action >>
     jobs:
       - TPU-tests

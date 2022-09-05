@@ -10,10 +10,10 @@ on:
       - "setup.cfg"  # includes pytest config
 
 jobs:
-  # https://circleci.com/blog/trigger-circleci-pipeline-github-action
+  # https://github.com/marketplace/actions/trigger-circleci-pipeline
   trigger-circleci:
     runs-on: ubuntu-latest
     steps:
-      - uses: circleci/trigger_circleci_pipeline@v1.0
+      - uses: circleci/trigger_circleci_pipeline@v1
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
