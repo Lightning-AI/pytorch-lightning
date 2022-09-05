@@ -55,7 +55,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
         if precision not in supported_precision:
             raise ValueError(
-                f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
+                f"`precision={precision!r})` is not supported in DeepSpeed."
                 f" `precision` must be one of: {(x.value for x in supported_precision)}."
             )
 
