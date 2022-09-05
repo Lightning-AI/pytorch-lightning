@@ -20,10 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.utilities.imports import (
-    _FAIRSCALE_AVAILABLE,
-    _PSUTIL_AVAILABLE,
-)
+from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _PSUTIL_AVAILABLE
 
 
 class RunIf:
