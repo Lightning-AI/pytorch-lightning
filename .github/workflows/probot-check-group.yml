@@ -1,16 +1,13 @@
 name: Probot
 
 on:
-  # TODO: this event type was hogging CI
-  # check_run: {}
   pull_request: {}
-  issue_comment: {types: [created]}
 
 jobs:
   required-jobs:
     runs-on: ubuntu-latest
-    if: github.event_name != 'issue_comment' || contains(github.event.comment.body, '@probot pls')
-    timeout-minutes: 3
+    # if this timeout triggers, then the job needs to be manually restarted through the GitHub interface
+    timeout-minutes: 60
     steps:
       - uses: carmocca/probot@v2
         env:
