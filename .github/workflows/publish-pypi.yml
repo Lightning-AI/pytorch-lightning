@@ -1,0 +1,86 @@
+name: PyPI Release
+
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:  # Trigger the workflow on push or pull request, but only for the master branch
+  push:
+    tags:
+      - 'v?[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  # based on https://github.com/pypa/gh-action-pypi-publish
+  build-package:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: >-
+        python -m pip install --user --upgrade setuptools wheel
+
+    - name: Build packages
+      run: |
+        python setup.py sdist bdist_wheel
+        ls -lh dist/
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: dist
+
+  upload-package:
+    timeout-minutes: 5
+    runs-on: ubuntu-20.04
+    needs: build-package
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: dist
+    - run: ls -lh dist/
+
+    - name: Upload to release
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      uses: AButler/upload-release-assets@v2.0
+      with:
+        files: 'dist/*'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-package:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    needs: build-package
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: dist
+    - run: ls -lh dist/
+
+    - name: Delay releasing
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 5m
+
+    # We do this, since failures on test.pypi aren't that bad
+    - name: Publish to Test PyPI
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      uses: pypa/gh-action-pypi-publish@v1.5.1
+      with:
+        user: __token__
+        password: ${{ secrets.test_pypi_password }}
+        repository_url: https://test.pypi.org/legacy/
+        verbose: true
+
+    - name: Publish distribution 📦 to PyPI
+      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+      uses: pypa/gh-action-pypi-publish@v1.5.1
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
