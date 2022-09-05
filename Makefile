@@ -22,6 +22,9 @@ clean:
 	rm -rf ./docs/source-pytorch/api
 	rm -rf ./docs/source-app/generated
 	rm -rf ./docs/source-app/*/generated
+	rm -rf ./docs/source-lit/api
+	rm -rf ./docs/source-lit/generated
+	rm -rf ./docs/source-lit/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
