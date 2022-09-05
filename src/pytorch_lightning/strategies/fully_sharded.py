@@ -30,7 +30,7 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
