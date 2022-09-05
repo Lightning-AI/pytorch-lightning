@@ -2,6 +2,8 @@ on:
   push:
     branches: [master, "release/*"]
     paths:
+      - ".github/workflows/ci-circleci.yml"
+      - ".circleci/config.yml"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
@@ -9,6 +11,8 @@ on:
   pull_request:
     branches: [master, "release/*"]
     paths:
+      - ".github/workflows/ci-circleci.yml"
+      - ".circleci/config.yml"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
