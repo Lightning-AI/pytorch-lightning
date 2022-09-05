@@ -20,7 +20,7 @@ from torch.utils.data import Dataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from lightning_lite.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     MergedIteratorState,
