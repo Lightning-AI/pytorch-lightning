@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
-from pytorch_lightning.utilities.types import _IntStateful, _Stateful
+from pytorch_lightning.utilities.types import _Stateful
 
 
 class _IteratorStateDict(TypedDict):
@@ -179,7 +179,7 @@ class IteratorState:
     name: Optional[str] = None
 
     @classmethod
-    def from_state_dict(cls, state_dict: IteratorStateDict) -> "IteratorState":
+    def from_state_dict(cls, state_dict: _IteratorStateDict) -> "IteratorState":
         return cls(**state_dict)
 
 
@@ -220,7 +220,7 @@ class MergedIteratorState:
         return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
 
     @classmethod
-    def from_state_dict(cls, state_dict: MergedIteratorStateDict) -> "MergedIteratorState":
+    def from_state_dict(cls, state_dict: _MergedIteratorStateDict) -> "MergedIteratorState":
         if state_dict["represent_map_dataset"]:
             state_dict["state"] = {
                 worker_id: IteratorState.from_state_dict(state) for worker_id, state in state_dict["state"].items()
@@ -597,7 +597,7 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
         for worker_id in state_dict["state"].keys()
     }
 
-    assert isinstance(dataloader.dataset, _IntStateful)
+    assert isinstance(dataloader.dataset, _Stateful)
     dataloader.dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
 
 
