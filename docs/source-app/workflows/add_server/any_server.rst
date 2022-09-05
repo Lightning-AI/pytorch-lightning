@@ -53,7 +53,7 @@ To enable the server inside the component, start the server in the run method an
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
-            # Make sure to pass the data as bytes to the `self.wfile.write` call
+            # Data must pass as bytes to the `self.wfile.write` call
             html = b"<h1 style='color: blue'> Hello lit world </div>"
             self.wfile.write(html)
 
