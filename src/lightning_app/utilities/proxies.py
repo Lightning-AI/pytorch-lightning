@@ -450,6 +450,8 @@ class WorkRunner:
         """Signal handler used to react when spot instances are being retrived."""
         logger.info(f"Received SIGTERM signal. Gracefully terminating {self.work.name.replace('root.', '')}...")
         persist_artifacts(work=self.work)
+        # TODO: Introduce cleaner hooks.
+        self.work.on_exit()
         with _state_observer_lock:
             self.work._calls[call_hash]["statuses"] = []
             state = deepcopy(self.work.state)
