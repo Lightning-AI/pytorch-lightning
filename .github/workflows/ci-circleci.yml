@@ -1,6 +1,11 @@
 on:
   push:
     branches: [master, "release/*"]
+    paths:
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
   pull_request:
     branches: [master, "release/*"]
     paths:
