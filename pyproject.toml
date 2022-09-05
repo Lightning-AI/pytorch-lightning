@@ -9,6 +9,7 @@ requires = [
 known_first_party = [
     "pl_examples",
     "pytorch_lightning",
+    "lightning_lite",
     "tests_pytorch",
 ]
 profile = "black"
