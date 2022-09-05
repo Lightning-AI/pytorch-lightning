@@ -20,7 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _PSUTIL_AVAILABLE
+from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _PSUTIL_AVAILABLE, _TPU_AVAILABLE
 
 
 class RunIf:
@@ -39,6 +39,7 @@ class RunIf:
         min_torch: Optional[str] = None,
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
+        tpu: bool = False,
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
@@ -52,6 +53,7 @@ class RunIf:
             min_torch: Require that PyTorch is greater or equal than this version.
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
+            tpu: Require that TPU is available.
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
@@ -86,6 +88,12 @@ class RunIf:
         if skip_windows:
             conditions.append(sys.platform == "win32")
             reasons.append("unimplemented on Windows")
+
+        if tpu:
+            conditions.append(not _TPU_AVAILABLE)
+            reasons.append("TPU")
+            # used in conftest.py::pytest_collection_modifyitems
+            kwargs["tpu"] = True
 
         if standalone:
             env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
