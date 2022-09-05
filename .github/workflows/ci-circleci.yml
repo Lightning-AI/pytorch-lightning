@@ -19,6 +19,6 @@ jobs:
   trigger-circleci:
     runs-on: ubuntu-latest
     steps:
-      - uses: circleci/trigger_circleci_pipeline@v1
+      - uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.5
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
