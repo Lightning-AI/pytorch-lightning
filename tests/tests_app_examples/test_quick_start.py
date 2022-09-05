@@ -41,7 +41,7 @@ def test_quick_start_example_cloud() -> None:
 
         def click_gradio_demo(*_, **__):
             button = view_page.locator('button:has-text("Interactive demo")')
-            button.wait_for(timeout=3 * 1000)
+            button.wait_for(timeout=60 * 1000)
             button.click()
             return True
 
@@ -49,7 +49,7 @@ def test_quick_start_example_cloud() -> None:
 
         def check_examples(*_, **__):
             locator = view_page.frame_locator("iframe").locator('button:has-text("Submit")')
-            locator.wait_for(timeout=10 * 1000)
+            locator.wait_for(timeout=60 * 1000)
             if len(locator.all_text_contents()) > 0:
                 return True
 
