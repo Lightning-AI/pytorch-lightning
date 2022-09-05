@@ -4,33 +4,19 @@ orbs:
   gcp-gke: circleci/gcp-gke@1.4.0
   go: circleci/go@1.7.1
   codecov: codecov/codecov@1.1.0
-
-trigger:
-  tags:
-    include:
-      - '*'
-  branches:
-    include:
-      - "master"
-      - "release/*"
-      - "refs/tags/*"
-
-pr:
-  - "master"
-  - "release/*"
-
-# Workflow Steps:
-#  1. Checkout
-#  2. Install GO
-#  3. Checkout ml-testing-accelerators
-#  4. GCP GKE install
-#  5. Update Kubeconfig with credintials
-#  6. Install jsonnet
-#  7. Update jsonnet
-#  8. Deploy the job on the kubernetes cluster
-#  9. Statistics
-#  10. Upload coverage results
-#  11. Upload coverage to Codecov
+parameters:
+  GHA_Event:
+    type: string
+    default: ""
+  GHA_Actor:
+    type: string
+    default: ""
+  GHA_Action:
+    type: string
+    default: ""
+  GHA_Meta:
+    type: string
+    default: ""
 
 references:
 
@@ -154,6 +140,7 @@ jobs:
 
 workflows:
   version: 2
+  when: << pipeline.parameters.GHA_Action >>
   #build-docs:  # FixMe
   #  jobs:
   #    - build-Docs

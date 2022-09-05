@@ -1,0 +1,21 @@
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    paths:
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+
+jobs:
+  # https://circleci.com/blog/trigger-circleci-pipeline-github-action
+  trigger-circleci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: <customize name>
+        id: <customize id>
+        uses: circleci/trigger_circleci_pipeline@v1.0
+        env:
+          CCI_TOKEN: $
