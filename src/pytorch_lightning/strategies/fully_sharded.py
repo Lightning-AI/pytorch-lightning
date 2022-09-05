@@ -155,9 +155,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
         # TODO: Wait for this issue to resolve and remove this blocker
         # https://github.com/facebookresearch/fairscale/issues/648
         # Also make sure to update the tests
-        if not is_overridden("configure_sharded_model", self.model) and len(list(model.parameters())) == 0:
+        if not is_overridden("configure_sharded_model", self.lightning_module) and len(list(model.parameters())) == 0:
+            assert self.lightning_module is not None
             raise MisconfigurationException(
-                f"Using the same instance of model with `trainer.{self.model.trainer.state.fn}()` is not"
+                f"Using the same instance of model with `trainer.{self.lightning_module.trainer.state.fn}()` is not"
                 " supported with Fairscale FSDP auto-wrap. Please reinitialize your `LightningModule` and pass that."
             )
 
