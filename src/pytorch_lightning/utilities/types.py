@@ -20,7 +20,7 @@ from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -29,6 +29,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
+
+T = TypeVar('T')
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
@@ -91,25 +93,13 @@ class PredictStep(Protocol):
 
 
 @runtime_checkable
-class _Stateful(Protocol):
+class _Stateful(Protocol[T]):
     """This class is used to detect if an object is stateful using `isinstance(obj, _Stateful)`."""
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[T, Any]:
         ...
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        ...
-
-
-@runtime_checkable
-class _IntStateful(Protocol):
-    """This class is used to detect if an object is stateful, whose states are integers, using `isinstance(obj,
-    _IntStateful)`."""
-
-    def state_dict(self) -> Dict[int, Any]:
-        ...
-
-    def load_state_dict(self, state_dict: Dict[int, Any]) -> None:
+    def load_state_dict(self, state_dict: Dict[T, Any]) -> None:
         ...
 
 
