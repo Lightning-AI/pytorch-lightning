@@ -36,6 +36,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import apply_to_collection
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.accelerators import (
     Accelerator,
     CUDAAccelerator,
@@ -91,7 +93,6 @@ from pytorch_lightning.utilities import (
     GradClipAlgorithmType,
     parsing,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,
@@ -100,7 +101,6 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
@@ -2729,8 +2729,8 @@ class Trainer(
             )
 
         # infinite training
-        if self.max_epochs == -1 and self.max_steps == -1:
-            return float("inf")
+        if self.max_epochs == -1:
+            return float("inf") if self.max_steps == -1 else self.max_steps
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")

@@ -35,7 +35,7 @@ jobs:
           - commands_and_api
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"

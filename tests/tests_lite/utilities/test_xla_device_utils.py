@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-import pytorch_lightning.utilities.xla_device as xla_utils
+import lightning_lite.utilities.xla_device as xla_utils
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
