@@ -49,9 +49,11 @@ jobs:
           path: pypi
       - run: ls -lh pypi/
 
+      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg }}' == 'pytorch' else 1))" >> $GITHUB_ENV
       - uses: ./.github/actions/pkg-check
         with:
           pkg-name: ${{ matrix.pkg }}
+          nb-dirs: ${{ env.NB_DIRS }}
 
       - uses: actions/upload-artifact@v3
         with:
