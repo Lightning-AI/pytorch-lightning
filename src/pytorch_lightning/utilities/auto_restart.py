@@ -197,7 +197,10 @@ class MergedIteratorState:
         if self.represent_map_dataset:
             return {k: self.state[k].sampler_state[0] for k in self.state.keys()}
         else:
-            return {sampler_name: {k: value.sampler_state[k] for k, value in self.state[sampler_name].items()} for sampler_name in self.state.keys()}
+            return {
+                sampler_name: {k: value.sampler_state[k] for k, value in self.state[sampler_name].items()}
+                for sampler_name in self.state.keys()
+            }
 
     @property
     def dataset_states(self) -> Dict[int, Any]:
@@ -205,7 +208,10 @@ class MergedIteratorState:
         if self.represent_map_dataset:
             return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
         else:
-            return {sampler_name: {k: value.dataset_state[k] for k, value in self.state[sampler_name].items()} for sampler_name in self.state.keys()}
+            return {
+                sampler_name: {k: value.dataset_state[k] for k, value in self.state[sampler_name].items()}
+                for sampler_name in self.state.keys()
+            }
 
     @classmethod
     def from_state_dict(cls, state_dict) -> "MergedIteratorState":
@@ -517,7 +523,9 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     )
 
 
-def _reload_dataloader_state_dict_automatic_map_dataset(dataloader: DataLoader, state_dict: MergedIteratorState) -> None:
+def _reload_dataloader_state_dict_automatic_map_dataset(
+    dataloader: DataLoader, state_dict: MergedIteratorState
+) -> None:
     # reload sampler state
     ff_sampler = _find_fast_forward_samplers(dataloader)
     ff_sampler.load_state_dict(state_dict.sampler_states)
@@ -533,9 +541,7 @@ def _reload_dataloader_state_dict_automatic_map_dataset(dataloader: DataLoader, 
 def _reload_dataloader_state_dict_automatic_iterable_dataset(
     dataset: CaptureIterableDataset, state_dict: MergedIteratorState
 ) -> None:
-    dataset.load_state_dict(
-        {sampler_name: state[0] for sampler_name, state in state_dict.sampler_states[0]}
-    )
+    dataset.load_state_dict({sampler_name: state[0] for sampler_name, state in state_dict.sampler_states[0]})
 
 
 def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: MergedIteratorState) -> None:
@@ -571,10 +577,7 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Mer
     if not isinstance(dataloader.dataset, _Stateful):
         return
 
-    dataset_state = {
-        worker_id: state_dict.dataset_states[worker_id]
-        for worker_id in state_dict.dataset_states.keys()
-    }
+    dataset_state = {worker_id: state_dict.dataset_states[worker_id] for worker_id in state_dict.dataset_states.keys()}
 
     dataloader.dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
 
