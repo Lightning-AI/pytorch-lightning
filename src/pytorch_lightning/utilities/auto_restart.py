@@ -597,7 +597,6 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
         for worker_id in state_dict["state"].keys()
     }
 
-    assert isinstance(dataloader.dataset, _Stateful)
     dataloader.dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
 
 
