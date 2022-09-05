@@ -43,6 +43,9 @@ log = logging.getLogger(__name__)
 
 class _DDPFullyShardedStrategyModuleWrapper(_LightningModuleWrapperBase):
     def state_dict(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
+        # this is required because with FSDP lightning_module is empty because weights are sharded.
+        # So we need to call self.trainer.model.state_dict (wrapped version) and use this wraper to
+        # avoid extra keys `_forward_module.layer.weight.` since we want `layer.weight.` in state_dict.
         return self._forward_module.state_dict(*args, **kwargs)
 
 
@@ -152,10 +155,9 @@ class DDPFullyShardedStrategy(DDPStrategy):
         # TODO: Wait for this issue to resolve and remove this blocker
         # https://github.com/facebookresearch/fairscale/issues/648
         # Also make sure to update the tests
-        if not is_overridden("configure_sharded_model", self.lightning_module) and len(list(model.parameters())) == 0:
-            assert self.lightning_module is not None
+        if not is_overridden("configure_sharded_model", self.model) and len(list(model.parameters())) == 0:
             raise MisconfigurationException(
-                f"Using the same instance of model with `trainer.{self.lightning_module.trainer.state.fn}()` is not"
+                f"Using the same instance of model with `trainer.{self.model.trainer.state.fn}()` is not"
                 " supported with Fairscale FSDP auto-wrap. Please reinitialize your `LightningModule` and pass that."
             )
 

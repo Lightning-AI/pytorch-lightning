@@ -130,7 +130,7 @@ have to ``wrap`` layers manually as in the case of manual wrapping.
 .. note::
     While initializing the optimizers inside ``configure_optimizers`` hook, make sure to use ``self.trainer.model.parameters()``, else
     PyTorch will raise an error. This is required because when you use auto-wrap, the model layers are sharded and your
-    ``lightning_module.parameters()`` will return a generator with no params.
+    ``lightning_module.parameters()`` will return a generator with no params. This inconvenience will be addressed in the future.
 
 .. code-block:: python
 
