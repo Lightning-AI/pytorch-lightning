@@ -32,7 +32,6 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from lightning_lite.utilities.apply_func import apply_to_collection, convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin

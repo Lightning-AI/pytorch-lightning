@@ -30,7 +30,6 @@ from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
-from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,

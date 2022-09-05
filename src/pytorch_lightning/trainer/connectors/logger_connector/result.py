@@ -20,9 +20,8 @@ from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
-from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from lightning_lite.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
-from pytorch_lightning.utilities.data import extract_batch_size
+from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from lightning_lite.utilities.distributed import distributed_available
 from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache
