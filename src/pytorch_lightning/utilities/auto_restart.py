@@ -194,12 +194,18 @@ class MergedIteratorState:
     @property
     def sampler_states(self) -> Dict[int, Any]:
         """Returns the merged sampler states for all worker processes."""
-        return {0: self.state[k].sampler_state[0] for k in self.state.keys()}
+        if self.represent_map_dataset:
+            return {k: self.state[k].sampler_state[0] for k in self.state.keys()}
+        else:
+            return {sampler_name: {k: value.sampler_state[k] for k, value in self.state[sampler_name].items()} for sampler_name in self.state.keys()}
 
     @property
     def dataset_states(self) -> Dict[int, Any]:
-        """Returns the merged dataset states for all worker processes."""
-        return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
+        """Returns the merged sampler states for all worker processes."""
+        if self.represent_map_dataset:
+            return {k: self.state[k].dataset_state[k] for k in self.state.keys()}
+        else:
+            return {sampler_name: {k: value.dataset_state[k] for k, value in self.state[sampler_name].items()} for sampler_name in self.state.keys()}
 
     @classmethod
     def from_state_dict(cls, state_dict) -> "MergedIteratorState":
@@ -511,33 +517,28 @@ def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
     )
 
 
-def _reload_dataloader_state_dict_automatic_map_dataset(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
-    iterator_state = state_dict["state"][0]
-
-    if not isinstance(iterator_state, IteratorState):
-        iterator_state = IteratorState.from_state_dict(iterator_state)
-
+def _reload_dataloader_state_dict_automatic_map_dataset(dataloader: DataLoader, state_dict: MergedIteratorState) -> None:
     # reload sampler state
     ff_sampler = _find_fast_forward_samplers(dataloader)
-    ff_sampler.load_state_dict(iterator_state.sampler_state)
+    ff_sampler.load_state_dict(state_dict.sampler_states)
 
     # reload dataset state
     dataloader.dataset.load_state_dict(
-        iterator_state.dataset_state,
+        state_dict.dataset_states,
         latest_worker_id=state_dict["latest_worker_id"],
         num_workers=iterator_state.num_workers,
     )
 
 
 def _reload_dataloader_state_dict_automatic_iterable_dataset(
-    dataset: CaptureIterableDataset, state_dict: Dict[str, Any]
+    dataset: CaptureIterableDataset, state_dict: MergedIteratorState
 ) -> None:
     dataset.load_state_dict(
-        {sampler_name: state[0]["sampler_state"] for sampler_name, state in state_dict["state"].items()}
+        {sampler_name: state[0] for sampler_name, state in state_dict.sampler_states[0]}
     )
 
 
-def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: MergedIteratorState) -> None:
     dataset = dataloader.dataset
     if isinstance(dataset, CaptureMapDataset):
         _reload_dataloader_state_dict_automatic_map_dataset(dataloader, state_dict)
@@ -549,12 +550,12 @@ def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: 
         raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
 
 
-def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
+def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: MergedIteratorState) -> None:
     # In manual mode, we don't wrap the user objects with `CaptureMapDataset` or `CaptureIterableDataset`
     # therefore, we need to reload the states manually.
-    latest_worker_id = state_dict["latest_worker_id"]
-    num_workers = state_dict["state"][latest_worker_id]["num_workers"]
-    sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
+    latest_worker_id = state_dict.latest_worker_id
+    num_workers = state_dict.state[latest_worker_id].num_workers
+    sampler_state = state_dict.sampler_states[latest_worker_id]
     if sampler_state:
         # `sampler_state` keys contain all the DataLoader attribute names
         # which matched `_Stateful` API interface while collecting the `state_dict`.
@@ -571,8 +572,8 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
         return
 
     dataset_state = {
-        worker_id: state_dict["state"][worker_id]["dataset_state"][worker_id]
-        for worker_id in state_dict["state"].keys()
+        worker_id: state_dict.dataset_states[worker_id]
+        for worker_id in state_dict.dataset_states.keys()
     }
 
     dataloader.dataset.load_state_dict(_rotate_worker_indices(dataset_state, latest_worker_id, num_workers))
@@ -580,17 +581,18 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
 
 def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
     """Utility to reload state_dict within dataloader for fault tolerance."""
-
     fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
 
     if not fault_tolerant_mode.is_enabled:
         return
 
+    merged_state_dict = MergedIteratorState.from_state_dict(deepcopy(state_dict))
+
     if fault_tolerant_mode.is_automatic:
-        _reload_dataloader_state_dict_automatic(dataloader, state_dict)
+        _reload_dataloader_state_dict_automatic(dataloader, merged_state_dict)
 
     elif fault_tolerant_mode.is_manual:
-        _reload_dataloader_state_dict_manual(dataloader, state_dict)
+        _reload_dataloader_state_dict_manual(dataloader, merged_state_dict)
 
     else:
         raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
