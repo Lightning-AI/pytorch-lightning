@@ -45,7 +45,7 @@ class _IteratorStateDict(TypedDict):
     name: Optional[str]
 
 
-class MergedIteratorStateDict(TypedDict):
+class _MergedIteratorStateDict(TypedDict):
     state: Dict[str, Any]
     latest_worker_id: int
     represent_map_dataset: Optional[bool]
