@@ -6,7 +6,6 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 
-
 __all__ = [
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
