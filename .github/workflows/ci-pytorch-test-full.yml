@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 40
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Get changed files
       id: changed-files
