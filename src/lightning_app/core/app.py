@@ -284,7 +284,7 @@ class LightningApp:
                         work = self.get_component_by_name(component_output.id)
                         new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
                         deltas.append(new_work_delta)
-                    except KeyError:
+                    except (KeyError, AttributeError):
                         # The component has been deleted.
                         pass
                 else:
