@@ -24,10 +24,10 @@ from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type
 from warnings import warn
 
 import yaml
+from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch

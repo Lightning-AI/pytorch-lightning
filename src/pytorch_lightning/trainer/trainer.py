@@ -30,6 +30,7 @@ from weakref import proxy
 
 import torch
 import torch.distributed as dist
+from lightning_utilities.core.apply_func import apply_to_collection
 from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
@@ -91,7 +92,6 @@ from pytorch_lightning.utilities import (
     GradClipAlgorithmType,
     parsing,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,

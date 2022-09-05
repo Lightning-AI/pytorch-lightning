@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -40,7 +41,7 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.apply_func import convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

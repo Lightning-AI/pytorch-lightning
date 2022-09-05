@@ -20,6 +20,7 @@ from typing import Any, Callable, cast, Dict, Generator, List, Optional, overloa
 
 import torch
 import torch.nn as nn
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
@@ -32,7 +33,7 @@ from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnSt
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.apply_func import convert_to_tensors
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,

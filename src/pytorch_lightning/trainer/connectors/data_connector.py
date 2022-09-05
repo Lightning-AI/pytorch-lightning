@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -26,7 +27,6 @@ from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, U
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,

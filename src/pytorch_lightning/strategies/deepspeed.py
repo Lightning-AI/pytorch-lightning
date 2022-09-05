@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -36,7 +37,6 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
     get_default_process_group_backend_for_device,
