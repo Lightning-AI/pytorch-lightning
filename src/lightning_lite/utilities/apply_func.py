@@ -24,7 +24,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from lightning_lite.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 

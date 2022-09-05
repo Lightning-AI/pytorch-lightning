@@ -83,6 +83,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 
+- Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_lite.utilities.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516))
+
+
+
 ### Removed
 
 - Removed the deprecated `Trainer.training_type_plugin` property in favor of `Trainer.strategy` ([#14011](https://github.com/Lightning-AI/lightning/pull/14011))
