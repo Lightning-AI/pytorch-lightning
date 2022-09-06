@@ -101,10 +101,12 @@ def move_data_to_device(batch: Any, device: _DEVICE) -> Any:
 
 
 def convert_to_tensors(data: Any, device: _DEVICE) -> Any:
+    # convert non-tensors
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
 
     def _move_to_device_and_make_contiguous(t: Tensor, device: _DEVICE) -> Tensor:
         return t.to(device).contiguous()
 
+    # make sure existing tensors are in the correct device, also contiugous
     return apply_to_collection(data, Tensor, _move_to_device_and_make_contiguous)
