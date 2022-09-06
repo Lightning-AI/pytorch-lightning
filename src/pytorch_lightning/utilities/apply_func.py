@@ -13,46 +13,24 @@
 # limitations under the License.
 """Utilities used for collections."""
 
-from abc import ABC
-from functools import partial
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any
 
-import numpy as np
-import torch
 from lightning_utilities.core.apply_func import apply_to_collection as new_apply_to_collection
 from lightning_utilities.core.apply_func import apply_to_collections as new_apply_to_collections
-from torch import Tensor
 
+from lightning_lite.utilities.apply_func import convert_to_tensors as new_convert_to_tensors
+from lightning_lite.utilities.apply_func import from_numpy as new_from_numpy
+from lightning_lite.utilities.apply_func import move_data_to_device as new_move_data_to_device
+from lightning_lite.utilities.apply_func import to_dtype_tensor as new_to_dtype_tensor
+from lightning_lite.utilities.apply_func import TransferableDataType as NewTransferableDataType
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-_BLOCKING_DEVICE_TYPES = ("cpu", "mps")
-
-
-def to_dtype_tensor(
-    value: Union[int, float, List[Union[int, float]]], dtype: torch.dtype, device: Union[str, torch.device]
-) -> Tensor:
-    return torch.tensor(value, dtype=dtype, device=device)
-
-
-def from_numpy(value: np.ndarray, device: Union[str, torch.device]) -> Tensor:
-    return torch.from_numpy(value).to(device)
-
-
-CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], Tensor]]] = [
-    # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
-    (bool, partial(to_dtype_tensor, dtype=torch.uint8)),
-    (int, partial(to_dtype_tensor, dtype=torch.int)),
-    (float, partial(to_dtype_tensor, dtype=torch.float)),
-    (np.ndarray, from_numpy),
-]
 
 
 def apply_to_collection(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
-        "`pytorch_lightning.utilities.apply_func.apply_to_collection` has been deprecated in favor of"
-        " `lightning_utilities.core.apply_func.apply_to_collection`. Support for the old import will be removed in"
-        "v1.10.0"
+        "`pytorch_lightning.utilities.apply_func.apply_to_collection` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_utilities.core.apply_func.apply_to_collection` instead."
     )
     try:
         return new_apply_to_collection(*args, **kwargs)
@@ -63,9 +41,8 @@ def apply_to_collection(*args: Any, **kwargs: Any) -> Any:
 
 def apply_to_collections(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
-        "`pytorch_lightning.utilities.apply_func.apply_to_collections` has been deprecated in favor of"
-        " `lightning_utilities.core.apply_func.apply_to_collections`. Support for the old import will be removed in"
-        "v1.10.0"
+        "`pytorch_lightning.utilities.apply_func.apply_to_collections` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_utilities.core.apply_func.apply_to_collections` instead."
     )
     try:
         return new_apply_to_collections(*args, **kwargs)
@@ -74,74 +51,42 @@ def apply_to_collections(*args: Any, **kwargs: Any) -> Any:
         raise MisconfigurationException from e
 
 
-class TransferableDataType(ABC):
-    """A custom type for data that can be moved to a torch device via ``.to(...)``.
-
-    Example:
-
-        >>> isinstance(dict, TransferableDataType)
-        False
-        >>> isinstance(torch.rand(2, 3), TransferableDataType)
-        True
-        >>> class CustomObject:
-        ...     def __init__(self):
-        ...         self.x = torch.rand(2, 2)
-        ...     def to(self, device):
-        ...         self.x = self.x.to(device)
-        ...         return self
-        >>> isinstance(CustomObject(), TransferableDataType)
-        True
-    """
-
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
-        if cls is TransferableDataType:
-            to = getattr(subclass, "to", None)
-            return callable(to)
-        return NotImplemented
+def convert_to_tensors(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.apply_func.convert_to_tensors` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.apply_func.convert_to_tensors` instead."
+    )
+    return new_convert_to_tensors(*args, **kwargs)
 
 
-def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
-    """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
-    moved and all other objects in the collection will be left untouched.
-
-    Args:
-        batch: A tensor or collection of tensors or anything that has a method ``.to(...)``.
-            See :func:`apply_to_collection` for a list of supported collection types.
-        device: The device to which the data should be moved
-
-    Return:
-        the same collection but with all contained tensors residing on the new device.
-
-    See Also:
-        - :meth:`torch.Tensor.to`
-        - :class:`torch.device`
-    """
-
-    if isinstance(device, str):
-        device = torch.device(device)
-
-    def batch_to(data: Any) -> Any:
-        kwargs = {}
-        # Don't issue non-blocking transfers to CPU
-        # Same with MPS due to a race condition bug: https://github.com/pytorch/pytorch/issues/83015
-        if isinstance(data, Tensor) and isinstance(device, torch.device) and device.type not in _BLOCKING_DEVICE_TYPES:
-            kwargs["non_blocking"] = True
-        data_output = data.to(device, **kwargs)
-        if data_output is not None:
-            return data_output
-        # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
-        return data
-
-    return apply_to_collection(batch, dtype=TransferableDataType, function=batch_to)
+def from_numpy(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.apply_func.from_numpy` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.apply_func.from_numpy` instead."
+    )
+    return new_from_numpy(*args, **kwargs)
 
 
-def convert_to_tensors(data: Any, device: Union[str, torch.device]) -> Any:
-    for src_dtype, conversion_func in CONVERSION_DTYPES:
-        data = apply_to_collection(data, src_dtype, conversion_func, device=device)
+def move_data_to_device(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.apply_func.move_data_to_device` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.apply_func.move_data_to_device` instead."
+    )
+    return new_move_data_to_device(*args, **kwargs)
 
-    def _move_to_device_and_make_contiguous(t: Tensor, device: Union[str, torch.device]) -> Tensor:
-        return t.to(device).contiguous()
 
-    data = apply_to_collection(data, Tensor, _move_to_device_and_make_contiguous, device=device)
-    return data
+def to_dtype_tensor(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.apply_func.to_dtype_tensor` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.apply_func.to_dtype_tensor` instead."
+    )
+    return new_to_dtype_tensor(*args, **kwargs)
+
+
+class TransferableDataType(NewTransferableDataType):
+    def __init__(self) -> None:
+        rank_zero_deprecation(
+            "`pytorch_lightning.utilities.apply_func.TransferableDataType` has been deprecated in v1.8.0 and will be"
+            " removed in v1.10.0. Please use `lightning_lite.utilities.apply_func.TransferableDataType` instead."
+        )
+        super().__init__()

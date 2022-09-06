@@ -14,7 +14,7 @@
 import pytest
 import torch
 
-from pytorch_lightning.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities.apply_func import move_data_to_device
 
 
 @pytest.mark.parametrize("should_return", [False, True])
