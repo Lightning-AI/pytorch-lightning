@@ -16,10 +16,11 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -50,6 +51,7 @@ TRAIN_DATALOADERS = Union[
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
 _DEVICE = Union[torch.device, str, int]
 _MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]]
+_ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
 
 
 @runtime_checkable
@@ -88,21 +90,24 @@ class PredictStep(Protocol):
         ...
 
 
+_DictKey = TypeVar("_DictKey")
+
+
 @runtime_checkable
-class _Stateful(Protocol):
+class _Stateful(Protocol[_DictKey]):
     """This class is used to detect if an object is stateful using `isinstance(obj, _Stateful)`."""
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[_DictKey, Any]:
         ...
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None:
         ...
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
-class _LRScheduler(_Stateful, Protocol):
+class _LRScheduler(_Stateful[str], Protocol):
     optimizer: Optimizer
     base_lrs: List[float]
 
@@ -116,7 +121,7 @@ class _LRScheduler(_Stateful, Protocol):
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
-class ReduceLROnPlateau(_Stateful, Protocol):
+class ReduceLROnPlateau(_Stateful[str], Protocol):
     in_cooldown: bool
     optimizer: Optimizer
 

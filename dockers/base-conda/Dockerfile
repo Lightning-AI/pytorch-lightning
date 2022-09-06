@@ -34,6 +34,10 @@ RUN \
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update -qq --fix-missing && \
+    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
+    CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
+    MAX_ALLOWED_NCCL=2.11.4 && \
+    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
@@ -42,17 +46,15 @@ RUN \
         curl \
         unzip \
         ca-certificates \
-        libopenmpi-dev
-
-RUN \
+        libopenmpi-dev \
+        libnccl2=$TO_INSTALL_NCCL \
+        libnccl-dev=$TO_INSTALL_NCCL && \
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_${CONDA_VERSION}-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
-    rm ~/miniconda.sh
-
-RUN \
+    rm ~/miniconda.sh && \
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
@@ -76,11 +78,11 @@ RUN \
     conda update -n base -c defaults conda && \
     CUDA_VERSION_MM=$(python -c "print('.'.join('$CUDA_VERSION'.split('.')[:2]))") && \
     conda create -y --name $CONDA_ENV \
-      python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION_MM} \
+      python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision cudatoolkit=${CUDA_VERSION_MM} \
       -c nvidia -c pytorch -c pytorch-test && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
-    printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchtext', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
+    printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
     python prune.py && \
     rm prune.py && \
     cat environment.yml && \
@@ -100,7 +102,7 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs torch,torchvision,torchtext && \
+    python assistant.py requirements_prune_pkgs torch,torchvision && \
     # Install remaining requirements
     pip install --no-cache-dir -r requirements/pytorch/base.txt \
         -r requirements/pytorch/extra.txt \
@@ -141,8 +143,9 @@ RUN \
 RUN \
     # install Bagua
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
-    python -c "import bagua_core; bagua_core.install_deps()" && \
+    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [115,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
+    pip install "bagua-cuda$CUDA_VERSION_BAGUA==0.9.0" && \
+    if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
     python -c "import bagua; print(bagua.__version__)"
 
 RUN \

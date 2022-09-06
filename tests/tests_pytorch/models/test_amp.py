@@ -211,3 +211,24 @@ def test_amp_with_apex(bwd_mock, tmpdir):
 
     assert isinstance(trainer.lr_scheduler_configs[0].scheduler.optimizer, optim.Adam)
     assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)
+
+
+@RunIf(min_cuda_gpus=1, amp_apex=True)
+def test_amp_with_apex_reload(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_test_batches=1,
+        precision=16,
+        amp_backend="apex",
+        accelerator="gpu",
+        devices=1,
+    )
+    trainer.fit(model)
+    trainer.fit_loop.max_steps = 2
+
+    with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
+        trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
+
+    trainer.test(model, ckpt_path="best")

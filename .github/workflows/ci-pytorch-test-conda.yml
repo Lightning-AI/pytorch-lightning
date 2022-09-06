@@ -16,7 +16,7 @@ defaults:
     shell: bash -l {0}
 
 jobs:
-  conda:
+  pl-conda:
     runs-on: ubuntu-20.04
     container: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
     strategy:
@@ -33,11 +33,11 @@ jobs:
     - name: Workaround for https://github.com/actions/checkout/issues/760
       run: git config --global --add safe.directory /__w/lightning/lightning
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v28
+      uses: tj-actions/changed-files@v29.0.3
 
     - name: Decide if the test should be skipped
       id: skip

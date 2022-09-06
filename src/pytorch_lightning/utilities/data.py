@@ -21,6 +21,7 @@ from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Type, Union
 
 import torch
+from lightning_utilities.core.apply_func import is_dataclass_instance
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
@@ -35,7 +36,6 @@ from torch.utils.data import (
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -73,7 +73,7 @@ def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
 
         for sample in batch:
             yield from _extract_batch_size(sample)
-    elif _is_dataclass_instance(batch):
+    elif is_dataclass_instance(batch):
         for field in fields(batch):
             yield from _extract_batch_size(getattr(batch, field.name))
     else:
@@ -124,9 +124,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
                 f"`{dataloader.__class__.__name__}` returned 0 length. Please make sure this was your intention."
             )
         has_len = True
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
+    except (TypeError, NotImplementedError):
         has_len = False
 
     if has_len and has_iterable_dataset(dataloader):
@@ -141,14 +139,14 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
 
 def has_len_all_ranks(
     dataloader: DataLoader,
-    training_type: "pl.Strategy",
+    strategy: "pl.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
         local_length = len(dataloader)
-        total_length = training_type.reduce(torch.tensor(local_length).to(model.device), reduce_op="sum")
+        total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
 
         if total_length == 0:
             rank_zero_warn(
@@ -170,9 +168,7 @@ def has_len_all_ranks(
         else:
             has_len = True
 
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
+    except (TypeError, NotImplementedError):
         has_len = False
 
     if has_len and has_iterable_dataset(dataloader):

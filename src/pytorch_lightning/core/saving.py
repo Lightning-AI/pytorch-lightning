@@ -24,12 +24,12 @@ from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type
 from warnings import warn
 
 import yaml
+from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -142,39 +142,13 @@ class ModelIO:
             **kwargs,
         )
 
-    # -------------------------
-    # OPTIONAL HOOKS
-    # -------------------------
-    def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
-        """Hook to do whatever you need right before Slurm manager saves the model.
-
-        Args:
-            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
-                Contents need to be pickleable.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use ``LightningModule.on_save_checkpoint`` instead.
-        """
-
-    def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
-        """Hook to do whatever you need right before Slurm manager loads the model.
-
-        Args:
-            checkpoint: A dictionary with variables from the checkpoint.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use ``LightningModule.on_load_checkpoint`` instead.
-        """
-
 
 def _load_from_checkpoint(
     cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
-    checkpoint_path: Union[str, IO],
+    checkpoint_path: Union[_PATH, IO],
     map_location: _MAP_LOCATION_TYPE = None,
-    hparams_file: Optional[str] = None,
-    strict: bool = True,
+    hparams_file: Optional[_PATH] = None,
+    strict: Optional[bool] = None,
     **kwargs: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
@@ -183,7 +157,7 @@ def _load_from_checkpoint(
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     if hparams_file is not None:
-        extension = hparams_file.split(".")[-1]
+        extension = str(hparams_file).split(".")[-1]
         if extension.lower() == "csv":
             hparams = load_hparams_from_tags_csv(hparams_file)
         elif extension.lower() in ("yml", "yaml"):
@@ -201,8 +175,6 @@ def _load_from_checkpoint(
 
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
-    # allow cls to be evaluated as subclassed LightningModule or,
-    # as LightningModule for internal tests
     if issubclass(cls, pl.LightningModule):
         return _load_state(cls, checkpoint, strict=strict, **kwargs)
 
@@ -210,7 +182,7 @@ def _load_from_checkpoint(
 def _load_state(
     cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
-    strict: bool = True,
+    strict: Optional[bool] = None,
     **cls_kwargs_new: Any,
 ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
@@ -257,6 +229,7 @@ def _load_state(
         return obj
 
     # load the state_dict on the model automatically
+    assert strict is not None
     keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:

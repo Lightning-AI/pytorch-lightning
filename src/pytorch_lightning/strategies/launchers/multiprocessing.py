@@ -21,14 +21,15 @@ import numpy as np
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import move_data_to_device
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
@@ -65,6 +66,10 @@ class _MultiProcessingLauncher(_Launcher):
             raise ValueError(
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
+            )
+        if start_method in ("fork", "forkserver") and _is_forking_disabled():
+            raise ValueError(
+                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different start method."
             )
 
     @property
@@ -281,3 +286,8 @@ class _GlobalStateSnapshot:
             torch.use_deterministic_algorithms(self.use_deterministic_algorithms)
         torch.backends.cudnn.benchmark = self.cudnn_benchmark
         _set_rng_states(self.rng_states)
+
+
+def _is_forking_disabled() -> bool:
+    """Returns whether forking is disabled through the environment variable ``PL_DISABLE_FORK``."""
+    return bool(int(os.environ.get("PL_DISABLE_FORK", "0")))
