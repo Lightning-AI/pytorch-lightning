@@ -1,7 +1,9 @@
-import pytorch_lightning as pl
-from typing import Optional, Any, Union
+from typing import Any, Optional, Union
+
 from torch import Tensor
 from torch.optim import Optimizer
+
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -15,10 +17,19 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = 16
 
-    def backward(self, model: "pl.LightningModule", closure_loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args: Any, **kwargs: Any) -> None:
+    def backward(
+        self,
+        model: "pl.LightningModule",
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
-                "You have overridden the `LightningModule.backward` hook but it will be ignored since ColossalAI handles"
+                "You have overridden the `LightningModule.backward` hook"
+                " but it will be ignored since ColossalAI handles"
                 " the backward logic internally."
             )
         return optimizer.backward(closure_loss)
@@ -27,7 +38,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         optimizer.clip_grad_norm(None, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
-        raise MisconfigurationException('clip_grad_by_value is not supported by `Colossalai`')
+        raise MisconfigurationException("clip_grad_by_value is not supported by `Colossalai`")
 
     def optimizer_step(self, model, optimizer, optimizer_idx: int, closure, **kwargs: Any) -> Any:
         closure_result = closure()

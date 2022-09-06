@@ -1,41 +1,41 @@
+from typing import Any, Generator, Optional
+
 import torch
+
 import pytorch_lightning as pl
-from typing import Optional, Generator, Any
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = _RequirementAvailable("colossalai")
 if _COLOSSALAI_AVAILABLE:
-    from colossalai.gemini import ChunkManager, GeminiManager
-    from colossalai.utils.model.colo_init_context import ColoInitContext
-    from colossalai.utils import get_current_device
-    from colossalai.nn.parallel import ZeroDDP
-    from colossalai.zero import ZeroOptimizer
-    from colossalai.tensor import ProcessGroup
-    from colossalai.nn.optimizer import CPUAdam, HybridAdam
-    from colossalai.logging import get_dist_logger, disable_existing_loggers
-    from colossalai.core import global_context as gpc
     from colossalai.context import ParallelMode
+    from colossalai.core import global_context as gpc
+    from colossalai.gemini import ChunkManager, GeminiManager
+    from colossalai.logging import disable_existing_loggers, get_dist_logger
+    from colossalai.nn.optimizer import CPUAdam, HybridAdam
+    from colossalai.nn.parallel import ZeroDDP
+    from colossalai.tensor import ProcessGroup
+    from colossalai.utils import get_current_device
+    from colossalai.utils.model.colo_init_context import ColoInitContext
+    from colossalai.zero import ZeroOptimizer
 
 
 class ModelShardedContext(ColoInitContext):
     def _post_init_method(self, module: torch.nn.Module, *args, **kwargs):
-        if getattr(module, '_colossalai_module', False) is True:
+        if getattr(module, "_colossalai_module", False) is True:
             return
         super()._post_init_method(module, *args, **kwargs)
         module._colossalai_module = True
 
 
 class ColossalAIStrategy(DDPStrategy):
-    """ColossalAI strategy.
-    It only supports single optimizer which must be  `colossalai.nn.optimizer.CPUAdam`_ or
-    `colossalai.nn.optimizer.HybridAdam`_ now.
-    You must initialize your model in ``configure_sharded_model()``.
+    """ColossalAI strategy. It only supports single optimizer which must be  `colossalai.nn.optimizer.CPUAdam`_ or
+    `colossalai.nn.optimizer.HybridAdam`_ now. You must initialize your model in ``configure_sharded_model()``.
 
     It configures accelerator and precision, and you should not configure them when initializing ``Trainer``.
     CUDA is essential for this strategy. Please make sure CUDA is available.
@@ -102,7 +102,7 @@ class ColossalAIStrategy(DDPStrategy):
         use_chunk: bool = True,
         chunk_size: Optional[int] = None,
         enable_distributed_storage: bool = True,
-        placement_policy: str = 'auto',
+        placement_policy: str = "auto",
         force_outputs_fp32: bool = False,
         gpu_margin_mem_ratio: float = 0.0,
         chunk_search_range: int = 64 * 1024**2,
@@ -132,18 +132,18 @@ class ColossalAIStrategy(DDPStrategy):
         self.force_outputs_fp32 = force_outputs_fp32
         self.gpu_margin_mem_ratio = gpu_margin_mem_ratio
         self.chunk_size_search_kwargs = {
-            'search_range': chunk_search_range,
-            'n_grids': chunk_search_n_grids,
-            'min_chunk_size': min_chunk_size
+            "search_range": chunk_search_range,
+            "n_grids": chunk_search_n_grids,
+            "min_chunk_size": min_chunk_size,
         }
         self.amp_kwargs = {
-            'initial_scale': initial_scale,
-            'min_scale': min_scale,
-            'growth_factor': growth_factor,
-            'backoff_factor': backoff_factor,
-            'growth_interval': growth_interval,
-            'hysteresis': hysteresis,
-            'max_scale': max_scale
+            "initial_scale": initial_scale,
+            "min_scale": min_scale,
+            "growth_factor": growth_factor,
+            "backoff_factor": backoff_factor,
+            "growth_interval": growth_interval,
+            "hysteresis": hysteresis,
+            "max_scale": max_scale,
         }
         self._num_nodes = 1
         self._logger = get_dist_logger()
@@ -151,8 +151,13 @@ class ColossalAIStrategy(DDPStrategy):
     def setup_distributed(self):
         if not gpc.is_initialized(ParallelMode.GLOBAL):
             disable_existing_loggers()
-            gpc.init_global_dist(rank=self.global_rank, world_size=self.world_size, backend='nccl',
-                                 host=self.cluster_environment.main_address, port=self.cluster_environment.main_port)
+            gpc.init_global_dist(
+                rank=self.global_rank,
+                world_size=self.world_size,
+                backend="nccl",
+                host=self.cluster_environment.main_address,
+                port=self.cluster_environment.main_port,
+            )
             gpc.set_device(self.local_rank)
         self.process_group = ProcessGroup()
 
@@ -169,19 +174,26 @@ class ColossalAIStrategy(DDPStrategy):
         super().setup_precision_plugin()
         is_training = self.lightning_module.trainer and self.lightning_module.trainer.training
         if is_training:
-            assert len(self.optimizers) == 1, 'ColossalAIStrategy only supports single Optimizer now.'
+            assert len(self.optimizers) == 1, "ColossalAIStrategy only supports single Optimizer now."
             optimizer = self.optimizers[0]
-            assert isinstance(optimizer, (CPUAdam, HybridAdam)), \
-                'ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam.'
+            assert isinstance(optimizer, (CPUAdam, HybridAdam)), (
+                "ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam "
+                "and colossalai.nn.optimizer.HybridAdam."
+            )
         pl_module = self.model
-        if not hasattr(pl_module, '_colossalai_zero'):
+        if not hasattr(pl_module, "_colossalai_zero"):
             if self.use_chunk:
                 chunk_size = self.chunk_size or ChunkManager.search_chunk_size(
-                    self.model, **self.chunk_size_search_kwargs)
+                    self.model, **self.chunk_size_search_kwargs
+                )
             else:
                 chunk_size = None
-            chunk_manager = ChunkManager(chunk_size, self.process_group, self.enable_distributed_storage,
-                                         GeminiManager.get_default_device(self.placement_policy))
+            chunk_manager = ChunkManager(
+                chunk_size,
+                self.process_group,
+                self.enable_distributed_storage,
+                GeminiManager.get_default_device(self.placement_policy),
+            )
             gemini_manager = GeminiManager(self.placement_policy, chunk_manager)
             assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
             model = _LightningModuleWrapperBase(self.model)
@@ -190,8 +202,9 @@ class ColossalAIStrategy(DDPStrategy):
         else:
             self.model = pl_module._colossalai_zero[0]
         if is_training:
-            self.optimizers = [ZeroOptimizer(optimizer, self.model,
-                                             gpu_margin_mem_ratio=self.gpu_margin_mem_ratio, **self.amp_kwargs)]
+            self.optimizers = [
+                ZeroOptimizer(optimizer, self.model, gpu_margin_mem_ratio=self.gpu_margin_mem_ratio, **self.amp_kwargs)
+            ]
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
@@ -211,7 +224,7 @@ class ColossalAIStrategy(DDPStrategy):
         pl_module = self.lightning_module
         pl_module._device = self.root_device
         for child in pl_module.modules():
-            if child is not pl_module and getattr(child, '_colossalai_module', None) is not True:
+            if child is not pl_module and getattr(child, "_colossalai_module", None) is not True:
                 child.to(self.root_device)
 
     @property

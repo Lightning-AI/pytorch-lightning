@@ -8,15 +8,14 @@ from torch import nn, Tensor
 from torch.optim import Optimizer
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies import ColossalAIStrategy
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
-from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import seed_everything
 
 if _COLOSSALAI_AVAILABLE:
     from colossalai.nn.optimizer import HybridAdam
@@ -24,6 +23,7 @@ if _COLOSSALAI_AVAILABLE:
 
 def test_invalid_colosalai(monkeypatch):
     import pytorch_lightning.strategies.colossalai as colossal_strategy
+
     monkeypatch.setattr(colossal_strategy, "_COLOSSALAI_AVAILABLE", False)
     with pytest.raises(MisconfigurationException):
         ColossalAIStrategy()
@@ -72,7 +72,7 @@ def test_colossalai_optimizer(tmpdir):
     )
     with pytest.raises(
         AssertionError,
-        match='ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam'
+        match="ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam",
     ):
         trainer.fit(model)
 
