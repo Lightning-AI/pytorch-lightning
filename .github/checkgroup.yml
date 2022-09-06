@@ -161,7 +161,6 @@ subprojects:
   - id: "lightning_app: Azure"
     paths:
       - ".azure/app-cloud-e2e.yml"
-
     checks:
       - "App.cloud-e2e"
 
