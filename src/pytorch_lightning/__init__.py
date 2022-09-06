@@ -71,3 +71,6 @@ def cli_lightning_logo() -> None:
     print()
     print("\033[0;35m" + LIGHTNING_LOGO + "\033[0m")
     print()
+
+
+# asdf
