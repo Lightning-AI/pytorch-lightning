@@ -93,6 +93,7 @@ class LightningFlow:
         """
         from lightning_app.runners.backends.backend import Backend
 
+        # Question: What is this state?
         self._state = set()
         self._name = ""
         self._flows = set()
@@ -182,6 +183,8 @@ class LightningFlow:
             elif _is_json_serializable(value):
                 self._state.add(name)
 
+                # Question: Just wondering, should we even allow users to even change the values to
+                # a different type
                 if not isinstance(value, Path) and hasattr(self, "_paths") and name in self._paths:
                     # The attribute changed type from Path to another
                     self._paths.pop(name)
@@ -211,7 +214,6 @@ class LightningFlow:
                 LightningFlow._attach_backend(flow, backend)
             for work in structure.works:
                 backend._wrap_run_method(_LightningAppRef().get_current(), work)
-                work._backend = backend
 
         for name in flow._structures:
             getattr(flow, name)._backend = backend
@@ -353,7 +355,7 @@ class LightningFlow:
 
         .. code-block:: python
 
-            from lightning_app import LightningFlow
+            from lightning import LightningFlow
 
 
             class Flow(LightningFlow):
@@ -371,8 +373,8 @@ class LightningFlow:
 
         .. code-block:: python
 
-            from lightning_app import LightningFlow
-            from lightning_app.structures import List
+            from lightning import LightningFlow
+            from lightning.app.structures import List
 
 
             class SchedulerDAG(LightningFlow):
@@ -484,7 +486,7 @@ class LightningFlow:
 
         .. code-block:: python
 
-            from lightning_app.frontend import StaticWebFrontend
+            from lightning.app.frontend import StaticWebFrontend
 
 
             class Flow(LightningFlow):
@@ -497,7 +499,7 @@ class LightningFlow:
 
         .. code-block:: python
 
-            from lightning_app.frontend import StaticWebFrontend
+            from lightning.app.frontend import StaticWebFrontend
 
 
             class Flow(LightningFlow):
@@ -644,8 +646,8 @@ class LightningFlow:
 
         .. code-block:: python
 
-            from lightning_app import LightningFlow
-            from lightning_app.api import Post
+            from lightning import LightningFlow
+            from lightning.app.api import Post
 
             from pydantic import BaseModel
 

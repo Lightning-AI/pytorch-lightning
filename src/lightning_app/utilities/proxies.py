@@ -123,6 +123,7 @@ class ProxyWorkRun:
                     # overriding the return value for next loop iteration.
                     _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
         if not self.parallel:
+            # Question: Didn't understand this exception. Can you improve it?
             raise CacheMissException("Task never called before. Triggered now")
 
     def _validate_call_args(self, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
