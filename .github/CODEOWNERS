@@ -5,7 +5,7 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @borda @akihironitta
+* @borda @akihironitta @carmocca @awaelchli
 
 # CI/CD and configs
 /.github/       @akihironitta @borda
@@ -19,5 +19,5 @@
 /.github/CODEOWNERS           @borda
 /setup.py                     @borda
 
-/src/lightning_utilities/core @borda @carmocca
-/tests/unittests/core         @borda @carmocca
+/src                          @borda @carmocca @awaelchli
+/tests/unittests              @borda @carmocca @awaelchli
