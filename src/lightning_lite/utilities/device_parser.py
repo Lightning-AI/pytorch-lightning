@@ -29,7 +29,7 @@ def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
         return None
 
     if not isinstance(gpus, list):
-        raise TypeError("gpus should be a list")
+        raise TypeError("GPUs should be a list")
 
     assert len(gpus) > 0, "GPUs should be a non-empty list"
 
