@@ -60,7 +60,7 @@ def test_all_gather_ddp_spawn():
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
 
@@ -104,7 +104,7 @@ def test_all_gather_collection(tmpdir):
         log_every_n_steps=1,
         accumulate_grad_batches=2,
         accelerator="gpu",
-        devices=1,
+        devices=2,
         strategy="ddp",
         enable_progress_bar=False,
         enable_model_summary=False,
