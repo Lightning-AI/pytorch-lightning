@@ -144,6 +144,7 @@ _PSUTIL_AVAILABLE = _package_available("psutil")
 _RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHVISION_AVAILABLE = _package_available("torchvision")
+_TORCHVISION_GREATER_EQUAL_0_14 = _compare_version("torch", operator.ge, "0.14.0")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
 
 

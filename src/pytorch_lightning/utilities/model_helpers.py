@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Optional, Type
+from typing import Any, Optional, Type
+from torch import nn
 from unittest.mock import Mock
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
@@ -54,3 +56,17 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
         raise ValueError("The parent should define the method")
 
     return instance_attr.__code__ != parent_attr.__code__
+
+
+def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
+    from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE, _TORCHVISION_GREATER_EQUAL_0_14
+
+    if not _TORCHVISION_AVAILABLE:
+        raise MisconfigurationException("You have asked for TorchVision but `torchvision` is not installed.")
+
+    from torchvision import models
+
+    if _TORCHVISION_GREATER_EQUAL_0_14:
+        return models.get_model(model_name, **kwargs)
+    else:
+        return getattr(models, model_name)(**kwargs)
