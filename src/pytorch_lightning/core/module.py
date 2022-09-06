@@ -35,7 +35,7 @@ from typing_extensions import Literal
 import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -65,7 +65,7 @@ MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[L
 
 
 class LightningModule(
-    DeviceDtypeModuleMixin,
+    _DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
     ModelHooks,
@@ -90,7 +90,7 @@ class LightningModule(
             "use_amp",
             "trainer",
         ]
-        + DeviceDtypeModuleMixin.__jit_unused_properties__
+        + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
 
