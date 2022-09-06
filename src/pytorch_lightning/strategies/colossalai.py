@@ -1,11 +1,9 @@
 import torch
 import pytorch_lightning as pl
-import contextlib
 from typing import Optional, Generator, Any
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -223,7 +221,7 @@ class ColossalAIStrategy(DDPStrategy):
         return super().lightning_module
 
     def teardown(self) -> None:
-        gpc.destroy()
+        return
 
     def optimizer_step(self, optimizer, opt_idx: int, closure, model=None, **kwargs: Any) -> Any:
         model = model or self.lightning_module

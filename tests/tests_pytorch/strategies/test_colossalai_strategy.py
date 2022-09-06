@@ -1,32 +1,23 @@
-import contextlib
-import json
-import logging
 import os
-from typing import Any, Dict, Optional
-from unittest import mock
+from typing import Any, Dict
 
 import pytest
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import ColossalAIStrategy
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.helpers.runif import RunIf
 from pytorch_lightning import seed_everything
 
 if _COLOSSALAI_AVAILABLE:
     from colossalai.nn.optimizer import HybridAdam
-    from colossalai.zero import ZeroOptimizer
 
 
 class ModelParallelBoringModel(BoringModel):
