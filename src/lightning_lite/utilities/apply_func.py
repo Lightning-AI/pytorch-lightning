@@ -22,24 +22,12 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
-
-
-def to_dtype_tensor(
-    value: Union[int, float, List[Union[int, float]]], dtype: torch.dtype, device: Union[str, torch.device]
-) -> Tensor:
-    return torch.tensor(value, dtype=dtype, device=device)
-
-
-def from_numpy(value: np.ndarray, device: Union[str, torch.device]) -> Tensor:
-    return torch.from_numpy(value).to(device)
-
-
 CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], Tensor]]] = [
     # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
-    (bool, partial(to_dtype_tensor, dtype=torch.uint8)),
-    (int, partial(to_dtype_tensor, dtype=torch.int)),
-    (float, partial(to_dtype_tensor, dtype=torch.float)),
-    (np.ndarray, from_numpy),
+    (bool, partial(torch.tensor, dtype=torch.uint8)),
+    (int, partial(torch.tensor, dtype=torch.int)),
+    (float, partial(torch.tensor, dtype=torch.float)),
+    (np.ndarray, torch.from_numpy),
 ]
 
 
@@ -108,9 +96,5 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
 def convert_to_tensors(data: Any, device: Union[str, torch.device]) -> Any:
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
-
-    def _move_to_device_and_make_contiguous(t: Tensor, device: Union[str, torch.device]) -> Tensor:
-        return t.to(device).contiguous()
-
-    data = apply_to_collection(data, Tensor, _move_to_device_and_make_contiguous, device=device)
-    return data
+    # all items should have been converted to to Tensors on the correct device
+    return apply_to_collection(data, Tensor, Tensor.contiguous)
