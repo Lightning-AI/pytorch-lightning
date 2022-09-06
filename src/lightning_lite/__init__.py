@@ -8,7 +8,7 @@ _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
-# TODO(lite): Lite and PL interfere through this root_logger, breaking lite tests who assert through caplog
+# TODO(lite): Lite and PL interfere through this root_logger, breaking Lite tests who assert through caplog
 # if root logger has handlers, propagate messages up and let root logger process them
 # if not _root_logger.hasHandlers():
 #     _logger.addHandler(logging.StreamHandler())

@@ -14,10 +14,10 @@ from lightning_lite.utilities.types import _DEVICE
 def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     """
     Args:
-        gpus: non-empty list of ints representing which gpus to use
+        gpus: Non-empty list of ints representing which GPUs to use
 
     Returns:
-        designated root GPU device id
+        Designated root GPU device id
 
     Raises:
         TypeError:
@@ -29,9 +29,9 @@ def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
         return None
 
     if not isinstance(gpus, list):
-        raise TypeError("gpus should be a list")
+        raise TypeError("GPUs should be a list")
 
-    assert len(gpus) > 0, "gpus should be a non empty list"
+    assert len(gpus) > 0, "GPUs should be a non-empty list"
 
     # set root gpu
     root_gpu = gpus[0]
@@ -45,20 +45,20 @@ def parse_gpu_ids(
     include_mps: bool = False,
 ) -> Optional[List[int]]:
     """
-    Parses the GPU ids given in the format as accepted by the
+    Parses the GPU IDs given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
-            A list of unique ints or a string containing list of comma separated unique integers
+            A list of unique ints or a string containing a list of comma separated unique integers
             indicates specific GPUs to use.
-            An int 0 means that no GPUs should be used.
+            An int of 0 means that no GPUs should be used.
             Any int N > 0 indicates that GPUs [0..N) should be used.
-        include_cuda: A boolean indicating whether to include cuda devices for gpu parsing.
-        include_mps: A boolean indicating whether to include mps devices for gpu parsing.
+        include_cuda: A boolean value indicating whether to include CUDA devices for GPU parsing.
+        include_mps: A boolean value indicating whether to include MPS devices for GPU parsing.
 
     Returns:
-        a list of gpus to be used or ``None`` if no GPUs were requested
+        A list of GPUs to be used or ``None`` if no GPUs were requested
 
     Raises:
         MisconfigurationException:
@@ -66,12 +66,12 @@ def parse_gpu_ids(
 
     .. note::
         ``include_cuda`` and ``include_mps`` default to ``False`` so that you only
-        have to specify which device type to use and not disabling all the others.
+        have to specify which device type to use and all other devices are not disabled.
     """
     # Check that gpus param is None, Int, String or Sequence of Ints
     _check_data_type(gpus)
 
-    # Handle the case when no gpus are requested
+    # Handle the case when no GPUs are requested
     if gpus is None or (isinstance(gpus, int) and gpus == 0) or str(gpus).strip() in ("0", "[]"):
         return None
 
