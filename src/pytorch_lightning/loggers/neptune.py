@@ -26,18 +26,18 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
 
-_NEPTUNE_AVAILABLE = _RequirementAvailable("neptune-client")
-_NEPTUNE_GREATER_EQUAL_0_9 = _RequirementAvailable("neptune-client>=0.9.0")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
+_NEPTUNE_GREATER_EQUAL_0_9 = RequirementCache("neptune-client>=0.9.0")
 
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:

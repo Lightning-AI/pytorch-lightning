@@ -24,9 +24,9 @@ from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type
 from warnings import warn
 
 import yaml
+from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.rank_zero import rank_zero_warn

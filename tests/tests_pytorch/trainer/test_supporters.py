@@ -18,12 +18,12 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler, Sampler, SequentialSampler
 
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.supporters import (

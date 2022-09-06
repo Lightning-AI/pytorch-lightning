@@ -22,14 +22,15 @@ from argparse import Namespace
 from time import time
 from typing import Any, Dict, Mapping, Optional, Union
 
+from lightning_utilities.core.imports import module_available
+
 from lightning_lite.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = _module_available("mlflow")
+_MLFLOW_AVAILABLE = module_available("mlflow")
 try:
     import mlflow
     from mlflow.tracking import context, MlflowClient

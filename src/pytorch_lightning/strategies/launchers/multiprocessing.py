@@ -21,11 +21,12 @@ import numpy as np
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.rank_zero import rank_zero_debug
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities.types import _PATH

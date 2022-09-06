@@ -14,11 +14,11 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import DataParallel, Module
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule

@@ -14,7 +14,8 @@
 import os
 from typing import Any, Dict, Optional
 
-from lightning_lite.utilities.apply_func import apply_to_collection
+from lightning_utilities.core.apply_func import apply_to_collection
+
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO

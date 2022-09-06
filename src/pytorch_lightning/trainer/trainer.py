@@ -30,13 +30,14 @@ from weakref import proxy
 
 import torch
 import torch.distributed as dist
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import module_available
 from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.data import _auto_add_worker_init_fn
 from lightning_lite.utilities.distributed import distributed_available
@@ -108,7 +109,7 @@ from pytorch_lightning.utilities.argparse import (
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import isolate_rng
 from pytorch_lightning.utilities.types import (
@@ -1464,7 +1465,7 @@ class Trainer(
     def _call_configure_sharded_model(self) -> None:
         with self.strategy.model_sharded_context():
             # experimental support for torchdistx
-            if _module_available("torchdistx.deferred_init"):
+            if module_available("torchdistx.deferred_init"):
                 from torchdistx.deferred_init import materialize_module
 
                 materialize_module(self.lightning_module)

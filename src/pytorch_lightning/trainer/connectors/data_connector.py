@@ -17,11 +17,11 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
 from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.warnings import PossibleUserWarning, WarningCache

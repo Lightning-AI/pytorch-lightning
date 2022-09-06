@@ -16,6 +16,7 @@ from dataclasses import fields
 from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import is_dataclass_instance
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
@@ -29,7 +30,6 @@ from torch.utils.data import (
 
 import pytorch_lightning as pl
 from lightning_lite.utilities import LightningEnum, rank_zero_deprecation, rank_zero_warn
-from lightning_lite.utilities.apply_func import _is_dataclass_instance
 from lightning_lite.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
 from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterable_dataset
 from lightning_lite.utilities.data import has_len as new_has_len
@@ -69,7 +69,7 @@ def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
 
         for sample in batch:
             yield from _extract_batch_size(sample)
-    elif _is_dataclass_instance(batch):
+    elif is_dataclass_instance(batch):
         for field in fields(batch):
             yield from _extract_batch_size(getattr(batch, field.name))
     else:

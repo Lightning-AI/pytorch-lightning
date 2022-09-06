@@ -22,12 +22,12 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import torch.nn as nn
+from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 
 try:
@@ -38,9 +38,9 @@ except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None  # type: ignore
 
-_WANDB_AVAILABLE = _RequirementAvailable("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _RequirementAvailable("wandb>=0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = _RequirementAvailable("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):

@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.nn import Module
 
@@ -18,9 +19,8 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _package_available
 
-_BAGUA_AVAILABLE = _package_available("bagua")
+_BAGUA_AVAILABLE = package_available("bagua")
 
 if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua

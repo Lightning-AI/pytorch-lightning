@@ -19,7 +19,7 @@ from torch.nn import Module
 from typing_extensions import Self
 
 
-class DeviceDtypeModuleMixin(Module):
+class _DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ["device", "dtype"]
 
     def __init__(self) -> None:
@@ -79,7 +79,7 @@ class DeviceDtypeModuleMixin(Module):
 
         Example::
             >>> from torch import Tensor
-            >>> class ExampleModule(DeviceDtypeModuleMixin):
+            >>> class ExampleModule(_DeviceDtypeModuleMixin):
             ...     def __init__(self, weight: Tensor):
             ...         super().__init__()
             ...         self.register_buffer('weight', weight)
@@ -180,8 +180,8 @@ class DeviceDtypeModuleMixin(Module):
     def __update_properties(
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
-        def apply_fn(module: Union[DeviceDtypeModuleMixin, Module]) -> None:
-            if not isinstance(module, DeviceDtypeModuleMixin):
+        def apply_fn(module: Union[_DeviceDtypeModuleMixin, Module]) -> None:
+            if not isinstance(module, _DeviceDtypeModuleMixin):
                 return
             if device is not None:
                 module._device = device

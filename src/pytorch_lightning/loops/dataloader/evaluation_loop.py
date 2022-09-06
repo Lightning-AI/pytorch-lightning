@@ -17,11 +17,11 @@ import sys
 from collections import ChainMap, OrderedDict
 from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE

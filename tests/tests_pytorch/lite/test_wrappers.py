@@ -17,7 +17,7 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests_pytorch.helpers.runif import RunIf
@@ -136,7 +136,7 @@ def test_lite_module_device_dtype_propagation(device_str, dtype):
 
     device = torch.device(device_str)
 
-    class DeviceModule(DeviceDtypeModuleMixin):
+    class DeviceModule(_DeviceDtypeModuleMixin):
         pass
 
     device_module = DeviceModule()

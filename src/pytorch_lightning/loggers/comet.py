@@ -21,17 +21,17 @@ import os
 from argparse import Namespace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 
 log = logging.getLogger(__name__)
-_COMET_AVAILABLE = _module_available("comet_ml")
+_COMET_AVAILABLE = module_available("comet_ml")
 
 if _COMET_AVAILABLE:
     import comet_ml
