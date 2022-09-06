@@ -1,22 +1,9 @@
 """Root package info."""
 import logging
-from typing import Any
 
 from lightning_lite.__about__ import *  # noqa: F401, F403
 from lightning_lite.__version__ import version as __version__  # noqa: F401
 
-_DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
-
-
-def _detail(self: Any, message: str, *args: Any, **kwargs: Any) -> None:
-    if self.isEnabledFor(_DETAIL):
-        # logger takes its '*args' as 'args'
-        self._log(_DETAIL, message, args, **kwargs)
-
-
-logging.addLevelName(_DETAIL, "DETAIL")
-logging.detail = _detail
-logging.Logger.detail = _detail
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
