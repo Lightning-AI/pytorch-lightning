@@ -3,10 +3,10 @@ import torch
 from tests_lite.helpers.runif import RunIf
 from torch import nn as nn
 
-from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 
 
-class SubSubModule(DeviceDtypeModuleMixin):
+class SubSubModule(_DeviceDtypeModuleMixin):
     pass
 
 
@@ -16,7 +16,7 @@ class SubModule(nn.Module):
         self.module = SubSubModule()
 
 
-class TopModule(DeviceDtypeModuleMixin):
+class TopModule(_DeviceDtypeModuleMixin):
     def __init__(self) -> None:
         super().__init__()
         self.module = SubModule()
@@ -76,7 +76,7 @@ def test_cuda_device(device):
 def test_cuda_current_device():
     """Test that calling .cuda() moves the model to the correct device and respects current cuda device setting."""
 
-    class CudaModule(DeviceDtypeModuleMixin):
+    class CudaModule(_DeviceDtypeModuleMixin):
         def __init__(self):
             super().__init__()
             self.layer = nn.Linear(1, 1)
