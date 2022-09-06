@@ -55,4 +55,4 @@ class LightningDeprecationWarning(DeprecationWarning):
     """Deprecation warnings raised by PyTorch Lightning."""
 
 
-rank_zero_deprecation.category = LightningDeprecationWarning
+rank_zero_module.rank_zero_deprecation_category = LightningDeprecationWarning
