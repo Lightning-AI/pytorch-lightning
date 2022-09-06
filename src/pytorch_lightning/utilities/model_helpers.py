@@ -13,8 +13,9 @@
 # limitations under the License.
 from functools import partial
 from typing import Any, Optional, Type
-from torch import nn
 from unittest.mock import Mock
+
+from torch import nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
