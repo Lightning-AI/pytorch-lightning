@@ -21,13 +21,18 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
+
+def _from_numpy(value: np.ndarray, device: Union[str, torch.device]) -> Tensor:
+    return torch.from_numpy(value).to(device)
+
+
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], Tensor]]] = [
     # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
     (bool, partial(torch.tensor, dtype=torch.uint8)),
     (int, partial(torch.tensor, dtype=torch.int)),
     (float, partial(torch.tensor, dtype=torch.float)),
-    (np.ndarray, torch.from_numpy),
+    (np.ndarray, _from_numpy),
 ]
 
 
