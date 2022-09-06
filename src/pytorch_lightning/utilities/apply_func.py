@@ -19,8 +19,8 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection as new_apply_to_collection
 from lightning_utilities.core.apply_func import apply_to_collections as new_apply_to_collections
 
+from lightning_lite.utilities.apply_func import _from_numpy
 from lightning_lite.utilities.apply_func import convert_to_tensors as new_convert_to_tensors
-from lightning_lite.utilities.apply_func import from_numpy as new_from_numpy
 from lightning_lite.utilities.apply_func import move_data_to_device as new_move_data_to_device
 from lightning_lite.utilities.apply_func import TransferableDataType as NewTransferableDataType
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -64,7 +64,7 @@ def from_numpy(*args: Any, **kwargs: Any) -> Any:
         "`pytorch_lightning.utilities.apply_func.from_numpy` has been deprecated in v1.8.0 and will be"
         " removed in v1.10.0. Please use `torch.from_numpy().to()` instead."
     )
-    return new_from_numpy(*args, **kwargs)
+    return _from_numpy(*args, **kwargs)
 
 
 def move_data_to_device(*args: Any, **kwargs: Any) -> Any:
