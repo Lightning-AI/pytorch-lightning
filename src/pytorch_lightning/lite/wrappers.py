@@ -14,12 +14,13 @@
 from typing import Any, Callable, Dict, Generator, Iterator, Optional, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import Strategy

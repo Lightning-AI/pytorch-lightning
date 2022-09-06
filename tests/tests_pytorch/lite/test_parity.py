@@ -22,12 +22,13 @@ import torch
 import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import nn
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.cloud_io import atomic_save
 from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.lite import LightningLite
