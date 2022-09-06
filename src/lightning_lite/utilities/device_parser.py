@@ -289,8 +289,8 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
 def num_cuda_devices() -> int:
     """Returns the number of GPUs available.
 
-    Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork
-    support, if the platform allows it.
+    Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
+    if the platform allows it.
     """
     if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.device_count()
@@ -301,8 +301,8 @@ def num_cuda_devices() -> int:
 def is_cuda_available() -> bool:
     """Returns a bool indicating if CUDA is currently available.
 
-    Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork
-    support, if the platform allows it.
+    Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
+    if the platform allows it.
     """
     if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.is_available()
