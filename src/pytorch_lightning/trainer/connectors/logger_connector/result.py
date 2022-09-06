@@ -16,7 +16,7 @@ from functools import partial, wraps
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
-from lightning_utilitiees.core.apply_func import apply_to_collection, apply_to_collections
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict

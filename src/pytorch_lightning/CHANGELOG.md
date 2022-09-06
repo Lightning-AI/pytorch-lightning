@@ -86,7 +86,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 
-- Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_lite.utilities.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516))
+- Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_utilities.core.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516), [#14537](https://github.com/Lightning-AI/lightning/pull/14537))
 
 
 

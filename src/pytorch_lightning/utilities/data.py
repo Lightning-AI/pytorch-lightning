@@ -21,7 +21,7 @@ from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Type, Union
 
 import torch
-from lightning_utiltities.core.apply_func import is_dataclass_instance
+from lightning_utilities.core.apply_func import is_dataclass_instance
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
