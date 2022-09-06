@@ -21,8 +21,10 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
+from lightning_lite.utilities.types import _DEVICE
 
-def _from_numpy(value: np.ndarray, device: Union[str, torch.device]) -> Tensor:
+
+def _from_numpy(value: np.ndarray, device: _DEVICE) -> Tensor:
     return torch.from_numpy(value).to(device)
 
 
@@ -63,7 +65,7 @@ class TransferableDataType(ABC):
         return NotImplemented
 
 
-def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
+def move_data_to_device(batch: Any, device: _DEVICE) -> Any:
     """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
     moved and all other objects in the collection will be left untouched.
 
@@ -98,8 +100,11 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     return apply_to_collection(batch, dtype=TransferableDataType, function=batch_to)
 
 
-def convert_to_tensors(data: Any, device: Union[str, torch.device]) -> Any:
+def convert_to_tensors(data: Any, device: _DEVICE) -> Any:
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
-    # all items should have been converted to to Tensors on the correct device
-    return apply_to_collection(data, Tensor, Tensor.contiguous)
+
+    def _move_to_device_and_make_contiguous(t: Tensor, device: _DEVICE) -> Tensor:
+        return t.to(device).contiguous()
+
+    return apply_to_collection(data, Tensor, _move_to_device_and_make_contiguous)
