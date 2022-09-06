@@ -17,9 +17,9 @@ from copy import deepcopy
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_lite.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
