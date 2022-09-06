@@ -223,7 +223,7 @@ class WandbLogger(Logger):
 
     Args:
         name: Display name for the run.
-        save_dir: Path where data is saved (wandb dir by default).
+        save_dir: Path where data is saved.
         offline: Run offline (data can be streamed later to wandb servers).
         id: Sets the version, mainly used to resume a previous run.
         version: Same as id.
@@ -255,7 +255,7 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: Optional[str] = None,
+        save_dir: str = ".",
         offline: bool = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
@@ -300,7 +300,7 @@ class WandbLogger(Logger):
             name=name,
             project=project,
             id=version or id,
-            dir=save_dir,
+            dir=save_dir or kwargs.pop("dir"),
             resume="allow",
             anonymous=("allow" if anonymous else None),
         )

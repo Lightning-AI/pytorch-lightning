@@ -45,7 +45,7 @@ _TORCHVISION_AVAILABLE = package_available("torchvision")
 _XLA_AVAILABLE: bool = package_available("torch_xla")
 
 
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
+from lightning_lite.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
