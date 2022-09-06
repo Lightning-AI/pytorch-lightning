@@ -287,6 +287,7 @@ Current Lightning Users
    generated/CONTRIBUTING.md
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
+   release_policy
    generated/CHANGELOG.md
 
 .. raw:: html
