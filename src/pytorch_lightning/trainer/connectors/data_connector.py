@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
+from lightning_utilities.core.rank_zero import WarningCache
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -41,7 +42,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 warning_cache = WarningCache()
 
