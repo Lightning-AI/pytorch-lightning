@@ -25,7 +25,7 @@ with open(os.path.join(_PATH_ROOT, "README.md")) as fp:
     readme = fp.read()
 
 setup(
-    name="lightning_utilities",
+    name="lightning-utilities",
     version=about.__version__,
     description=about.__docs__,
     author=about.__author__,
