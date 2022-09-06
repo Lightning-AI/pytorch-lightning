@@ -17,9 +17,9 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 
 import numpy as np
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE

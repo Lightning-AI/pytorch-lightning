@@ -16,11 +16,11 @@ import os
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment

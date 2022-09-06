@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from functools import partial, wraps
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch.utils.data import Dataset, DistributedSampler, get_worker_info, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.dataloader import (
     _BaseDataLoaderIter,
@@ -28,7 +29,6 @@ from torch.utils.data.dataloader import (
 from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
