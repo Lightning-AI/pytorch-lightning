@@ -164,7 +164,7 @@ jobs:
       run: python requirements/pytorch/check-avail-extras.py
 
     - name: Testing Warnings
-      if: ${{ (steps.skip.outputs.continue == '1') }}
+      if: ${{ (steps.skip.outputs.continue == '1') && ( matrix.python-version != "3.7" ) }} # the stacklevel can only be set on >=3.7
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
