@@ -47,9 +47,8 @@ def _get_rank(trainer: Optional["pl.Trainer"] = None) -> Optional[int]:
 new_rank_zero_only.rank = getattr(new_rank_zero_only, "rank", _get_rank() or 0)
 
 
-# TODO(lite): Does stacklevel need to be increased?
 @new_rank_zero_only
-def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+def rank_zero_debug(*args: Any, stacklevel: int = 5, **kwargs: Any) -> None:
     """Function used to log debug-level messages only on global rank 0."""
     new_rank_zero_deprecation(
         "`pytorch_lightning.utilities.rank_zero.rank_zero_debug` has been deprecated in v1.8.0 and will be"
@@ -58,9 +57,8 @@ def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
     new_rank_zero_debug(*args, stacklevel=stacklevel, **kwargs)
 
 
-# TODO(lite): Does stacklevel need to be increased?
 @new_rank_zero_only
-def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
+def rank_zero_info(*args: Any, stacklevel: int = 5, **kwargs: Any) -> None:
     """Function used to log info-level messages only on global rank 0."""
     new_rank_zero_deprecation(
         "`pytorch_lightning.utilities.rank_zero.rank_zero_info` has been deprecated in v1.8.0 and will be"
@@ -69,9 +67,8 @@ def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
     new_rank_zero_info(*args, stacklevel=stacklevel, **kwargs)
 
 
-# TODO(lite): Does stacklevel need to be increased?
 @new_rank_zero_only
-def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
+def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 5, **kwargs: Any) -> None:
     """Function used to log warn-level messages only on global rank 0."""
     new_rank_zero_deprecation(
         "`pytorch_lightning.utilities.rank_zero.rank_zero_warn` has been deprecated in v1.8.0 and will be"
