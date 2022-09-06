@@ -15,10 +15,21 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 
-from lightning_utilities.core.enums import StrEnum as LightningEnum
+from lightning_utilities.core.enums import StrEnum
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if TYPE_CHECKING:
+    from enum import Enum
+
+    # re-defined because `mypy` infers `StrEnum` as `Any`
+    class LightningEnum(StrEnum, Enum):
+        ...
+
+else:
+    LightningEnum = StrEnum
 
 
 class AMPType(LightningEnum):
