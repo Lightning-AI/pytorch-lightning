@@ -391,7 +391,7 @@ from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.cli import _JSONARGPARSE_AVAILABLE
+from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
