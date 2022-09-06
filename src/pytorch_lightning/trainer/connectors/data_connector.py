@@ -17,12 +17,12 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.rank_zero import WarningCache
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy

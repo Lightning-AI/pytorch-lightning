@@ -16,13 +16,14 @@ from functools import partial, wraps
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
-from lightning_lite.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
-from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -201,7 +202,7 @@ class _Metadata:
         return meta
 
 
-class _ResultMetric(Metric, DeviceDtypeModuleMixin):
+class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
