@@ -1,6 +1,5 @@
 import logging
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from tests_pytorch.helpers.runif import RunIf
 _HYDRA_WITH_RERUN = _RequirementAvailable("hydra-core >= 1.2")
 
 if _HYDRA_AVAILABLE:
+    from hydra.test_utils.test_utils import run_process
     from omegaconf import OmegaConf
 
 
@@ -26,27 +26,6 @@ def cleandir(tmp_path):
     yield tmp_path  # yields control to the test to be run
     os.chdir(old_dir)
     logging.shutdown()
-
-
-# function to run a command line argument
-def run_process(cmd):
-    try:
-        process = subprocess.Popen(
-            args=cmd,
-            shell=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        stdout, stderr = process.communicate()
-        if process.returncode != 0:
-            sys.stderr.write(f"Subprocess error:\n{stderr}\n")
-            sys.stderr.write(f"Subprocess stdout:\n{stdout}\n")
-            raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
-        return stdout, stderr
-    except Exception as e:
-        cmd = " ".join(cmd)
-        sys.stderr.write(f"Error executing:\n{cmd}\n")
-        raise e
 
 
 # Script to run from command line
@@ -82,7 +61,7 @@ if __name__ == "__main__":
 """
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
@@ -112,7 +91,7 @@ def test_ddp_with_hydra_runjob(subdir):
     assert len(logs) == 1
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("num_jobs", [1, 2])
@@ -150,7 +129,7 @@ hydra:
 """
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_WITH_RERUN, reason="Hydra with `rerun` not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("num_jobs", [1, 2])
