@@ -15,7 +15,6 @@ import pytest
 import torch
 
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.parametrize("should_return", [False, True])
