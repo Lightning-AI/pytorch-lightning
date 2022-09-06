@@ -149,6 +149,8 @@ class LightningFlow:
             elif isinstance(value, LightningWork):
                 self._works.add(name)
                 _set_child_name(self, value, name)
+                # Question: I do not understand, why are we removing it from the state
+                # and not doing that when value is a structure?
                 if name in self._state:
                     self._state.remove(name)
                 if self._backend:

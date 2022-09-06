@@ -19,11 +19,13 @@ if __name__ == "__main__":
     if not os.path.exists(str(hparams.filepath)):
         content = ["The file wasn't transferred"]
     else:
-        content = open(hparams.filepath).readlines()  # read the file received from SourceWork.
+        # read the file received from SourceWork
+        with open(hparams.filepath) as f:
+            content = f.readlines()
 
     @fastapi_service.get("/file")
     async def get_file_content(request: Request, response_class=HTMLResponse):
         lines = "\n".join(["<p>" + line + "</p>" for line in content])
-        return HTMLResponse(f"<html><head></head><body><ul>{lines}</ul></body></html>")
+        return response_class(f"<html><head></head><body><ul>{lines}</ul></body></html>")
 
     uvicorn.run(app=fastapi_service, host=hparams.host, port=hparams.port)

@@ -14,8 +14,8 @@ Are you already ðŸ¤¯ ? Stick with us, this is only the beginning. Lightning is ð
 
 
 class SourceFileWork(L.LightningWork):
-    def __init__(self, cloud_compute: L.CloudCompute = L.CloudCompute(), **kwargs):
-        super().__init__(parallel=True, **kwargs, cloud_compute=cloud_compute)
+    def __init__(self, **kwargs):
+        super().__init__(parallel=True, **kwargs)
         self.boring_path = None
 
     def run(self):
@@ -27,7 +27,6 @@ class SourceFileWork(L.LightningWork):
 
 class DestinationFileAndServeWork(TracerPythonScript):
     def run(self, path: Path):
-        assert path.exists()
         self.script_args += [f"--filepath={path}", f"--host={self.host}", f"--port={self.port}"]
         super().run()
 

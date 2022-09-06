@@ -42,7 +42,7 @@ class TracerPythonScript(LightningWork):
         code: Optional[Code] = None,
         **kwargs,
     ):
-        """The TracerPythonScript class enables to easily run a python script.
+        r"""The TracerPythonScript class enables to easily run a python script.
 
         When subclassing this class, you can configure your own :class:`~lightning_app.utilities.tracer.Tracer`
         by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method.
@@ -51,13 +51,13 @@ class TracerPythonScript(LightningWork):
 
         Arguments:
             script_path: Path of the python script to run.
-            script_path: The arguments to be passed to the script.
+            script_args: The arguments to be passed to the script.
             outputs: Collection of object names to collect after the script execution.
             env: Environment variables to be passed to the script.
-            kwargs: LightningWork Keyword arguments.
+            \**kwargs: LightningWork Keyword arguments.
 
         Raises:
-            FileNotFoundError: If the provided `script_path` doesn't exists.
+            FileNotFoundError: If the provided ``script_path`` doesn't exists.
 
         **How does it work?**
 
