@@ -23,12 +23,13 @@ from torch import Tensor
 
 from lightning_lite.utilities.types import _DEVICE
 
+_BLOCKING_DEVICE_TYPES = ("cpu", "mps")
+
 
 def _from_numpy(value: np.ndarray, device: _DEVICE) -> Tensor:
     return torch.from_numpy(value).to(device)  # type: ignore[arg-type]
 
 
-_BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], Tensor]]] = [
     # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
     (bool, partial(torch.tensor, dtype=torch.uint8)),
@@ -108,5 +109,5 @@ def convert_to_tensors(data: Any, device: _DEVICE) -> Any:
     def _move_to_device_and_make_contiguous(t: Tensor, device: _DEVICE) -> Tensor:
         return t.to(device).contiguous()  # type: ignore[arg-type]
 
-    # make sure existing tensors are in the correct device, also contiugous
-    return apply_to_collection(data, Tensor, _move_to_device_and_make_contiguous)
+    # make sure existing tensors are in the correct device, also contiguous
+    return apply_to_collection(data, Tensor, _move_to_device_and_make_contiguous, device=device)
