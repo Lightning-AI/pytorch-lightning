@@ -9,6 +9,7 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = _RequirementAvailable("colossalai")
 if _COLOSSALAI_AVAILABLE:
@@ -21,10 +22,13 @@ if _COLOSSALAI_AVAILABLE:
     from colossalai.nn.optimizer import CPUAdam, HybridAdam
     from colossalai.logging import get_dist_logger, disable_existing_loggers
     from colossalai.core import global_context as gpc
+    from colossalai.context import ParallelMode
 
 
 class ModelShardedContext(ColoInitContext):
     def _post_init_method(self, module: torch.nn.Module, *args, **kwargs):
+        if getattr(module, '_colossalai_module', False) is True:
+            return
         super()._post_init_method(module, *args, **kwargs)
         module._colossalai_module = True
 
@@ -147,13 +151,13 @@ class ColossalAIStrategy(DDPStrategy):
         self._logger = get_dist_logger()
 
     def setup_distributed(self):
-        disable_existing_loggers()
-        gpc.init_global_dist(rank=self.global_rank, world_size=self.world_size, backend='nccl',
-                             host=self.cluster_environment.main_address, port=self.cluster_environment.main_port)
-        gpc.set_device(self.local_rank)
+        if not gpc.is_initialized(ParallelMode.GLOBAL):
+            disable_existing_loggers()
+            gpc.init_global_dist(rank=self.global_rank, world_size=self.world_size, backend='nccl',
+                                 host=self.cluster_environment.main_address, port=self.cluster_environment.main_port)
+            gpc.set_device(self.local_rank)
         self.process_group = ProcessGroup()
 
-    @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
@@ -161,27 +165,35 @@ class ColossalAIStrategy(DDPStrategy):
 
         Returns: Model parallel context.
         """
-        with ModelShardedContext():
-            yield
+        return ModelShardedContext()
 
     def setup_precision_plugin(self) -> None:
         super().setup_precision_plugin()
-        assert len(self.optimizers) == 1, 'ColossalAIStrategy only supports single Optimizer now.'
-        optimizer = self.optimizers[0]
-        assert isinstance(optimizer, (CPUAdam, HybridAdam)), \
-            'ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam.'
-        if self.use_chunk:
-            chunk_size = self.chunk_size or ChunkManager.search_chunk_size(self.model, **self.chunk_size_search_kwargs)
+        is_training = self.lightning_module.trainer and self.lightning_module.trainer.training
+        if is_training:
+            assert len(self.optimizers) == 1, 'ColossalAIStrategy only supports single Optimizer now.'
+            optimizer = self.optimizers[0]
+            assert isinstance(optimizer, (CPUAdam, HybridAdam)), \
+                'ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam.'
+        pl_module = self.model
+        if not hasattr(pl_module, '_colossalai_zero'):
+            if self.use_chunk:
+                chunk_size = self.chunk_size or ChunkManager.search_chunk_size(
+                    self.model, **self.chunk_size_search_kwargs)
+            else:
+                chunk_size = None
+            chunk_manager = ChunkManager(chunk_size, self.process_group, self.enable_distributed_storage,
+                                         GeminiManager.get_default_device(self.placement_policy))
+            gemini_manager = GeminiManager(self.placement_policy, chunk_manager)
+            assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+            model = _LightningModuleWrapperBase(self.model)
+            self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
+            pl_module._colossalai_zero = [self.model]
         else:
-            chunk_size = None
-        chunk_manager = ChunkManager(chunk_size, self.process_group, self.enable_distributed_storage,
-                                     GeminiManager.get_default_device(self.placement_policy))
-        gemini_manager = GeminiManager(self.placement_policy, chunk_manager)
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        model = _LightningModuleWrapperBase(self.model)
-        self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
-        self.optimizers = [ZeroOptimizer(optimizer, self.model,
-                                         gpu_margin_mem_ratio=self.gpu_margin_mem_ratio, **self.amp_kwargs)]
+            self.model = pl_module._colossalai_zero[0]
+        if is_training:
+            self.optimizers = [ZeroOptimizer(optimizer, self.model,
+                                             gpu_margin_mem_ratio=self.gpu_margin_mem_ratio, **self.amp_kwargs)]
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
@@ -207,14 +219,14 @@ class ColossalAIStrategy(DDPStrategy):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         if isinstance(self.model, ZeroDDP):
-            return unwrap_lightning_module(self.model.module)
+            return self.model.module.lightning_module
         return super().lightning_module
 
     def teardown(self) -> None:
         gpc.destroy()
 
     def optimizer_step(self, optimizer, opt_idx: int, closure, model=None, **kwargs: Any) -> Any:
-        model = model or self.model
+        model = model or self.lightning_module
         return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def lightning_module_state_dict(self):
@@ -224,3 +236,18 @@ class ColossalAIStrategy(DDPStrategy):
     def handles_gradient_accumulation(self) -> bool:
         """Whether the plugin handles gradient accumulation internally."""
         return True
+
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
+
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        assert self.model is not None
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)
