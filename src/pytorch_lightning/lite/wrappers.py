@@ -19,10 +19,10 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
+from lightning_lite.utilities.apply_func import apply_to_collection, move_data_to_device
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import Strategy
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 
 
 def _do_nothing_closure() -> None:
@@ -64,7 +64,7 @@ class _LiteOptimizer:
         )
 
 
-class _LiteModule(DeviceDtypeModuleMixin):
+class _LiteModule(_DeviceDtypeModuleMixin):
     def __init__(
         self, forward_module: nn.Module, precision_plugin: PrecisionPlugin, original_module: Optional[nn.Module] = None
     ) -> None:

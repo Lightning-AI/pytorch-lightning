@@ -22,11 +22,11 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import torch.nn as nn
+from lightning_utilities.core.imports import RequirementCache
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -38,9 +38,9 @@ except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None  # type: ignore
 
-_WANDB_AVAILABLE = _RequirementAvailable("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _RequirementAvailable("wandb>=0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = _RequirementAvailable("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
@@ -223,7 +223,7 @@ class WandbLogger(Logger):
 
     Args:
         name: Display name for the run.
-        save_dir: Path where data is saved (wandb dir by default).
+        save_dir: Path where data is saved.
         offline: Run offline (data can be streamed later to wandb servers).
         id: Sets the version, mainly used to resume a previous run.
         version: Same as id.
@@ -255,7 +255,7 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: Optional[str] = None,
+        save_dir: str = ".",
         offline: bool = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
@@ -300,7 +300,7 @@ class WandbLogger(Logger):
             name=name,
             project=project,
             id=version or id,
-            dir=save_dir,
+            dir=save_dir or kwargs.pop("dir"),
             resume="allow",
             anonymous=("allow" if anonymous else None),
         )
