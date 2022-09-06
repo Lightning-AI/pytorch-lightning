@@ -29,29 +29,29 @@ log = logging.getLogger(__name__)
 
 
 def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
-    """Function to gather all tensors from several ddp processes onto a list that is broadcasted to all processes.
+    """Function to gather all tensors from several DDP processes onto a list that is broadcasted to all processes.
 
     Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
     tensors are padded, gathered and then trimmed to secure equal workload for all processes.
 
     Args:
-        result: the value to sync
-        group: the process group to gather results from. Defaults to all processes (world)
+        result: The value to sync
+        group: The process group to gather results from. Defaults to all processes (world)
 
     Return:
-        gathered_result: list with size equal to the process group where
+        gathered_result: List with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
     """
     if group is None:
         group = torch.distributed.group.WORLD
 
-    # convert tensors to contiguous format
+    # Convert tensors to contiguous format
     result = result.contiguous()
 
     world_size = torch.distributed.get_world_size(group)
     torch.distributed.barrier(group=group)
 
-    # if the tensor is scalar, things are easy
+    # If the tensor is scalar, things are easy
     if result.ndim == 0:
         return _simple_gather_all_tensors(result, group, world_size)
 
@@ -97,9 +97,9 @@ def sync_ddp_if_available(
     """Function to reduce a tensor across worker processes during distributed training.
 
     Args:
-        result: the value to sync and reduce (typically tensor or number)
-        group: the process group to gather results from. Defaults to all processes (world)
-        reduce_op: the reduction operation. Defaults to sum.
+        result: The value to sync and reduce (typically tensor or number)
+        group: The process group to gather results from. Defaults to all processes (world)
+        reduce_op: The reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
     Return:
@@ -111,12 +111,12 @@ def sync_ddp_if_available(
 
 
 def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
-    """Function to reduce the tensors from several ddp processes to one main process.
+    """Function to reduce the tensors from several DDP processes to one main process.
 
     Args:
-        result: the value to sync and reduce (typically tensor or number)
-        group: the process group to gather results from. Defaults to all processes (world)
-        reduce_op: the reduction operation. Defaults to sum.
+        result: The value to sync and reduce (typically tensor or number)
+        group: The process group to gather results from. Defaults to all processes (world)
+        reduce_op: The reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
     Return:
@@ -145,7 +145,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
                 new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
                 result = result.float()
 
-    # sync all processes before reduction
+    # Sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
 
@@ -186,9 +186,9 @@ def all_gather_ddp_if_available(
     """Function to gather a tensor from several distributed processes.
 
     Args:
-        tensor: tensor of shape (batch, ...)
-        group: the process group to gather results from. Defaults to all processes (world)
-        sync_grads: flag that allows users to synchronize gradients for all_gather op
+        tensor: Tensor of shape (batch, ...)
+        group: The process group to gather results from. Defaults to all processes (world)
+        sync_grads: Flag that allows users to synchronize gradients for all_gather op
 
     Return:
         A tensor of shape (world_size, batch, ...)
@@ -215,10 +215,10 @@ def init_dist_connection(
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance
-        torch_distributed_backend: backend to use (includes `nccl` and `gloo`)
-        global_rank: rank of the current process
-        world_size: number of processes in the group
-        kwargs: kwargs for ``init_process_group``
+        torch_distributed_backend: Backend to use (includes `nccl` and `gloo`)
+        global_rank: Rank of the current process
+        world_size: Number of processes in the group
+        kwargs: Kwargs for ``init_process_group``
 
     Raises:
         RuntimeError:
@@ -236,7 +236,7 @@ def init_dist_connection(
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
-    # on rank=0 let everyone know training is starting
+    # On rank=0 let everyone know training is starting
     new_rank_zero_info(
         f"{'-' * 100}\n"
         f"distributed_backend={torch_distributed_backend}\n"

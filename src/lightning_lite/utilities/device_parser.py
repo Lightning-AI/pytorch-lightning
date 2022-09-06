@@ -75,7 +75,7 @@ def parse_gpu_ids(
     if gpus is None or (isinstance(gpus, int) and gpus == 0) or str(gpus).strip() in ("0", "[]"):
         return None
 
-    # We know user requested GPUs therefore if some of the
+    # We know the user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
     gpus = _normalize_parse_gpu_string_input(gpus)
     gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
@@ -87,10 +87,10 @@ def parse_gpu_ids(
         and len(gpus) != 1
         and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)) == 1
     ):
-        # omit sanity check on torchelastic as by default shows one visible GPU per process
+        # Omit sanity check on torchelastic because by default it shows one visible GPU per process
         return gpus
 
-    # Check that gpus are unique. Duplicate gpus are not supported by the backend.
+    # Check that GPUs are unique. Duplicate GPUs are not supported by the backend.
     _check_unique(gpus)
 
     return _sanitize_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps)
@@ -102,13 +102,13 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
     :class:`~pytorch_lightning.trainer.Trainer`.
 
     Args:
-        tpu_cores: An int 1 or string '1' indicate that 1 core with multi-processing should be used
-            An int 8 or string '8' indicate that all 8 cores with multi-processing should be used
-            A list of int or a string containing list of comma separated integer
-            indicates specific TPU core to use.
+        tpu_cores: An int of 1 or string '1' indicates that 1 core with multi-processing should be used
+            An int 8 or string '8' indicates that all 8 cores with multi-processing should be used
+            A list of ints or a strings containing a list of comma separated integers
+            indicates the specific TPU core to use.
 
     Returns:
-        a list of tpu_cores to be used or ``None`` if no TPU cores were requested
+        A list of tpu_cores to be used or ``None`` if no TPU cores were requested
 
     Raises:
         MisconfigurationException:
@@ -133,7 +133,7 @@ def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
         cpu_cores: An int > 0.
 
     Returns:
-        an int representing the number of processes
+        An int representing the number of processes
 
     Raises:
         MisconfigurationException:
@@ -163,10 +163,10 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
     the GPUs is not available.
 
     Args:
-        gpus: list of ints corresponding to GPU indices
+        gpus: List of ints corresponding to GPU indices
 
     Returns:
-        unmodified gpus variable
+        Unmodified gpus variable
 
     Raises:
         MisconfigurationException:
@@ -202,7 +202,7 @@ def _normalize_parse_gpu_input_to_list(
 def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False) -> List[int]:
     """
     Returns:
-        a list of all available gpus
+        A list of all available GPUs
     """
     cuda_gpus = _get_all_available_cuda_gpus() if include_cuda else []
     mps_gpus = _get_all_available_mps_gpus() if include_mps else []
@@ -212,7 +212,7 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
 def _get_all_available_mps_gpus() -> List[int]:
     """
     Returns:
-        a list of all available MPS gpus
+        A list of all available MPS GPUs
     """
     # lazy import to avoid circular dependencies
     # from lightning_lite.accelerators.mps import _MPS_AVAILABLE
@@ -223,7 +223,7 @@ def _get_all_available_mps_gpus() -> List[int]:
 def _get_all_available_cuda_gpus() -> List[int]:
     """
     Returns:
-         a list of all available CUDA gpus
+         A list of all available CUDA GPUs
     """
     return list(range(num_cuda_devices()))
 
@@ -232,7 +232,7 @@ def _check_unique(device_ids: List[int]) -> None:
     """Checks that the device_ids are unique.
 
     Args:
-        device_ids: list of ints corresponding to gpus indices
+        device_ids: List of ints corresponding to GPUs indices
 
     Raises:
         MisconfigurationException:
@@ -243,7 +243,7 @@ def _check_unique(device_ids: List[int]) -> None:
 
 
 def _check_data_type(device_ids: Any) -> None:
-    """Checks that the device_ids argument is one of None, int, string, or sequence of integers.
+    """Checks that the device_ids argument is one of the following: None, int, string, or sequence of integers.
 
     Args:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
@@ -289,8 +289,8 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
 def num_cuda_devices() -> int:
     """Returns the number of GPUs available.
 
-    Unlike :func:`torch.cuda.device_count`, this function will do its best not to create a CUDA context for fork
-    support, if the platform allows it.
+    Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
+    if the platform allows it.
     """
     if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.device_count()
@@ -301,8 +301,8 @@ def num_cuda_devices() -> int:
 def is_cuda_available() -> bool:
     """Returns a bool indicating if CUDA is currently available.
 
-    Unlike :func:`torch.cuda.is_available`, this function will do its best not to create a CUDA context for fork
-    support, if the platform allows it.
+    Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
+    if the platform allows it.
     """
     if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
         return torch.cuda.is_available()
