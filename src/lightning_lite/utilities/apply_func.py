@@ -25,7 +25,7 @@ from lightning_lite.utilities.types import _DEVICE
 
 
 def _from_numpy(value: np.ndarray, device: _DEVICE) -> Tensor:
-    return torch.from_numpy(value).to(device)
+    return torch.from_numpy(value).to(device)  # type: ignore[arg-type]
 
 
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
