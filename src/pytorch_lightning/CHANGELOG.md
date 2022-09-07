@@ -24,6 +24,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for auto wrapping for `DDPFullyShardedStrategy` ([#14383](https://github.com/Lightning-AI/lightning/issues/14383))
 
 
+- Integrate the `lightning_utilities` package (
+  [#14475](https://github.com/Lightning-AI/lightning/issues/14475),
+  [#14537](https://github.com/Lightning-AI/lightning/issues/14537),
+  [#14556](https://github.com/Lightning-AI/lightning/issues/14556),
+  [#14558](https://github.com/Lightning-AI/lightning/issues/14558),
+  [#14575](https://github.com/Lightning-AI/lightning/issues/14575))
+
 
 ### Changed
 
@@ -75,19 +82,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the `on_colab_kaggle` function ([#14247](https://github.com/Lightning-AI/lightning/pull/14247))
 
 
-- Deprecated the `pl.core.mixins.DeviceDtypeModuleMixin` in favor of `lightning_lite.utilities.DeviceDtypeModuleMixin` ([#14511](https://github.com/Lightning-AI/lightning/pull/14511))
+- Deprecated the internal `pl.core.mixins.DeviceDtypeModuleMixin` class ([#14511](https://github.com/Lightning-AI/lightning/pull/14511), [#14548](https://github.com/Lightning-AI/lightning/pull/14548))
 
 
 - Deprecated all functions in `pytorch_lightning.utilities.xla_device` in favor of `lightning_lite.utilities.xla_device` ([#14514](https://github.com/Lightning-AI/lightning/pull/14514))
 
 
-
 - Deprecated all functions in `pytorch_lightning.utilities.cloud_io` in favor of `lightning_lite.utilities.cloud_io` ([#14515](https://github.com/Lightning-AI/lightning/pull/14515))
 
 
-
-- Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_lite.utilities.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516))
-
+- Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_utilities.core.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516), [#14537](https://github.com/Lightning-AI/lightning/pull/14537))
 
 
 ### Removed
@@ -173,6 +177,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Reset epoch progress with batch size scaler ([#13846](https://github.com/Lightning-AI/lightning/pull/13846))
 - Fixed restoring the trainer after using `lr_find()` so that the correct LR schedule is used for the actual training ([#14113](https://github.com/Lightning-AI/lightning/pull/14113))
 - Fixed incorrect values after transferring data to an MPS device ([#14368](https://github.com/Lightning-AI/lightning/pull/14368))
+
+
+- Fixed compatibility when `torch.distributed` is not available ([#14454](https://github.com/Lightning-AI/lightning/pull/14454))
 
 
 ## [1.7.3] - 2022-08-25

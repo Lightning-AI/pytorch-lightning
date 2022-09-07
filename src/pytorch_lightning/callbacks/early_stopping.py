@@ -23,12 +23,14 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch
+from lightning_utilities.core.rank_zero import rank_prefixed_message
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.rank_zero import _get_rank
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import _get_rank, _rank_prefixed_message, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -262,6 +264,6 @@ class EarlyStopping(Callback):
         rank = _get_rank(strategy=(trainer.strategy if trainer is not None else None))
         if trainer is not None and trainer.world_size <= 1:
             rank = None
-        message = _rank_prefixed_message(message, rank)
+        message = rank_prefixed_message(message, rank)
         if rank is None or not log_rank_zero_only or rank == 0:
             log.info(message)

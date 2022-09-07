@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 import os
 from collections import namedtuple
 from unittest import mock
@@ -22,18 +21,16 @@ import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.utilities import device_parser
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
-PL_VERSION_LT_1_5 = _compare_version("pytorch_lightning", operator.lt, "1.5")
 PRETEND_N_OF_GPUS = 16
 
 
@@ -184,8 +181,8 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
 def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
