@@ -16,11 +16,12 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
+from lightning_utilities.core.imports import RequirementCache
 from lightning_lite.plugins.precision.precision import PrecisionPlugin
 from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.imports import _APEX_AVAILABLE, _RequirementAvailable
+from lightning_lite.utilities.imports import _APEX_AVAILABLE
 
-_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
