@@ -60,6 +60,38 @@ class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
+def test_gradient_clip_algorithm_error(tmpdir):
+    model = ModelParallelBoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        strategy=ColossalAIStrategy(),
+        devices=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        gradient_clip_val=1.0,
+        gradient_clip_algorithm="value",
+    )
+    with pytest.raises(MisconfigurationException, match="clip_grad_by_value is not supported by `Colossalai`"):
+        trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
+def test_gradient_accumulation_error(tmpdir):
+    model = ModelParallelBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        devices=1,
+        accumulate_grad_batches={0: 1, 4: 2, 8: 3},
+        strategy=ColossalAIStrategy(),
+    )
+
+    with pytest.raises(MisconfigurationException):
+        trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
 def test_colossalai_optimizer(tmpdir):
     model = BoringModel()
     trainer = Trainer(
@@ -72,7 +104,8 @@ def test_colossalai_optimizer(tmpdir):
     )
     with pytest.raises(
         AssertionError,
-        match="ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and colossalai.nn.optimizer.HybridAdam",
+        match="ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and "
+        "colossalai.nn.optimizer.HybridAdam",
     ):
         trainer.fit(model)
 

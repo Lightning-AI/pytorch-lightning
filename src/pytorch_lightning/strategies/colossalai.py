@@ -214,6 +214,17 @@ class ColossalAIStrategy(DDPStrategy):
         self.setup_precision_plugin()
         self.model_to_device()
 
+        if trainer.accumulate_grad_batches > 1:
+            raise MisconfigurationException(
+                "Colossalai does not support gradient accumulation now. " "please set `accumulate_grad_batches` to 1."
+            )
+
+        accumulation_scheduler = trainer.accumulation_scheduler
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "Colossalai currently does not support different `accumulate_grad_batches` at different epochs."
+            )
+
     @property
     def root_device(self) -> torch.device:
         if self.parallel_devices is not None:
