@@ -29,7 +29,7 @@ jobs:
     - name: Set oldest dependencies
       if: matrix.requires == 'oldest'
       run: |
-        pip install -e .
+        pip install -e '.[dev]'
         python -m lightning_utilities.dev requirements set-oldest
 
     - uses: ./.github/actions/cache

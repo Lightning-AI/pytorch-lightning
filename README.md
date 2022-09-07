@@ -56,7 +56,7 @@ jobs:
         # requires: latest
 ```
 
-## 3. CLI
+## 3. CLI `lightning_utilities.dev`
 
 The package provides common CLI commands.
 
@@ -71,7 +71,7 @@ pip install https://github.com/Lightning-AI/utilities/archive/refs/heads/main.zi
 From pypi:
 
 ```bash
-pip install lightning_utilities
+pip install lightning_utilities[dev]
 ```
 
 </details>
@@ -102,3 +102,27 @@ pytest-timeout
 ```
 
 </details>
+
+## 4. General Python utilities `lightning_utilities.core`
+
+<details>
+  <summary>Installation</summary>
+
+From pypi:
+
+```bash
+pip install lightning_utilities
+```
+
+</details>
+
+__Usage:__
+
+Example for optional imports:
+
+```python
+from lightning_utilities.core.imports import module_available
+
+if module_available("some_package.something"):
+    from some_package import something
+```
