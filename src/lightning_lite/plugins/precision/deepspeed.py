@@ -79,6 +79,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         **kwargs: Any,
     ) -> Any:
         if isinstance(optimizer, LBFGS):
-            raise TypeError(f"DeepSpeed and the LBFGS optimizer are not compatible.")
+            raise TypeError("DeepSpeed and the LBFGS optimizer are not compatible.")
         # DeepSpeed handles the optimizer step internally
         return model.step(**kwargs)
