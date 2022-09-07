@@ -23,6 +23,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
 from lightning_utilities.core.inheritance import get_all_subclasses
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
@@ -42,7 +43,6 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
-from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 

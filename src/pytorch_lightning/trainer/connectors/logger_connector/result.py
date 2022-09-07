@@ -17,6 +17,7 @@ from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, 
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
@@ -30,7 +31,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 _IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
