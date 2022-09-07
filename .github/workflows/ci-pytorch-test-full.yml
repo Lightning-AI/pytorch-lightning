@@ -163,13 +163,6 @@ jobs:
       if: ${{ (steps.skip.outputs.continue == '1') }}
       run: python requirements/pytorch/check-avail-extras.py
 
-    - name: Testing Warnings
-      # the stacklevel can only be set on >=3.7
-      if: ${{ (steps.skip.outputs.continue == '1') && ( matrix.python-version != '3.7' ) }}
-      working-directory: tests/tests_pytorch
-      # needs to run outside of `pytest`
-      run: python utilities/test_warnings.py
-
     - name: Testing PyTorch
       if: ${{ (steps.skip.outputs.continue == '1') }}
       working-directory: tests/tests_pytorch

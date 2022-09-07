@@ -20,7 +20,7 @@ from io import StringIO
 
 from lightning_utilities.core.rank_zero import _warn, WarningCache
 
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from lightning_lite.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 if __name__ == "__main__":
     stderr = StringIO()
