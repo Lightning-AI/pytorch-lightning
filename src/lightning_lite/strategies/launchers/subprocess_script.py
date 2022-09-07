@@ -19,11 +19,11 @@ from typing import Any, Callable, Optional
 
 import __main__
 import numpy as np
+from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.utilities.imports import _RequirementAvailable
 
-_HYDRA_AVAILABLE = _RequirementAvailable("hydra")
+_HYDRA_AVAILABLE = RequirementCache("hydra")
 
 
 class _SubprocessScriptLauncher(_Launcher):
