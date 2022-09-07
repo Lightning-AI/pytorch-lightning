@@ -35,7 +35,6 @@ class CUDAAccelerator(Accelerator):
         if device.type != "cuda":
             raise ValueError(f"Device should be CUDA, got {device} instead.")
         torch.cuda.set_device(device)
-        torch.cuda.empty_cache()
 
     def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
