@@ -21,6 +21,8 @@ from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Tuple, Type, Union
 
 import torch
+from lightning_utilities.core.apply_func import is_dataclass_instance
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
@@ -33,7 +35,6 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
@@ -42,7 +43,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.meta import _get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
-from pytorch_lightning.utilities.warnings import WarningCache
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
@@ -73,7 +73,7 @@ def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
 
         for sample in batch:
             yield from _extract_batch_size(sample)
-    elif _is_dataclass_instance(batch):
+    elif is_dataclass_instance(batch):
         for field in fields(batch):
             yield from _extract_batch_size(getattr(batch, field.name))
     else:

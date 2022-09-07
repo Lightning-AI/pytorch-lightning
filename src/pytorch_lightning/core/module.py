@@ -25,6 +25,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -32,9 +34,9 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection, convert_to_tensors
+from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -55,7 +57,6 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerTypeUnion,
     STEP_OUTPUT,
 )
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[L
 
 
 class LightningModule(
-    DeviceDtypeModuleMixin,
+    _DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
     ModelHooks,
@@ -89,7 +90,7 @@ class LightningModule(
             "use_amp",
             "trainer",
         ]
-        + DeviceDtypeModuleMixin.__jit_unused_properties__
+        + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
 
