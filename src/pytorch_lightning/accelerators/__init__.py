@@ -10,7 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_lite.accelerators.registry import _AcceleratorRegistry, call_register_accelerators  # noqa: F401
+from lightning_lite.accelerators.registry import _AcceleratorRegistry, call_register_accelerators
 from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
 from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator  # noqa: F401
