@@ -99,23 +99,21 @@ jobs:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
       run: |
+        # install PyTorch
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
+        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
+        pip install torch==${{ matrix.pytorch-version }} $flag -f ${url}
+        # adjust PyTorch versions in requirements files according to the installed PyTorch version
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
+        # install PL and optional dependencies for testing
+        pip install -e . -r requirements/pytorch/test.txt -r ./requirements/pytorch/extra.txt -f ${url}
         pip list
       shell: bash
 
     # - name: DocTests
     #   working-directory: ./src
     #   run: pytest pytorch_lightning --cov=pytorch_lightning
-
-    - name: Install extra dependencies
-      run: |
-        # adjust versions according installed Torch version
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install -r ./requirements/pytorch/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip list
-      shell: bash
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
