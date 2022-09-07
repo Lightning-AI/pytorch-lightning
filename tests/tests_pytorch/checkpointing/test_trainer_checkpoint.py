@@ -19,11 +19,11 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
+from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 
 
 def test_finetuning_with_ckpt_path(tmpdir):

@@ -14,7 +14,5 @@
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
-from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 
-__all__ = ["AsyncCheckpointIO", "CheckpointIO", "HPUCheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]
+__all__ = ["CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]
