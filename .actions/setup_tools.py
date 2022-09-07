@@ -178,14 +178,18 @@ def replace_block_with_imports(lines: List[str], import_path: str, kword: str = 
     """
     body, tracking, skip_offset = [], False, 0
     for i, ln in enumerate(lines):
-        offset = len(ln) - len(ln.lstrip())
-
         # support for defining a class with this condition
-        if ln.startswith("if TYPE_CHECKING") or ln.startswith("if typing.TYPE_CHECKING"):
+        conditional_class_definitions = ("if TYPE_CHECKING", "if typing.TYPE_CHECKING", "if torch.", "if _TORCH_")
+        if (
+            any(ln.startswith(pattern) for pattern in conditional_class_definitions)
+            # avoid bug in CI for the <1.7 meta code
+            and "pytorch_lightning.utilities.meta" not in import_path
+        ):
             # dedent the next line
             lines[i + 1] = lines[i + 1].lstrip()
             continue
 
+        offset = len(ln) - len(ln.lstrip())
         # in case of mating the class args are multi-line
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]"):
             tracking = False
