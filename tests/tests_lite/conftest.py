@@ -76,6 +76,13 @@ def teardown_process_group():
         torch.distributed.destroy_process_group()
 
 
+@pytest.fixture(scope="function", autouse=True)
+def reset_deterministic_algorithm():
+    """Ensures that torch determinism settings are reset before the next test runs."""
+    yield
+    torch.use_deterministic_algorithms(False)
+
+
 @pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.

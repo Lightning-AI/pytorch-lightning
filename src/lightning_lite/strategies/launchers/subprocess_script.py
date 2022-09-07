@@ -19,13 +19,11 @@ from typing import Any, Callable, Optional
 
 import __main__
 import numpy as np
-from lightning_utilities.core.imports import RequirementCache
 
-import pytorch_lightning as pl
 from lightning_lite.strategies.launchers.base import _Launcher
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.utilities.imports import _RequirementAvailable
 
-_HYDRA_AVAILABLE = RequirementCache("hydra")
+_HYDRA_AVAILABLE = _RequirementAvailable("hydra")
 
 
 class _SubprocessScriptLauncher(_Launcher):
@@ -70,20 +68,20 @@ class _SubprocessScriptLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         return False
 
-    def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
+    # TODO(lite): Update type annotation once ClusterEnvironment has moved to Lite
+    def __init__(self, cluster_environment: "ClusterEnvironment", num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
 
-    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Creates new processes, then calls the given function.
 
         Arguments:
             function: A callback function to execute after all processes have been created.
                 It is up to the implementation of this function to synchronize the processes, e.g., with barriers.
             *args: Optional positional arguments to be passed to the given function.
-            trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
         if not self.cluster_environment.creates_processes_externally:
