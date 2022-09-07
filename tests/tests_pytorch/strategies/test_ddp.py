@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 from unittest import mock
 from unittest.mock import patch
 
@@ -94,7 +93,7 @@ def test_ddp_torch_dist_is_available_in_setup(
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
-        def setup(self, stage: Optional[str] = None) -> None:
+        def setup(self, stage: str) -> None:
             assert torch.distributed.is_initialized()
             raise SystemExit()
 
