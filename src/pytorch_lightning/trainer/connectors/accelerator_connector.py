@@ -20,14 +20,22 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
-from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
+from lightning_lite.utilities import (
+    _StrategyType,
+    AMPType,
+    device_parser,
+    LightningEnum,
+    rank_zero_deprecation,
+    rank_zero_info,
+    rank_zero_warn,
+)
+from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,

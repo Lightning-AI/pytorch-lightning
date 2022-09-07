@@ -777,9 +777,7 @@ def test_gpu_accelerator_backend_choice_cuda(_):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-# TODO(lite): remove skip once MPS utils have moved
-@pytest.mark.skip(reason="Utils in Lite rely on MPS accelerator file, but refactor is not yet finished")
-@mock.patch("pytorch_lightning.accelerators.mps._MPS_AVAILABLE", return_value=True)
+@mock.patch("lightning_lite.accelerators.mps._MPS_AVAILABLE", return_value=True)
 @mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
 def test_gpu_accelerator_backend_choice_mps(*_):
     trainer = Trainer(accelerator="gpu")

@@ -16,12 +16,9 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.accelerators.mps import get_device_stats as new_get_device_stats
-from lightning_lite.utilities import device_parser, rank_zero_deprecation
-from lightning_lite.utilities.types import _DEVICE
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.imports import _PSUTIL_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
 
 # For using the `MPSAccelerator`, user's machine should have `torch>=1.12`, Metal programming framework and
 # the ARM-based Apple Silicon processors.
@@ -36,13 +33,13 @@ class MPSAccelerator(Accelerator):
     def init_device(self, device: torch.device) -> None:
         """
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If the selected device is not MPS.
         """
         if device.type != "mps":
-            raise MisconfigurationException(f"Device should be MPS, got {device} instead.")
+            raise ValueError(f"Device should be MPS, got {device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
         """Get M1 (cpu + gpu) stats from ``psutil`` package."""
         return get_device_stats()
 
@@ -82,9 +79,22 @@ class MPSAccelerator(Accelerator):
         )
 
 
+# device metrics
+_VM_PERCENT = "M1_vm_percent"
+_PERCENT = "M1_percent"
+_SWAP_PERCENT = "M1_swap_percent"
+
+
 def get_device_stats() -> Dict[str, float]:
-    rank_zero_deprecation(
-        "`pytorch_lightning.accelerators.mps.get_device_stats` has been deprecated in v1.8.0 and will be removed in"
-        " v1.10.0. Please use `lightning_lite.accelerators.mps.get_device_stats` instead."
-    )
-    return new_get_device_stats()
+    if not _PSUTIL_AVAILABLE:
+        raise ModuleNotFoundError(
+            "Fetching M1 device stats requires `psutil` to be installed."
+            " Install it by running `pip install -U psutil`."
+        )
+    import psutil
+
+    return {
+        _VM_PERCENT: psutil.virtual_memory().percent,
+        _PERCENT: psutil.cpu_percent(),
+        _SWAP_PERCENT: psutil.swap_memory().percent,
+    }

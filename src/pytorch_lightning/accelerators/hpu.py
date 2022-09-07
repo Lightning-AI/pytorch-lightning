@@ -29,15 +29,14 @@ if _HPU_AVAILABLE:
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def init_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not HPU.
         """
-        super().setup_environment(root_device)
-        if root_device.type != "hpu":
-            raise MisconfigurationException(f"Device should be HPU, got {root_device} instead.")
+        if device.type != "hpu":
+            raise MisconfigurationException(f"Device should be HPU, got {device} instead.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """Returns a map of the following metrics with their values:
@@ -58,6 +57,9 @@ class HPUAccelerator(Accelerator):
         except (AttributeError, NameError):
             rank_zero_debug("HPU `get_device_stats` failed")
             return {}
+
+    def teardown(self) -> None:
+        pass
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[int]:

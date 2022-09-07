@@ -16,7 +16,8 @@ from unittest import mock
 import pytest
 import torch
 
-import lightning_lite.utilities.device_parser
+import lightning_lite.utilities.device_parser as device_parser
+from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.skipif(
@@ -27,5 +28,12 @@ import lightning_lite.utilities.device_parser
 def test_num_cuda_devices_without_forking(*_):
     """This merely tests that on platforms without fork support our helper functions fall back to the default
     implementation for determining cuda availability."""
-    assert lightning_lite.utilities.device_parser.is_cuda_available()
-    assert lightning_lite.utilities.device_parser.num_cuda_devices() == 2
+    assert device_parser.is_cuda_available()
+    assert device_parser.num_cuda_devices() == 2
+
+
+@pytest.mark.parametrize("devices", ([3], -1))
+def test_invalid_devices_with_cpu_accelerator(devices):
+    """Test invalid device flag raises MisconfigurationException."""
+    with pytest.raises(MisconfigurationException, match="should be an int > 0"):
+        device_parser.parse_cpu_cores(devices)

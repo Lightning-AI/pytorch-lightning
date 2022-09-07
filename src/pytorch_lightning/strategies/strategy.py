@@ -128,7 +128,7 @@ class Strategy(ABC):
         environment before setup is complete.
         """
         assert self.accelerator is not None
-        self.accelerator.setup_environment(self.root_device)
+        self.accelerator.init_device(self.root_device)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
