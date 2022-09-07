@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, 
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
+from lightning_utilities.core.inheritance import get_all_subclasses
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.data import (
@@ -40,7 +41,6 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.meta import _get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 
@@ -549,7 +549,7 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
 
     It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.
     """
-    classes = _get_all_subclasses(base_cls) | {base_cls}
+    classes = get_all_subclasses(base_cls) | {base_cls}
     for cls in classes:
         # Check that __init__ belongs to the class
         # https://stackoverflow.com/a/5253424
