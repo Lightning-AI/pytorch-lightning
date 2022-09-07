@@ -21,7 +21,7 @@ class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
 
     precision: str = "bf16"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         os.environ["XLA_USE_BF16"] = "1"
 
