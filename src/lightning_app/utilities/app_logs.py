@@ -99,8 +99,8 @@ def _app_logs_reader(
             # if user_log_start in log_event.message:
             #     start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
 
-            if start_timestamp and log_event.timestamp > start_timestamp:
-                yield log_event
+            # if start_timestamp and log_event.timestamp > start_timestamp:
+            yield log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
