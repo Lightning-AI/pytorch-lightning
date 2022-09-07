@@ -17,7 +17,7 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators.cpu import CPUAccelerator, get_cpu_stats
+from lightning_lite.accelerators.cpu import CPUAccelerator
 
 
 def test_auto_device_count():
