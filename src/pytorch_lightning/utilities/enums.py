@@ -15,52 +15,32 @@
 from __future__ import annotations
 
 import os
-from enum import Enum
+from typing import TYPE_CHECKING
+
+from lightning_utilities.core.enums import StrEnum
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+if TYPE_CHECKING:
+    from enum import Enum
 
-class LightningEnum(str, Enum):
-    """Type of any enumerator with allowed comparison to string invariant to cases."""
+    # re-defined because `mypy` infers `StrEnum` as `Any`
+    class LightningEnum(StrEnum, Enum):
+        ...
 
-    @classmethod
-    def from_str(cls, value: str) -> LightningEnum | None:
-        statuses = cls.__members__.keys()
-        for st in statuses:
-            if st.lower() == value.lower():
-                return cls[st]
-        return None
-
-    def __eq__(self, other: object) -> bool:
-        other = other.value if isinstance(other, Enum) else str(other)
-        return self.value.lower() == other.lower()
-
-    def __hash__(self) -> int:
-        # re-enable hashtable so it can be used as a dict key or in a set
-        # example: set(LightningEnum)
-        return hash(self.value.lower())
+else:
+    LightningEnum = StrEnum
 
 
 class AMPType(LightningEnum):
-    """Type of Automatic Mixed Precission used for training.
-
-    >>> # you can match the type with string
-    >>> AMPType.APEX == 'apex'
-    True
-    """
+    """Type of Automatic Mixed Precission used for training."""
 
     APEX = "apex"
     NATIVE = "native"
 
 
 class PrecisionType(LightningEnum):
-    """Type of precision used.
-
-    >>> PrecisionType.HALF == 16
-    True
-    >>> PrecisionType.HALF in (16, "16")
-    True
-    """
+    """Type of precision used."""
 
     HALF = "16"
     FLOAT = "32"
@@ -106,15 +86,7 @@ class AutoRestartBatchKeys(LightningEnum):
 
 
 class _StrategyType(LightningEnum):
-    """Define type of training strategy.
-
-    >>> # you can match the type with string
-    >>> _StrategyType.DDP == 'DDP'
-    True
-    >>> # which is case invariant
-    >>> _StrategyType.DP in ('dp', )
-    True
-    """
+    """Define type of training strategy."""
 
     DP = "dp"
     DDP = "ddp"
@@ -144,17 +116,7 @@ class _StrategyType(LightningEnum):
 
 
 class _AcceleratorType(LightningEnum):
-    """Define Accelerator type by its nature.
-
-    >>> _AcceleratorType.CPU == _AcceleratorType.from_str('cpu')
-    True
-    >>> # you can match the type with string
-    >>> _AcceleratorType.CUDA == 'CUDA'
-    True
-    >>> # which is case invariant
-    >>> _AcceleratorType.TPU in ('tpu', 'CPU')
-    True
-    """
+    """Define Accelerator type by its nature."""
 
     CPU = "CPU"
     CUDA = "CUDA"

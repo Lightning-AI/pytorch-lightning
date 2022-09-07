@@ -11,14 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Warning-related utilities."""
-import warnings
+from typing import Union
 
-from pytorch_lightning.utilities.rank_zero import LightningDeprecationWarning
+import torch
 
-# enable our warnings
-warnings.simplefilter("default", category=LightningDeprecationWarning)
-
-
-class PossibleUserWarning(UserWarning):
-    """Warnings that could be false positives."""
+_DEVICE = Union[torch.device, str, int]

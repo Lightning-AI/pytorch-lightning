@@ -177,8 +177,15 @@ def replace_block_with_imports(lines: List[str], import_path: str, kword: str = 
     >>> lines = replace_block_with_imports(lines, import_path, "def")
     """
     body, tracking, skip_offset = [], False, 0
-    for ln in lines:
+    for i, ln in enumerate(lines):
         offset = len(ln) - len(ln.lstrip())
+
+        # support for defining a class with this condition
+        if ln.startswith("if TYPE_CHECKING") or ln.startswith("if typing.TYPE_CHECKING"):
+            # dedent the next line
+            lines[i + 1] = lines[i + 1].lstrip()
+            continue
+
         # in case of mating the class args are multi-line
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]"):
             tracking = False

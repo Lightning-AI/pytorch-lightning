@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Callable, Optional, Union
 
+from lightning_utilities.core.rank_zero import WarningCache
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
@@ -22,7 +23,6 @@ from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 

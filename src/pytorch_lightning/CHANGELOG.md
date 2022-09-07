@@ -24,8 +24,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for auto wrapping for `DDPFullyShardedStrategy` ([#14383](https://github.com/Lightning-AI/lightning/issues/14383))
 
 
-- Integrate the `lightning_utilities` package ([#14475](https://github.com/Lightning-AI/lightning/issues/14475))
-
+- Integrate the `lightning_utilities` package (
+  [#14475](https://github.com/Lightning-AI/lightning/issues/14475),
+  [#14537](https://github.com/Lightning-AI/lightning/issues/14537),
+  [#14556](https://github.com/Lightning-AI/lightning/issues/14556),
+  [#14558](https://github.com/Lightning-AI/lightning/issues/14558),
+  [#14575](https://github.com/Lightning-AI/lightning/issues/14575))
 
 
 ### Changed
@@ -84,13 +88,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated all functions in `pytorch_lightning.utilities.xla_device` in favor of `lightning_lite.utilities.xla_device` ([#14514](https://github.com/Lightning-AI/lightning/pull/14514))
 
 
-
 - Deprecated all functions in `pytorch_lightning.utilities.cloud_io` in favor of `lightning_lite.utilities.cloud_io` ([#14515](https://github.com/Lightning-AI/lightning/pull/14515))
 
 
-
 - Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_utilities.core.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516), [#14537](https://github.com/Lightning-AI/lightning/pull/14537))
-
 
 
 ### Removed
