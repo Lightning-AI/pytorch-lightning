@@ -1,15 +1,4 @@
-from lightning_lite.utilities import _AcceleratorType
 from lightning_lite.utilities.enums import PrecisionType
-
-
-def test_consistency():
-    assert _AcceleratorType.TPU not in ("GPU", "CPU")
-    assert _AcceleratorType.TPU in ("TPU", "CPU")
-    assert _AcceleratorType.TPU in ("tpu", "CPU")
-    assert _AcceleratorType.TPU not in {"GPU", "CPU"}
-    # hash cannot be case invariant
-    assert _AcceleratorType.TPU not in {"TPU", "CPU"}
-    assert _AcceleratorType.TPU in {"tpu", "CPU"}
 
 
 def test_precision_supported_types():
