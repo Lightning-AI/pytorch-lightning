@@ -1,23 +1,10 @@
-# Copyright The PyTorch Lightning team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 import os
 import sys
 from unittest import mock
 
 import pytest
 
-from pytorch_lightning.utilities.rank_zero import _get_rank
+from lightning_lite.utilities.rank_zero import _get_rank
 
 
 @pytest.mark.parametrize(
@@ -39,8 +26,8 @@ def test_rank_zero_known_environment_variables(env_vars, expected):
     with mock.patch.dict(os.environ, env_vars):
         # force module reload to re-trigger the rank_zero_only.rank global computation
         sys.modules.pop("lightning_utilities.core.rank_zero", None)
-        sys.modules.pop("pytorch_lightning.utilities.rank_zero", None)
-        from pytorch_lightning.utilities.rank_zero import rank_zero_only
+        sys.modules.pop("lightning_lite.utilities.rank_zero", None)
+        from lightning_lite.utilities.rank_zero import rank_zero_only
 
         @rank_zero_only
         def foo():

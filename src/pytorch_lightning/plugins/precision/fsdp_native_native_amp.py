@@ -15,8 +15,8 @@ from typing import Any, Optional, Union
 
 import torch
 
+from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
