@@ -50,8 +50,12 @@ class _MultiProcessingLauncher(_Launcher):
             - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    # TODO(lite): Fix this type annotation once the strategy base class gets added to Lite
-    def __init__(self, strategy: "Strategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
+    def __init__(
+        self,
+        # TODO(lite): Fix this type annotation once the strategy base class gets added to Lite
+        strategy: "Strategy",  # type: ignore[name-defined]  # noqa: F821
+        start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
+    ) -> None:
         self._strategy = strategy
         self._start_method = start_method
         if start_method not in mp.get_all_start_methods():

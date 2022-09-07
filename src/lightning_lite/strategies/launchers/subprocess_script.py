@@ -68,8 +68,13 @@ class _SubprocessScriptLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         return False
 
-    # TODO(lite): Update type annotation once ClusterEnvironment has moved to Lite
-    def __init__(self, cluster_environment: "ClusterEnvironment", num_processes: int, num_nodes: int) -> None:
+    def __init__(
+        self,
+        # TODO(lite): Update type annotation once ClusterEnvironment has moved to Lite
+        cluster_environment: "ClusterEnvironment",  # type: ignore[name-defined]  # noqa: F821
+        num_processes: int,
+        num_nodes: int,
+    ) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
