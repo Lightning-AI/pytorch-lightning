@@ -174,7 +174,7 @@ def test_fit_loop_done_log_messages(caplog):
     fit_loop.max_epochs = 5
 
     fit_loop.epoch_loop.min_steps = 0
-    with caplog.at_level(level=logging.DEBUG, logger="lightning_lite.utilities.rank_zero"):
+    with caplog.at_level(level=logging.DEBUG, logger="pytorch_lightning.utilities.rank_zero"):
         assert fit_loop.done
     assert "should_stop` was set" in caplog.text
 
@@ -224,7 +224,7 @@ def test_should_stop_early_stopping_conditions_met(
     trainer.fit_loop.epoch_progress.current.processed = current_epoch
 
     message = "`Trainer.fit` stopped: `trainer.should_stop` was set."
-    with caplog.at_level(level=logging.DEBUG, logger="lightning_lite.utilities.rank_zero"):
+    with caplog.at_level(level=logging.DEBUG, logger="pytorch_lightning.utilities.rank_zero"):
         assert trainer.fit_loop.done is fit_loop_done
 
     assert (message in caplog.text) is raise_debug_msg
