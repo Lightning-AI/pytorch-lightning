@@ -14,9 +14,9 @@
 
 from typing import Any
 
-from lightning_lite.utilities import rank_zero_deprecation
 from lightning_lite.utilities.optimizer import optimizer_to_device as new_optimizer_to_device
 from lightning_lite.utilities.optimizer import optimizers_to_device as new_optimizers_to_device
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def optimizers_to_device(*args: Any, **kwargs: Any) -> None:

@@ -20,15 +20,7 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
-from lightning_lite.utilities import (
-    _StrategyType,
-    AMPType,
-    device_parser,
-    LightningEnum,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
@@ -93,6 +85,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 

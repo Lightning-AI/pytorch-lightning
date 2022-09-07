@@ -18,8 +18,8 @@ from typing import List, Optional, Tuple
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import rank_zero_deprecation
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class TrainerOptimizersMixin(ABC):

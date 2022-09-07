@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Any, List, Optional, Union
 
-from lightning_lite.utilities import rank_zero_deprecation
 from lightning_lite.utilities.device_parser import determine_root_gpu_device as new_determine_root_gpu_device
 from lightning_lite.utilities.device_parser import is_cuda_available as new_is_cuda_available
 from lightning_lite.utilities.device_parser import num_cuda_devices as new_num_cuda_devices
@@ -21,6 +20,7 @@ from lightning_lite.utilities.device_parser import parse_cpu_cores as new_parse_
 from lightning_lite.utilities.device_parser import parse_gpu_ids as new_parse_gpu_ids
 from lightning_lite.utilities.device_parser import parse_tpu_cores as new_parse_tpu_cores
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:

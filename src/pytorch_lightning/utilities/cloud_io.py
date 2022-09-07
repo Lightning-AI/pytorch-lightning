@@ -15,10 +15,10 @@
 
 from typing import Any
 
-from lightning_lite.utilities import rank_zero_deprecation
 from lightning_lite.utilities.cloud_io import atomic_save as new_atomic_save
 from lightning_lite.utilities.cloud_io import get_filesystem as new_get_filesystem
 from lightning_lite.utilities.cloud_io import load as new_load
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def atomic_save(*args: Any, **kwargs: Any) -> Any:
