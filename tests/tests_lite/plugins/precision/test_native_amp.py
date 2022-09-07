@@ -16,6 +16,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 
@@ -40,6 +41,7 @@ def test_native_amp_precision_bf16_min_torch():
         NativeMixedPrecisionPlugin(precision="bf16", device=Mock())
 
 
+@RunIf(min_torch="1.10")
 def test_native_amp_precision_forward_context():
     precision_plugin = NativeMixedPrecisionPlugin(precision="mixed", device="cuda")
     assert torch.get_default_dtype() == torch.float32
@@ -70,6 +72,7 @@ def test_native_amp_precision_optimizer_step_with_scaler():
     precision_plugin.scaler.update.assert_called_once()
 
 
+@RunIf(min_torch="1.10")
 def test_native_amp_precision_optimizer_step_without_scaler():
     precision_plugin = NativeMixedPrecisionPlugin(precision="bf16", device="cuda")
     assert precision_plugin.scaler is None
