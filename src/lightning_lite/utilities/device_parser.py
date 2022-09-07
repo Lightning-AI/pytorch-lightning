@@ -4,8 +4,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
-# TODO(lite): Fix the imports
-# from lightning_lite.plugins.environments import TorchElasticEnvironment
+from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 # from lightning_lite.strategies.launchers.multiprocessing import _is_forking_disabled
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
@@ -83,7 +82,7 @@ def parse_gpu_ids(
         raise MisconfigurationException("GPUs requested but none are available.")
 
     if (
-        True  # TorchElasticEnvironment.detect()  # TODO(lite): Revert this once environments have moved
+        TorchElasticEnvironment.detect()
         and len(gpus) != 1
         and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)) == 1
     ):
