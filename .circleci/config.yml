@@ -5,7 +5,13 @@ orbs:
   go: circleci/go@1.7.1
   codecov: codecov/codecov@1.1.0
 parameters:
+  GHA_Actor:
+    type: string
+    default: ""
   GHA_Action:
+    type: string
+    default: ""
+  GHA_Event:
     type: string
     default: ""
 
