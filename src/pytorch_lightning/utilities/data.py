@@ -17,6 +17,7 @@ from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Tuple, Uni
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
@@ -29,16 +30,16 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import LightningEnum, rank_zero_deprecation, rank_zero_warn
+from lightning_lite.utilities import LightningEnum
 from lightning_lite.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
 from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterable_dataset
 from lightning_lite.utilities.data import has_len as new_has_len
-from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 

@@ -14,13 +14,13 @@
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

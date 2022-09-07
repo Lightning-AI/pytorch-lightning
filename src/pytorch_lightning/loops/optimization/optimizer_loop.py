@@ -16,10 +16,10 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, OrderedDict, Tuple, Union
 
 import torch
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.optim import Optimizer
 
-from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop

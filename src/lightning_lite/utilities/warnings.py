@@ -13,14 +13,8 @@
 # limitations under the License.
 """Warning-related utilities."""
 import warnings
-from typing import Any
 
-from lightning_lite.utilities.rank_zero import (
-    LightningDeprecationWarning,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from lightning_lite.utilities.rank_zero import LightningDeprecationWarning
 
 # enable our warnings
 warnings.simplefilter("default", category=LightningDeprecationWarning)
@@ -28,20 +22,3 @@ warnings.simplefilter("default", category=LightningDeprecationWarning)
 
 class PossibleUserWarning(UserWarning):
     """Warnings that could be false positives."""
-
-
-class WarningCache(set):
-    def warn(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
-        if message not in self:
-            self.add(message)
-            rank_zero_warn(message, stacklevel=stacklevel, **kwargs)
-
-    def deprecation(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
-        if message not in self:
-            self.add(message)
-            rank_zero_deprecation(message, stacklevel=stacklevel, **kwargs)
-
-    def info(self, message: str, stacklevel: int = 5, **kwargs: Any) -> None:
-        if message not in self:
-            self.add(message)
-            rank_zero_info(message, stacklevel=stacklevel, **kwargs)

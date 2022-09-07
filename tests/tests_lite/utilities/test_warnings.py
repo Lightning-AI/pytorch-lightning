@@ -15,17 +15,14 @@
 
 Needs to be run outside of `pytest` as it captures all the warnings.
 """
-import os
 from contextlib import redirect_stderr
 from io import StringIO
 
-from lightning_lite.utilities import rank_zero_deprecation, rank_zero_warn
-from lightning_lite.utilities.rank_zero import _warn
-from lightning_lite.utilities.warnings import WarningCache
+from lightning_utilities.core.rank_zero import _warn, WarningCache
 
-standalone = os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1"
-if standalone and __name__ == "__main__":
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
+if __name__ == "__main__":
     stderr = StringIO()
     # recording
     with redirect_stderr(stderr):
@@ -42,24 +39,24 @@ if standalone and __name__ == "__main__":
         cache.deprecation("test7")
 
     output = stderr.getvalue()
-    assert "test_warnings.py:31: UserWarning: test1" in output
-    assert "test_warnings.py:32: DeprecationWarning: test2" in output
+    assert "test_warnings.py:29: UserWarning: test1" in output
+    assert "test_warnings.py:30: DeprecationWarning: test2" in output
 
-    assert "test_warnings.py:34: UserWarning: test3" in output
-    assert "test_warnings.py:35: DeprecationWarning: test4" in output
+    assert "test_warnings.py:32: UserWarning: test3" in output
+    assert "test_warnings.py:33: DeprecationWarning: test4" in output
 
-    assert "test_warnings.py:37: LightningDeprecationWarning: test5" in output
+    assert "test_warnings.py:35: LightningDeprecationWarning: test5" in output
 
-    assert "test_warnings.py:40: UserWarning: test6" in output
-    assert "test_warnings.py:41: LightningDeprecationWarning: test7" in output
+    assert "test_warnings.py:38: UserWarning: test6" in output
+    assert "test_warnings.py:39: LightningDeprecationWarning: test7" in output
 
     # check that logging is properly configured
     import logging
 
-    from lightning_lite import _DETAIL
+    from pytorch_lightning import _DETAIL
 
     root_logger = logging.getLogger()
-    lightning_logger = logging.getLogger("lightning_lite")
+    lightning_logger = logging.getLogger("pytorch_lightning")
     # should have a `StreamHandler`
     assert lightning_logger.hasHandlers() and len(lightning_logger.handlers) == 1
     # set our own stream for testing

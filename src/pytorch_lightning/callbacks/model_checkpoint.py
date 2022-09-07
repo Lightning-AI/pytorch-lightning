@@ -31,15 +31,15 @@ from weakref import proxy
 import numpy as np
 import torch
 import yaml
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import WarningCache
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)

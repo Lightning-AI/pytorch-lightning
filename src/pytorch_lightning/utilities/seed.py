@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities to help with reproducibility of models."""
-
-import logging
 from contextlib import contextmanager
 from typing import Any, Generator
 
 import torch
 
-from lightning_lite.utilities import rank_zero_deprecation
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities.seed import pl_worker_init_function as new_pl_worker_init_function
 from lightning_lite.utilities.seed import reset_seed as new_reset_seed
 from lightning_lite.utilities.seed import seed_everything as new_seed_everything
-
-log = logging.getLogger(__name__)
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 @contextmanager
