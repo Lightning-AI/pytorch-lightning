@@ -39,9 +39,8 @@ def restore_env_variables():
     os.environ.clear()
     os.environ.update(env_backup)
     # these are currently known leakers - ideally these would not be allowed
-    # TODO(lite): this list can be trimmed
+    # TODO(lite): this list can be trimmed, maybe PL's too after moving tests
     allowlist = {
-        "CUBLAS_WORKSPACE_CONFIG",  # enabled with deterministic flag
         "CUDA_DEVICE_ORDER",
         "LOCAL_RANK",
         "NODE_RANK",
@@ -50,9 +49,6 @@ def restore_env_variables():
         "MASTER_PORT",
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
-        "WANDB_MODE",
-        "WANDB_REQUIRE_SERVICE",
-        "WANDB_SERVICE",
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
@@ -78,13 +74,6 @@ def teardown_process_group():
     yield
     if torch.distributed.is_available() and torch.distributed.is_initialized():
         torch.distributed.destroy_process_group()
-
-
-@pytest.fixture(scope="function", autouse=True)
-def reset_deterministic_algorithm():
-    """Ensures that torch determinism settings are reset before the next test runs."""
-    yield
-    torch.use_deterministic_algorithms(False)
 
 
 @pytest.fixture
