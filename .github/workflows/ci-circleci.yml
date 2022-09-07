@@ -1,0 +1,28 @@
+on:
+  push:
+    branches: [master, "release/*"]
+    paths:
+      - ".github/workflows/ci-circleci.yml"
+      - ".circleci/config.yml"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+  pull_request:
+    branches: [master, "release/*"]
+    paths:
+      - ".github/workflows/ci-circleci.yml"
+      - ".circleci/config.yml"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+
+jobs:
+  # https://github.com/marketplace/actions/trigger-circleci-pipeline
+  trigger-circleci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.5
+        env:
+          CCI_TOKEN: ${{ secrets.CCI_TOKEN }}

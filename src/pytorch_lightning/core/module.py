@@ -26,6 +26,7 @@ from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, over
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -56,7 +57,6 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerTypeUnion,
     STEP_OUTPUT,
 )
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
