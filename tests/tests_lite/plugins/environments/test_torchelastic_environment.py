@@ -16,9 +16,9 @@ import os
 from unittest import mock
 
 import pytest
+from tests_lite.helpers.runif import RunIf
 
-from pytorch_lightning.plugins.environments import TorchElasticEnvironment
-from tests_pytorch.helpers.runif import RunIf
+from lightning_lite.plugins.environments import TorchElasticEnvironment
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -58,14 +58,14 @@ def test_attributes_from_environment_variables(caplog):
     assert env.local_rank() == 2
     assert env.node_rank() == 3
     # setter should be no-op
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning_lite.plugins.environments"):
         env.set_global_rank(100)
     assert env.global_rank() == 1
     assert "setting global rank is not allowed" in caplog.text
 
     caplog.clear()
 
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning_lite.plugins.environments"):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
