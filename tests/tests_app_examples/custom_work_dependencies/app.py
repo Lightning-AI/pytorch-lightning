@@ -1,6 +1,11 @@
 import os
+import sys
+import logging
 
 from lightning_app import BuildConfig, CloudCompute, LightningApp, LightningFlow, LightningWork
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 class CustomBuildConfig(BuildConfig):
@@ -49,7 +54,7 @@ class CustomWorkBuildConfigChecker(LightningFlow):
         self.work2.run()
 
         if self.work1.has_succeeded and self.work2.has_succeeded:
-            print("--- Custom Work Dependency checker End ----")
+            logger.info("--- Custom Work Dependency checker End ----")
             self._exit()
 
 
