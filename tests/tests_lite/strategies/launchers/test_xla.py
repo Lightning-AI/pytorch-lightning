@@ -1,8 +1,9 @@
 from unittest import mock
 from unittest.mock import ANY, Mock
 
-from lightning_lite.strategies.launchers.xla import _XLALauncher
 from tests_lite.helpers.runif import RunIf
+
+from lightning_lite.strategies.launchers.xla import _XLALauncher
 
 
 @RunIf(skip_windows=True)
