@@ -16,7 +16,7 @@ import os
 import fsspec
 from fsspec.implementations.local import LocalFileSystem
 
-from pytorch_lightning.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import get_filesystem
 
 
 def test_get_filesystem_custom_filesystem():
