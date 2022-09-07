@@ -386,7 +386,11 @@ def shared_storage_path() -> pathlib.Path:
     have access to this shared dropbox.
     """
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
+
+    if bucket_name != "" and project_id != "" and app_id != "":
+        return pathlib.Path(f"{bucket_name}/lightningapps/{project_id}/{app_id}")
 
     if bucket_name != "" and app_id != "":
         return pathlib.Path(f"{bucket_name}/lightningapps/{app_id}")
