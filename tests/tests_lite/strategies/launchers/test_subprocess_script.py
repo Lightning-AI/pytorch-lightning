@@ -66,11 +66,11 @@ def test_subprocess_script_launcher_launch_processes(popen_mock, _):
     assert len(calls) == num_new_processes
 
     # world size in child processes
-    world_sizes = [int(calls[i].kwargs["env"]["WORLD_SIZE"]) for i in range(num_new_processes)]
+    world_sizes = [int(calls[i][1]["env"]["WORLD_SIZE"]) for i in range(num_new_processes)]
     assert world_sizes == [launcher.num_processes * launcher.num_nodes] * num_new_processes
 
     # local rank in child processes
-    local_ranks = [int(calls[i].kwargs["env"]["LOCAL_RANK"]) for i in range(num_new_processes)]
+    local_ranks = [int(calls[i][1]["env"]["LOCAL_RANK"]) for i in range(num_new_processes)]
     assert local_ranks == list(range(1, num_new_processes + 1))
 
     # the current process
