@@ -15,7 +15,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.accelerators.mps import get_device_stats as new_get_device_stats, _MPS_AVAILABLE
+from lightning_lite.accelerators.mps import _MPS_AVAILABLE
+from lightning_lite.accelerators.mps import get_device_stats as new_get_device_stats
 from lightning_lite.utilities import device_parser, rank_zero_deprecation
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
