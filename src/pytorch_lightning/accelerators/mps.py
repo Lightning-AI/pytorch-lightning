@@ -11,23 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import platform
 from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.accelerators.mps import get_device_stats as new_get_device_stats
+from lightning_lite.accelerators.mps import get_device_stats as new_get_device_stats, _MPS_AVAILABLE
 from lightning_lite.utilities import device_parser, rank_zero_deprecation
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-
-# For using the `MPSAccelerator`, user's machine should have `torch>=1.12`, Metal programming framework and
-# the ARM-based Apple Silicon processors.
-_MPS_AVAILABLE = (
-    _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
-)
 
 
 class MPSAccelerator(Accelerator):

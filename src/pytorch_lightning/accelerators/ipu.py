@@ -22,9 +22,15 @@ from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
+    def init_device(self, device: torch.device) -> None:
+        pass
+
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
         return {}
+
+    def teardown(self) -> None:
+        pass
 
     @staticmethod
     def parse_devices(devices: int) -> int:
