@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_lite.utilities.rank_zero import _get_rank, _rank_prefixed_message
+from lightning_lite.utilities.rank_zero import _get_rank
 
 
 @pytest.mark.parametrize(
@@ -25,6 +25,7 @@ def test_rank_zero_known_environment_variables(env_vars, expected):
     """Test that rank environment variables are properly checked for rank_zero_only."""
     with mock.patch.dict(os.environ, env_vars):
         # force module reload to re-trigger the rank_zero_only.rank global computation
+        sys.modules.pop("lightning_utilities.core.rank_zero", None)
         sys.modules.pop("lightning_lite.utilities.rank_zero", None)
         from lightning_lite.utilities.rank_zero import rank_zero_only
 
@@ -48,12 +49,3 @@ def test_rank_zero_priority(environ, expected_rank):
     """Test the priority in which the rank gets determined when multiple environment variables are available."""
     with mock.patch.dict(os.environ, environ):
         assert _get_rank() == expected_rank
-
-
-@pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"RANK": "1"}, {"RANK": "4"}])
-def test_rank_prefixed_message_with_env_vars(env_vars):
-    with mock.patch.dict(os.environ, env_vars, clear=True):
-        rank = _get_rank()
-        message = _rank_prefixed_message("bar", rank)
-
-    assert message == f"[rank: {rank}] bar"

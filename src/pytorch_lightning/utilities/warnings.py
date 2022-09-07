@@ -12,13 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Warning-related utilities."""
-import warnings
-
-from pytorch_lightning.utilities.rank_zero import LightningDeprecationWarning
-
-# enable our warnings
-warnings.simplefilter("default", category=LightningDeprecationWarning)
-
-
-class PossibleUserWarning(UserWarning):
-    """Warnings that could be false positives."""
+# backwards compatibility
+from lightning_lite.utilities.warnings import PossibleUserWarning  # noqa: F401

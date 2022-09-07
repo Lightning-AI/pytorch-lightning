@@ -7,9 +7,9 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
+from lightning_utilities.core.rank_zero import rank_prefixed_message
 
-from lightning_lite.utilities import rank_zero_only, rank_zero_warn
-from lightning_lite.utilities.rank_zero import _get_rank, _rank_prefixed_message
+from lightning_lite.utilities.rank_zero import _get_rank, rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
-    log.info(_rank_prefixed_message(f"Global seed set to {seed}", _get_rank()))
+    log.info(rank_prefixed_message(f"Global seed set to {seed}", _get_rank()))
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)

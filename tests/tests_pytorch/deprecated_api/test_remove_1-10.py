@@ -60,9 +60,7 @@ from pytorch_lightning.utilities.distributed import (
     tpu_distributed,
 )
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
-from pytorch_lightning.utilities.warnings import WarningCache
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
@@ -243,17 +241,6 @@ def test_v1_10_deprecated_optimizer_utilities():
         optimizer_to_device(torch.optim.Adam(torch.nn.Linear(1, 1).parameters()), "cpu")
 
 
-def test_v1_10_deprecated_rank_zero_utilities():
-    with pytest.deprecated_call(match="rank_zero.rank_zero_info` has been deprecated in v1.8.0"):
-        rank_zero_info("test")
-
-    with pytest.deprecated_call(match="rank_zero.rank_zero_warn` has been deprecated in v1.8.0"):
-        rank_zero_warn("test")
-
-    with pytest.deprecated_call(match="rank_zero.rank_zero_debug` has been deprecated in v1.8.0"):
-        rank_zero_debug("test")
-
-
 def test_v1_10_deprecated_seed_utilities():
     with pytest.deprecated_call(match="seed.seed_everything` has been deprecated in v1.8.0"):
         seed_everything(1)
@@ -263,8 +250,3 @@ def test_v1_10_deprecated_seed_utilities():
 
     with pytest.deprecated_call(match="seed.pl_worker_init_function` has been deprecated in v1.8.0"):
         pl_worker_init_function(0)
-
-
-def test_v1_10_deprecated_warning_utilities():
-    with pytest.deprecated_call(match="warnings.WarningCache` has been deprecated in v1.8.0"):
-        WarningCache()
