@@ -8,8 +8,6 @@ import warnings
 from copy import deepcopy
 from time import time
 
-# foobar
-
 from deepdiff import DeepDiff, Delta
 
 import lightning_app
@@ -28,6 +26,9 @@ from lightning_app.utilities.proxies import ComponentDelta
 from lightning_app.utilities.scheduler import SchedulerThread
 from lightning_app.utilities.tree import breadth_first
 from lightning_app.utilities.warnings import LightningFlowWarning
+
+# foobar
+
 
 if t.TYPE_CHECKING:
     from lightning_app.runners.backends.backend import Backend, WorkManager
