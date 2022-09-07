@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, Any
 from unittest import mock
+
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, IPUAccelerator, TPUAccelerator
@@ -28,6 +31,15 @@ def test_auto_device_count(_):
 
 def test_pluggable_accelerator():
     class TestAccelerator(Accelerator):
+        def init_device(self, device: torch.device) -> None:
+            pass
+
+        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+            pass
+
+        def teardown(self) -> None:
+            pass
+
         @staticmethod
         def parse_devices(devices):
             return devices
