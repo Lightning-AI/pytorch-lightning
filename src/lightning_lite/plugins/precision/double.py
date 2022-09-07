@@ -17,7 +17,7 @@ from typing import Generator
 import torch
 from torch import FloatTensor
 
-from lightning_lite.plugins import PrecisionPlugin
+from lightning_lite.plugins.precision import PrecisionPlugin
 
 
 class DoublePrecisionPlugin(PrecisionPlugin):
