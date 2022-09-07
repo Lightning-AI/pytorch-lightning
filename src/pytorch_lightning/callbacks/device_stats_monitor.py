@@ -58,7 +58,7 @@ class DeviceStatsMonitor(Callback):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        stage: Optional[str] = None,
+        stage: str,
     ) -> None:
         if stage != "fit":
             return
