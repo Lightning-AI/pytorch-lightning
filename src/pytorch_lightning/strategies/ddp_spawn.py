@@ -19,7 +19,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import torch
 import torch.distributed
 from torch import Tensor
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
@@ -47,6 +46,11 @@ from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
+
+if torch.distributed.is_available():
+    from torch.distributed.constants import default_pg_timeout
+else:
+    default_pg_timeout = timedelta(seconds=1800)
 
 log = logging.getLogger(__name__)
 

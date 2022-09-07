@@ -20,7 +20,7 @@ from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionP
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
-if _TORCH_GREATER_EQUAL_1_12:
+if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
     from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 else:
