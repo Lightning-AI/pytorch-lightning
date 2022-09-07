@@ -27,7 +27,7 @@ from lightning_lite.utilities.distributed import init_dist_connection as new_ini
 from lightning_lite.utilities.distributed import sync_ddp as new_sync_ddp
 from lightning_lite.utilities.distributed import sync_ddp_if_available as new_sync_ddp_if_available
 from lightning_lite.utilities.distributed import tpu_distributed as new_tpu_distributed
-from lightning_lite.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_info
 
 
 def register_ddp_comm_hook(

@@ -27,6 +27,7 @@ exclude = '(_notebooks/.*)'
 [tool.mypy]
 files = [
     "src/pytorch_lightning",
+    "src/lightning_lite",
     # TODO: Check typing in app source
     # "src/lightning_app",
 ]

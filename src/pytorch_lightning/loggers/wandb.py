@@ -24,11 +24,11 @@ from weakref import ReferenceType
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning_lite.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
     import wandb

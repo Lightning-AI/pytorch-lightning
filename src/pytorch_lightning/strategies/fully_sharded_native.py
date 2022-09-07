@@ -29,7 +29,6 @@ from lightning_lite.utilities.distributed import (
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -43,6 +42,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _TORCH_GREATER_EQUAL_1_12:

@@ -41,7 +41,6 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.data import _auto_add_worker_init_fn
 from lightning_lite.utilities.distributed import distributed_available
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.types import _PATH
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
@@ -111,6 +110,7 @@ from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,

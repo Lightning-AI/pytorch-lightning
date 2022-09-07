@@ -27,8 +27,8 @@ import numpy as np
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 from pytorch_lightning.callbacks import Checkpoint
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:

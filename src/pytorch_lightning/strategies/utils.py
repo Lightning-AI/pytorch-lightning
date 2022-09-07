@@ -16,7 +16,7 @@ import os
 import torch
 
 from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def on_colab_kaggle() -> bool:

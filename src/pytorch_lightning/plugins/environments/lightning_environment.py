@@ -15,8 +15,8 @@
 import os
 import socket
 
-from lightning_lite.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class LightningEnvironment(ClusterEnvironment):
