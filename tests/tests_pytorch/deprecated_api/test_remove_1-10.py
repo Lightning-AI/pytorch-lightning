@@ -20,7 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import get_cpu_stats
+from pytorch_lightning.accelerators.cpu import CPUbAccelerator, get_cpu_stats
 from pytorch_lightning.accelerators.cuda import get_nvidia_gpu_stats
 from pytorch_lightning.accelerators.mps import get_device_stats
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
@@ -267,3 +267,8 @@ def test_v1_10_deprecated_accelerator_device_stats_utilities(*_):
 
     with pytest.deprecated_call(match="mps.get_device_stats` has been deprecated in v1.8.0"):
         get_device_stats()
+
+
+def test_v1_10_deprecated_accelerator_setup_environment_method():
+    with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
+        CPUAccelerator().setup_environment(torch.device("cpu"))

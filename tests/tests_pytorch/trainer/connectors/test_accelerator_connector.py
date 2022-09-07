@@ -13,7 +13,7 @@
 # limitations under the License
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
