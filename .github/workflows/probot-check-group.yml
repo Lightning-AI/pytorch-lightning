@@ -7,9 +7,10 @@ jobs:
   required-jobs:
     runs-on: ubuntu-latest
     # if this timeout triggers, then the job needs to be manually restarted through the GitHub interface
-    # the probot implementation is set to check the status every 2 minutes
     timeout-minutes: 60
     steps:
       - uses: carmocca/probot@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          interval: 60  # seconds
