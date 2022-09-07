@@ -43,21 +43,9 @@ def get_all_subclasses(cls: Type) -> Set[Type]:
         "`pytorch_lightning.utilities.meta.get_all_subclasses` is deprecated in v1.8 and will be removed in v1.9."
         " Please copy its implementation if you have a use for it."
     )
-    return _get_all_subclasses(cls)
+    from lightning_utilities.core.inheritance import get_all_subclasses as new_get_all_subclasses
 
-
-# https://stackoverflow.com/a/63851681/9201239
-def _get_all_subclasses(cls: Type) -> Set[Type]:
-    subclass_list = []
-
-    def recurse(cl: Type) -> None:
-        for subclass in cl.__subclasses__():
-            subclass_list.append(subclass)
-            recurse(subclass)
-
-    recurse(cls)
-
-    return set(subclass_list)
+    return new_get_all_subclasses(cls)
 
 
 def recursively_setattr(root_module: Any, prefix: str, materialized_module: Module) -> None:
