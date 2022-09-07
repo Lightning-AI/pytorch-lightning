@@ -20,15 +20,7 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
-from lightning_lite.utilities import (
-    _StrategyType,
-    AMPType,
-    device_parser,
-    LightningEnum,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
