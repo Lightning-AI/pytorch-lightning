@@ -34,8 +34,8 @@ import yaml
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
@@ -254,7 +254,7 @@ class ModelCheckpoint(Checkpoint):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.__resolve_ckpt_dir(trainer)
         assert self.dirpath is not None
         if trainer.is_global_zero and stage == "fit":

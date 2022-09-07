@@ -4,7 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [0.6.0] - 2022-08-DD
+
+## [0.7.0] - 2022-MM-DD
+
+### Added
+
+- Adds `PanelFrontend` to easily create complex UI in Python ([#13531](https://github.com/Lightning-AI/lightning/pull/13531))
+
+
+
+
+## [0.6.0] - 2022-08-23
 
 ### Added
 
@@ -21,15 +31,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Default values and parameter names for Lightning AI BYOC cluster management ([#14132](https://github.com/Lightning-AI/lightning/pull/14132))
-
-### Changed
-
 - Run the flow only if the state has changed from the previous execution ([#14076](https://github.com/Lightning-AI/lightning/pull/14076))
 
 ### Fixed
 
 - Unification of app template: moved `app.py` to root dir for `lightning init app <app_name>` template ([#13853](https://github.com/Lightning-AI/lightning/pull/13853))
-
+- Fixing an issue with `lightning --version` command ([#14433](https://github.com/Lightning-AI/lightning/pull/14433))
 
 ## [0.5.7] - 2022-08-22
 

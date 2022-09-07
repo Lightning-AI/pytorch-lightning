@@ -16,6 +16,7 @@ import os
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
@@ -33,7 +34,6 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
