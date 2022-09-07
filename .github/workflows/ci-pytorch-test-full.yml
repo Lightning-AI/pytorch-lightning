@@ -117,8 +117,6 @@ jobs:
         pip list
       shell: bash
 
-    - uses: Lightning-AI/utilities/.github/actions/pip-list@ci/pip-list
-
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
       env:
@@ -135,6 +133,8 @@ jobs:
         horovodrun --check-build
         python -c "import horovod.torch"
       shell: bash
+
+    - uses: Lightning-AI/utilities/.github/actions/pip-list@ci/pip-list
 
     - name: Cache datasets
       uses: actions/cache@v3
