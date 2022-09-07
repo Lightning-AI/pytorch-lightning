@@ -1,9 +1,10 @@
 import os
+from time import sleep
 
 import pytest
 from click.testing import CliRunner
 from tests_app import _PROJECT_ROOT
-from time import sleep
+
 from lightning_app.cli.lightning_cli import logs
 from lightning_app.testing.testing import run_app_in_cloud, wait_for
 

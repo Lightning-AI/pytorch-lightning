@@ -1,8 +1,9 @@
+import logging
 import os
 import sys
-import logging
 
 from lightning_app import BuildConfig, CloudCompute, LightningApp, LightningFlow, LightningWork
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
