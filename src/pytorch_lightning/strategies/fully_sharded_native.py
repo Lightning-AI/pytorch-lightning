@@ -20,7 +20,6 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities import rank_zero_only
 from lightning_lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     get_default_process_group_backend_for_device,
