@@ -31,7 +31,6 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
-    distributed_available,
     get_default_process_group_backend_for_device,
 )
 from pytorch_lightning.utilities.distributed import group as _group
@@ -42,9 +41,11 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import ProcessGroup, STEP_OUTPUT
 
-if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
+_distributed_available = torch.distributed.is_available()
+_fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
+if _fsdp_available:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
         BackwardPrefetch,
         CPUOffload,
@@ -58,10 +59,8 @@ else:
     BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
 
-if torch.distributed.is_available():
-    from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
-else:
-    ProcessGroup = None
+if _distributed_available:
+    from torch.distributed.distributed_c10d import _get_default_group
 
 log = logging.getLogger(__name__)
 
@@ -279,7 +278,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             yield
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if not distributed_available():
+        if not _distributed_available:
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_device_ids())
@@ -362,7 +361,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
+        if _fsdp_available:
             strategy_registry.register(
                 "fsdp_native",
                 cls,

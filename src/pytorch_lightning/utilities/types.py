@@ -32,7 +32,7 @@ from typing_extensions import Protocol, runtime_checkable
 if torch.distributed.is_available():
     from torch._C._distributed_c10d import ProcessGroup
 else:
-    ProcessGroup = None
+    ProcessGroup = ...  # type: ignore[assignment,misc]
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
