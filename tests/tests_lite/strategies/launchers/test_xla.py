@@ -2,18 +2,22 @@ from unittest import mock
 from unittest.mock import ANY, Mock
 
 from lightning_lite.strategies.launchers.xla import _XLALauncher
+from tests_lite.helpers.runif import RunIf
 
 
+@RunIf(skip_windows=True)
 def test_xla_launcher_default_start_method():
     launcher = _XLALauncher(strategy=Mock())
     assert launcher._start_method == "fork"
 
 
+@RunIf(skip_windows=True)
 def test_xla_launcher_interactive_compatible():
     launcher = _XLALauncher(strategy=Mock())
     assert launcher.is_interactive_compatible
 
 
+@RunIf(skip_windows=True)
 @mock.patch("lightning_lite.strategies.launchers.xla.mp")
 @mock.patch("lightning_lite.strategies.launchers.xla.xm")
 @mock.patch("lightning_lite.strategies.launchers.xla.xmp")
