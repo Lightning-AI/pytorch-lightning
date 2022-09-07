@@ -11,17 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.enums import _AcceleratorType, GradClipAlgorithmType, PrecisionType
-
-
-def test_consistency():
-    assert _AcceleratorType.TPU not in ("GPU", "CPU")
-    assert _AcceleratorType.TPU in ("TPU", "CPU")
-    assert _AcceleratorType.TPU in ("tpu", "CPU")
-    assert _AcceleratorType.TPU not in {"GPU", "CPU"}
-    # hash cannot be case invariant
-    assert _AcceleratorType.TPU not in {"TPU", "CPU"}
-    assert _AcceleratorType.TPU in {"tpu", "CPU"}
+from pytorch_lightning.utilities.enums import GradClipAlgorithmType, PrecisionType
 
 
 def test_precision_supported_types():
