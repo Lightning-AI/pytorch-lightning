@@ -6,6 +6,7 @@ subprojects:
   - id: "CI: CircleCI"
     paths:
       - ".circleci/**"
+      - ".github/workflows/ci-circleci.yml"
     checks:
       - "test-on-tpus"
 
@@ -25,7 +26,6 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-pytorch*.yml"
       - ".github/workflows/docs-*.yml"
     checks:
       - "pl-conda (3.8, 1.10)"
@@ -41,15 +41,6 @@ subprojects:
       - "pl-cpu (windows-2022, 3.10, latest, stable)"
       - "pl-cpu (windows-2022, 3.7, latest, stable)"
       - "pl-cpu (windows-2022, 3.7, oldest, stable)"
-      - "lite-cpu (macOS-11, 3.10, latest, stable)"
-      - "lite-cpu (macOS-11, 3.7, latest, stable)"
-      - "lite-cpu (macOS-11, 3.7, oldest, stable)"
-      - "lite-cpu (ubuntu-20.04, 3.10, latest, stable)"
-      - "lite-cpu (ubuntu-20.04, 3.7, latest, stable)"
-      - "lite-cpu (ubuntu-20.04, 3.7, oldest, stable)"
-      - "lite-cpu (windows-2022, 3.10, latest, stable)"
-      - "lite-cpu (windows-2022, 3.7, latest, stable)"
-      - "lite-cpu (windows-2022, 3.7, oldest, stable)"
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "mypy"
@@ -61,6 +52,55 @@ subprojects:
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
       - "pl-slow (windows-2022, 3.7, 1.11)"
       - "test-on-tpus"
+
+  - id: "lightning_lite"
+    paths:
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
+      - "setup.cfg"  # includes pytest config
+    checks:
+      - "lite-cpu (macOS-11, 3.10, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, oldest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "lite-cpu (windows-2022, 3.10, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, oldest, stable)"
+      - "mypy"
+
+  - id: "pytorch_lightning: Conda"
+    paths:
+      - ".github/workflows/ci-pytorch-test-conda.yml"
+    checks:
+      - "pl-conda (3.8, 1.10)"
+      - "pl-conda (3.8, 1.9)"
+      - "pl-conda (3.9, 1.11)"
+      - "pl-conda (3.9, 1.12)"
+
+  - id: "pytorch_lightning: CPU"
+    paths:
+      - ".github/workflows/ci-pytorch-test-full.yml"
+    checks:
+      - "pl-cpu (macOS-11, 3.10, latest, stable)"
+      - "pl-cpu (macOS-11, 3.7, latest, stable)"
+      - "pl-cpu (macOS-11, 3.7, oldest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "pl-cpu (windows-2022, 3.10, latest, stable)"
+      - "pl-cpu (windows-2022, 3.7, latest, stable)"
+      - "pl-cpu (windows-2022, 3.7, oldest, stable)"
+
+  - id: "pytorch_lightning: Slow"
+    paths:
+      - ".github/workflows/ci-pytorch-test-slow.yml"
+    checks:
+      - "pl-slow (macOS-11, 3.7, 1.11)"
+      - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
+      - "pl-slow (windows-2022, 3.7, 1.11)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -101,6 +141,7 @@ subprojects:
   - id: "pytorch_lightning: Docker"
     paths:
       - "dockers/**"
+      - ".github/workflows/ci-pytorch-dockers.yml"
       - "requirements.txt"
       - "requirements/*.txt"
       - "requirements/pytorch/*"
@@ -126,7 +167,7 @@ subprojects:
       - "build-pl (3.9, 1.9, 11.1.1)"
       - "build-xla (3.7, 1.12)"
 
-  - id: "pytorch_lightning: mypy"
+  - id: "mypy"
     paths:
       - ".github/workflows/code-checks.yml"
       - "pyproject.toml"  # includes mypy config
