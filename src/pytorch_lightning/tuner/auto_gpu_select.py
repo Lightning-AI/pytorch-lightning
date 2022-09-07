@@ -15,7 +15,7 @@ from typing import List
 
 import torch
 
-from pytorch_lightning.utilities import device_parser
+from lightning_lite.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
