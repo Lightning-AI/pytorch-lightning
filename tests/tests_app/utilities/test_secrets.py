@@ -1,14 +1,9 @@
-import pytest
 from typing import Dict, List
 from unittest import mock
 from unittest.mock import MagicMock
 
-from lightning_cloud.openapi import (
-    V1ListMembershipsResponse,
-    V1Membership,
-    V1ListSecretsResponse,
-    V1Secret,
-)
+import pytest
+from lightning_cloud.openapi import V1ListMembershipsResponse, V1ListSecretsResponse, V1Membership, V1Secret
 
 from lightning_app.utilities.secrets import _names_to_ids
 

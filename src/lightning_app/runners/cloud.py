@@ -45,10 +45,10 @@ from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.storage import Drive
 from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.secrets import _names_to_ids
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
+from lightning_app.utilities.secrets import _names_to_ids
 
 logger = logging.getLogger(__name__)
 

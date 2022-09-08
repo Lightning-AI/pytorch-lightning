@@ -66,7 +66,7 @@ def dispatch(
         host=host,
         port=port,
         env_vars=env_vars,
-        secrets=secrets
+        secrets=secrets,
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
