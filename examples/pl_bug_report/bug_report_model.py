@@ -1,6 +1,9 @@
 import torch
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, Trainer, LightningDataModule
 
+
+class BoringData(LightningDataModule):
+    pass
 
 class BoringModel(LightningModule):
     def __init__(self):
@@ -22,7 +25,8 @@ class BoringModel(LightningModule):
 def run():
     model = BoringModel()
     trainer = Trainer()
-    trainer.fit(model, train_dataloaders=None)
+    trainer.fit(model, BoringData())
+    # trainer.fit(model, train_dataloaders=None)
     # trainer.fit(model, datamodule=None)
 
 

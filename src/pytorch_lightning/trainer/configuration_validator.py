@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any
+
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
@@ -310,11 +312,21 @@ def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
         )
 
 
-def _check_dataloader_none(dataloader, dataloader_name: str, trainer_fn: str) -> None:
-    if dataloader is None:
-        # TODO: make it a deprecation warning
-        rank_zero_warn(
-            f"You explicitly passed `Trainer.{trainer_fn}]({dataloader_name}=None, ...)`, is this intentional?"
-            f" We recommend that you either pass in valid dataloader(s) or define def {dataloader_name} in your"
-            f" LightningModule/LightningDataModule."
+def _check_dataloader_none(stage: str, **dataloader_args: Any) -> None:
+    for arg_name, value in dataloader_args.items():
+        dataloader_method = arg_name if not arg_name.endswith("s") else arg_name[:-1]
+        if value is None:
+            raise ValueError(
+                f"You explicitly passed `Trainer.{stage}({arg_name}=None, ...)`, but this is not supported."
+                " You should either a) pass in valid dataloader(s) or"
+                f" b) remove the argument from `.{stage}()` and implement `def {dataloader_method}(self):` in your"
+                f" LightningModule/LightningDataModule instead."
+            )
+
+
+def _check_datamodule_none(stage: str, datamodule) -> None:
+    if datamodule is None:
+        raise ValueError(
+            f"You explicitly passed `Trainer.{stage}(datamodule=None, ...)`, but this is not supported."
+            f" Please pass in valid `LightningDataModule` or remove the argument from `.{stage}()`."
         )

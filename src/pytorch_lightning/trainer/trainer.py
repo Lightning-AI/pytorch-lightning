@@ -77,7 +77,8 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations, _check_dataloader_none
+from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations, _check_dataloader_none, \
+    _check_datamodule_none
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -718,15 +719,22 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.training = True
 
-        _check_dataloader_none(train_dataloaders, "train_dataloader", "fit")
-        _check_dataloader_none(train_dataloaders, "val_dataloader", "fit")
-
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
             datamodule = train_dataloaders
-            train_dataloaders = None
+            train_dataloaders = _NO_DATALOADER
+
+        _check_dataloader_none(
+            stage=self.state.fn, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders
+        )
+        train_dataloaders = None if train_dataloaders is _NO_DATALOADER else train_dataloaders
+        val_dataloaders = None if val_dataloaders is _NO_DATALOADER else val_dataloaders
+
+        _check_datamodule_none(stage=self.state.fn, datamodule=datamodule)
+        datamodule = None if datamodule is _NO_DATAMODULE else datamodule
+
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloaders is not _NO_DATALOADER or val_dataloaders is not _NO_DATALOADER) and datamodule is not _NO_DATAMODULE:
+        if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
             raise MisconfigurationException(
                 "You cannot pass `train_dataloader` or `val_dataloaders` together with `trainer.fit(datamodule=...)`."
                 " Choose either the datamodule or the raw dataloaders."
