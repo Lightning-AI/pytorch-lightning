@@ -1,49 +1,48 @@
 
+**************************
+What are Lightning Drives?
+**************************
 
-************
-About Drives
-************
-
-Lightning Drives are shared app storage that allow you to share files between LightningWork components, so that you distributed components can share files when running on the cloud. Using drives, you can run your Lightning App both locally and in the cloud without changing the code.
+Lightning Drives are shared app storage that allow you to share files between `LightningWork (Work) <../../core_api/lightning_work/index.html>`_ components, so that you distributed components can share files when running on the cloud. Using drives, you can run your Lightning App both locally and in the cloud without changing the code.
 
 The Drive object provides a central place for your components to share data.
 
 The Drive acts as an isolated folder and any component can access it by knowing its name.
 
-We currently support two types of Lighting Drives: Lightning-managed and S3.
+We currently support two types of Drives: Lightning-managed (``lit://``) and S3 (``s3://``).
 
-+---------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``lit://``    | ``lit://`` allow read-write operations and are accessible through the Drive API from a Work.                                  |
-|               |                                                                                                                               |
-|               | They allow your components to put, list, get, and delete files from and to the Drive (except LightningFlows).                 |
-+---------------+-------------------------------------------------------------------------------------------------------------------------------+
-| ``s3://``     | ``s3://`` is AWS S3 storage mounted at a filesystem mount point. ``s3://`` is read-only (for now) and its primary purpose is  |
-|               | to give you a permanent location to access your training data.                                                                 |
-|               |                                                                                                                               |
-|               | They allow your components to list and get files located on the Drive.                                                        |
-+---------------+-------------------------------------------------------------------------------------------------------------------------------+
++-----------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+| Lightning-managed (``lit://``)    | Allows read-write operations and are accessible through the Drive API from a Work.                                            |
+|                                   |                                                                                                                               |
+|                                   | They allow your components to put, list, get, and delete files from and to the Drive (except LightningFlows).                 |
++-----------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+| S3 (``s3://``)                    | S3 is AWS S3 storage mounted at a filesystem mount point. S3 is read-only (for now) and its primary purpose is                |
+|                                   | to give you a permanent location to access your training data.                                                                |
+|                                   |                                                                                                                               |
+|                                   | They allow your components to list and get files located on the Drive.                                                        |
++-----------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
 
 ----
 
-***********************
-What Drive does for you
-***********************
+**********************
+What Drives do for you
+**********************
 
 Think of every instance of the Drive object acting like a Google Drive or like Dropbox.
 
 By sharing the Drive between components through the LightningFlow,
-several components can have a shared place to read (``s3://`` Drives) or read and write (``lit://`` Drives) files from.
+several components can have a shared place to read (S3 Drives) or read and write (Lightning-managed Drives) files from.
 
-Limitations
-^^^^^^^^^^^
+S3 Drive Limitations
+^^^^^^^^^^^^^^^^^^^^
 
-These limitations only apply to ``s3://`` Drives:
+These limitations only apply to S3 Drives:
 
-* There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work. However, it’s possible to create a Drive with the same location across multiple Works.
+* There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work.  However, it’s possible to create a Drive with the same location across multiple Works.
 
 * S3 buckets cannot be mounted as Drives once a Work has been instantiated. The `Drive` object must be initialized passed to a Work at creation time.
 
-* Whenever a Drive is mounted to a Work, the indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets. For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
+* Whenever a Drive is mounted to a Work, an indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets. For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
 
 ----
 
@@ -98,9 +97,9 @@ Any component can create a drive object for ``lit://`` Drives.
 Supported actions with Drives
 *****************************
 
-A ``lit://`` Drive supports put, list, get, and delete actions.
+A Lightning-managed Drive supports put, list, get, and delete actions.
 
-A ``s3://`` Drive supports list and get actions (for now).
+An S3 Drive supports list and get actions (for now).
 
 .. code-block:: python
 
@@ -197,7 +196,7 @@ Here is an illustrated code example on how to create drives within Works.
 Transfer files with Drive
 *************************
 
-In the example below, the Drive is created by the Flow and passed to its Work's.
+In the example below, the Drive is created by the Flow and passed to its Works.
 
 The ``Work_1`` put a file **a.txt** in the **Drive("lit://this_drive_id")** and the ``Work_2`` can list and get the **a.txt** file from it.
 
