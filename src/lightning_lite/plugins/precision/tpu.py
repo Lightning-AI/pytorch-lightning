@@ -17,10 +17,6 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.plugins.precision.precision import PrecisionPlugin
-from lightning_lite.utilities.imports import _XLA_AVAILABLE
-
-if _XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 class TPUPrecisionPlugin(PrecisionPlugin):
@@ -35,4 +31,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
     ) -> Any:
         if args:
             raise ValueError("Positional arguments to the optimizer step need to be passed as named arguments.")
+
+        import torch_xla.core.xla_model as xm
+
         return xm.optimizer_step(optimizer, optimizer_args=kwargs)
