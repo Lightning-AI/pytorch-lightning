@@ -18,7 +18,7 @@ from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.nn import Module, Parameter
 
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def is_meta_init() -> bool:
