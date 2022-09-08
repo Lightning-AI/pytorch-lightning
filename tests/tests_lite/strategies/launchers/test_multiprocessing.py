@@ -73,6 +73,7 @@ def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
         assert len(function_args) == 4
 
 
+@pytest.mark.usefixtures("reset_deterministic_algorithm")
 def test_global_state_snapshot():
     """Test the capture() and restore() methods for the global state snapshot."""
     torch.use_deterministic_algorithms(True)

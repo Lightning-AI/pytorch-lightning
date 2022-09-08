@@ -76,7 +76,7 @@ def teardown_process_group():
         torch.distributed.destroy_process_group()
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
