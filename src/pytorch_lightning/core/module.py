@@ -558,7 +558,7 @@ class LightningModule(
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
     def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
-        value = torch.tensor(value, device=self.device)
+        value = value.clone().detach()
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
