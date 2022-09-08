@@ -16,12 +16,11 @@ from functools import partial
 from typing import Any, Optional, Type
 from unittest.mock import Mock
 
+from lightning_utilities.core.imports import compare_version
 from torch import nn
 
 import pytorch_lightning as pl
-from lightning_utilities.core.imports import compare_version
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 
 _TORCHVISION_GREATER_EQUAL_0_14 = compare_version("torchvision", operator.ge, "0.14.0")
 
