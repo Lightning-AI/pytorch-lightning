@@ -1,7 +1,8 @@
 name: Probot
 
 on:
-  pull_request_target:
+  # TODO: change to `pull_request_target` after this is merged
+  pull_request:
 
 jobs:
   required-jobs:
@@ -13,4 +14,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          interval: 60  # seconds
+          interval: 120  # seconds
