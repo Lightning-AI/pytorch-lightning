@@ -40,6 +40,7 @@ class RunIf:
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
         tpu: bool = False,
+        mps: Optional[bool] = None,
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
@@ -54,6 +55,8 @@ class RunIf:
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
             tpu: Require that TPU is available.
+            mps: If True: Require that MPS (Apple Silicon) is available,
+                if False: Explicitly Require that MPS is not available
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
@@ -94,6 +97,14 @@ class RunIf:
             reasons.append("TPU")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True
+
+        if mps is not None:
+            if mps:
+                conditions.append(not _MPS_AVAILABLE)
+                reasons.append("MPS")
+            else:
+                conditions.append(_MPS_AVAILABLE)
+                reasons.append("not MPS")
 
         if standalone:
             env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
