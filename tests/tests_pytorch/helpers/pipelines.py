@@ -26,7 +26,10 @@ def run_model_test_without_loggers(
 
     # fit model
     trainer = Trainer(**trainer_options)
-    trainer.fit(model, datamodule=data)
+    if data is not None:
+        trainer.fit(model, datamodule=data)
+    else:
+        trainer.fit(model)
 
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -59,7 +62,10 @@ def run_model_test(
     trainer_options.update(logger=logger)
     trainer = Trainer(**trainer_options)
     initial_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
-    trainer.fit(model, datamodule=data)
+    if data is not None:
+        trainer.fit(model, datamodule=data)
+    else:
+        trainer.fit(model)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"

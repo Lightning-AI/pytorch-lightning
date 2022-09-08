@@ -39,7 +39,10 @@ def test_models(tmpdir, data_class, model_class):
     model = model_class()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    trainer.fit(model, datamodule=dm)
+    if dm is not None:
+        trainer.fit(model, datamodule=dm)
+    else:
+        trainer.fit(model)
 
     if dm is not None:
         trainer.test(model, datamodule=dm)

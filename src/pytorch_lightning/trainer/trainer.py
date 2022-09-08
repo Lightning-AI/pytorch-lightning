@@ -118,10 +118,10 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_ze
 from pytorch_lightning.utilities.seed import isolate_rng
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
+    _NO_DATA,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerConfig,
-    Sentinel,
     TRAIN_DATALOADERS,
 )
 
@@ -130,10 +130,6 @@ log = logging.getLogger(__name__)
 warnings.filterwarnings(
     "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
 )
-
-
-class _NO_DATA(Sentinel):
-    """A sentinel representing the default value for 'no dataloader passed to Trainer method'."""
 
 
 class Trainer(
@@ -1013,7 +1009,7 @@ class Trainer(
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
-            dataloaders = None
+            dataloaders = _NO_DATA
 
         _check_dataloader_none(stage=self.state.fn, dataloaders=dataloaders)
         dataloaders = None if dataloaders is _NO_DATA else dataloaders

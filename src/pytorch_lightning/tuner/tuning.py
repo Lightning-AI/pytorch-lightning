@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -20,7 +20,7 @@ from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.types import _NO_DATA, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class _TunerResult(TypedDict):
@@ -83,9 +83,9 @@ class Tuner:
     def scale_batch_size(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional["pl.LightningDataModule"] = None,
+        train_dataloaders: Union[TRAIN_DATALOADERS, "pl.LightningDataModule", Type[_NO_DATA]] = _NO_DATA,
+        val_dataloaders: Union[EVAL_DATALOADERS, Type[_NO_DATA]] = _NO_DATA,
+        datamodule: Union["pl.LightningDataModule", Type[_NO_DATA]] = _NO_DATA,
         mode: str = "power",
         steps_per_trial: int = 3,
         init_val: int = 2,
@@ -149,9 +149,9 @@ class Tuner:
     def lr_find(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional["pl.LightningDataModule"] = None,
+        train_dataloaders: Union[TRAIN_DATALOADERS, "pl.LightningDataModule", Type[_NO_DATA]] = _NO_DATA,
+        val_dataloaders: Union[EVAL_DATALOADERS, Type[_NO_DATA]] = _NO_DATA,
+        datamodule: Union["pl.LightningDataModule", Type[_NO_DATA]] = _NO_DATA,
         min_lr: float = 1e-8,
         max_lr: float = 1,
         num_training: int = 100,

@@ -61,7 +61,11 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
     model = BatchSizeModel(model_bs)
     datamodule = BatchSizeDataModule(tmpdir, dm_bs) if dm_bs != -1 else None
 
-    new_batch_size = tuner.scale_batch_size(model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule)
+    kwargs = dict(mode="binsearch", init_val=4, max_trials=2)
+    if datamodule is not None:
+        kwargs["datamodule"] = datamodule
+
+    new_batch_size = tuner.scale_batch_size(model, **kwargs)
     assert new_batch_size == 16
 
     if model_bs is not None:

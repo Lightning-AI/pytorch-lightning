@@ -100,7 +100,10 @@ def _run_standard_hparams_test(tmpdir, model, cls, datamodule=None, try_overwrit
 
     # verify we can train
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
-    trainer.fit(model, datamodule=datamodule if issubclass(cls, LightningDataModule) else None)
+    if issubclass(cls, LightningDataModule):
+        trainer.fit(model, datamodule=datamodule)
+    else:
+        trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)

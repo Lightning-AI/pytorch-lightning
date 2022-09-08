@@ -157,3 +157,7 @@ class _SentinelMeta(type):
 
 class Sentinel(metaclass=_SentinelMeta):
     """Subclass this to create a new sentinel."""
+
+
+class _NO_DATA(Sentinel):
+    """A sentinel representing the default value for 'no dataloader passed to Trainer method'."""
