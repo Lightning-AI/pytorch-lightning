@@ -61,7 +61,6 @@ jobs:
         pip --version
         pip install -q fire
 
-    # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
       if: runner.os == 'macOS'
       run: |
@@ -77,22 +76,20 @@ jobs:
       run: |
         python .actions/assistant.py replace_oldest_ver
 
-    # # Note: This uses an internal pip API and may not always work
-    # # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    # - name: Get pip cache dir
-    #   id: pip-cache
-    #   run: echo "::set-output name=dir::$(pip cache dir)"
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
 
-    # - name: pip cache
-    #   uses: actions/cache@v3
-    #   with:
-    #     path: ${{ steps.pip-cache.outputs.dir }}
-    #     key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-    #     restore-keys: |
-    #       ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+    - name: pip cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    # - name: Pull legacy checkpoints
-    #   run: bash .actions/pull_legacy_checkpoints.sh
+    - name: Pull legacy checkpoints
+      run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Install dependencies
       env:
@@ -109,9 +106,9 @@ jobs:
         pip list
       shell: bash
 
-    # - name: DocTests
-    #   working-directory: ./src
-    #   run: pytest pytorch_lightning --cov=pytorch_lightning
+    - name: DocTests
+      working-directory: ./src
+      run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
@@ -132,59 +129,53 @@ jobs:
 
     - uses: Lightning-AI/utilities/.github/actions/pip-list@ci/pip-list
 
-    # - name: Cache datasets
-    #   uses: actions/cache@v3
-    #   with:
-    #     path: Datasets
-    #     key: pl-dataset
+    - name: Cache datasets
+      uses: actions/cache@v3
+      with:
+        path: Datasets
+        key: pl-dataset
 
     - name: Sanity check
       run: python requirements/pytorch/check-avail-extras.py
 
-    # - name: Testing Warnings
-    #   # the stacklevel can only be set on >=3.7
-    #   if: matrix.python-version != '3.7'
-    #   working-directory: tests/tests_pytorch
-    #   # needs to run outside of `pytest`
-    #   run: python utilities/test_warnings.py
+    - name: Testing Warnings
+      # the stacklevel can only be set on >=3.7
+      if: matrix.python-version != '3.7'
+      working-directory: tests/tests_pytorch
+      # needs to run outside of `pytest`
+      run: python utilities/test_warnings.py
 
-    # - name: Testing PyTorch
-    #   working-directory: tests/tests_pytorch
-    #   # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-    #   run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+    - name: Testing PyTorch
+      working-directory: tests/tests_pytorch
+      # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
-    # - name: Upload pytest results
-    #   if: failure()
-    #   uses: actions/upload-artifact@v3
-    #   with:
-    #     name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-    #     path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+    - name: Upload pytest results
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
+        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
-    # - name: Prepare Examples
-    #   run: |
-    #     # adjust versions according installed Torch version
-    #     python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
-    #     pip install -r requirements/pytorch/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+    - name: Run Examples
+      working-directory: ./examples
+      run: python -m pytest test_pl_examples.py -v --durations=10
 
-    # - name: Run Examples
-    #   working-directory: ./examples
-    #   run: python -m pytest test_pl_examples.py -v --durations=10
+    - name: Statistics
+      if: success()
+      working-directory: tests/tests_pytorch
+      run: |
+        coverage report
+        coverage xml
 
-    # - name: Statistics
-    #   if: success()
-    #   working-directory: tests/tests_pytorch
-    #   run: |
-    #     coverage report
-    #     coverage xml
-
-    # - name: Upload coverage to Codecov
-    #   uses: codecov/codecov-action@v3
-    #   if: always()
-    #   # see: https://github.com/actions/toolkit/issues/399
-    #   continue-on-error: true
-    #   with:
-    #     token: ${{ secrets.CODECOV_TOKEN }}
-    #     file: tests/tests_pytorch/coverage.xml
-    #     flags: cpu,pytest,python${{ matrix.python-version }}
-    #     name: CPU-coverage
-    #     fail_ci_if_error: false
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: tests/tests_pytorch/coverage.xml
+        flags: cpu,pytest,python${{ matrix.python-version }}
+        name: CPU-coverage
+        fail_ci_if_error: false
