@@ -15,7 +15,10 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators.mps import MPSAccelerator
+from lightning_lite.accelerators.mps import MPSAccelerator, _MPS_AVAILABLE
+
+
+_MAYBE_MPS = "mps" if _MPS_AVAILABLE else "cpu"  # torch.device(mps) only works on torch>=1.12
 
 
 def test_auto_device_count():
@@ -36,11 +39,11 @@ def test_init_device_with_wrong_device_type():
 @pytest.mark.parametrize(
     "devices,expected",
     [
-        (1, [torch.device("mps", 0)]),
-        (2, [torch.device("mps", 0), torch.device("mps", 1)]),
-        ([0], [torch.device("mps", 0)]),
+        (1, [torch.device(_MAYBE_MPS, 0)]),
+        (2, [torch.device(_MAYBE_MPS, 0), torch.device(_MAYBE_MPS, 1)]),
+        ([0], [torch.device(_MAYBE_MPS, 0)]),
         # TODO(lite): This case passes with the implementation from PL, but looks like a bug
-        ([0, 2], [torch.device("mps", 0), torch.device("mps", 1)]),
+        ([0, 2], [torch.device(_MAYBE_MPS, 0), torch.device(_MAYBE_MPS, 1)]),
     ],
 )
 def test_get_parallel_devices(devices, expected):
