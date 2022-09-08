@@ -61,6 +61,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - When using multiple loggers, by default checkpoints and profiler output now get saved to the log dir of the first logger in the list ([14325](https://github.com/Lightning-AI/lightning/pull/14325))
 
 
+- Explicitly passing `train_dataloaders=None`, `val_dataloaders=None`, `dataloaders=None` or `datamodule=None` is officially no longer supported and will inform using a better error message than before ([14614](https://github.com/Lightning-AI/lightning/pull/14614))
+
+
 
 ### Deprecated
 
