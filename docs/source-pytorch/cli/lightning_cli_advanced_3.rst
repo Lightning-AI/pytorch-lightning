@@ -354,3 +354,33 @@ You can also pass the class path directly, for example, if the optimizer hasn't 
         --optimizer1.lr=0.01 \
         --optimizer2=torch.optim.AdamW \
         --optimizer2.lr=0.0001
+
+
+Run from Python
+^^^^^^^^^^^^^^^
+
+Even though the :class:`~pytorch_lightning.cli.LightningCLI` class is designed to help in the implementation of command
+line tools, for some use cases it is desired to run directly from Python. To support these use cases, the ``args``
+parameter can be used, for example:
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, args=["--trainer.max_epochs=100", "--model.encoder_layers=24"])
+
+All the features that are supported from the command line can be used when giving ``args`` as a list of strings. It is
+also possible to provide to ``args`` a ``dict`` or `Namespace
+<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.Namespace>`__. For example:
+
+.. testcode::
+
+    cli = LightningCLI(
+        MyModel,
+        args={
+            "trainer": {
+                "max_epochs": 100,
+            },
+            "model": {
+                "encoder_layers": 24,
+            },
+        },
+    )

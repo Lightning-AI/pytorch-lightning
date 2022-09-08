@@ -256,6 +256,7 @@ class LightningCLI:
         parser_kwargs: Optional[Union[Dict[str, Any], Dict[str, Dict[str, Any]]]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
+        args: Union[List[str], Dict[str, Any], Namespace] = None,
         run: bool = True,
         auto_registry: bool = False,
     ) -> None:
@@ -300,6 +301,9 @@ class LightningCLI:
             subclass_mode_data: Whether datamodule can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
+            args: Arguments to parse. If ``None`` the arguments are taken from ``sys.argv``. Command line style
+                arguments can be given in a ``list``. Alternatively a structured config options can be given in a
+                ``dict`` or ``jsonargparse.Namespace``.
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
             auto_registry: Whether to automatically fill up the registries with all defined subclasses.
@@ -338,7 +342,7 @@ class LightningCLI:
             {"description": description, "env_prefix": env_prefix, "default_env": env_parse},
         )
         self.setup_parser(run, main_kwargs, subparser_kwargs)
-        self.parse_arguments(self.parser)
+        self.parse_arguments(self.parser, args)
 
         self.subcommand = self.config["subcommand"] if run else None
 
@@ -472,9 +476,12 @@ class LightningCLI:
                 add_class_path = _add_class_path_generator(class_type)
                 parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
-    def parse_arguments(self, parser: LightningArgumentParser) -> None:
+    def parse_arguments(self, parser: LightningArgumentParser, args: Union[List[str], Dict[str, Any], Namespace]) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
-        self.config = parser.parse_args()
+        if isinstance(args, (dict, Namespace)):
+            self.config = parser.parse_object(args)
+        else:
+            self.config = parser.parse_args(args)
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
