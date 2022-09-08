@@ -58,7 +58,7 @@ from pytorch_lightning import cli_lightning_logo, LightningDataModule, Lightning
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.utilities.model_helpers import get_torchvision_model
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.utilities import rank_zero_info
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
