@@ -1634,8 +1634,8 @@ The number of epochs run.
 
     if trainer.current_epoch >= 10:
         ...
-        
- 
+
+
 datamodule
 **********
 
@@ -1739,8 +1739,8 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics["a_val"] == 2
-    
-    
+
+
 predict_dataloaders
 *******************
 
@@ -1835,12 +1835,12 @@ both conditions are met. If any of these arguments is not set, it won't be consi
 train_dataloader
 ****************
 
-The current train dataloader of the trainer.  
+The current train dataloader of the trainer.
 
 .. code-block:: python
     used_train_dataloader = trainer.train_dataloader
-    
-    
+
+
 test_dataloaders
 ****************
 
@@ -1850,7 +1850,7 @@ Note that property returns a list of test dataloaders.
 
 .. code-block:: python
     used_test_dataloaders = trainer.test_dataloaders
-    
+
 val_dataloaders
 ***************
 
