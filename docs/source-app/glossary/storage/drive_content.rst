@@ -10,7 +10,7 @@ The Drive object provides a central place for your components to share data.
 
 The Drive acts as an isolated folder and any component can access it by knowing its name.
 
-We currently support two types of Drives: ``lit://`` and ``s3://``.
+We currently support two types of Lighting Drives: Lightning-managed and S3.
 
 +---------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``lit://``    | ``lit://`` allow read-write operations and are accessible through the Drive API from a Work.                                  |
