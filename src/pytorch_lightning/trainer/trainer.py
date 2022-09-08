@@ -77,8 +77,11 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations, _check_dataloader_none, \
-    _check_datamodule_none
+from pytorch_lightning.trainer.configuration_validator import (
+    _check_dataloader_none,
+    _check_datamodule_none,
+    verify_loop_configurations,
+)
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -729,7 +732,6 @@ class Trainer(
         )
         train_dataloaders = None if train_dataloaders is _NO_DATALOADER else train_dataloaders
         val_dataloaders = None if val_dataloaders is _NO_DATALOADER else val_dataloaders
-
         _check_datamodule_none(stage=self.state.fn, datamodule=datamodule)
         datamodule = None if datamodule is _NO_DATAMODULE else datamodule
 
@@ -796,10 +798,10 @@ class Trainer(
     def _validate_impl(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        dataloaders: Union[EVAL_DATALOADERS, LightningDataModule] = _NO_DATALOADER,
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
+        datamodule: LightningDataModule = _NO_DATAMODULE,
     ) -> _EVALUATE_OUTPUT:
         # --------------------
         # SETUP HOOK
@@ -814,7 +816,13 @@ class Trainer(
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
-            dataloaders = None
+            dataloaders = _NO_DATALOADER
+
+        _check_dataloader_none(stage=self.state.fn, dataloaders=dataloaders)
+        dataloaders = None if dataloaders is _NO_DATALOADER else dataloaders
+        _check_datamodule_none(stage=self.state.fn, datamodule=datamodule)
+        datamodule = None if datamodule is _NO_DATAMODULE else datamodule
+
         # If you supply a datamodule you can't supply val_dataloaders
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`")
@@ -886,10 +894,10 @@ class Trainer(
     def _test_impl(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        dataloaders: Union[EVAL_DATALOADERS, LightningDataModule] = _NO_DATALOADER,
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
+        datamodule: LightningDataModule = _NO_DATAMODULE,
     ) -> _EVALUATE_OUTPUT:
         # --------------------
         # SETUP HOOK
@@ -904,7 +912,13 @@ class Trainer(
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
-            dataloaders = None
+            dataloaders = _NO_DATALOADER
+
+        _check_dataloader_none(stage=self.state.fn, dataloaders=dataloaders)
+        dataloaders = None if dataloaders is _NO_DATALOADER else dataloaders
+        _check_datamodule_none(stage=self.state.fn, datamodule=datamodule)
+        datamodule = None if datamodule is _NO_DATAMODULE else datamodule
+
         # If you supply a datamodule you can't supply test_dataloaders
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`")
@@ -977,8 +991,8 @@ class Trainer(
     def _predict_impl(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        datamodule: Optional[LightningDataModule] = None,
+        dataloaders: Union[EVAL_DATALOADERS, LightningDataModule] = _NO_DATALOADER,
+        datamodule: LightningDataModule = _NO_DATAMODULE,
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
@@ -998,6 +1012,12 @@ class Trainer(
         if isinstance(dataloaders, LightningDataModule):
             datamodule = dataloaders
             dataloaders = None
+
+        _check_dataloader_none(stage=self.state.fn, dataloaders=dataloaders)
+        dataloaders = None if dataloaders is _NO_DATALOADER else dataloaders
+        _check_datamodule_none(stage=self.state.fn, datamodule=datamodule)
+        datamodule = None if datamodule is _NO_DATAMODULE else datamodule
+
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`")
 

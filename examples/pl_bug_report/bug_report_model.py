@@ -1,9 +1,11 @@
 import torch
-from pytorch_lightning import LightningModule, Trainer, LightningDataModule
+
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 
 
 class BoringData(LightningDataModule):
     pass
+
 
 class BoringModel(LightningModule):
     def __init__(self):
