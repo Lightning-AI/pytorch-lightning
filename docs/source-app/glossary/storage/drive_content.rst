@@ -39,7 +39,7 @@ Limitations
 
 These limitations only apply to ``s3://`` Drives:
 
-* There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work.
+* There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work. However, it’s possible to create a Drive with the same location across multiple Works.
 
 * S3 buckets cannot be mounted as Drives once a Work has been instantiated. The `Drive` object must be initialized passed to a Work at creation time.
 
