@@ -43,23 +43,28 @@ class PrecisionPlugin:
         yield
 
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
-        """Run before precision plugin executes backward.
+        """Runs before precision plugin executes backward.
 
         Args:
-            tensor:
-            module:
+            tensor: The tensor that will be used for backpropagation
+            module: The module that was involved in producing the tensor and whose parameters need the gradients
         """
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
-        """Performs the actual backpropagation."""
+        """Performs the actual backpropagation.
+
+        Args:
+            tensor: The tensor that will be used for backpropagation
+            model: The module that was involved in producing the tensor and whose parameters need the gradients
+        """
         tensor.backward(*args, **kwargs)
 
     def post_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
-        """Run after precision plugin executes backward.
+        """Runs after precision plugin executes backward.
 
         Args:
-            tensor:
-            module:
+            tensor: The tensor that will be used for backpropagation
+            module: The module that was involved in producing the tensor and whose parameters need the gradients
         """
 
     def optimizer_step(
