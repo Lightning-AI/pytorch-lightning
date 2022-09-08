@@ -39,6 +39,8 @@ jobs:
           pip list
         shell: bash
 
+      - uses: ./.github/actions/pip-list
+
       - name: Make Documentation
         run: |
           # First run the same pipeline as Read-The-Docs

@@ -27,6 +27,10 @@ jobs:
         pip install mypy types-setuptools # don't use --upgrade to respect the version installed via setup.py
         pip list
 
+    - uses: ./.github/actions/pip-list
+      with:
+        unfold: true
+
     - name: Check typing
       # mypy uses the config file found in the following order:
       # 1. mypy.ini
