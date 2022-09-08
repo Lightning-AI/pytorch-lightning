@@ -18,7 +18,7 @@ We currently support two types of Lighting Drives: Lightning-managed and S3.
 |               | They allow your components to put, list, get, and delete files from and to the Drive (except LightningFlows).                 |
 +---------------+-------------------------------------------------------------------------------------------------------------------------------+
 | ``s3://``     | ``s3://`` is AWS S3 storage mounted at a filesystem mount point. ``s3://`` is read-only (for now) and its primary purpose is  |
-|               | to give you a permanent location to store your training data.                                                                 |
+|               | to give you a permanent location to access your training data.                                                                 |
 |               |                                                                                                                               |
 |               | They allow your components to list and get files located on the Drive.                                                        |
 +---------------+-------------------------------------------------------------------------------------------------------------------------------+
