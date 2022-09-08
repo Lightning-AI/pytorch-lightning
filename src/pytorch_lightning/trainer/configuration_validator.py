@@ -308,3 +308,13 @@ def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
             "`LightningDataModule.on_load_checkpoint` was deprecated in"
             " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
         )
+
+
+def _check_dataloader_none(dataloader, dataloader_name: str, trainer_fn: str) -> None:
+    if dataloader is None:
+        # TODO: make it a deprecation warning
+        rank_zero_warn(
+            f"You explicitly passed `Trainer.{trainer_fn}]({dataloader_name}=None, ...)`, is this intentional?"
+            f" We recommend that you either pass in valid dataloader(s) or define def {dataloader_name} in your"
+            f" LightningModule/LightningDataModule."
+        )

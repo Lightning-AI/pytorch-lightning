@@ -77,7 +77,7 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
+from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations, _check_dataloader_none
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -125,6 +125,9 @@ log = logging.getLogger(__name__)
 warnings.filterwarnings(
     "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
 )
+
+_NO_DATALOADER = object()
+_NO_DATAMODULE = object()
 
 
 class Trainer(
@@ -670,9 +673,9 @@ class Trainer(
     def fit(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
+        train_dataloaders: Union[TRAIN_DATALOADERS, LightningDataModule] = _NO_DATALOADER,
+        val_dataloaders: EVAL_DATALOADERS = _NO_DATALOADER,
+        datamodule: LightningDataModule = _NO_DATAMODULE,
         ckpt_path: Optional[str] = None,
     ) -> None:
         r"""
@@ -703,9 +706,9 @@ class Trainer(
     def _fit_impl(
         self,
         model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = _NO_DATALOADER,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = _NO_DATALOADER,
+        datamodule: Optional[LightningDataModule] = _NO_DATAMODULE,
         ckpt_path: Optional[str] = None,
     ) -> None:
         Trainer._log_api_event("fit")
@@ -715,14 +718,18 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.training = True
 
+        _check_dataloader_none(train_dataloaders, "train_dataloader", "fit")
+        _check_dataloader_none(train_dataloaders, "val_dataloader", "fit")
+
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
             datamodule = train_dataloaders
             train_dataloaders = None
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
+        if (train_dataloaders is not _NO_DATALOADER or val_dataloaders is not _NO_DATALOADER) and datamodule is not _NO_DATAMODULE:
             raise MisconfigurationException(
-                "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.fit(datamodule=...)`"
+                "You cannot pass `train_dataloader` or `val_dataloaders` together with `trainer.fit(datamodule=...)`."
+                " Choose either the datamodule or the raw dataloaders."
             )
 
         # links data to the trainer
@@ -744,10 +751,10 @@ class Trainer(
     def validate(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        dataloaders: Union[EVAL_DATALOADERS, LightningDataModule] = _NO_DATALOADER,
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
+        datamodule: LightningDataModule = _NO_DATAMODULE,
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -833,10 +840,10 @@ class Trainer(
     def test(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
+        dataloaders: Union[EVAL_DATALOADERS, LightningDataModule] = _NO_DATALOADER,
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
-        datamodule: Optional[LightningDataModule] = None,
+        datamodule: LightningDataModule = _NO_DATAMODULE,
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set.
@@ -923,8 +930,8 @@ class Trainer(
     def predict(
         self,
         model: Optional["pl.LightningModule"] = None,
-        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        datamodule: Optional[LightningDataModule] = None,
+        dataloaders: Union[EVAL_DATALOADERS, LightningDataModule] = _NO_DATALOADER,
+        datamodule: LightningDataModule = _NO_DATAMODULE,
         return_predictions: Optional[bool] = None,
         ckpt_path: Optional[str] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
