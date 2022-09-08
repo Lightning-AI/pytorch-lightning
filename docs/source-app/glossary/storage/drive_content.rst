@@ -41,7 +41,7 @@ These limitations only apply to ``s3://`` Drives:
 
 * There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work.
 
-* S3 buckets cannot be mounted as Drives at the runtime of a Work. The `Drive` object must be initialized in a Flow and passed to a Work through its initialization arguments.
+* S3 buckets cannot be mounted as Drives once a Work has been instantiated. The `Drive` object must be initialized passed to a Work at creation time.
 
 * Whenever a Drive is mounted to a Work, the indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets. For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
 
