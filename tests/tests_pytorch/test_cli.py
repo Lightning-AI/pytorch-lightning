@@ -1559,11 +1559,12 @@ def test_pytorch_profiler_init_args():
     assert cli.config.trainer.profiler.dict_kwargs == unresolved
 
 
-@pytest.mark.parametrize(["args"],
+@pytest.mark.parametrize(
+    ["args"],
     [
-        (["--trainer.logger=False", "--model.foo=456"], ),
-        ({"trainer": {"logger": False}, "model": {"foo": 456}}, ),
-        (Namespace(trainer=Namespace(logger=False), model=Namespace(foo=456)), ),
+        (["--trainer.logger=False", "--model.foo=456"],),
+        ({"trainer": {"logger": False}, "model": {"foo": 456}},),
+        (Namespace(trainer=Namespace(logger=False), model=Namespace(foo=456)),),
     ],
 )
 def test_lightning_cli_with_args_given(args):

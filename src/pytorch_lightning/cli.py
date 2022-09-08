@@ -476,7 +476,9 @@ class LightningCLI:
                 add_class_path = _add_class_path_generator(class_type)
                 parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
-    def parse_arguments(self, parser: LightningArgumentParser, args: Union[List[str], Dict[str, Any], Namespace]) -> None:
+    def parse_arguments(
+        self, parser: LightningArgumentParser, args: Union[List[str], Dict[str, Any], Namespace]
+    ) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
         if isinstance(args, (dict, Namespace)):
             self.config = parser.parse_object(args)
