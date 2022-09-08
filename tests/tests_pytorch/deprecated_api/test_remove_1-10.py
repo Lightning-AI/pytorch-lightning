@@ -20,7 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import CPUbAccelerator, get_cpu_stats
+from pytorch_lightning.accelerators.cpu import CPUAccelerator, get_cpu_stats
 from pytorch_lightning.accelerators.cuda import get_nvidia_gpu_stats
 from pytorch_lightning.accelerators.mps import get_device_stats
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin

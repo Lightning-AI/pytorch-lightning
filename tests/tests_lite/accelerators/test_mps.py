@@ -32,6 +32,7 @@ def test_init_device_with_wrong_device_type():
         MPSAccelerator().init_device(torch.device("cpu"))
 
 
+@RunIf(mps=True)
 @pytest.mark.parametrize(
     "devices,expected",
     [
