@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
@@ -324,7 +324,7 @@ def _check_dataloader_none(stage: str, **dataloader_args: Any) -> None:
             )
 
 
-def _check_datamodule_none(stage: str, datamodule) -> None:
+def _check_datamodule_none(stage: str, datamodule: Optional["pl.LightningDataModule"]) -> None:
     if datamodule is None:
         raise ValueError(
             f"You explicitly passed `Trainer.{stage}(datamodule=None, ...)`, but this is not supported."

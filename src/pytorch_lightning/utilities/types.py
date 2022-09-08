@@ -19,7 +19,7 @@ Convention:
 from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Dict, Generator, List, Literal, Mapping, Optional, Sequence, Type, Union
 
 import torch
 from torch import Tensor
@@ -139,3 +139,21 @@ class LRSchedulerConfig:
     strict: bool = True
     # opt_idx assigned internally if not assigned by user
     opt_idx: Optional[int] = None
+
+
+class _SentinelMeta(type):
+    """Metaclass representing a sentinel value by the name of the class.
+
+    Reference: https://stackoverflow.com/a/69243488/1162383
+    See also: https://peps.python.org/pep-0661/
+    """
+
+    def __repr__(cls) -> str:
+        return f"<{cls.__name__}>"
+
+    def __bool__(cls) -> Literal[False]:
+        return False
+
+
+class Sentinel(metaclass=_SentinelMeta):
+    """Subclass this to create a new sentinel."""
