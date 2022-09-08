@@ -33,6 +33,7 @@ DOT_IGNORE_FILENAME = ".lightningignore"
 
 LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
 LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
+ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 
 
 def get_lightning_cloud_url() -> str:

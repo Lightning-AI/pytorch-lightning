@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -23,7 +24,7 @@ from lightning_app.cli.commands.connection import (
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.core.constants import get_lightning_cloud_url
+from lightning_app.core.constants import get_lightning_cloud_url, LIGHTNING_CREDENTIAL_PATH
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_logs import _app_logs_reader
@@ -300,6 +301,13 @@ def _run_app(
             )
 
     env_vars = _format_input_env_variables(env)
+    if os.path.exists(LIGHTNING_CREDENTIAL_PATH):
+        with open(LIGHTNING_CREDENTIAL_PATH, "rb") as f:
+            data = json.load(f)
+            env_vars["LIGHTNING_USERNAME"] = data["username"]
+            env_vars["LIGHTNING_USER_ID"] = data["user_id"]
+            env_vars["LIGHTNING_API_KEY"] = data["api_key"]
+
     os.environ.update(env_vars)
 
     def on_before_run(*args):
