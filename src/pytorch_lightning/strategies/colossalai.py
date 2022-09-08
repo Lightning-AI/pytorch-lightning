@@ -1,6 +1,7 @@
 from typing import Any, Generator, Optional
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
@@ -8,10 +9,9 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _Light
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-_COLOSSALAI_AVAILABLE = _RequirementAvailable("colossalai")
+_COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
 if _COLOSSALAI_AVAILABLE:
     from colossalai.context import ParallelMode
     from colossalai.core import global_context as gpc
