@@ -19,17 +19,17 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins import LayerSync
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.distributed import (
+from lightning_lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     all_gather_ddp_if_available,
     get_default_process_group_backend_for_device,
     ReduceOp,
 )
+from pytorch_lightning.plugins import LayerSync
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 

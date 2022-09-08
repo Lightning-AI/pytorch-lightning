@@ -170,7 +170,7 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config):
+def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
     initial_size = len(items)
     conditions = []
     filtered, skipped = 0, 0

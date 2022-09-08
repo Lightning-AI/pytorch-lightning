@@ -1,7 +1,7 @@
 name: Package
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
@@ -38,7 +38,7 @@ jobs:
         python-version: [3.8]  # , 3.9
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -49,9 +49,11 @@ jobs:
           path: pypi
       - run: ls -lh pypi/
 
+      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg }}' == 'pytorch' else 1))" >> $GITHUB_ENV
       - uses: ./.github/actions/pkg-check
         with:
           pkg-name: ${{ matrix.pkg }}
+          nb-dirs: ${{ env.NB_DIRS }}
 
       - uses: actions/upload-artifact@v3
         with:
@@ -72,7 +74,7 @@ jobs:
         python-version: [3.8]  # , 3.9
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -104,7 +106,7 @@ jobs:
         python-version: [3.8]  # , 3.9
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
