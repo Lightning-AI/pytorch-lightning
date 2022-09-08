@@ -4,7 +4,7 @@
 About Drives
 ************
 
-Lightning Drive storage makes it easy to share files between LightningWorks (Work) so you can run your Lightning App both locally and in the cloud without changing the code.
+Lightning Drives are shared app storage that allow you to share files between LightningWork components, so that you distributed components can share files when running on the cloud. Using drives, you can run your Lightning App both locally and in the cloud without changing the code.
 
 The Drive object provides a central place for your components to share data.
 
