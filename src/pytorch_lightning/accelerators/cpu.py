@@ -15,11 +15,11 @@ from typing import Any, Dict, List, Union
 
 import torch
 
+from lightning_lite.utilities.device_parser import parse_cpu_cores
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.device_parser import parse_cpu_cores
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
-from pytorch_lightning.utilities.types import _DEVICE
 
 
 class CPUAccelerator(Accelerator):

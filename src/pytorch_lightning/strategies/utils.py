@@ -15,7 +15,7 @@ import os
 
 import torch
 
-from pytorch_lightning.utilities.enums import PrecisionType
+from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
