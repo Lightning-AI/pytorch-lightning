@@ -405,7 +405,11 @@ class WorkRunner:
             # 10.2 Send failed delta to the flow.
             reference_state = deepcopy(self.work.state)
             self.work._calls[call_hash]["statuses"].append(
-                make_status(WorkStageStatus.FAILED, message=str(e), reason=WorkFailureReasons.USER_EXCEPTION)
+                make_status(
+                    WorkStageStatus.FAILED,
+                    message=str(traceback.format_exc()),
+                    reason=WorkFailureReasons.USER_EXCEPTION,
+                )
             )
             self.delta_queue.put(
                 ComponentDelta(
