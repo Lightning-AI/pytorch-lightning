@@ -524,7 +524,9 @@ class AcceleratorConnector:
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry[acc_str].is_available()
+                acc_str
+                for acc_str in self._accelerator_types
+                if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
