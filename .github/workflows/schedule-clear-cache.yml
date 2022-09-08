@@ -1,0 +1,13 @@
+name: Clear cache weekly
+
+on:
+  schedule:
+    # on Sundays
+    - cron: "0 0 * * 0"
+
+jobs:
+  clear-cache:
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
+    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@ci/clear-cache # FIXME: specify tag before merge
+    with:
+      pattern: 'latest|docs'
