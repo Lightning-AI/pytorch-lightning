@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
 from functools import partial
 from typing import Any, Optional, Type
 from unittest.mock import Mock
@@ -18,7 +19,11 @@ from unittest.mock import Mock
 from torch import nn
 
 import pytorch_lightning as pl
+from lightning_utilities.core.imports import compare_version
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+_TORCHVISION_GREATER_EQUAL_0_14 = compare_version("torchvision", operator.ge, "0.14.0")
 
 
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
@@ -60,7 +65,7 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
 
 
 def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
-    from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE, _TORCHVISION_GREATER_EQUAL_0_14
+    from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
     if not _TORCHVISION_AVAILABLE:
         raise MisconfigurationException("You have asked for TorchVision but `torchvision` is not installed.")
