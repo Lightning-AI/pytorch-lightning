@@ -24,8 +24,8 @@ from lightning_utilities.core.rank_zero import WarningCache
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
+from lightning_lite.utilities.device_parser import is_cuda_available
 from pytorch_lightning.profilers.profiler import Profiler
-from pytorch_lightning.utilities.device_parser import is_cuda_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn

@@ -22,6 +22,7 @@ import pytest
 import torch
 
 import pytorch_lightning
+from lightning_lite.utilities import device_parser
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
@@ -33,7 +34,6 @@ from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
@@ -547,7 +547,7 @@ def test_v1_8_0_lightning_module_use_amp():
 
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
 def test_v1_8_0_torch_distributed_backend_env():
-    from pytorch_lightning.utilities.distributed import _get_process_group_backend_from_env
+    from lightning_lite.utilities.distributed import _get_process_group_backend_from_env
 
     with pytest.deprecated_call(
         match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
