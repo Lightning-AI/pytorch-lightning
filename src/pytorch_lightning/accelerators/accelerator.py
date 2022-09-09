@@ -21,7 +21,10 @@ from lightning_lite.accelerators.accelerator import Accelerator as _Accelerator
 
 
 class Accelerator(_Accelerator, ABC):
-    """The Accelerator base class for Lightning PyTorch. An Accelerator is meant to deal with one type of hardware."""
+    """The Accelerator base class for Lightning PyTorch.
+
+    An Accelerator is meant to deal with one type of hardware.
+    """
 
     def setup_environment(self, root_device: torch.device) -> None:
         """
