@@ -52,7 +52,7 @@ references:
   update_jsonnet: &update_jsonnet
     run:
       name: Update jsonnet
-      env:
+      environment:
         SHA: << pipeline.parameters.GHA_Meta >>
       command: |
        export PR_NUMBER=$(git ls-remote origin "pull/*/head" | grep -F -f $SHA) | awk -F'/' '{print $3}')
