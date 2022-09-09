@@ -14,10 +14,10 @@ from types import ModuleType
 from typing import List, Optional, Sequence
 from urllib import request
 from urllib.request import Request, urlopen
-from packaging.version import parse as version_parse
 
 import fire
 import pkg_resources
+from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
     "pytorch": (
