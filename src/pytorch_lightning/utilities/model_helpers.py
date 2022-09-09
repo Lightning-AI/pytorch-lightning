@@ -68,6 +68,7 @@ def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
     from torchvision import models
 
     torchvision_greater_equal_0_14 = RequirementCache("torchvision>=0.14.0")
+    # TODO: deprecate this function when 0.14 is the minimum supported torchvision
     if torchvision_greater_equal_0_14:
         return models.get_model(model_name, **kwargs)
     return getattr(models, model_name)(**kwargs)
