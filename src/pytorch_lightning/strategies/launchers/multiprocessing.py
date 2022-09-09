@@ -67,10 +67,6 @@ class _MultiProcessingLauncher(_Launcher):
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
             )
-        if start_method in ("fork", "forkserver") and _is_forking_disabled():
-            raise ValueError(
-                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different start method."
-            )
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -286,8 +282,3 @@ class _GlobalStateSnapshot:
             torch.use_deterministic_algorithms(self.use_deterministic_algorithms)
         torch.backends.cudnn.benchmark = self.cudnn_benchmark
         _set_rng_states(self.rng_states)
-
-
-def _is_forking_disabled() -> bool:
-    """Returns whether forking is disabled through the environment variable ``PL_DISABLE_FORK``."""
-    return bool(int(os.environ.get("PL_DISABLE_FORK", "0")))
