@@ -33,6 +33,8 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
+from tests_pytorch.helpers.utils import no_warning_call
+
 
 def test__training_step__log(tmpdir):
     """Tests that only training_step can be used."""
@@ -621,8 +623,21 @@ def test_log_none_raises(tmpdir, value):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
-    match = escape(f"self.log(foo, {value})` was called")
+    match = escape(f"self.log(foo, {value})` was called, but the tensor must have a single element")
     with pytest.raises(ValueError, match=match):
+        trainer.fit(model)
+
+
+def test_log_tensor_and_clone_no_torch_warning(tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", torch.tensor(1))
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    model = TestModel()
+    match = escape("To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach()")
+    with no_warning_call(UserWarning, match=match):
         trainer.fit(model)
 
 
