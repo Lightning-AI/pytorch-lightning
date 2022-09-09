@@ -19,7 +19,8 @@ Convention:
 from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Literal, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Type, Union
+from typing_extensions import Literal
 
 import torch
 from torch import Tensor
