@@ -83,10 +83,10 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Fully Sharded Training>`
    * - ddp_sharded
      - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
-     - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
+     - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Sharded Training>`
    * - ddp_sharded_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
-     - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
+     - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Sharded Training>`
    * - ddp_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
      - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`

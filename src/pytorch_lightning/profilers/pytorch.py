@@ -20,15 +20,15 @@ from pathlib import Path
 from typing import Any, Callable, ContextManager, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import torch
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
+from lightning_lite.utilities.device_parser import is_cuda_available
 from pytorch_lightning.profilers.profiler import Profiler
-from pytorch_lightning.utilities.device_parser import is_cuda_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
@@ -522,7 +522,7 @@ class PyTorchProfiler(Profiler):
             self._register.__exit__(None, None, None)
             self._register = None
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: str) -> None:
         self._delete_profilers()
 
         for k in list(self._recording_map):
