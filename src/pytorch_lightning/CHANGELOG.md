@@ -58,7 +58,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `pyDeprecate` dependency is no longer installed ([#14472](https://github.com/Lightning-AI/lightning/pull/14472))
 
 
-- When using multiple loggers, by default checkpoints and profiler output now get saved to the log dir of the first logger in the list ([14325](https://github.com/Lightning-AI/lightning/pull/14325))
+- When using multiple loggers, by default checkpoints and profiler output now get saved to the log dir of the first logger in the list ([#14325](https://github.com/Lightning-AI/lightning/pull/14325))
+
+
+- In Lightning Lite, state-dict access to the module wrapper now gets passed through to the original module reference ([#14629](https://github.com/Lightning-AI/lightning/pull/14629))
 
 
 
