@@ -1,0 +1,39 @@
+name: Clear cache flow
+
+on:
+  workflow_call:
+    inputs:
+      pattern:
+        description: 'string to grep cache keys with'
+        required: true
+        type: string
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get the list of cache keys
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/actions/caches --paginate --jq ".actions_caches[].key" | sort | uniq > cache_keys.txt && cat cache_keys.txt || echo "no cache keys found with the pattern"
+
+      - name: Filter cache keys
+        run: |
+          grep -E ${{ inputs.pattern }} cache_keys.txt > cache_keys_to_remove.txt && cat cache_keys_to_remove.txt || echo "no cache keys found with the pattern"
+
+      - name: Remove caches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo created_at last_accessed_at ref key size_in_bytes
+          for key in $(cat cache_keys_to_remove.txt); do
+            gh api --method DELETE -H "Accept: application/vnd.github+json" "/repos/${{ github.repository }}/actions/caches?key=${key}" --jq '.actions_caches[] | [.created_at, .last_accessed_at, .ref, .key, .size_in_bytes] | join(" ")'
+          done
+
+      - name: Show the list of remaining caches
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -H "Accept: application/vnd.github+json" /repos/${{ github.repository }}/actions/caches --paginate --jq ".actions_caches[].key" | sort | uniq

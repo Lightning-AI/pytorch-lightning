@@ -32,12 +32,6 @@ runs:
     run: python .github/assistant.py set-oldest-versions
     shell: bash
 
-  - run: python -c "import time ; days = time.time() / 60 / 60 / 24 ; print(f'TIME_PERIOD={int(days / ${{ inputs.interval }})}')" >> $GITHUB_ENV
-    if: inputs.requires == 'latest'
-    shell: bash
-
-  # Note: This uses an internal pip API and may not always work
-  # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
   - name: Determine caches
     env:
       PWD: $(pwd)
@@ -49,13 +43,13 @@ runs:
     uses: actions/cache@v3
     with:
       path: $PIP_CACHE_DIR
-      key: ${{ runner.os }}-py${{ inputs.python-version }}-pip-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
-      restore-keys: ${{ runner.os }}-py${{ inputs.python-version }}-pip-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}-
+      key: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
+      restore-keys: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-
 
   - name: Cache conda
     uses: actions/cache@v3
     if: runner.os == 'Linux'
     with:
       path: ~/conda_pkgs_dir
-      key: py${{ inputs.python-version }}-conda-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}
-      restore-keys: py${{ inputs.python-version }}-conda-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}
+      key: py${{ inputs.python-version }}-conda-${{ inputs.offset }}
+      restore-keys: py${{ inputs.python-version }}-conda-${{ inputs.offset }}
