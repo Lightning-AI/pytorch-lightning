@@ -131,7 +131,9 @@ jobs:
         key: pl-dataset
 
     - name: Sanity check
-      run: python requirements/pytorch/check-avail-extras.py
+      run: |
+        python -c "import torch; assert torch.__version__.startswith('${{ matrix.pytorch-version }}')"
+        python requirements/pytorch/check-avail-extras.py
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
