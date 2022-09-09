@@ -74,7 +74,8 @@ curl -LsS $AZP_AGENTPACKAGE_URL | tar -xz & wait $!
 
 source ./env.sh
 
-print_header "3. Configuring Azure Pipelines agent..."
+AZP_AGENT_NAME=$1
+print_header "3. Configuring Azure Pipelines agent $AZP_AGENT_NAME..."
 
 ./config.sh --unattended \
   --agent "${AZP_AGENT_NAME:-$(hostname)}" \
@@ -93,4 +94,4 @@ trap 'cleanup; exit 143' TERM
 
 # To be aware of TERM and INT signals call run.sh
 # Running it with the --once flag at the end will shut down the agent after the build is executed
-./run.sh & wait $!
+./run.sh --once & wait $!
