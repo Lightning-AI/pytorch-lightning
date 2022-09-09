@@ -17,10 +17,7 @@ import torch
 
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities import device_parser
-from lightning_lite.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
-
-if _XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
+from lightning_lite.utilities.imports import _TPU_AVAILABLE
 
 
 class TPUAccelerator(Accelerator):
@@ -38,6 +35,8 @@ class TPUAccelerator(Accelerator):
         Returns:
             A dictionary mapping the metrics (free memory and peak memory) to their values.
         """
+        import torch_xla.core.xla_model as xm
+
         memory_info = xm.get_memory_info(device)
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory
@@ -76,5 +75,5 @@ class TPUAccelerator(Accelerator):
         accelerator_registry.register(
             "tpu",
             cls,
-            description=cls.__class__.__name__",
+            description=cls.__class__.__name__,
         )
