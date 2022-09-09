@@ -97,6 +97,7 @@ def test_auto_requeue_flag(auto_requeue):
 
     connector.teardown()
 
+
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
 @pytest.mark.parametrize("sig", [("USR2", signal.SIGUSR1), ("HUP", signal.SIGHUP)])
@@ -121,6 +122,7 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, sig):
         assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
 
     connector.teardown()
+
 
 def _registering_signals():
     trainer = Trainer()
