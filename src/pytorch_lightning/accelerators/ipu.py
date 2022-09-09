@@ -15,9 +15,9 @@ from typing import Any, Dict, List, Union
 
 import torch
 
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
-from lightning_lite.utilities.types import _DEVICE
 
 
 class IPUAccelerator(Accelerator):
