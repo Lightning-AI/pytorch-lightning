@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
+from typing import Optional
 
 import pytest
 import torch
+from packaging.version import Version
+from pkg_resources import get_distribution
+
+from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _PSUTIL_AVAILABLE, _TPU_AVAILABLE
 
 
-# TODO(lite): Add all RunIf conditions once the relevant utilities have moved to lite source dir
 class RunIf:
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
@@ -31,15 +36,29 @@ class RunIf:
         self,
         *args,
         min_cuda_gpus: int = 0,
+        min_torch: Optional[str] = None,
+        max_torch: Optional[str] = None,
+        min_python: Optional[str] = None,
+        tpu: bool = False,
+        skip_windows: bool = False,
         standalone: bool = False,
+        fairscale: bool = False,
+        psutil: bool = False,
         **kwargs,
     ):
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
             min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
+            min_torch: Require that PyTorch is greater or equal than this version.
+            max_torch: Require that PyTorch is less than this version.
+            min_python: Require that Python is greater or equal than this version.
+            tpu: Require that TPU is available.
+            skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
+            fairscale: Require that facebookresearch/fairscale is installed.
+            psutil: Require that psutil is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -51,12 +70,49 @@ class RunIf:
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["min_cuda_gpus"] = True
 
+        if min_torch:
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) < Version(min_torch))
+            reasons.append(f"torch>={min_torch}")
+
+        if max_torch:
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) >= Version(max_torch))
+            reasons.append(f"torch<{max_torch}")
+
+        if min_python:
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            conditions.append(Version(py_version) < Version(min_python))
+            reasons.append(f"python>={min_python}")
+
+        if skip_windows:
+            conditions.append(sys.platform == "win32")
+            reasons.append("unimplemented on Windows")
+
+        if tpu:
+            conditions.append(not _TPU_AVAILABLE)
+            reasons.append("TPU")
+            # used in conftest.py::pytest_collection_modifyitems
+            kwargs["tpu"] = True
+
         if standalone:
             env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
             conditions.append(env_flag != "1")
             reasons.append("Standalone execution")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["standalone"] = True
+
+        if fairscale:
+            if skip_windows:
+                raise ValueError(
+                    "`skip_windows` is not necessary when `fairscale` is set as it does not support Windows."
+                )
+            conditions.append(not _FAIRSCALE_AVAILABLE)
+            reasons.append("Fairscale")
+
+        if psutil:
+            conditions.append(not _PSUTIL_AVAILABLE)
+            reasons.append("psutil")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
