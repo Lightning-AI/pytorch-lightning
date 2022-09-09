@@ -622,7 +622,7 @@ def test_log_none_raises(tmpdir, value):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
-    match = escape(f"self.log(foo, {value})` was called, but the tensor must have a single element")
+    match = escape(f"self.log(foo, {value})` was called")
     with pytest.raises(ValueError, match=match):
         trainer.fit(model)
 
