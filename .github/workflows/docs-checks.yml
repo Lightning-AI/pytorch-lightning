@@ -63,9 +63,6 @@ jobs:
           pip list
         shell: bash
 
-      - name: pip list
-        uses: Lightning-AI/devtools/.github/actions/pip-list@ci/pip-list
-
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
@@ -123,9 +120,6 @@ jobs:
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list
         shell: bash
-
-      - name: pip list
-        uses: Lightning-AI/devtools/.github/actions/pip-list@ci/pip-list
 
       - name: Make Documentation
         working-directory: ./docs/source-${{ matrix.pkg }}
