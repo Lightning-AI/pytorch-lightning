@@ -14,6 +14,7 @@ from threading import Event, Thread
 from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
+from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.storage import Path
 from lightning_app.storage.copier import Copier, copy_files
@@ -21,7 +22,6 @@ from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.path import path_to_work_artifact
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import affiliation
-from lightning_app.utilities.apply_func import apply_to_collection
 from lightning_app.utilities.component import _set_work_context
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
