@@ -1,8 +1,10 @@
 import multiprocessing
 import os
+from functools import lru_cache
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
-
+from ctypes import CDLL, c_int
 import torch
+
 
 # TODO(lite): Fix the imports
 # from lightning_lite.plugins.environments import TorchElasticEnvironment
@@ -286,16 +288,30 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
 
 
+@lru_cache
 def num_cuda_devices() -> int:
-    """Returns the number of GPUs available.
+    """Returns the number of available CUDA devices.
 
     Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
     """
-    if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
+
+    # Code adapted from Nikita Shulga, @malfet:
+    # https://github.com/pytorch/pytorch/issues/83973#issuecomment-1238633755
+    try:
+        nvml_h = CDLL("libnvidia-ml.so.1")
+    except OSError:
+        # Can't load NVML shared libraries, fall back to torch.cuda
         return torch.cuda.device_count()
-    with multiprocessing.get_context("fork").Pool(1) as pool:
-        return pool.apply(torch.cuda.device_count)
+
+    rc = nvml_h.nvmlInit()
+    assert rc == 0
+    dev_arr = (c_int * 1)(-1)
+    rc = nvml_h.nvmlDeviceGetCount_v2(dev_arr)
+    assert rc == 0
+    del nvml_h
+
+    return dev_arr[0]
 
 
 def is_cuda_available() -> bool:
@@ -304,10 +320,7 @@ def is_cuda_available() -> bool:
     Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
     """
-    if "fork" not in torch.multiprocessing.get_all_start_methods() or _is_forking_disabled():
-        return torch.cuda.is_available()
-    with multiprocessing.get_context("fork").Pool(1) as pool:
-        return pool.apply(torch.cuda.is_available)
+    return num_cuda_devices() > 0
 
 
 # TODO(lite): move this back to launchers/multiprocessing.py once launchers have moved
