@@ -30,8 +30,16 @@ def test_invalid_colosalai(monkeypatch):
 
 
 @RunIf(colossalai=True)
-def test_colossalai_strategy_with_trainer(tmpdir):
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, strategy=ColossalAIStrategy())
+def test_colossalai_strategy_with_trainer_by_instance(tmpdir):
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, precision=16, strategy=ColossalAIStrategy())
+
+    assert isinstance(trainer.strategy, ColossalAIStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, ColossalAIPrecisionPlugin)
+
+
+@RunIf(colossalai=True)
+def test_colossalai_strategy_with_trainer_by_string(tmpdir):
+    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, precision=16, strategy="colossalai")
 
     assert isinstance(trainer.strategy, ColossalAIStrategy)
     assert isinstance(trainer.strategy.precision_plugin, ColossalAIPrecisionPlugin)
@@ -65,8 +73,10 @@ def test_gradient_clip_algorithm_error(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         default_root_dir=tmpdir,
-        strategy=ColossalAIStrategy(),
+        accelerator="gpu",
         devices=1,
+        precision=16,
+        strategy="colossalai",
         enable_progress_bar=False,
         enable_model_summary=False,
         gradient_clip_val=1.0,
@@ -81,10 +91,12 @@ def test_gradient_accumulation_error(tmpdir):
     model = ModelParallelBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        accelerator="gpu",
         devices=1,
+        precision=16,
+        strategy="colossalai",
+        max_epochs=1,
         accumulate_grad_batches={0: 1, 4: 2, 8: 3},
-        strategy=ColossalAIStrategy(),
     )
 
     with pytest.raises(MisconfigurationException):
@@ -97,8 +109,10 @@ def test_colossalai_optimizer(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         default_root_dir=tmpdir,
-        strategy=ColossalAIStrategy(),
+        accelerator="gpu",
         devices=1,
+        precision=16,
+        strategy="colossalai",
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -120,8 +134,10 @@ def test_warn_colossalai_ignored(tmpdir):
     trainer = Trainer(
         fast_dev_run=True,
         default_root_dir=tmpdir,
-        strategy=ColossalAIStrategy(),
+        accelerator="gpu",
         devices=1,
+        precision=16,
+        strategy="colossalai",
         track_grad_norm=2,
         enable_progress_bar=False,
         enable_model_summary=False,
@@ -211,7 +227,9 @@ class ModelParallelClassificationModel(LightningModule):
 def test_multi_gpu_model_colossalai_fit_only(tmpdir):
     dm = ClassifDataModule()
     model = ModelParallelClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, devices=2, strategy=ColossalAIStrategy())
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, precision=16, strategy="colossalai", max_epochs=1
+    )
     trainer.fit(model, datamodule=dm)
 
 
@@ -219,7 +237,9 @@ def test_multi_gpu_model_colossalai_fit_only(tmpdir):
 def test_multi_gpu_model_colossalai_test_only(tmpdir):
     dm = ClassifDataModule()
     model = ModelParallelClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, devices=2, strategy=ColossalAIStrategy())
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, precision=16, strategy="colossalai", max_epochs=1
+    )
     trainer.test(model, datamodule=dm)
 
 
@@ -228,7 +248,14 @@ def test_multi_gpu_model_colossalai_fit_test(tmpdir):
     seed_everything(4321)
     dm = ClassifDataModule()
     model = ModelParallelClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, devices=2, strategy=ColossalAIStrategy(initial_scale=32))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        precision=16,
+        strategy=ColossalAIStrategy(initial_scale=32),
+        max_epochs=1,
+    )
     trainer.fit(model, datamodule=dm)
     result = trainer.test(model, datamodule=dm)
 

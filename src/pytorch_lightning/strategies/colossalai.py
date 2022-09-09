@@ -1,17 +1,19 @@
-from typing import Any, Generator, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-_COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
+_COLOSSALAI_AVAILABLE = _RequirementAvailable("colossalai")
 if _COLOSSALAI_AVAILABLE:
     from colossalai.context import ParallelMode
     from colossalai.core import global_context as gpc
@@ -53,15 +55,13 @@ class ColossalAIStrategy(DDPStrategy):
 
     Args:
         use_chunk (bool, optional): Whether to use chunk-based memory management.
-            It can speed up training, but slightly more memory will be used. Defaults to True.
+            It can speed up training, but slightly more memory will be used.
         chunk_size (Optional[int], optional): The size of a chunk.
             It will be ignored when ``use_chunk=False``.
             If it's None, a best chunk size will be searched out based on ``chunk_search_range``,
             ``chunk_search_n_grids`` and ``min_chunk_size``.
-            Defaults to None.
         enable_distributed_storage (bool, optional): Whether to storage model in a distributed manner.
             It reduces memory from 1 to 1/N, but it may slow down training.
-            Defaults to True.
         placement_policy (str, optional): It can be "cpu", "cuda" and "auto".
             If it's "cpu", parameters, gradients and optimizer states will be offloaded to CPU,
             which means min CUDA memory will be used.
@@ -69,27 +69,23 @@ class ColossalAIStrategy(DDPStrategy):
             If it's "auto", they are moving dynamically based on CPU and CUDA memory usage.
             It will utilize heterogeneous memory space evenly and well.
             Note that "auto" policy can only work well when no other processes use CUDA during your training.
-            Defaults to 'auto'.
-        force_outputs_fp32 (bool, optional): Whether to cast outputs to fp32. Defaults to False.
+        force_outputs_fp32 (bool, optional): Whether to cast outputs to fp32.
         gpu_margin_mem_ratio (float, optional): The ratio of GPU remaining memory (after the first forward-backward)
             which will be used by optimizer.
             This argument will be ignored when ``placement_policy`` is not "auto".
-            Defaults to 0.0.
         chunk_search_range (int, optional): The range of chunk size to search.
             The actual search range will be from
             ``max(min_chunk_size, max_param_size)`` to ``max(min_chunk_size, max_param_size) + chunk_search_range``.
-            Defaults to 64*1024**2.
-        chunk_search_n_grids (int, optional): The number of intervals in the search range. Defaults to 1024.
-        min_chunk_size (Optional[int], optional): The minimum size for a chunk. Defaults to None.
-        initial_scale (float, optional): The initial dynamic loss scale value. Defaults to 2**32.
-        min_scale (float, optional): The minimum dynamic loss scaling value. Defaults to 1.
-        growth_factor (float, optional): The multiplication factor for increasing loss scale. Defaults to 2.
-        backoff_factor (float, optional): The multiplication factor for decreasing loss scale. Defaults to 0.5.
+        chunk_search_n_grids (int, optional): The number of intervals in the search range.
+        min_chunk_size (Optional[int], optional): The minimum size for a chunk.
+        initial_scale (float, optional): The initial dynamic loss scale value.
+        min_scale (float, optional): The minimum dynamic loss scaling value.
+        growth_factor (float, optional): The multiplication factor for increasing loss scale.
+        backoff_factor (float, optional): The multiplication factor for decreasing loss scale.
         growth_interval (int, optional):
             The number of steps to increase loss scale when no overflow occurs.
-            Defaults to 1000.
-        hysteresis (int, optional): The number of overflows before decreasing loss scale. Defaults to 2.
-        max_scale (float, optional): The maximum dynamic loss scaling value. Defaults to 2**32.
+        hysteresis (int, optional): The number of overflows before decreasing loss scale.
+        max_scale (float, optional): The maximum dynamic loss scaling value.
 
     .. _colossalai.nn.optimizer.CPUAdam:
         https://colossalai.readthedocs.io/en/latest/colossalai/colossalai.nn.optimizer.cpu_adam.html
@@ -115,6 +111,11 @@ class ColossalAIStrategy(DDPStrategy):
         growth_interval: int = 1000,
         hysteresis: int = 2,
         max_scale: float = 2**32,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        parallel_devices: Optional[List[torch.device]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         if not _COLOSSALAI_AVAILABLE:
             raise MisconfigurationException(
@@ -122,9 +123,14 @@ class ColossalAIStrategy(DDPStrategy):
                 "Download `colossalai` by consulting https://colossalai.org/download."
             )
 
-        accelerator = CUDAAccelerator()
-        precision_plugin = ColossalAIPrecisionPlugin()
-        super().__init__(accelerator=accelerator, precision_plugin=precision_plugin)
+        super().__init__(
+            accelerator=accelerator,
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
+        )
+
         self.use_chunk = use_chunk
         self.chunk_size = chunk_size
         self.enable_distributed_storage = enable_distributed_storage
@@ -174,7 +180,8 @@ class ColossalAIStrategy(DDPStrategy):
         super().setup_precision_plugin()
         is_training = self.lightning_module.trainer and self.lightning_module.trainer.training
         if is_training:
-            assert len(self.optimizers) == 1, "ColossalAIStrategy only supports single Optimizer now."
+            if len(self.optimizers) > 1:
+                raise MisconfigurationException("ColossalAIStrategy only supports single Optimizer now.")
             optimizer = self.optimizers[0]
             assert isinstance(optimizer, (CPUAdam, HybridAdam)), (
                 "ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam "
@@ -207,12 +214,14 @@ class ColossalAIStrategy(DDPStrategy):
             ]
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator is not None
+        if not isinstance(self.accelerator, CUDAAccelerator):
+            raise MisconfigurationException(
+                f"Colossalai is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
+            )
         self.accelerator.setup(trainer)
+
+        assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
-        self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
-        self.model_to_device()
 
         if trainer.accumulate_grad_batches > 1:
             raise MisconfigurationException(
@@ -224,6 +233,12 @@ class ColossalAIStrategy(DDPStrategy):
             raise MisconfigurationException(
                 "Colossalai currently does not support different `accumulate_grad_batches` at different epochs."
             )
+        self.setup_optimizers(trainer)
+
+        if not isinstance(self.precision_plugin, ColossalAIPrecisionPlugin):
+            raise MisconfigurationException("`ColossalaiStrategy` is only compatible with `ColossalAIPrecisionPlugin`.")
+        self.setup_precision_plugin()
+        self.model_to_device()
 
     @property
     def root_device(self) -> torch.device:
@@ -273,3 +288,7 @@ class ColossalAIStrategy(DDPStrategy):
         assert self.model is not None
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register("colossalai", cls, description="Default Colossalai Strategy")

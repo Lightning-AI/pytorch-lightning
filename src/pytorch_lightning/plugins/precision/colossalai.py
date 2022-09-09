@@ -5,6 +5,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -13,7 +14,15 @@ warning_cache = WarningCache()
 
 
 class ColossalAIPrecisionPlugin(PrecisionPlugin):
-    def __init__(self) -> None:
+    def __init__(self, precision: Union[str, int] = 16, amp_level: Optional[str] = None) -> None:
+        if not (precision == PrecisionType.HALF):
+            raise MisconfigurationException(
+                f"`Trainer(strategy='colossalai', precision={precision})` is not supported. `precision` must be 16"
+            )
+        if amp_level and amp_level != "O2":
+            raise MisconfigurationException(
+                "Invalid `amp_level` for `ColossalaiAIPrecisionPlugin`. Please set `amp_level` to None or 'O2'"
+            )
         super().__init__()
         self.precision = 16
 
