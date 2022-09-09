@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Generator, Iterator, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -24,6 +24,8 @@ from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import Strategy
+
+T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
 
 def _do_nothing_closure() -> None:
@@ -114,6 +116,26 @@ class _LiteModule(_DeviceDtypeModuleMixin):
         to_type = torch.get_default_dtype()
         output = apply_to_collection(output, function=_convert_float_tensor, dtype=Tensor)
         return output
+
+    @overload
+    def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination:
+        ...
+
+    @overload
+    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> T_destination:
+        ...
+
+    def state_dict(
+        self, *args: Any, destination: Optional[T_destination] = None, prefix: str = "", keep_vars: bool = False
+    ) -> Optional[T_destination]:
+        return self._original_module.state_dict(
+            destination=destination,  # type: ignore[type-var]
+            prefix=prefix,
+            keep_vars=keep_vars,
+        )
+
+    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> Any:
+        return self._original_module.load_state_dict(state_dict=state_dict, strict=strict)
 
     def __getattr__(self, item: Any) -> Any:
         try:
