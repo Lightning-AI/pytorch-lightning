@@ -42,7 +42,7 @@ class SignalConnector:
     def register_signal_handlers(self) -> None:
         self._original_handlers = self._get_current_signal_handlers()
 
-        sigusr1_handlers: List[_HANDLER] = []
+        sigusr_handlers: List[_HANDLER] = []
         sigterm_handlers: List[_HANDLER] = []
 
         if _fault_tolerant_training():
@@ -51,19 +51,24 @@ class SignalConnector:
         environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
             log.info("SLURM auto-requeueing enabled. Setting signal handlers.")
-            sigusr1_handlers.append(self.slurm_sigusr1_handler_fn)
+            sigusr_handlers.append(self.slurm_sigusr_handler_fn)
             sigterm_handlers.append(self.sigterm_handler_fn)
 
-        # signal.SIGUSR1 doesn't seem available on windows
+        # Windows seems to have signal incompatibilities
         if not self._is_on_windows():
-            if sigusr1_handlers and not self._has_already_handler(signal.SIGUSR1):
-                self._register_signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
+            if isinstance(environment, SLURMEnvironment):
+                sigusr = getattr(signal, "SIG" + environment.signal, None)
+            else:
+                sigusr = signal.SIGUSR1
+
+            if sigusr_handlers and not self._has_already_handler(sigusr):
+                self._register_signal(sigusr, HandlersCompose(sigusr_handlers))
 
             if sigterm_handlers and not self._has_already_handler(signal.SIGTERM):
                 self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
-    def slurm_sigusr1_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        rank_zero_info("handling SIGUSR1")
+    def slurm_sigusr_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
+        rank_zero_info("handling auto-requeue signal")
 
         # save logger to make sure we get all the metrics
         for logger in self.trainer.loggers:
