@@ -20,13 +20,12 @@ from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Type, Union
-from typing_extensions import Literal
 
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
-from typing_extensions import Protocol, runtime_checkable
+from typing_extensions import Literal, Protocol, runtime_checkable
 
 from lightning_lite.utilities.types import _LRScheduler, ReduceLROnPlateau
 
