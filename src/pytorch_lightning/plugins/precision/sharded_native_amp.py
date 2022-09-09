@@ -13,9 +13,9 @@
 # limitations under the License.
 from typing import Optional, Union
 
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
