@@ -32,7 +32,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, R
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-
 from tests_pytorch.helpers.utils import no_warning_call
 
 
@@ -629,6 +628,8 @@ def test_log_none_raises(tmpdir, value):
 
 
 def test_log_tensor_and_clone_no_torch_warning(tmpdir):
+    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14594"""
+
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", torch.tensor(1))
