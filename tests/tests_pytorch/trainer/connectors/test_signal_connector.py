@@ -100,7 +100,7 @@ def test_auto_requeue_flag(auto_requeue):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
-@pytest.mark.parametrize("sig", [("USR2", signal.SIGUSR1), ("HUP", signal.SIGHUP)])
+@pytest.mark.parametrize("sig", [("USR2", signal.SIGUSR2), ("HUP", signal.SIGHUP)])
 def test_auto_requeue_custom_signal_flag(auto_requeue, sig):
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue, signal=sig[0])])
     connector = SignalConnector(trainer)
