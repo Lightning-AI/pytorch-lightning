@@ -28,8 +28,8 @@ def test_v2_0_0_deprecated_num_processes():
         _ = Trainer(num_processes=2)
 
 
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
 def test_v2_0_0_deprecated_gpus(*_):
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(gpus=0)
