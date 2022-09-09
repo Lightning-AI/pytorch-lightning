@@ -20,7 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.accelerators.mps import _MPS_AVAILABLE
+from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _TPU_AVAILABLE
 
 
@@ -99,10 +99,10 @@ class RunIf:
 
         if mps is not None:
             if mps:
-                conditions.append(not _MPS_AVAILABLE)
+                conditions.append(not MPSAccelerator.is_available())
                 reasons.append("MPS")
             else:
-                conditions.append(_MPS_AVAILABLE)
+                conditions.append(MPSAccelerator.is_available())
                 reasons.append("not MPS")
 
         if standalone:

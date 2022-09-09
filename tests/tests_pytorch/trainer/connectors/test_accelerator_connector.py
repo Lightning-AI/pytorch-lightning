@@ -787,7 +787,7 @@ def test_gpu_accelerator_backend_choice_cuda(_):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-@mock.patch("pytorch_lightning.accelerators.mps._MPS_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 @mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
 def test_gpu_accelerator_backend_choice_mps(*_):
     trainer = Trainer(accelerator="gpu")

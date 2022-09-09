@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.accelerators.mps import _MPS_AVAILABLE
+from lightning_lite.accelerators.mps import MPSAccelerator as _MPSAccelerator
 from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -64,7 +64,7 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def is_available() -> bool:
         """MPS is only available for certain torch builds starting at torch>=1.12."""
-        return _MPS_AVAILABLE
+        return _MPSAccelerator.is_available()
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:

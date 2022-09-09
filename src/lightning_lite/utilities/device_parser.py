@@ -215,9 +215,9 @@ def _get_all_available_mps_gpus() -> List[int]:
         A list of all available MPS GPUs
     """
     # lazy import to avoid circular dependencies
-    from lightning_lite.accelerators.mps import _MPS_AVAILABLE
+    from lightning_lite.accelerators.mps import MPSAccelerator
 
-    return [0] if _MPS_AVAILABLE else []
+    return [0] if MPSAccelerator.is_available() else []
 
 
 def _get_all_available_cuda_gpus() -> List[int]:

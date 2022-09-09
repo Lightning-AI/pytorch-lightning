@@ -15,9 +15,9 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators.mps import _MPS_AVAILABLE, MPSAccelerator
+from lightning_lite.accelerators.mps import MPSAccelerator
 
-_MAYBE_MPS = "mps" if _MPS_AVAILABLE else "cpu"  # torch.device(mps) only works on torch>=1.12
+_MAYBE_MPS = "mps" if MPSAccelerator.is_available() else "cpu"  # torch.device(mps) only works on torch>=1.12
 
 
 def test_auto_device_count():

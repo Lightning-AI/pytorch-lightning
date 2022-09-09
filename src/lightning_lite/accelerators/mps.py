@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import platform
+from functools import lru_cache
 from typing import Dict, List, Optional, Union
 
 import torch
@@ -19,12 +20,6 @@ import torch
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-
-# For using the `MPSAccelerator`, user's machine should have `torch>=1.12`, Metal programming framework and
-# the ARM-based Apple Silicon processors.
-_MPS_AVAILABLE = (
-    _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
-)
 
 
 class MPSAccelerator(Accelerator):
@@ -62,9 +57,14 @@ class MPSAccelerator(Accelerator):
         return 1
 
     @staticmethod
+    @lru_cache
     def is_available() -> bool:
-        """MPS is only available for certain torch builds starting at torch>=1.12."""
-        return _MPS_AVAILABLE
+        """MPS is only available for certain torch builds starting at torch>=1.12, and is only enabled on a machine
+        with the ARM-based Apple Silicon processors.
+        """
+        return (
+            _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
+        )
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
