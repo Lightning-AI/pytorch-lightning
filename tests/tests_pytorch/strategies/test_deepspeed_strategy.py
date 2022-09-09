@@ -169,7 +169,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
 @pytest.mark.parametrize(
     "amp_backend",
     ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],

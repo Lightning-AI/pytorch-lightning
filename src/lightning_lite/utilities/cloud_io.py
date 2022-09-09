@@ -22,7 +22,7 @@ import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 
-from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPE, _PATH
+from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 
 def load(

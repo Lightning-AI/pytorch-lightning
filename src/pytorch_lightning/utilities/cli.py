@@ -18,11 +18,11 @@ from types import ModuleType
 from typing import Any, Generator, List, Optional, Tuple, Type
 
 import torch
+from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 import pytorch_lightning.cli as new_cli
-from pytorch_lightning.utilities.meta import _get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 _deprecate_registry_message = (
@@ -108,17 +108,17 @@ def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
     if subclasses:
         rank_zero_deprecation(_deprecate_auto_registry_message)
         # this will register any subclasses from all loaded modules including userland
-        for cls in _get_all_subclasses(torch.optim.Optimizer):
+        for cls in get_all_subclasses(torch.optim.Optimizer):
             OPTIMIZER_REGISTRY(cls, show_deprecation=False)
-        for cls in _get_all_subclasses(torch.optim.lr_scheduler._LRScheduler):
+        for cls in get_all_subclasses(torch.optim.lr_scheduler._LRScheduler):
             LR_SCHEDULER_REGISTRY(cls, show_deprecation=False)
-        for cls in _get_all_subclasses(pl.Callback):
+        for cls in get_all_subclasses(pl.Callback):
             CALLBACK_REGISTRY(cls, show_deprecation=False)
-        for cls in _get_all_subclasses(pl.LightningModule):
+        for cls in get_all_subclasses(pl.LightningModule):
             MODEL_REGISTRY(cls, show_deprecation=False)
-        for cls in _get_all_subclasses(pl.LightningDataModule):
+        for cls in get_all_subclasses(pl.LightningDataModule):
             DATAMODULE_REGISTRY(cls, show_deprecation=False)
-        for cls in _get_all_subclasses(pl.loggers.Logger):
+        for cls in get_all_subclasses(pl.loggers.Logger):
             LOGGER_REGISTRY(cls, show_deprecation=False)
     else:
         # manually register torch's subclasses and our subclasses
