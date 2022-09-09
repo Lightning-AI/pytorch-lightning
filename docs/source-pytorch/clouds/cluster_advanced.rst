@@ -98,7 +98,7 @@ To train a model using multiple nodes, do the following:
 
     .. code-block:: python
 
-        trainer = Trainer(plugins=[SLURMEnvironment(signal="HUP"))    
+        trainer = Trainer(plugins=[SLURMEnvironment(signal="HUP")])
 
 6.  Submit the SLURM job
 
