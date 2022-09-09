@@ -1,7 +1,6 @@
 name: Probot
 
 on:
-  # TODO: change to `pull_request_target` after this is merged
   pull_request:
 
 jobs:
