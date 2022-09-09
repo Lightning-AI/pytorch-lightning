@@ -1,7 +1,7 @@
 name: Package
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
@@ -114,7 +114,7 @@ jobs:
       - name: Dowload package
         # todo: download also lite after it is fist published
         run: |
-          pip install -q fire requests
+          pip install -q -r .actions/requirements.txt
           for pkg in 'app' 'pytorch' ; do
             python .actions/assistant.py download-package "$pkg" --folder pypi
           done
@@ -131,7 +131,7 @@ jobs:
 
       - name: Miror source
         run: |
-          pip install -q fire requests
+          pip install -q -r .actions/requirements.txt
           python .actions/assistant.py mirror-pkg2source pypi src
           ls -R src/
 

@@ -1,12 +1,12 @@
 name: Test Lite full
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
@@ -51,7 +51,7 @@ jobs:
     - name: basic setup
       run: |
         pip --version
-        pip install -q fire
+        pip install -q -r .actions/requirements.txt
 
     - name: Setup Windows
       if: runner.os == 'windows'
