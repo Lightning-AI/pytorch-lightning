@@ -6,7 +6,7 @@ from threading import Thread
 from typing import Dict, Optional, Set, TYPE_CHECKING, Union
 
 from lightning_app.core.queues import BaseQueue
-from lightning_app.storage.path import filesystem, path_to_work_artifact, path_to_work_artifact_legacy
+from lightning_app.storage.path import filesystem, path_to_work_artifact
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
 from lightning_app.utilities.enum import WorkStageStatus
 
@@ -88,16 +88,8 @@ class StorageOrchestrator(Thread):
                 request.destination = work_name
                 source_work = self.app.get_component_by_name(request.source)
                 maybe_artifact_path = str(path_to_work_artifact(request.path, source_work))
-                # Check if the artifact storage was created previously with a help of the old way as well:
-                maybe_artifact_path_old = str(path_to_work_artifact_legacy(request.path, source_work))
 
-                path_to_download = None
                 if self.fs.exists(maybe_artifact_path):
-                    path_to_download = maybe_artifact_path
-                elif self.fs.exists(maybe_artifact_path_old):
-                    path_to_download = maybe_artifact_path_old
-
-                if path_to_download is not None:
                     # First check if the shared filesystem has the requested file stored as an artifact
                     # If so, we will let the destination Work access this file directly
                     # NOTE: This is NOT the right thing to do, because the Work could still be running and producing

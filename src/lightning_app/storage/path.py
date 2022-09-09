@@ -385,12 +385,15 @@ def shared_storage_path() -> pathlib.Path:
     ``SHARED_MOUNT_DIRECTORY`` environment variable. In the cloud, the shared path will point to a S3 bucket. All Works
     have access to this shared dropbox.
     """
+    storage_path = os.getenv("LIGHTNING_STORAGE_PATH", "")
+    if storage_path != "":
+        return pathlib.Path(storage_path)
+
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
-    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
 
-    if bucket_name != "" and project_id != "" and app_id != "":
-        return pathlib.Path(f"{bucket_name}/lightningapps/{project_id}/{app_id}")
+    if bucket_name != "" and app_id != "":
+        return pathlib.Path(f"{bucket_name}/lightningapps/{app_id}")
 
     return _shared_local_mount_path()
 
@@ -401,36 +404,6 @@ def artifacts_path(work: "LightningWork") -> pathlib.Path:
 
 def path_to_work_artifact(path: Union[Path, pathlib.Path, str], work: "LightningWork") -> pathlib.Path:
     return artifacts_path(work) / pathlib.Path(*pathlib.Path(path).absolute().parts[1:])
-
-
-def shared_storage_path_legacy() -> pathlib.Path:
-    """This is a legacy version of shared_storage_path to support app storages with old prefixes for some time.
-
-    It will be deprecated soon.
-    """
-    bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
-    app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
-
-    if bucket_name != "" and app_id != "":
-        return pathlib.Path(f"{bucket_name}/lightningapps/{app_id}")
-
-    return pathlib.Path()
-
-
-def artifacts_path_legacy(work: "LightningWork") -> pathlib.Path:
-    """This is a legacy version of artifacts_path to support app storages with old prefixes for some time.
-
-    It will be deprecated soon. It duplicates the logic to make the deprecation easier.
-    """
-    return shared_storage_path_legacy() / "artifacts" / work.name
-
-
-def path_to_work_artifact_legacy(path: Union[Path, pathlib.Path, str], work: "LightningWork") -> pathlib.Path:
-    """This is a legacy version of path_to_work_artifact to support app storages with old prefixes for some time.
-
-    It will be deprecated soon. It duplicates the logic to make the deprecation easier.
-    """
-    return artifacts_path_legacy(work) / pathlib.Path(*pathlib.Path(path).absolute().parts[1:])
 
 
 def filesystem() -> AbstractFileSystem:
@@ -455,10 +428,6 @@ def filesystem() -> AbstractFileSystem:
             raise RuntimeError("missing LIGHTNING_CLOUD_APP_ID")
 
         if not fs.exists(shared_storage_path()):
-            # Check if the storage was created previously with a help of the old way:
-            if not fs.exists(shared_storage_path_legacy()):
-                raise RuntimeError(
-                    f"shared filesystems {shared_storage_path()} and {shared_storage_path_legacy()}" "do not exist"
-                )
+            raise RuntimeError(f"shared filesystem {shared_storage_path()} does not exist")
 
     return fs
