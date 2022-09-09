@@ -18,7 +18,9 @@ import torch
 
 
 class Accelerator(ABC):
-    """The Accelerator base class. An Accelerator is meant to deal with one type of hardware.
+    """The Accelerator base class.
+
+    An Accelerator is meant to deal with one type of hardware.
     """
 
     @abstractmethod
