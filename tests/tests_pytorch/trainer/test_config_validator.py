@@ -185,3 +185,34 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
 
     with pytest.raises(MisconfigurationException, match=match_pattern):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    "trainer_fn, dataloader_name",
+    [
+        ("fit", "train_dataloaders"),
+        ("fit", "val_dataloaders"),
+        ("validate", "dataloaders"),
+        ("test", "dataloaders"),
+        ("predict", "dataloaders"),
+    ],
+)
+def test_raise_exception_with_explicit_none_dataloader(trainer_fn, dataloader_name, tmpdir):
+    """Test that explicitly passing `Trainer.method(x_dataloader=None)` raises an error."""
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+
+    with pytest.raises(ValueError, match="You explicitly passed .*dataloaders=None.* but this is not supported"):
+        trainer_fn = getattr(trainer, trainer_fn)
+        trainer_fn(model, **{dataloader_name: None})
+
+
+@pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
+def test_raise_exception_with_explicit_none_datamodule(trainer_fn, tmpdir):
+    """Test that explicitly passing `Trainer.method(datamodule=None)` raises an error."""
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+
+    with pytest.raises(ValueError, match="You explicitly passed .*datamodule=None.* but this is not supported"):
+        trainer_fn = getattr(trainer, trainer_fn)
+        trainer_fn(model, datamodule=None)
