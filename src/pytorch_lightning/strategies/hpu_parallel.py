@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Optional
 import torch.distributed
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.distributed import group as _group
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -26,7 +27,6 @@ from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
 from pytorch_lightning.utilities.types import STEP_OUTPUT

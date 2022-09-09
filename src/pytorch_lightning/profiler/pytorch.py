@@ -14,7 +14,7 @@
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler as NewPyTorchProfiler
 from pytorch_lightning.profilers.pytorch import RegisterRecordFunction as NewRegisterRecordFuncion
 from pytorch_lightning.profilers.pytorch import ScheduleWrapper as NewScheduleWrapper
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class RegisterRecordFunction(NewRegisterRecordFuncion):
