@@ -1,0 +1,17 @@
+name: Probot
+
+on:
+  # TODO: change to `pull_request_target` after this is merged
+  pull_request:
+
+jobs:
+  required-jobs:
+    runs-on: ubuntu-latest
+    # if this timeout triggers, then the job needs to be manually restarted through the GitHub interface
+    timeout-minutes: 60
+    steps:
+      - uses: carmocca/probot@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          interval: 180  # seconds
