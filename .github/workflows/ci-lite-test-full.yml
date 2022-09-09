@@ -1,12 +1,12 @@
 name: Test Lite full
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
@@ -87,6 +87,13 @@ jobs:
         pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         pip list
       shell: bash
+
+    - name: Testing Warnings
+      # the stacklevel can only be set on >=3.7
+      if: matrix.python-version != '3.7'
+      working-directory: tests/tests_lite
+      # needs to run outside of `pytest`
+      run: python utilities/test_warnings.py
 
     - name: Testing Lite
       working-directory: tests/tests_lite
