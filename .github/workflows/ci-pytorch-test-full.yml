@@ -126,10 +126,6 @@ jobs:
       working-directory: ./src
       run: pytest pytorch_lightning --cov=pytorch_lightning
 
-    - name: DocTests actions
-      if: ${{ (steps.skip.outputs.continue == '1') }}
-      run: pytest .actions
-
     - name: Install extra dependencies
       if: ${{ (steps.skip.outputs.continue == '1') }}
       run: |
