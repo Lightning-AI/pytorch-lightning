@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
-from pytorch_lightning.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
