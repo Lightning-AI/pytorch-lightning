@@ -5,6 +5,9 @@
 
 set -e
 
+AZP_AGENT_NAME=$1
+printf $AZP_AGENT_NAME
+
 if [ -z "$AZP_URL" ]; then
   echo 1>&2 "error: missing AZP_URL environment variable"
   exit 1
@@ -26,9 +29,9 @@ if [ -n "$AZP_WORK" ]; then
   mkdir -p "$AZP_WORK"
 fi
 
-rm -rf /azp/agent
-mkdir /azp/agent
-cd /azp/agent
+rm -rf /azp/agent-$AZP_AGENT_NAME
+mkdir /azp/agent-$AZP_AGENT_NAME
+cd /azp/agent-$AZP_AGENT_NAME
 
 export AGENT_ALLOW_RUNASROOT="1"
 
@@ -74,7 +77,6 @@ curl -LsS $AZP_AGENTPACKAGE_URL | tar -xz & wait $!
 
 source ./env.sh
 
-AZP_AGENT_NAME=$1
 print_header "3. Configuring Azure Pipelines agent $AZP_AGENT_NAME..."
 
 ./config.sh --unattended \
