@@ -29,7 +29,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   [#14537](https://github.com/Lightning-AI/lightning/issues/14537),
   [#14556](https://github.com/Lightning-AI/lightning/issues/14556),
   [#14558](https://github.com/Lightning-AI/lightning/issues/14558),
-  [#14575](https://github.com/Lightning-AI/lightning/issues/14575))
+  [#14575](https://github.com/Lightning-AI/lightning/issues/14575),
+  [#14620](https://github.com/Lightning-AI/lightning/issues/14620))
 
 
 ### Changed
