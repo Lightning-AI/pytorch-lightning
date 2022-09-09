@@ -24,5 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.5
+        with:
+          # pass the pull request HEAD sha
+          GHA_Meta: ${{ github.event.pull_request.head.sha }}
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
