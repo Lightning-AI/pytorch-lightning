@@ -16,11 +16,10 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from lightning_lite.accelerators.mps import _MPS_AVAILABLE
-from lightning_lite.accelerators.mps import get_device_stats as new_get_device_stats
-from lightning_lite.utilities import device_parser, rank_zero_deprecation
-from lightning_lite.utilities.types import _DEVICE
+from lightning_lite.utilities import device_parser
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 
 
 class MPSAccelerator(Accelerator):
@@ -35,7 +34,7 @@ class MPSAccelerator(Accelerator):
         if device.type != "mps":
             raise MisconfigurationException(f"Device should be MPS, got {device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
         """Get M1 (cpu + gpu) stats from ``psutil`` package."""
         return get_device_stats()
 
@@ -75,9 +74,22 @@ class MPSAccelerator(Accelerator):
         )
 
 
+# device metrics
+_VM_PERCENT = "M1_vm_percent"
+_PERCENT = "M1_percent"
+_SWAP_PERCENT = "M1_swap_percent"
+
+
 def get_device_stats() -> Dict[str, float]:
-    rank_zero_deprecation(
-        "`pytorch_lightning.accelerators.mps.get_device_stats` has been deprecated in v1.8.0 and will be removed in"
-        " v1.10.0. Please use `lightning_lite.accelerators.mps.get_device_stats` instead."
-    )
-    return new_get_device_stats()
+    if not _PSUTIL_AVAILABLE:
+        raise ModuleNotFoundError(
+            "Fetching M1 device stats requires `psutil` to be installed."
+            " Install it by running `pip install -U psutil`."
+        )
+    import psutil
+
+    return {
+        _VM_PERCENT: psutil.virtual_memory().percent,
+        _PERCENT: psutil.cpu_percent(),
+        _SWAP_PERCENT: psutil.swap_memory().percent,
+    }

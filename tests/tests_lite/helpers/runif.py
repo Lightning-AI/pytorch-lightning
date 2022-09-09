@@ -21,7 +21,7 @@ from packaging.version import Version
 from pkg_resources import get_distribution
 
 from lightning_lite.accelerators.mps import _MPS_AVAILABLE
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _PSUTIL_AVAILABLE, _TPU_AVAILABLE
+from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _TPU_AVAILABLE
 
 
 class RunIf:
@@ -45,7 +45,6 @@ class RunIf:
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
-        psutil: bool = False,
         **kwargs,
     ):
         """
@@ -62,7 +61,6 @@ class RunIf:
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             fairscale: Require that facebookresearch/fairscale is installed.
-            psutil: Require that psutil is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -121,10 +119,6 @@ class RunIf:
                 )
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
-
-        if psutil:
-            conditions.append(not _PSUTIL_AVAILABLE)
-            reasons.append("psutil")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

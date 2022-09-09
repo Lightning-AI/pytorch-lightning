@@ -20,9 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import CPUAccelerator, get_cpu_stats
-from pytorch_lightning.accelerators.cuda import get_nvidia_gpu_stats
-from pytorch_lightning.accelerators.mps import get_device_stats
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
@@ -253,20 +251,6 @@ def test_v1_10_deprecated_seed_utilities():
 
     with pytest.deprecated_call(match="seed.pl_worker_init_function` has been deprecated in v1.8.0"):
         pl_worker_init_function(0)
-
-
-@RunIf(psutil=True)
-@mock.patch("lightning_lite.accelerators.cuda.subprocess")
-@mock.patch("lightning_lite.accelerators.cuda.shutil")
-def test_v1_10_deprecated_accelerator_device_stats_utilities(*_):
-    with pytest.deprecated_call(match="cpu.get_cpu_stats` has been deprecated in v1.8.0"):
-        get_cpu_stats()
-
-    with pytest.deprecated_call(match="cuda.get_nvidia_gpu_stats` has been deprecated in v1.8.0"):
-        get_nvidia_gpu_stats(torch.device("cuda", 0))
-
-    with pytest.deprecated_call(match="mps.get_device_stats` has been deprecated in v1.8.0"):
-        get_device_stats()
 
 
 def test_v1_10_deprecated_accelerator_setup_environment_method():

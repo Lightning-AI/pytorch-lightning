@@ -17,10 +17,7 @@ import torch
 
 from lightning_lite.utilities import device_parser
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
-
-if _XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
 
 class TPUAccelerator(Accelerator):
@@ -29,7 +26,7 @@ class TPUAccelerator(Accelerator):
     def init_device(self, device: torch.device) -> None:
         pass
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
         """Gets stats for the given TPU device.
 
         Args:
@@ -38,6 +35,8 @@ class TPUAccelerator(Accelerator):
         Returns:
             A dictionary mapping the metrics (free memory and peak memory) to their values.
         """
+        import torch_xla.core.xla_model as xm
+
         memory_info = xm.get_memory_info(device)
         free_memory = memory_info["kb_free"]
         peak_memory = memory_info["kb_total"] - free_memory

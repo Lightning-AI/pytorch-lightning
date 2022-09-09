@@ -17,7 +17,7 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators.cuda import CUDAAccelerator, get_nvidia_gpu_stats
+from lightning_lite.accelerators.cuda import CUDAAccelerator
 
 
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
@@ -45,26 +45,6 @@ def test_init_device_with_wrong_device_type():
 )
 def test_get_parallel_devices(devices, expected):
     assert CUDAAccelerator.get_parallel_devices(devices) == expected
-
-
-@RunIf(min_cuda_gpus=1)
-def test_get_torch_gpu_stats(tmpdir):
-    current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
-    gpu_stats = CUDAAccelerator().get_device_stats(current_device)
-    fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
-
-    for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
-
-
-@RunIf(min_cuda_gpus=1)
-def test_get_nvidia_gpu_stats(tmpdir):
-    current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
-    gpu_stats = get_nvidia_gpu_stats(current_device)
-    fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
-
-    for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
 
 
 @mock.patch("torch.cuda.set_device")

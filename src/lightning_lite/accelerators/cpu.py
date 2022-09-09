@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 
 import torch
 
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities import device_parser
-from lightning_lite.utilities.imports import _PSUTIL_AVAILABLE
 
 
 class CPUAccelerator(Accelerator):
@@ -31,10 +30,6 @@ class CPUAccelerator(Accelerator):
         """
         if device.type != "cpu":
             raise ValueError(f"Device should be CPU, got {device} instead.")
-
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
-        """Get CPU stats from ``psutil`` package."""
-        return get_cpu_stats()
 
     def teardown(self) -> None:
         pass
@@ -66,26 +61,5 @@ class CPUAccelerator(Accelerator):
         accelerator_registry.register(
             "cpu",
             cls,
-            description=cls.__class__.__name__",
+            description=cls.__class__.__name__,
         )
-
-
-# CPU device metrics
-_CPU_VM_PERCENT = "cpu_vm_percent"
-_CPU_PERCENT = "cpu_percent"
-_CPU_SWAP_PERCENT = "cpu_swap_percent"
-
-
-def get_cpu_stats() -> Dict[str, float]:
-    if not _PSUTIL_AVAILABLE:
-        raise ModuleNotFoundError(
-            "Fetching CPU device stats requires `psutil` to be installed."
-            " Install it by running `pip install -U psutil`."
-        )
-    import psutil
-
-    return {
-        _CPU_VM_PERCENT: psutil.virtual_memory().percent,
-        _CPU_PERCENT: psutil.cpu_percent(),
-        _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
-    }

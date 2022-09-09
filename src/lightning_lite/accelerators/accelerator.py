@@ -28,18 +28,6 @@ class Accelerator(ABC):
         """Create and prepare the device for the current process."""
 
     @abstractmethod
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
-        """Get stats for a given device.
-
-        Args:
-            device: device for which to get stats
-
-        Returns:
-            Dictionary of device stats
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def teardown(self) -> None:
         """Clean up any state created by the accelerator."""
 

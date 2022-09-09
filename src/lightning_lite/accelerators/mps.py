@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import platform
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import torch
 
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities import device_parser
-from lightning_lite.utilities.imports import _PSUTIL_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 # For using the `MPSAccelerator`, user's machine should have `torch>=1.12`, Metal programming framework and
 # the ARM-based Apple Silicon processors.
@@ -38,10 +38,6 @@ class MPSAccelerator(Accelerator):
         """
         if device.type != "mps":
             raise ValueError(f"Device should be MPS, got {device} instead.")
-
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
-        """Get M1 (cpu + gpu) stats from ``psutil`` package."""
-        return get_device_stats()
 
     def teardown(self) -> None:
         pass
@@ -77,24 +73,3 @@ class MPSAccelerator(Accelerator):
             cls,
             description=cls.__class__.__name__,
         )
-
-
-# device metrics
-_VM_PERCENT = "M1_vm_percent"
-_PERCENT = "M1_percent"
-_SWAP_PERCENT = "M1_swap_percent"
-
-
-def get_device_stats() -> Dict[str, float]:
-    if not _PSUTIL_AVAILABLE:
-        raise ModuleNotFoundError(
-            "Fetching M1 device stats requires `psutil` to be installed."
-            " Install it by running `pip install -U psutil`."
-        )
-    import psutil
-
-    return {
-        _VM_PERCENT: psutil.virtual_memory().percent,
-        _PERCENT: psutil.cpu_percent(),
-        _SWAP_PERCENT: psutil.swap_memory().percent,
-    }

@@ -47,13 +47,3 @@ def test_init_device_with_wrong_device_type():
 )
 def test_get_parallel_devices(devices, expected):
     assert MPSAccelerator.get_parallel_devices(devices) == expected
-
-
-@RunIf(mps=True)
-def test_get_mps_stats():
-    current_device = torch.device("mps")
-    device_stats = MPSAccelerator().get_device_stats(current_device)
-    fields = ["M1_vm_percent", "M1_percent", "M1_swap_percent"]
-
-    for f in fields:
-        assert any(f in h for h in device_stats.keys())

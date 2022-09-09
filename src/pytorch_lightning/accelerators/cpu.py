@@ -15,12 +15,10 @@ from typing import Any, Dict, List, Union
 
 import torch
 
-from lightning_lite.accelerators.cpu import get_cpu_stats as new_get_cpu_stats
-from lightning_lite.utilities import rank_zero_deprecation
 from lightning_lite.utilities.device_parser import parse_cpu_cores
-from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 
 
 class CPUAccelerator(Accelerator):
@@ -35,7 +33,7 @@ class CPUAccelerator(Accelerator):
         if device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()
 
@@ -73,9 +71,22 @@ class CPUAccelerator(Accelerator):
         )
 
 
+# CPU device metrics
+_CPU_VM_PERCENT = "cpu_vm_percent"
+_CPU_PERCENT = "cpu_percent"
+_CPU_SWAP_PERCENT = "cpu_swap_percent"
+
+
 def get_cpu_stats() -> Dict[str, float]:
-    rank_zero_deprecation(
-        "`pytorch_lightning.accelerators.cpu.get_cpu_stats` has been deprecated in v1.8.0 and will be removed in"
-        " v1.10.0. Please use `lightning_lite.accelerators.cpu.get_cpu_stats` instead."
-    )
-    return new_get_cpu_stats()
+    if not _PSUTIL_AVAILABLE:
+        raise ModuleNotFoundError(
+            "Fetching CPU device stats requires `psutil` to be installed."
+            " Install it by running `pip install -U psutil`."
+        )
+    import psutil
+
+    return {
+        _CPU_VM_PERCENT: psutil.virtual_memory().percent,
+        _CPU_PERCENT: psutil.cpu_percent(),
+        _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
+    }

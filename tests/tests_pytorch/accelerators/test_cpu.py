@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Any, Dict, Union
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -13,6 +14,7 @@ from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restore_checkpoint_after_pre_setup_default():
@@ -25,6 +27,15 @@ def test_restore_checkpoint_after_pre_setup_default():
 
 def test_availability():
     assert CPUAccelerator.is_available()
+
+
+@RunIf(psutil=True)
+def test_get_device_stats(tmpdir):
+    gpu_stats = CPUAccelerator().get_device_stats(Mock())
+    fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
+
+    for f in fields:
+        assert any(f in h for h in gpu_stats.keys())
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])

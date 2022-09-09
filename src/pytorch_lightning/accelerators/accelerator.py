@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
+from typing import Any, Dict
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_deprecation
@@ -43,3 +44,14 @@ class Accelerator(_Accelerator, ABC):
         Args:
             trainer: the trainer instance
         """
+
+    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        """Get stats for a given device.
+
+        Args:
+            device: device for which to get stats
+
+        Returns:
+            Dictionary of device stats
+        """
+        raise NotImplementedError

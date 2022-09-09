@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock
 
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.accelerators.cpu import CPUAccelerator
 
@@ -43,12 +41,3 @@ def test_init_device_with_wrong_device_type():
 )
 def test_get_parallel_devices(devices, expected):
     assert CPUAccelerator.get_parallel_devices(devices) == expected
-
-
-@RunIf(psutil=True)
-def test_get_device_stats(tmpdir):
-    gpu_stats = CPUAccelerator().get_device_stats(Mock())
-    fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
-
-    for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
