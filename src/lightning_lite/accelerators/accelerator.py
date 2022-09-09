@@ -19,13 +19,6 @@ import torch
 
 class Accelerator(ABC):
     """The Accelerator base class. An Accelerator is meant to deal with one type of hardware.
-
-    Currently, there are accelerators for:
-
-    - CPU
-    - CUDA (NVIDIA)
-    - MPS (Apple Silicon)
-    - TPU (Google)
     """
 
     @abstractmethod
