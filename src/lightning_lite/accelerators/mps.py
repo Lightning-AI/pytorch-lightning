@@ -60,8 +60,7 @@ class MPSAccelerator(Accelerator):
     @lru_cache
     def is_available() -> bool:
         """MPS is only available for certain torch builds starting at torch>=1.12, and is only enabled on a machine
-        with the ARM-based Apple Silicon processors.
-        """
+        with the ARM-based Apple Silicon processors."""
         return (
             _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
         )
