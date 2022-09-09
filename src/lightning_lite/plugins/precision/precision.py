@@ -29,14 +29,6 @@ class PrecisionPlugin:
 
     precision: Union[str, int] = 32
 
-    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        """The main params of the model.
-
-        Returns the plain model params here. Maybe different in other precision plugins.
-        """
-        for group in optimizer.param_groups:
-            yield from group["params"]
-
     @contextlib.contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
@@ -70,12 +62,19 @@ class PrecisionPlugin:
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        *args: Any,
         model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
-        return optimizer.step(*args, **kwargs)
+        return optimizer.step(**kwargs)
+
+    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+        """The main params of the model.
+
+        Returns the plain model params here. Maybe different in other precision plugins.
+        """
+        for group in optimizer.param_groups:
+            yield from group["params"]
 
     def state_dict(self) -> Dict[str, Any]:
         """Called when saving a checkpoint, implement to generate precision plugin state_dict.

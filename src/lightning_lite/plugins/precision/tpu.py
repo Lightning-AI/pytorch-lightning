@@ -25,12 +25,9 @@ class TPUPrecisionPlugin(PrecisionPlugin):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        *args: Any,
         model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
-        if args:
-            raise ValueError("Positional arguments to the optimizer step need to be passed as named arguments.")
 
         import torch_xla.core.xla_model as xm
 

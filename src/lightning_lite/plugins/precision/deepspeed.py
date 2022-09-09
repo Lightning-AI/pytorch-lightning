@@ -74,7 +74,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        *args: Any,
         model: Optional["deepspeed.DeepSpeedEngine"] = None,
         **kwargs: Any,
     ) -> Any:

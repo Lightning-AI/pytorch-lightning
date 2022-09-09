@@ -66,8 +66,8 @@ def test_native_amp_precision_optimizer_step_with_scaler():
     optimizer = Mock()
     model = Mock()
 
-    precision_plugin.optimizer_step(optimizer, "positional-arg", model=model, keyword="arg")
-    precision_plugin.scaler.step.assert_called_once_with(optimizer, "positional-arg", keyword="arg")
+    precision_plugin.optimizer_step(optimizer, model=model, keyword="arg")
+    precision_plugin.scaler.step.assert_called_once_with(optimizer, keyword="arg")
     precision_plugin.scaler.update.assert_called_once()
 
 
@@ -78,5 +78,5 @@ def test_native_amp_precision_optimizer_step_without_scaler():
     optimizer = Mock()
     model = Mock()
 
-    precision_plugin.optimizer_step(optimizer, "positional-arg", model=model, keyword="arg")
-    optimizer.step.assert_called_once_with("positional-arg", keyword="arg")
+    precision_plugin.optimizer_step(optimizer, model=model, keyword="arg")
+    optimizer.step.assert_called_once_with(keyword="arg")
