@@ -8,7 +8,7 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-  pull_request:
+  pull_request_target:
     branches: [master, "release/*"]
     paths:
       - ".github/workflows/ci-circleci.yml"

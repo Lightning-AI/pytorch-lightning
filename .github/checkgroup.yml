@@ -3,9 +3,13 @@ custom_service_name: "Lightning CI required checker"
 # changes made in pull requests from different branches or forks are ignored. This means that changes to this file
 # will only be used after they are merged.
 subprojects:
+
+  # SECTION: pytorch_lightning
+
   - id: "CI: CircleCI"
     paths:
       - ".circleci/**"
+      - ".github/workflows/ci-circleci.yml"
     checks:
       - "test-on-tpus"
 
@@ -25,7 +29,6 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-pytorch*.yml"
       - ".github/workflows/docs-*.yml"
     checks:
       - "pl-conda (3.8, 1.10)"
@@ -41,15 +44,6 @@ subprojects:
       - "pl-cpu (windows-2022, 3.10, latest, stable)"
       - "pl-cpu (windows-2022, 3.7, latest, stable)"
       - "pl-cpu (windows-2022, 3.7, oldest, stable)"
-      - "lite-cpu (macOS-11, 3.10, latest, stable)"
-      - "lite-cpu (macOS-11, 3.7, latest, stable)"
-      - "lite-cpu (macOS-11, 3.7, oldest, stable)"
-      - "lite-cpu (ubuntu-20.04, 3.10, latest, stable)"
-      - "lite-cpu (ubuntu-20.04, 3.7, latest, stable)"
-      - "lite-cpu (ubuntu-20.04, 3.7, oldest, stable)"
-      - "lite-cpu (windows-2022, 3.10, latest, stable)"
-      - "lite-cpu (windows-2022, 3.7, latest, stable)"
-      - "lite-cpu (windows-2022, 3.7, oldest, stable)"
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "mypy"
@@ -62,19 +56,43 @@ subprojects:
       - "pl-slow (windows-2022, 3.7, 1.11)"
       - "test-on-tpus"
 
+  - id: "pytorch_lightning: Conda"
+    paths:
+      - ".github/workflows/ci-pytorch-test-conda.yml"
+    checks:
+      - "pl-conda (3.8, 1.10)"
+      - "pl-conda (3.8, 1.9)"
+      - "pl-conda (3.9, 1.11)"
+      - "pl-conda (3.9, 1.12)"
+
+  - id: "pytorch_lightning: CPU"
+    paths:
+      - ".github/workflows/ci-pytorch-test-full.yml"
+    checks:
+      - "pl-cpu (macOS-11, 3.10, latest, stable)"
+      - "pl-cpu (macOS-11, 3.7, latest, stable)"
+      - "pl-cpu (macOS-11, 3.7, oldest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "pl-cpu (windows-2022, 3.10, latest, stable)"
+      - "pl-cpu (windows-2022, 3.7, latest, stable)"
+      - "pl-cpu (windows-2022, 3.7, oldest, stable)"
+
+  - id: "pytorch_lightning: Slow"
+    paths:
+      - ".github/workflows/ci-pytorch-test-slow.yml"
+    checks:
+      - "pl-slow (macOS-11, 3.7, 1.11)"
+      - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
+      - "pl-slow (windows-2022, 3.7, 1.11)"
+
   - id: "pytorch_lightning: Azure GPU"
     paths:
       - ".azure/gpu-tests.yml"
       - "tests/tests_pytorch/run_standalone_*.sh"
     checks:
       - "pytorch-lightning (GPUs)"
-
-  - id: "lightning_lite: Azure GPU"
-    paths:
-      - ".azure/gpu-tests-lite.yml"
-      - "tests/tests_lite/run_standalone_*.sh"
-    checks:
-      - "lightning-lite (GPUs)"
 
   - id: "pytorch_lightning: Azure HPU"
     paths:
@@ -101,6 +119,7 @@ subprojects:
   - id: "pytorch_lightning: Docker"
     paths:
       - "dockers/**"
+      - ".github/workflows/ci-pytorch-dockers.yml"
       - "requirements.txt"
       - "requirements/*.txt"
       - "requirements/pytorch/*"
@@ -126,12 +145,35 @@ subprojects:
       - "build-pl (3.9, 1.9, 11.1.1)"
       - "build-xla (3.7, 1.12)"
 
-  - id: "pytorch_lightning: mypy"
+  # SECTION: lightning_lite
+
+  - id: "lightning_lite"
     paths:
-      - ".github/workflows/code-checks.yml"
-      - "pyproject.toml"  # includes mypy config
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
+      - "setup.cfg"  # includes pytest config
     checks:
+      - "lite-cpu (macOS-11, 3.10, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, oldest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "lite-cpu (windows-2022, 3.10, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, oldest, stable)"
       - "mypy"
+      # TODO: lite should also require (some?) pl checks. this also requires that the path filters are modified
+
+  - id: "lightning_lite: Azure GPU"
+    paths:
+      - ".azure/gpu-tests-lite.yml"
+      - "tests/tests_lite/run_standalone_*.sh"
+    checks:
+      - "lightning-lite (GPUs)"
+
+  # SECTION: lightning_app
 
   - id: "lightning_app"
     paths:
@@ -173,6 +215,15 @@ subprojects:
     checks:
       - "make-doctest (app)"
       - "make-html (app)"
+
+  # SECTION: common
+
+  - id: "mypy"
+    paths:
+      - ".github/workflows/code-checks.yml"
+      - "pyproject.toml"  # includes mypy config
+    checks:
+      - "mypy"
 
   - id: "install"
     paths:
