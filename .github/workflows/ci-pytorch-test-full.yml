@@ -121,9 +121,8 @@ jobs:
         fi
         horovodrun --check-build
         python -c "import horovod.torch"
+        pip list
       shell: bash
-
-    - uses: Lightning-AI/utilities/.github/actions/pip-list@ci/pip-list
 
     - name: Cache datasets
       uses: actions/cache@v3
