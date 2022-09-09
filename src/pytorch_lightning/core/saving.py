@@ -24,16 +24,16 @@ from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type
 from warnings import warn
 
 import yaml
+from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)

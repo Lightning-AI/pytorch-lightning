@@ -197,8 +197,8 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
 )
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
-    monkeypatch.setattr("pytorch_lightning.utilities.device_parser.num_cuda_devices", lambda: 2)
-    monkeypatch.setattr("pytorch_lightning.utilities.device_parser.is_cuda_available", lambda: True)
+    monkeypatch.setattr("lightning_lite.utilities.device_parser.num_cuda_devices", lambda: 2)
+    monkeypatch.setattr("lightning_lite.utilities.device_parser.is_cuda_available", lambda: True)
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
