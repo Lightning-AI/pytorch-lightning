@@ -17,6 +17,7 @@ import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
+from lightning_lite.utilities.types import _DEVICE
 
 
 class IPUAccelerator(Accelerator):
@@ -25,7 +26,7 @@ class IPUAccelerator(Accelerator):
     def init_device(self, device: torch.device) -> None:
         pass
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
         return {}
 

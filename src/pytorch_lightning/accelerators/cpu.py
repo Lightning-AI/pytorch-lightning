@@ -19,6 +19,7 @@ from lightning_lite.utilities.device_parser import parse_cpu_cores
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
+from lightning_lite.utilities.types import _DEVICE
 
 
 class CPUAccelerator(Accelerator):
@@ -33,7 +34,7 @@ class CPUAccelerator(Accelerator):
         if device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
 
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()
 

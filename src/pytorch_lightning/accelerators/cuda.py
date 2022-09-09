@@ -21,6 +21,7 @@ import torch
 
 import pytorch_lightning as pl
 from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -54,7 +55,7 @@ class CUDAAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
 
         Args:
@@ -101,7 +102,7 @@ class CUDAAccelerator(Accelerator):
         )
 
 
-def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:  # pragma: no-cover
+def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cover
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Args:

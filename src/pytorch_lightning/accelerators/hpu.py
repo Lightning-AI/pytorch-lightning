@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.device_parser import parse_hpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
+from lightning_lite.utilities.types import _DEVICE
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.hpu as torch_hpu
@@ -38,7 +39,7 @@ class HPUAccelerator(Accelerator):
         if device.type != "hpu":
             raise MisconfigurationException(f"Device should be HPU, got {device} instead.")
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Returns a map of the following metrics with their values:
 
         - Limit: amount of total memory on HPU device.

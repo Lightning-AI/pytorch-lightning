@@ -19,6 +19,7 @@ from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.accelerator import Accelerator as _Accelerator
+from lightning_lite.utilities.types import _DEVICE
 
 
 class Accelerator(_Accelerator, ABC):
@@ -45,7 +46,7 @@ class Accelerator(_Accelerator, ABC):
             trainer: the trainer instance
         """
 
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get stats for a given device.
 
         Args:

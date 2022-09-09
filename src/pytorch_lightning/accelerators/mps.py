@@ -17,6 +17,7 @@ import torch
 
 from lightning_lite.accelerators.mps import _MPS_AVAILABLE
 from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
@@ -34,7 +35,7 @@ class MPSAccelerator(Accelerator):
         if device.type != "mps":
             raise MisconfigurationException(f"Device should be MPS, got {device} instead.")
 
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get M1 (cpu + gpu) stats from ``psutil`` package."""
         return get_device_stats()
 

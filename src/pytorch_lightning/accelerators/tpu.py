@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
@@ -26,7 +27,7 @@ class TPUAccelerator(Accelerator):
     def init_device(self, device: torch.device) -> None:
         pass
 
-    def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given TPU device.
 
         Args:
