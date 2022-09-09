@@ -18,7 +18,7 @@ import traceback
 from multiprocessing import Process, Queue
 from typing import Any, Callable, Union
 
-from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
+from lightning_lite.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm

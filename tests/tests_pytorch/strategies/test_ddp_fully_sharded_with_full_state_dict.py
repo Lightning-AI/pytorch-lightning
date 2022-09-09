@@ -29,8 +29,8 @@ def test_invalid_on_cpu(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 @RunIf(fairscale=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
