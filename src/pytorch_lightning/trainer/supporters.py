@@ -589,7 +589,10 @@ class CombinedLoaderIterator:
         return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
 
 
-def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable: Callable[[List[Union[int, float]]], Union[int, float]]) -> Union[int, float]:
+def _nested_calc_num_data(
+    data: Union[Mapping, Sequence], 
+    compute_func: Callable: Callable[[List[Union[int, float]]], Union[int, float]]
+) -> Union[int, float]:
 
     if isinstance(data, (float, int)):
         return data
