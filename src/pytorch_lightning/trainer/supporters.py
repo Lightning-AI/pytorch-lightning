@@ -53,17 +53,16 @@ class TensorRunningAccum:
     """
 
     def __init__(self, window_length: int):
-        self.window_length = window_length
+        self.reset(window_length)
+
+    def reset(self, window_length: Optional[int] = None) -> None:
+        """Empty the accumulator."""
+        if window_length is not None:
+            self.window_length = window_length
         self.memory: Optional[torch.Tensor] = None
         self.current_idx: int = 0
         self.last_idx: Optional[int] = None
         self.rotated: bool = False
-
-    def reset(self, window_length: Optional[int] = None) -> None:
-        """Empty the accumulator."""
-        if window_length is None:
-            window_length = self.window_length
-        TensorRunningAccum.__init__(self, window_length)
 
     def last(self) -> Optional[torch.Tensor]:
         """Get the last added element."""
@@ -71,7 +70,7 @@ class TensorRunningAccum:
             assert isinstance(self.memory, torch.Tensor)
             return self.memory[self.last_idx].float()
 
-    def append(self, x: torch.Tensor) -> Optional[torch.Tensor]:
+    def append(self, x: torch.Tensor) -> None:
         """Add an element to the accumulator."""
         if self.memory is None:
             # tradeoff memory for speed by keeping the memory on device
@@ -590,7 +589,7 @@ class CombinedLoaderIterator:
         return apply_to_collection(loaders, Iterable, iter, wrong_dtype=(Sequence, Mapping))
 
 
-def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable) -> Union[int, float]:
+def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable: Callable[[List[Union[int, float]]], Union[int, float]]) -> Union[int, float]:
 
     if isinstance(data, (float, int)):
         return data
