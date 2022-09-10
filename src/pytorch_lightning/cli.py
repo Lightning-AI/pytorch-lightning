@@ -17,17 +17,17 @@ from types import MethodType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.12.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.12.0")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser

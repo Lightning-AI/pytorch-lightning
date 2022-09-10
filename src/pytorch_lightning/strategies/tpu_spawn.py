@@ -16,12 +16,12 @@ import os
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
