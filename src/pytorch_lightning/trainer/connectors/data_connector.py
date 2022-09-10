@@ -594,7 +594,9 @@ class _DataHookSelector:
 
 
 def _check_dataloader_none(
-    dataloader: Optional[DataLoader], dataloader_source: _DataLoaderSource, trainer_fn: TrainerFn
+    dataloader: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]],
+    dataloader_source: _DataLoaderSource,
+    trainer_fn: TrainerFn,
 ) -> None:
     # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
     prefix = "training " if trainer_fn == TrainerFn.FITTING else ""
