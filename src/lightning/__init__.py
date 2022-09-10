@@ -30,7 +30,7 @@ if not _root_logger.hasHandlers():
     _logger.addHandler(_console)
     _logger.propagate = False
 
-
+from lightning_app import storage  # noqa: E402
 from lightning.__about__ import *  # noqa: E402, F401, F403
 from lightning.__version__ import version as __version__  # noqa: E402, F401
 from lightning.app.core.app import LightningApp  # noqa: E402

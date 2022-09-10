@@ -28,7 +28,6 @@ from lightning_app.__about__ import *  # noqa: E402, F401, F403
 if not hasattr(__about__, "__version__"):
     from lightning_app.__version__ import version as __version__  # noqa: F401
 
-from lightning_app import storage  # noqa: E402
 from lightning_app.core.app import LightningApp  # noqa: E402
 from lightning_app.core.flow import LightningFlow  # noqa: E402
 from lightning_app.core.work import LightningWork  # noqa: E402
@@ -41,4 +40,4 @@ if module_available("lightning_app.components.demo"):
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
 
-__all__ = ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute", "storage"]
+__all__ = ["LightningApp", "LightningFlow", "LightningWork", "BuildConfig", "CloudCompute"]
