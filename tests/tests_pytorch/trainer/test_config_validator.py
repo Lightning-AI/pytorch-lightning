@@ -18,7 +18,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, BoringDataModule
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
