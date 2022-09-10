@@ -142,7 +142,7 @@ class SharedCycleIteratorState:
 class CycleIterator:
     """Iterator for restarting a dataloader if it runs out of samples."""
 
-    def __init__(self, loader: Any, length: Optional[Union[int,float]] = None, state: SharedCycleIteratorState = None):
+    def __init__(self, loader: Any, length: Optional[Union[int, float]] = None, state: SharedCycleIteratorState = None):
         """
         Args:
             loader: the loader to restart for cyclic (and optionally infinite) sampling
@@ -188,7 +188,7 @@ class CycleIterator:
             StopIteration: if more then :attr:`length` batches have been returned
         """
         assert isinstance(self._loader_iter, Iterator)
-        
+
         # Note: if self.length is `inf`, then the iterator will never stop
         if self.counter >= self.__len__() or self.state.done:
             raise StopIteration
@@ -499,7 +499,7 @@ class CombinedLoader:
         return iterator
 
     @staticmethod
-    def _calc_num_batches(loaders: Any, mode: str="min_size") -> Union[int, float]:
+    def _calc_num_batches(loaders: Any, mode: str = "min_size") -> Union[int, float]:
         """Compute the length (aka the number of batches) of `CombinedLoader`.
 
         Args:
