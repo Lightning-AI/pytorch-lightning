@@ -283,6 +283,10 @@ def test_lightning_work_calls():
 
 
 def test_work_cloud_build_config_provided():
+
+    assert isinstance(LightningWork.cloud_build_config, property)
+    assert LightningWork.cloud_build_config.fset is not None
+
     class Work(LightningWork):
         def __init__(self):
             super().__init__()
@@ -292,12 +296,14 @@ def test_work_cloud_build_config_provided():
             pass
 
     w = Work()
-    assert len(w._calls) == 1
     w.run()
-    assert len(w._calls) == 2
 
 
 def test_work_local_build_config_provided():
+
+    assert isinstance(LightningWork.local_build_config, property)
+    assert LightningWork.local_build_config.fset is not None
+
     class Work(LightningWork):
         def __init__(self):
             super().__init__()
