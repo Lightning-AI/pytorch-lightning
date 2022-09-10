@@ -78,11 +78,11 @@ RUN \
     conda update -n base -c defaults conda && \
     CUDA_VERSION_MM=$(python -c "print('.'.join('$CUDA_VERSION'.split('.')[:2]))") && \
     conda create -y --name $CONDA_ENV \
-      python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION_MM} \
+      python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision cudatoolkit=${CUDA_VERSION_MM} \
       -c nvidia -c pytorch -c pytorch-test && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
-    printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchtext', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
+    printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
     python prune.py && \
     rm prune.py && \
     cat environment.yml && \
@@ -102,7 +102,7 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs torch,torchvision,torchtext && \
+    python assistant.py requirements_prune_pkgs torch,torchvision && \
     # Install remaining requirements
     pip install --no-cache-dir -r requirements/pytorch/base.txt \
         -r requirements/pytorch/extra.txt \
@@ -143,8 +143,8 @@ RUN \
 RUN \
     # install Bagua
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [115,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
-    pip install "bagua-cuda$CUDA_VERSION_BAGUA==0.9.0" && \
+    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
+    pip install "bagua-cuda$CUDA_VERSION_BAGUA" && \
     if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
     python -c "import bagua; print(bagua.__version__)"
 

@@ -141,24 +141,36 @@ def _run_power_scaling(
     trainer: "pl.Trainer", pl_module: "pl.LightningModule", new_size: int, batch_arg_name: str, max_trials: int, params
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
+    # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
+    # if it was we exit, else we continue downscaling in case we haven't encountered a single optimal batch size
+    any_success = False
     for _ in range(max_trials):
         _collect_garbage()
+
+        # reset after each try
+        _reset_progress(trainer)
 
         try:
             _try_loop_run(trainer, params)
             new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
 
-            if changed:
-                # Force the dataloaders to reset as the batch size has changed
-                _reset_dataloaders(trainer, pl_module)
-            else:
+            if not changed:
                 break
+
+            # Force the train dataloader to reset as the batch size has changed
+            trainer.reset_train_dataloader(model)
+            trainer.reset_val_dataloader(model)
+            any_success = True
         except RuntimeError as exception:
             if is_oom_error(exception):
+                # If we fail in power mode, half the size and return
                 _collect_garbage()
-
-                new_size, _ = _adjust_batch_size(trainer)
-                break
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
+                if any_success:
+                    break
             else:
                 raise  # some other error not memory related
 
@@ -179,6 +191,9 @@ def _run_binary_scaling(
     while True:
         _collect_garbage()
 
+        # reset after each try
+        _reset_progress(trainer)
+
         try:
             # run loop
             _try_loop_run(trainer, params)
@@ -195,11 +210,12 @@ def _run_binary_scaling(
             else:
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
 
-            if changed:
-                # Force the dataloaders to reset as the batch size has changed
-                _reset_dataloaders(trainer, pl_module)
-            else:
+            if not changed:
                 break
+
+            # Force the train dataloader to reset as the batch size has changed
+            trainer.reset_train_dataloader(model)
+            trainer.reset_val_dataloader(model)
 
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
@@ -209,11 +225,11 @@ def _run_binary_scaling(
 
                 high = new_size
                 midval = (high + low) // 2
-                new_size, changed = _adjust_batch_size(trainer, value=midval, desc="failed")
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
 
-                if changed:
-                    # Force the dataloaders to reset as the batch size has changed
-                    _reset_dataloaders(trainer, pl_module)
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
 
                 if high - low <= 1:
                     break
@@ -306,3 +322,12 @@ def _try_loop_run(trainer: "pl.Trainer", params) -> None:
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
     loop.run()
+
+
+def _reset_progress(trainer: "pl.Trainer") -> None:
+    if trainer.lightning_module.automatic_optimization:
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.reset()
+    else:
+        trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress.reset()
+
+    trainer.fit_loop.epoch_progress.reset()

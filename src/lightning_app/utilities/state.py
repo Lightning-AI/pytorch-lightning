@@ -66,7 +66,7 @@ class AppState:
         my_affiliation: Tuple[str, ...] = None,
         plugin: Optional[BaseStatePlugin] = None,
     ) -> None:
-        """The AppState class enable streamlit user to interact their application state.
+        """The AppState class enables Frontend users to interact with their application state.
 
         When the state isn't defined, it would be pulled from the app REST API Server.
         If the state gets modified by the user, the new state would be sent to the API Server.

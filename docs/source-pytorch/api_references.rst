@@ -77,7 +77,6 @@ core
     ~hooks.ModelHooks
     LightningDataModule
     LightningModule
-    ~mixins.DeviceDtypeModuleMixin
     ~mixins.HyperparametersMixin
     ~optimizer.LightningOptimizer
     ~saving.ModelIO

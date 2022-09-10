@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-class MisconfigurationException(Exception):
-    """Exception used to inform users of misuse with PyTorch Lightning."""
+from lightning_lite.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
 class DeadlockDetectedException(Exception):

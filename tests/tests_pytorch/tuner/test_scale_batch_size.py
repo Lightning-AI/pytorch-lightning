@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -307,10 +308,13 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
 def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
-    scale_batch_size_kwargs = {"max_trials": 5, "init_val": 4, "mode": scale_method}
+    max_trials = 5
+    scale_batch_size_kwargs = {"max_trials": max_trials, "steps_per_trial": 2, "init_val": 4, "mode": scale_method}
 
-    trainer = Trainer(max_epochs=2, auto_scale_batch_size=True)
-    new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
+    with patch.object(model, "on_train_epoch_end") as advance_mocked:
+        new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
+        assert advance_mocked.call_count == max_trials
 
     assert trainer.train_dataloader.loaders.batch_size == new_batch_size
     assert trainer.val_dataloaders[0].batch_size == new_batch_size
@@ -453,3 +457,26 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
         MisconfigurationException, match="Batch size finder cannot be used with multiple .* dataloaders"
     ):
         trainer.tune(model, method="validate")
+
+
+@pytest.mark.parametrize("scale_method, expected_batch_size", [("power", 62), ("binsearch", 100)])
+@patch("pytorch_lightning.tuner.batch_size_scaling.is_oom_error", return_value=True)
+def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expected_batch_size):
+    class CustomBatchSizeModel(BatchSizeModel):
+        def training_step(self, *_, **__):
+            if self.batch_size > 100:
+                raise RuntimeError
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 1000), batch_size=self.batch_size)
+
+    model = CustomBatchSizeModel(batch_size=16)
+    model.validation_step = None
+    model.training_epoch_end = None
+    scale_batch_size_kwargs = {"max_trials": 10, "steps_per_trial": 1, "init_val": 500, "mode": scale_method}
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, auto_scale_batch_size=True)
+    new_batch_size = trainer.tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs)["scale_batch_size"]
+    assert new_batch_size == model.batch_size
+    assert new_batch_size == expected_batch_size
+    assert trainer.train_dataloader.loaders.batch_size == expected_batch_size

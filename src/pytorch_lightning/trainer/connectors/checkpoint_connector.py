@@ -23,16 +23,15 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments import SLURMEnvironment
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
-from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -168,15 +167,8 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        model = self.trainer.lightning_module
-
         # hook: give user access to checkpoint if needed.
         self.trainer._call_lightning_module_hook("on_load_checkpoint", self._loaded_checkpoint)
-
-        # TODO: remove this in v1.8.
-        # call hpc specific hook
-        if self._hpc_resume_path is not None:
-            model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
         self.trainer.strategy.load_model_state_dict(self._loaded_checkpoint)
@@ -437,11 +429,6 @@ class CheckpointConnector:
         self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
         if datamodule is not None:
             self.trainer._call_lightning_datamodule_hook("on_save_checkpoint", checkpoint)
-
-        # TODO: remove this in v1.8.
-        environment = self.trainer._accelerator_connector.cluster_environment
-        if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
-            model.on_hpc_save(checkpoint)
 
         return checkpoint
 

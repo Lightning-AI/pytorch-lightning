@@ -3,8 +3,8 @@ from contextlib import contextmanager
 from typing import Any, Dict, Generator, Optional, TYPE_CHECKING
 
 from deepdiff.helper import NotPresent
+from lightning_utilities.core.apply_func import apply_to_collection
 
-from lightning_app.utilities.apply_func import apply_to_collection
 from lightning_app.utilities.enum import ComponentContext
 from lightning_app.utilities.tree import breadth_first
 
