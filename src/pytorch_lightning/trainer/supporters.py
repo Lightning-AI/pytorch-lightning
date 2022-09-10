@@ -63,7 +63,7 @@ class TensorRunningAccum:
         """Empty the accumulator."""
         if window_length is None:
             window_length = self.window_length
-        self.__init__(window_length)  # type: ignore[misc]
+        TensorRunningAccum.__init__(self, window_length)
 
     def last(self) -> Optional[torch.Tensor]:
         """Get the last added element."""
