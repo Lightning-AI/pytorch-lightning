@@ -1,7 +1,7 @@
 name: PyPI
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   release:
@@ -26,7 +26,7 @@ jobs:
       with:
         python-version: 3.9
     - run: |
-        pip install -q fire requests
+        pip install -q -r .actions/requirements.txt
         mkdir dist && touch dist/.placeholder
         mkdir pypi && touch pypi/.placeholder
     - uses: actions/upload-artifact@v3
@@ -105,7 +105,7 @@ jobs:
 
     - name: Dowload package
       run: |
-        pip install -q fire requests
+        pip install -q -r .actions/requirements.txt
         python .actions/assistant.py download-package ${{ matrix.pkg }} --folder pypi
 
     - uses: actions/upload-artifact@v3
@@ -147,7 +147,7 @@ jobs:
 
     - name: Miror source
       run: |
-        pip install -q fire requests
+        pip install -q -r .actions/requirements.txt
         python .actions/assistant.py mirror-pkg2source pypi src
         ls -R src/
 
