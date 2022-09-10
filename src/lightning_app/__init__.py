@@ -28,7 +28,7 @@ from lightning_app.__about__ import *  # noqa: E402, F401, F403
 if not hasattr(__about__, "__version__"):
     from lightning_app.__version__ import version as __version__  # noqa: F401
 
-from lightning_app import storage
+from lightning_app import storage  # noqa: E402
 from lightning_app.core.app import LightningApp  # noqa: E402
 from lightning_app.core.flow import LightningFlow  # noqa: E402
 from lightning_app.core.work import LightningWork  # noqa: E402
