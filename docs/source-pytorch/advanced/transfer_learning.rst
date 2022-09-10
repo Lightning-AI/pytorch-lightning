@@ -62,7 +62,7 @@ Example: Imagenet (Computer Vision)
             super().__init__()
 
             # init a pretrained resnet
-            backbone = models.resnet50(pretrained=True)
+            backbone = models.resnet50(weights="DEFAULT")
             num_filters = backbone.fc.in_features
             layers = list(backbone.children())[:-1]
             self.feature_extractor = nn.Sequential(*layers)

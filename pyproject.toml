@@ -27,6 +27,7 @@ exclude = '(_notebooks/.*)'
 [tool.mypy]
 files = [
     "src/pytorch_lightning",
+    "src/lightning_lite",
     # TODO: Check typing in app source
     # "src/lightning_app",
 ]
@@ -53,9 +54,9 @@ module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
-    "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
     "pytorch_lightning.utilities.data",
+    "lightning_lite.utilities.data",
 ]
 ignore_errors = "True"
