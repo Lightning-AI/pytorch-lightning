@@ -590,7 +590,7 @@ class CombinedLoaderIterator:
 
 
 def _nested_calc_num_data(
-    data: Union[Mapping, Sequence], 
+    data: Union[Mapping, Sequence],
     compute_func: Callable: Callable[[List[Union[int, float]]], Union[int, float]]
 ) -> Union[int, float]:
 
