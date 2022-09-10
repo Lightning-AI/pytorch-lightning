@@ -31,10 +31,10 @@ if not _root_logger.hasHandlers():
     _logger.addHandler(logging.StreamHandler())
     _logger.propagate = False
 
+from lightning_lite.utilities.seed import seed_everything  # noqa: E402
 from pytorch_lightning.callbacks import Callback  # noqa: E402
 from pytorch_lightning.core import LightningDataModule, LightningModule  # noqa: E402
 from pytorch_lightning.trainer import Trainer  # noqa: E402
-from pytorch_lightning.utilities.seed import seed_everything  # noqa: E402
 
 __all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
 
