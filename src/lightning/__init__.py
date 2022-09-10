@@ -31,6 +31,7 @@ if not _root_logger.hasHandlers():
     _logger.propagate = False
 
 
+from lightning.app import storage
 from lightning.__about__ import *  # noqa: E402, F401, F403
 from lightning.__version__ import version as __version__  # noqa: E402, F401
 from lightning.app.core.app import LightningApp  # noqa: E402
