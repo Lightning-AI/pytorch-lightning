@@ -57,8 +57,8 @@ class DataConnector:
         """Check if train dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
         return n_epochs and (
-            self.trainer._last_train_dl_reload_epoch is None
-            or self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
+                self.trainer._last_train_dl_reload_epoch is None
+                or self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
         )
 
     @property
@@ -66,15 +66,15 @@ class DataConnector:
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
         return n_epochs and (
-            self.trainer._last_val_dl_reload_epoch is None
-            or self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
+                self.trainer._last_val_dl_reload_epoch is None
+                or self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
         )
 
     def on_trainer_init(
-        self,
-        val_check_interval: Union[int, float],
-        reload_dataloaders_every_n_epochs: int,
-        check_val_every_n_epoch: Optional[int],
+            self,
+            val_check_interval: Union[int, float],
+            reload_dataloaders_every_n_epochs: int,
+            check_val_every_n_epoch: Optional[int],
     ) -> None:
         self.trainer.datamodule = None
 
@@ -122,13 +122,13 @@ class DataConnector:
                 self.trainer._is_data_prepared = True
 
     def attach_data(
-        self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional["pl.LightningDataModule"] = None,
+            self,
+            model: "pl.LightningModule",
+            train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
+            val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            test_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            datamodule: Optional["pl.LightningDataModule"] = None,
     ) -> None:
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(
@@ -139,6 +139,17 @@ class DataConnector:
             predict_dataloaders=predict_dataloaders,
         )
         self.attach_datamodule(model, datamodule=datamodule)
+
+        # Validate that the required data sources are available
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            _check_dataloader_none(train_dataloaders, self._train_dataloader_source, self.trainer.state.fn)
+        if self.trainer.state.fn == TrainerFn.VALIDATING:
+            _check_dataloader_none(val_dataloaders, self._val_dataloader_source, self.trainer.state.fn)
+        if self.trainer.state.fn == TrainerFn.TESTING:
+            _check_dataloader_none(test_dataloaders, self._test_dataloader_source, self.trainer.state.fn)
+        if self.trainer.state.fn == TrainerFn.PREDICTING:
+            _check_dataloader_none(predict_dataloaders, self._predict_dataloader_source, self.trainer.state.fn)
+
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
@@ -149,12 +160,12 @@ class DataConnector:
         model.precision = self.trainer.precision
 
     def attach_dataloaders(
-        self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        test_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            self,
+            model: "pl.LightningModule",
+            train_dataloaders: Optional[TRAIN_DATALOADERS] = None,
+            val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            test_dataloaders: Optional[EVAL_DATALOADERS] = None,
+            predict_dataloaders: Optional[EVAL_DATALOADERS] = None,
     ) -> None:
         self.trainer.train_dataloader = None
         self.trainer.val_dataloaders = None
@@ -175,7 +186,7 @@ class DataConnector:
         )
 
     def attach_datamodule(
-        self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
+            self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
         self._datahook_selector = _DataHookSelector(model, datamodule)
@@ -227,17 +238,17 @@ class DataConnector:
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self.trainer._accelerator_connector.replace_sampler_ddp
-            and self.trainer._accelerator_connector.is_distributed
-            and not isinstance(dataloader.sampler, DistributedSampler)
-            and not has_iterable_dataset(dataloader)
-            # `DistributedSampler` is never used with `poptorch.DataLoader`
-            and not isinstance(self.trainer.accelerator, IPUAccelerator)
+                self.trainer._accelerator_connector.replace_sampler_ddp
+                and self.trainer._accelerator_connector.is_distributed
+                and not isinstance(dataloader.sampler, DistributedSampler)
+                and not has_iterable_dataset(dataloader)
+                # `DistributedSampler` is never used with `poptorch.DataLoader`
+                and not isinstance(self.trainer.accelerator, IPUAccelerator)
         )
 
     # TODO: shuffle here is kept for BC. Remove it once data_loading.py is removed (#11248)
     def _prepare_dataloader(
-        self, dataloader: Any, shuffle: Optional[bool] = None, mode: Optional[RunningStage] = None
+            self, dataloader: Any, shuffle: Optional[bool] = None, mode: Optional[RunningStage] = None
     ) -> Any:
         """This function handles the following functionalities:
 
@@ -265,11 +276,11 @@ class DataConnector:
             dataloader = dataloader.loader
 
         if (
-            _fault_tolerant_training()  # injects components to track the state
-            or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
-            or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
-            or isinstance(self.trainer.accelerator, IPUAccelerator)
+                _fault_tolerant_training()  # injects components to track the state
+                or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
+                or mode == RunningStage.PREDICTING  # to track indices for the predictions
+                # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
+                or isinstance(self.trainer.accelerator, IPUAccelerator)
         ):
             if shuffle is None:
                 # for training, set to True always
@@ -288,7 +299,7 @@ class DataConnector:
         return dataloader
 
     def _resolve_sampler(
-        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
+            self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
     ) -> Union[Sampler, Iterable]:
         if self._requires_distributed_sampler(dataloader):
             distributed_sampler_kwargs = self.trainer.distributed_sampler_kwargs
@@ -304,9 +315,9 @@ class DataConnector:
             # update docs too once this is resolved
             trainer_fn = self.trainer.state.fn
             if (
-                isinstance(sampler, DistributedSampler)
-                and sampler.num_replicas > 1
-                and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING)
+                    isinstance(sampler, DistributedSampler)
+                    and sampler.num_replicas > 1
+                    and trainer_fn in (TrainerFn.VALIDATING, TrainerFn.TESTING)
             ):
                 rank_zero_warn(
                     f"Using `DistributedSampler` with the dataloaders. During `trainer.{trainer_fn.value}()`, it is"
@@ -322,11 +333,11 @@ class DataConnector:
 
     @staticmethod
     def _get_distributed_sampler(
-        dataloader: DataLoader,
-        shuffle: bool,
-        overfit_batches: Union[int, float],
-        mode: Optional[RunningStage] = None,
-        **kwargs: Any,
+            dataloader: DataLoader,
+            shuffle: bool,
+            overfit_batches: Union[int, float],
+            mode: Optional[RunningStage] = None,
+            **kwargs: Any,
     ) -> DistributedSampler:
         """This function is used to created the distributed sampler injected within the user DataLoader."""
         kwargs["shuffle"] = shuffle and not overfit_batches
@@ -336,7 +347,7 @@ class DataConnector:
         return sampler
 
     def _reset_eval_dataloader(
-        self, mode: RunningStage, model: Optional["pl.LightningModule"] = None
+            self, mode: RunningStage, model: Optional["pl.LightningModule"] = None
     ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
@@ -408,10 +419,10 @@ class DataConnector:
                     )
 
                 if (
-                    num_batches == 0
-                    and limit_eval_batches > 0.0
-                    and isinstance(limit_eval_batches, float)
-                    and orig_num_batches != float("inf")
+                        num_batches == 0
+                        and limit_eval_batches > 0.0
+                        and isinstance(limit_eval_batches, float)
+                        and orig_num_batches != float("inf")
                 ):
                     min_percentage = 1.0 / orig_num_batches
                     raise MisconfigurationException(
@@ -447,7 +458,7 @@ class DataConnector:
 
     @staticmethod
     def _resolve_overfit_batches(
-        dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS], mode: RunningStage
+            dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS], mode: RunningStage
     ) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         all_have_sequential_sampler = True
 
@@ -580,3 +591,14 @@ class _DataHookSelector:
                 " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
             )
         return self.model
+
+
+def _check_dataloader_none(dataloader: Optional[DataLoader], dataloader_source: _DataLoaderSource, trainer_fn: TrainerFn) -> None:
+    # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
+    prefix = "training " if trainer_fn == TrainerFn.FITTING else ""
+    if dataloader is None and not dataloader_source.is_defined():
+        raise ValueError(
+            f"No valid {prefix}dataloader was passed to `Trainer.{trainer_fn}()`."
+            f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
+            f" `def {dataloader_source.name}(self):` in your LightningModule/LightningDataModule."
+        )

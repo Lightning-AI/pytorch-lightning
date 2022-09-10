@@ -18,7 +18,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, BoringDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -185,3 +185,37 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
 
     with pytest.raises(MisconfigurationException, match=match_pattern):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    "trainer_fn_name, dataloader_name",
+    [
+        ("fit", "train_dataloaders"),
+        ("validate", "dataloaders"),
+        ("test", "dataloaders"),
+        ("predict", "dataloaders"),
+    ],
+)
+def test_raise_exception_with_explicit_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
+    """Test that explicitly passing `Trainer.method(x_dataloader=None)` raises an error."""
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    trainer_fn = getattr(trainer, trainer_fn_name)
+
+    # Pretend that these methods are not implemented
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+    model.predict_dataloader = None
+
+    datamodule.train_dataloader = None
+    datamodule.val_dataloader = None
+    datamodule.test_dataloader = None
+    datamodule.predict_dataloader = None
+
+    with pytest.raises(ValueError, match=f"No valid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+        trainer_fn(model, **{dataloader_name: None}, datamodule=datamodule)
+
+    with pytest.raises(ValueError, match=f"No valid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+        trainer_fn(model, **{dataloader_name: None}, datamodule=None)
