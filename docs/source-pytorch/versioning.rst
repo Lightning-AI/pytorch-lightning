@@ -1,4 +1,4 @@
-.. _release_policy:
+.. _versioning:
 
 Release Policy
 ##############
