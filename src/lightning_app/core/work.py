@@ -320,9 +320,9 @@ class LightningWork(abc.ABC):
         return getattr(self.__class__, name, None)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        propObject = self._get_property_if_exists(name)
-        if isinstance(propObject, property) and propObject.fset is not None:
-            propObject.fset(self, value)
+        property_object = self._get_property_if_exists(name)
+        if isinstance(property_object, property) and property_object.fset is not None:
+            property_object.fset(self, value)
         else:
             setattr_fn = getattr(self, "_setattr_replacement", None) or self._default_setattr
             setattr_fn(name, value)
