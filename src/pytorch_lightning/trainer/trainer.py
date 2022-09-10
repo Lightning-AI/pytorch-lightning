@@ -115,9 +115,6 @@ from pytorch_lightning.utilities.exceptions import (
     MisconfigurationException,
 )
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
-from pytorch_lightning.utilities.data import has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
