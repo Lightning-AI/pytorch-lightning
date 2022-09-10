@@ -581,8 +581,9 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
         ("predict", "dataloaders"),
     ],
 )
-def test_raise_exception_with_explicit_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
-    """Test that explicitly passing `Trainer.method(x_dataloader=None)` raises an error."""
+def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
+    """Test that passing `Trainer.method(x_dataloader=None)` with no module-method implementations available raises
+    an error."""
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     model = BoringModel()
     datamodule = BoringDataModule()
