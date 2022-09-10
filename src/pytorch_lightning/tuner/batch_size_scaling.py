@@ -158,8 +158,7 @@ def _run_power_scaling(
                 break
 
             # Force the train dataloader to reset as the batch size has changed
-            trainer.reset_train_dataloader(model)
-            trainer.reset_val_dataloader(model)
+            _reset_dataloaders(trainer, pl_module)
             any_success = True
         except RuntimeError as exception:
             if is_oom_error(exception):
@@ -167,8 +166,7 @@ def _run_power_scaling(
                 _collect_garbage()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
                 # Force the train dataloader to reset as the batch size has changed
-                trainer.reset_train_dataloader(model)
-                trainer.reset_val_dataloader(model)
+                _reset_dataloaders(trainer, pl_module)
                 if any_success:
                     break
             else:
@@ -214,8 +212,7 @@ def _run_binary_scaling(
                 break
 
             # Force the train dataloader to reset as the batch size has changed
-            trainer.reset_train_dataloader(model)
-            trainer.reset_val_dataloader(model)
+            _reset_dataloaders(trainer, pl_module)
 
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
@@ -228,8 +225,7 @@ def _run_binary_scaling(
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
 
                 # Force the train dataloader to reset as the batch size has changed
-                trainer.reset_train_dataloader(model)
-                trainer.reset_val_dataloader(model)
+                _reset_dataloaders(trainer, pl_module)
 
                 if high - low <= 1:
                     break
