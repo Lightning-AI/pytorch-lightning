@@ -520,7 +520,7 @@ def test_lightning_cli_submodules(tmpdir):
     assert isinstance(cli.model.submodule2, BoringModel)
 
 
-@pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason="Tests a bug with torchvision, but it's not available")
+@pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason=str(_TORCHVISION_AVAILABLE))
 def test_lightning_cli_torch_modules(tmpdir):
     class TestModule(BoringModel):
         def __init__(self, activation: torch.nn.Module = None, transform: Optional[List[torch.nn.Module]] = None):
