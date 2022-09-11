@@ -504,7 +504,7 @@ class WandbLogger(Logger):
         Returns:
             The (relative) path to where logs and artifacts get saved for the current version.
         """
-        return os.path.join(self.save_dir, self.name, self.version)
+        return os.path.join(filter(None, self.save_dir, self.name, self.version))
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         # log checkpoints as artifacts

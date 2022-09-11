@@ -182,6 +182,11 @@ class DummyLogger(Logger):
         """Return the experiment version."""
         return ""
 
+    @property
+    def experiment_dir(self) -> str:
+        """Returns the (relative) path to where logs and artifacts get saved for the current version."""
+        return os.path.join(filter(None, self.save_dir, self.name, self.version))
+
     def __getitem__(self, idx: int) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
