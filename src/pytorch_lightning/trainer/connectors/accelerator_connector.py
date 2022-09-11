@@ -45,6 +45,7 @@ from pytorch_lightning.plugins import (
     TPUPrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments import (
+    AzureOpenMPIEnvironment,
     BaguaEnvironment,
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -561,10 +562,20 @@ class AcceleratorConnector:
         if self._is_slurm_managing_tasks():
             rank_zero_info("Multiprocessing is handled by SLURM.")
             return SLURMEnvironment()
-        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (
+            BaguaEnvironment,
+            TorchElasticEnvironment,
+            KubeflowEnvironment,
+            LSFEnvironment,
+            AzureOpenMPIEnvironment,
+        ):
             if env_type.detect():
-                # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
-                return env_type()  # type: ignore[abstract]
+                # need to pass number of devices for AzureOpenMPIEnvironment
+                if type(env_type) == AzureOpenMPIEnvironment:
+                    return env_type(devices=self._devices_flag)
+                else:
+                    # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
+                    return env_type()  # type: ignore[abstract]
         return LightningEnvironment()
 
     def _is_slurm_managing_tasks(self) -> bool:
