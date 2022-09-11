@@ -280,6 +280,7 @@ def test_mlflow_logger_run_status_failed(client, mlflow):
         trainer.fit(model)
     client.return_value.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
 
+
 @pytest.mark.parametrize("_mlflow_client", [None, "not none something"], ids=["worker process", "main process"])
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
