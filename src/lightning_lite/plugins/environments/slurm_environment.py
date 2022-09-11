@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+import signal
 from typing import Optional
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
@@ -28,12 +29,14 @@ class SLURMEnvironment(ClusterEnvironment):
     Args:
         auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
             rescheduled gets determined by the owner of this plugin.
+        requeue_signal: The signal that SLURM will send to indicate that the job should be requeued. Defaults to
+            SIGUSR1.
     """
 
-    def __init__(self, auto_requeue: bool = True, signal: str = "USR1") -> None:
+    def __init__(self, auto_requeue: bool = True, requeue_signal: signal.Signals = signal.SIGUSR1) -> None:
         super().__init__()
         self.auto_requeue = auto_requeue
-        self.signal = signal
+        self.requeue_signal = requeue_signal
 
     @property
     def creates_processes_externally(self) -> bool:
