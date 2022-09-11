@@ -107,7 +107,7 @@ class TensorBoardLogger(Logger):
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
-        
+
         self._experiment: Optional["SummaryWriter"] = None
         self.hparams: Union[Dict[str, Any], Namespace] = {}
         self._kwargs = kwargs
