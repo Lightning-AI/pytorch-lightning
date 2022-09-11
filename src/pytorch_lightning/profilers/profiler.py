@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
-from pytorch_lightning.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
@@ -148,15 +148,13 @@ class Profiler(ABC):
             output.append(value)
         return os.linesep.join(output)
 
-    def setup(
-        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
-    ) -> None:
+    def setup(self, stage: str, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
         self.dirpath = self.dirpath or log_dir
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: Optional[str]) -> None:
         """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.

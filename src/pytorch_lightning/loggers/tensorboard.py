@@ -27,9 +27,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
