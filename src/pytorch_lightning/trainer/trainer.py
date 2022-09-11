@@ -279,7 +279,7 @@ class Trainer(
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
-                provided, local files (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of
+                provided, local files (checkpoints, profiler traces, etc.) are saved in the ``experiment_dir`` of
                 the first logger.
                 Default: ``True``.
 
