@@ -53,6 +53,7 @@ class TensorRunningAccum:
     """
 
     def __init__(self, window_length: int):
+        self.window_length = window_length
         self.reset(window_length)
 
     def reset(self, window_length: Optional[int] = None) -> None:
