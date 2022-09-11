@@ -44,7 +44,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: DocTests actions
-        if: ${{ (steps.skip.outputs.continue == '1') }}
         run: pytest .actions
 
       - uses: actions/download-artifact@v3
