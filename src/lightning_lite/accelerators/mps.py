@@ -57,7 +57,7 @@ class MPSAccelerator(Accelerator):
         return 1
 
     @staticmethod
-    @lru_cache
+    @lru_cache(1)
     def is_available() -> bool:
         """MPS is only available for certain torch builds starting at torch>=1.12, and is only enabled on a machine
         with the ARM-based Apple Silicon processors."""
