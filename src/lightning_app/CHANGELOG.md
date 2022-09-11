@@ -11,7 +11,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Adds `PanelFrontend` to easily create complex UI in Python ([#13531](https://github.com/Lightning-AI/lightning/pull/13531))
 
+### Fixed
 
+- Fixed an issue where custom property setters were not being used `LightningWork` class. ([#13934](https://github.com/Lightning-AI/lightning/issues/13934))
 
 
 ## [0.6.0] - 2022-08-23
