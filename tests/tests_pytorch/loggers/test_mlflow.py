@@ -279,3 +279,16 @@ def test_mlflow_logger_run_status_failed(client, mlflow):
     with pytest.raises(BaseException):
         trainer.fit(model)
     client.return_value.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
+
+@pytest.mark.parametrize("_mlflow_client", [None, "not none something"], ids=["worker process", "main process"])
+@mock.patch("pytorch_lightning.loggers.mlflow.MLFlowLogger.finalize")
+def test_mlflow_logger_finalize_when_exception(finalize, _mlflow_client):
+    logger = MLFlowLogger("test")
+    logger._mlflow_client = _mlflow_client
+
+    logger.finalize_when_exception()
+
+    if logger._mlflow_client:
+        finalize.assert_called_once_with("failed")
+    else:
+        finalize.assert_not_called()

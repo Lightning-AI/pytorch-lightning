@@ -262,6 +262,12 @@ class MLFlowLogger(Logger):
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 
+    def finalize_when_exception(self) -> None:
+        super().finalize_when_exception()
+        if self._mlflow_client is None:
+            return
+        self.finalize("failed")
+
     @property
     def save_dir(self) -> Optional[str]:
         """The root file directory in which MLflow experiments are saved.

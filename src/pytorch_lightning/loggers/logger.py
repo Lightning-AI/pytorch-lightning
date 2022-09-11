@@ -190,6 +190,10 @@ class Logger(ABC):
         """
         self.save()
 
+    def finalize_when_exception(self) -> None:
+        """Do any processing that is necessary to finalize an experiment when the experiment is interrupted."""
+        pass
+
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
@@ -282,6 +286,10 @@ class LoggerCollection(Logger):
     def finalize(self, status: str) -> None:
         for logger in self._logger_iterable:
             logger.finalize(status)
+
+    def finalize_when_exception(self) -> None:
+        for logger in self._logger_iterable:
+            logger.finalize_when_exception()
 
     @property
     def save_dir(self) -> Optional[str]:
