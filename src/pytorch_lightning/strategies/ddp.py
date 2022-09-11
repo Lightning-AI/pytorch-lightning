@@ -136,7 +136,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.local_rank)
         return distributed_sampler_kwargs
 
     @property
