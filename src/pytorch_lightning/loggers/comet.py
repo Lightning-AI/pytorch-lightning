@@ -415,7 +415,10 @@ class CometLogger(Logger):
         Returns:
             The (relative) path to where logs and artifacts get saved for the current version.
         """
-        return os.path.join(filter(None, self.save_dir, self.name, self.version))
+        save_dir = self.save_dir or ""
+        name = self.name or ""
+        version = self.version or ""
+        return os.path.join(save_dir, name, version)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()

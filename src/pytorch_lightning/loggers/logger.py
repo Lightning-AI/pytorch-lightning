@@ -16,6 +16,7 @@
 
 import functools
 import operator
+import os
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
@@ -185,7 +186,10 @@ class DummyLogger(Logger):
     @property
     def experiment_dir(self) -> str:
         """Returns the (relative) path to where logs and artifacts get saved for the current version."""
-        return os.path.join(filter(None, self.save_dir, self.name, self.version))
+        save_dir = self.save_dir or ""
+        name = self.name or ""
+        version = self.version or ""
+        return os.path.join(save_dir, name, version)
 
     def __getitem__(self, idx: int) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
