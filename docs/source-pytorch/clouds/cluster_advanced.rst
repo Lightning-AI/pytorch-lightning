@@ -94,7 +94,7 @@ To train a model using multiple nodes, do the following:
 
         #SBATCH --signal=SIGHUP@90
 
-    Then, when you make your trainer, pass the ` signal` option to the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin::
+    Then, when you make your trainer, pass the `signal` option to the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
 
     .. code-block:: python
 
