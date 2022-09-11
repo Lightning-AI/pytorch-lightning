@@ -57,6 +57,10 @@ def test_lightning_logger_base_deprecation_warning():
         def version(self):
             pass
 
+        @property
+        def experiment_dir(self):
+            pass
+
     with pytest.deprecated_call(
         match="The `pytorch_lightning.loggers.base.LightningLoggerBase` is deprecated in v1.7"
         " and will be removed in v1.9."

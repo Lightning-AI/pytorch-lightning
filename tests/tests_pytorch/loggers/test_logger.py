@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pickle
 from argparse import Namespace
 from copy import deepcopy
@@ -70,6 +71,10 @@ class CustomLogger(Logger):
     @property
     def version(self):
         return self._version
+
+    @property
+    def experiment_dir(self) -> str:
+        return os.path.join(self.save_dir or "", self.name, self.version)
 
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True

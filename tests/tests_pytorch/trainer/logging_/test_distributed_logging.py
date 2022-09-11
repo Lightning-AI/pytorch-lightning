@@ -45,6 +45,10 @@ class AllRankLogger(Logger):
     def name(self) -> str:
         return "AllRank"
 
+    @property
+    def experiment_dir(self) -> str:
+        return os.path.join(self.save_dir or "", self.name, str(self.version))
+
     def log_hyperparams(self, *args, **kwargs) -> None:
         pass
 
@@ -160,6 +164,10 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
         @property
         def name(self) -> str:
             return "BufferLogger"
+
+        @property
+        def experiment_dir(self) -> str:
+            return os.path.join(self.save_dir or "", self.name, str(self.version))
 
         def log_hyperparams(self, *args, **kwargs) -> None:
             return None
