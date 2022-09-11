@@ -100,11 +100,9 @@ def test_auto_requeue_flag(auto_requeue):
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
-@pytest.mark.parametrize(
-    "sig", [("USR1", signal.SIGUSR1), ("USR2", signal.SIGUSR2), ("HUP", signal.SIGHUP), ("1234", signal.SIGUSR1)]
-)
-def test_auto_requeue_custom_signal_flag(auto_requeue, sig):
-    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue, signal=sig[0])])
+@pytest.mark.parametrize("requeue_signal", [(signal.SIGUSR1, signal.SIGUSR2, signal.SIGHUP)])
+def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
+    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue, requeue_signal=requeue_signal)])
     connector = SignalConnector(trainer)
     connector.register_signal_handlers()
 
@@ -113,12 +111,12 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, sig):
         assert len(sigterm_handlers) == 1
         assert sigterm_handlers[0].__qualname__ == "SignalConnector.sigterm_handler_fn"
 
-        sigusr_handlers = signal.getsignal(sig[1]).signal_handlers
+        sigusr_handlers = signal.getsignal(requeue_signal).signal_handlers
         assert len(sigusr_handlers) == 1
         assert sigusr_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr_handler_fn"
     else:
         assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
-        assert signal.getsignal(sig[1]) is signal.SIG_DFL
+        assert signal.getsignal(requeue_signal) is signal.SIG_DFL
 
     connector.teardown()
 
