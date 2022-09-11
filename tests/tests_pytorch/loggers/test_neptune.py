@@ -162,10 +162,10 @@ class TestNeptuneLogger(unittest.TestCase):
 
     def _fit_and_test(self, logger, model):
         trainer = Trainer(default_root_dir=self.tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger)
-        assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
+        assert trainer.log_dir == logger.experiment_dir
         trainer.fit(model)
         trainer.test(model)
-        assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
+        assert trainer.log_dir == logger.experiment_dir
 
     @pytest.mark.usefixtures("tmpdir_unittest_fixture")
     def test_neptune_leave_open_experiment_after_fit(self, neptune):

@@ -827,6 +827,7 @@ def _get_mock_logger(tmpdir):
     mock_logger.name = "mock_logger"
     mock_logger.save_dir = tmpdir
     mock_logger.version = "0"
+    mock_logger.experiment_dir = os.path.join(tmpdir, "mock_logger", "0")
     del mock_logger.__iter__
     return mock_logger
 

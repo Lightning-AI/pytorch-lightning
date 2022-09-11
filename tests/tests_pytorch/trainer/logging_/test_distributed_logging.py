@@ -126,6 +126,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
     logger.version = "0"
     logger.name = "name"
     logger.save_dir = tmpdir
+    logger.experiment_dir = os.path.join(logger.save_dir, logger.name, logger.version)
 
     model = BoringModel()
     trainer = Trainer(
