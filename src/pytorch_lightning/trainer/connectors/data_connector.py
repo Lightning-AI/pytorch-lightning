@@ -143,11 +143,11 @@ class DataConnector:
         # Validate that the required data sources are available
         if self.trainer.state.fn == TrainerFn.FITTING:
             _check_dataloader_none(train_dataloaders, self._train_dataloader_source, self.trainer.state.fn)
-        if self.trainer.state.fn == TrainerFn.VALIDATING:
+        elif self.trainer.state.fn == TrainerFn.VALIDATING:
             _check_dataloader_none(val_dataloaders, self._val_dataloader_source, self.trainer.state.fn)
-        if self.trainer.state.fn == TrainerFn.TESTING:
+        elif self.trainer.state.fn == TrainerFn.TESTING:
             _check_dataloader_none(test_dataloaders, self._test_dataloader_source, self.trainer.state.fn)
-        if self.trainer.state.fn == TrainerFn.PREDICTING:
+        elif self.trainer.state.fn == TrainerFn.PREDICTING:
             _check_dataloader_none(predict_dataloaders, self._predict_dataloader_source, self.trainer.state.fn)
 
         # set local properties on the model
