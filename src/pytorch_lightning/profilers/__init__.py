@@ -17,6 +17,7 @@ from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler
 from pytorch_lightning.profilers.simple import SimpleProfiler
 from pytorch_lightning.profilers.xla import XLAProfiler
+from pytorch_lightning.profilers.hpu import HPUProfiler
 
 __all__ = [
     "AbstractProfiler",
@@ -27,4 +28,5 @@ __all__ = [
     "PyTorchProfiler",
     "SimpleProfiler",
     "XLAProfiler",
+    "HPUProfiler",
 ]
