@@ -95,6 +95,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_utilities.core.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516), [#14537](https://github.com/Lightning-AI/lightning/pull/14537))
 
 
+- Deprecated `pytorch_lightning.callbacks.progress.base.ProgressBarBase` in favor of `pytorch_lightning.callbacks.progress.progress.ProgressBar` ([#14123](https://github.com/Lightning-AI/lightning/pull/14123))
+
+
+- Deprecated `pytorch_lightning.callbacks.progress.base.get_standard_metrics` in favor of `pytorch_lightning.callbacks.progress.progress.get_standard_metrics` ([#14123](https://github.com/Lightning-AI/lightning/pull/14123))
+
+
 ### Removed
 
 - Removed the deprecated `Trainer.training_type_plugin` property in favor of `Trainer.strategy` ([#14011](https://github.com/Lightning-AI/lightning/pull/14011))

@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
     ModelSummary,
-    ProgressBarBase,
+    ProgressBar,
     TQDMProgressBar,
 )
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -147,7 +147,7 @@ def test_attach_model_callbacks():
     def _attach_callbacks(trainer_callbacks, model_callbacks):
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
-        has_progress_bar = any(isinstance(cb, ProgressBarBase) for cb in trainer_callbacks + model_callbacks)
+        has_progress_bar = any(isinstance(cb, ProgressBar) for cb in trainer_callbacks + model_callbacks)
         trainer = Trainer(
             enable_checkpointing=False,
             enable_progress_bar=has_progress_bar,

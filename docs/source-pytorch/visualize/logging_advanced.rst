@@ -12,7 +12,7 @@ Track and Visualize Experiments (advanced)
 ****************************
 Change progress bar defaults
 ****************************
-To change the default values (ie: version number) shown in the progress bar, override the :meth:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase.get_metrics` method in your logger.
+To change the default values (ie: version number) shown in the progress bar, override the :meth:`~pytorch_lightning.callbacks.progress.progress.ProgressBar.get_metrics` method in your logger.
 
 .. code-block:: python
 
