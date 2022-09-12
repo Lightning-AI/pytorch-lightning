@@ -15,7 +15,6 @@ import logging
 import os
 from typing import Any, Callable, Dict, Optional
 
-import pytorch_lightning as pl
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.utilities.cloud_io import atomic_save, get_filesystem
 from lightning_lite.utilities.cloud_io import load as pl_load
@@ -53,9 +52,10 @@ class TorchCheckpointIO(CheckpointIO):
             # write the checkpoint dictionary on the file
             atomic_save(checkpoint, path)
         except AttributeError as err:
-            # todo (sean): is this try catch necessary still?
+            # todo: is this try catch necessary still?
             # https://github.com/Lightning-AI/lightning/pull/431
-            key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
+            # TODO(lite): Lite doesn't support hyperparameters in the checkpoint, so this should be refactored
+            key = "hyper_parameters"
             checkpoint.pop(key, None)
             rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
             atomic_save(checkpoint, path)

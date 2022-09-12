@@ -90,7 +90,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
     instance_path = tmpdir + "/path.ckpt"
     instance_storage_options = "my instance storage options"
 
-    with mock.patch("pytorch_lightning.plugins.io.torch_plugin.TorchCheckpointIO.save_checkpoint") as io_mock:
+    with mock.patch("lightning_lite.plugins.io.torch_plugin.TorchCheckpointIO.save_checkpoint") as io_mock:
         trainer.save_checkpoint(instance_path, storage_options=instance_storage_options)
         io_mock.assert_called_with(ANY, instance_path, storage_options=instance_storage_options)
         trainer.save_checkpoint(instance_path)
