@@ -78,7 +78,7 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
-@pytest.mark.parametrize("requeue_signal", [(signal.SIGUSR1, signal.SIGUSR2, signal.SIGHUP)])
+@pytest.mark.parametrize("requeue_signal", [signal.SIGUSR1, signal.SIGUSR2, signal.SIGHUP])
 def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
     trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue, requeue_signal=requeue_signal)])
     connector = SignalConnector(trainer)
