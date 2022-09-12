@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import torch
 
+from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities import device_parser
-from lightning_lite.utilities.types import _DEVICE
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
+from lightning_lite.utilities.imports import _TPU_AVAILABLE
 
 
 class TPUAccelerator(Accelerator):
@@ -26,26 +25,6 @@ class TPUAccelerator(Accelerator):
 
     def setup_device(self, device: torch.device) -> None:
         pass
-
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """Gets stats for the given TPU device.
-
-        Args:
-            device: TPU device for which to get stats
-
-        Returns:
-            A dictionary mapping the metrics (free memory and peak memory) to their values.
-        """
-        import torch_xla.core.xla_model as xm
-
-        memory_info = xm.get_memory_info(device)
-        free_memory = memory_info["kb_free"]
-        peak_memory = memory_info["kb_total"] - free_memory
-        device_stats = {
-            "avg. free memory (MB)": free_memory,
-            "avg. peak memory (MB)": peak_memory,
-        }
-        return device_stats
 
     def teardown(self) -> None:
         pass
@@ -76,5 +55,5 @@ class TPUAccelerator(Accelerator):
         accelerator_registry.register(
             "tpu",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )

@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union
+import platform
+from functools import lru_cache
+from typing import Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.accelerators.mps import MPSAccelerator as _MPSAccelerator
+from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities import device_parser
-from lightning_lite.utilities.types import _DEVICE
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 class MPSAccelerator(Accelerator):
@@ -29,15 +28,11 @@ class MPSAccelerator(Accelerator):
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If the selected device is not MPS.
         """
         if device.type != "mps":
-            raise MisconfigurationException(f"Device should be MPS, got {device} instead.")
-
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """Get M1 (cpu + gpu) stats from ``psutil`` package."""
-        return get_device_stats()
+            raise ValueError(f"Device should be MPS, got {device} instead.")
 
     def teardown(self) -> None:
         pass
@@ -62,9 +57,13 @@ class MPSAccelerator(Accelerator):
         return 1
 
     @staticmethod
+    @lru_cache(1)
     def is_available() -> bool:
-        """MPS is only available for certain torch builds starting at torch>=1.12."""
-        return _MPSAccelerator.is_available()
+        """MPS is only available for certain torch builds starting at torch>=1.12, and is only enabled on a machine
+        with the ARM-based Apple Silicon processors."""
+        return (
+            _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
+        )
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
@@ -73,24 +72,3 @@ class MPSAccelerator(Accelerator):
             cls,
             description=cls.__class__.__name__,
         )
-
-
-# device metrics
-_VM_PERCENT = "M1_vm_percent"
-_PERCENT = "M1_percent"
-_SWAP_PERCENT = "M1_swap_percent"
-
-
-def get_device_stats() -> Dict[str, float]:
-    if not _PSUTIL_AVAILABLE:
-        raise ModuleNotFoundError(
-            "Fetching M1 device stats requires `psutil` to be installed."
-            " Install it by running `pip install -U psutil`."
-        )
-    import psutil
-
-    return {
-        _VM_PERCENT: psutil.virtual_memory().percent,
-        _PERCENT: psutil.cpu_percent(),
-        _SWAP_PERCENT: psutil.swap_memory().percent,
-    }

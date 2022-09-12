@@ -145,7 +145,7 @@ class LightningArgumentParser(ArgumentParser):
             assert all(issubclass(o, Optimizer) for o in optimizer_class)
         else:
             assert issubclass(optimizer_class, Optimizer)
-        kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
+        kwargs: Dict[str, Any] = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
             self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
         else:
@@ -170,7 +170,7 @@ class LightningArgumentParser(ArgumentParser):
             assert all(issubclass(o, LRSchedulerTypeTuple) for o in lr_scheduler_class)
         else:
             assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
-        kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
+        kwargs: Dict[str, Any] = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
             self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
         else:
@@ -436,6 +436,7 @@ class LightningCLI:
 
     def _add_subcommands(self, parser: LightningArgumentParser, **kwargs: Any) -> None:
         """Adds subcommands to the input parser."""
+        self._subcommand_parsers: Dict[str, LightningArgumentParser] = {}
         parser_subcommands = parser.add_subcommands()
         # the user might have passed a builder function
         trainer_class = (
@@ -444,6 +445,7 @@ class LightningCLI:
         # register all subcommands in separate subcommand parsers under the main parser
         for subcommand in self.subcommands():
             subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
+            self._subcommand_parsers[subcommand] = subcommand_parser
             fn = getattr(trainer_class, subcommand)
             # extract the first line description in the docstring for the subcommand help message
             description = _get_short_description(fn)
@@ -528,8 +530,7 @@ class LightningCLI:
         if subcommand is None:
             return self.parser
         # return the subcommand parser for the subcommand passed
-        action_subcommand = self.parser._subcommands_action
-        return action_subcommand._name_parser_map[subcommand]
+        return self._subcommand_parsers[subcommand]
 
     @staticmethod
     def configure_optimizers(
@@ -611,7 +612,7 @@ class LightningCLI:
         # override the existing method
         self.model.configure_optimizers = MethodType(fn, self.model)
 
-    def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
+    def _get(self, config: Namespace, key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
         return config.get(str(self.subcommand), config).get(key, default)
 
