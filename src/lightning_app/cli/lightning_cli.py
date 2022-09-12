@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 from pathlib import Path
@@ -26,6 +25,7 @@ from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.core.constants import get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
@@ -33,7 +33,7 @@ from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def get_app_url(runtime_type: RuntimeType, *args) -> str:
@@ -405,7 +405,7 @@ def install():
 def install_app(name, yes, version, overwrite: bool = False):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
@@ -428,7 +428,7 @@ def install_app(name, yes, version, overwrite: bool = False):
 def install_component(name, yes, version):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
