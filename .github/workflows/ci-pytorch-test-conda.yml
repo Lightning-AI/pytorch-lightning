@@ -40,7 +40,6 @@ jobs:
       uses: tj-actions/changed-files@v29.0.3
 
     - name: Update base dependencies
-      if: ${{ (steps.skip.outputs.continue == '1') }}
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
