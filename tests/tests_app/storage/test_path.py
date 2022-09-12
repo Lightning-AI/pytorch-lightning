@@ -720,9 +720,3 @@ class TestSharedStoragePath(TestCase):
 
     def test_shared_storage_path_no_envvars_set(self):
         self.assertTrue(shared_storage_path().match("*/.shared"))
-
-
-def test_shared_storage_path():
-    work = Mock()
-    work.name = "root.flow.work"
-    assert artifacts_path(work) == shared_storage_path() / "artifacts" / "root.flow.work"
