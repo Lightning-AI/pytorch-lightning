@@ -41,7 +41,15 @@ You can get the script and run it with:
 ```bash
 wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
 python collect_env_details.py
+
 ```
+
+
+<details>
+  <summary>Details</summary>
+    Paste the output here and move this toggle outside of the comment block.
+</details>
+
 
 You can also fill out the list below manually.
 -->

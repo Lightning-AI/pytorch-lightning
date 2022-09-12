@@ -13,7 +13,6 @@
 # limitations under the License.
 import time
 
-# __version__ = "1.7.0"
 __author__ = "Lightning AI et al."
 __author_email__ = "pytorch@lightning.ai"
 __license__ = "Apache-2.0"

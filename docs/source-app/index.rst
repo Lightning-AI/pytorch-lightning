@@ -216,17 +216,21 @@ Keep Learning
    :maxdepth: 1
    :caption: How to...
 
+   Access the App State <workflows/access_app_state/access_app_state>
    Add a web user interface (UI) <workflows/add_web_ui/index>
    Add a web link  <workflows/add_web_link>
    Arrange app tabs <workflows/arrange_tabs/index>
+   Develop a Command Line Interface (CLI) <workflows/build_command_line_interface/index>
    Develop a Lightning App <workflows/build_lightning_app/index>
    Develop a Lightning Component <workflows/build_lightning_component/index>
+   Develop a REST API <workflows/build_rest_api/index>
    Cache Work run calls  <workflows/run_work_once>
    Customize your cloud compute <core_api/lightning_work/compute>
    Extend an existing app <workflows/extend_app>
    Publish a Lightning component <workflows/build_lightning_component/publish_a_component>
    Run a server within a Lightning App <workflows/add_server/index>
    Run an App on the cloud <workflows/run_app_on_cloud/index>
+   Run Apps on your cloud account (BYOC) <workflows/byoc/index>
    Run work in parallel <workflows/run_work_in_parallel>
    Share an app  <workflows/share_app>
    Share files between components <workflows/share_files_between_components>
@@ -262,10 +266,12 @@ Keep Learning
 
    App Components Tree <glossary/app_tree>
    Build Configuration <glossary/build_config/build_config>
+   Command Line Interface (CLI) <glossary/command_lines/command_lines>
    DAG <glossary/dag>
    Event Loop <glossary/event_loop>
    Environment Variables <glossary/environment_variables>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
+   REST API <glossary/restful_api/restful_api>
    Sharing Components <glossary/sharing_components>
    Scheduling <glossary/scheduling.rst>
    Storage <glossary/storage/storage.rst>

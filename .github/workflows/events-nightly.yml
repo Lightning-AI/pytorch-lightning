@@ -15,7 +15,7 @@ jobs:
 
     steps:
       # does nightly releases from feature branch
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9
@@ -26,7 +26,7 @@ jobs:
 
       - name: Build packages
         run: |
-          pip install -q fire
+          pip install -q -r .actions/requirements.txt
           python .actions/assistant.py prepare-nightly-version
           python setup.py sdist bdist_wheel
           ls -lh dist/
@@ -48,7 +48,7 @@ jobs:
       # report failure to Slack
       - name: Slack notification
         if: failure() && github.event_name == 'schedule'
-        uses: ravsamhq/notify-slack-action@v1
+        uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}

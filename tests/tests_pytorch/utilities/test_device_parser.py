@@ -16,7 +16,7 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning.utilities import device_parser
+from lightning_lite.utilities import device_parser
 
 
 @pytest.mark.skipif(

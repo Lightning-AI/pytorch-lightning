@@ -13,20 +13,21 @@
 # limitations under the License.
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _APEX_AVAILABLE, _RequirementAvailable
+from pytorch_lightning.utilities.imports import _APEX_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.warnings import WarningCache
 
-_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -60,7 +61,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
             amp_level = amp_level or "O2"
 
-        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT, PrecisionType.MIXED)
+        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."

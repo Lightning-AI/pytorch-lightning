@@ -6,7 +6,7 @@ from lightning_app.cli.cmd_clusters import AWSClusterManager
 
 @click.group(name="list")
 def get_list():
-    """List your Lightning AI BYOC managed resources."""
+    """List Lightning AI self-managed resources (clusters, etc…)"""
     pass
 
 

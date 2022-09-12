@@ -16,16 +16,21 @@ import os
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.environments import XLAEnvironment
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.utilities.data import has_len
+from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.environments import XLAEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _XLALauncher
@@ -33,13 +38,9 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from pytorch_lightning.utilities.types import _PATH, EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -124,7 +125,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
                 assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
                 TPUSpawnStrategy._validate_dataloader(source.instance)
 
-    def connect(self, model: "pl.LightningModule") -> None:  # type: ignore
+    def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnStrategy._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
@@ -139,11 +140,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = "1"
 
-        assert self.model
-        shared_params = find_shared_parameters(self.model)
+        assert self.lightning_module
+        shared_params = find_shared_parameters(self.lightning_module)
         self.model_to_device()
-        assert isinstance(self.model.module, Module)
-        set_shared_parameters(self.model.module, shared_params)
+
+        set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
         if trainer.state.fn == TrainerFn.FITTING:
