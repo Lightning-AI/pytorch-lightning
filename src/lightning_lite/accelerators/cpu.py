@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 
 import torch
 
-from lightning_lite.utilities.device_parser import parse_cpu_cores
-from lightning_lite.utilities.types import _DEVICE
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
+from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.utilities import device_parser
 
 
 class CPUAccelerator(Accelerator):
@@ -28,15 +25,11 @@ class CPUAccelerator(Accelerator):
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If the selected device is not CPU.
         """
         if device.type != "cpu":
-            raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
-
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """Get CPU stats from ``psutil`` package."""
-        return get_cpu_stats()
+            raise ValueError(f"Device should be CPU, got {device} instead.")
 
     def teardown(self) -> None:
         pass
@@ -44,13 +37,13 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = parse_cpu_cores(devices)
+        devices = device_parser.parse_cpu_cores(devices)
         return devices
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        devices = parse_cpu_cores(devices)
+        devices = device_parser.parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod
@@ -68,26 +61,5 @@ class CPUAccelerator(Accelerator):
         accelerator_registry.register(
             "cpu",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
-
-
-# CPU device metrics
-_CPU_VM_PERCENT = "cpu_vm_percent"
-_CPU_PERCENT = "cpu_percent"
-_CPU_SWAP_PERCENT = "cpu_swap_percent"
-
-
-def get_cpu_stats() -> Dict[str, float]:
-    if not _PSUTIL_AVAILABLE:
-        raise ModuleNotFoundError(
-            "Fetching CPU device stats requires `psutil` to be installed."
-            " Install it by running `pip install -U psutil`."
-        )
-    import psutil
-
-    return {
-        _CPU_VM_PERCENT: psutil.virtual_memory().percent,
-        _CPU_PERCENT: psutil.cpu_percent(),
-        _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
-    }
