@@ -1,7 +1,7 @@
 name: Package
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
@@ -34,11 +34,11 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
-        pkg: ["app", "pytorch"]
+        pkg: ["app", "lite", "pytorch"]
         python-version: [3.8]  # , 3.9
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -49,9 +49,11 @@ jobs:
           path: pypi
       - run: ls -lh pypi/
 
+      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg }}' == 'pytorch' else 1))" >> $GITHUB_ENV
       - uses: ./.github/actions/pkg-check
         with:
           pkg-name: ${{ matrix.pkg }}
+          nb-dirs: ${{ env.NB_DIRS }}
 
       - uses: actions/upload-artifact@v3
         with:
@@ -72,7 +74,7 @@ jobs:
         python-version: [3.8]  # , 3.9
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -104,14 +106,15 @@ jobs:
         python-version: [3.8]  # , 3.9
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Dowload package
+        # todo: download also lite after it is fist published
         run: |
-          pip install -q fire requests
+          pip install -q -r .actions/requirements.txt
           for pkg in 'app' 'pytorch' ; do
             python .actions/assistant.py download-package "$pkg" --folder pypi
           done
@@ -128,7 +131,7 @@ jobs:
 
       - name: Miror source
         run: |
-          pip install -q fire requests
+          pip install -q -r .actions/requirements.txt
           python .actions/assistant.py mirror-pkg2source pypi src
           ls -R src/
 

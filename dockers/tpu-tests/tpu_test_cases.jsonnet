@@ -39,6 +39,7 @@ local tputests = base.BaseTest {
       cd tests/tests_pytorch
       coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
       echo "\n||| Running standalone tests |||\n"
+      export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
       export PL_STANDALONE_TESTS_BATCH_SIZE=1
       bash run_standalone_tests.sh
       echo "\n||| END PYTEST LOGS |||\n"

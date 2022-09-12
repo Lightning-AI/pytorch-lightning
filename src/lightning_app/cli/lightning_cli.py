@@ -30,7 +30,6 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
-from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 
@@ -74,7 +73,7 @@ def main():
 @click.group()
 @click.version_option(ver)
 def _main():
-    register_all_external_components()
+    pass
 
 
 @_main.group()

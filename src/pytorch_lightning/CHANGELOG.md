@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [1.8.0] - 2022-MM-DD
+## [unReleased] - 2022-MM-DD
 
 ### Added
 
@@ -21,8 +21,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for saving sharded optimizer state dict outside of `DDPShardedStrategy` ([#14208](https://github.com/PyTorchLightning/pytorch-lightning/pull/14208))
 
 
-- Added an environment variable `PL_DISABLE_FORK` that can be used to disable all forking in the Trainer ([#14319](https://github.com/Lightning-AI/lightning/issues/14319))
+- Added support for auto wrapping for `DDPFullyShardedStrategy` ([#14383](https://github.com/Lightning-AI/lightning/issues/14383))
 
+
+- Integrate the `lightning_utilities` package (
+  [#14475](https://github.com/Lightning-AI/lightning/issues/14475),
+  [#14537](https://github.com/Lightning-AI/lightning/issues/14537),
+  [#14556](https://github.com/Lightning-AI/lightning/issues/14556),
+  [#14558](https://github.com/Lightning-AI/lightning/issues/14558),
+  [#14575](https://github.com/Lightning-AI/lightning/issues/14575))
 
 
 ### Changed
@@ -73,6 +80,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated the `on_colab_kaggle` function ([#14247](https://github.com/Lightning-AI/lightning/pull/14247))
+
+
+- Deprecated the internal `pl.core.mixins.DeviceDtypeModuleMixin` class ([#14511](https://github.com/Lightning-AI/lightning/pull/14511), [#14548](https://github.com/Lightning-AI/lightning/pull/14548))
+
+
+- Deprecated all functions in `pytorch_lightning.utilities.xla_device` in favor of `lightning_lite.utilities.xla_device` ([#14514](https://github.com/Lightning-AI/lightning/pull/14514))
+
+
+- Deprecated all functions in `pytorch_lightning.utilities.cloud_io` in favor of `lightning_lite.utilities.cloud_io` ([#14515](https://github.com/Lightning-AI/lightning/pull/14515))
+
+
+- Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_utilities.core.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516), [#14537](https://github.com/Lightning-AI/lightning/pull/14537))
 
 
 ### Removed
@@ -133,30 +152,36 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `LightningDataModule` hparams parsing ([#12806](https://github.com/PyTorchLightning/pytorch-lightning/pull/12806))
-
-
-- Reset epoch progress with batch size scaler ([#13846](https://github.com/Lightning-AI/lightning/pull/13846))
-
-- Fixed incorrect values after transferring data to a MPS device ([#13285](https://github.com/Lightning-AI/lightning/issues/13285))
-
-
 - Reset the dataloaders on OOM failure in batch size finder to use the last successful batch size ([#14372](https://github.com/Lightning-AI/lightning/pull/14372))
 
 
 - Fixed an issue to keep downscaling the batch size in case there hasn't been even a single successful optimal batch size with `mode="power"` ([#14372](https://github.com/Lightning-AI/lightning/pull/14372))
 
 
-- Fixed an issue to avoid the impact of sanity check on `reload_dataloaders_every_n_epochs` for validation ([#13964](https://github.com/Lightning-AI/lightning/pull/13964))
+## [1.7.5] - 2022-09-06
+
+### Fixed
+
+- Squeezed tensor values when logging with `LightningModule.log` ([#14489](https://github.com/Lightning-AI/lightning/pull/14489))
+- Fixed `WandbLogger` `save_dir` is not set after creation ([#14326](https://github.com/Lightning-AI/lightning/pull/14326))
+- Fixed `Trainer.estimated_stepping_batches` when maximum number of epochs is not set ([#14317](https://github.com/Lightning-AI/lightning/pull/14317))
 
 
-- Fixed restoring the trainer after using `lr_find()` so that the correct LR schedule is used for the actual training ([#14113](https://github.com/Lightning-AI/lightning/pull/14113))
+## [1.7.4] - 2022-08-31
 
+### Added
 
-- Reset epoch progress with batch size scaler ([#13846](https://github.com/Lightning-AI/lightning/pull/13846)
+- Added an environment variable `PL_DISABLE_FORK` that can be used to disable all forking in the Trainer ([#14319](https://github.com/Lightning-AI/lightning/issues/14319))
 
+### Fixed
 
 - Fixed `LightningDataModule` hparams parsing ([#12806](https://github.com/PyTorchLightning/pytorch-lightning/pull/12806))
+- Reset epoch progress with batch size scaler ([#13846](https://github.com/Lightning-AI/lightning/pull/13846))
+- Fixed restoring the trainer after using `lr_find()` so that the correct LR schedule is used for the actual training ([#14113](https://github.com/Lightning-AI/lightning/pull/14113))
+- Fixed incorrect values after transferring data to an MPS device ([#14368](https://github.com/Lightning-AI/lightning/pull/14368))
+
+
+- Fixed compatibility when `torch.distributed` is not available ([#14454](https://github.com/Lightning-AI/lightning/pull/14454))
 
 
 ## [1.7.3] - 2022-08-25
