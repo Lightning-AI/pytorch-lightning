@@ -16,10 +16,10 @@ from unittest import mock
 
 import pytest
 import torch
+from tests_lite.helpers.runif import RunIf
 
-import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments import XLAEnvironment
-from tests_pytorch.helpers.runif import RunIf
+import lightning_lite
+from lightning_lite.plugins.environments import XLAEnvironment
 
 
 @RunIf(tpu=True)
@@ -72,8 +72,8 @@ def test_attributes_from_environment_variables():
 
 def test_detect(monkeypatch):
     """Test the detection of a xla environment configuration."""
-    monkeypatch.setattr(pl.plugins.environments.xla_environment, "_TPU_AVAILABLE", False)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_TPU_AVAILABLE", False)
     assert not XLAEnvironment.detect()
 
-    monkeypatch.setattr(pl.plugins.environments.xla_environment, "_TPU_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_TPU_AVAILABLE", True)
     assert XLAEnvironment.detect()

@@ -20,14 +20,22 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
+from lightning_lite.plugins.environments import (
+    ClusterEnvironment,
+    KubeflowEnvironment,
+    LightningEnvironment,
+    LSFEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
+from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -44,15 +52,7 @@ from pytorch_lightning.plugins import (
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments import (
-    BaguaEnvironment,
-    ClusterEnvironment,
-    KubeflowEnvironment,
-    LightningEnvironment,
-    LSFEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
+from pytorch_lightning.plugins.environments import BaguaEnvironment
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
@@ -524,7 +524,9 @@ class AcceleratorConnector:
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
+                acc_str
+                for acc_str in self._accelerator_types
+                if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"

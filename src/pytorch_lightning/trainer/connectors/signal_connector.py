@@ -8,7 +8,7 @@ from types import FrameType
 from typing import Any, Callable, Dict, List, Set, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments import SLURMEnvironment
+from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _IS_WINDOWS
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
