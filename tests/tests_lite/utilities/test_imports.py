@@ -29,11 +29,11 @@
 
 from lightning_lite.utilities.imports import (
     _APEX_AVAILABLE,
-    _FAIRSCALE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
 )
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 
 
 def test_imports():
