@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import os
 import pathlib
 import shutil
@@ -14,6 +13,7 @@ from fsspec.implementations.local import LocalFileSystem
 import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
 from lightning_app.utilities.imports import _is_s3fs_available
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 num_workers = 8
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 class Path(PathlibPath):
