@@ -20,10 +20,6 @@ if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python -m coverage run --source pytorch_lightning --append -m pytest --no-header profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
-# needs to run outside of `pytest`
-echo "Running utilities/test_warnings.py"
-python utilities/test_warnings.py
-
 # test deadlock is properly handled with TorchElastic.
 echo "Running plugins/environments/torch_elastic_deadlock.py"
 LOGS=$(PL_RUN_STANDALONE_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")

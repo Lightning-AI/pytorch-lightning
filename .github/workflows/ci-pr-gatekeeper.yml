@@ -20,7 +20,7 @@ jobs:
           fetch-depth: "2"  # To retrieve the preceding commit.
       - name: Get changed files using defaults
         id: changed-files
-        uses: tj-actions/changed-files@v28
+        uses: tj-actions/changed-files@v29.0.4
       - name: Determine changes
         id: touched
         run: |

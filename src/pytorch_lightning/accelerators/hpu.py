@@ -16,9 +16,11 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import _HPU_AVAILABLE, device_parser
+from pytorch_lightning.utilities.device_parser import parse_hpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 if _HPU_AVAILABLE:
@@ -28,17 +30,16 @@ if _HPU_AVAILABLE:
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not HPU.
         """
-        super().setup_environment(root_device)
-        if root_device.type != "hpu":
-            raise MisconfigurationException(f"Device should be HPU, got {root_device} instead.")
+        if device.type != "hpu":
+            raise MisconfigurationException(f"Device should be HPU, got {device} instead.")
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Returns a map of the following metrics with their values:
 
         - Limit: amount of total memory on HPU device.
@@ -58,10 +59,13 @@ class HPUAccelerator(Accelerator):
             rank_zero_debug("HPU `get_device_stats` failed")
             return {}
 
+    def teardown(self) -> None:
+        pass
+
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[int]:
         """Accelerator device parsing logic."""
-        return device_parser.parse_hpus(devices)
+        return parse_hpus(devices)
 
     @staticmethod
     def get_parallel_devices(devices: int) -> List[torch.device]:

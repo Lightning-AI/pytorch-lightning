@@ -1,0 +1,1 @@
+../../source-pytorch/model/manual_optimization.rst

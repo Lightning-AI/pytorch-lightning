@@ -75,7 +75,7 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 60
-      - uses: ravsamhq/notify-slack-action@v1
+      - uses: ravsamhq/notify-slack-action@v2
         if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
@@ -117,7 +117,7 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
         timeout-minutes: 95
-      - uses: ravsamhq/notify-slack-action@v1
+      - uses: ravsamhq/notify-slack-action@v2
         if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
@@ -155,7 +155,7 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
-      - uses: ravsamhq/notify-slack-action@v1
+      - uses: ravsamhq/notify-slack-action@v2
         if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
@@ -199,7 +199,7 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 10
-      - uses: ravsamhq/notify-slack-action@v1
+      - uses: ravsamhq/notify-slack-action@v2
         if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
@@ -235,7 +235,7 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
         timeout-minutes: 10
-      - uses: ravsamhq/notify-slack-action@v1
+      - uses: ravsamhq/notify-slack-action@v2
         if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
