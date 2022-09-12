@@ -1,6 +1,6 @@
 from typing import Union
 
-from pytorch_lightning.plugins.environments import ClusterEnvironment
+from lightning_lite.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
@@ -19,7 +19,7 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
-from pytorch_lightning.strategies import Strategy
+from pytorch_lightning.strategies.strategy import Strategy
 
 PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO, LayerSync]
 PLUGIN_INPUT = Union[PLUGIN, str]
