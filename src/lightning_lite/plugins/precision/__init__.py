@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
-from lightning_lite.plugins.precision.mixed import MixedPrecisionPlugin
-from lightning_lite.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from lightning_lite.plugins.precision.precision import PrecisionPlugin
-from lightning_lite.plugins.precision.tpu import TPUPrecisionPlugin
-from lightning_lite.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
+from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
+from lightning_lite.plugins.precision.mixed import MixedPrecision
+from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
+from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.plugins.precision.tpu import TPUPrecision
+from lightning_lite.plugins.precision.tpu_bf16 import TPUBf16Precision
 
 __all__ = [
-    "DeepSpeedPrecisionPlugin",
-    "MixedPrecisionPlugin",
-    "NativeMixedPrecisionPlugin",
-    "PrecisionPlugin",
-    "TPUPrecisionPlugin",
-    "TPUBf16PrecisionPlugin",
+    "DeepSpeedPrecision",
+    "MixedPrecision",
+    "NativeMixedPrecision",
+    "Precision",
+    "TPUPrecision",
+    "TPUBf16Precision",
 ]

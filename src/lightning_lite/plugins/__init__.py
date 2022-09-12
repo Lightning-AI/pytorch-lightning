@@ -16,24 +16,24 @@ from lightning_lite.plugins.environments import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
-from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
-from lightning_lite.plugins.precision.double import DoublePrecisionPlugin
-from lightning_lite.plugins.precision.mixed import MixedPrecisionPlugin
-from lightning_lite.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from lightning_lite.plugins.precision.precision import PrecisionPlugin
-from lightning_lite.plugins.precision.tpu import TPUPrecisionPlugin
-from lightning_lite.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
+from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
+from lightning_lite.plugins.precision.double import DoublePrecision
+from lightning_lite.plugins.precision.mixed import MixedPrecision
+from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
+from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.plugins.precision.tpu import TPUPrecision
+from lightning_lite.plugins.precision.tpu_bf16 import TPUBf16Precision
 
 __all__ = [
     "ClusterEnvironment",
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
-    "DeepSpeedPrecisionPlugin",
-    "DoublePrecisionPlugin",
-    "MixedPrecisionPlugin",
-    "NativeMixedPrecisionPlugin",
-    "PrecisionPlugin",
-    "TPUPrecisionPlugin",
-    "TPUBf16PrecisionPlugin",
+    "DeepSpeedPrecision",
+    "DoublePrecision",
+    "MixedPrecision",
+    "NativeMixedPrecision",
+    "Precision",
+    "TPUPrecision",
+    "TPUBf16Precision",
 ]

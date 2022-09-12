@@ -19,7 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
-from lightning_lite.plugins.precision.mixed import MixedPrecisionPlugin
+from lightning_lite.plugins.precision.mixed import MixedPrecision
 from lightning_lite.utilities.enums import AMPType
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
@@ -29,7 +29,7 @@ else:
     from torch.cuda.amp import autocast as old_autocast
 
 
-class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+class NativeMixedPrecision(MixedPrecision):
     """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:

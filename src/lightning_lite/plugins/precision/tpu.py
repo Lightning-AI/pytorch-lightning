@@ -16,10 +16,10 @@ from typing import Any, Optional
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning_lite.plugins.precision.precision import PrecisionPlugin
+from lightning_lite.plugins.precision.precision import Precision
 
 
-class TPUPrecisionPlugin(PrecisionPlugin):
+class TPUPrecision(Precision):
     """Precision plugin for TPU integration."""
 
     def optimizer_step(

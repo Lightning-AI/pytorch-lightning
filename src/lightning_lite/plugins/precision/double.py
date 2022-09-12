@@ -16,10 +16,10 @@ from typing import Generator
 
 import torch
 
-from lightning_lite.plugins.precision import PrecisionPlugin
+from lightning_lite.plugins.precision import Precision
 
 
-class DoublePrecisionPlugin(PrecisionPlugin):
+class DoublePrecision(Precision):
     """Plugin for training with double (``torch.float64``) precision."""
 
     precision: int = 64

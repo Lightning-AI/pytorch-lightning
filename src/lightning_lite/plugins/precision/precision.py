@@ -21,7 +21,7 @@ from torch.optim import Optimizer
 from lightning_lite.utilities.types import _PARAMETERS
 
 
-class PrecisionPlugin:
+class Precision:
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.

@@ -17,7 +17,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
-from lightning_lite.plugins.precision.precision import PrecisionPlugin
+from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.imports import _APEX_AVAILABLE
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
-class DeepSpeedPrecisionPlugin(PrecisionPlugin):
+class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:

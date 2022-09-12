@@ -13,11 +13,11 @@
 # limitations under the License.
 import os
 
-from lightning_lite.plugins import TPUBf16PrecisionPlugin
+from lightning_lite.plugins import TPUBf16Precision
 
 
 def test_teardown():
-    plugin = TPUBf16PrecisionPlugin()
+    plugin = TPUBf16Precision()
     assert os.environ.get("XLA_USE_BF16") == "1"
     plugin.teardown()
     assert "XLA_USE_BF16" not in os.environ

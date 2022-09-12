@@ -16,12 +16,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
+from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
 
 
 def test_invalid_precision_with_deepspeed_precision():
     with pytest.raises(ValueError, match="is not supported in DeepSpeed. `precision` must be one of"):
-        DeepSpeedPrecisionPlugin(precision=64, amp_type="native")
+        DeepSpeedPrecision(precision=64, amp_type="native")
 
 
 def test_deepspeed_precision_apex_not_installed(monkeypatch):
@@ -29,18 +29,18 @@ def test_deepspeed_precision_apex_not_installed(monkeypatch):
 
     monkeypatch.setattr(deepspeed_apex, "_APEX_AVAILABLE", False)
     with pytest.raises(ImportError, match="You have asked for Apex AMP but `apex` is not installed."):
-        DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
+        DeepSpeedPrecision(precision=16, amp_type="apex")
 
 
 @mock.patch("lightning_lite.plugins.precision.deepspeed._APEX_AVAILABLE", return_value=True)
 def test_deepspeed_precision_apex_default_level(_):
-    precision_plugin = DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
-    assert isinstance(precision_plugin, DeepSpeedPrecisionPlugin)
+    precision_plugin = DeepSpeedPrecision(precision=16, amp_type="apex")
+    assert isinstance(precision_plugin, DeepSpeedPrecision)
     assert precision_plugin.amp_level == "O2"
 
 
 def test_deepspeed_precision_backward():
-    precision_plugin = DeepSpeedPrecisionPlugin(precision=32, amp_type="native")
+    precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
     tensor = Mock()
     model = Mock()
     precision_plugin.backward(tensor, model, "positional-arg", keyword="arg")
@@ -48,7 +48,7 @@ def test_deepspeed_precision_backward():
 
 
 def test_deepspeed_precision_optimizer_step():
-    precision_plugin = DeepSpeedPrecisionPlugin(precision=32, amp_type="native")
+    precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
     optimizer = Mock()
     model = Mock()
     precision_plugin.optimizer_step(optimizer, model=model, lr_kwargs=dict())

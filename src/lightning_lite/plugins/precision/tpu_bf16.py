@@ -13,10 +13,10 @@
 # limitations under the License.
 import os
 
-from lightning_lite.plugins.precision import TPUPrecisionPlugin
+from lightning_lite.plugins.precision import TPUPrecision
 
 
-class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
+class TPUBf16Precision(TPUPrecision):
     """Plugin that enables bfloats on TPUs."""
 
     precision: str = "bf16"

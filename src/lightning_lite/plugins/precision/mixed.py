@@ -13,13 +13,13 @@
 # limitations under the License.
 from typing import TYPE_CHECKING, Union
 
-from lightning_lite.plugins.precision.precision import PrecisionPlugin
+from lightning_lite.plugins.precision.precision import Precision
 
 if TYPE_CHECKING:
     from lightning_lite.utilities import AMPType
 
 
-class MixedPrecisionPlugin(PrecisionPlugin):
+class MixedPrecision(Precision):
     """Base Class for mixed precision."""
 
     backend: "AMPType"

@@ -18,39 +18,39 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.plugins.precision.native_amp import NativeMixedPrecisionPlugin
+from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
 
 
 def test_native_amp_precision_default_scaler():
-    precision_plugin = NativeMixedPrecisionPlugin(precision=16, device=Mock())
+    precision_plugin = NativeMixedPrecision(precision=16, device=Mock())
     assert isinstance(precision_plugin.scaler, torch.cuda.amp.GradScaler)
 
 
 @mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
 def test_native_amp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16'` does not use a scaler"):
-        NativeMixedPrecisionPlugin(precision="bf16", device=Mock(), scaler=Mock())
+        NativeMixedPrecision(precision="bf16", device=Mock(), scaler=Mock())
 
-    precision_plugin = NativeMixedPrecisionPlugin(precision="bf16", device=Mock())
+    precision_plugin = NativeMixedPrecision(precision="bf16", device=Mock())
     assert precision_plugin.scaler is None
 
 
 @mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", False)
 def test_native_amp_precision_bf16_min_torch():
     with pytest.raises(ImportError, match="you must install torch greater or equal to 1.10"):
-        NativeMixedPrecisionPlugin(precision="bf16", device=Mock())
+        NativeMixedPrecision(precision="bf16", device=Mock())
 
 
 @RunIf(min_torch="1.10")
 def test_native_amp_precision_forward_context():
-    precision_plugin = NativeMixedPrecisionPlugin(precision="mixed", device="cuda")
+    precision_plugin = NativeMixedPrecision(precision="mixed", device="cuda")
     assert torch.get_default_dtype() == torch.float32
     with precision_plugin.forward_context():
         assert torch.get_autocast_gpu_dtype() == torch.float16
 
 
 def test_native_amp_precision_backward():
-    precision_plugin = NativeMixedPrecisionPlugin(precision="mixed", device="cuda")
+    precision_plugin = NativeMixedPrecision(precision="mixed", device="cuda")
     precision_plugin.scaler = Mock()
     precision_plugin.scaler.scale = Mock(side_effect=(lambda x: x))
     tensor = Mock()
@@ -61,7 +61,7 @@ def test_native_amp_precision_backward():
 
 
 def test_native_amp_precision_optimizer_step_with_scaler():
-    precision_plugin = NativeMixedPrecisionPlugin(precision="mixed", device="cuda")
+    precision_plugin = NativeMixedPrecision(precision="mixed", device="cuda")
     precision_plugin.scaler = Mock()
     optimizer = Mock()
     model = Mock()
@@ -73,7 +73,7 @@ def test_native_amp_precision_optimizer_step_with_scaler():
 
 @RunIf(min_torch="1.10")
 def test_native_amp_precision_optimizer_step_without_scaler():
-    precision_plugin = NativeMixedPrecisionPlugin(precision="bf16", device="cuda")
+    precision_plugin = NativeMixedPrecision(precision="bf16", device="cuda")
     assert precision_plugin.scaler is None
     optimizer = Mock()
     model = Mock()
