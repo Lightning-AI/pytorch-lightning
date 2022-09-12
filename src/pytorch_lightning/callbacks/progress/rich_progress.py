@@ -224,7 +224,8 @@ class RichProgressBar(ProgressBarBase):
             If required `rich` package is not installed on the device.
 
     Note:
-        PyCharm users will need to enable “emulate terminal” in output console option in
+        Jupyter notebook users need to install extra dependencies with ``pip install rich[jupyter]``.
+        PyCharm users need to enable “emulate terminal” in output console option in
         run/debug configuration to see styled output.
         Reference: https://rich.readthedocs.io/en/latest/introduction.html#requirements
     """
