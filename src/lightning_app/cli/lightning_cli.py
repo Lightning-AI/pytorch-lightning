@@ -144,9 +144,20 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     if not components:
         components = app_component_names
 
-    for component in components:
-        if component not in app_component_names:
-            raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
+    else:
+
+        def add_prefix(c: str):
+            if c == "flow":
+                return c
+            if not c.startswith("root."):
+                return "root.c" + c
+            return c
+
+        components = [add_prefix(c) for c in components]
+
+        for component in components:
+            if component not in app_component_names:
+                raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
 
     log_reader = _app_logs_reader(
         client=client,
