@@ -1,13 +1,13 @@
 import fnmatch
-import logging
 import os
 from pathlib import Path
 from shutil import copy2, copystat, Error
 from typing import Callable, List, Set, Union
 
 from lightning_app.core.constants import DOT_IGNORE_FILENAME
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def copytree(
@@ -159,7 +159,7 @@ def _ignore_filename_spell_check(src: Path):
     possible_spelling_mistakes.extend([p.lstrip(".") for p in possible_spelling_mistakes])
     for path in src.iterdir():
         if path.is_file() and path.name in possible_spelling_mistakes:
-            logger.warning(
+            logger.warn(
                 f"Lightning uses `{DOT_IGNORE_FILENAME}` as the ignore file but found {path.name} at "
                 f"{path.parent} instead. If this was a mistake, please rename the file."
             )

@@ -265,25 +265,28 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
     assert early_stopping.stopped_epoch == expected_stop_epoch
 
 
-@pytest.mark.parametrize("limit_train_batches", (3, 5))
 @pytest.mark.parametrize(
-    ["min_epochs", "min_steps"],
+    "limit_train_batches,min_epochs,min_steps,stop_step",
     [
         # IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being
         # triggered, THEN the trainer should continue until reaching `trainer.global_step == min_steps` and stop
-        (0, 10),
+        (3, 0, 10, 10),
+        (5, 0, 10, 10),
         # IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is
         # being triggered, THEN the trainer should continue until reaching
         # `trainer.global_step` == `min_epochs * len(train_dataloader)`
-        (2, 0),
+        (3, 2, 0, 6),
+        (5, 2, 0, 10),
         # IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step` when
         # `early_stopping` is being triggered, THEN the highest between `min_epochs * len(train_dataloader)` and
         # `min_steps` would be reached
-        (1, 10),
-        (3, 10),
+        (3, 1, 10, 10),
+        (5, 1, 10, 10),
+        (3, 3, 10, 10),
+        (5, 3, 10, 15),
     ],
 )
-def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epochs, min_steps):
+def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epochs, min_steps, stop_step):
     if min_steps:
         assert limit_train_batches < min_steps
 
@@ -317,8 +320,7 @@ def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epoch
     # epochs continue until min steps are reached
     assert trainer.current_epoch == expected_epochs
     # steps continue until min steps are reached AND the epoch is exhausted
-    # stopping mid-epoch is not supported
-    assert trainer.global_step == limit_train_batches * expected_epochs
+    assert trainer.global_step == stop_step
 
 
 def test_early_stopping_mode_options():
@@ -470,9 +472,8 @@ def test_early_stopping_squeezes():
         (True, 2, 1, None),
     ],
 )
-def test_early_stopping_log_info(tmpdir, trainer, log_rank_zero_only, world_size, global_rank, expected_log):
-    """checks if log.info() gets called with expected message when used within EarlyStopping."""
-
+def test_early_stopping_log_info(trainer, log_rank_zero_only, world_size, global_rank, expected_log):
+    """Checks if log.info() gets called with expected message when used within EarlyStopping."""
     # set the global_rank and world_size if trainer is not None
     # or else always expect the simple logging message
     if trainer:

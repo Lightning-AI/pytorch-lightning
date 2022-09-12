@@ -232,7 +232,7 @@ Use the :func:`~pytorch_lightning.loggers.logger.rank_zero_experiment` and :func
 .. testcode::
 
     from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-    from pytorch_lightning.utilities.distributed import rank_zero_only
+    from pytorch_lightning.utilities import rank_zero_only
 
 
     class MyLogger(Logger):

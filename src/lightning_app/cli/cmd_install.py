@@ -1,5 +1,3 @@
-import json
-import logging
 import os
 import re
 import shutil
@@ -7,10 +5,12 @@ import subprocess
 import sys
 
 import requests
+from packaging.version import Version
 
 from lightning_app.core.constants import LIGHTNING_APPS_PUBLIC_REGISTRY, LIGHTNING_COMPONENT_PUBLIC_REGISTRY
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def gallery_component(name, yes_arg, version_arg, cwd=None):
@@ -299,8 +299,8 @@ def _validate_name(name, resource_type, example):
 def _resolve_resource(registry_url, name, version_arg, resource_type):
     gallery_entries = []
     try:
-        url = requests.get(registry_url)
-        data = json.loads(url.text)
+        response = requests.get(registry_url)
+        data = response.json()
 
         if resource_type == "app":
             gallery_entries = [a for a in data["apps"] if a["canDownloadSourceCode"]]
@@ -328,7 +328,7 @@ def _resolve_resource(registry_url, name, version_arg, resource_type):
 
     entry = None
     if version_arg == "latest":
-        entry = entries[-1]
+        entry = max(entries, key=lambda app: Version(app["version"]))
     else:
         for e in entries:
             if e["version"] == version_arg:

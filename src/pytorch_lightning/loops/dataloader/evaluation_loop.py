@@ -15,10 +15,9 @@ import os
 import shutil
 import sys
 from collections import ChainMap, OrderedDict
-from functools import partial
 from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
-from deprecate.utils import void
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
@@ -30,7 +29,6 @@ from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -125,8 +123,6 @@ class EvaluationLoop(DataLoaderLoop):
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
-        void(*args, **kwargs)
-
         data_fetcher_cls = _select_data_fetcher_type(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
@@ -138,15 +134,16 @@ class EvaluationLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader."""
-        void(*args, **kwargs)
-
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.current_dataloader
+
+        def batch_to_device(batch: Any) -> Any:
+            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
+            return batch
+
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(
-            dataloader,
-            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
-        )
+        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         dl_max_batches = self._max_batches[dataloader_idx]
 
         kwargs = OrderedDict()

@@ -18,22 +18,35 @@ from typing import Any, Dict, Generator, List, Optional
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.utilities.enums import PrecisionType
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
+if _FAIRSCALE_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
+else:
+    FullyShardedDataParallel = None
 
 log = logging.getLogger(__name__)
+
+
+class _DDPFullyShardedStrategyModuleWrapper(_LightningModuleWrapperBase):
+    def state_dict(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
+        # this is required because with FSDP lightning_module is empty because weights are sharded.
+        # So we need to call self.trainer.model.state_dict (wrapped version) and use this wraper to
+        # avoid extra keys `_forward_module.layer.weight.` since we want `layer.weight.` in state_dict.
+        return self._forward_module.state_dict(*args, **kwargs)
 
 
 class DDPFullyShardedStrategy(DDPStrategy):
@@ -60,19 +73,22 @@ class DDPFullyShardedStrategy(DDPStrategy):
     ):
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
+        .. warning:: ``DDPFullyShardedStrategy`` is in beta and subject to change.
+
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
         at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
         to ZeRO-Stage 3 but has been built for upstreaming to PyTorch.
-        `For more information: https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`.
-        .. warning:: ``FullyShardedPlugin`` is in beta and subject to change.
+
+        For more information
+        `check out FairScale's docs <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__.
 
         Defaults have been set and options have been exposed, but may require configuration
-        based on your level of memory/speed efficiency. We suggest having a look at this PR for more information.
-        `https://github.com/facebookresearch/fairscale/pull/413`
+        based on your level of memory/speed efficiency. We suggest having a look at
+        `this PR for more information <https://github.com/facebookresearch/fairscale/pull/413>`__.
 
-        Many of the helpful doc strings below came from the original FairScale documentation:
-        `https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`
+        Many of the helpful doc strings below came from the original
+        `FairScale documentation <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__.
 
         Arguments:
             cpu_offload: Offload FP32 params to CPU. Only usable in precision=16 mode.
@@ -129,6 +145,25 @@ class DDPFullyShardedStrategy(DDPStrategy):
             self._process_group = torch.distributed.new_group()
         return self._process_group
 
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
+        """Returns model state."""
+        assert self.model is not None
+        return self.model.state_dict()
+
+    def connect(self, model: "pl.LightningModule") -> None:
+        """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        # TODO: Wait for this issue to resolve and remove this blocker
+        # https://github.com/facebookresearch/fairscale/issues/648
+        # Also make sure to update the tests
+        if not is_overridden("configure_sharded_model", self.lightning_module) and len(list(model.parameters())) == 0:
+            assert self.lightning_module is not None
+            raise MisconfigurationException(
+                f"Using the same instance of model with `trainer.{self.lightning_module.trainer.state.fn}()` is not"
+                " supported with Fairscale FSDP auto-wrap. Please reinitialize your `LightningModule` and pass that."
+            )
+
+        super().connect(model)
+
     def setup_distributed(self) -> None:
         if not self.root_device.type == "cuda":
             raise MisconfigurationException(
@@ -141,16 +176,45 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING:
-            self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
-
             if self._layer_sync:
                 assert self.model
                 self.model = self._layer_sync.apply(self.model)
 
-        self.setup_precision_plugin()
         self.configure_ddp()
+        assert isinstance(self.model, pl.LightningModule)
+        self.model = _DDPFullyShardedStrategyModuleWrapper(self.model)
+        assert self.lightning_module is not None
+        if not is_overridden("configure_sharded_model", self.lightning_module):
+            self.model = self._setup_model(self.model)
+        self.setup_optimizers(self.lightning_module.trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
         self.barrier()
+
+        self.setup_precision_plugin()
+
+    def _setup_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
+        """Wraps the model into a
+        :class:`~fairscale.nn.data_parallel.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        log.detail(f"setting up `Fairscale FSDP` model with device id: {self.root_device.index}.")
+
+        rank_zero_info(
+            "When using FairScale FSDP auto-wrap, make sure to initalize your model using trainer else"
+            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
+        )
+
+        return FullyShardedDataParallel(
+            module=model,
+            process_group=self.process_group,
+            cpu_offload=self.cpu_offload,
+            move_grads_to_cpu=self.move_grads_to_cpu,
+            flatten_parameters=self.flatten_parameters,
+            mixed_precision=(self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)),
+            reshard_after_forward=self.reshard_after_forward,
+            fp32_reduce_scatter=self.fp32_reduce_scatter,
+            compute_dtype=self.compute_dtype,
+            bucket_cap_mb=self.bucket_cap_mb,
+            state_dict_device=self.state_dict_device,
+        )
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -187,10 +251,6 @@ class DDPFullyShardedStrategy(DDPStrategy):
             # (TODO: need to figure out solution)
             self.model_to_device()
 
-        # setup optimizers after fully sharded has wrapped the lightning module
-        assert self.lightning_module
-        self.setup_optimizers(self.lightning_module.trainer)
-
     def model_to_device(self) -> None:
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         # ensure we update the device type in the lightning module
@@ -198,24 +258,22 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.lightning_module.to(self.root_device)
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, TrainingStep)
-            return self.model.training_step(*args, **kwargs)
+        # we don't need precision context since casting is done by FSDP
+        # read `mixed_precision` docstring here: https://pytorch.org/docs/stable/fsdp.html
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, ValidationStep)
-            return self.model.validation_step(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
+        assert self.model is not None
+        return self.model(*args, **kwargs)
 
     def post_training_step(self) -> None:
         pass

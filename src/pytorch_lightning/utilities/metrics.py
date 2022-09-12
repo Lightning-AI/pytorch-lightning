@@ -16,9 +16,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

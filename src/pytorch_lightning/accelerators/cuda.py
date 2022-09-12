@@ -20,10 +20,10 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _DEVICE
 
 _log = logging.getLogger(__name__)
 
@@ -31,16 +31,15 @@ _log = logging.getLogger(__name__)
 class CUDAAccelerator(Accelerator):
     """Accelerator for NVIDIA CUDA devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not GPU.
         """
-        super().setup_environment(root_device)
-        if root_device.type != "cuda":
-            raise MisconfigurationException(f"Device should be GPU, got {root_device} instead")
-        torch.cuda.set_device(root_device)
+        if device.type != "cuda":
+            raise MisconfigurationException(f"Device should be GPU, got {device} instead")
+        torch.cuda.set_device(device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # TODO refactor input from trainer to local_rank @four4fish
@@ -71,6 +70,10 @@ class CUDAAccelerator(Accelerator):
         """
         return torch.cuda.memory_stats(device)
 
+    def teardown(self) -> None:
+        # clean up memory
+        torch.cuda.empty_cache()
+
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
@@ -97,10 +100,6 @@ class CUDAAccelerator(Accelerator):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-    def teardown(self) -> None:
-        # clean up memory
-        torch.cuda.empty_cache()
 
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cover
