@@ -16,7 +16,7 @@ from unittest import mock
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.strategies import DDPShardedStrategy
-from lightning_lite.strategies.sharded import ShardedDataParallel
+from lightning_lite.strategies.fairscale import ShardedDataParallel
 
 
 @RunIf(fairscale=True)

@@ -28,7 +28,7 @@
 # limitations under the License.
 
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning_lite.strategies.sharded import _FAIRSCALE_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from lightning_lite.utilities.imports import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
