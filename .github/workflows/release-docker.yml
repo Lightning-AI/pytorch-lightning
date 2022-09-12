@@ -29,7 +29,7 @@ jobs:
         run: echo "::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF##*/})"
 
       - name: Publish Releases to Docker
-        uses: docker/build-push-action@v1.1.0
+        uses: docker/build-push-action@v3.1.1
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -46,7 +46,7 @@ jobs:
         timeout-minutes: 55
 
       - name: Publish Latest to Docker
-        uses: docker/build-push-action@v1.1.0
+        uses: docker/build-push-action@v3.1.1
         # Only latest Python and PyTorch
         if: matrix.python_version == '3.9' && matrix.pytorch_version == '1.12'
         with:
