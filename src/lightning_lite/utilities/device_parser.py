@@ -1,13 +1,10 @@
 import multiprocessing
-import os
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
-
-# TODO(lite): Fix the imports
-# from lightning_lite.strategies.launchers.multiprocessing import _is_forking_disabled
+from lightning_lite.strategies.launchers.multiprocessing import _is_forking_disabled
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
 
@@ -216,9 +213,9 @@ def _get_all_available_mps_gpus() -> List[int]:
         A list of all available MPS GPUs
     """
     # lazy import to avoid circular dependencies
-    # from lightning_lite.accelerators.mps import _MPS_AVAILABLE
-    _MPS_AVAILABLE = False  # TODO(lite): revert this once MPS utils have moved
-    return [0] if _MPS_AVAILABLE else []
+    from lightning_lite.accelerators.mps import MPSAccelerator
+
+    return [0] if MPSAccelerator.is_available() else []
 
 
 def _get_all_available_cuda_gpus() -> List[int]:
@@ -309,9 +306,3 @@ def is_cuda_available() -> bool:
         return torch.cuda.is_available()
     with multiprocessing.get_context("fork").Pool(1) as pool:
         return pool.apply(torch.cuda.is_available)
-
-
-# TODO(lite): move this back to launchers/multiprocessing.py once launchers have moved
-def _is_forking_disabled() -> bool:
-    """Returns whether forking is disabled through the environment variable ``PL_DISABLE_FORK``."""
-    return bool(int(os.environ.get("PL_DISABLE_FORK", "0")))
