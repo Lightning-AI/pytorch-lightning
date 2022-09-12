@@ -31,18 +31,18 @@ class LearningRateFinder(Callback):
     reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
-        min_lr: minimum learning rate to investigate
+        min_lr: Minimum learning rate to investigate
 
-        max_lr: maximum learning rate to investigate
+        max_lr: Maximum learning rate to investigate
 
-        num_training: number of learning rates to test
+        num_training: Number of learning rates to test
 
         mode: Search strategy to update learning rate after each batch:
 
-            - ``'exponential'`` (default): Will increase the learning rate exponentially.
-            - ``'linear'``: Will increase the learning rate linearly.
+            - ``'exponential'`` (default): Increases the learning rate exponentially.
+            - ``'linear'``: Increases the learning rate linearly.
 
-        early_stop_threshold: threshold for stopping the search. If the
+        early_stop_threshold: Threshold for stopping the search. If the
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
 
@@ -60,7 +60,7 @@ class LearningRateFinder(Callback):
         self,
         min_lr: float = 1e-8,
         max_lr: float = 1,
-        num_training: int = 100,
+        num_training_batches: int = 100,
         mode: str = "exponential",
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
@@ -77,7 +77,7 @@ class LearningRateFinder(Callback):
         self._update_attr = update_attr
 
         self._early_exit = False
-        self.optimal_lr: Optional[_LRFinder] = None
+        self.lr_finder: Optional[_LRFinder] = None
 
     def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         with isolate_rng():

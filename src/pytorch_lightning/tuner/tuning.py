@@ -215,10 +215,10 @@ class Tuner:
 
             mode: Search strategy to update learning rate after each batch:
 
-                - ``'exponential'``: Will increase the learning rate exponentially.
-                - ``'linear'``: Will increase the learning rate linearly.
+                - ``'exponential'``: Increases the learning rate exponentially.
+                - ``'linear'``: Increases the learning rate linearly.
 
-            early_stop_threshold: threshold for stopping the search. If the
+            early_stop_threshold: Threshold for stopping the search. If the
                 loss at any point is larger than early_stop_threshold*best_loss
                 then the search is stopped. To disable, set to None.
 

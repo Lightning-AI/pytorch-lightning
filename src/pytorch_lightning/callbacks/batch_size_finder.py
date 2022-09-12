@@ -39,20 +39,20 @@ class BatchSizeFinder(Callback):
     Args:
         mode: search strategy to update the batch size:
 
-            - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
+            - ``'power'``: Keep multiplying the batch size by 2, until an OOM error returns.
             - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
                 do a binary search between the last successful batch size and the batch size that failed.
 
-        steps_per_trial: number of steps to run with a given batch size.
+        steps_per_trial: Number of steps to run with a given batch size.
             Ideally 1 should be enough to test if a OOM error occurs,
             however in practice a few are needed.
 
-        init_val: initial batch size to start the search with.
+        init_val: Initial batch size to start the search with.
 
-        max_trials: max number of increase in batch size done before
-            algorithm is terminated
+        max_trials: Maximum number of increases in batch size done before
+            the algorithm is terminated
 
-        batch_arg_name: name of the attribute that stores the batch size.
+        batch_arg_name: Name of the attribute that stores the batch size.
             It is expected that the user has provided a model or datamodule that has a hyperparameter
             with that name. We will look for this attribute name in the following places
 
