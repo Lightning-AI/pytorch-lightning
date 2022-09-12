@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Optional
+from torch.optim.optimizer import Optimizer
+from typing import Any, Callable, Dict, Optional, Union
+from torch.nn import Module
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _DEVICE
@@ -84,11 +86,17 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         htcore.mark_step()
 
     def optimizer_step(
-        self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
-    ):
-        optimizer.step(closure=optimizer_closure)
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any,
+    ) -> Any:
+        optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
         # Break lazy accumulation of graph after optimizer
         htcore.mark_step()
+        return optimizer_output
 
     def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         # Break lazy accumulation of graph after every step
