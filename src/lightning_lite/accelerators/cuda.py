@@ -11,53 +11,54 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List
+from typing import Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.utilities.types import _DEVICE
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
+from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.utilities import device_parser
 
 
-class IPUAccelerator(Accelerator):
-    """Accelerator for IPUs."""
+class CUDAAccelerator(Accelerator):
+    """Accelerator for NVIDIA CUDA devices."""
 
     def setup_device(self, device: torch.device) -> None:
-        pass
-
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """IPU device stats aren't supported yet."""
-        return {}
+        """
+        Raises:
+            ValueError:
+                If the selected device is not of type CUDA.
+        """
+        if device.type != "cuda":
+            raise ValueError(f"Device should be CUDA, got {device} instead.")
+        torch.cuda.set_device(device)
 
     def teardown(self) -> None:
-        pass
+        # clean up memory
+        torch.cuda.empty_cache()
 
     @staticmethod
-    def parse_devices(devices: int) -> int:
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        return devices
+        return device_parser.parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
-    def get_parallel_devices(devices: int) -> List[int]:
+    def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        return list(range(devices))
+        return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
-        # Update this when api is exposed by the Graphcore team.
-        return 4
+        return device_parser.num_cuda_devices()
 
     @staticmethod
     def is_available() -> bool:
-        return _IPU_AVAILABLE
+        return device_parser.num_cuda_devices() > 0
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
         accelerator_registry.register(
-            "ipu",
+            "cuda",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
