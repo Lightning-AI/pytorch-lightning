@@ -19,6 +19,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
@@ -170,3 +171,25 @@ def test_torchscript_with_no_input(tmpdir):
 
     with pytest.raises(ValueError, match="requires either `example_inputs` or `model.example_input_array`"):
         model.to_torchscript(method="trace")
+
+
+def test_torchscript_script_recursively():
+    class Child(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = torch.nn.Linear(1, 1)
+
+        def forward(self, inputs):
+            return self.model(inputs)
+
+    class Parent(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = Child()
+
+        def forward(self, inputs):
+            return self.model(inputs)
+
+    lm = Parent()
+    script = lm.to_torchscript(method="script")
+    assert isinstance(script, torch.jit.RecursiveScriptModule)
