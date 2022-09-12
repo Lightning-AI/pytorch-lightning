@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [UnReleased] - 2022-MM-DD
+
+### Added
+
+-
+
+
+### Changed
+
+-
+
+
+### Deprecated
+
+-
+
+### Fixed
+
+- Resolved a bug where the state change detection using DeepDiff won't worked with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
+
+### Removed
+
+-
+
+
+### Fixed
+
+- Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
+
+
 ## [0.6.0] - 2022-09-08
 
 ### Added
