@@ -1,0 +1,1 @@
+../../source-app/_templates/classtemplate.rst

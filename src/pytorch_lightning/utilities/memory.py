@@ -21,10 +21,9 @@ from io import BytesIO
 from typing import Any, Dict
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:

@@ -72,10 +72,10 @@ class Callback:
         Called before accelerator is being setup.
         """
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Called when fit, validate, test, predict, or tune begins."""
 
-    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Called when fit, validate, test, predict, or tune ends."""
 
     def on_init_start(self, trainer: "pl.Trainer") -> None:

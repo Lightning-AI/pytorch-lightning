@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import DataParallelStrategy
@@ -20,7 +21,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
@@ -48,8 +48,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
     __verify_batch_transfer_support(trainer)
     _check_deprecated_callback_hooks(trainer)
-    # TODO: Delete _check_on_hpc_hooks in v1.8
-    _check_on_hpc_hooks(model)
     # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
     _check_on_epoch_start_end(model)
     # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
@@ -58,7 +56,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_pretrain_routine(model)
     # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
     _check_datamodule_checkpoint_hooks(trainer)
-    _check_setup_method(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -209,21 +206,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
             )
 
 
-# TODO: Delete _check_on_hpc_hooks in v1.8
-def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
-    if is_overridden("on_hpc_save", model):
-        rank_zero_deprecation(
-            "Method `LightningModule.on_hpc_save` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `LightningModule.on_save_checkpoint` instead."
-        )
-
-    if is_overridden("on_hpc_load", model):
-        rank_zero_deprecation(
-            "Method `LightningModule.on_hpc_load` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
-        )
-
-
 # TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
 def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     hooks = (
@@ -326,9 +308,3 @@ def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
             "`LightningDataModule.on_load_checkpoint` was deprecated in"
             " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
         )
-
-
-def _check_setup_method(trainer: "pl.Trainer") -> None:
-    for obj in [trainer.lightning_module, trainer.datamodule] + trainer.callbacks:
-        if is_overridden("setup", obj) and not is_param_in_hook_signature(obj.setup, "stage"):
-            raise MisconfigurationException(f"`{obj.__class__.__name__}.setup` does not have a `stage` argument.")

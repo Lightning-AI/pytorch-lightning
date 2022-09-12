@@ -17,6 +17,8 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 
 import numpy as np
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
@@ -26,14 +28,12 @@ from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_li
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -102,7 +102,21 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
-        return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
+        if self._is_training_done and self._is_validation_done:
+            return True
+
+        if self.trainer.should_stop:
+            # early stopping
+            min_epochs = self.trainer.fit_loop.min_epochs
+            should_stop_early = self.trainer.fit_loop._should_stop_early
+            if not should_stop_early:
+                self._warning_cache.info(
+                    f"Trainer was signaled to stop but the required `min_epochs={min_epochs!r}` or"
+                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
+                )
+            return should_stop_early
+
+        return False
 
     def connect(  # type: ignore[override]
         self,
