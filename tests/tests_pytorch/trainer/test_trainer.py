@@ -20,12 +20,14 @@ from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
 import torch
+import torch.nn as nn
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
@@ -33,13 +35,21 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import (
+    BoringModel,
+    RandomDataset,
+    RandomIterableDataset,
+    RandomIterableDatasetWithLen,
+)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import (
@@ -52,13 +62,9 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.seed import seed_everything
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
@@ -69,6 +75,21 @@ if _TORCH_GREATER_EQUAL_1_12:
     torch_test_assert_close = torch.testing.assert_close
 else:
     torch_test_assert_close = torch.testing.assert_allclose
+
+
+def test_trainer_error_when_input_not_lightning_module():
+    """Test that a useful error gets raised when the Trainer methods receive something other than a
+    LightningModule."""
+    trainer = Trainer()
+
+    for method in ("fit", "validate", "test", "predict"):
+        with pytest.raises(TypeError, match=escape(f"`Trainer.{method}()` requires a `LightningModule`, got: Linear")):
+            run_method = getattr(trainer, method)
+            run_method(nn.Linear(2, 2))
+
+    trainer = Trainer(auto_lr_find=True, auto_scale_batch_size=True)
+    with pytest.raises(TypeError, match=escape("`Trainer.tune()` requires a `LightningModule`, got: Linear")):
+        trainer.tune(nn.Linear(2, 2))
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -523,11 +544,11 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
 @pytest.mark.parametrize(
     "max_epochs,max_steps,is_done,correct_trainer_epochs",
     [
-        (None, -1, False, 1000),
+        (None, -1, False, None),
         (-1, -1, False, -1),
         (5, -1, False, 5),
         (-1, 10, False, -1),
-        (None, 0, True, -1),
+        (None, 0, True, None),
         (0, -1, True, 0),
         (-1, 0, True, -1),
         (0, -1, True, 0),
@@ -538,7 +559,9 @@ def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_do
 
     assert trainer.max_epochs == correct_trainer_epochs
     assert trainer.max_steps == max_steps
-    assert trainer.fit_loop.done is is_done
+
+    if isinstance(correct_trainer_epochs, int):
+        assert trainer.fit_loop.done is is_done
 
     # Make sure there is no timer
     timer_callbacks = [c for c in trainer.callbacks if isinstance(c, Timer)]
@@ -599,7 +622,10 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
             self.log("loss", output["loss"])
             self.training_step_invoked += 1
-            assert not self.trainer.should_stop
+            if self.current_epoch < 2:
+                assert not self.trainer.should_stop
+            else:
+                assert self.trainer.should_stop
             return output
 
     model = TestModel()
@@ -618,7 +644,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
 
     message = f"min_epochs={min_epochs}` or `min_steps=None` has not been met. Training will continue"
     num_messages = sum(1 for record in caplog.records if message in record.message)
-    assert num_messages == min_epochs - 2
+    assert num_messages == 1
     assert model.training_step_invoked == min_epochs * 2
 
 
@@ -1232,8 +1258,8 @@ def test_trainer_subclassing():
     "trainer_params",
     [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
 )
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
 def test_trainer_omegaconf(_, __, trainer_params):
     config = OmegaConf.create(trainer_params)
     Trainer(**config)

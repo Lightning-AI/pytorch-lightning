@@ -1,6 +1,5 @@
 from typing import Any, List, Optional, Sequence
 
-from deprecate.utils import void
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
@@ -60,7 +59,8 @@ class PredictionLoop(DataLoaderLoop):
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns all prediction dataloaders."""
-        return self.trainer.predict_dataloaders
+        dataloaders = self.trainer.predict_dataloaders
+        return [] if dataloaders is None else dataloaders
 
     @property
     def skip(self) -> bool:
@@ -90,7 +90,6 @@ class PredictionLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
-        void(*args, **kwargs)
         dataloader = self.current_dataloader
         if dataloader is not None:
             _set_sampler_epoch(dataloader, self.trainer.fit_loop.epoch_progress.current.processed)

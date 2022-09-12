@@ -303,3 +303,23 @@ def test_multi_optimizers_with_hpu(tmpdir):
     trainer.fit(model)
 
     assert all(model.optims)
+
+
+@RunIf(hpu=True)
+def test_hpu_device_stats_monitor(tmpdir):
+
+    hpu_stats = HPUAccelerator().get_device_stats("hpu")
+    fields = [
+        "Limit",
+        "InUse",
+        "MaxInUse",
+        "NumAllocs",
+        "NumFrees",
+        "ActiveAllocs",
+        "MaxAllocSize",
+        "TotalSystemAllocs",
+        "TotalSystemFrees",
+        "TotalActiveAllocs",
+    ]
+    for f in fields:
+        assert any(f in h for h in hpu_stats.keys())

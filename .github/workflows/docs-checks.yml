@@ -1,7 +1,7 @@
 name: Check Docs
 # https://github.com/marketplace/actions/sphinx-build
 
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
@@ -12,17 +12,18 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  doctest:
+  make-doctest:
     runs-on: ubuntu-20.04
+    needs: make-html  # make it depending on build docs to reduce load
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch"]
+        pkg: ["app", "pytorch"]  # TODO: , "lit"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -42,13 +43,13 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install -q fire
           # python -m pip install --upgrade --user pip
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/base.txt -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip install -r requirements/${{ matrix.pkg }}/devel.txt
           pip list
         shell: bash
@@ -63,18 +64,18 @@ jobs:
           make doctest
           make coverage
 
-  make-docs:
+  make-html:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch"]
+        pkg: ["app", "pytorch", "lit"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
           # lfs: true
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -91,11 +92,12 @@ jobs:
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/base.txt -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list
@@ -111,7 +113,7 @@ jobs:
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
-          name: docs-results-${{ github.sha }}
+          name: docs-${{ matrix.pkg }}-${{ github.sha }}
           path: docs/build/html/
         # Use always() to always run this step to publish test results when there are test failures
         if: success()

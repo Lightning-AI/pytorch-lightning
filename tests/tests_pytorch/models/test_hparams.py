@@ -24,20 +24,19 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
+from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
-
-if _HYDRA_EXPERIMENTAL_AVAILABLE:
-    from hydra.experimental import compose, initialize
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -401,6 +400,24 @@ def _raw_checkpoint_path(trainer) -> str:
     return raw_checkpoint_path
 
 
+@pytest.mark.parametrize("base_class", (HyperparametersMixin, LightningModule, LightningDataModule))
+def test_save_hyperparameters_under_composition(base_class):
+    """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
+    collected."""
+
+    class ChildInComposition(base_class):
+        def __init__(self, same_arg):
+            super().__init__()
+            self.save_hyperparameters()
+
+    class NotPLSubclass:  # intentionally not subclassing LightningModule/LightningDataModule
+        def __init__(self, same_arg="parent_default", other_arg="other"):
+            self.child = ChildInComposition(same_arg="cocofruit")
+
+    parent = NotPLSubclass()
+    assert parent.child.hparams == dict(same_arg="cocofruit")
+
+
 class LocalVariableModelSuperLast(BoringModel):
     """This model has the super().__init__() call at the end."""
 
@@ -412,7 +429,7 @@ class LocalVariableModelSuperLast(BoringModel):
 
 
 class LocalVariableModelSuperFirst(BoringModel):
-    """This model has the _auto_collect_arguments() call at the end."""
+    """This model has the save_hyperparameters() call at the end."""
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -649,9 +666,10 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     trainer.test()
 
 
-@pytest.mark.skipif(not _HYDRA_EXPERIMENTAL_AVAILABLE, reason="Hydra experimental is not available")
+@pytest.mark.skipif(RequirementCache("hydra-core<1.1"), reason="Requires Hydra's Compose API")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
     """This test relies on configuration saved under tests/models/conf/config.yaml."""
+    from hydra import compose, initialize
 
     class TestHydraModel(BoringModel):
         def __init__(self, args_0, args_1, args_2, kwarg_1=None):
@@ -842,7 +860,7 @@ def test_no_datamodule_for_hparams(tmpdir):
     model = SaveHparamsModel({"arg1": 5, "arg2": "abc"})
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     data = DataModuleWithoutHparams()
-    data.setup()
+    data.setup("fit")
 
     mock_logger = _get_mock_logger(tmpdir)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)

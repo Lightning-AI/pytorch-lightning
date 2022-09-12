@@ -15,7 +15,7 @@ class SchedulerThread(threading.Thread):
     def __init__(self, app) -> None:
         super().__init__(daemon=True)
         self._exit_event = threading.Event()
-        self._sleep_time = 0.5
+        self._sleep_time = 1.0
         self._app = app
 
     def run(self) -> None:
@@ -37,7 +37,9 @@ class SchedulerThread(threading.Thread):
                 flow = self._app.get_component_by_name(metadata["name"])
                 previous_state = deepcopy(flow.state)
                 flow._enable_schedule(call_hash)
-                component_delta = ComponentDelta(id=flow.name, delta=Delta(DeepDiff(previous_state, flow.state)))
+                component_delta = ComponentDelta(
+                    id=flow.name, delta=Delta(DeepDiff(previous_state, flow.state, verbose_level=2))
+                )
                 self._app.delta_queue.put(component_delta)
                 metadata["start_time"] = next_event.isoformat()
 

@@ -1,6 +1,6 @@
 name: Code check
 
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v3
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -32,8 +32,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
+        # todo: adjust requirements for both code-bases
         pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 

@@ -1,4 +1,3 @@
-import logging
 import socket
 import time
 from functools import wraps
@@ -13,7 +12,9 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def find_free_network_port() -> int:
@@ -48,11 +49,12 @@ def _configure_session() -> Session:
     return http
 
 
-def _check_service_url_is_ready(url: str, timeout: float = 1) -> bool:
+def _check_service_url_is_ready(url: str, timeout: float = 5) -> bool:
     try:
         response = requests.get(url, timeout=timeout)
         return response.status_code in (200, 404)
     except (ConnectionError, ConnectTimeout, ReadTimeout):
+        logger.debug(f"The url {url} is not ready.")
         return False
 
 

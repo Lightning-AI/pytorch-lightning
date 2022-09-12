@@ -19,12 +19,19 @@ from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
 
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-    ...
+    def __init__(
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+    ) -> None:
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
 
 
 def _find_tensors(
@@ -45,8 +52,6 @@ def _find_tensors(
 # https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
 def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     # `prepare_for_backward` is `DistributedDataParallel` specific.
-    if not isinstance(model, DistributedDataParallel):
-        return
     if torch.is_grad_enabled() and model.require_backward_grad_sync:
         model.require_forward_param_sync = True  # type: ignore[assignment]
         # We'll return the output object verbatim since it is a freeform

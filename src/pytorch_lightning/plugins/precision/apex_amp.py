@@ -18,10 +18,10 @@ from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PARAMETERS
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -41,6 +41,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         super().__init__()
         self.amp_level = amp_level
         self._connected = False
+        self._state_dict_loaded = False
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
@@ -69,6 +70,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
+            optimizer_idx: the index of the current optimizer. ``None`` if using manual optimization
         """
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
@@ -82,6 +84,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
+        if self._state_dict_loaded:
+            raise RuntimeError(
+                "Resuming training with APEX is currently not supported. Set `amp_backend=None` for example or use a"
+                " different precision plugin."
+            )
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -98,4 +105,5 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return amp.state_dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        amp.load_state_dict(state_dict)
+        self._state_dict_loaded = True
+        return super().load_state_dict(state_dict)

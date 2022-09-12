@@ -1,4 +1,3 @@
-import logging
 import os
 import signal
 import sys
@@ -8,11 +7,11 @@ from typing import Any, Dict, List, Optional, TypedDict, Union
 from lightning_app import LightningWork
 from lightning_app.storage.drive import Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import _collect_child_process_pids
+from lightning_app.utilities.app_helpers import _collect_child_process_pids, Logger
 from lightning_app.utilities.packaging.tarfile import clean_tarfile, extract_tarfile
 from lightning_app.utilities.tracer import Tracer
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class Code(TypedDict):
@@ -45,9 +44,9 @@ class TracerPythonScript(LightningWork):
         """The TracerPythonScript class enables to easily run a python script.
 
         When subclassing this class, you can configure your own :class:`~lightning_app.utilities.tracer.Tracer`
-        by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method
+        by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method.
 
-        The tracer is quite a magical class. It enables you to inject core into a script execution without changing it.
+        The tracer is quite a magical class. It enables you to inject code into a script execution without changing it.
 
         Arguments:
             script_path: Path of the python script to run.
@@ -59,12 +58,12 @@ class TracerPythonScript(LightningWork):
         Raises:
             FileNotFoundError: If the provided `script_path` doesn't exists.
 
-        **How does it works ?**
+        **How does it work?**
 
         It works by executing the python script with python built-in `runpy
         <https://docs.python.org/3/library/runpy.html>`_ run_path method.
         This method takes any python globals before executing the script,
-        e.g you can modify classes or function from the script.
+        e.g., you can modify classes or function from the script.
 
         .. doctest::
 
@@ -91,14 +90,14 @@ class TracerPythonScript(LightningWork):
         Even more interesting, this component works for ANY PyTorch Lightning script and
         its state can be used in real time in a UI.
 
-        .. literalinclude:: ../../../../examples/app_components/python/component_tracer.py
+        .. literalinclude:: ../../../examples/app_components/python/component_tracer.py
             :language: python
 
 
         Once implemented, this component can easily be integrated within a larger app
         to execute a specific python script.
 
-        .. literalinclude:: ../../../../examples/app_components/python/app.py
+        .. literalinclude:: ../../../examples/app_components/python/app.py
             :language: python
         """
         super().__init__(**kwargs)

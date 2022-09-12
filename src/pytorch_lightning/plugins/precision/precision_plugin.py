@@ -21,9 +21,9 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PARAMETERS
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
-from pytorch_lightning.utilities.types import _PARAMETERS
 
 
 class PrecisionPlugin(CheckpointHooks):
@@ -68,12 +68,16 @@ class PrecisionPlugin(CheckpointHooks):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Performs the actual backpropagation.
+        r"""Performs the actual backpropagation.
 
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
+            optimizer_idx: the index of the current optimizer. ``None`` if using manual optimization
+            \*args: Positional arguments intended for the actual function that performs the backward, like
+                :meth:`~torch.Tensor.backward`.
+            \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
         # do backward pass
         if model is not None and isinstance(model, pl.LightningModule):
@@ -178,7 +182,9 @@ class PrecisionPlugin(CheckpointHooks):
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
             # the configuration validator disallows clipping on manual
             return
-        model.configure_gradient_clipping(
+
+        model.trainer._call_lightning_module_hook(
+            "configure_gradient_clipping",
             optimizer,
             optimizer_idx,
             gradient_clip_val=clip_val,
