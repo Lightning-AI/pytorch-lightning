@@ -10,7 +10,7 @@ Versioning
 
 A Lightning release number is in the format of ``MAJOR.MINOR.PATCH``.
 
-- A patch release contains only bug fixes. Since it introduces no breaking changes, we recommend users always updating the package to the latest version within the minor version whenever possible.
+- A patch release contains only bug fixes. Since it introduces no breaking changes, we recommend users always update the package to the latest version within the minor version whenever possible.
 - A minor release contains backwards-incompatible changes, such as API changes and removals, as well as new features, deprecations and all bugfixes since the last patch release. Introducing backwards-incompatible changes in a minor release is against semantic versioning.
 
 With every release, we publish a changelog where we list additions, removals, deprecations, changed functionality and fixes.
