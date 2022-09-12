@@ -42,8 +42,6 @@ from lightning_lite.utilities.seed import reset_seed
 class DDPStrategy(ParallelStrategy):
     """Strategy for multi-process single-device training on one or multiple nodes."""
 
-    strategy_name = "ddp"
-
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
@@ -157,7 +155,7 @@ class DDPStrategy(ParallelStrategy):
             find_unused_parameters=False,
         )
         strategy_registry.register(
-            cls.strategy_name,
+            "ddp",
             cls,
             description=f"{cls.__class__.__name__}",
         )

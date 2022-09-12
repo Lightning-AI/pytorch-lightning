@@ -13,19 +13,23 @@
 # limitations under the License.
 import operator
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Optional, Tuple, Union
+from datetime import timedelta
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
-from lightning_utilities.core.imports import compare_version
-from torch import Tensor
+import torch
+from lightning_utilities.core.imports import compare_version, module_available
+from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.optim import Optimizer
 
+from lightning_lite.accelerators import Accelerator
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE
+from lightning_lite.utilities.imports import _IS_WINDOWS
 
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and compare_version("fairscale", operator.ge, "0.3.3")
-
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -37,8 +41,33 @@ else:
 class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    strategy_name = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
+
+    def __init__(
+        self,
+        accelerator: Optional[Accelerator] = None,
+        parallel_devices: Optional[List[torch.device]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[Precision] = None,
+        process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(
+            accelerator=accelerator,
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
+            process_group_backen=process_group_backend,
+            timeout=timeout,
+            **kwargs,
+        )
+        super().__init__()
+        if "reduce_buffer_size" not in self._ddp_kwargs:
+            # For multi-node training, enabling bucketing will improve performance.
+            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
@@ -52,9 +81,6 @@ class DDPShardedStrategy(DDPStrategy):
         optimizers = self._reinit_optimizers_with_oss(optimizers)
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
-
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
-        pass
 
     @contextmanager
     def block_backward_sync(self, module: Module) -> Generator:
@@ -78,7 +104,7 @@ class DDPShardedStrategy(DDPStrategy):
             find_unused_parameters=False,
         )
         strategy_registry.register(
-            cls.strategy_name,
+            "ddp_sharded",
             cls,
             description=f"{cls.__class__.__name__}",
         )

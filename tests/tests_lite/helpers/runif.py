@@ -21,7 +21,8 @@ from packaging.version import Version
 from pkg_resources import get_distribution
 
 from lightning_lite.accelerators.mps import MPSAccelerator
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _TPU_AVAILABLE
+from lightning_lite.strategies.sharded import _FAIRSCALE_AVAILABLE
+from lightning_lite.utilities.imports import _TPU_AVAILABLE
 
 
 class RunIf:

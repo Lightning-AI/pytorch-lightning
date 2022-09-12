@@ -47,8 +47,8 @@ if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
+# TODO(lite): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
 class DeepSpeedStrategy(DDPStrategy):
-    strategy_name = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
@@ -192,7 +192,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 If set to "auto", the plugin tries to infer this from
                 the train DataLoader's BatchSampler, else defaults to 1.
                 To obtain accurate logs when using datasets that do not support batch samplers,
-                set this to the actual per gpu batch size (trainer.batch_size).
+                set this to the actual per gpu batch size.
 
             config: Pass in a deepspeed formatted config dict,
                 or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
