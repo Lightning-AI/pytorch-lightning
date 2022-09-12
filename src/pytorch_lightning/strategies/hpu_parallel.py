@@ -137,10 +137,15 @@ class HPUParallelStrategy(DDPStrategy):
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
+    def on_after_backward(self):
+        # Break lazy accumulation of graph after fwd+bwd
         htcore.mark_step()
-        return step_output
+
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
+                    optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+        optimizer.step(closure=optimizer_closure)
+        # Break lazy accumulation of graph after optimizer
+        htcore.mark_step()
 
     def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         # Break lazy accumulation of graph after every step
