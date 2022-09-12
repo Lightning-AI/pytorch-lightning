@@ -1,4 +1,3 @@
-import logging
 import threading
 import traceback
 from queue import Empty
@@ -8,6 +7,7 @@ from typing import Dict, Optional, Set, TYPE_CHECKING, Union
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.path import filesystem, path_to_work_artifact
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.enum import WorkStageStatus
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 _PathRequest = Union[GetRequest, ExistsRequest]
 _PathResponse = Union[ExistsResponse, GetResponse]
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 class StorageOrchestrator(Thread):

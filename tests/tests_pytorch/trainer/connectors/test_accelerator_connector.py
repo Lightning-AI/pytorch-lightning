@@ -13,6 +13,7 @@
 # limitations under the License
 
 import os
+from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
@@ -21,18 +22,18 @@ import torch
 import torch.distributed
 
 import pytorch_lightning
+from lightning_lite.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
-from pytorch_lightning.plugins.environments import (
-    KubeflowEnvironment,
-    LightningEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
 from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
@@ -139,6 +140,15 @@ def test_custom_cluster_environment_in_slurm_environment(_, tmpdir):
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
+        def setup_device(self, device: torch.device) -> None:
+            pass
+
+        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+            pass
+
+        def teardown(self) -> None:
+            pass
+
         @staticmethod
         def parse_devices(devices):
             return devices
@@ -777,9 +787,8 @@ def test_gpu_accelerator_backend_choice_cuda(_):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-# TODO(lite): remove skip once MPS utils have moved
-@pytest.mark.skip(reason="Utils in Lite rely on MPS accelerator file, but refactor is not yet finished")
-@mock.patch("pytorch_lightning.accelerators.mps._MPS_AVAILABLE", return_value=True)
+@mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
 def test_gpu_accelerator_backend_choice_mps(*_):
     trainer = Trainer(accelerator="gpu")

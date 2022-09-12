@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import queue
 import sys
@@ -24,7 +23,7 @@ from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
 from lightning_app.core.constants import FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
-from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
+from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
 from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
 
@@ -58,7 +57,7 @@ app_spec: Optional[List] = None
 # In the future, this would be abstracted to support horizontal scaling.
 responses_store = {}
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 # This can be replaced with a consumer that publishes states in a kv-store
