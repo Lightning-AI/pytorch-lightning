@@ -468,7 +468,7 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
 
     # 5: Reload the flow states
     for flow_name, flow in flow_map.items():
-        flow.load_state_dict(state.pop(flow_name), dynamic_children_state[flow_name], strict=strict)
+        flow.load_state_dict(state.pop(flow_name), dynamic_children_state.get(flow_name, {}), strict=strict)
 
     # 6: Verify all dynamic components has been re-created.
     if strict:
