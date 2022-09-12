@@ -20,6 +20,15 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
+from lightning_lite.plugins.environments import (
+    ClusterEnvironment,
+    KubeflowEnvironment,
+    LightningEnvironment,
+    LSFEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
+from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
@@ -43,15 +52,7 @@ from pytorch_lightning.plugins import (
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments import (
-    BaguaEnvironment,
-    ClusterEnvironment,
-    KubeflowEnvironment,
-    LightningEnvironment,
-    LSFEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
+from pytorch_lightning.plugins.environments import BaguaEnvironment
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
@@ -75,15 +76,6 @@ from pytorch_lightning.strategies import (
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.launchers.multiprocessing import _is_forking_disabled
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import (
-    _StrategyType,
-    AMPType,
-    device_parser,
-    LightningEnum,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
@@ -93,6 +85,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -531,7 +524,9 @@ class AcceleratorConnector:
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
+                acc_str
+                for acc_str in self._accelerator_types
+                if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
