@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterable
+from typing import Any
 
-from torch import Tensor
-from torch.optim import Optimizer
-
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.types import _DEVICE
+from lightning_lite.utilities.optimizer import optimizer_to_device as new_optimizer_to_device
+from lightning_lite.utilities.optimizer import optimizers_to_device as new_optimizers_to_device
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
-def optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> None:
-    """Moves optimizer states for a sequence of optimizers to the device."""
-    for opt in optimizers:
-        optimizer_to_device(opt, device)
+def optimizers_to_device(*args: Any, **kwargs: Any) -> None:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.optimizer.optimizers_to_device` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.optimizer.optimizers_to_device` instead."
+    )
+    return new_optimizers_to_device(*args, **kwargs)
 
 
-def optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
-    """Moves the state of a single optimizer to the device."""
-    for p, v in optimizer.state.items():
-        optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device)
+def optimizer_to_device(*args: Any, **kwargs: Any) -> None:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.optimizer.optimizer_to_device` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.optimizer.optimizer_to_device` instead."
+    )
+    return new_optimizer_to_device(*args, **kwargs)

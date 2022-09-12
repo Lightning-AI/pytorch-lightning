@@ -29,7 +29,7 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS)
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
         "examples": _setup_tools.load_requirements(file_name="examples.txt", **common_args),
@@ -53,6 +53,10 @@ def _adjust_manifest(**__: Any) -> None:
     lines += [
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
+        # TODO: remove after the first standalone Lite release
+        "recursive-include requirements/lite *.txt" + os.linesep,
+        # TODO: remove after the first standalone Lite release
+        "recursive-include src/lightning_lite *.md" + os.linesep,
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
         "include src/pytorch_lightning/py.typed" + os.linesep,  # marker file for PEP 561
@@ -78,7 +82,15 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         url=_about.__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
         license=_about.__license__,
-        packages=find_packages(where="src", include=["pytorch_lightning", "pytorch_lightning.*"]),
+        packages=find_packages(
+            where="src",
+            include=[
+                "pytorch_lightning",
+                "pytorch_lightning.*",
+                "lightning_lite",  # TODO: remove after the first standalone Lite release
+                "lightning_lite.*",  # TODO: remove after the first standalone Lite release
+            ],
+        ),
         package_dir={"": "src"},
         include_package_data=True,
         long_description=_long_description,
@@ -87,7 +99,9 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
-        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
+        install_requires=_setup_tools.load_requirements(
+            _PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"
+        ),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
