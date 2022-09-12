@@ -46,7 +46,6 @@ dependencies:
     - torchvision>=0.10.*
 
     - pip:
-        - test-tube>=0.7.5
         - mlflow>=1.0.0
         - comet_ml>=3.1.12
         - wandb>=0.10.22

@@ -16,88 +16,89 @@ import os
 from unittest import mock
 
 import pytest
+from tests_lite.helpers.runif import RunIf
 
-from pytorch_lightning.plugins.environments import KubeflowEnvironment
+from lightning_lite.plugins.environments import TorchElasticEnvironment
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
-    env = KubeflowEnvironment()
+    env = TorchElasticEnvironment()
     assert env.creates_processes_externally
-
+    assert env.main_address == "127.0.0.1"
+    assert env.main_port == 12910
     with pytest.raises(KeyError):
-        # MASTER_ADDR is required
-        env.main_address
-    with pytest.raises(KeyError):
-        # MASTER_PORT is required
-        env.main_port
-    with pytest.raises(KeyError):
-        # WORLD_SIZE is required
+        # world size is required to be passed as env variable
         env.world_size()
     with pytest.raises(KeyError):
-        # RANK is required
-        env.global_rank()
-    assert env.local_rank() == 0
+        # local rank is required to be passed as env variable
+        env.local_rank()
+    assert env.node_rank() == 0
 
 
 @mock.patch.dict(
     os.environ,
     {
-        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
         "MASTER_ADDR": "1.2.3.4",
         "MASTER_PORT": "500",
         "WORLD_SIZE": "20",
         "RANK": "1",
+        "LOCAL_RANK": "2",
+        "GROUP_RANK": "3",
     },
 )
 def test_attributes_from_environment_variables(caplog):
     """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
-    env = KubeflowEnvironment()
+    env = TorchElasticEnvironment()
     assert env.main_address == "1.2.3.4"
     assert env.main_port == 500
     assert env.world_size() == 20
     assert env.global_rank() == 1
-    assert env.local_rank() == 0
-    assert env.node_rank() == 1
+    assert env.local_rank() == 2
+    assert env.node_rank() == 3
     # setter should be no-op
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning_lite.plugins.environments"):
         env.set_global_rank(100)
     assert env.global_rank() == 1
     assert "setting global rank is not allowed" in caplog.text
 
     caplog.clear()
 
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning_lite.plugins.environments"):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
-        "MASTER_ADDR": "1.2.3.4",
-        "MASTER_PORT": "500",
-        "WORLD_SIZE": "20",
-        "RANK": "1",
-    },
-)
-def test_detect_kubeflow():
-    assert KubeflowEnvironment.detect()
+@RunIf(max_torch="1.9.0")
+def test_detect_before_1_9_1():
+    """Test the detection of a torchelastic environment configuration before 1.9.1."""
+    with mock.patch.dict(os.environ, {}, clear=True):
+        assert not TorchElasticEnvironment.detect()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "RANK": "",
+            "GROUP_RANK": "",
+            "LOCAL_RANK": "",
+            "LOCAL_WORLD_SIZE": "",
+        },
+    ):
+        assert TorchElasticEnvironment.detect()
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
-        "MASTER_ADDR": "1.2.3.4",
-        "MASTER_PORT": "500",
-        "WORLD_SIZE": "20",
-        "RANK": "1",
-        "GROUP_RANK": "1",
-    },
-)
-def test_detect_torchelastic_over_kubeflow():
-    assert not KubeflowEnvironment.detect()
+@RunIf(min_torch="1.9.1")
+def test_detect_after_1_9_1():
+    """Test the detection of a torchelastic environment configuration after 1.9.1."""
+    with mock.patch.dict(os.environ, {}, clear=True):
+        assert not TorchElasticEnvironment.detect()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "TORCHELASTIC_RUN_ID": "",
+        },
+    ):
+        assert TorchElasticEnvironment.detect()

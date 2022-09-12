@@ -26,7 +26,7 @@ jobs:
 
       - name: Build packages
         run: |
-          pip install -q fire
+          pip install -q -r .actions/requirements.txt
           python .actions/assistant.py prepare-nightly-version
           python setup.py sdist bdist_wheel
           ls -lh dist/
