@@ -158,6 +158,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue to keep downscaling the batch size in case there hasn't been even a single successful optimal batch size with `mode="power"` ([#14372](https://github.com/Lightning-AI/lightning/pull/14372))
 
 
+- Fixed an issue wrt performance on hpu backends ([#14656](https://github.com/Lightning-AI/lightning/pull/14656))
+
+
 ## [1.7.5] - 2022-09-06
 
 ### Fixed
