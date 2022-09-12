@@ -14,9 +14,6 @@
 import inspect
 import json
 import os
-import pickle
-import sys
-from argparse import Namespace
 from contextlib import contextmanager, ExitStack, redirect_stdout
 from io import StringIO
 from typing import Callable, List, Optional, Union
@@ -46,7 +43,6 @@ from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
