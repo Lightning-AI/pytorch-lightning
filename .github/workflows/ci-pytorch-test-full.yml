@@ -54,7 +54,7 @@ jobs:
     - name: basic setup
       run: |
         pip --version
-        pip install -q fire
+        pip install -q -r .actions/requirements.txt
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -113,7 +113,7 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: ${{ (runner.os != 'windows') }}
+      if: runner.os != 'windows'
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1

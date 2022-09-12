@@ -25,19 +25,21 @@ from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not CPU.
         """
-        super().setup_environment(root_device)
-        if root_device.type != "cpu":
-            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
+        if device.type != "cpu":
+            raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()
+
+    def teardown(self) -> None:
+        pass
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
