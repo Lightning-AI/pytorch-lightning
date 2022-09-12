@@ -91,7 +91,16 @@ class AWSClusterManager:
         if wait:
             _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
-        click.echo(f"{resp.id} cluster is in {resp.status.phase} state")
+        click.echo(
+            f"""{resp.id} is now being created... This can take up to an hour.
+
+        To view your clusters status use:
+            `lightning list clusters`
+
+        To view cluster logs use:
+            `lightning show cluster logs {resp.id}`
+        """
+        )
 
     def get_clusters(self):
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
