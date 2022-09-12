@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from torch.optim.optimizer import Optimizer
 from typing import Any, Callable, Dict, Optional, Union
+
 from torch.nn import Module
+from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _DEVICE

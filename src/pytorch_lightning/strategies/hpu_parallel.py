@@ -16,8 +16,8 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch.distributed
-from torch.optim.optimizer import Optimizer
 from torch.nn import Module
+from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.distributed import group as _group
