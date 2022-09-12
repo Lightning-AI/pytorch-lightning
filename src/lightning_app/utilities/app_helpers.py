@@ -12,7 +12,6 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
-from unittest.mock import Mock
 
 import websockets
 from deepdiff import Delta
@@ -230,12 +229,9 @@ class StreamLitStatePlugin(BaseStatePlugin):
         pass
 
 
-# Adapted from
-# https://github.com/Lightning-AI/pytorch-lightning/blob/master/pytorch_lightning/utilities/model_helpers.py#L21
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
     if instance is None:
         return False
-
     if parent is None:
         if isinstance(instance, lightning_app.LightningFlow):
             parent = lightning_app.LightningFlow
@@ -243,22 +239,9 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
             parent = lightning_app.LightningWork
         if parent is None:
             raise ValueError("Expected a parent")
+    from lightning_utilities.core.overrides import is_overridden
 
-    instance_attr = getattr(instance, method_name, None)
-    if instance_attr is None:
-        return False
-    # `Mock(wraps=...)` support
-    if isinstance(instance_attr, Mock):
-        # access the wrapped function
-        instance_attr = instance_attr._mock_wraps
-    if instance_attr is None:
-        return False
-
-    parent_attr = getattr(parent, method_name, None)
-    if parent_attr is None:
-        raise ValueError("The parent should define the method")
-
-    return instance_attr.__code__ != parent_attr.__code__
+    return is_overridden(method_name, instance, parent)
 
 
 def _is_json_serializable(x: Any) -> bool:
