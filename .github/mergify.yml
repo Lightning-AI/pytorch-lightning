@@ -50,6 +50,7 @@ pull_request_rules:
   - name: Not ready yet
     conditions:
       - or:
+        - label="has conflicts"
         - "#approved-reviews-by=0" # number of review approvals
         - "#changes-requested-reviews-by>=1" # no requested changes
     actions:
@@ -61,9 +62,9 @@ pull_request_rules:
       - -conflict # skip if conflict
       - -draft # filter-out GH draft PRs
       - label="ready"
-      - "#approved-reviews-by<3" # number of review approvals
-      - "#review-requested<3" # number of requested reviews
+      - "#approved-reviews-by<2" # number of review approvals
+      - "#review-requested<2" # number of requested reviews
     actions:
       request_reviews:
         teams:
-          - "@PyTorchLightning/core-lightning"
+          - "@Lightning-AI/core-lightning"

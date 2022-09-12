@@ -14,12 +14,12 @@
 
 FROM google/cloud-sdk:slim
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 # CALL: docker image build -t pytorch-lightning:XLA-image -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.8
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
-ARG XLA_VERSION=1.8
+ARG XLA_VERSION=1.12
 
 SHELL ["/bin/bash", "-c"]
 # for skipping configurations
@@ -77,7 +77,7 @@ ENV \
 RUN pip --version && \
     pip config set global.cache-dir false && \
     conda remove pytorch torchvision && \
-    # Install Pytorch XLA
+    # Install PyTorch XLA
     py_version=${PYTHON_VERSION/./} && \
     gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
     gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
@@ -91,14 +91,17 @@ COPY ./ ./pytorch-lightning/
 RUN \
     python --version && \
     cd pytorch-lightning && \
+    pip install -q fire && \
+    # Pin mkl version to avoid OSError on torch import
+    # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
+    # https://github.com/pytorch/xla/issues/1666
+    pip install mkl==2021.4.0 && \
     # drop packages installed with XLA
-    python .github/prune-packages.py requirements.txt "torch" && \
-    python .github/prune-packages.py requirements/examples.txt "torchvision" && \
+    python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
     # drop unnecessary packages
-    python .github/prune-packages.py requirements/extra.txt "fairscale" "horovod" && \
-    python ./requirements/adjust_versions.py ./requirements/extra.txt && \
+    python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
     # install PL dependencies
-    pip install --requirement ./requirements/devel.txt --no-cache-dir && \
+    pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache

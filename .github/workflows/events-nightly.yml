@@ -7,19 +7,16 @@ on:
     # At the end of every day
     - cron: "0 0 * * *"
 
-env:
-  PUSH_TO_HUB: true
-
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
   pypi-release:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
 
     steps:
       # does nightly releases from feature branch
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
 
@@ -29,7 +26,8 @@ jobs:
 
       - name: Build packages
         run: |
-          python .github/prepare-nightly_version.py
+          pip install -q -r .actions/requirements.txt
+          python .actions/assistant.py prepare-nightly-version
           python setup.py sdist bdist_wheel
           ls -lh dist/
 
@@ -40,165 +38,21 @@ jobs:
 
       # We do this, since failures on test.pypi aren't that bad
       - name: Publish to Test PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.1
+        uses: pypa/gh-action-pypi-publish@v1.5.1
         with:
           user: __token__
           password: ${{ secrets.test_pypi_password }}
           repository_url: https://test.pypi.org/legacy/
           verbose: true
 
-  docker-XLA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # the config used in '.circleci/config.yml`'
-        python_version: ["3.7"]
-        xla_version: ["1.8"]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
+      # report failure to Slack
+      - name: Slack notification
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Publish XLA to Docker Hub
-        # publish master/release
-        uses: docker/build-push-action@v2
-        with:
-          build-args: |
-            PYTHON_VERSION=${{ matrix.python_version }}
-            XLA_VERSION=${{ matrix.xla_version }}
-          file: dockers/base-xla/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
-        timeout-minutes: 55
-
-  docker-CUDA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # the config used in '.azure-pipelines/gpu-tests.yml'
-        python_version: ["3.7"]
-        pytorch_version: ["1.8"]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Publish CUDA to Docker Hub
-        # publish master/release
-        uses: docker/build-push-action@v2
-        with:
-          build-args: |
-            PYTHON_VERSION=${{ matrix.python_version }}
-            PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          file: dockers/base-cuda/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 85
-
-  docker-Conda:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # the config used in '.github/workflows/ci_test-conda.yml'
-        python_version: ["3.8"]
-        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # see: https://pytorch.org/get-started/previous-versions/
-      - run: |
-          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
-          echo "::set-output name=CUDA::$cuda"
-        id: extend
-
-      - name: Publish Conda to Docker Hub
-        # publish master/release
-        uses: docker/build-push-action@v2
-        with:
-          build-args: |
-            PYTHON_VERSION=${{ matrix.python_version }}
-            PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
-          file: dockers/base-conda/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 85
-
-  docker-IPU:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
-        include:
-          - python_version: "3.9"
-            pytorch_version: "1.7"
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Publish IPU base to Docker Hub
-        # publish master/release
-        uses: docker/build-push-action@v2
-        with:
-          build-args: |
-            PYTHON_VERSION=${{ matrix.python_version }}
-            PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          file: dockers/base-ipu/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 55
-
-      - name: Publish IPU CI runner to Docker Hub
-        # publish master/release
-        uses: docker/build-push-action@v2
-        with:
-          build-args: |
-            PYTHON_VERSION=${{ matrix.python_version }}
-            PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          file: dockers/ipu-ci-runner/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
-        timeout-minutes: 55
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: 'Publish nightly package to test.pypi.org'
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@UR9FXE6QG>'  #Borda
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

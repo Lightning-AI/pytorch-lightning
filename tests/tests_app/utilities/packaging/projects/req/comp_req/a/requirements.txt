@@ -1,0 +1,3 @@
+pandas
+pytorch_lightning==1.5.9
+git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0

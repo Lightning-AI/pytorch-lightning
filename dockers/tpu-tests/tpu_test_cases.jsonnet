@@ -8,7 +8,7 @@ local tputests = base.BaseTest {
   mode: 'postsubmit',
   configMaps: [],
 
-  timeout: 900, # 15 minutes, in seconds.
+  timeout: 6000, # 100 minutes, in seconds.
 
   image: 'pytorchlightning/pytorch_lightning',
   imageTag: 'base-xla-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}',
@@ -21,29 +21,30 @@ local tputests = base.BaseTest {
   command: utils.scriptCommand(
     |||
       source ~/.bashrc
+      set -e
       conda activate lightning
-      mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
-      git clone https://github.com/PyTorchLightning/pytorch-lightning.git
-      cd pytorch-lightning
+      mkdir -p /home/runner/work/lightning && cd /home/runner/work/lightning
+      git clone https://github.com/Lightning-AI/lightning.git
+      cd lightning
       echo $PWD
       git ls-remote --refs origin
-      git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
+      git fetch origin "refs/pull/{PR_NUMBER}/head"
       git checkout {SHA}
-      pip install -e .
+      export PACKAGE_NAME=pytorch
+      export FREEZE_REQUIREMENTS=1
+      pip install -e .[test]
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
-      coverage run --source=pytorch_lightning -m pytest -v --capture=no \
-          tests/strategies/test_tpu_spawn.py \
-          tests/profiler/test_xla_profiler.py \
-          pytorch_lightning/utilities/xla_device.py \
-          tests/accelerators/test_tpu.py \
-          tests/callbacks/test_device_stats_monitor.py \
-          tests/models/test_tpu.py
-      test_exit_code=$?
+      export PL_RUN_TPU_TESTS=1
+      cd tests/tests_pytorch
+      coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
+      echo "\n||| Running standalone tests |||\n"
+      export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
+      export PL_STANDALONE_TESTS_BATCH_SIZE=1
+      bash run_standalone_tests.sh
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
       cat coverage.xml | tr -d '\t'
-      test $test_exit_code -eq 0
     |||
   ),
 };

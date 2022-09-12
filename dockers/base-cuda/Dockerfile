@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG CUDA_VERSION=10.2
+ARG UBUNTU_VERSION=20.04
+ARG CUDA_VERSION=11.3.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.8
+ARG PYTORCH_VERSION=1.12
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -26,13 +27,21 @@ ENV \
     TZ=Europe/Prague \
     PATH="$PATH:/root/.local/bin" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
-    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     MKL_THREADING_LAYER=GNU \
-    MAKEFLAGS="-j$(nproc)"
-    # MAKEFLAGS="-j1"
+    # MAKEFLAGS="-j$(nproc)"
+    MAKEFLAGS="-j2"
 
-RUN apt-get update -qq --fix-missing  && \
-    apt-get install -y --no-install-recommends \
+RUN \
+    # TODO: Remove the manual key installation once the base image is updated.
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    apt-get update -qq --fix-missing && \
+    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
+    CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
+    MAX_ALLOWED_NCCL=2.11.4 && \
+    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
+    apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
         cmake \
@@ -43,8 +52,10 @@ RUN apt-get update -qq --fix-missing  && \
         ca-certificates \
         software-properties-common \
         libopenmpi-dev \
-    && \
-
+        openmpi-bin \
+        ssh \
+        libnccl2=$TO_INSTALL_NCCL \
+        libnccl-dev=$TO_INSTALL_NCCL && \
 # Install python
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
@@ -52,47 +63,56 @@ RUN apt-get update -qq --fix-missing  && \
         python${PYTHON_VERSION}-distutils \
         python${PYTHON_VERSION}-dev \
     && \
-
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
-
 # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
+COPY ./requirements/pytorch/ ./requirements/pytorch/
+COPY ./.actions/assistant.py assistant.py
+
+ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
+
+RUN \
+    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
+    python${PYTHON_VERSION} get-pip.py && \
+    rm get-pip.py && \
+    pip install -q fire && \
+    # Disable cache \
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip config set global.cache-dir false && \
+    # set particular PyTorch version
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${PYTORCH_VERSION} && \
+    # Install all requirements \
+    pip install -r requirements/pytorch/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    rm assistant.py
+
 ENV \
     HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
-    HOROVOD_BUILD_CUDA_CC_LIST=$TORCH_CUDA_ARCH_LIST \
     HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
-
-COPY ./requirements.txt requirements.txt
-COPY ./requirements/ ./requirements/
-
-# conda init
-RUN \
-    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
-    python${PYTHON_VERSION} get-pip.py && \
-    rm get-pip.py && \
-
-    # Disable cache
-    pip config set global.cache-dir false && \
-    # set particular PyTorch version
-    python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
-    # Install all requirements
-    pip install -r requirements/devel.txt --no-cache-dir && \
-    rm -rf requirements.* requirements/
+    HOROVOD_WITH_MPI=1
 
 RUN \
-    CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
+    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
+    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
+    echo $HOROVOD_BUILD_CUDA_CC_LIST && \
+    cmake --version && \
+    pip install --no-cache-dir -r ./requirements/pytorch/strategies.txt && \
+    horovodrun --check-build
+
+RUN \
+    CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
     py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
     # install DALI, needed for examples
     # todo: waiting for 1.4 - https://github.com/NVIDIA/DALI/issues/3144#issuecomment-877386691
@@ -102,21 +122,29 @@ RUN \
     fi
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
     # install NVIDIA apex
-    pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
+    pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
 
 RUN \
-    # install FairScale
-    pip install fairscale==0.4.0
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
+    pip install "bagua-cuda$CUDA_VERSION_BAGUA" && \
+    if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
+    python -c "import bagua; print(bagua.__version__)"
 
-RUN \
-    # install DeepSpeed
-    pip install deepspeed==0.5.7
+COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
+COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
 
 RUN \
     # Show what we have
     pip --version && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
-    python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__"
+    python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
+    python requirements/pytorch/check-avail-extras.py && \
+    python requirements/pytorch/check-avail-strategies.py && \
+    rm -rf requirements/

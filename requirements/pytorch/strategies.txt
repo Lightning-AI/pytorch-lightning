@@ -1,0 +1,8 @@
+# NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
+#  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
+
+fairscale>=0.4.5, <=0.4.6
+deepspeed>=0.6.0, <=0.7.0
+# no need to install with [pytorch] as pytorch is already installed
+horovod>=0.21.2, !=0.24.0, <0.25.1
+hivemind>=1.0.1, <=1.0.1; sys_platform == 'linux'

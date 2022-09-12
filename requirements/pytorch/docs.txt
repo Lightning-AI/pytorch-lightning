@@ -1,0 +1,6 @@
+-r ../docs.txt
+
+ipython[notebook]
+pt-lightning-sphinx-theme @ https://github.com/Lightning-AI/lightning_sphinx_theme/archive/master.zip
+
+-r ../../_notebooks/.actions/requirements.txt
