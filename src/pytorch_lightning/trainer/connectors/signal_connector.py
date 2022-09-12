@@ -56,10 +56,7 @@ class SignalConnector:
 
         # Windows seems to have signal incompatibilities
         if not self._is_on_windows():
-            if isinstance(environment, SLURMEnvironment):
-                sigusr = environment.requeue_signal
-            else:
-                sigusr = signal.SIGUSR1
+            sigusr = environment.requeue_signal if isinstance(environment, SLURMEnvironment) elsesignal.SIGUSR1
 
             assert sigusr is not None
 
