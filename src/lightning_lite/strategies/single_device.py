@@ -29,8 +29,6 @@ from lightning_lite.utilities.types import _DEVICE
 class SingleDeviceStrategy(Strategy):
     """Strategy that handles communication on a single device."""
 
-    strategy_name = "single_device"
-
     def __init__(
         self,
         device: _DEVICE = "cpu",
@@ -78,11 +76,3 @@ class SingleDeviceStrategy(Strategy):
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )

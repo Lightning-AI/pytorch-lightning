@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from lightning_lite.strategies import STRATEGY_REGISTRY
-from tests_lite.helpers.runif import RunIf
 
 
 def test_strategy_registry_with_new_strategy():
@@ -28,6 +27,7 @@ def test_strategy_registry_with_new_strategy():
     strategy_name = "test_strategy"
     strategy_description = "Test Strategy"
 
+    # TODO(lite): Registering classes that do not inherit from Strategy should not be allowed
     STRATEGY_REGISTRY.register(strategy_name, TestStrategy, description=strategy_description, param1="abc", param2=123)
 
     assert strategy_name in STRATEGY_REGISTRY
