@@ -11,12 +11,18 @@ from time import time
 from deepdiff import DeepDiff, Delta
 
 import lightning_app
+from lightning_app import _console
 from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
-from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
+from lightning_app.core.constants import (
+    DEBUG_ENABLED,
+    FLOW_DURATION_SAMPLES,
+    FLOW_DURATION_THRESHOLD,
+    STATE_ACCUMULATE_WAIT,
+)
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -30,7 +36,7 @@ from lightning_app.utilities.warnings import LightningFlowWarning
 if t.TYPE_CHECKING:
     from lightning_app.runners.backends.backend import Backend, WorkManager
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class LightningApp:
@@ -116,8 +122,13 @@ class LightningApp:
         # is only available after all Flows and Works have been instantiated.
         _convert_paths_after_init(self.root)
 
-        if debug:
-            logging.getLogger().setLevel(logging.DEBUG)
+        # Lazily enable debugging.
+        if debug or DEBUG_ENABLED:
+            if not DEBUG_ENABLED:
+                os.environ["LIGHTNING_DEBUG"] = "2"
+            _console.setLevel(logging.DEBUG)
+
+        logger.debug(f"ENV: {os.environ}")
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
@@ -433,6 +444,8 @@ class LightningApp:
 
             self._has_updated = False
 
+        self._on_run_end()
+
         return True
 
     def _update_layout(self) -> None:
@@ -550,3 +563,8 @@ class LightningApp:
         # disable any flow schedules.
         for flow in self.flows:
             flow._disable_running_schedules()
+
+    def _on_run_end(self):
+        if os.getenv("LIGHTNING_DEBUG") == "2":
+            del os.environ["LIGHTNING_DEBUG"]
+            _console.setLevel(logging.INFO)
