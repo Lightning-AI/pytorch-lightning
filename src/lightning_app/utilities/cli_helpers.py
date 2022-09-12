@@ -116,7 +116,9 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
                     raise Exception("The application is starting. Try in a few moments.")
                 resp = requests.get(lightningapp.status.url + "/openapi.json")
                 if resp.status_code != 200:
-                    raise Exception("The server didn't process the request properly. Try later on.")
+                    raise Exception(
+                        "The server didn't process the request properly. " "Try once your application is ready."
+                    )
                 return lightningapp.status.url, _extract_command_from_openapi(resp.json()), lightningapp.id
     return None, None, None
 

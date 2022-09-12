@@ -129,16 +129,19 @@ class LightningApp:
         if not component_name.startswith("root."):
             raise ValueError(f"Invalid component name {component_name}. Name must start with 'root'")
 
-        current = self.root
-        for child_name in component_name.split(".")[1:]:
-            if isinstance(current, (Dict, List)):
-                child = current[child_name] if isinstance(current, Dict) else current[int(child_name)]
-            else:
-                child = getattr(current, child_name, None)
-            if not isinstance(child, ComponentTuple):
-                raise AttributeError(f"Component '{current.name}' has no child component with name '{child_name}'.")
-            current = child
-        return current
+        try:
+            current = self.root
+            for child_name in component_name.split(".")[1:]:
+                if isinstance(current, (Dict, List)):
+                    child = current[child_name] if isinstance(current, Dict) else current[int(child_name)]
+                else:
+                    child = getattr(current, child_name, None)
+                if not isinstance(child, ComponentTuple):
+                    raise AttributeError(f"Component '{current.name}' has no child component with name '{child_name}'.")
+                current = child
+            return current
+        except (KeyError, AttributeError):
+            return None
 
     def _reset_original_state(self):
         self.set_state(self._original_state)
@@ -280,13 +283,12 @@ class LightningApp:
                 component_output: t.Optional[ComponentDelta] = self.get_state_changed_from_queue(self.delta_queue)
                 if component_output:
                     logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
-                    try:
-                        work = self.get_component_by_name(component_output.id)
+                    work = self.get_component_by_name(component_output.id)
+                    if work:
                         new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
                         deltas.append(new_work_delta)
-                    except (KeyError, AttributeError):
-                        # The component has been deleted.
-                        pass
+                    else:
+                        logger.debug(f"The component {component_output.id} wasn't found.")
                 else:
                     should_get_component_output = False
 
