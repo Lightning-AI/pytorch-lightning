@@ -17,12 +17,8 @@ from typing import Dict, Optional
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
-from lightning_lite.plugins.precision import PrecisionPlugin
+from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.single_device import SingleDeviceStrategy
-from lightning_lite.utilities import _TPU_AVAILABLE
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 class SingleTPUStrategy(SingleDeviceStrategy):
@@ -35,9 +31,11 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         device: int,
         accelerator: Optional[Accelerator] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         debug: bool = False,
     ):
+        import torch_xla.core.xla_model as xm
+
         super().__init__(
             accelerator=accelerator,
             device=xm.xla_device(device),
