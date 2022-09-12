@@ -150,7 +150,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
             if c == "flow":
                 return c
             if not c.startswith("root."):
-                return "root.c" + c
+                return "root." + c
             return c
 
         components = [add_prefix(c) for c in components]
