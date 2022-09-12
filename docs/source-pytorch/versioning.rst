@@ -54,7 +54,7 @@ For API removal, renaming or other forms of backwards-incompatible changes, the 
 
 If your code raises no deprecation warning with the latest minor release, it will be compatible with the next minor release.
 
-The ``X+2`` rule is a recommendation and not a strict requirement. Longer deprecation cycles may apply to some cases.
+The ``X+2`` rule is a recommendation and not a strict requirement. Shorter or longer deprecation cycles may apply to some cases. In the past, DDP2 was removed without deprecation process because the feature was broken and unusable beyond fixing as discussed in `#12584 <https://github.com/Lightning-AI/lightning/issues/12584>`_. Also, as discussed in `#10410 <https://github.com/Lightning-AI/lightning/issues/10410>`_, we deprecated the accelerator arguments, such as ``Trainer(gpus=...)``, in v1.7, however, because the APIs were so core that they would impact almost all use cases, we decided not to introduce the breaking change until v2.0.
 
 Python Support
 **************
