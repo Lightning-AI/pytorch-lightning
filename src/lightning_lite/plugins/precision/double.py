@@ -15,7 +15,6 @@ from contextlib import contextmanager
 from typing import Generator
 
 import torch
-from torch import FloatTensor
 
 from lightning_lite.plugins.precision import PrecisionPlugin
 
@@ -31,6 +30,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
         See: :meth:`torch.set_default_tensor_type`
         """
-        torch.set_default_tensor_type(torch.DoubleTensor)
+        default_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(torch.float64)
         yield
-        torch.set_default_tensor_type(FloatTensor)
+        torch.set_default_dtype(default_dtype)
