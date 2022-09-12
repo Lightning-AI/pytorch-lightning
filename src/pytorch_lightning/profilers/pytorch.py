@@ -478,16 +478,18 @@ class PyTorchProfiler(Profiler):
         return self._stats_to_str(recorded_stats)
 
     def _create_profilers(self) -> None:
-        if self.profiler is None:
-            if self._emit_nvtx:
-                if self._parent_profiler is None:
-                    self._parent_profiler = torch.cuda.profiler.profile()
-                self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
-            else:
-                self._parent_profiler = None
-                self.profiler = self._create_profiler(
-                    torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
-                )
+        if self.profiler is not None:
+            return
+
+        if self._emit_nvtx:
+            if self._parent_profiler is None:
+                self._parent_profiler = torch.cuda.profiler.profile()
+            self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
+        else:
+            self._parent_profiler = None
+            self.profiler = self._create_profiler(
+                torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
+            )
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
