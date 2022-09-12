@@ -140,9 +140,8 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     # ----------------------------------------------
     # verify if model leads to infinite epochs
     # ----------------------------------------------
-    causes_infinite_epochs = is_overridden("training_epoch_end") or (
-        is_overridden("validation_epoch_end") and type(model.val_check_interval) == float
-    )
+    val_epoch_ = is_overridden("validation_epoch_end") and type(model.val_check_interval) == float
+    causes_infinite_epochs = is_overridden("training_epoch_end") or val_epoch_
     if causes_infinite_epochs:
         rank_zero_warn(
             "This configuration can result in infinite epochs, as a result of overriding training_epoch_end or validation_epoch_end with val_check_interval==float. This will keep the outputs in memory indefinitely."
