@@ -29,13 +29,13 @@ from lightning_lite.plugins.environments import (
     TorchElasticEnvironment,
 )
 from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
+from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,

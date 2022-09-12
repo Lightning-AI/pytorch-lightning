@@ -19,13 +19,14 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning_lite.plugins.environments import LightningEnvironment
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
+from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.ipu import LightningIPUModule
@@ -250,3 +251,8 @@ def test_v1_10_deprecated_seed_utilities():
 
     with pytest.deprecated_call(match="seed.pl_worker_init_function` has been deprecated in v1.8.0"):
         pl_worker_init_function(0)
+
+
+def test_v1_10_deprecated_accelerator_setup_environment_method():
+    with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
+        CPUAccelerator().setup_environment(torch.device("cpu"))
