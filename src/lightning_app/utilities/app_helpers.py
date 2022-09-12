@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from lightning_app.core.flow import LightningFlow
     from lightning_app.utilities.types import Component
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -402,3 +401,34 @@ class LightningJSONEncoder(json.JSONEncoder):
         if callable(getattr(obj, "__json__", None)):
             return obj.__json__()
         return json.JSONEncoder.default(self, obj)
+
+
+class Logger:
+
+    """This class is used to improve the debugging experience."""
+
+    def __init__(self, name: str):
+        self.logger = logging.getLogger(name)
+        self.level = None
+
+    def info(self, msg, *args, **kwargs):
+        self.logger.info(msg, *args, **kwargs)
+
+    def warn(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.warn(msg, *args, **kwargs)
+
+    def debug(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.debug(msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.error(msg, *args, **kwargs)
+
+    def _set_level(self):
+        """Lazily set the level once set by the users."""
+        # Set on the first from either log, warn, debug or error call.
+        if self.level is None:
+            self.level = logging.DEBUG if bool(int(os.getenv("LIGHTNING_DEBUG", "0"))) else logging.INFO
+            self.logger.setLevel(self.level)
