@@ -40,4 +40,4 @@ class FlowCommands(LightningFlow):
         return [Post("/user/command_without_client", self.command_without_client)]
 
 
-app = LightningApp(FlowCommands())
+app = LightningApp(FlowCommands(), debug=True)
