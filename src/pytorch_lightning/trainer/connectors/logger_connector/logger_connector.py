@@ -17,9 +17,9 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment
 from lightning_lite.utilities.apply_func import move_data_to_device
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.model_helpers import is_overridden
