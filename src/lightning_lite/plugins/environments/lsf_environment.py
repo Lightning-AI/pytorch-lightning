@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 import os
 import socket
 from typing import Dict, List
 
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.cloud_io import get_filesystem
-from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins.environments import ClusterEnvironment
+
+log = logging.getLogger(__name__)
 
 
 class LSFEnvironment(ClusterEnvironment):

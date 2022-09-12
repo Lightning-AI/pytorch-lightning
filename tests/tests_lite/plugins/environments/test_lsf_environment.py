@@ -16,7 +16,7 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning.plugins.environments import LSFEnvironment
+from lightning_lite.plugins.environments import LSFEnvironment
 
 
 def _make_rankfile(tmp_path):
