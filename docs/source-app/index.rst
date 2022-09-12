@@ -268,8 +268,9 @@ Keep Learning
    Build Configuration <glossary/build_config/build_config>
    Command Line Interface (CLI) <glossary/command_lines/command_lines>
    DAG <glossary/dag>
-   Event Loop <glossary/event_loop>
+   Encrypted Secrets <glossary/encrypted_secrets>
    Environment Variables <glossary/environment_variables>
+   Event Loop <glossary/event_loop>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
    REST API <glossary/restful_api/restful_api>
    Sharing Components <glossary/sharing_components>
