@@ -11,7 +11,7 @@ from lightning_app.utilities.enum import AppStage
 
 class LightningAppTestInt(LightningTestApp):
     def run_once(self) -> Tuple[bool, float]:
-        if self.root.counter > 1:
+        if self.root.counter == 1:
             print("V0 App End")
             self.stage = AppStage.STOPPING
             return True, 0.0
