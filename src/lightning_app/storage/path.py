@@ -389,6 +389,8 @@ def shared_storage_path() -> pathlib.Path:
     if storage_path != "":
         return pathlib.Path(storage_path)
 
+    # TODO[dmitsf]: this logic is still needed for compatibility reasons.
+    # We should remove it after some time.
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
 
