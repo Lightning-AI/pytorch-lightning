@@ -21,8 +21,8 @@ import __main__
 import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.strategies.launchers.base import _Launcher
 
 _HYDRA_AVAILABLE = RequirementCache("hydra")
 
