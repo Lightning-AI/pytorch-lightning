@@ -82,7 +82,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
     def model_to_device(self) -> None:
         self.model.to(self.root_device)  # type: ignore
 
-    def on_after_backward(self):
+    def on_after_backward(self) -> None:
         # Break lazy accumulation of graph after fwd+bwd
         htcore.mark_step()
 

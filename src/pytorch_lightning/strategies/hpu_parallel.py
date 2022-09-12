@@ -139,7 +139,7 @@ class HPUParallelStrategy(DDPStrategy):
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def on_after_backward(self):
+    def on_after_backward(self) -> None:
         # Break lazy accumulation of graph after fwd+bwd
         htcore.mark_step()
 
