@@ -95,7 +95,7 @@ if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
 
     if _PACKAGE_NAME == "lightning":  # install just the meta package
-        _SETUP_TOOLS._adjust_require_versions(_PATH_SRC, _PATH_REQUIRE)
+        _SETUP_TOOLS._relax_require_versions(_PATH_SRC, _PATH_REQUIRE)
     elif _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
         _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
 

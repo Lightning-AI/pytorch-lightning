@@ -40,7 +40,6 @@ import torch.optim.lr_scheduler as lr_scheduler
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.datasets as datasets
-import torchvision.models as models
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from torchmetrics import Accuracy
@@ -49,6 +48,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.strategies import ParallelStrategy
+from pytorch_lightning.utilities.model_helpers import get_torchvision_model
 
 
 class ImageNetLightningModel(LightningModule):
@@ -63,7 +63,7 @@ class ImageNetLightningModel(LightningModule):
         self,
         data_path: str,
         arch: str = "resnet18",
-        pretrained: bool = False,
+        weights: Optional[str] = None,
         lr: float = 0.1,
         momentum: float = 0.9,
         weight_decay: float = 1e-4,
@@ -72,14 +72,14 @@ class ImageNetLightningModel(LightningModule):
     ):
         super().__init__()
         self.arch = arch
-        self.pretrained = pretrained
+        self.weights = weights
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
         self.data_path = data_path
         self.batch_size = batch_size
         self.workers = workers
-        self.model = models.__dict__[self.arch](pretrained=self.pretrained)
+        self.model = get_torchvision_model(self.arch, weights=self.weights)
         self.train_dataset: Optional[Dataset] = None
         self.eval_dataset: Optional[Dataset] = None
         self.train_acc1 = Accuracy(top_k=1)
