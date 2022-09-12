@@ -49,8 +49,8 @@ Lightning's development is driven by research and best practices in a rapidly de
 For API removal, renaming or other forms of backwards-incompatible changes, the procedure is:
 
 #. A deprecation process is initiated at a minor version ``X``, producing a deprecation warning at runtime and in the documentation.
-#. The deprecated API remains unchanged during the deprecation phase.
-#. The deprecation warning lasts for two minor versions before the breaking change takes effect at ``X+2`` minor version.
+#. The deprecated API remains unchanged during the deprecation phase for two minor versions.
+#. The breaking change takes effect at a minor version ``X+2``.
 
 The ``X+2`` rule is a recommendation and not a strict requirement. Shorter or longer deprecation cycles may apply to some cases. In the past, DDP2 was removed without a deprecation process because the feature was broken and unusable beyond fixing as discussed in `#12584 <https://github.com/Lightning-AI/lightning/issues/12584>`_. Also, `#10410 <https://github.com/Lightning-AI/lightning/issues/10410>`_ is an example where a longer deprecation applied. We deprecated the accelerator arguments, such as ``Trainer(gpus=...)``, in 1.7, however, because the APIs were so core that they would impact almost all use cases, we decided not to introduce the breaking change until 2.0.
 
