@@ -1,9 +1,10 @@
-import logging
 import os
 import re
 import shutil
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def app(app_name):
