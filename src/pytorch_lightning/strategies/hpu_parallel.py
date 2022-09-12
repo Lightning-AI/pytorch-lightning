@@ -141,8 +141,9 @@ class HPUParallelStrategy(DDPStrategy):
         # Break lazy accumulation of graph after fwd+bwd
         htcore.mark_step()
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                    optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+    def optimizer_step(
+        self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
+    ):
         optimizer.step(closure=optimizer_closure)
         # Break lazy accumulation of graph after optimizer
         htcore.mark_step()
