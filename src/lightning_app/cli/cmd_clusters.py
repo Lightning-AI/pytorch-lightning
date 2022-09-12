@@ -91,12 +91,16 @@ class AWSClusterManager:
         if wait:
             _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
-        click.echo(f"${resp.id} cluster is ${resp.status.phase}")
+        click.echo(f"{resp.id} cluster is in {resp.status.phase} state")
+
+    def get_clusters(self):
+        resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+        return ClusterList(resp.clusters)
 
     def list(self):
-        resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+        clusters = self.get_clusters()
         console = Console()
-        console.print(ClusterList(resp.clusters).as_table())
+        console.print(clusters.as_table())
 
     def delete(self, cluster_id: str = None, force: bool = False, wait: bool = False):
         if force:

@@ -15,12 +15,11 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def test_wrong_train_setting(tmpdir):
@@ -162,42 +161,8 @@ def test_trainer_manual_optimization_config(tmpdir):
         trainer.fit(model)
 
 
-def test_invalid_setup_method():
-    """Test error message when `setup` method of `LightningModule` or `LightningDataModule` is not defined
-    correctly."""
-
-    class CustomModel(BoringModel):
-        def setup(self):
-            pass
-
-    class CustomDataModule(BoringDataModule):
-        def setup(self):
-            pass
-
-    class CustomBoringCallback(Callback):
-        def setup(self, pl_module, trainer):
-            pass
-
-    fit_kwargs = [
-        {"model": CustomModel(), "datamodule": BoringDataModule()},
-        {"model": BoringModel(), "datamodule": CustomDataModule()},
-    ]
-
-    for kwargs in fit_kwargs:
-        trainer = Trainer(fast_dev_run=True)
-
-        with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
-            trainer.fit(**kwargs)
-
-    trainer = Trainer(fast_dev_run=True, callbacks=[CustomBoringCallback()])
-    model = BoringModel()
-
-    with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
-        trainer.fit(model)
-
-
 @pytest.mark.parametrize("trainer_kwargs", [{"accelerator": "ipu"}, {"accelerator": "gpu", "strategy": "dp"}])
-@pytest.mark.parametrize("hook", ["on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer"])
+@pytest.mark.parametrize("hook", ["transfer_batch_to_device", "on_after_batch_transfer"])
 def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kwargs, tmpdir):
     """Test that an exception is raised when overriding batch_transfer_hooks."""
     if trainer_kwargs.get("accelerator") == "gpu":

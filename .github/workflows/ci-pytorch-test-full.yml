@@ -1,12 +1,12 @@
 name: Test PyTorch full
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
 
-  cpu:
+  pl-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:
@@ -35,17 +35,17 @@ jobs:
     timeout-minutes: 40
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v24
+      uses: tj-actions/changed-files@v29.0.3
 
     - name: Decide if the test should be skipped
       id: skip
       shell: bash -l {0}
       run: |
-        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*|.github/workflows/ci-pytorch_test-full.yml'
+        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*'
         echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
         MATCHES=$(cat changed_files.txt | grep -E $FILTER)
         echo $MATCHES
@@ -71,7 +71,7 @@ jobs:
       if: ${{ (steps.skip.outputs.continue == '1') }}
       run: |
         pip --version
-        pip install -q fire
+        pip install -q -r .actions/requirements.txt
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -162,6 +162,13 @@ jobs:
     - name: Sanity check
       if: ${{ (steps.skip.outputs.continue == '1') }}
       run: python requirements/pytorch/check-avail-extras.py
+
+    - name: Testing Warnings
+      # the stacklevel can only be set on >=3.7
+      if: ${{ (steps.skip.outputs.continue == '1') && ( matrix.python-version != '3.7' ) }}
+      working-directory: tests/tests_pytorch
+      # needs to run outside of `pytest`
+      run: python utilities/test_warnings.py
 
     - name: Testing PyTorch
       if: ${{ (steps.skip.outputs.continue == '1') }}

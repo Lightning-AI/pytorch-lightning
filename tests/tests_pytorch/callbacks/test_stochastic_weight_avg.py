@@ -26,10 +26,9 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -347,8 +346,9 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
 @pytest.mark.parametrize(
     "strategy",
     [
-        pytest.param("fsdp", marks=RunIf(fairscale_fully_sharded=True, min_cuda_gpus=1)),
+        pytest.param("fsdp", marks=RunIf(fairscale=True, min_cuda_gpus=1)),
         pytest.param("deepspeed", marks=RunIf(deepspeed=True, min_cuda_gpus=1)),
+        pytest.param("fsdp_native", marks=RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
     ],
 )
 def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):

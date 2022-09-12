@@ -31,7 +31,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 
 _log = logging.getLogger(__name__)
@@ -260,14 +260,19 @@ def _configure_external_callbacks() -> List[Callback]:
     Return:
         A list of all callbacks collected from external factories.
     """
+    group = "pytorch_lightning.callbacks_factory"
+
     if _PYTHON_GREATER_EQUAL_3_8_0:
         from importlib.metadata import entry_points
 
-        factories = entry_points().get("pytorch_lightning.callbacks_factory", ())
+        if _PYTHON_GREATER_EQUAL_3_10_0:
+            factories = entry_points(group=group)  # type: ignore[call-arg]
+        else:
+            factories = entry_points().get(group, {})  # type: ignore[assignment]
     else:
         from pkg_resources import iter_entry_points
 
-        factories = iter_entry_points("pytorch_lightning.callbacks_factory")  # type: ignore[assignment]
+        factories = iter_entry_points(group)  # type: ignore[assignment]
 
     external_callbacks: List[Callback] = []
     for factory in factories:

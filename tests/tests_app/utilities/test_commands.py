@@ -10,11 +10,12 @@ from pydantic import BaseModel
 
 from lightning import LightningFlow
 from lightning_app import LightningApp
-from lightning_app.cli.lightning_cli import app_command
+from lightning_app.cli.commands.connection import connect, disconnect
+from lightning_app.cli.lightning_cli import _run_app_command
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.testing.helpers import RunIf
-from lightning_app.utilities.commands.base import _command_to_method_and_metadata, _download_command, ClientCommand
+from lightning_app.utilities.commands.base import _download_command, _validate_client_command, ClientCommand
 from lightning_app.utilities.state import AppState
 
 
@@ -25,7 +26,6 @@ class SweepConfig(BaseModel):
 
 class SweepCommand(ClientCommand):
     def run(self) -> None:
-        print(sys.argv)
         parser = argparse.ArgumentParser()
         parser.add_argument("--sweep_name", type=str)
         parser.add_argument("--num_trials", type=int)
@@ -55,7 +55,7 @@ class FlowCommands(LightningFlow):
         return True
 
     def configure_commands(self):
-        return [{"user_command": self.trigger_method}, {"sweep": SweepCommand(self.sweep)}]
+        return [{"user command": self.trigger_method}, {"sweep": SweepCommand(self.sweep)}]
 
 
 class DummyConfig(BaseModel):
@@ -91,15 +91,15 @@ def run_failure_2(name: CustomModel):
 
 
 @RunIf(skip_windows=True)
-def test_command_to_method_and_metadata():
+def test_validate_client_command():
     with pytest.raises(Exception, match="The provided annotation for the argument name"):
-        _command_to_method_and_metadata(ClientCommand(run_failure_0))
+        _validate_client_command(ClientCommand(run_failure_0))
 
     with pytest.raises(Exception, match="annotate your method"):
-        _command_to_method_and_metadata(ClientCommand(run_failure_1))
+        _validate_client_command(ClientCommand(run_failure_1))
 
     with pytest.raises(Exception, match="lightning_app/utilities/commands/base.py"):
-        _command_to_method_and_metadata(ClientCommand(run_failure_2))
+        _validate_client_command(ClientCommand(run_failure_2))
 
 
 def test_client_commands(monkeypatch):
@@ -115,17 +115,13 @@ def test_client_commands(monkeypatch):
     url = "http//"
     kwargs = {"something": "1", "something_else": "1"}
     command = DummyCommand(run)
-    _, command_metadata = _command_to_method_and_metadata(command)
-    command_metadata.update(
-        {
-            "command": "dummy",
-            "affiliation": "root",
-            "is_client_command": True,
-            "owner": "root",
-        }
+    _validate_client_command(command)
+    client_command = _download_command(
+        command_name="something",
+        cls_path=__file__,
+        cls_name="DummyCommand",
     )
-    client_command, models = _download_command(command_metadata, None)
-    client_command._setup(metadata=command_metadata, models=models, app_url=url)
+    client_command._setup("something", app_url=url)
     client_command.run(**kwargs)
 
 
@@ -135,6 +131,7 @@ def target():
 
 
 def test_configure_commands(monkeypatch):
+    """This test validates command can be used locally with connect and disconnect."""
     process = Process(target=target)
     process.start()
     time_left = 15
@@ -147,16 +144,20 @@ def test_configure_commands(monkeypatch):
             time_left -= 0.1
 
     sleep(0.5)
-    monkeypatch.setattr(sys, "argv", ["lightning", "user_command", "--name=something"])
-    app_command()
+    monkeypatch.setattr(sys, "argv", ["lightning", "user", "command", "--name=something"])
+    connect("localhost")
+    _run_app_command("localhost", None)
     sleep(0.5)
     state = AppState()
     state._request_state()
     assert state.names == ["something"]
-    monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name", "my_name", "--num_trials", "1"])
-    app_command()
+    monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name=my_name", "--num_trials=1"])
+    _run_app_command("localhost", None)
     time_left = 15
-    while time_left > 0 and process.exitcode != 0:
+    while time_left > 0:
+        if process.exitcode == 0:
+            break
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
+    disconnect()
