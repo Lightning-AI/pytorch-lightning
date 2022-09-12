@@ -23,19 +23,18 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import (
-    _PATH,
     LRSchedulerConfig,
     PredictStep,
     STEP_OUTPUT,
@@ -62,8 +61,9 @@ class Strategy(ABC):
         self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
-        self._launcher: Optional[_Launcher] = None
+        self._lightning_module: Optional[pl.LightningModule] = None
         self._model: Optional[Module] = None
+        self._launcher: Optional[_Launcher] = None
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
@@ -113,8 +113,9 @@ class Strategy(ABC):
             idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
         }
 
-    def connect(self, model: Module) -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
+        self._lightning_module = model
         self.model = model
 
     def _configure_launcher(self) -> None:
@@ -169,6 +170,16 @@ class Strategy(ABC):
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
         """
+        if isinstance(optimizer, LightningOptimizer):
+            optimizer = optimizer._optimizer
+
+        if hasattr(optimizer, "consolidate_state_dict"):
+            # there are optimizers like Fairscale's OSS or PyTorch's ZeroRedundancyOptimizer that shard their
+            # states, and to avoid OOM we consolidate the full state on rank 0 only
+            optimizer.consolidate_state_dict()
+            return optimizer.state_dict() if self.is_global_zero else {}
+
+        # for optimizers that are not sharded, we return the state dict on all ranks
         return optimizer.state_dict()
 
     def backward(
@@ -328,7 +339,7 @@ class Strategy(ABC):
     @property
     def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule."""
-        return self._model
+        return self._model if self._model is not None else self._lightning_module
 
     @model.setter
     def model(self, new_model: Optional[Module]) -> None:
@@ -337,7 +348,7 @@ class Strategy(ABC):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self.model) if self.model is not None else None
+        return self._lightning_module
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
@@ -432,7 +443,7 @@ class Strategy(ABC):
         """Whether the plugin handles gradient accumulation internally."""
         return False
 
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
         """Returns model state."""
         assert self.lightning_module is not None
         return self.lightning_module.state_dict()

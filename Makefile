@@ -4,6 +4,8 @@
 export SLURM_LOCALID=0
 # assume you have installed need packages
 export SPHINX_MOCK_REQUIREMENTS=1
+# install only Lightning Trainer packages
+export PACKAGE_NAME=pytorch
 
 clean:
 	# clean all temp runs
@@ -20,6 +22,9 @@ clean:
 	rm -rf ./docs/source-pytorch/api
 	rm -rf ./docs/source-app/generated
 	rm -rf ./docs/source-app/*/generated
+	rm -rf ./docs/source-lit/api
+	rm -rf ./docs/source-lit/generated
+	rm -rf ./docs/source-lit/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
@@ -31,7 +36,7 @@ test: clean
 	pip install -e . -r requirements/pytorch/devel.txt
 	pip install -r requirements/pytorch/strategies.txt
 	# run tests with coverage
-	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v
+	python -m coverage run --source src/pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch -v
 	python -m coverage report
 
 docs: clean

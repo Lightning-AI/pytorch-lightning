@@ -20,9 +20,9 @@ from torch import optim
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins.environments import SLURMEnvironment
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -96,8 +96,6 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
 
 @RunIf(min_cuda_gpus=2, min_torch="1.10")
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
@@ -120,8 +118,6 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(min_cuda_gpus=2)
@@ -162,9 +158,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     )
     trainer.fit(model)
 
-    # correct result and ok accuracy
-    assert trainer.state.finished, "amp + ddp model failed to complete"
-
     # test root model address
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
     assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
@@ -185,7 +178,6 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
     assert trainer.amp_backend is None
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert not bwd_mock.called
 
 
@@ -213,10 +205,30 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
     # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
     assert bwd_mock.call_count == 6
 
     assert isinstance(trainer.lr_scheduler_configs[0].scheduler.optimizer, optim.Adam)
     assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)
+
+
+@RunIf(min_cuda_gpus=1, amp_apex=True)
+def test_amp_with_apex_reload(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_test_batches=1,
+        precision=16,
+        amp_backend="apex",
+        accelerator="gpu",
+        devices=1,
+    )
+    trainer.fit(model)
+    trainer.fit_loop.max_steps = 2
+
+    with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
+        trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
+
+    trainer.test(model, ckpt_path="best")

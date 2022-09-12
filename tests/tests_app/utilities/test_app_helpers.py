@@ -1,5 +1,4 @@
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 
@@ -25,38 +24,17 @@ class Flow(LightningFlow):
 
 
 def test_is_overridden():
-    flow = Flow()
-    work = Work()
-
     # edge cases
     assert not is_overridden("whatever", None)
     with pytest.raises(ValueError, match="Expected a parent"):
         is_overridden("whatever", object())
+    flow = Flow()
     assert not is_overridden("whatever", flow)
     assert not is_overridden("whatever", flow, parent=Flow)
-
-    class TestFlow(LightningFlow):
-        def run(self):
-            pass
-
-        def foo(self):
-            pass
-
-        def bar(self):
-            return 1
-
-    with pytest.raises(ValueError, match="The parent should define the method"):
-        is_overridden("foo", TestFlow())
-
     # normal usage
     assert is_overridden("run", flow)
+    work = Work()
     assert is_overridden("run", work)
-
-    # `Mock` support
-    mock = Mock(spec=Flow, wraps=flow)
-    assert is_overridden("run", mock)
-    mock = Mock(spec=LightningWork, wraps=work)
-    assert is_overridden("run", mock)
 
 
 def test_simple_app_store():

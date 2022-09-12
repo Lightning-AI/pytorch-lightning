@@ -23,13 +23,13 @@ import torch.nn.functional
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
+from lightning_lite.utilities import _StrategyType
+from lightning_lite.utilities.seed import pl_worker_init_function
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy
-from pytorch_lightning.utilities import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -177,7 +177,7 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-@mock.patch("pytorch_lightning.lite.lite._replace_init_method")
+@mock.patch("pytorch_lightning.lite.lite._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 

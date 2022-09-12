@@ -19,13 +19,13 @@ from typing import Any, Callable, Optional, Sequence
 
 import __main__
 import numpy as np
+from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.utilities.imports import _RequirementAvailable
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.strategies.launchers.base import _Launcher
 
-_HYDRA_AVAILABLE = _RequirementAvailable("hydra-core")
+_HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
 
 class _SubprocessScriptLauncher(_Launcher):

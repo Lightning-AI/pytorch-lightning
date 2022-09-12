@@ -9,6 +9,7 @@ requires = [
 known_first_party = [
     "pl_examples",
     "pytorch_lightning",
+    "lightning_lite",
     "tests_pytorch",
 ]
 profile = "black"
@@ -26,6 +27,7 @@ exclude = '(_notebooks/.*)'
 [tool.mypy]
 files = [
     "src/pytorch_lightning",
+    "src/lightning_lite",
     # TODO: Check typing in app source
     # "src/lightning_app",
 ]
@@ -50,20 +52,12 @@ warn_no_return = "False"
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
-    "pytorch_lightning.callbacks.quantization",
-    "pytorch_lightning.core.datamodule",
-    "pytorch_lightning.core.module",
-    "pytorch_lightning.demos.boring_classes",
-    "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
-    "pytorch_lightning.strategies.sharded",
-    "pytorch_lightning.trainer.callback_hook",
-    "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
-    "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
+    "lightning_lite.utilities.data",
 ]
 ignore_errors = "True"

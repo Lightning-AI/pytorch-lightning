@@ -13,8 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from functools import partial
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import CUDAAccelerator
@@ -148,6 +147,12 @@ class FitLoop(Loop[None]):
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
     @property
+    def _should_stop_early(self) -> bool:
+        met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
+        met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
+        return met_min_epochs and met_min_steps
+
+    @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
         if self.trainer.num_training_batches == 0:
@@ -170,20 +175,10 @@ class FitLoop(Loop[None]):
             rank_zero_info(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
             return True
 
-        if self.trainer.should_stop:
-            # early stopping
-            met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
-            if met_min_epochs and met_min_steps:
-                self.trainer.should_stop = True
-                rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
-                return True
-            else:
-                rank_zero_info(
-                    f"Trainer was signaled to stop but the required `min_epochs={self.min_epochs!r}` or"
-                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
-                )
-        self.trainer.should_stop = False
+        if self.trainer.should_stop and self._should_stop_early:
+            rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
+            return True
+
         return False
 
     @property
@@ -210,7 +205,8 @@ class FitLoop(Loop[None]):
 
         self.trainer.reset_train_dataloader(self.trainer.lightning_module)
         # reload the evaluation dataloaders too for proper display in the progress bar
-        self.epoch_loop.val_loop._reload_evaluation_dataloaders()
+        if self.epoch_loop._should_check_val_epoch():
+            self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
         data_fetcher_cls = _select_data_fetcher(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
@@ -262,10 +258,14 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.train_dataloader
+
+        def batch_to_device(batch: Any) -> Any:
+            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=0)
+            return batch
+
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(
-            dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
-        )
+        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         with self.trainer.profiler.profile("run_training_epoch"):
             self._outputs = self.epoch_loop.run(self._data_fetcher)
 

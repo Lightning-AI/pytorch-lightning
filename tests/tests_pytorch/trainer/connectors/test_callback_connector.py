@@ -56,7 +56,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     # no model callbacks
     model = LightningModule()
     model.configure_callbacks = lambda: []
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
@@ -72,7 +72,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model = LightningModule()
     model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
@@ -154,7 +154,7 @@ def test_attach_model_callbacks():
             enable_model_summary=False,
             callbacks=trainer_callbacks,
         )
-        trainer.model = model
+        trainer.strategy._lightning_module = model
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()
         return trainer
@@ -212,7 +212,7 @@ def test_attach_model_callbacks_override_info(caplog):
     trainer = Trainer(
         enable_checkpointing=False, callbacks=[EarlyStopping(monitor="foo"), LearningRateMonitor(), TQDMProgressBar()]
     )
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
         cb_connector._attach_model_callbacks()

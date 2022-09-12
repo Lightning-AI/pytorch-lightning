@@ -76,7 +76,6 @@ core
     ~hooks.ModelHooks
     LightningDataModule
     LightningModule
-    ~mixins.DeviceDtypeModuleMixin
     ~mixins.HyperparametersMixin
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
@@ -187,6 +186,7 @@ precision
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
@@ -285,6 +285,7 @@ strategies
 
     BaguaStrategy
     HivemindStrategy
+    DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

@@ -22,11 +22,11 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import torch.nn as nn
+from lightning_utilities.core.imports import RequirementCache
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -38,9 +38,9 @@ except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None  # type: ignore
 
-_WANDB_AVAILABLE = _RequirementAvailable("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _RequirementAvailable("wandb>=0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = _RequirementAvailable("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
@@ -223,7 +223,7 @@ class WandbLogger(Logger):
 
     Args:
         name: Display name for the run.
-        save_dir: Path where data is saved (wandb dir by default).
+        save_dir: Path where data is saved.
         offline: Run offline (data can be streamed later to wandb servers).
         id: Sets the version, mainly used to resume a previous run.
         version: Same as id.
@@ -255,12 +255,12 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: Optional[str] = None,
+        save_dir: str = ".",
         offline: bool = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
-        project: Optional[str] = None,
+        project: str = "lightning_logs",
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
@@ -297,15 +297,16 @@ class WandbLogger(Logger):
         self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
-            name=name or project,
+            name=name,
             project=project,
             id=version or id,
-            dir=save_dir,
+            dir=save_dir or kwargs.pop("dir"),
             resume="allow",
             anonymous=("allow" if anonymous else None),
         )
         self._wandb_init.update(**kwargs)
         # extract parameters
+        self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
@@ -450,13 +451,13 @@ class WandbLogger(Logger):
 
     @property
     def name(self) -> Optional[str]:
-        """Gets the name of the experiment.
+        """The project name of this experiment.
 
         Returns:
-            The name of the experiment if the experiment exists else the name given to the constructor.
+            The name of the project the current experiment belongs to. This name is not the same as `wandb.Run`'s
+            name. To access wandb's internal experiment name, use ``logger.experiment.name`` instead.
         """
-        # don't create an experiment if we don't have one
-        return self._experiment.name if self._experiment else self._name
+        return self._project
 
     @property
     def version(self) -> Optional[str]:
