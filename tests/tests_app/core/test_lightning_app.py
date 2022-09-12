@@ -960,10 +960,18 @@ def test_non_updated_flow(caplog):
 def test_debug_mode_logging():
     """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and
     cleanup once finished."""
+
+    from lightning_app.core.app import _console
+
     app = LightningApp(A4(), debug=True)
+    assert _console.level == logging.DEBUG
+    assert os.getenv("LIGHTNING_DEBUG") == "2"
+
     MultiProcessRuntime(app, start_server=False).dispatch()
 
     assert os.getenv("LIGHTNING_DEBUG") is None
+    assert _console.level == logging.INFO
 
     app = LightningApp(A4())
+    assert _console.level == logging.INFO
     MultiProcessRuntime(app, start_server=False).dispatch()
