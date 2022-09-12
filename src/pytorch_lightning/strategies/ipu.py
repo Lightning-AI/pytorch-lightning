@@ -16,22 +16,23 @@ import os
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs
-from pytorch_lightning.utilities.enums import PrecisionType
+from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -44,15 +45,24 @@ else:
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
+    """
+    .. deprecated:: v1.7.0
+        ``LightningIPUModule`` has been deprecated in v1.7.0 and will be removed in v1.9.0.
+    """
+
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        precision: Union[str, int] = 32,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
         rank_zero_deprecation("`LightningIPUModule` has been deprecated in v1.7.0 and will be removed in v1.8.0")
-        super().__init__(pl_module)
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+        if self.precision == PrecisionType.HALF:
             inputs = self._move_float_tensors_to_half(inputs)
 
         return super().forward(*inputs, **kwargs)
@@ -238,7 +248,9 @@ class IPUStrategy(ParallelStrategy):
             dataloader, sampler, mode, self.replication_factor > 1  # type: ignore[arg-type]
         )
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(opts, *dl_args, **dl_kwargs)
+        dataloader = _reinstantiate_wrapped_cls(
+            dataloader, opts, *dl_args, explicit_cls=poptorch.DataLoader, **dl_kwargs
+        )
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:
@@ -281,13 +293,7 @@ class IPUStrategy(ParallelStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
         # This override is necessary because the cast must occur before the data
         # is moved to the device to prevent wasteful host->device copies.
-        def fp_to_half(tensor: Tensor) -> Tensor:
-            if torch.is_floating_point(tensor):
-                return tensor.half()
-            return tensor
-
-        if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
-            batch = apply_to_collection(batch, Tensor, function=fp_to_half)
+        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
         # We don't call `super().batch_to_device` because `data.to(device)` is not
         # currently necessary for IPUs. The movement of data from host<->IPU is
         # currently handled by PopTorch.

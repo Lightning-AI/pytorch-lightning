@@ -1,0 +1,1 @@
+../../source-app/_static/copybutton.js

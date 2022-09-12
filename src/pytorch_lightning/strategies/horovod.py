@@ -20,18 +20,17 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.distributed import group as dist_group
+from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.distributed import group as dist_group
-from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from pytorch_lightning.utilities.types import _LRScheduler
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -114,8 +113,8 @@ class HorovodStrategy(ParallelStrategy):
         lr_scheduler_configs = self.lr_scheduler_configs
         for config in lr_scheduler_configs:
             scheduler = config.scheduler
-            assert isinstance(scheduler, _LRScheduler)
-            scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
+            if hasattr(scheduler, "base_lrs"):
+                scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]  # type: ignore[union-attr]
 
         assert self.lightning_module is not None
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization

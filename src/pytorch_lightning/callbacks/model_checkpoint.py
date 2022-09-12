@@ -31,16 +31,16 @@ from weakref import proxy
 import numpy as np
 import torch
 import yaml
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _name, _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -67,8 +67,7 @@ class ModelCheckpoint(Checkpoint):
 
             By default, dirpath is ``None`` and will be set at runtime to the location
             specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` argument,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
@@ -255,7 +254,7 @@ class ModelCheckpoint(Checkpoint):
             save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.__resolve_ckpt_dir(trainer)
         assert self.dirpath is not None
         if trainer.is_global_zero and stage == "fit":
@@ -577,9 +576,8 @@ class ModelCheckpoint(Checkpoint):
         determine where to save checkpoints. The path for saving weights is set in this priority:
 
         1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
-        2.  The ``Trainer``'s ``weights_saved_path`` if passed in (deprecated)
-        3.  The ``Logger``'s ``log_dir`` if the trainer has loggers
-        4.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
+        2.  The ``Logger``'s ``log_dir`` if the trainer has loggers
+        3.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
 
         The path gets extended with subdirectory "checkpoints".
         """
@@ -587,19 +585,14 @@ class ModelCheckpoint(Checkpoint):
             # short circuit if dirpath was passed to ModelCheckpoint
             return
 
-        # TODO: Remove weights_save_path logic here in v1.8
-        if trainer._weights_save_path_internal != trainer.default_root_dir:
-            # the user has changed weights_save_path
-            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
-        elif trainer.loggers:
-            if len(trainer.loggers) == 1:
-                assert trainer.logger is not None
-                save_dir = trainer.logger.save_dir or trainer.default_root_dir
+        if len(trainer.loggers) > 0:
+            if trainer.loggers[0].save_dir is not None:
+                save_dir = trainer.loggers[0].save_dir
             else:
                 save_dir = trainer.default_root_dir
-
-            name = _name(trainer.loggers)
-            version = _version(trainer.loggers)
+            save_dir = trainer.loggers[0].save_dir or trainer.default_root_dir
+            name = trainer.loggers[0].name
+            version = trainer.loggers[0].version
             version = version if isinstance(version, str) else f"version_{version}"
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")

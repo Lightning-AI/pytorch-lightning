@@ -108,7 +108,9 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
         del hparams_dict[k]
 
 
-def parse_class_init_keys(cls: Type["pl.LightningModule"]) -> Tuple[str, Optional[str], Optional[str]]:
+def parse_class_init_keys(
+    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]]
+) -> Tuple[str, Optional[str], Optional[str]]:
     """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
     Examples:
@@ -160,7 +162,10 @@ def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
 
 
 def collect_init_args(
-    frame: types.FrameType, path_args: List[Dict[str, Any]], inside: bool = False
+    frame: types.FrameType,
+    path_args: List[Dict[str, Any]],
+    inside: bool = False,
+    classes: Tuple[Type, ...] = (),
 ) -> List[Dict[str, Any]]:
     """Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
@@ -168,6 +173,7 @@ def collect_init_args(
         frame: the current stack frame
         path_args: a list of dictionaries containing the constructor args in all parent classes
         inside: track if we are inside inheritance path, avoid terminating too soon
+        classes: the classes in which to inspect the frames
 
     Return:
           A list of dictionaries where each dictionary contains the arguments passed to the
@@ -179,13 +185,13 @@ def collect_init_args(
     if not isinstance(frame.f_back, types.FrameType):
         return path_args
 
-    if "__class__" in local_vars:
+    if "__class__" in local_vars and (not classes or issubclass(local_vars["__class__"], classes)):
         local_args = get_init_args(frame)
         # recursive update
         path_args.append(local_args)
-        return collect_init_args(frame.f_back, path_args, inside=True)
+        return collect_init_args(frame.f_back, path_args, inside=True, classes=classes)
     if not inside:
-        return collect_init_args(frame.f_back, path_args, inside)
+        return collect_init_args(frame.f_back, path_args, inside, classes=classes)
     return path_args
 
 
@@ -223,7 +229,10 @@ def save_hyperparameters(
         init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
         init_args = {}
-        for local_args in collect_init_args(frame, []):
+
+        from pytorch_lightning.core.mixins import HyperparametersMixin
+
+        for local_args in collect_init_args(frame, [], classes=(HyperparametersMixin,)):
             init_args.update(local_args)
 
     if ignore is None:
@@ -312,14 +321,17 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
         holders.append(model)
 
     # Check if attribute in model.hparams, either namespace or dict
-    if hasattr(model, "hparams"):
-        if attribute in model.hparams:
-            holders.append(model.hparams)
+    if hasattr(model, "hparams") and attribute in model.hparams:
+        holders.append(model.hparams)
 
     trainer = model._trainer
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        holders.append(trainer.datamodule)
+    if trainer is not None and trainer.datamodule is not None:
+        if hasattr(trainer.datamodule, attribute):
+            holders.append(trainer.datamodule)
+
+        if hasattr(trainer.datamodule, "hparams") and attribute in trainer.datamodule.hparams:
+            holders.append(trainer.datamodule.hparams)
 
     return holders
 

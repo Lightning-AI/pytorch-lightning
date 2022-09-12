@@ -35,13 +35,21 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import (
+    BoringModel,
+    RandomDataset,
+    RandomIterableDataset,
+    RandomIterableDatasetWithLen,
+)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import (
@@ -54,13 +62,9 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.seed import seed_everything
 from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
@@ -618,7 +622,10 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
             self.log("loss", output["loss"])
             self.training_step_invoked += 1
-            assert not self.trainer.should_stop
+            if self.current_epoch < 2:
+                assert not self.trainer.should_stop
+            else:
+                assert self.trainer.should_stop
             return output
 
     model = TestModel()
@@ -637,7 +644,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
 
     message = f"min_epochs={min_epochs}` or `min_steps=None` has not been met. Training will continue"
     num_messages = sum(1 for record in caplog.records if message in record.message)
-    assert num_messages == min_epochs - 2
+    assert num_messages == 1
     assert model.training_step_invoked == min_epochs * 2
 
 
@@ -1251,8 +1258,8 @@ def test_trainer_subclassing():
     "trainer_params",
     [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
 )
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
 def test_trainer_omegaconf(_, __, trainer_params):
     config = OmegaConf.create(trainer_params)
     Trainer(**config)

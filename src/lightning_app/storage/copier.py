@@ -1,5 +1,4 @@
 import concurrent.futures
-import logging
 import pathlib
 import threading
 from threading import Thread
@@ -12,9 +11,11 @@ import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.path import filesystem
 from lightning_app.storage.requests import ExistsRequest, GetRequest
+from lightning_app.utilities.app_helpers import Logger
 
 _PathRequest = Union[GetRequest, ExistsRequest]
-_logger = logging.getLogger(__name__)
+
+_logger = Logger(__name__)
 
 num_workers = 8
 

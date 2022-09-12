@@ -17,11 +17,10 @@ import os
 import random
 import random as python_random
 from collections import defaultdict
-from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Iterator, List, Optional
+from typing import Iterable, Iterator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
@@ -36,7 +35,8 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
 import tests_pytorch.helpers.utils as tutils
-from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import CombinedLoader

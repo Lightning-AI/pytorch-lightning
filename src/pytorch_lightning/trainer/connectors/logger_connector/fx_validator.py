@@ -44,6 +44,13 @@ class _FxValidator:
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
         "lr_scheduler_step": None,
+        # should match `optimizer_step`
+        "configure_gradient_clipping": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
+        "clip_gradients": _LogOptions(
+            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
+        ),
         "on_before_zero_grad": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
@@ -98,6 +105,9 @@ class _FxValidator:
         "on_epoch_end": _LogOptions(
             allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
         ),
+        "on_before_batch_transfer": None,
+        "transfer_batch_to_device": None,
+        "on_after_batch_transfer": None,
         "on_batch_start": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
