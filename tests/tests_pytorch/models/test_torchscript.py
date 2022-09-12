@@ -18,7 +18,6 @@ import fsspec
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from torch.jit import RecursiveScriptModule
 
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.core.module import LightningModule
@@ -193,4 +192,4 @@ def test_torchscript_script_recursively():
 
     lm = Parent()
     script = lm.to_torchscript(method="script")
-    assert isinstance(script, RecursiveScriptModule)
+    assert isinstance(script, torch.jit.RecursiveScriptModule)
