@@ -92,11 +92,6 @@ class Runtime:
         has_messaged = False
         while not self.done:
             try:
-                for work in self.app.works:
-                    if not hasattr(work, "_has_called_on_exit"):
-                        work.on_exit()
-                        work._has_called_on_exit = True
-
                 if self.app.backend is not None:
                     self.app.backend.stop_all_works(self.app.works)
 
