@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unReleased] - 2022-MM-DD
 
+
+- Added an option to configure the signal SLURM sends when a job is preempted or requeued ([#14610](https://github.com/Lightning-AI/lightning/issues/14610))
+
+
 ### Added
 
 
@@ -134,6 +138,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed deprecated support for old torchtext versions ([#14375](https://github.com/Lightning-AI/lightning/pull/14375))
+
+
+- Removed the deprecated `weights_save_path` Trainer argumnent and `Trainer.weights_save_path` property ([#14424](https://github.com/Lightning-AI/lightning/pull/14424))
 
 
 - Remove the deprecated ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
