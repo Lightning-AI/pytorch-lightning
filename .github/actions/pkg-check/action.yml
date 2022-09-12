@@ -5,6 +5,10 @@ inputs:
   pkg-name:
     description: package name inside lightning.*
     required: true
+  nb-dirs:
+    description: nb of packages in the wrap/distribution
+    required: false
+    default: "1"
 
 runs:
   using: "composite"
@@ -54,7 +58,7 @@ runs:
       # list folders without ending .egg-info
       dirs = [d for d in glob.glob(os.path.join("*", "src", "*")) if not d.endswith(".egg-info")]
       print(dirs)
-      assert len(dirs) == 1
+      assert len(dirs) == ${{ inputs.nb-dirs }}
       # cleaning
       shutil.rmtree(pathlib.Path(dirs[0]).parent.parent)
     shell: python

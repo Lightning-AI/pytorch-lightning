@@ -1,5 +1,4 @@
 import fnmatch
-import logging
 import os
 import random
 import string
@@ -44,12 +43,13 @@ from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.storage import Drive
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 @dataclass
@@ -331,4 +331,4 @@ class CloudRuntime(Runtime):
                 )
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
-            logger.warning(warning_msg)
+            logger.warn(warning_msg)

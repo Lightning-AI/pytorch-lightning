@@ -11,20 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 import torch
 
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import _IPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def setup_device(self, device: torch.device) -> None:
+        pass
+
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
         return {}
+
+    def teardown(self) -> None:
+        pass
 
     @staticmethod
     def parse_devices(devices: int) -> int:

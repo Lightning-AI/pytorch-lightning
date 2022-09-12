@@ -126,6 +126,9 @@ def _run_power_scaling(
     trainer: "pl.Trainer", model: "pl.LightningModule", new_size: int, batch_arg_name: str, max_trials: int
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
+    # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
+    # if it was we exit, else we continue downscaling in case we haven't encountered a single optimal batch size
+    any_success = False
     for _ in range(max_trials):
         garbage_collection_cuda()
 
@@ -137,22 +140,28 @@ def _run_power_scaling(
             trainer.tuner._run(model)
             # Double in size
             new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
+
+            if not changed:
+                break
+
+            # Force the train dataloader to reset as the batch size has changed
+            trainer.reset_train_dataloader(model)
+            trainer.reset_val_dataloader(model)
+            any_success = True
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
-                break
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
+                if any_success:
+                    break
             else:
                 raise  # some other error not memory related
 
-        if changed:
-            # Force the train dataloader to reset as the batch size has changed
-            trainer.reset_train_dataloader(model)
-            trainer.reset_val_dataloader(model)
-        else:
-            break
     return new_size
 
 
@@ -189,12 +198,12 @@ def _run_binsearch_scaling(
             else:
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
 
-            if changed:
-                # Force the train dataloader to reset as the batch size has changed
-                trainer.reset_train_dataloader(model)
-                trainer.reset_val_dataloader(model)
-            else:
+            if not changed:
                 break
+
+            # Force the train dataloader to reset as the batch size has changed
+            trainer.reset_train_dataloader(model)
+            trainer.reset_val_dataloader(model)
 
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
@@ -204,6 +213,11 @@ def _run_binsearch_scaling(
                 high = new_size
                 midval = (high + low) // 2
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
+
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+                trainer.reset_val_dataloader(model)
+
                 if high - low <= 1:
                     break
             else:

@@ -16,20 +16,22 @@ from functools import partial, wraps
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
+from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_lite.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
-from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 _IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
@@ -200,7 +202,7 @@ class _Metadata:
         return meta
 
 
-class _ResultMetric(Metric, DeviceDtypeModuleMixin):
+class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
