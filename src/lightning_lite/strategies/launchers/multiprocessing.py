@@ -12,27 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from collections import UserList
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, NamedTuple, Optional
+from typing import Any, Callable, Dict, Optional
 
-import numpy as np
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 from typing_extensions import Literal
 
-import pytorch_lightning as pl
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
-from lightning_lite.utilities.types import _PATH
-from pytorch_lightning.trainer.states import TrainerFn, TrainerState
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -59,7 +51,10 @@ class _MultiProcessingLauncher(_Launcher):
     """
 
     def __init__(
-        self, strategy: "pl.strategies.Strategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+        self,
+        # TODO(lite): Fix this type annotation once the strategy base class gets added to Lite
+        strategy: "Strategy",  # type: ignore[name-defined]  # noqa: F821
+        start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
     ) -> None:
         self._strategy = strategy
         self._start_method = start_method
@@ -80,7 +75,7 @@ class _MultiProcessingLauncher(_Launcher):
         # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork"
 
-    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
+    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 
         The function is allowed to have a return value. However, when all processes join, only the return value
@@ -89,11 +84,8 @@ class _MultiProcessingLauncher(_Launcher):
         Arguments:
             function: The entry point for all launched processes.
             *args: Optional positional arguments to be passed to the given function.
-            trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer` for which
-                a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        self._check_torchdistx_support()
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
@@ -103,9 +95,9 @@ class _MultiProcessingLauncher(_Launcher):
 
         if self._start_method == "spawn":
             global_states = _GlobalStateSnapshot.capture()
-            process_args = [trainer, function, args, kwargs, return_queue, global_states]
+            process_args = [function, args, kwargs, return_queue, global_states]
         else:
-            process_args = [trainer, function, args, kwargs, return_queue]
+            process_args = [function, args, kwargs, return_queue]
 
         mp.start_processes(
             self._wrapping_function,
@@ -113,17 +105,11 @@ class _MultiProcessingLauncher(_Launcher):
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
         )
-        worker_output = return_queue.get()
-        if trainer is None:
-            return worker_output
-
-        self._recover_results_in_main_process(worker_output, trainer)
-        return worker_output.trainer_results
+        return return_queue.get()
 
     def _wrapping_function(
         self,
         process_idx: int,
-        trainer: Optional["pl.Trainer"],
         function: Callable,
         args: Any,
         kwargs: Any,
@@ -132,114 +118,12 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+        # TODO(lite): Update worker setup once DDPSpawn strategy is in Lite
         self._strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
 
-        if trainer is not None:
-            results = self._collect_rank_zero_results(trainer, results)
-
         if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
-
-    def _recover_results_in_main_process(self, worker_output: "_WorkerOutput", trainer: "pl.Trainer") -> None:
-        # transfer back the best path to the trainer
-        if trainer.checkpoint_callback and hasattr(trainer.checkpoint_callback, "best_model_path"):
-            trainer.checkpoint_callback.best_model_path = str(worker_output.best_model_path)
-
-        # TODO: pass also best score
-        # load last weights
-        if worker_output.weights_path is not None:
-            ckpt = self._strategy.checkpoint_io.load_checkpoint(worker_output.weights_path)
-            trainer.lightning_module.load_state_dict(ckpt)
-            self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
-
-        trainer.state = worker_output.trainer_state
-
-        # get the `callback_metrics` and set it to the trainer
-        self.get_from_queue(trainer, worker_output.extra)
-
-    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
-        rank_zero_debug("Collecting results from rank 0 process.")
-        checkpoint_callback = trainer.checkpoint_callback
-        best_model_path = (
-            checkpoint_callback.best_model_path
-            if checkpoint_callback and hasattr(checkpoint_callback, "best_model_path")
-            else None
-        )
-
-        # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = trainer.lightning_module.state_dict()
-
-        if self._strategy.global_rank != 0:
-            return None
-
-        # save the last weights
-        weights_path = None
-        if trainer.state.fn == TrainerFn.FITTING:
-            weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
-            self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
-
-        # adds the `callback_metrics` to the queue
-        extra = _FakeQueue()
-        self.add_to_queue(trainer, extra)
-
-        return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
-
-    def _check_torchdistx_support(self) -> None:
-        if self._start_method == "spawn":
-            from pytorch_lightning.utilities.meta import _is_deferred
-
-            if _is_deferred(self._strategy.lightning_module):
-                raise NotImplementedError(
-                    f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
-                    f" initialization."
-                )
-
-    def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
-        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
-        sharing, we cast the data to numpy.
-
-        Args:
-            trainer: reference to the Trainer.
-            queue: the instance of the queue to append the data.
-        """
-        callback_metrics: dict = apply_to_collection(
-            trainer.callback_metrics, Tensor, lambda x: x.cpu().numpy()
-        )  # send as numpy to avoid issues with memory sharing
-        queue.put(callback_metrics)
-
-    def get_from_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
-
-        Args:
-            trainer: reference to the Trainer.
-            queue: the instance of the queue from where to get the data.
-        """
-        # NOTE: `add_to_queue` needs to be called before
-        callback_metrics: dict = queue.get()
-        trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
-
-
-class _FakeQueue(UserList):
-    """Simulates a :class:`torch.multiprocessing.queue.SimpleQueue` interface using the Python list."""
-
-    def get(self) -> Any:
-        return self.pop(0)
-
-    def put(self, item: Any) -> None:
-        self.append(item)
-
-    def empty(self) -> bool:
-        return len(self) == 0
-
-
-class _WorkerOutput(NamedTuple):
-    best_model_path: Optional[_PATH]
-    weights_path: Optional[_PATH]
-    trainer_state: TrainerState
-    trainer_results: Any
-    extra: _FakeQueue
 
 
 @dataclass
