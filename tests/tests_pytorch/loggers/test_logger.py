@@ -74,7 +74,7 @@ class CustomLogger(Logger):
 
     @property
     def experiment_dir(self) -> str:
-        return os.path.join(self.save_dir or "", self.name, self.version)
+        return os.path.join(self.name, self.version)
 
     def after_save_checkpoint(self, checkpoint_callback):
         self.after_save_checkpoint_called = True

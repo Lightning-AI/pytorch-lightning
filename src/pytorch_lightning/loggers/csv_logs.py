@@ -239,9 +239,9 @@ class CSVLogger(Logger):
         """Get the experiment directory.
 
         Returns:
-            The (relative) path to where logs and artifacts get saved for the current version.
+            The relative path to where logs and artifacts get saved for the current version.
         """
-        return self.log_dir
+        return os.path.relpath(self.save_dir, self.log_dir)
 
     def _get_next_version(self) -> int:
         root_dir = self.root_dir

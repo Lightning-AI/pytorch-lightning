@@ -298,9 +298,8 @@ class MLFlowLogger(Logger):
         """Get the experiment directory.
 
         Returns:
-            The (relative) path to where logs and artifacts get saved for the current version.
+            The relative path to where logs and artifacts get saved for the current version.
         """
-        save_dir = self.save_dir or ""
         name = self.name or ""
         version = self.version or ""
-        return os.path.join(save_dir, name, version)
+        return os.path.join(name, version)
