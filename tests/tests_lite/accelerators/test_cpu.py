@@ -28,7 +28,7 @@ def test_availability():
 
 def test_init_device_with_wrong_device_type():
     with pytest.raises(ValueError, match="Device should be CPU"):
-        CPUAccelerator().init_device(torch.device("cuda"))
+        CPUAccelerator().setup_device(torch.device("cuda"))
 
 
 @pytest.mark.parametrize(

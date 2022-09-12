@@ -140,7 +140,7 @@ def test_custom_cluster_environment_in_slurm_environment(_, tmpdir):
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(device_count_mock, setup_distributed_mock):
     class Accel(Accelerator):
-        def init_device(self, device: torch.device) -> None:
+        def setup_device(self, device: torch.device) -> None:
             pass
 
         def get_device_stats(self, device: torch.device) -> Dict[str, Any]:

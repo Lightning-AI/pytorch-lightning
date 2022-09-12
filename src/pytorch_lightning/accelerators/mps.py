@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 class MPSAccelerator(Accelerator):
     """Accelerator for Metal Apple Silicon GPU devices."""
 
-    def init_device(self, device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:

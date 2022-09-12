@@ -24,7 +24,7 @@ class Accelerator(ABC):
     """
 
     @abstractmethod
-    def init_device(self, device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """Create and prepare the device for the current process."""
 
     @abstractmethod

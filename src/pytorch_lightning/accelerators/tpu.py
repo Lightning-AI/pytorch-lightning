@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
 
-    def init_device(self, device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         pass
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:

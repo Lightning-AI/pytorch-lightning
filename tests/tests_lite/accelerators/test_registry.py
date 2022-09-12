@@ -28,7 +28,7 @@ def test_accelerator_registry_with_new_accelerator():
             self.param2 = param2
             super().__init__()
 
-        def init_device(self, device: torch.device) -> None:
+        def setup_device(self, device: torch.device) -> None:
             pass
 
         def get_device_stats(self, device: torch.device) -> Dict[str, Any]:

@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
-    def init_device(self, device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:

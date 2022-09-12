@@ -23,7 +23,7 @@ from lightning_lite.utilities.imports import _TPU_AVAILABLE
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
 
-    def init_device(self, device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         pass
 
     def teardown(self) -> None:

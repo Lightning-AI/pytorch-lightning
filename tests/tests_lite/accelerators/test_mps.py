@@ -31,7 +31,7 @@ def test_mps_availability():
 
 def test_init_device_with_wrong_device_type():
     with pytest.raises(ValueError, match="Device should be MPS"):
-        MPSAccelerator().init_device(torch.device("cpu"))
+        MPSAccelerator().setup_device(torch.device("cpu"))
 
 
 @RunIf(mps=True)

@@ -31,7 +31,7 @@ def test_auto_device_count(_):
 
 def test_pluggable_accelerator():
     class TestAccelerator(Accelerator):
-        def init_device(self, device: torch.device) -> None:
+        def setup_device(self, device: torch.device) -> None:
             pass
 
         def get_device_stats(self, device: torch.device) -> Dict[str, Any]:

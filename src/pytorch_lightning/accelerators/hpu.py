@@ -30,7 +30,7 @@ if _HPU_AVAILABLE:
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
-    def init_device(self, device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:

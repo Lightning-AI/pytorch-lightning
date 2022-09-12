@@ -22,7 +22,7 @@ from lightning_lite.utilities import device_parser
 class CUDAAccelerator(Accelerator):
     """Accelerator for NVIDIA CUDA devices."""
 
-    def init_device(self, device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             ValueError:

@@ -307,7 +307,7 @@ class LightningLite(ABC):
         if isinstance(obj, nn.Module):
             if self.device.type == "cuda":
                 # need to call this manually here again in case we spawned with DDPSpawnStrategy
-                # TODO: refactor to let accelerator handle this cleanly (see Accelerator.init_device)
+                # TODO: refactor to let accelerator handle this cleanly (see Accelerator.setup_device)
                 torch.cuda.set_device(self.device)
             return obj.to(self.device)
         return move_data_to_device(obj, device=self.device)

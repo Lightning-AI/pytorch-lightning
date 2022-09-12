@@ -32,7 +32,7 @@ def test_gpu_availability():
 
 def test_init_device_with_wrong_device_type():
     with pytest.raises(ValueError, match="Device should be CUDA"):
-        CUDAAccelerator().init_device(torch.device("cpu"))
+        CUDAAccelerator().setup_device(torch.device("cpu"))
 
 
 @pytest.mark.parametrize(
@@ -49,5 +49,5 @@ def test_get_parallel_devices(devices, expected):
 
 @mock.patch("torch.cuda.set_device")
 def test_set_cuda_device(set_device_mock):
-    CUDAAccelerator().init_device(torch.device("cuda", 1))
+    CUDAAccelerator().setup_device(torch.device("cuda", 1))
     set_device_mock.assert_called_once_with(torch.device("cuda", 1))
