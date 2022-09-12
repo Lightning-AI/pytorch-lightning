@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Dict, Generator, List, Tuple
 
-from torch import Tensor
+from lightning_utilities.core.imports import module_available
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE
+from lightning_lite.utilities.imports import _IS_WINDOWS
+
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -31,8 +33,6 @@ else:
 
 class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     """Optimizer sharded training provided by FairScale."""
-
-    strategy_name = "ddp_sharded_spawn"
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
@@ -60,9 +60,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         else:
             yield None
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
-        pass
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -72,7 +69,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             find_unused_parameters=False,
         )
         strategy_registry.register(
-            cls.strategy_name,
+            "ddp_sharded_spawn",
             cls,
             description=f"{cls.__class__.__name__}",
         )

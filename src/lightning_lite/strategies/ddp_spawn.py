@@ -25,7 +25,7 @@ from typing_extensions import Literal
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.precision import PrecisionPlugin
+from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
@@ -50,15 +50,13 @@ class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
-    strategy_name = "ddp_spawn"
-
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
@@ -117,10 +115,10 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def module_to_device(self, module: Module) -> None:
         if self.root_device.type == "cuda":
+            # TODO(lite): This should be handled outside module_to_device, by a call to accelertor.setup_device()
             # set the device on the spawned subprocesses
             torch.cuda.set_device(self.root_device)
-        assert self.model is not None
-        self.model.to(self.root_device)
+        module.to(self.root_device)
 
     def reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"

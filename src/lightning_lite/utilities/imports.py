@@ -37,10 +37,6 @@ _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
 _XLA_AVAILABLE: bool = package_available("torch_xla")
 
-# TODO(lite): import this from the fairscale files once they move to lite package
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
-
-
 from lightning_lite.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
