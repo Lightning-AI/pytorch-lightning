@@ -28,7 +28,7 @@ from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.precision import PrecisionPlugin
+from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.strategies.utils import _fp_to_half
 from lightning_lite.utilities.apply_func import apply_to_collection
@@ -95,7 +95,7 @@ class DeepSpeedStrategy(DDPStrategy):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large

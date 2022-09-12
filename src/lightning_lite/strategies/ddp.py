@@ -24,7 +24,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.precision import PrecisionPlugin
+from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
@@ -50,7 +50,7 @@ class DDPStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
