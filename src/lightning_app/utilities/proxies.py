@@ -1,4 +1,3 @@
-import logging
 import os
 import pathlib
 import signal
@@ -37,7 +36,9 @@ if TYPE_CHECKING:
     from lightning_app.core.queues import BaseQueue
 
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 _state_observer_lock = threading.Lock()
 
 

@@ -1,4 +1,3 @@
-import logging
 import multiprocessing
 import sys
 from dataclasses import dataclass, field
@@ -10,11 +9,12 @@ import lightning_app
 from lightning_app import LightningApp
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
 from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def dispatch(

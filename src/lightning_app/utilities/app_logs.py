@@ -9,7 +9,6 @@ from websocket import WebSocketApp
 
 from lightning_app.utilities.log_helpers import _error_callback, _OrderedLogEntry
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
-from lightning_app.utilities.network import LightningClient
 
 
 @dataclass
@@ -56,7 +55,7 @@ def _push_log_events_to_read_queue_callback(component_name: str, read_queue: que
 
 
 def _app_logs_reader(
-    client: LightningClient,
+    logs_api_client: _LightningLogsSocketAPI,
     project_id: str,
     app_id: str,
     component_names: List[str],
@@ -65,7 +64,6 @@ def _app_logs_reader(
 ) -> Iterator[_LogEvent]:
 
     read_queue = queue.PriorityQueue()
-    logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
     # We will use a socket per component
     log_sockets = [
