@@ -22,7 +22,7 @@ from typing import List
 import pytest
 import torch.distributed
 
-from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.imports import _IS_WINDOWS
 from tests_pytorch import _PATH_DATASETS

@@ -26,7 +26,8 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach

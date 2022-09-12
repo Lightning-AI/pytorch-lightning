@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
+from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
 
-# For backward-compatibility
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO  # noqa: F401
+__all__ = ["CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]
