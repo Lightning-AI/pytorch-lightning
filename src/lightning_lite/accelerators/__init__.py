@@ -18,5 +18,5 @@ from lightning_lite.accelerators.registry import _AcceleratorRegistry, call_regi
 from lightning_lite.accelerators.tpu import TPUAccelerator  # noqa: F401
 
 _ACCELERATORS_BASE_MODULE = "lightning_lite.accelerators"
-AcceleratorRegistry = _AcceleratorRegistry()
-call_register_accelerators(AcceleratorRegistry, _ACCELERATORS_BASE_MODULE)
+ACCELERATOR_REGISTRY = _AcceleratorRegistry()
+call_register_accelerators(ACCELERATOR_REGISTRY, _ACCELERATORS_BASE_MODULE)

@@ -15,7 +15,7 @@ from typing import Any, Dict
 
 import torch
 
-from lightning_lite.accelerators import Accelerator, AcceleratorRegistry
+from lightning_lite.accelerators import Accelerator, ACCELERATOR_REGISTRY
 
 
 def test_accelerator_registry_with_new_accelerator():
@@ -53,21 +53,21 @@ def test_accelerator_registry_with_new_accelerator():
         def is_available():
             return True
 
-    AcceleratorRegistry.register(
+    ACCELERATOR_REGISTRY.register(
         accelerator_name, CustomAccelerator, description=accelerator_description, param1="abc", param2=123
     )
 
-    assert accelerator_name in AcceleratorRegistry
+    assert accelerator_name in ACCELERATOR_REGISTRY
 
-    assert AcceleratorRegistry[accelerator_name]["description"] == accelerator_description
-    assert AcceleratorRegistry[accelerator_name]["init_params"] == {"param1": "abc", "param2": 123}
-    assert AcceleratorRegistry[accelerator_name]["accelerator_name"] == accelerator_name
+    assert ACCELERATOR_REGISTRY[accelerator_name]["description"] == accelerator_description
+    assert ACCELERATOR_REGISTRY[accelerator_name]["init_params"] == {"param1": "abc", "param2": 123}
+    assert ACCELERATOR_REGISTRY[accelerator_name]["accelerator_name"] == accelerator_name
 
-    assert isinstance(AcceleratorRegistry.get(accelerator_name), CustomAccelerator)
+    assert isinstance(ACCELERATOR_REGISTRY.get(accelerator_name), CustomAccelerator)
 
-    AcceleratorRegistry.remove(accelerator_name)
-    assert accelerator_name not in AcceleratorRegistry
+    ACCELERATOR_REGISTRY.remove(accelerator_name)
+    assert accelerator_name not in ACCELERATOR_REGISTRY
 
 
 def test_available_accelerators_in_registry():
-    assert AcceleratorRegistry.available_accelerators() == ["cpu", "cuda", "mps", "tpu"]
+    assert ACCELERATOR_REGISTRY.available_accelerators() == ["cpu", "cuda", "mps", "tpu"]
