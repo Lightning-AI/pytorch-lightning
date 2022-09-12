@@ -11,53 +11,46 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List
+from abc import ABC, abstractmethod
+from typing import Any, Dict
 
 import torch
 
-from lightning_lite.utilities.types import _DEVICE
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 
+class Accelerator(ABC):
+    """The Accelerator base class.
 
-class IPUAccelerator(Accelerator):
-    """Accelerator for IPUs."""
+    An Accelerator is meant to deal with one type of hardware.
+    """
 
+    @abstractmethod
     def setup_device(self, device: torch.device) -> None:
-        pass
+        """Create and prepare the device for the current process."""
 
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """IPU device stats aren't supported yet."""
-        return {}
-
+    @abstractmethod
     def teardown(self) -> None:
-        pass
+        """Clean up any state created by the accelerator."""
 
     @staticmethod
-    def parse_devices(devices: int) -> int:
+    @abstractmethod
+    def parse_devices(devices: Any) -> Any:
         """Accelerator device parsing logic."""
-        return devices
 
     @staticmethod
-    def get_parallel_devices(devices: int) -> List[int]:
+    @abstractmethod
+    def get_parallel_devices(devices: Any) -> Any:
         """Gets parallel devices for the Accelerator."""
-        return list(range(devices))
 
     @staticmethod
+    @abstractmethod
     def auto_device_count() -> int:
-        """Get the devices when set to auto."""
-        # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
-        # Update this when api is exposed by the Graphcore team.
-        return 4
+        """Get the device count when set to auto."""
 
     @staticmethod
+    @abstractmethod
     def is_available() -> bool:
-        return _IPU_AVAILABLE
+        """Detect if the hardware is available."""
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
-        accelerator_registry.register(
-            "ipu",
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+        pass
