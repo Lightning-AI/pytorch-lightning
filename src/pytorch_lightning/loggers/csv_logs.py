@@ -241,7 +241,7 @@ class CSVLogger(Logger):
         Returns:
             The relative path to where logs and artifacts get saved for the current version.
         """
-        return os.path.relpath(self.save_dir, self.log_dir)
+        return os.path.relpath(self.log_dir, self.save_dir)
 
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
