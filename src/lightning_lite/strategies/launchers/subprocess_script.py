@@ -22,6 +22,7 @@ import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 
 _HYDRA_AVAILABLE = RequirementCache("hydra")
 
@@ -66,8 +67,7 @@ class _SubprocessScriptLauncher(_Launcher):
 
     def __init__(
         self,
-        # TODO(lite): Update type annotation once ClusterEnvironment has moved to Lite
-        cluster_environment: "ClusterEnvironment",  # type: ignore[name-defined]  # noqa: F821
+        cluster_environment: "ClusterEnvironment",
         num_processes: int,
         num_nodes: int,
     ) -> None:
