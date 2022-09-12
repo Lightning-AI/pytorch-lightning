@@ -98,11 +98,11 @@ class Strategy(ABC):
     def setup_environment(self) -> None:
         """Setup any processes or distributed connections.
 
-        This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
-        environment before setup is complete.
+        This must be called by the framework at the beginning of every process, before any distributed communication
+        takes place.
         """
         assert self.accelerator is not None
-        self.accelerator.init_device(self.root_device)
+        self.accelerator.setup_device(self.root_device)
 
     def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
         """Wraps the dataloader if necessary.
@@ -174,7 +174,6 @@ class Strategy(ABC):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        *args: Any,
         model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
@@ -182,11 +181,10 @@ class Strategy(ABC):
 
         Args:
             optimizer: the optimizer performing the step
-            *args: Positional arguments passed down to ``optimizer.step``
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return self.precision_plugin.optimizer_step(optimizer, *args, model=model, **kwargs)
+        return self.precision_plugin.optimizer_step(optimizer, model=model, **kwargs)
 
     @abstractmethod
     def reduce(
