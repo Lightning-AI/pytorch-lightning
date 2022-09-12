@@ -88,18 +88,6 @@ To train a model using multiple nodes, do the following:
 
         #SBATCH --signal=SIGUSR1@90
 
-    You can change this signal if your environment requires the use of a different one, for example
-
-    .. code-block:: bash
-
-        #SBATCH --signal=SIGHUP@90
-
-    Then, when you make your trainer, pass the `requeue_signal` option to the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
-
-    .. code-block:: python
-
-        trainer = Trainer(plugins=[SLURMEnvironment(requeue_signal=signal.SIGHUP)])
-
 6.  Submit the SLURM job
 
     .. code-block:: bash
@@ -124,6 +112,18 @@ To get this behavior make sure to add the correct signal to your SLURM script
 
     # 90 seconds before training ends
     SBATCH --signal=SIGUSR1@90
+
+You can change this signal if your environment requires the use of a different one, for example
+
+.. code-block:: bash
+
+    #SBATCH --signal=SIGHUP@90
+
+Then, when you make your trainer, pass the `requeue_signal` option to the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
+
+.. code-block:: python
+
+    trainer = Trainer(plugins=[SLURMEnvironment(requeue_signal=signal.SIGHUP)])
 
 If auto-resubmit is not desired, it can be turned off in the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
 
