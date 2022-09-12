@@ -25,7 +25,7 @@ Experimental API
 
 Experimental APIs are labelled as experimental or beta in the documentation and/or in the release note and are considered unstable and should not be used in production.
 
-For experimental features, any of the following may be true.
+For experimental features, any of the following may be true:
 
 - The feature has unstable dependencies.
 - The API may change without notice in future versions.
@@ -38,6 +38,7 @@ Stable API
 Everything not specifically labelled as experimental is stable.
 
 For stable APIs, all of the following are true:
+
 - The API is not expected to change.
 - If anything does change, we show a deprecation warning before applying the breaking change following the rule described below.
 
