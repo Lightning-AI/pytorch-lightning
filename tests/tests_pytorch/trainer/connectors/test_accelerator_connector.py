@@ -22,18 +22,18 @@ import torch
 import torch.distributed
 
 import pytorch_lightning
+from lightning_lite.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
-from pytorch_lightning.plugins.environments import (
-    KubeflowEnvironment,
-    LightningEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
 from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,

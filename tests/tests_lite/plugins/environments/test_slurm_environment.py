@@ -17,7 +17,7 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning.plugins.environments import SLURMEnvironment
+from lightning_lite.plugins.environments import SLURMEnvironment
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -66,14 +66,14 @@ def test_attributes_from_environment_variables(caplog):
     assert env.node_rank() == 3
     assert env.job_name() == "JOB"
     # setter should be no-op
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning_lite.plugins.environments"):
         env.set_global_rank(100)
     assert env.global_rank() == 1
     assert "setting global rank is not allowed" in caplog.text
 
     caplog.clear()
 
-    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+    with caplog.at_level(logging.DEBUG, logger="lightning_lite.plugins.environments"):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
