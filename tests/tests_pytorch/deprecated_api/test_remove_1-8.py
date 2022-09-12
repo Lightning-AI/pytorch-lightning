@@ -399,13 +399,6 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_8_0_weights_save_path(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(weights_save_path=tmpdir)
-    with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
-        _ = trainer.weights_save_path
-
-
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
