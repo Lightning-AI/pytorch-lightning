@@ -29,6 +29,7 @@ import yaml
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
+from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.cli import (
@@ -43,7 +44,6 @@ from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import _COMET_AVAILABLE, TensorBoardLogger
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
-from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -341,7 +341,7 @@ def test_lightning_cli_configurable_callbacks(tmpdir, run):
 
 
 def test_lightning_cli_args_cluster_environments(tmpdir):
-    plugins = [dict(class_path="pytorch_lightning.plugins.environments.SLURMEnvironment")]
+    plugins = [dict(class_path="lightning_lite.plugins.environments.SLURMEnvironment")]
 
     class TestModel(BoringModel):
         def on_fit_start(self):
@@ -520,7 +520,7 @@ def test_lightning_cli_submodules(tmpdir):
     assert isinstance(cli.model.submodule2, BoringModel)
 
 
-@pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason="Tests a bug with torchvision, but it's not available")
+@pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason=str(_TORCHVISION_AVAILABLE))
 def test_lightning_cli_torch_modules(tmpdir):
     class TestModule(BoringModel):
         def __init__(self, activation: torch.nn.Module = None, transform: Optional[List[torch.nn.Module]] = None):
