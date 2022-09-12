@@ -9,6 +9,7 @@ from tests_app import _PROJECT_ROOT
 from lightning_app.testing.testing import run_app_in_cloud
 
 
+@pytest.mark.timeout(300)
 @pytest.mark.cloud
 def test_commands_and_api_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_commands_and_api")) as (
@@ -21,15 +22,18 @@ def test_commands_and_api_example_cloud() -> None:
         app_id = admin_page.url.split("/")[-1]
 
         # 2: Connect to the App
-        Popen(f"lightning connect {app_id} -y", shell=True).wait()
+        Popen(f"python -m lightning connect {app_id} -y", shell=True).wait()
 
         # 3: Send the first command with the client
-        cmd = "lightning command with client --name=this"
+        cmd = "python -m lightning command with client --name=this"
         Popen(cmd, shell=True).wait()
 
         # 4: Send the second command without a client
-        cmd = "lightning command without client --name=is"
+        cmd = "python -m lightning command without client --name=is"
         Popen(cmd, shell=True).wait()
+
+        # This prevents some flakyness in the CI. Couldn't reproduce it locally.
+        sleep(5)
 
         # 5: Send a request to the Rest API directly.
         base_url = view_page.url.replace("/view", "").replace("/child_flow", "")
