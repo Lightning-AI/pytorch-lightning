@@ -27,13 +27,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from lightning_lite.utilities.imports import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
 )
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 
 
 def test_imports():
