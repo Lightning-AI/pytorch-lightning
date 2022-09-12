@@ -23,7 +23,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from lightning_lite.strategies.launchers.base import _Launcher
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 
 _HYDRA_AVAILABLE = RequirementCache("hydra")
 

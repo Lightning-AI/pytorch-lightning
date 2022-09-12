@@ -12,5 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# For backward-compatibility
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO  # noqa: F401
+from lightning_lite.plugins.environments import ClusterEnvironment
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
+from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+
+__all__ = [
+    "ClusterEnvironment",
+    "CheckpointIO",
+    "TorchCheckpointIO",
+    "XLACheckpointIO",
+]

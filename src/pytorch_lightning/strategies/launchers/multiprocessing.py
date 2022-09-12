@@ -59,7 +59,9 @@ class _MultiProcessingLauncher(_Launcher):
             - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
+    def __init__(
+        self, strategy: "pl.strategies.Strategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+    ) -> None:
         self._strategy = strategy
         self._start_method = start_method
         if start_method not in mp.get_all_start_methods():
