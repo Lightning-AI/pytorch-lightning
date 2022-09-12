@@ -4,6 +4,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 import torch
 
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
+from lightning_lite.strategies.launchers.multiprocessing import _is_forking_disabled
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
 
