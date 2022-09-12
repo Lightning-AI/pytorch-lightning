@@ -61,6 +61,8 @@ class SignalConnector:
             else:
                 sigusr = signal.SIGUSR1
 
+            assert sigusr is not None
+
             if sigusr_handlers and not self._has_already_handler(sigusr):
                 self._register_signal(sigusr, HandlersCompose(sigusr_handlers))
 
