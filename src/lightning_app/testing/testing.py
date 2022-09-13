@@ -210,7 +210,9 @@ def run_cli(args) -> Generator:
 
 @requires("playwright")
 @contextmanager
-def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str] = []) -> Generator:
+def run_app_in_cloud(
+    app_folder: str, app_name: str = "app.py", extra_args: [str] = [], debug_mode: str = "1"
+) -> Generator:
     """This utility is used to automate testing e2e application with lightning_app.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
@@ -239,7 +241,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
-        env_copy["LIGHTNING_DEBUG"] = "1"
+        env_copy["LIGHTNING_DEBUG"] = debug_mode
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
