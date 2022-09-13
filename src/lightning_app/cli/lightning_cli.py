@@ -9,7 +9,6 @@ import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from requests.exceptions import ConnectionError
 from rich.color import ANSI_COLOR_NAMES
-from utilities.logs_socket_api import _LightningLogsSocketAPI
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
