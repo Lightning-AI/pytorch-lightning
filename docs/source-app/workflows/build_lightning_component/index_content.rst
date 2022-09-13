@@ -28,16 +28,16 @@ Basics
         <div class="row">
 
 .. displayitem::
-   :header: Build a Lightning component
-   :description: Learn the basics of building a Lightning component
+   :header: Develop a Lightning Component
+   :description: Learn the basics of developing a Lightning Component
    :col_css: col-md-4
    :button_link: basic.html
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Explore community Lightning components
-   :description: Discover community-built Lightning components
+   :header: Explore community Lightning Components
+   :description: Discover community-built Lightning Components
    :col_css: col-md-4
    :button_link: https://lightning.ai/components
    :height: 150

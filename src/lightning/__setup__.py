@@ -1,7 +1,5 @@
-import glob
 import os.path
 from importlib.util import module_from_spec, spec_from_file_location
-from itertools import chain
 from types import ModuleType
 from typing import Any, Dict
 
@@ -10,6 +8,7 @@ from setuptools import find_packages
 _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning")
+_PATH_REQUIREMENTS = os.path.join("requirements")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
@@ -22,53 +21,46 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
+_SETUP_TOOLS = _load_py_module("setup_tools", os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"))
+
+
 def _adjust_manifest(**kwargs: Any) -> None:
     # todo: consider rather aggregation of particular manifest adjustments
     manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
     assert os.path.isfile(manifest_path)
     with open(manifest_path) as fp:
-        lines = fp.readlines()
+        lines = [ln.rstrip() for ln in fp.readlines()]
     if kwargs["pkg_name"] == "lightning":
         lines += [
-            "recursive-include src/lightning *.md" + os.linesep,
+            "recursive-include src/lightning *.md",
+            "include requirements/base.txt",
             # fixme: this is strange, this shall work with setup find package - include
-            "prune src/lightning_app" + os.linesep,
-            "prune src/pytorch_lightning" + os.linesep,
+            "prune src/lightning_app",
+            "prune src/pytorch_lightning",
         ]
     else:
         lines += [
-            "recursive-include src *.md" + os.linesep,
-            "recursive-include requirements *.txt" + os.linesep,
-            "recursive-include src/lightning_app/cli/*-template *" + os.linesep,  # Add templates
+            "recursive-include src *.md",
+            "recursive-include requirements *.txt",
+            "recursive-include src/lightning_app/ui *",
+            "recursive-include src/lightning_app/cli/*-template *",  # Add templates as build-in
         ]
     with open(manifest_path, "w") as fp:
-        fp.writelines(lines)
+        fp.writelines([ln + os.linesep for ln in lines])
 
 
 def _setup_args(**kwargs: Any) -> Dict[str, Any]:
-    _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
-    _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     _version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
-    _long_description = _setup_tools.load_readme_description(
+    _long_description = _SETUP_TOOLS.load_readme_description(
         _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
     )
-    if kwargs["pkg_name"] == "lightning":
-        _include_pkgs = ["lightning", "lightning.*"]
-        # todo: generate this list automatically with parsing feature pkg versions
-        _requires = ["pytorch-lightning>=1.6.5", "lightning-app>=0.5.2"]
-    else:
-        _include_pkgs = ["*"]
-        _requires = [
-            _setup_tools.load_requirements(d, unfreeze=not _FREEZE_REQUIREMENTS)
-            for d in glob.glob(os.path.join("requirements", "*"))
-            if os.path.isdir(d)
-        ]
-        _requires = list(chain(*_requires))
+    _include_pkgs = ["lightning", "lightning.*"] if kwargs["pkg_name"] == "lightning" else ["*"]
+
     # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _setup_tools._download_frontend(_PROJECT_ROOT)
+    _SETUP_TOOLS._download_frontend(_PROJECT_ROOT)
 
     return dict(
         name="lightning",
@@ -93,7 +85,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
             ],
         },
         setup_requires=[],
-        install_requires=_requires,
+        install_requires=_SETUP_TOOLS.load_requirements(_PATH_REQUIREMENTS, unfreeze="all"),
         extras_require={},  # todo: consider porting all other packages extras with prefix
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

@@ -9,6 +9,9 @@ lightning_logs/
 # Documentations
 docs/source-app/generated
 docs/source-app/*/generated
+docs/source-lit/generated
+docs/source-lit/*/generated
+docs/source-lit/api
 docs/source-pytorch/api
 docs/source-pytorch/*.md
 docs/source-pytorch/generated
@@ -163,3 +166,12 @@ src/lightning_app/ui/*
 *examples/template_react_ui*
 hars*
 artifacts/*
+*docs/examples*
+*docs/source-app/api*
+
+# tutorials
+our_model.tar
+test.png
+saved_models
+data/
+.shared

@@ -18,11 +18,11 @@ from types import ModuleType
 from typing import Any, Generator, List, Optional, Tuple, Type
 
 import torch
+from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 import pytorch_lightning.cli as new_cli
-from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 _deprecate_registry_message = (

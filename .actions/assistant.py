@@ -1,6 +1,7 @@
 import datetime
 import glob
 import json
+import logging
 import os
 import re
 import shutil
@@ -16,6 +17,7 @@ from urllib.request import Request, urlopen
 
 import fire
 import pkg_resources
+from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -123,7 +125,9 @@ class AssistantCLI:
         data = json.load(urlopen(Request(url)))
         if not version:
             versions = list(data["releases"].keys())
-            version = sorted(versions, key=LooseVersion)[-1]
+            versions = sorted(versions, key=lambda x: version_parse(x))
+            logging.debug(f"Available versions: {versions}")
+            version = versions[-1]
         releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
         assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
         release = releases[0]
@@ -131,6 +135,7 @@ class AssistantCLI:
         pkg_file = os.path.basename(pkg_url)
         pkg_path = os.path.join(folder, pkg_file)
         os.makedirs(folder, exist_ok=True)
+        print(f"downloading: {pkg_url}")
         request.urlretrieve(pkg_url, pkg_path)
 
     @staticmethod

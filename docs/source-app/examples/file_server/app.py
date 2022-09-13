@@ -10,7 +10,13 @@ from lightning.app.storage import Drive
 
 
 class FileServer(L.LightningWork):
-    def __init__(self, drive: Drive, base_dir: str = "file_server", chunk_size=10240, **kwargs):
+    def __init__(
+        self,
+        drive: Drive,
+        base_dir: str = "file_server",
+        chunk_size=10240,
+        **kwargs
+    ):
         """This component uploads, downloads files to your application.
 
         Arguments:
@@ -48,7 +54,9 @@ class FileServer(L.LightningWork):
         filename = file.filename
         uploaded_file = self.get_random_filename()
         meta_file = uploaded_file + ".meta"
-        self.uploaded_files[filename] = {"progress": (0, None), "done": False}
+        self.uploaded_files[filename] = {
+            "progress": (0, None), "done": False
+        }
 
         # 2: Create a stream and write bytes of
         # the file to the disk under `uploaded_file` path.
@@ -155,6 +163,7 @@ from lightning import LightningWork  # noqa: E402
 
 
 class TestFileServer(LightningWork):
+
     def __init__(self, drive: Drive):
         super().__init__(cache_calls=True)
         self.drive = drive
@@ -164,7 +173,10 @@ class TestFileServer(LightningWork):
             with open("test.txt", "w") as f:
                 f.write("Some text.")
 
-            response = requests.post(file_server_url + "/upload_file/", files={"file": open("test.txt", "rb")})
+            response = requests.post(
+                file_server_url + "/upload_file/",
+                files={'file': open("test.txt", 'rb')}
+            )
             assert response.status_code == 200
         else:
             response = requests.get(file_server_url)
@@ -176,6 +188,7 @@ from lightning import LightningApp, LightningFlow  # noqa: E402
 
 
 class Flow(LightningFlow):
+
     def __init__(self):
         super().__init__()
         # 1: Create a drive to share data between works

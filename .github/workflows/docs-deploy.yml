@@ -1,7 +1,7 @@
 name: "Deploy Docs"
 on:
   push:
-    branches: [master]
+    branches: ["release/app"]
 
 jobs:
   # https://github.com/marketplace/actions/deploy-to-github-pages
@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v2
-        # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly.
+        uses: actions/checkout@v3
+        # If you're using actions/checkout@v3 you must set persist-credentials to false in most cases for the deployment to work correctly.
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
@@ -31,7 +31,7 @@ jobs:
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-deploy-docs-pip-${{ hashFiles('requirements/app/*.txt') }}
@@ -58,7 +58,7 @@ jobs:
           make html --jobs 2
 
       - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+        uses: JamesIves/github-pages-deploy-action@v4.4.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: gh-pages # The branch the action should deploy to.

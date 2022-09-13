@@ -1,5 +1,4 @@
 import fnmatch
-import logging
 import os
 import random
 import string
@@ -18,29 +17,41 @@ from lightning_cloud.openapi import (
     Gridv1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
+    V1Drive,
+    V1DriveSpec,
+    V1DriveStatus,
+    V1DriveType,
     V1EnvVar,
     V1Flowserver,
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
+    V1LightningworkDrives,
     V1LightningworkSpec,
+    V1Membership,
+    V1Metadata,
     V1NetworkConfig,
     V1PackageManager,
+    V1ProjectClusterBinding,
     V1PythonDependencyInfo,
+    V1SourceType,
     V1UserRequestedComputeConfig,
     V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
 
+from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
+from lightning_app.storage import Drive
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 @dataclass
@@ -52,6 +63,7 @@ class CloudRuntime(Runtime):
         self,
         on_before_run: Optional[Callable] = None,
         name: str = "",
+        cluster_id: str = None,
         **kwargs: Any,
     ):
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
@@ -105,9 +117,45 @@ class CloudRuntime(Runtime):
                     preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
                 )
+
+                drive_specs: List[V1LightningworkDrives] = []
+                for drive_attr_name, drive in [
+                    (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
+                ]:
+                    if drive.protocol == "lit://":
+                        drive_type = V1DriveType.NO_MOUNT_S3
+                        source_type = V1SourceType.S3
+                    elif drive.protocol == "s3://":
+                        drive_type = V1DriveType.INDEXED_S3
+                        source_type = V1SourceType.S3
+                    else:
+                        raise RuntimeError(
+                            f"unknown drive protocol `{drive.protocol}`. Please verify this "
+                            f"drive type has been configured for use in the cloud dispatcher."
+                        )
+
+                    drive_specs.append(
+                        V1LightningworkDrives(
+                            drive=V1Drive(
+                                metadata=V1Metadata(
+                                    name=f"{work.name}.{drive_attr_name}",
+                                ),
+                                spec=V1DriveSpec(
+                                    drive_type=drive_type,
+                                    source_type=source_type,
+                                    source=f"{drive.protocol}{drive.id}",
+                                ),
+                                status=V1DriveStatus(),
+                            ),
+                            mount_location=str(drive.root_folder),
+                        ),
+                    )
+
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
+                    cluster_id=cluster_id,
+                    drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
@@ -147,7 +195,7 @@ class CloudRuntime(Runtime):
                 # There can be only one app with unique project_id<>name pair
                 lightning_app = list_apps_resp.lightningapps[0]
             else:
-                app_body = Body7(name=app_config.name)
+                app_body = Body7(name=app_config.name, can_download_source_code=True)
                 lightning_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
                     project.project_id, app_body
                 )
@@ -157,19 +205,36 @@ class CloudRuntime(Runtime):
                 enable_app_server=app_spec.enable_app_server,
                 flow_servers=app_spec.flow_servers,
                 image_spec=app_spec.image_spec,
+                cluster_id=cluster_id,
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
             )
+            if cluster_id is not None:
+                self._ensure_cluster_project_binding(project.project_id, cluster_id)
+
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project.project_id, lightning_app.id, release_body
             )
+
+            if cluster_id is not None:
+                logger.info(f"running app on {lightning_app_release.cluster_id}")
 
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
 
             repo.package()
             repo.upload(url=lightning_app_release.source_upload_url)
+
+            # check if user has sufficient credits to run an app
+            # if so set the desired state to running otherwise, create the app in stopped state,
+            # and open the admin ui to add credits and running the app.
+            has_sufficient_credits = self._project_has_sufficient_credits(project, app=self.app)
+            app_release_desired_state = (
+                V1LightningappInstanceState.RUNNING if has_sufficient_credits else V1LightningappInstanceState.STOPPED
+            )
+            if not has_sufficient_credits:
+                logger.warn("You may need Lightning credits to run your apps on the cloud.")
 
             # right now we only allow a single instance of the app
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
@@ -208,9 +273,7 @@ class CloudRuntime(Runtime):
                     project_id=project.project_id,
                     id=existing_instance.id,
                     body=Body3(
-                        spec=V1LightningappInstanceSpec(
-                            desired_state=V1LightningappInstanceState.RUNNING, env=v1_env_vars
-                        )
+                        spec=V1LightningappInstanceSpec(desired_state=app_release_desired_state, env=v1_env_vars)
                     ),
                 )
             else:
@@ -220,7 +283,10 @@ class CloudRuntime(Runtime):
                         lightning_app.id,
                         lightning_app_release.id,
                         Body9(
-                            desired_state=V1LightningappInstanceState.RUNNING, name=lightning_app.name, env=v1_env_vars
+                            cluster_id=cluster_id,
+                            desired_state=app_release_desired_state,
+                            name=lightning_app.name,
+                            env=v1_env_vars,
                         ),
                     )
                 )
@@ -229,13 +295,27 @@ class CloudRuntime(Runtime):
             sys.exit(1)
 
         if on_before_run:
-            on_before_run(lightning_app_instance)
+            on_before_run(lightning_app_instance, need_credits=not has_sufficient_credits)
 
         if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
 
         if cleanup_handle:
             cleanup_handle()
+
+    def _ensure_cluster_project_binding(self, project_id: str, cluster_id: str):
+        cluster_bindings = self.backend.client.projects_service_list_project_cluster_bindings(project_id=project_id)
+
+        for cluster_binding in cluster_bindings.clusters:
+            if cluster_binding.cluster_id != cluster_id:
+                continue
+            if cluster_binding.project_id == project_id:
+                return
+
+        self.backend.client.projects_service_create_project_cluster_binding(
+            project_id,
+            body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project_id),
+        )
 
     @staticmethod
     def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:
@@ -261,4 +341,14 @@ class CloudRuntime(Runtime):
                 )
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
+
             logger.warning(warning_msg)
+
+    def _project_has_sufficient_credits(self, project: V1Membership, app: Optional[LightningApp] = None):
+        """check if user has enough credits to run the app with its hardware if app is not passed return True if
+        user has 1 or more credits."""
+        balance = project.balance
+        if balance is None:
+            balance = 0  # value is missing in some tests
+
+        return balance >= 1

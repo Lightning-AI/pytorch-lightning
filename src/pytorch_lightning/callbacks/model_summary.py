@@ -26,10 +26,10 @@ from typing import List, Tuple, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities.deepspeed_model_summary import DeepSpeedSummary
-from pytorch_lightning.utilities.model_summary import _format_summary_table
+from pytorch_lightning.utilities.model_summary import DeepSpeedSummary
 from pytorch_lightning.utilities.model_summary import ModelSummary as Summary
 from pytorch_lightning.utilities.model_summary import summarize
+from pytorch_lightning.utilities.model_summary.model_summary import _format_summary_table
 
 log = logging.getLogger(__name__)
 

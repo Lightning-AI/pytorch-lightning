@@ -23,23 +23,21 @@ import logging
 import os
 import warnings
 from argparse import Namespace
-from functools import reduce
-from typing import Any, Callable, Dict, Generator, Mapping, Optional, Sequence, Set, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
-import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
-from pytorch_lightning import __version__
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = _RequirementAvailable("neptune")
-_NEPTUNE_GREATER_EQUAL_0_9 = _RequirementAvailable("neptune>=0.9.0")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
+_NEPTUNE_GREATER_EQUAL_0_9 = RequirementCache("neptune-client>=0.9.0")
 
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
@@ -272,7 +270,7 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-        **neptune_run_kwargs,
+        **neptune_run_kwargs: Any,
     ):
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
@@ -290,16 +288,17 @@ class NeptuneLogger(Logger):
         self._api_key = api_key
         self._run_instance = run
         self._neptune_run_kwargs = neptune_run_kwargs
-        self._run_short_id = None
+        self._run_short_id: Optional[str] = None
 
         if self._run_instance is not None:
             self._retrieve_run_data()
 
             # make sure that we've log integration version for outside `Run` instances
-            self._run_instance[_INTEGRATION_VERSION_KEY] = __version__
+            self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
-    def _retrieve_run_data(self):
+    def _retrieve_run_data(self) -> None:
         try:
+            assert self._run_instance is not None
             self._run_instance.wait()
             self._run_short_id = self._run_instance["sys/id"].fetch()
             self._run_name = self._run_instance["sys/name"].fetch()
@@ -308,8 +307,8 @@ class NeptuneLogger(Logger):
             self._run_name = "offline-name"
 
     @property
-    def _neptune_init_args(self):
-        args = {}
+    def _neptune_init_args(self) -> Dict:
+        args: Dict = {}
         # Backward compatibility in case of previous version retrieval
         try:
             args = self._neptune_run_kwargs
@@ -334,7 +333,7 @@ class NeptuneLogger(Logger):
 
         return args
 
-    def _construct_path_with_prefix(self, *keys) -> str:
+    def _construct_path_with_prefix(self, *keys: str) -> str:
         """Return sequence of keys joined by `LOGGER_JOIN_CHAR`, started with `_prefix` if defined."""
         if self._prefix:
             return self.LOGGER_JOIN_CHAR.join([self._prefix, *keys])
@@ -347,7 +346,7 @@ class NeptuneLogger(Logger):
         name: Optional[str],
         run: Optional["Run"],
         neptune_run_kwargs: dict,
-    ):
+    ) -> None:
         legacy_kwargs_msg = (
             "Following kwargs are deprecated: {legacy_kwargs}.\n"
             "If you are looking for the Neptune logger using legacy Python API,"
@@ -393,17 +392,17 @@ class NeptuneLogger(Logger):
                 " you can't provide other neptune.init() parameters.\n"
             )
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         # Run instance can't be pickled
         state["_run_instance"] = None
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__ = state
         self._run_instance = neptune.init(**self._neptune_init_args)
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
@@ -433,7 +432,7 @@ class NeptuneLogger(Logger):
         """
         return self.run
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def run(self) -> Run:
         try:
@@ -441,7 +440,7 @@ class NeptuneLogger(Logger):
                 self._run_instance = neptune.init(**self._neptune_init_args)
                 self._retrieve_run_data()
                 # make sure that we've log integration version for newly created
-                self._run_instance[_INTEGRATION_VERSION_KEY] = __version__
+                self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
             return self._run_instance
         except NeptuneLegacyProjectException as e:
@@ -531,7 +530,7 @@ class NeptuneLogger(Logger):
         return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
-    def log_model_summary(self, model, max_depth=-1):
+    def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
         self.run[self._construct_path_with_prefix("model/summary")] = neptune.types.File.from_content(
             content=model_str, extension="txt"
@@ -600,14 +599,16 @@ class NeptuneLogger(Logger):
         return filepath
 
     @classmethod
-    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict, namespace: str) -> Set[str]:
+    def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:
         """Returns all paths to properties which were already logged in `namespace`"""
-        structure_keys = namespace.split(cls.LOGGER_JOIN_CHAR)
-        uploaded_models_dict = reduce(lambda d, k: d[k], [exp_structure, *structure_keys])
+        structure_keys: List[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
+        for key in structure_keys:
+            exp_structure = exp_structure[key]
+        uploaded_models_dict = exp_structure
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
-    def _dict_paths(cls, d: dict, path_in_build: str = None) -> Generator:
+    def _dict_paths(cls, d: Dict[str, Any], path_in_build: str = None) -> Generator:
         for k, v in d.items():
             path = f"{path_in_build}/{k}" if path_in_build is not None else k
             if not isinstance(v, dict):
@@ -616,12 +617,12 @@ class NeptuneLogger(Logger):
                 yield from cls._dict_paths(v, path)
 
     @property
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
         return self._run_name
 
     @property
-    def version(self) -> str:
+    def version(self) -> Optional[str]:
         """Return the experiment version.
 
         It's Neptune Run's short_id
@@ -629,7 +630,7 @@ class NeptuneLogger(Logger):
         return self._run_short_id
 
     @staticmethod
-    def _signal_deprecated_api_usage(f_name, sample_code, raise_exception=False):
+    def _signal_deprecated_api_usage(f_name: str, sample_code: str, raise_exception: bool = False) -> None:
         msg_suffix = (
             f"If you are looking for the Neptune logger using legacy Python API,"
             f" it's still available as part of neptune-contrib package:\n"
@@ -649,10 +650,10 @@ class NeptuneLogger(Logger):
             raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
 
     @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: Union[Tensor, float, str], step: Optional[int] = None):
+    def log_metric(self, metric_name: str, metric_value: Union[Tensor, float, str], step: Optional[int] = None) -> None:
         key = f"{self._prefix}/{metric_name}"
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
-        if torch.is_tensor(metric_value):
+        if isinstance(metric_value, Tensor):
             metric_value = metric_value.cpu().detach()
 
         self.run[key].log(metric_value, step=step)
@@ -678,12 +679,12 @@ class NeptuneLogger(Logger):
         self._signal_deprecated_api_usage("log_artifact", f"logger.run['{key}].log('path_to_file')")
         self.run[key].log(destination)
 
-    def set_property(self, *args, **kwargs):
+    def set_property(self, *args: Any, **kwargs: Any) -> None:
         self._signal_deprecated_api_usage(
             "log_artifact", f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)", raise_exception=True
         )
 
-    def append_tags(self, *args, **kwargs):
+    def append_tags(self, *args: Any, **kwargs: Any) -> None:
         self._signal_deprecated_api_usage(
             "append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])", raise_exception=True
         )

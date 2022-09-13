@@ -13,22 +13,26 @@
 # limitations under the License.
 import os
 from collections import UserList
+from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, NamedTuple, Optional
+from typing import Any, Callable, Dict, NamedTuple, Optional
 
 import numpy as np
 import torch
+import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.strategies.strategy import Strategy
+from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
-from pytorch_lightning.utilities.types import _PATH
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -54,13 +58,19 @@ class _MultiProcessingLauncher(_Launcher):
             - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
+    def __init__(
+        self, strategy: "pl.strategies.Strategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+    ) -> None:
         self._strategy = strategy
         self._start_method = start_method
         if start_method not in mp.get_all_start_methods():
             raise ValueError(
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
+            )
+        if start_method in ("fork", "forkserver") and _is_forking_disabled():
+            raise ValueError(
+                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different start method."
             )
 
     @property
@@ -83,15 +93,23 @@ class _MultiProcessingLauncher(_Launcher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
+        self._check_torchdistx_support()
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
+
+        if self._start_method == "spawn":
+            global_states = _GlobalStateSnapshot.capture()
+            process_args = [trainer, function, args, kwargs, return_queue, global_states]
+        else:
+            process_args = [trainer, function, args, kwargs, return_queue]
+
         mp.start_processes(
             self._wrapping_function,
-            args=(trainer, function, args, kwargs, return_queue),
+            args=process_args,
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
         )
@@ -110,7 +128,10 @@ class _MultiProcessingLauncher(_Launcher):
         args: Any,
         kwargs: Any,
         return_queue: SimpleQueue,
+        global_states: Optional["_GlobalStateSnapshot"] = None,
     ) -> None:
+        if global_states:
+            global_states.restore()
         self._strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
 
@@ -129,7 +150,7 @@ class _MultiProcessingLauncher(_Launcher):
         # load last weights
         if worker_output.weights_path is not None:
             ckpt = self._strategy.checkpoint_io.load_checkpoint(worker_output.weights_path)
-            trainer.lightning_module.load_state_dict(ckpt)  # type: ignore[arg-type]
+            trainer.lightning_module.load_state_dict(ckpt)
             self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
 
         trainer.state = worker_output.trainer_state
@@ -163,6 +184,16 @@ class _MultiProcessingLauncher(_Launcher):
         self.add_to_queue(trainer, extra)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
+
+    def _check_torchdistx_support(self) -> None:
+        if self._start_method == "spawn":
+            from pytorch_lightning.utilities.meta import _is_deferred
+
+            if _is_deferred(self._strategy.lightning_module):
+                raise NotImplementedError(
+                    f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
+                    f" initialization."
+                )
 
     def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
@@ -209,3 +240,55 @@ class _WorkerOutput(NamedTuple):
     trainer_state: TrainerState
     trainer_results: Any
     extra: _FakeQueue
+
+
+@dataclass
+class _GlobalStateSnapshot:
+    """Captures a hand-selected set of (global) variables in modules and provides a way to restore them.
+
+    It facilitates and encapsulates the transfer of globals like PyTorch's deterministic flags or random generator state
+    across process boundaries when launching processes with :func:`torch.multiprocessing.spawn`.
+
+    Example:
+
+        .. code-block:: python
+
+            # in main process
+            snapshot = _GlobalStateSnapshot.capture()
+
+            # in worker process
+            snapshot.restore()
+    """
+
+    use_deterministic_algorithms: bool
+    use_deterministic_algorithms_warn_only: bool
+    cudnn_benchmark: bool
+    rng_states: Dict[str, Any]
+
+    @classmethod
+    def capture(cls) -> "_GlobalStateSnapshot":
+        """Capture a few global states from torch, numpy, etc., that we want to restore in a spawned worker
+        process."""
+        warn_only = torch.is_deterministic_algorithms_warn_only_enabled() if _TORCH_GREATER_EQUAL_1_11 else False
+        return cls(
+            use_deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
+            use_deterministic_algorithms_warn_only=warn_only,
+            cudnn_benchmark=torch.backends.cudnn.benchmark,
+            rng_states=_collect_rng_states(),
+        )
+
+    def restore(self) -> None:
+        """Restores all globals to the values captured in the :meth:`capture` method."""
+        if _TORCH_GREATER_EQUAL_1_11:
+            torch.use_deterministic_algorithms(
+                self.use_deterministic_algorithms, warn_only=self.use_deterministic_algorithms_warn_only
+            )
+        else:
+            torch.use_deterministic_algorithms(self.use_deterministic_algorithms)
+        torch.backends.cudnn.benchmark = self.cudnn_benchmark
+        _set_rng_states(self.rng_states)
+
+
+def _is_forking_disabled() -> bool:
+    """Returns whether forking is disabled through the environment variable ``PL_DISABLE_FORK``."""
+    return bool(int(os.environ.get("PL_DISABLE_FORK", "0")))

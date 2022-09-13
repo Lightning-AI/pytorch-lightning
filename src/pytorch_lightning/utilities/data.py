@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import functools
 import inspect
-import os
-from contextlib import contextmanager
 from dataclasses import fields
-from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import is_dataclass_instance
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
@@ -32,22 +30,35 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
+from lightning_lite.utilities import LightningEnum
+from lightning_lite.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
+from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterable_dataset
+from lightning_lite.utilities.data import has_len as new_has_len
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.seed import pl_worker_init_function
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore
 
 warning_cache = WarningCache()
 
 
-def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
+class _WrapAttrTag(LightningEnum):
+    SET = "set"
+    DEL = "del"
+
+    def __call__(self, *args):
+        if self == self.SET:
+            fn = setattr
+        else:
+            fn = delattr
+        return fn(*args)
+
+
+def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
     if isinstance(batch, Tensor):
         if batch.ndim == 0:
             yield 1
@@ -59,7 +70,7 @@ def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
 
         for sample in batch:
             yield from _extract_batch_size(sample)
-    elif _is_dataclass_instance(batch):
+    elif is_dataclass_instance(batch):
         for field in fields(batch):
             yield from _extract_batch_size(getattr(batch, field.name))
     else:
@@ -96,49 +107,16 @@ def extract_batch_size(batch: BType) -> int:
     return batch_size
 
 
-def has_iterable_dataset(dataloader: DataLoader) -> bool:
-    return hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset)
-
-
-def has_len(dataloader: Union[DataLoader, Dataset, Iterable]) -> bool:
-    """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
-    infinite dataloader."""
-    try:
-        # try getting the length
-        if isinstance(dataloader, DataLoader) and len(dataloader) == 0:
-            rank_zero_warn(
-                f"`{dataloader.__class__.__name__}` returned 0 length. Please make sure this was your intention."
-            )
-        has_len = True
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
-        has_len = False
-
-    if has_len and isinstance(dataloader, DataLoader) and has_iterable_dataset(dataloader):
-        rank_zero_warn(
-            "Your `IterableDataset` has `__len__` defined."
-            " In combination with multi-process data loading (when num_workers > 1),"
-            " `__len__` could be inaccurate if each worker is not configured independently"
-            " to avoid having duplicate data."
-        )
-    return has_len
-
-
 def has_len_all_ranks(
     dataloader: DataLoader,
-    training_type: "pl.strategies.Strategy",
+    strategy: "pl.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
         local_length = len(dataloader)
-        if isinstance(model, pl.LightningModule):
-            local_length_tensor = torch.tensor(local_length).to(model.device)
-        else:
-            local_length_tensor = torch.tensor(local_length)
-        total_length = training_type.reduce(local_length_tensor, reduce_op="sum")
+        total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
 
         if total_length == 0:
             rank_zero_warn(
@@ -160,12 +138,10 @@ def has_len_all_ranks(
         else:
             has_len = True
 
-    except TypeError:
-        has_len = False
-    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
+    except (TypeError, NotImplementedError):
         has_len = False
 
-    if has_len and has_iterable_dataset(dataloader):
+    if has_len and new_has_iterable_dataset(dataloader):
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
@@ -181,7 +157,7 @@ def get_len(dataloader: Union[DataLoader, Dataset]) -> Union[int, float]:
     If ``__len__`` method is not implemented, return float('inf').
     """
 
-    if has_len(dataloader) and isinstance(dataloader, DataLoader):
+    if new_has_len(dataloader):
         return len(dataloader)
 
     return float("inf")
@@ -190,42 +166,25 @@ def get_len(dataloader: Union[DataLoader, Dataset]) -> Union[int, float]:
 def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode=mode)  # type: ignore
-    dl_cls = type(dataloader)
-    try:
-        dataloader = dl_cls(*dl_args, **dl_kwargs)
-    except TypeError as e:
-        # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
-        # `__init__` arguments map to one `DataLoader.__init__` argument
-        import re
-
-        match = re.match(r".*__init__\(\) got multiple values .* '(\w+)'", str(e))
-        if not match:
-            # an unexpected `TypeError`, continue failure
-            raise
-        argument = match.groups()[0]
-        message = (
-            f"The {dl_cls.__name__} `DataLoader` implementation has an error where more than one `__init__` argument"
-            f" can be passed to its parent's `{argument}=...` `__init__` argument. This is likely caused by allowing"
-            f" passing both a custom argument that will map to the `{argument}` argument as well as `**kwargs`."
-            f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
-            " This argument was automatically passed to your DataLoader by PyTorch Lightning."
-        )
-        raise MisconfigurationException(message) from e
+    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
+    dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
     return dataloader
 
 
 def _get_dataloader_init_args_and_kwargs(
-    dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
+    dataloader: DataLoader,
+    sampler: Optional[Sampler],
+    mode: Optional[RunningStage] = None,
+    disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
-    was_wrapped = hasattr(dataloader, "__pl_dl_args")
+    was_wrapped = hasattr(dataloader, "__pl_saved_args")
     if was_wrapped:
-        dl_args = dataloader.__pl_dl_args
-        dl_kwargs = dataloader.__pl_dl_kwargs
-        arg_names = dataloader.__pl_dl_arg_names
+        dl_args = dataloader.__pl_saved_args
+        dl_kwargs = dataloader.__pl_saved_kwargs
+        arg_names = dataloader.__pl_saved_arg_names
         original_dataset = dataloader.__dataset  # we have this saved from _wrap_init
     else:
         # get the dataloader instance attributes
@@ -268,7 +227,7 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode=mode))  # type: ignore
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode, disallow_batch_sampler))
 
     required_args: Union[list[str], set[str]] = {
         p.name
@@ -313,7 +272,10 @@ def _get_dataloader_init_args_and_kwargs(
 
 
 def _dataloader_init_kwargs_resolve_sampler(
-    dataloader: DataLoader, sampler: Union[Sampler, Generator], mode: Optional[RunningStage] = None
+    dataloader: DataLoader,
+    sampler: Optional[Sampler],
+    mode: Optional[RunningStage] = None,
+    disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
     re-instantiation.
@@ -321,108 +283,100 @@ def _dataloader_init_kwargs_resolve_sampler(
     If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
     Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
     `FastForwardSampler`.
+
+    If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
+    automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
     fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
-    # checking the batch sampler type is different than PyTorch default.
-    if batch_sampler is not None and (type(batch_sampler) is not BatchSampler or is_predicting):
-        batch_sampler = type(batch_sampler)(
-            sampler,
-            batch_size=batch_sampler.batch_size,
-            drop_last=(False if is_predicting else batch_sampler.drop_last),
-        )
-        if is_predicting:
-            batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-        if fault_tolerant_mode.is_automatic:
-            fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-            fast_forward_sampler.setup(dataloader_batch_size=1)
+    if batch_sampler is not None:
+        if disallow_batch_sampler:
+            # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
+            if not (
+                type(batch_sampler) is BatchSampler
+                and batch_sampler.sampler == sampler
+                and dataloader.batch_size == batch_sampler.batch_size
+            ):
+                raise MisconfigurationException(
+                    "It is not possible to have a batch sampler in your dataloader, "
+                    "when running on multiple IPU devices."
+                )
+        elif type(batch_sampler) is not BatchSampler or is_predicting:
+            batch_sampler_cls = type(batch_sampler)
+            if hasattr(batch_sampler, "__pl_saved_args"):
+                args = batch_sampler.__pl_saved_args
+                kwargs = batch_sampler.__pl_saved_kwargs
+                default_kwargs = batch_sampler.__pl_saved_default_kwargs
+                arg_names = batch_sampler.__pl_saved_arg_names
 
-        return {
-            "sampler": None,
-            "shuffle": False,
-            "batch_sampler": batch_sampler,
-            "batch_size": 1,
-            "drop_last": False,
-        }
+                if is_predicting:
+                    success, args, kwargs = _replace_value_in_saved_args(
+                        "drop_last", False, args, kwargs, default_kwargs, arg_names
+                    )
+                    if not success:
+                        rank_zero_warn(
+                            f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
+                            f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
+                            "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
+                            "the `__init__` method of your custom class."
+                        )
+
+                success, args, kwargs = _replace_value_in_saved_args(
+                    "sampler", sampler, args, kwargs, default_kwargs, arg_names
+                )
+                if not success:
+                    raise TypeError(
+                        "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
+                        f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
+                        "this, expose an argument `sampler` in the `__init__` method of your custom class."
+                    )
+
+                batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
+            else:
+                try:
+                    batch_sampler = batch_sampler_cls(
+                        sampler,
+                        batch_size=batch_sampler.batch_size,
+                        drop_last=(False if is_predicting else batch_sampler.drop_last),
+                    )
+                except TypeError as e:
+                    import re
+
+                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
+                    if not match:
+                        # an unexpected `TypeError`, continue failure
+                        raise
+
+                    # There could either be too few or too many arguments. Customizing the message based on this doesn't
+                    # make much sense since our MisconfigurationException is going to be raised from the original one.
+                    raise MisconfigurationException(
+                        "We tried to re-instantiate your custom batch sampler and failed. "
+                        "To mitigate this, either follow the API of `BatchSampler` or instantiate "
+                        "your custom batch sampler inside `*_dataloader` hooks of your module."
+                    ) from e
+
+            if is_predicting:
+                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+
+            if fault_tolerant_mode.is_automatic:
+                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+                fast_forward_sampler.setup(dataloader_batch_size=1)
+
+            return {
+                "sampler": None,
+                "shuffle": False,
+                "batch_sampler": batch_sampler,
+                "batch_size": 1,
+                "drop_last": False,
+            }
 
     if fault_tolerant_mode.is_automatic:
         fast_forward_sampler = sampler = FastForwardSampler(sampler)
         fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
 
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
-
-
-def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
-    if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
-        dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
-
-
-def _wrap_dataloader_init(init: Callable) -> Callable:
-    """Wraps the ``__init__`` method of :class:`~torch.utils.data.DataLoader` in order to enable re-instantiation
-    of custom subclasses."""
-
-    @functools.wraps(init)
-    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
-        # We need to inspect `init`, as inspecting `obj.__init__`
-        # can lead to inspecting the wrong function with multiple inheritance
-        params = inspect.signature(init).parameters
-        param_names = tuple(
-            param.name
-            for param in params.values()
-            if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
-        )
-        param_names = param_names[: len(args)]
-
-        if not hasattr(obj, "__pl_dl_args"):
-            obj.__pl_dl_args = args
-            obj.__pl_dl_kwargs = kwargs
-            obj.__pl_dl_arg_names = param_names
-
-        # We want to use the latest possible value for dataset argument (i.e. ideally what gets passed to DataLoader)
-        # so that we can be sure, that it will not get changed anymore.
-        # That is why we are setting this in every `__init__`
-        if "dataset" in param_names:
-            setattr(obj, "__dataset", args[param_names.index("dataset")])
-        elif "dataset" in kwargs:
-            setattr(obj, "__dataset", kwargs["dataset"])
-
-        init(obj, *args, **kwargs)
-
-    return wrapper
-
-
-# https://stackoverflow.com/a/63851681/9201239
-def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
-    """Returns a list of all classes that inherit directly or indirectly from the given class."""
-    subclasses = set()
-
-    def recurse(cl: Type[Any]) -> None:
-        for subclass in cl.__subclasses__():
-            subclasses.add(subclass)
-            recurse(subclass)
-
-    recurse(cls)
-    return subclasses
-
-
-@contextmanager
-def _replace_dataloader_init_method() -> Generator[None, None, None]:
-    """This context manager is used to add support for re-instantiation of custom (subclasses) of
-    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
-    classes = _get_all_subclasses(DataLoader) | {DataLoader}
-    wrapped: set[Any] = set()
-    for cls in classes:
-        if cls.__init__ not in wrapped and isinstance(cls, DataLoader):
-            cls._old_init = cls.__init__
-            cls.__init__ = _wrap_dataloader_init(cls.__init__)
-            wrapped.add(cls.__init__)
-    yield
-    for cls in classes:
-        if hasattr(cls, "_old_init") and isinstance(cls, DataLoader):
-            cls.__init__ = cls._old_init
-            del cls._old_init
 
 
 def _wrap_with_capture_dataset(dataset: Dataset) -> Dataset:
@@ -461,13 +415,13 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
 
 
 def _is_dataloader_shuffled(dataloader: object) -> bool:
-    if hasattr(dataloader, "__pl_dl_kwargs"):
+    if hasattr(dataloader, "__pl_saved_kwargs"):
         # this attribute is not part of PyTorch's DataLoader, but could have been set by
-        # our `_replace_dataloader_init_method` context manager
-        if "shuffle" in dataloader.__pl_dl_kwargs:
-            return dataloader.__pl_dl_kwargs["shuffle"]
-        if "shuffle" in dataloader.__pl_dl_arg_names:
-            return dataloader.__pl_dl_args[dataloader.__pl_dl_arg_names.index("shuffle")]
+        # our `_replace_init_method` context manager
+        if "shuffle" in dataloader.__pl_saved_kwargs:
+            return dataloader.__pl_saved_kwargs["shuffle"]
+        if "shuffle" in dataloader.__pl_saved_arg_names:
+            return dataloader.__pl_saved_args[dataloader.__pl_saved_arg_names.index("shuffle")]
     if isinstance(dataloader.dataset, IterableDataset):
         # shuffling is useless with iterable datasets
         return False
@@ -478,3 +432,19 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
     if isinstance(sampler, SequentialSampler):
         return False
     return isinstance(sampler, RandomSampler)
+
+
+def has_iterable_dataset(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.data.has_iterable_dataset` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.data.has_iterable_dataset` instead."
+    )
+    return new_has_iterable_dataset(*args, **kwargs)
+
+
+def has_len(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.data.has_len` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.data.has_len` instead."
+    )
+    return new_has_len(*args, **kwargs)

@@ -21,17 +21,17 @@ import os
 from argparse import Namespace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
-_COMET_AVAILABLE = _module_available("comet_ml")
+_COMET_AVAILABLE = module_available("comet_ml")
 
 if _COMET_AVAILABLE:
     import comet_ml
@@ -53,7 +53,8 @@ else:
 
 class CometLogger(Logger):
     r"""
-    Log using `Comet.ml <https://www.comet.ml>`_.
+    Track your parameters, metrics, source code and more using
+    `Comet <https://www.comet.com/?utm_source=pytorch_lightning&utm_medium=referral>`_.
 
     Install it with pip:
 
@@ -98,6 +99,85 @@ class CometLogger(Logger):
             experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
+
+    **Log Hyperparameters:**
+
+    Log parameters used to initialize a :class:`~pytorch_lightning.core.module.LightningModule`:
+
+    .. code-block:: python
+
+        class LitModule(LightningModule):
+            def __init__(self, *args, **kwarg):
+                self.save_hyperparameters()
+
+    Log other Experiment Parameters
+
+    .. code-block:: python
+
+        # log a single parameter
+        logger.log_hyperparams({"batch_size": 16})
+
+        # log multiple parameters
+        logger.log_hyperparams({"batch_size": 16, "learning_rate": 0.001})
+
+    **Log Metrics:**
+
+    .. code-block:: python
+
+        # log a single metric
+        logger.log_metrics({"train/loss": 0.001})
+
+        # add multiple metrics
+        logger.log_metrics({"train/loss": 0.001, "val/loss": 0.002})
+
+    **Access the Comet Experiment object:**
+
+    You can gain access to the underlying Comet
+    `Experiment <https://www.comet.com/docs/v2/api-and-sdk/python-sdk/reference/Experiment/>`__ object
+    and its methods through the :obj:`logger.experiment` property. This will let you use
+    the additional logging features provided by the Comet SDK.
+
+    Some examples of data you can log through the Experiment object:
+
+    Log Image data:
+
+    .. code-block:: python
+
+        img = PIL.Image.open("<path to image>")
+        logger.experiment.log_image(img, file_name="my_image.png")
+
+    Log Text data:
+
+    .. code-block:: python
+
+        text = "Lightning is awesome!"
+        logger.experiment.log_text(text)
+
+    Log Audio data:
+
+    .. code-block:: python
+
+        audio = "<path to audio data>"
+        logger.experiment.log_audio(audio, file_name="my_audio.wav")
+
+    Log arbitary data assets:
+
+    You can log any type of data to Comet as an asset. These can be model
+    checkpoints, datasets, debug logs, etc.
+
+    .. code-block:: python
+
+        logger.experiment.log_asset("<path to your asset>", file_name="my_data.pkl")
+
+    Log Models to Comet's Model Registry:
+
+    .. code-block:: python
+
+        logger.experiment.log_model(name="my-model", "<path to your model>")
+
+    See Also:
+        - `Demo in Google Colab <https://tinyurl.com/22phzw5s>`__
+        - `Comet Documentation <https://www.comet.com/docs/v2/integrations/ml-frameworks/pytorch-lightning/>`__
 
     Args:
         api_key: Required in online mode. API key, found on Comet.ml. If not given, this

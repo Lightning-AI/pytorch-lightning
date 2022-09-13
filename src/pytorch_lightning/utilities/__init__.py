@@ -15,38 +15,24 @@
 
 import numpy
 
-from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
-from pytorch_lightning.utilities.distributed import AllGatherGrad  # noqa: F401
-from pytorch_lightning.utilities.enums import (  # noqa: F401
-    _AcceleratorType,
-    _StrategyType,
-    AMPType,
-    DistributedType,
-    GradClipAlgorithmType,
-    LightningEnum,
-)
+from lightning_lite.utilities import AllGatherGrad, AMPType, LightningEnum  # noqa: F401
+from lightning_lite.utilities.apply_func import move_data_to_device  # noqa: F401
+from pytorch_lightning.utilities.enums import GradClipAlgorithmType  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
-    _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
-    _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,
-    _GROUP_AVAILABLE,
     _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
-    _HYDRA_AVAILABLE,
-    _HYDRA_EXPERIMENTAL_AVAILABLE,
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
     _IS_WINDOWS,
-    _module_available,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_QUANTIZE_AVAILABLE,
-    _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TPU_AVAILABLE,
     _XLA_AVAILABLE,

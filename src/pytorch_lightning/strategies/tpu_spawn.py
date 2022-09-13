@@ -13,31 +13,34 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.environments import XLAEnvironment
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.utilities.data import has_len
+from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.environments import XLAEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _XLALauncher
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -58,7 +61,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        parallel_devices: Optional[List[int]] = None,
+        parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
@@ -72,12 +75,17 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             precision_plugin=precision_plugin,
             start_method="fork",
         )
+        self._checkpoint_io: Optional[CheckpointIO]
         self.debug = debug
+        self._launched = False
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
+
         return self._checkpoint_io
 
     @checkpoint_io.setter
@@ -86,19 +94,20 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def root_device(self) -> torch.device:
+        if not self._launched:
+            raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
         return xm.xla_device()
 
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
-        if not isinstance(dataloaders, list):
-            dataloaders = [dataloaders]
-
-        for dataloader in dataloaders:
+    def _validate_dataloader(dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
+        def check_has_len(dataloader: DataLoader) -> None:
             if not has_len(dataloader):
                 raise MisconfigurationException(
                     "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
                     " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
+
+        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)
 
     @staticmethod
     def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
@@ -112,6 +121,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         )
         for source in sources:
             if not source.is_module():
+                assert source.instance is not None
+                assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
                 TPUSpawnStrategy._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:
@@ -119,25 +130,28 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def _configure_launcher(self):
+    def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.accelerator
         self.accelerator.setup(trainer)
 
         if self.debug:
-            os.environ["PT_XLA_DEBUG"] = str(1)
+            os.environ["PT_XLA_DEBUG"] = "1"
 
-        shared_params = find_shared_parameters(self.model)
+        assert self.lightning_module
+        shared_params = find_shared_parameters(self.lightning_module)
         self.model_to_device()
-        set_shared_parameters(self.model.module, shared_params)
+
+        set_shared_parameters(self.lightning_module, shared_params)
         self.setup_precision_plugin()
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
             optimizers_to_device(self.optimizers, self.root_device)
 
-    def _setup_model(self, model: Module) -> Module:
+    def _setup_model(self, model: Module) -> Module:  # type: ignore
         return model
 
     @property
@@ -146,8 +160,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def is_distributed(self) -> bool:
-        # HOST_WORLD_SIZE is None outside the xmp.spawn process
-        return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
+        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
+        return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnStrategy._validate_dataloader(dataloader)
@@ -162,11 +176,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
 
-    def barrier(self, name: Optional[str] = None) -> None:
+    def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if self.is_distributed:
             rendezvous(name)
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not self.is_distributed:
             return obj
         buffer = io.BytesIO()
@@ -178,15 +192,18 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         obj = torch.load(buffer)
         return obj
 
-    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+    def reduce(
+        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    ) -> Tensor:
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
 
         invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
         invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if invalid_reduce_op or invalid_reduce_op_str:
-            raise MisconfigurationException(
-                "Currently, TPUSpawn Strategy only support `sum`, `mean`, `avg` reduce operation."
+            raise ValueError(
+                "Currently, the TPUSpawnStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                f" {reduce_op}"
             )
 
         output = xm.mesh_reduce("reduce", output, sum)
@@ -196,20 +213,23 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def _worker_setup(self, process_idx: int):
-        reset_seed()
+    def _worker_setup(self, process_idx: int) -> None:
+        self._launched = True
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
         with self.precision_plugin.val_step_context():
             return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
         with self.precision_plugin.test_step_context():
             return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        assert self.model is not None
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 

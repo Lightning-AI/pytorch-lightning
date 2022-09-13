@@ -22,38 +22,40 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import (
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.utilities.distributed import (
     _get_process_group_backend_from_env,
     get_default_process_group_backend_for_device,
     log,
 )
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.strategies.utils import _fp_to_half
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
-from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 warning_cache = WarningCache()
 
-_DEEPSPEED_AVAILABLE: bool = _RequirementAvailable("deepspeed")
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -70,13 +72,23 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
+    """
+    .. deprecated:: v1.7.1
+        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
+    """
+
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        precision: Union[str, int] = 32,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
-        super().__init__(pl_module)
+        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.7.1 and will be removed in v1.9.0")
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         self.precision = precision
 
-    def forward(self, *inputs, **kwargs):
+    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
         inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
         return super().forward(*inputs, **kwargs)
 
@@ -123,7 +135,7 @@ class DeepSpeedStrategy(DDPStrategy):
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
         logging_batch_size_per_gpu: Union[str, int] = "auto",
-        config: Optional[Union[Path, str, dict]] = None,
+        config: Optional[Union[_PATH, Dict[str, Any]]] = None,
         logging_level: int = logging.WARN,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
@@ -142,7 +154,7 @@ class DeepSpeedStrategy(DDPStrategy):
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed`.
+        lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
 
         .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
 
@@ -152,7 +164,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is only compatible with precision=16.
+            zero_optimization: Enable ZeRO optimization. This is compatible with either `precision=16` or
+                `precision="bf16"`.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
@@ -331,7 +344,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-    def _load_config(self, config):
+    def _load_config(self, config: Optional[Union[_PATH, Dict[str, Any]]]) -> Optional[Dict[str, Any]]:
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
             config = os.environ[self.DEEPSPEED_ENV_VAR]
@@ -342,9 +355,10 @@ class DeepSpeedStrategy(DDPStrategy):
                 )
             with open(config) as f:
                 config = json.load(f)
+        assert isinstance(config, dict) or config is None
         return config
 
-    def setup_distributed(self):
+    def setup_distributed(self) -> None:
         reset_seed()
 
         # determine which process we are and world size
@@ -357,8 +371,10 @@ class DeepSpeedStrategy(DDPStrategy):
             self._config_initialized = True
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
         # we set the device so that optimizers can be created with distributed comms.
+        assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
@@ -367,6 +383,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.barrier()
 
     def _init_deepspeed_distributed(self) -> None:
+        assert self.cluster_environment is not None
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
             self._set_node_environment_variables()
@@ -378,7 +395,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self._process_group_backend = self._get_process_group_backend()
         deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
 
-    def _get_process_group_backend(self):
+    def _get_process_group_backend(self) -> str:
         return (
             self._process_group_backend
             or _get_process_group_backend_from_env()
@@ -386,6 +403,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
 
     def _set_node_environment_variables(self) -> None:
+        assert self.cluster_environment is not None
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         os.environ["RANK"] = str(self.global_rank)
@@ -396,7 +414,9 @@ class DeepSpeedStrategy(DDPStrategy):
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
-    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+    def _setup_model_and_optimizers(
+        self, model: Module, optimizers: List[Optimizer]
+    ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
         Currently only a single optimizer is supported.
@@ -414,14 +434,18 @@ class DeepSpeedStrategy(DDPStrategy):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # normally we set this to the batch size, but it is not available here unless the user provides it
         # as part of the config
+        assert self.config is not None
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self.model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
         return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
-        self, model: Module, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
-    ):
+        self,
+        model: Module,
+        optimizer: Optional[Optimizer],
+        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
+    ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
@@ -431,14 +455,15 @@ class DeepSpeedStrategy(DDPStrategy):
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
-            model_parameters=model_parameters,  # type: ignore
+            model_parameters=model_parameters,
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             dist_init_required=False,
         )
         return deepspeed_engine, deepspeed_optimizer
 
-    def init_deepspeed(self):
+    def init_deepspeed(self) -> None:
+        assert self.lightning_module is not None
         # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
@@ -464,7 +489,8 @@ class DeepSpeedStrategy(DDPStrategy):
                 "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
-        model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision_plugin.precision)
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        model = _LightningModuleWrapperBase(forward_module=self.model)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -472,6 +498,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self._initialize_deepspeed_inference(model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
+        assert self.lightning_module is not None
         optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
@@ -485,10 +512,13 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def zero_stage_3(self) -> bool:
-        return self.config.get("zero_optimization") and self.config.get("zero_optimization").get("stage") == 3
+        assert isinstance(self.config, dict)
+        zero_optimization = self.config.get("zero_optimization")
+        return zero_optimization is not None and zero_optimization.get("stage") == 3
 
-    def _initialize_deepspeed_train(self, model):
+    def _initialize_deepspeed_train(self, model: Module) -> None:
         optimizer, scheduler = None, None
+        assert isinstance(self.config, dict)
         if "optimizer" in self.config:
             rank_zero_info(
                 "You have specified an optimizer and/or scheduler within the DeepSpeed config."
@@ -538,7 +568,8 @@ class DeepSpeedStrategy(DDPStrategy):
         with model_parallel_context:
             yield
 
-    def _set_deepspeed_activation_checkpointing(self):
+    def _set_deepspeed_activation_checkpointing(self) -> None:
+        assert isinstance(self.config, dict)
         if self.config.get("activation_checkpointing"):
             checkpoint_config = self.config["activation_checkpointing"]
             deepspeed.checkpointing.configure(
@@ -549,8 +580,9 @@ class DeepSpeedStrategy(DDPStrategy):
                 profile=checkpoint_config.get("profile"),
             )
 
-    def _initialize_deepspeed_inference(self, model):
+    def _initialize_deepspeed_inference(self, model: Module) -> None:
         # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
+        assert isinstance(self.config, dict)
         optimizer, scheduler = None, None
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -585,13 +617,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @property
-    def lightning_module(self):
-        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
-        module = getattr(self.model, "module", self.model)
-        return module.module if isinstance(module, LightningDeepSpeedModule) else module
-
-    @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -616,17 +642,18 @@ class DeepSpeedStrategy(DDPStrategy):
         """Whether the plugin handles gradient accumulation internally."""
         return True
 
-    def _format_config(self):
+    def _format_config(self) -> None:
         if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed"
+                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
 
-    def _format_batch_size_and_grad_accum_config(self):
+    def _format_batch_size_and_grad_accum_config(self) -> None:
         # todo: using lite, we do not support these variables within the config
+        assert isinstance(self.config, dict)
         if self.lightning_module is None:
             return
 
@@ -642,16 +669,17 @@ class DeepSpeedStrategy(DDPStrategy):
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
-    def _auto_select_batch_size(self):
+    def _auto_select_batch_size(self) -> int:
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
+        assert self.lightning_module is not None
         batch_size = 1
         train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
         if train_dl_source.is_defined():
             try:
                 train_dataloader = train_dl_source.dataloader()
                 if hasattr(train_dataloader, "batch_sampler"):
-                    batch_size = train_dataloader.batch_sampler.batch_size
+                    batch_size = train_dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
             # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
             # to have been called before
             except Exception:
@@ -664,7 +692,8 @@ class DeepSpeedStrategy(DDPStrategy):
         return batch_size
 
     def _format_precision_config(self) -> None:
-        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+        assert isinstance(self.config, dict)
+        if self.precision_plugin.precision == PrecisionType.HALF:
             if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -707,7 +736,7 @@ class DeepSpeedStrategy(DDPStrategy):
         single_submit: bool,
         overlap_events: bool,
         thread_count: int,
-        **zero_kwargs,
+        **zero_kwargs: Any,
     ) -> Dict:
         cfg = {
             "activation_checkpointing": {
@@ -753,7 +782,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return cfg
 
     @property
-    def deepspeed_engine(self):
+    def deepspeed_engine(self) -> "deepspeed.DeepSpeedEngine":
         return self.model
 
     @property
@@ -786,7 +815,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
                 "If a single file is required after training, "
-                "see https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#"
+                "see https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#"
                 "deepspeed-zero-stage-3-single-file for instructions."
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
@@ -803,6 +832,8 @@ class DeepSpeedStrategy(DDPStrategy):
             return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information
+        assert self.lightning_module is not None
+
         from pytorch_lightning.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
@@ -818,6 +849,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def lightning_restore_optimizer(self) -> bool:
+        assert self.lightning_module is not None
         # managed by DeepSpeed
         if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             rank_zero_warn(
@@ -842,11 +874,13 @@ class DeepSpeedStrategy(DDPStrategy):
             ckpt: The ckpt file.
         """
 
-        def load(module: torch.nn.Module, prefix=""):
+        assert self.lightning_module is not None
 
-            missing_keys = []
-            unexpected_keys = []
-            error_msgs = []
+        def load(module: torch.nn.Module, prefix: str = "") -> None:
+
+            missing_keys: List[str] = []
+            unexpected_keys: List[str] = []
+            error_msgs: List[str] = []
             state_dict = ckpt["state_dict"]
 
             # copy state_dict so _load_from_state_dict can modify it
@@ -914,14 +948,21 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer_device="nvme",
         )
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
+        return super().batch_to_device(batch, device, dataloader_idx)
+
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
         with self.precision_plugin.val_step_context():
             return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
         with self.precision_plugin.test_step_context():
             return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        assert self.model is not None
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
