@@ -1,0 +1,116 @@
+on:
+  push:
+    branches: [master, "release/*"]
+    paths:
+      - ".github/workflows/ci-pytorch-test-tpu.yml"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    paths:
+      - ".github/workflows/ci-pytorch-test-tpu.yml"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+jobs:
+  test-on-tpus:
+    runs-on: ubuntu-22.04
+    if: github.event.pull_request.draft == false
+    env:
+      PYTHON_VER: 3.7
+      CHECK_SLEEP: 5
+    timeout-minutes: 60
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: $PYTHON_VER
+
+    - name: Checkout ml-testing-accelerators
+      run: |
+       git clone https://github.com/GoogleCloudPlatform/ml-testing-accelerators.git
+       cd ml-testing-accelerators
+       git fetch origin 5e88ac24f631c27045e62f0e8d5dfcf34e425e25:stable
+       git checkout stable
+
+    - name: Install jsonnet
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.7.1'
+      run: go install github.com/google/go-jsonnet/cmd/jsonnet@latest
+
+    - name: Update jsonnet
+      env:
+        XLA_VER: 1.12
+        PR_NUMBER: ${{ github.event.number }}
+        SHA: ${{ github.sha }}
+      run: |
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
+       data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
+       cat dockers/tpu-tests/tpu_test_cases.jsonnet
+      shell: bash
+
+    - name: Deploy cluster
+      run: |
+       export PATH=$PATH:$HOME/go/bin
+       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -)
+       job_name=${job_name#job.batch/}
+       job_name=${job_name% created}
+       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
+       echo "GKE pod name: $pod_name"
+       echo "Waiting on kubernetes job: $job_name"
+       status_code=2 &&
+       # Check on the job periodically. Set the status code depending on what happened to the job in Kubernetes.
+       printf "Waiting for job to finish: "
+       while true; do
+         if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then
+           status_code=1 && break;
+         elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1"; then
+           status_code=0 && break;
+         else
+           printf ".";
+         fi;
+         sleep $CHECK_SLEEP;
+       done
+       echo "Done waiting. Job status code: $status_code"
+       kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
+       if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt; then
+         csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/';
+       else
+         mv /tmp/full_output.txt xx00;
+       fi
+       # First portion is the test logs.
+       cat xx00 && echo "Done with log retrieval attempt."
+       exit $status_code
+      shell: bash
+
+    - name: Statistics
+      if: success()
+      working-directory: tests/tests_pytorch
+      run: |
+        mv ./xx01 coverage.xml
+        coverage report
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: tests/tests_pytorch/coverage.xml
+        flags: tpu,pytest,python${{ matrix.python-version }}
+        name: TPU-coverage
+        fail_ci_if_error: false

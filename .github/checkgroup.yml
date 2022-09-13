@@ -9,7 +9,7 @@ subprojects:
   - id: "CI: CircleCI"
     paths:
       - ".circleci/**"
-      - ".github/workflows/ci-circleci.yml"
+      - ".github/workflows/ci-pytorch-test-tpu.yml"
     checks:
       - "test-on-tpus"
 

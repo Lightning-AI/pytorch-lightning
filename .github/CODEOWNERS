@@ -9,7 +9,6 @@
 
 # CI/CD and configs
 /.github/       @borda @carmocca @akihironitta @tchaton
-/.circleci/     @borda @carmocca @akihironitta @tchaton
 /.azure/        @borda @carmocca @akihironitta @tchaton
 /dockers/       @borda @carmocca @akihironitta @tchaton
 *.yml           @borda @carmocca @akihironitta @tchaton
