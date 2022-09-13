@@ -232,6 +232,16 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
 
     os.environ["LIGHTNING_APP_NAME"] = name
 
+    url = Config.url
+    if url.endswith("/"):
+        url = url[:-1]
+    payload = {"apiKey": Config.api_key, "username": Config.username}
+    res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
+    if "token" not in res.json():
+        raise Exception("You haven't properly setup your environment variables.")
+
+    token = res.json()["token"]
+
     # 3. Disconnect from the App if any.
     Popen("lightning disconnect", shell=True).wait()
 
@@ -272,7 +282,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     # 6. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
-        payload = {"apiKey": Config.api_key, "username": Config.username, "duration": "120000"}
         context = browser.new_context(
             # Eventually this will need to be deleted
             http_credentials=HttpCredentials(
@@ -282,11 +291,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             record_har_path=Config.har_location,
         )
         admin_page = context.new_page()
-        url = Config.url
-        if url.endswith("/"):
-            url = url[:-1]
-        res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
-        token = res.json()["token"]
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")
         print(f"The Lightning App user id is: {Config.id}")
