@@ -625,6 +625,7 @@ class Trainer(
 
         self.test_dataloaders: Optional[List[DataLoader]] = None
         self.val_dataloaders: Optional[List[DataLoader]] = None
+        self.predict_dataloaders: Optional[List[DataLoader]] = None
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
