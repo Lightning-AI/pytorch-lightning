@@ -86,16 +86,22 @@ def _app_logs_reader(
         th.start()
 
     # Print logs from queue when log event is available
-    skip = "lightning-launcher"
+    flow = "Your app has started. View it in your browser"
+    work = "USER_RUN_WORK"
+    start_timestamps = {}
 
     # Print logs from queue when log event is available
     try:
         while True:
             log_event: _LogEvent = read_queue.get(timeout=None if follow else 1.0)
-            if skip in log_event.message:
-                pass
-            else:
-                yield log_event
+            token = flow if log_event.component_name == "flow" else work
+            if token in log_event.message:
+                start_timestamps[log_event.component_name] = log_event.timestamp
+
+            timestamp = start_timestamps.get(log_event.component_name, None)
+            if timestamp and log_event.timestamp >= timestamp:
+                if "launcher" not in log_event.message:
+                    yield log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
