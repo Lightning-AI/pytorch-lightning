@@ -26,11 +26,10 @@ from torch import Tensor
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities.types import _PATH
-from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
@@ -59,7 +58,9 @@ class _MultiProcessingLauncher(_Launcher):
             - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
+    def __init__(
+        self, strategy: "pl.strategies.Strategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+    ) -> None:
         self._strategy = strategy
         self._start_method = start_method
         if start_method not in mp.get_all_start_methods():
