@@ -44,9 +44,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: DocTests actions
+        working-directory: .actions/
         run: |
           pip install -q pytest
-          python -m pytest .actions -v
+          python -m pytest setup_tools.py -v --doctest-modules --color=yes
 
       - uses: actions/download-artifact@v3
         with:
