@@ -41,7 +41,7 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore
+BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
 warning_cache = WarningCache()
 
@@ -50,7 +50,7 @@ class _WrapAttrTag(LightningEnum):
     SET = "set"
     DEL = "del"
 
-    def __call__(self, *args):
+    def __call__(self, *args: Any) -> None:
         if self == self.SET:
             fn = setattr
         else:
@@ -58,7 +58,7 @@ class _WrapAttrTag(LightningEnum):
         return fn(*args)
 
 
-def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
+def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
     if isinstance(batch, Tensor):
         if batch.ndim == 0:
             yield 1
@@ -197,7 +197,7 @@ def _get_dataloader_init_args_and_kwargs(
         arg_names = ()
 
     # get the dataloader instance `__init__` parameters
-    params = dict(inspect.signature(dataloader.__init__).parameters)  # type: ignore
+    params = dict(inspect.signature(dataloader.__init__).parameters)  # type: ignore[misc]
     has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
     if has_variadic_kwargs:
         # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`

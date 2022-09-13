@@ -33,7 +33,7 @@ class _WrapAttrTag(LightningEnum):
     SET = "set"
     DEL = "del"
 
-    def __call__(self, *args):
+    def __call__(self, *args: Any) -> None:
         if self == self.SET:
             fn = setattr
         else:
@@ -99,7 +99,7 @@ def _get_dataloader_init_args_and_kwargs(
         arg_names = ()
 
     # get the dataloader instance `__init__` parameters
-    params = dict(inspect.signature(dataloader.__init__).parameters)
+    params = dict(inspect.signature(dataloader.__init__).parameters)  # type: ignore[misc]
     has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
     if has_variadic_kwargs:
         # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
@@ -141,14 +141,14 @@ def _get_dataloader_init_args_and_kwargs(
     }
     # the dataloader has required args which we could not extract from the existing attributes
     if required_args:
-        required_args = sorted(required_args)
+        sorted_required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
-        missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in required_args)
+        missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in sorted_required_args)
         raise MisconfigurationException(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
-            f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
-            "`*_dataloader` hook of your module, we will do this for you."
+            f"The missing attributes are {sorted_required_args}. If you instantiate your `{dataloader_cls_name}` "
+            "inside a `*_dataloader` hook of your module, we will do this for you."
             f" Otherwise, define {missing_args_message} inside your `__init__`."
         )
 
@@ -156,13 +156,13 @@ def _get_dataloader_init_args_and_kwargs(
         # the dataloader signature does not allow keyword arguments that need to be passed
         missing_kwargs = (set(dl_kwargs) | set(arg_names)) - params.keys()
         if missing_kwargs:
-            missing_kwargs = sorted(missing_kwargs)
+            sorted_missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
             raise TypeError(
                 f"Trying to inject parameters into the `{dataloader_cls_name}` instance. "
                 "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
-                f"The missing arguments are {missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` class, "
-                "add the `__init__` arguments or allow passing `**kwargs`"
+                f"The missing arguments are {sorted_missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` "
+                "class, add the `__init__` arguments or allow passing `**kwargs`"
             )
 
     return dl_args, dl_kwargs
@@ -334,7 +334,7 @@ def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
     :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
 
     @functools.wraps(method)
-    def wrapper(obj: Any, *args: Any):
+    def wrapper(obj: Any, *args: Any) -> None:
         # First, let's find out if we're the first in inheritance chain calling the patched method.
         name, *_ = args
         prev_call_name, prev_call_method = getattr(obj, "__pl_current_call", (None, "method"))
