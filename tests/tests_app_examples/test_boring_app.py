@@ -35,3 +35,4 @@ def test_boring_app_example_cloud() -> None:
         assert result.exit_code == 0
         assert result.exception is None
         assert any("http://0.0.0.0:8080" in line for line in lines)
+        print("Succeeded")

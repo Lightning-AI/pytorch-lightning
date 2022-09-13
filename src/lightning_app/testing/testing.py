@@ -396,38 +396,11 @@ def run_app_in_cloud(
         except KeyboardInterrupt:
             pass
         finally:
-            try:
-                button = admin_page.locator('[data-cy="stop"]')
-                try:
-                    button.wait_for(timeout=3 * 1000)
-                    button.click()
-                except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-                    pass
-                context.close()
-                browser.close()
+            if debug:
+                process.kill()
 
-                list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
-                    project.project_id
-                )
-
-                for lightningapp in list_lightningapps.lightningapps:
-                    if lightningapp.name != name:
-                        continue
-                    try:
-                        res = client.lightningapp_instance_service_delete_lightningapp_instance(
-                            project_id=project.project_id,
-                            id=lightningapp.id,
-                        )
-                        assert res == {}
-                    except ApiException as e:
-                        print(f"Failed to delete {lightningapp.name}. Exception {e}")
-
-                if debug:
-                    process.kill()
-
-                Popen("lightning disconnect", shell=True).wait()
-            except Exception as e:
-                print(e)
+            context.close()
+            browser.close()
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
