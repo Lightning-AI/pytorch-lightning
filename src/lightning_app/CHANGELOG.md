@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
+- LightningCloud client calls to use key word arguments instead of positional arguments ([#14685](https://github.com/Lightning-AI/lightning/pull/14685)
 
 
 ### Deprecated
