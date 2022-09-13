@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unReleased] - 2022-MM-DD
 
+
+- Added an option to configure the signal SLURM sends when a job is preempted or requeued ([#14610](https://github.com/Lightning-AI/lightning/issues/14610))
+
+
 ### Added
 
 
@@ -29,7 +33,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   [#14537](https://github.com/Lightning-AI/lightning/issues/14537),
   [#14556](https://github.com/Lightning-AI/lightning/issues/14556),
   [#14558](https://github.com/Lightning-AI/lightning/issues/14558),
-  [#14575](https://github.com/Lightning-AI/lightning/issues/14575))
+  [#14575](https://github.com/Lightning-AI/lightning/issues/14575),
+  [#14620](https://github.com/Lightning-AI/lightning/issues/14620))
 
 
 - Added utility to use `HabanaDataLoader` with the HPU Accelerator ([#13995](https://github.com/Lightning-AI/lightning/pull/13995))
@@ -126,6 +131,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the experimental `pytorch_lightning.utiltiies.meta` functions in favor of built-in https://github.com/pytorch/torchdistx support ([#13868](https://github.com/Lightning-AI/lightning/pull/13868))
 
 
+- Removed the deprecated `LoggerCollection`; `Trainer.logger` and `LightningModule.logger` now returns the first logger when more than one gets passed to the Trainer ([#14283](https://github.com/Lightning-AI/lightning/pull/14283))
+
+
 - Removed the deprecated the `trainer.lr_schedulers` ([#14408](https://github.com/Lightning-AI/lightning/pull/14408))
 
 
@@ -133,6 +141,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed deprecated support for old torchtext versions ([#14375](https://github.com/Lightning-AI/lightning/pull/14375))
+
+
+- Removed the deprecated `weights_save_path` Trainer argumnent and `Trainer.weights_save_path` property ([#14424](https://github.com/Lightning-AI/lightning/pull/14424))
 
 
 - Remove the deprecated ([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
@@ -161,6 +172,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue to keep downscaling the batch size in case there hasn't been even a single successful optimal batch size with `mode="power"` ([#14372](https://github.com/Lightning-AI/lightning/pull/14372))
 
 
+- Fixed compatibility when `torch.distributed` is not available ([#14454](https://github.com/Lightning-AI/lightning/pull/14454))
+
+
+- Fixed torchscript error with ensembles of LightningModules ([#14657](https://github.com/Lightning-AI/lightning/pull/14657))
+
+
 ## [1.7.5] - 2022-09-06
 
 ### Fixed
@@ -182,9 +199,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Reset epoch progress with batch size scaler ([#13846](https://github.com/Lightning-AI/lightning/pull/13846))
 - Fixed restoring the trainer after using `lr_find()` so that the correct LR schedule is used for the actual training ([#14113](https://github.com/Lightning-AI/lightning/pull/14113))
 - Fixed incorrect values after transferring data to an MPS device ([#14368](https://github.com/Lightning-AI/lightning/pull/14368))
-
-
-- Fixed compatibility when `torch.distributed` is not available ([#14454](https://github.com/Lightning-AI/lightning/pull/14454))
 
 
 ## [1.7.3] - 2022-08-25
