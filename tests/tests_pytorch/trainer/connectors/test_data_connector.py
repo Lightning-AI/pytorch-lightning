@@ -600,8 +600,8 @@ def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, data
     datamodule.test_dataloader = None
     datamodule.predict_dataloader = None
 
-    with pytest.raises(ValueError, match=f"No valid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=datamodule)
 
-    with pytest.raises(ValueError, match=f"No valid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=None)

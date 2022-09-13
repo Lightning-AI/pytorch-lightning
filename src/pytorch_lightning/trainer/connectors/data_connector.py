@@ -599,10 +599,10 @@ def _check_dataloader_none(
     trainer_fn: TrainerFn,
 ) -> None:
     # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
-    prefix = "training " if trainer_fn == TrainerFn.FITTING else ""
+    prefix = "train_" if trainer_fn == TrainerFn.FITTING else ""
     if dataloader is None and not dataloader_source.is_defined():
         raise ValueError(
-            f"No valid {prefix}dataloader was passed to `Trainer.{trainer_fn}()`."
+            f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
             f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
             f" `def {dataloader_source.name}(self):` in your LightningModule/LightningDataModule."
         )
