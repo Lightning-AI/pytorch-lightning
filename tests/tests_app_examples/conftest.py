@@ -19,7 +19,7 @@ def pytest_timeout_cancel_timer(item):
         lightning_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                project.project_id
+                project_id=project.project_id
             ).lightningapps
             if app.name == name
         ]

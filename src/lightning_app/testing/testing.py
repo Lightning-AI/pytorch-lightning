@@ -350,7 +350,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         lightning_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                project.project_id
+                project_id=project.project_id
             ).lightningapps
             if app.name == name
         ]
@@ -416,7 +416,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                     browser.close()
 
                     list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
-                        project.project_id
+                        project_id=project.project_id
                     )
 
                     for lightningapp in list_lightningapps.lightningapps:
@@ -476,7 +476,7 @@ def delete_cloud_lightning_apps():
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
-    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
     print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
 
