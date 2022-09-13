@@ -14,6 +14,7 @@
 from lightning_lite.strategies.ddp import DDPStrategy  # noqa: F401
 from lightning_lite.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning_lite.strategies.fairscale import DDPShardedStrategy  # noqa: F401
+from lightning_lite.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning_lite.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning_lite.strategies.registry import _StrategyRegistry, _call_register_strategies
 from lightning_lite.strategies.single_device import SingleDeviceStrategy  # noqa: F401
