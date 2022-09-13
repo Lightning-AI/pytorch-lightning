@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -25,14 +25,6 @@ if _COLOSSALAI_AVAILABLE:
     from colossalai.utils import get_current_device
     from colossalai.utils.model.colo_init_context import ColoInitContext
     from colossalai.zero import ZeroOptimizer
-
-
-class ModelShardedContext(ColoInitContext):
-    def _post_init_method(self, module: torch.nn.Module, *args, **kwargs):
-        if getattr(module, "_colossalai_module", False) is True:
-            return
-        super()._post_init_method(module, *args, **kwargs)
-        module._colossalai_module = True
 
 
 class ColossalAIStrategy(DDPStrategy):
@@ -167,13 +159,21 @@ class ColossalAIStrategy(DDPStrategy):
             gpc.set_device(self.local_rank)
         self.process_group = ProcessGroup()
 
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self):
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
         initialization time.
 
         Returns: Model parallel context.
         """
+
+        class ModelShardedContext(ColoInitContext):
+            def _post_init_method(self, module: torch.nn.Module, *args, **kwargs):
+                if getattr(module, "_colossalai_module", False) is True:
+                    return
+                super()._post_init_method(module, *args, **kwargs)
+                module._colossalai_module = True
+
         return ModelShardedContext()
 
     def setup_precision_plugin(self) -> None:
