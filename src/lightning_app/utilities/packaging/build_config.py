@@ -1,17 +1,17 @@
 import inspect
-import logging
 import os
 import re
 from dataclasses import asdict, dataclass
 from types import FrameType
 from typing import cast, List, Optional, TYPE_CHECKING, Union
 
+from lightning_app.utilities.app_helpers import Logger
+
 if TYPE_CHECKING:
     from lightning_app import LightningWork
     from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
-
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def load_requirements(
@@ -110,7 +110,7 @@ class BuildConfig:
         file = inspect.getfile(work.__class__)
 
         # 2. Try to find a requirement file associated the file.
-        dirname = os.path.dirname(file)
+        dirname = os.path.dirname(file) or "."
         requirement_files = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "requirements.txt"]
         if not requirement_files:
             return []
@@ -126,7 +126,7 @@ class BuildConfig:
         file = inspect.getfile(work.__class__)
 
         # 2. Check for Dockerfile.
-        dirname = os.path.dirname(file)
+        dirname = os.path.dirname(file) or "."
         dockerfiles = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "Dockerfile"]
 
         if not dockerfiles:

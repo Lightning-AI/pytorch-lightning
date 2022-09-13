@@ -18,10 +18,10 @@ from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PARAMETERS
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -35,12 +35,13 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def __init__(self, amp_level: str = "O2") -> None:
         if not _APEX_AVAILABLE:
             raise MisconfigurationException(
-                "You have asked for Apex AMP but you have not installed it."
+                "You have asked for Apex AMP but `apex` is not installed."
                 " Install `apex` using this guide: https://github.com/NVIDIA/apex"
             )
         super().__init__()
         self.amp_level = amp_level
         self._connected = False
+        self._state_dict_loaded = False
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
@@ -59,6 +60,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         model: "pl.LightningModule",
         closure_loss: Tensor,
         optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -68,20 +70,25 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
+            optimizer_idx: the index of the current optimizer. ``None`` if using manual optimization
         """
-        assert model.trainer is not None
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
-            super().backward(model, closure_loss, optimizer, *args, **kwargs)
+            super().backward(model, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
+        if self._state_dict_loaded:
+            raise RuntimeError(
+                "Resuming training with APEX is currently not supported. Set `amp_backend=None` for example or use a"
+                " different precision plugin."
+            )
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -98,4 +105,5 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return amp.state_dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        amp.load_state_dict(state_dict)
+        self._state_dict_loaded = True
+        return super().load_state_dict(state_dict)

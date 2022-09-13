@@ -20,14 +20,13 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
+from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
-    _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
@@ -81,7 +80,6 @@ class RunIf:
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
-        fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
         omegaconf: bool = False,
@@ -112,7 +110,6 @@ class RunIf:
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             fairscale: Require that facebookresearch/fairscale is installed.
-            fairscale_fully_sharded: Require that `fairscale` fully sharded support is available.
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
             omegaconf: Require that omry/omegaconf is installed.
@@ -177,6 +174,8 @@ class RunIf:
         if tpu:
             conditions.append(not _TPU_AVAILABLE)
             reasons.append("TPU")
+            # used in conftest.py::pytest_collection_modifyitems
+            kwargs["tpu"] = True
 
         if ipu:
             conditions.append(not _IPU_AVAILABLE)
@@ -190,10 +189,10 @@ class RunIf:
 
         if mps is not None:
             if mps:
-                conditions.append(not _MPS_AVAILABLE)
+                conditions.append(not MPSAccelerator.is_available())
                 reasons.append("MPS")
             else:
-                conditions.append(_MPS_AVAILABLE)
+                conditions.append(MPSAccelerator.is_available())
                 reasons.append("not MPS")
 
         if horovod:
@@ -212,12 +211,12 @@ class RunIf:
             kwargs["standalone"] = True
 
         if fairscale:
+            if skip_windows:
+                raise ValueError(
+                    "`skip_windows` is not necessary when `fairscale` is set as it does not support Windows."
+                )
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
-
-        if fairscale_fully_sharded:
-            conditions.append(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE)
-            reasons.append("Fairscale Fully Sharded")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)

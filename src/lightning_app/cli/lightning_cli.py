@@ -1,21 +1,39 @@
-import logging
 import os
+import sys
 from pathlib import Path
 from typing import List, Tuple, Union
 
+import arrow
 import click
+import rich
 from requests.exceptions import ConnectionError
+from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
-from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
+from lightning_app.cli.cmd_clusters import AWSClusterManager
+from lightning_app.cli.commands.app_commands import _run_app_command
+from lightning_app.cli.commands.connection import (
+    _list_app_commands,
+    _retrieve_connection_to_an_app,
+    connect,
+    disconnect,
+)
+from lightning_app.cli.lightning_cli_create import create
+from lightning_app.cli.lightning_cli_delete import delete
+from lightning_app.cli.lightning_cli_list import get_list
+from lightning_app.core.constants import get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.utilities.cli_helpers import _format_input_env_variables
-from lightning_app.utilities.install_components import register_all_external_components
+from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.app_logs import _app_logs_reader
+from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
+from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.login import Auth
+from lightning_app.utilities.network import LightningClient
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def get_app_url(runtime_type: RuntimeType, *args) -> str:
@@ -23,19 +41,221 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
         lightning_app = args[0]
         return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}"
     else:
-        return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
+        return "http://127.0.0.1:7501/view"
+
+
+def main():
+    # 1: Handle connection to a Lightning App.
+    if sys.argv[1] in ("connect", "disconnect"):
+        _main()
+    else:
+        # 2: Collect the connection a Lightning App.
+        app_name, app_id = _retrieve_connection_to_an_app()
+        if app_name:
+            # 3: Handle development use case.
+            is_local_app = app_name == "localhost"
+            if is_local_app and sys.argv[1:3] == ["run", "app"]:
+                _main()
+            else:
+                if is_local_app:
+                    click.echo("You are connected to the local Lightning App.")
+                else:
+                    click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+
+                if "help" in sys.argv[1]:
+                    _list_app_commands()
+                else:
+                    _run_app_command(app_name, app_id)
+        else:
+            _main()
 
 
 @click.group()
 @click.version_option(ver)
-def main():
-    register_all_external_components()
+def _main():
     pass
 
 
-@main.command()
+@_main.group()
+def show():
+    """Show given resource."""
+    pass
+
+
+_main.command(connect)
+_main.command(disconnect)
+
+
+@show.command()
+@click.argument("app_name", required=False)
+@click.argument("components", nargs=-1, required=False)
+@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
+def logs(app_name: str, components: List[str], follow: bool) -> None:
+    """Show cloud application logs. By default prints logs for all currently available components.
+
+    Example uses:
+
+        Print all application logs:
+
+            $ lightning show logs my-application
+
+
+        Print logs only from the flow (no work):
+
+            $ lightning show logs my-application flow
+
+
+        Print logs only from selected works:
+
+            $ lightning show logs my-application root.work_a root.work_b
+    """
+
+    client = LightningClient()
+    project = _get_project(client)
+
+    apps = {
+        app.name: app
+        for app in client.lightningapp_instance_service_list_lightningapp_instances(project.project_id).lightningapps
+    }
+
+    if not apps:
+        raise click.ClickException(
+            "You don't have any application in the cloud. Please, run an application first with `--cloud`."
+        )
+
+    if not app_name:
+        raise click.ClickException(
+            f"You have not specified any Lightning App. Please select one of available: [{', '.join(apps.keys())}]"
+        )
+
+    if app_name not in apps:
+        raise click.ClickException(
+            f"The Lightning App '{app_name}' does not exist. Please select one of following: [{', '.join(apps.keys())}]"
+        )
+
+    # Fetch all lightning works from given application
+    # 'Flow' component is somewhat implicit, only one for whole app,
+    #    and not listed in lightningwork API - so we add it directly to the list
+    works = client.lightningwork_service_list_lightningwork(
+        project_id=project.project_id, app_id=apps[app_name].id
+    ).lightningworks
+    app_component_names = ["flow"] + [f.name for f in apps[app_name].spec.flow_servers] + [w.name for w in works]
+
+    if not components:
+        components = app_component_names
+
+    for component in components:
+        if component not in app_component_names:
+            raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
+
+    log_reader = _app_logs_reader(
+        client=client,
+        project_id=project.project_id,
+        app_id=apps[app_name].id,
+        component_names=components,
+        follow=follow,
+    )
+
+    rich_colors = list(ANSI_COLOR_NAMES)
+    colors = {c: rich_colors[i + 1] for i, c in enumerate(components)}
+
+    for log_event in log_reader:
+        date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+        color = colors[log_event.component_name]
+        rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
+
+
+@show.group()
+def cluster():
+    """Groups cluster commands inside show."""
+    pass
+
+
+@cluster.command(name="logs")
+@click.argument("cluster_name", required=True)
+@click.option(
+    "--from",
+    "from_time",
+    default="24 hours ago",
+    help="The starting timestamp to query cluster logs from. Human-readable (e.g. '48 hours ago') or ISO 8601 "
+    "(e.g. '2022-08-23 12:34') formats.",
+    callback=_arrow_time_callback,
+)
+@click.option(
+    "--to",
+    "to_time",
+    default="0 seconds ago",
+    callback=_arrow_time_callback,
+    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
+    "-f/--follow). The same format as --from option has.",
+)
+@click.option("--limit", default=1000, help="The max number of log lines returned.")
+@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
+def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
+    """Show cluster logs.
+
+    Example uses:
+
+        Print cluster logs:
+
+            $ lightning show cluster logs my-cluster
+
+
+        Print cluster logs and wait for new logs:
+
+            $ lightning show cluster logs my-cluster --follow
+
+
+        Print cluster logs, from 48 hours ago to now:
+
+            $ lightning show cluster logs my-cluster --from "48 hours ago"
+
+
+        Print cluster logs, 10 most recent lines:
+
+            $ lightning show cluster logs my-cluster --limit 10
+    """
+
+    client = LightningClient()
+    cluster_manager = AWSClusterManager()
+    existing_cluster_list = cluster_manager.get_clusters()
+
+    clusters = {cluster.name: cluster.id for cluster in existing_cluster_list.clusters}
+
+    if not clusters:
+        raise click.ClickException("You don't have any clusters.")
+
+    if not cluster_name:
+        raise click.ClickException(
+            f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
+        )
+
+    if cluster_name not in clusters:
+        raise click.ClickException(
+            f"The cluster '{cluster_name}' does not exist."
+            f" Please select one of the following: [{', '.join(clusters.keys())}]"
+        )
+
+    log_reader = _cluster_logs_reader(
+        client=client,
+        cluster_id=clusters[cluster_name],
+        start=from_time.int_timestamp,
+        end=to_time.int_timestamp,
+        limit=limit,
+        follow=follow,
+    )
+
+    colors = {"error": "red", "warn": "yellow", "info": "green"}
+
+    for log_event in log_reader:
+        date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+        color = colors.get(log_event.labels.level, "green")
+        rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
+
+
+@_main.command()
 def login():
-    """Log in to your Lightning.ai account."""
+    """Log in to your lightning.ai account."""
     auth = Auth()
     auth.clear()
 
@@ -46,16 +266,28 @@ def login():
         exit(1)
 
 
-@main.command()
+@_main.command()
 def logout():
-    """Log out of your Lightning.ai account."""
+    """Log out of your lightning.ai account."""
     Auth().clear()
+    disconnect(logout=True)
 
 
 def _run_app(
-    file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
+    file: str,
+    cloud: bool,
+    cluster_id: str,
+    without_server: bool,
+    no_cache: bool,
+    name: str,
+    blocking: bool,
+    open_ui: bool,
+    env: tuple,
 ):
     file = _prepare_file(file)
+
+    if not cloud and cluster_id is not None:
+        raise click.ClickException("Using the flag --cluster-id in local execution is not supported.")
 
     runtime_type = RuntimeType.CLOUD if cloud else RuntimeType.MULTIPROCESS
 
@@ -88,19 +320,23 @@ def _run_app(
         on_before_run=on_before_run,
         name=name,
         env_vars=env_vars,
+        cluster_id=cluster_id,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
 
 
-@main.group()
+@_main.group()
 def run():
-    """Run your application."""
+    """Run a Lightning application locally or on the cloud."""
 
 
 @run.command("app")
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--cloud", type=bool, default=False, is_flag=True)
+@click.option(
+    "--cluster-id", type=str, default=None, help="Run Lightning App on a specific Lightning AI BYOC compute cluster"
+)
 @click.option("--name", help="The current application name", default="", type=str)
 @click.option("--without-server", is_flag=True, default=False)
 @click.option(
@@ -113,6 +349,7 @@ def run():
 def run_app(
     file: str,
     cloud: bool,
+    cluster_id: str,
     without_server: bool,
     no_cache: bool,
     name: str,
@@ -122,36 +359,29 @@ def run_app(
     app_args: List[str],
 ):
     """Run an app from a file."""
-    _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
 
 
-@main.group(hidden=True)
+@_main.group(hidden=True)
 def fork():
     """Fork an application."""
     pass
 
 
-@main.group(hidden=True)
+@_main.group(hidden=True)
 def stop():
     """Stop your application."""
     pass
 
 
-@main.group(hidden=True)
-def delete():
-    """Delete an application."""
-    pass
+_main.add_command(get_list)
+_main.add_command(delete)
+_main.add_command(create)
 
 
-@main.group(name="list", hidden=True)
-def get_list():
-    """List your applications."""
-    pass
-
-
-@main.group()
+@_main.group()
 def install():
-    """Install Lightning apps and components."""
+    """Install a Lightning App and/or component."""
 
 
 @install.command("app")
@@ -175,7 +405,7 @@ def install():
 def install_app(name, yes, version, overwrite: bool = False):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
@@ -198,7 +428,7 @@ def install_app(name, yes, version, overwrite: bool = False):
 def install_component(name, yes, version):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
@@ -207,9 +437,9 @@ def install_component(name, yes, version):
         cmd_install.gallery_component(name, yes, version)
 
 
-@main.group()
+@_main.group()
 def init():
-    """Init a Lightning app and component."""
+    """Init a Lightning App and/or component."""
 
 
 @init.command("app")

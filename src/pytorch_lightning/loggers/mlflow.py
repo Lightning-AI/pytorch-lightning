@@ -20,16 +20,17 @@ import os
 import re
 from argparse import Namespace
 from time import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
+
+from lightning_utilities.core.imports import module_available
 
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = _module_available("mlflow")
+_MLFLOW_AVAILABLE = module_available("mlflow")
 try:
     import mlflow
     from mlflow.tracking import context, MlflowClient
@@ -230,7 +231,7 @@ class MLFlowLogger(Logger):
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)

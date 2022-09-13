@@ -15,31 +15,32 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
+from lightning_lite.accelerators.mps import MPSAccelerator as _MPSAccelerator
+from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.types import _DEVICE
-
-_MPS_AVAILABLE = _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available()
+from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 
 
 class MPSAccelerator(Accelerator):
     """Accelerator for Metal Apple Silicon GPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not MPS.
         """
-        super().setup_environment(root_device)
-        if root_device.type != "mps":
-            raise MisconfigurationException(f"Device should be MPS, got {root_device} instead.")
+        if device.type != "mps":
+            raise MisconfigurationException(f"Device should be MPS, got {device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get M1 (cpu + gpu) stats from ``psutil`` package."""
         return get_device_stats()
+
+    def teardown(self) -> None:
+        pass
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
@@ -63,7 +64,7 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def is_available() -> bool:
         """MPS is only available for certain torch builds starting at torch>=1.12."""
-        return _MPS_AVAILABLE
+        return _MPSAccelerator.is_available()
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:

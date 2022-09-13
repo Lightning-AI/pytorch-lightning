@@ -1,8 +1,8 @@
 import asyncio
-import logging
 import os
 import queue
 import sys
+import traceback
 from copy import deepcopy
 from multiprocessing import Queue
 from threading import Event, Lock, Thread
@@ -19,9 +19,12 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from websockets.exceptions import ConnectionClosed
 
+from lightning_app.api.http_methods import HttpMethod
+from lightning_app.api.request_types import DeltaRequest
 from lightning_app.core.constants import FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
-from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
+from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
+from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
 
 if _is_starsessions_available():
@@ -40,6 +43,7 @@ STATE_EVENT = "State changed"
 frontend_static_dir = os.path.join(FRONTEND_DIR, "static")
 
 api_app_delta_queue: Queue = None
+
 template = {"ui": {}, "app": {}}
 templates = Jinja2Templates(directory=FRONTEND_DIR)
 
@@ -50,8 +54,10 @@ global_app_state_store.add(TEST_SESSION_UUID)
 lock = Lock()
 
 app_spec: Optional[List] = None
+# In the future, this would be abstracted to support horizontal scaling.
+responses_store = {}
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 # This can be replaced with a consumer that publishes states in a kv-store
@@ -59,22 +65,36 @@ logger = logging.getLogger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue) -> None:
+    def __init__(self, api_publish_state_queue, api_response_queue) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
+        self.api_response_queue = api_response_queue
         self._exit_event = Event()
 
     def run(self):
         # TODO: Create multiple threads to handle the background logic
         # TODO: Investigate the use of `parallel=True`
-        while not self._exit_event.is_set():
-            self.run_once()
+        try:
+            while not self._exit_event.is_set():
+                self.run_once()
+        except Exception as e:
+            logger.error(traceback.print_exc())
+            raise e
 
     def run_once(self):
         try:
             state = self.api_publish_state_queue.get(timeout=0)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
+        except queue.Empty:
+            pass
+
+        try:
+            response = self.api_response_queue.get(timeout=0)
+            with lock:
+                # TODO: Abstract the responses store to support horizontal scaling.
+                global responses_store
+                responses_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 
@@ -86,6 +106,23 @@ class UIRefresher(Thread):
 class StateUpdate(BaseModel):
     state: dict = {}
 
+
+openapi_tags = [
+    {
+        "name": OpenAPITags.APP_CLIENT_COMMAND,
+        "description": "The App Endpoints to be triggered exclusively from the CLI",
+    },
+    {
+        "name": OpenAPITags.APP_COMMAND,
+        "description": "The App Endpoints that can be triggered equally from the CLI or from a Http Request",
+    },
+    {
+        "name": OpenAPITags.APP_API,
+        "description": "The App Endpoints that can be triggered exclusively from a Http Request",
+    },
+]
+
+app = FastAPI(openapi_tags=openapi_tags)
 
 fastapi_service = FastAPI()
 
@@ -152,7 +189,7 @@ async def post_delta(
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> Mapping:
+) -> None:
     """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
     update the state."""
 
@@ -162,9 +199,7 @@ async def post_delta(
         raise Exception("Missing X-Lightning-Session-ID header")
 
     body: Dict = await request.json()
-    delta = body["delta"]
-    update_delta = Delta(delta)
-    api_app_delta_queue.put(update_delta)
+    api_app_delta_queue.put(DeltaRequest(delta=Delta(body["delta"])))
 
 
 @fastapi_service.post("/api/v1/state")
@@ -173,7 +208,7 @@ async def post_state(
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> Mapping:
+) -> None:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
     if x_lightning_session_id is None:
@@ -191,13 +226,12 @@ async def post_state(
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
         state = deepcopy(last_state)
         state["app_state"]["stage"] = body["stage"]
-        deep_diff = DeepDiff(last_state, state)
+        deep_diff = DeepDiff(last_state, state, verbose_level=2)
     else:
         state = body["state"]
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
-        deep_diff = DeepDiff(last_state, state)
-    update_delta = Delta(deep_diff)
-    api_app_delta_queue.put(update_delta)
+        deep_diff = DeepDiff(last_state, state, verbose_level=2)
+    api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
 
 
 @fastapi_service.get("/healthz", status_code=200)
@@ -240,8 +274,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.close()
 
 
-# Catch-all for nonexistent API routes (since we define a catch-all for client-side routing)
-@fastapi_service.get("/api{full_path:path}", response_class=JSONResponse)
 async def api_catch_all(request: Request, full_path: str):
     raise HTTPException(status_code=404, detail="Not found")
 
@@ -250,12 +282,16 @@ async def api_catch_all(request: Request, full_path: str):
 fastapi_service.mount("/static", StaticFiles(directory=frontend_static_dir, check_dir=False), name="static")
 
 
-# Catch-all for frontend routes, must be defined after all other routes
-@fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)
 async def frontend_route(request: Request, full_path: str):
     if "pytest" in sys.modules:
         return ""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+def register_global_routes():
+    # Catch-all for nonexistent API routes (since we define a catch-all for client-side routing)
+    fastapi_service.get("/api{full_path:path}", response_class=JSONResponse)(api_catch_all)
+    fastapi_service.get("/{full_path:path}", response_class=HTMLResponse)(frontend_route)
 
 
 class LightningUvicornServer(uvicorn.Server):
@@ -279,16 +315,19 @@ class LightningUvicornServer(uvicorn.Server):
 def start_server(
     api_publish_state_queue,
     api_delta_queue,
+    api_response_queue,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
+    apis: Optional[List[HttpMethod]] = None,
     app_state_store: Optional[StateStore] = None,
 ):
     global api_app_delta_queue
     global global_app_state_store
     global app_spec
+
     app_spec = spec
     api_app_delta_queue = api_delta_queue
 
@@ -297,7 +336,7 @@ def start_server(
 
     global_app_state_store.add(TEST_SESSION_UUID)
 
-    refresher = UIRefresher(api_publish_state_queue)
+    refresher = UIRefresher(api_publish_state_queue, api_response_queue)
     refresher.setDaemon(True)
     refresher.start()
 
@@ -308,6 +347,14 @@ def start_server(
             LightningUvicornServer.has_started_queue = has_started_queue
             # uvicorn is doing some uglyness by replacing uvicorn.main by click command.
             sys.modules["uvicorn.main"].Server = LightningUvicornServer
+
+        # Register the user API.
+        if apis:
+            for api in apis:
+                api.add_route(fastapi_service, api_app_delta_queue, responses_store)
+
+        register_global_routes()
+
         uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
 
     return refresher

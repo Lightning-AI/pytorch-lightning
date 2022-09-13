@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+import weakref
 from unittest.mock import Mock
 
 import pytest
@@ -78,7 +79,7 @@ def test_property_logger(tmpdir):
     assert model.logger is None
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(loggers=[logger])
+    trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.logger == logger
 
@@ -92,6 +93,12 @@ def test_property_loggers(tmpdir):
     trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.loggers == [logger]
+
+    logger0 = TensorBoardLogger(tmpdir)
+    logger1 = TensorBoardLogger(tmpdir)
+    trainer = Trainer(logger=[logger0, logger1])
+    model.trainer = trainer
+    assert model.loggers == [logger0, logger1]
 
 
 def test_1_optimizer_toggle_model():
@@ -416,3 +423,20 @@ def test_proper_refcount():
     lightning_module = LightningModule()
 
     assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)
+
+
+def test_trainer_reference_recursively():
+    ensemble = LightningModule()
+    inner = LightningModule()
+    ensemble.inner = inner
+
+    assert inner._trainer is None
+    with pytest.raises(RuntimeError, match="attached to a `Trainer"):
+        _ = ensemble.trainer
+
+    trainer = Mock()
+    ensemble.trainer = trainer
+    # references match
+    assert ensemble.trainer is inner.trainer
+    # and the trainer was weakly referenced
+    assert inner.trainer is weakref.proxy(trainer)

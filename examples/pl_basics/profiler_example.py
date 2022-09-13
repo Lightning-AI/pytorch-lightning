@@ -27,12 +27,12 @@ from os import path
 
 import torch
 import torchvision
-import torchvision.models as models
 import torchvision.transforms as T
 
 from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.model_helpers import get_torchvision_model
 
 DEFAULT_CMD_LINE = (
     "fit",
@@ -49,7 +49,7 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 class ModelToProfile(LightningModule):
     def __init__(self, name: str = "resnet18", automatic_optimization: bool = True):
         super().__init__()
-        self.model = getattr(models, name)(pretrained=True)
+        self.model = get_torchvision_model(name, weights="DEFAULT")
         self.criterion = torch.nn.CrossEntropyLoss()
         self.automatic_optimization = automatic_optimization
         self.training_step = (

@@ -41,12 +41,12 @@ def grad_norm(module: Module, norm_type: Union[float, int, str], group_separator
         raise ValueError(f"`norm_type` must be a positive number or 'inf' (infinity norm). Got {norm_type}")
 
     norms = {
-        f"grad_{norm_type}_norm{group_separator}{name}": p.grad.data.norm(norm_type).item()
+        f"grad_{norm_type}_norm{group_separator}{name}": p.grad.data.norm(norm_type)
         for name, p in module.named_parameters()
         if p.grad is not None
     }
     if norms:
-        total_norm = torch.tensor(list(norms.values())).norm(norm_type).item()
+        total_norm = torch.tensor(list(norms.values())).norm(norm_type)
         norms[f"grad_{norm_type}_norm_total"] = total_norm
-        norms = {k: round(v, 4) for k, v in norms.items()}
+    norms = {k: round(v.item(), 4) for k, v in norms.items()}
     return norms

@@ -16,7 +16,6 @@ from collections import OrderedDict
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
-from deprecate import void
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.loop import Loop
@@ -81,7 +80,6 @@ class EvaluationEpochLoop(Loop):
             dl_max_batches: maximum number of batches the dataloader can produce
             kwargs: the kwargs passed down to the hooks.
         """
-        void(kwargs)
         self._dl_max_batches = dl_max_batches
         self._reload_dataloader_state_dict(data_fetcher)
         # creates the iterator inside the fetcher but returns `self`
@@ -120,8 +118,6 @@ class EvaluationEpochLoop(Loop):
         Raises:
             StopIteration: If the current batch is None
         """
-        void(dl_max_batches)
-
         if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
             batch_idx = self.batch_progress.current.ready
             batch = next(data_fetcher)
@@ -182,9 +178,10 @@ class EvaluationEpochLoop(Loop):
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
 
+        trainer = self._trainer
         if (
-            self.trainer is not None
-            and self.trainer.state._fault_tolerant_mode.is_enabled
+            trainer is not None
+            and trainer.state._fault_tolerant_mode.is_enabled
             and self._data_fetcher is not None
             and not self._num_completed_batches_reached()  # did not finish
             and self.batch_progress.current.ready  # did start

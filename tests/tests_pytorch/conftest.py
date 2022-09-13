@@ -22,7 +22,7 @@ from typing import List
 import pytest
 import torch.distributed
 
-from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.imports import _IS_WINDOWS
 from tests_pytorch import _PATH_DATASETS
@@ -170,7 +170,7 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config):
+def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
     initial_size = len(items)
     conditions = []
     filtered, skipped = 0, 0
@@ -180,6 +180,7 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
         min_cuda_gpus="PL_RUN_CUDA_TESTS",
         slow="PL_RUN_SLOW_TESTS",
         ipu="PL_RUN_IPU_TESTS",
+        tpu="PL_RUN_TPU_TESTS",
     )
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
         # special case: we don't have a CPU job for standalone tests, so we shouldn't run only cuda tests.

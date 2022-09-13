@@ -2,9 +2,9 @@
 
 .. _model_server_example:
 
-####################
-Build a Model Server
-####################
+######################
+Develop a Model Server
+######################
 
 **Audience:** Users who want to serve their trained models.
 

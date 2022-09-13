@@ -27,9 +27,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
@@ -216,7 +216,7 @@ class TensorBoardLogger(Logger):
             writer.add_summary(sei)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -242,6 +242,7 @@ class TensorBoardLogger(Logger):
                 input_array = model.example_input_array
 
             if input_array is not None:
+                input_array = model._on_before_batch_transfer(input_array)
                 input_array = model._apply_batch_transfer_handler(input_array)
                 model._running_torchscript = True
                 self.experiment.add_graph(model, input_array)

@@ -1,7 +1,7 @@
 name: PyPI
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   release:
@@ -21,12 +21,12 @@ jobs:
       build-pkgs: ${{ steps.candidate.outputs.pkgs }}
       pull-pkgs: ${{ steps.download.outputs.pkgs }}
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
     - run: |
-        pip install -q fire requests
+        pip install -q -r .actions/requirements.txt
         mkdir dist && touch dist/.placeholder
         mkdir pypi && touch pypi/.placeholder
     - uses: actions/upload-artifact@v3
@@ -60,12 +60,12 @@ jobs:
       max-parallel: 1
       matrix: ${{ fromJSON(needs.releasing.outputs.build-pkgs) }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -94,18 +94,18 @@ jobs:
       max-parallel: 1
       matrix: ${{ fromJSON(needs.releasing.outputs.pull-pkgs) }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
         path: pypi
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
     - name: Dowload package
       run: |
-        pip install -q fire requests
+        pip install -q -r .actions/requirements.txt
         python .actions/assistant.py download-package ${{ matrix.pkg }} --folder pypi
 
     - uses: actions/upload-artifact@v3
@@ -118,7 +118,7 @@ jobs:
     needs: [build-package, download-package]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
@@ -129,7 +129,7 @@ jobs:
         name: pypi-packages-${{ github.sha }}
         path: pypi
     - run: ls -lh pypi/
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
@@ -147,7 +147,7 @@ jobs:
 
     - name: Miror source
       run: |
-        pip install -q fire requests
+        pip install -q -r .actions/requirements.txt
         python .actions/assistant.py mirror-pkg2source pypi src
         ls -R src/
 
@@ -169,7 +169,7 @@ jobs:
     needs: build-meta-pkg
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
@@ -188,7 +188,7 @@ jobs:
     needs: build-meta-pkg
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
@@ -202,7 +202,7 @@ jobs:
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.5.1
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}
@@ -210,7 +210,7 @@ jobs:
         verbose: true
 
     - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.5.1
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
@@ -220,9 +220,9 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [build-package, publish-package]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 

@@ -20,6 +20,7 @@ import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_v2_0_0_deprecated_num_processes():
@@ -27,13 +28,14 @@ def test_v2_0_0_deprecated_num_processes():
         _ = Trainer(num_processes=2)
 
 
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
 def test_v2_0_0_deprecated_gpus(*_):
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(gpus=0)
 
 
+@RunIf(skip_windows=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
 def test_v2_0_0_deprecated_tpu_cores(*_):

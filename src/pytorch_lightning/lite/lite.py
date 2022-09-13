@@ -20,10 +20,20 @@ from typing import Any, Callable, cast, Dict, Generator, List, Optional, overloa
 
 import torch
 import torch.nn as nn
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 
+from lightning_lite.utilities import _AcceleratorType, _StrategyType, move_data_to_device
+from lightning_lite.utilities.apply_func import convert_to_tensors
+from lightning_lite.utilities.data import (
+    _auto_add_worker_init_fn,
+    _replace_dunder_methods,
+    _update_dataloader,
+    has_iterable_dataset,
+)
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
@@ -31,16 +41,7 @@ from pytorch_lightning.plugins import PLUGIN_INPUT
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import (
-    _auto_add_worker_init_fn,
-    _replace_dataloader_init_method,
-    _update_dataloader,
-    has_iterable_dataset,
-)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
 
 
 class LightningLite(ABC):
@@ -54,7 +55,8 @@ class LightningLite(ABC):
     - Multi-node support.
 
     Args:
-        accelerator: The hardware to run on. Possible choices are: ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
+        accelerator: The hardware to run on. Possible choices are:
+            ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
             ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
@@ -305,7 +307,7 @@ class LightningLite(ABC):
         if isinstance(obj, nn.Module):
             if self.device.type == "cuda":
                 # need to call this manually here again in case we spawned with DDPSpawnStrategy
-                # TODO: refactor to let plugin handle this cleanly
+                # TODO: refactor to let accelerator handle this cleanly (see Accelerator.setup_device)
                 torch.cuda.set_device(self.device)
             return obj.to(self.device)
         return move_data_to_device(obj, device=self.device)
@@ -402,7 +404,9 @@ class LightningLite(ABC):
 
     def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
-        with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
+        with self._strategy.model_sharded_context(), _replace_dunder_methods(
+            DataLoader, "dataset"
+        ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
@@ -436,7 +440,7 @@ class LightningLite(ABC):
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
-        supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
+        supported = [t.value.lower() for t in self._supported_device_types()] + ["gpu", "auto"]
         valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
         if not valid:
             raise MisconfigurationException(
@@ -457,7 +461,7 @@ class LightningLite(ABC):
     def _supported_device_types() -> Sequence[_AcceleratorType]:
         return (
             _AcceleratorType.CPU,
-            _AcceleratorType.GPU,
+            _AcceleratorType.CUDA,
             _AcceleratorType.TPU,
             _AcceleratorType.MPS,
         )
@@ -468,6 +472,7 @@ class LightningLite(ABC):
             _StrategyType.DP,
             _StrategyType.DDP,
             _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP_FORK,
             _StrategyType.DEEPSPEED,
             _StrategyType.DDP_SHARDED,
             _StrategyType.DDP_SHARDED_SPAWN,

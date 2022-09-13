@@ -1,9 +1,8 @@
 import enum
 import json
-import logging
 import os
 from copy import deepcopy
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from deepdiff import DeepDiff
 from requests import Session
@@ -11,10 +10,10 @@ from requests.exceptions import ConnectionError
 
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.storage.drive import _maybe_create_drive
-from lightning_app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin
+from lightning_app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin, Logger
 from lightning_app.utilities.network import _configure_session
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 # GLOBAL APP STATE
 _LAST_STATE = None
@@ -66,7 +65,7 @@ class AppState:
         my_affiliation: Tuple[str, ...] = None,
         plugin: Optional[BaseStatePlugin] = None,
     ) -> None:
-        """The AppState class enable streamlit user to interact their application state.
+        """The AppState class enables Frontend users to interact with their application state.
 
         When the state isn't defined, it would be pulled from the app REST API Server.
         If the state gets modified by the user, the new state would be sent to the API Server.
@@ -130,7 +129,7 @@ class AppState:
 
     def send_delta(self) -> None:
         app_url = f"{self._url}/api/v1/delta"
-        deep_diff = DeepDiff(_LAST_STATE, _STATE)
+        deep_diff = DeepDiff(_LAST_STATE, _STATE, verbose_level=2)
         assert self._plugin is not None
         # TODO: Find how to prevent the infinite loop on refresh without storing the DeepDiff
         if self._plugin.should_update_app(deep_diff):
@@ -168,7 +167,7 @@ class AppState:
         # The state needs to be fetched on access if it doesn't exist.
         self._request_state()
 
-        if name in self._state["vars"]:
+        if name in self._state.get("vars", {}):
             value = self._state["vars"][name]
             if isinstance(value, dict):
                 return _maybe_create_drive("root." + ".".join(self._my_affiliation), value)
@@ -187,11 +186,22 @@ class AppState:
                 state=self._state["flows"][name],
             )
 
+        elif name in self._state.get("structures", {}):
+            return AppState(
+                self._host,
+                self._port,
+                last_state=self._last_state["structures"][name],
+                state=self._state["structures"][name],
+            )
+
         raise AttributeError(
             f"Failed to access '{name}' through `AppState`. The state provides:"
             f" Variables: {list(self._state['vars'].keys())},"
             f" Components: {list(self._state.get('flows', {}).keys()) + list(self._state.get('works', {}).keys())}",
         )
+
+    def __getitem__(self, key: str):
+        return self.__getattr__(key)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name in self._APP_PRIVATE_KEYS:
@@ -225,6 +235,48 @@ class AppState:
 
     def __bool__(self) -> bool:
         return bool(self._state)
+
+    def __len__(self) -> int:
+        # The state needs to be fetched on access if it doesn't exist.
+        self._request_state()
+
+        keys = []
+        for component in ["flows", "works", "structures"]:
+            keys.extend(list(self._state.get(component, {})))
+        return len(keys)
+
+    def items(self) -> List[Dict[str, Any]]:
+        # The state needs to be fetched on access if it doesn't exist.
+        self._request_state()
+
+        items = []
+        for component in ["flows", "works"]:
+            state = self._state.get(component, {})
+            last_state = self._last_state.get(component, {})
+            for name, state_value in state.items():
+                v = AppState(
+                    self._host,
+                    self._port,
+                    last_state=last_state[name],
+                    state=state_value,
+                )
+                items.append((name, v))
+
+        structures = self._state.get("structures", {})
+        last_structures = self._last_state.get("structures", {})
+        if structures:
+            for component in ["flows", "works"]:
+                state = structures.get(component, {})
+                last_state = last_structures.get(component, {})
+                for name, state_value in state.items():
+                    v = AppState(
+                        self._host,
+                        self._port,
+                        last_state=last_state[name],
+                        state=state_value,
+                    )
+                    items.append((name, v))
+        return items
 
     @staticmethod
     def _configure_session() -> Session:

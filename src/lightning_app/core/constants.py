@@ -22,8 +22,7 @@ REDIS_QUEUES_READ_DEFAULT_TIMEOUT = 0.005
 REDIS_WARNING_QUEUE_SIZE = 1000
 USER_ID = os.getenv("USER_ID", "1234")
 FRONTEND_DIR = os.path.join(os.path.dirname(lightning_app.__file__), "ui")
-PREPARE_LIGHTING = bool(int(os.getenv("PREPARE_LIGHTING", "0")))
-LOCAL_LAUNCH_ADMIN_VIEW = bool(int(os.getenv("LOCAL_LAUNCH_ADMIN_VIEW", "0")))
+PACKAGE_LIGHTNING = os.getenv("PACKAGE_LIGHTNING", None)
 CLOUD_UPLOAD_WARNING = int(os.getenv("CLOUD_UPLOAD_WARNING", "2"))
 DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
 # Project under which the resources need to run in cloud. If this env is not set,
@@ -31,6 +30,9 @@ DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
 LIGHTNING_CLOUD_PROJECT_ID = os.getenv("LIGHTNING_CLOUD_PROJECT_ID")
 LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path.home() / ".lightning" / "credentials.json"))
 DOT_IGNORE_FILENAME = ".lightningignore"
+DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
+LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
+LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 
 
 def get_lightning_cloud_url() -> str:

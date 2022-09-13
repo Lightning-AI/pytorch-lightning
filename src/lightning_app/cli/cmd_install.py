@@ -1,5 +1,3 @@
-import json
-import logging
 import os
 import re
 import shutil
@@ -7,8 +5,12 @@ import subprocess
 import sys
 
 import requests
+from packaging.version import Version
 
-logger = logging.getLogger(__name__)
+from lightning_app.core.constants import LIGHTNING_APPS_PUBLIC_REGISTRY, LIGHTNING_COMPONENT_PUBLIC_REGISTRY
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def gallery_component(name, yes_arg, version_arg, cwd=None):
@@ -295,8 +297,16 @@ def _validate_name(name, resource_type, example):
 
 
 def _resolve_resource(registry_url, name, version_arg, resource_type):
+    gallery_entries = []
     try:
-        url = requests.get(registry_url)
+        response = requests.get(registry_url)
+        data = response.json()
+
+        if resource_type == "app":
+            gallery_entries = [a for a in data["apps"] if a["canDownloadSourceCode"]]
+
+        elif resource_type == "component":
+            gallery_entries = data["components"]
     except requests.ConnectionError:
         m = f"""
         Network connection error, could not load list of available Lightning {resource_type}s.
@@ -306,12 +316,9 @@ def _resolve_resource(registry_url, name, version_arg, resource_type):
         sys.tracebacklimit = 0
         raise SystemError(m)
 
-    data = json.loads(url.text)
-    data = data[resource_type + "s"]
-
     entries = []
     all_versions = []
-    for x in data:
+    for x in gallery_entries:
         if name == x["name"]:
             entries.append(x)
             all_versions.append(x["version"])
@@ -321,7 +328,7 @@ def _resolve_resource(registry_url, name, version_arg, resource_type):
 
     entry = None
     if version_arg == "latest":
-        entry = entries[-1]
+        entry = max(entries, key=lambda app: Version(app["version"]))
     else:
         for e in entries:
             if e["version"] == version_arg:
@@ -473,12 +480,10 @@ def _install_component(git_url):
 
 
 def _resolve_app_registry():
-    public_registry = "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/apps"
-    registry = os.environ.get("LIGHTNING_APP_REGISTRY", public_registry)
+    registry = os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
     return registry
 
 
 def _resolve_component_registry():
-    public_registry = "https://api.sheety.co/e559626ba514c7ba80caae1e38a8d4f4/lightningAppRegistry/components"
-    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", public_registry)
+    registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)
     return registry

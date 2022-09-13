@@ -24,7 +24,7 @@ class List(t.List[T]):
         .. doctest::
 
             >>> from lightning_app import LightningFlow, LightningWork
-            >>> from lightning_app.core import List
+            >>> from lightning_app.structures import List
             >>> class CounterWork(LightningWork):
             ...     def __init__(self):
             ...         super().__init__()

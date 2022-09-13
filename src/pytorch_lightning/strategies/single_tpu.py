@@ -15,7 +15,9 @@ import os
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
@@ -33,11 +35,10 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         self,
         device: int,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
     ):
-        checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
             accelerator=accelerator,
             device=xm.xla_device(device),
@@ -45,6 +46,19 @@ class SingleTPUStrategy(SingleDeviceStrategy):
             precision_plugin=precision_plugin,
         )
         self.debug = debug
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = XLACheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
+
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     @property
     def is_distributed(self) -> bool:

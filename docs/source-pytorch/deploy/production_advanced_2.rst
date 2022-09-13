@@ -34,7 +34,7 @@ can save or directly use.
 
 It is recommended that you install the latest supported version of PyTorch to use this feature without limitations.
 
-Once you have the exported model, you can run it in Pytorch or C++ runtime:
+Once you have the exported model, you can run it in PyTorch or C++ runtime:
 
 .. code-block:: python
 

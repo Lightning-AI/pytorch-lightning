@@ -42,13 +42,13 @@ def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
         assert expected_gpu_idxs == pick_multiple_gpus(nb)
 
 
-@mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
 def test_pick_multiple_gpus_more_than_available(*_):
     with pytest.raises(MisconfigurationException, match="You requested 3 GPUs but your machine only has 1 GPUs"):
         pick_multiple_gpus(3)
 
 
-@mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
 @mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector.pick_multiple_gpus", return_value=[1])
 def test_auto_select_gpus(*_):
 

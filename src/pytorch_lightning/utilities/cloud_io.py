@@ -13,57 +13,33 @@
 # limitations under the License.
 """Utilities related to data saving/loading."""
 
-import io
-from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Union
+from typing import Any
 
-import fsspec
-import torch
-from fsspec.core import url_to_fs
-from fsspec.implementations.local import AbstractFileSystem
-
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.utilities.cloud_io import atomic_save as new_atomic_save
+from lightning_lite.utilities.cloud_io import get_filesystem as new_get_filesystem
+from lightning_lite.utilities.cloud_io import load as new_load
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
-def load(
-    path_or_url: Union[IO, _PATH],
-    map_location: Optional[
-        Union[str, Callable, torch.device, Dict[Union[str, torch.device], Union[str, torch.device]]]
-    ] = None,
-) -> Any:
-    """Loads a checkpoint.
-
-    Args:
-        path_or_url: Path or URL of the checkpoint.
-        map_location: a function, ``torch.device``, string or a dict specifying how to remap storage locations.
-    """
-    if not isinstance(path_or_url, (str, Path)):
-        # any sort of BytesIO or similar
-        return torch.load(path_or_url, map_location=map_location)
-    if str(path_or_url).startswith("http"):
-        return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
-    fs = get_filesystem(path_or_url)
-    with fs.open(path_or_url, "rb") as f:
-        return torch.load(f, map_location=map_location)
+def atomic_save(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.cloud_io.atomic_save` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.cloud_io.atomic_save` instead."
+    )
+    return new_atomic_save(*args, **kwargs)
 
 
-def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
-    fs, _ = url_to_fs(str(path), **kwargs)
-    return fs
+def get_filesystem(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.cloud_io.get_filesystem` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.cloud_io.get_filesystem` instead."
+    )
+    return new_get_filesystem(*args, **kwargs)
 
 
-def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
-    """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
-
-    Args:
-        checkpoint: The object to save.
-            Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
-            accepts.
-        filepath: The path to which the checkpoint will be saved.
-            This points to the file that the checkpoint will be stored in.
-    """
-
-    bytesbuffer = io.BytesIO()
-    torch.save(checkpoint, bytesbuffer)
-    with fsspec.open(filepath, "wb") as f:
-        f.write(bytesbuffer.getvalue())
+def load(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.cloud_io.load` has been deprecated in v1.8.0 and will be"
+        " removed in v1.10.0. Please use `lightning_lite.utilities.cloud_io.load` instead."
+    )
+    return new_load(*args, **kwargs)
