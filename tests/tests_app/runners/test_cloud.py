@@ -100,10 +100,10 @@ class TestAppCreationClient:
             dependency_cache_key=mock.ANY,
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-            "default-project-id", mock.ANY, body
+            project_id="default-project-id", app_id=mock.ANY, body=body
         )
         cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
-            "default-project-id", body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id")
+            project_id="default-project-id", body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id")
         )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -141,7 +141,7 @@ class TestAppCreationClient:
             dependency_cache_key=mock.ANY,
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-            "test-project-id", mock.ANY, body
+            project_id="test-project-id", app_id=mock.ANY, body=body
         )
 
         # with requirements file
@@ -156,7 +156,7 @@ class TestAppCreationClient:
             ),
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_with(
-            "test-project-id", mock.ANY, body
+            project_id="test-project-id", app_id=mock.ANY, body=body
         )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -190,7 +190,7 @@ class TestAppCreationClient:
             args,
             kwargs,
         ) = cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.mock_calls[0]
-        body = args[2]
+        body = kwargs['body']
         assert body.dependency_cache_key == "dummy-hash"
 
         # testing with no-cache True
@@ -202,7 +202,7 @@ class TestAppCreationClient:
             args,
             kwargs,
         ) = cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.mock_calls[0]
-        body = args[2]
+        body = kwargs['body']
         assert body.dependency_cache_key is None
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -288,7 +288,7 @@ class TestAppCreationClient:
                 ],
             )
             mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-                "test-project-id", mock.ANY, expected_body
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
             )
 
             # running dispatch with disabled dependency cache
@@ -297,11 +297,11 @@ class TestAppCreationClient:
             expected_body.dependency_cache_key = None
             cloud_runtime.dispatch()
             mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-                "test-project-id", mock.ANY, expected_body
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
             )
         else:
             mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
-                "test-project-id", mock.ANY, mock.ANY, mock.ANY
+                project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -415,7 +415,7 @@ class TestAppCreationClient:
                 ],
             )
             mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-                "test-project-id", mock.ANY, expected_body
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
             )
 
             # running dispatch with disabled dependency cache
@@ -424,11 +424,11 @@ class TestAppCreationClient:
             expected_body.dependency_cache_key = None
             cloud_runtime.dispatch()
             mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-                "test-project-id", mock.ANY, expected_body
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
             )
         else:
             mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
-                "test-project-id", mock.ANY, mock.ANY, mock.ANY
+                project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -610,12 +610,12 @@ class TestAppCreationClient:
             expected_body = expected_body_option_1
             try:
                 mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-                    "test-project-id", mock.ANY, expected_body
+                    project_id="test-project-id", app_id=mock.ANY, body=expected_body
                 )
             except Exception:
                 expected_body = expected_body_option_2
                 mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-                    "test-project-id", mock.ANY, expected_body
+                    project_id="test-project-id", app_id=mock.ANY, body=expected_body
                 )
 
             # running dispatch with disabled dependency cache
@@ -624,11 +624,11 @@ class TestAppCreationClient:
             expected_body.dependency_cache_key = None
             cloud_runtime.dispatch()
             mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-                "test-project-id", mock.ANY, expected_body
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
             )
         else:
             mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
-                "test-project-id", mock.ANY, mock.ANY, mock.ANY
+                project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
 
