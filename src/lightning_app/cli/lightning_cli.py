@@ -6,6 +6,7 @@ from typing import List, Tuple, Union
 import arrow
 import click
 import rich
+from lightning_cloud.openapi import Externalv1LightningappInstance
 from requests.exceptions import ConnectionError
 from rich.color import ANSI_COLOR_NAMES
 
@@ -37,10 +38,11 @@ from lightning_app.utilities.network import LightningClient
 logger = Logger(__name__)
 
 
-def get_app_url(runtime_type: RuntimeType, *args) -> str:
+def get_app_url(runtime_type: RuntimeType, *args, need_credits: bool = False) -> str:
     if runtime_type == RuntimeType.CLOUD:
-        lightning_app = args[0]
-        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}"
+        lightning_app: Externalv1LightningappInstance = args[0]
+        action = "?action=add_credits" if need_credits else ""
+        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}{action}"
     else:
         return "http://127.0.0.1:7501/view"
 
@@ -303,9 +305,9 @@ def _run_app(
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
 
-    def on_before_run(*args):
+    def on_before_run(*args, **kwargs):
         if open_ui and not without_server:
-            click.launch(get_app_url(runtime_type, *args))
+            click.launch(get_app_url(runtime_type, *args, **kwargs))
 
     click.echo("Your Lightning App is starting. This won't take long.")
 
@@ -336,15 +338,26 @@ def run():
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--cloud", type=bool, default=False, is_flag=True)
 @click.option(
-    "--cluster-id", type=str, default=None, help="Run Lightning App on a specific Lightning AI BYOC compute cluster"
+    "--cluster-id",
+    type=str,
+    default=None,
+    help="Run Lightning App on a specific Lightning AI BYOC compute cluster",
 )
 @click.option("--name", help="The current application name", default="", type=str)
 @click.option("--without-server", is_flag=True, default=False)
 @click.option(
-    "--no-cache", is_flag=True, default=False, help="Disable caching of packages " "installed from requirements.txt"
+    "--no-cache",
+    is_flag=True,
+    default=False,
+    help="Disable caching of packages " "installed from requirements.txt",
 )
 @click.option("--blocking", "blocking", type=bool, default=False)
-@click.option("--open-ui", type=bool, default=True, help="Decide whether to launch the app UI in a web browser")
+@click.option(
+    "--open-ui",
+    type=bool,
+    default=True,
+    help="Decide whether to launch the app UI in a web browser",
+)
 @click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
@@ -387,7 +400,12 @@ def install():
 
 @install.command("app")
 @click.argument("name", type=str)
-@click.option("--yes", "-y", is_flag=True, help="disables prompt to ask permission to create env and run install cmds")
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="disables prompt to ask permission to create env and run install cmds",
+)
 @click.option(
     "--version",
     "-v",
@@ -417,7 +435,12 @@ def install_app(name, yes, version, overwrite: bool = False):
 
 @install.command("component")
 @click.argument("name", type=str)
-@click.option("--yes", "-y", is_flag=True, help="disables prompt to ask permission to create env and run install cmds")
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="disables prompt to ask permission to create env and run install cmds",
+)
 @click.option(
     "--version",
     "-v",
@@ -492,7 +515,12 @@ def init_component(name):
 
 
 @init.command("react-ui")
-@click.option("--dest_dir", "-dest_dir", type=str, help="optional destination directory to create the react ui")
+@click.option(
+    "--dest_dir",
+    "-dest_dir",
+    type=str,
+    help="optional destination directory to create the react ui",
+)
 def init_react_ui(dest_dir):
     """Create a react UI to give a Lightning component a React.js web user interface (UI)"""
     cmd_react_ui_init.react_ui(dest_dir)
