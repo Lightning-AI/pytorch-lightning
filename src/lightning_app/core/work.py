@@ -544,10 +544,6 @@ class LightningWork(abc.ABC):
         status = {**timeout_statuses[-1], "timestamp": statuses[0]["timestamp"]}
         return WorkStatus(**status, count=len(timeout_statuses))
 
-    def load_state_dict(self, state):
-        # TODO (tchaton) Implement logic for state reloading.
-        pass
-
     def on_exit(self):
         """Override this hook to add your logic when the work is exiting."""
         pass

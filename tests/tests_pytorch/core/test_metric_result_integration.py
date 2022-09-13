@@ -27,6 +27,7 @@ from torchmetrics import Metric, MetricCollection
 
 import pytorch_lightning as pl
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -36,7 +37,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 

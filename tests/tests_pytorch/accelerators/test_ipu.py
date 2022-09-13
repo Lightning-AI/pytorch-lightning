@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -187,7 +186,7 @@ def test_optimization(tmpdir):
 @RunIf(ipu=True)
 def test_half_precision(tmpdir):
     class TestCallback(Callback):
-        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
             assert trainer.strategy.model.precision == 16
             raise SystemExit
 

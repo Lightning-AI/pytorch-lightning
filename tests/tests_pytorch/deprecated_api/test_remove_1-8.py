@@ -22,10 +22,11 @@ import pytest
 import torch
 
 import pytorch_lightning
+from lightning_lite.utilities import device_parser
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
+from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.profiler import AbstractProfiler, BaseProfiler
 from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfiler
@@ -33,8 +34,7 @@ from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -76,11 +76,6 @@ def test_v1_8_0_deprecated_call_hook():
     )
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
         trainer.call_hook("test_hook")
-
-
-def test_v1_8_0_deprecated_warning_positional_category():
-    with pytest.deprecated_call(match=r"use `category=FutureWarning."):
-        rank_zero_warn("foo", FutureWarning)
 
 
 def test_v1_8_0_deprecated_run_stage():
@@ -280,40 +275,6 @@ def test_v1_8_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_8_0_rank_zero_imports():
-
-    import warnings
-
-    from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_info
-    from pytorch_lightning.utilities.warnings import LightningDeprecationWarning, rank_zero_deprecation, rank_zero_warn
-
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_debug("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_info("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.rank_zero_warn has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_warn("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.rank_zero_deprecation has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        rank_zero_deprecation("foo")
-    with pytest.deprecated_call(
-        match="pytorch_lightning.utilities.warnings.LightningDeprecationWarning has been deprecated in v1.6"
-        " and will be removed in v1.8."
-    ):
-        warnings.warn("foo", LightningDeprecationWarning, stacklevel=5)
-
-
 def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
     class TestCallback(Callback):
         def on_before_accelerator_backend_setup(self, *args, **kwargs):
@@ -438,13 +399,6 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_8_0_weights_save_path(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(weights_save_path=tmpdir)
-    with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
-        _ = trainer.weights_save_path
-
-
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
@@ -485,30 +439,6 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
-
-
-def test_v1_8_0_logger_collection(tmpdir):
-    logger1 = CSVLogger(tmpdir)
-    logger2 = CSVLogger(tmpdir)
-
-    trainer1 = Trainer(logger=logger1)
-    trainer2 = Trainer(logger=[logger1, logger2])
-
-    # Should have no deprecation warning
-    trainer1.logger
-    trainer1.loggers
-    trainer2.loggers
-
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = trainer2.logger
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        _ = LoggerCollection([logger1, logger2])
-
-    model = BoringModel()
-    trainer = Trainer(logger=[logger1, logger2])
-    model.trainer = trainer
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = model.logger
 
 
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
@@ -586,7 +516,7 @@ def test_v1_8_0_lightning_module_use_amp():
 
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
 def test_v1_8_0_torch_distributed_backend_env():
-    from pytorch_lightning.utilities.distributed import _get_process_group_backend_from_env
+    from lightning_lite.utilities.distributed import _get_process_group_backend_from_env
 
     with pytest.deprecated_call(
         match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
