@@ -110,7 +110,7 @@ def extract_batch_size(batch: BType) -> int:
 
 def has_len_all_ranks(
     dataloader: Union[DataLoader, CombinedLoader],
-    training_type: "pl.Strategy",
+    strategy: "pl.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or

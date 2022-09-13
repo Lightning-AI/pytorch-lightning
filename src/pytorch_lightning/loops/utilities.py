@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
