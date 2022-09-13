@@ -7,7 +7,7 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-  pull_request:
+  pull_request_target:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
@@ -32,6 +32,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
 
     - uses: actions/setup-python@v4
       with:
@@ -53,13 +55,20 @@ jobs:
     - name: Update jsonnet
       env:
         XLA_VER: 1.12
-        PR_NUMBER: ${{ github.event.number }}
-        SHA: ${{ github.sha }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        SHA: ${{ github.event.pull_request.head.sha }}
       run: |
        python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
        data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
        cat dockers/tpu-tests/tpu_test_cases.jsonnet
       shell: bash
+
+    # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
+    - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
+      with:
+        cluster_name: TODO
+        location: us-central1-c
+        credentials: ${{ secrets.GKE_SA_KEY }}
 
     - name: Deploy cluster
       run: |
