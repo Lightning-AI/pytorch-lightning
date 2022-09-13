@@ -35,6 +35,7 @@ DOT_IGNORE_FILENAME = ".lightningignore"
 DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
 LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
+ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 
 DEBUG: bool = lightning_cloud.env.DEBUG
 
