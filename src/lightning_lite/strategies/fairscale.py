@@ -24,6 +24,7 @@ from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
+from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _IS_WINDOWS
