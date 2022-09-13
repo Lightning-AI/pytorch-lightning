@@ -8,7 +8,10 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-  pull_request_target:
+  # should use `pull_request_target` but it's blocked by
+  # https://github.com/CircleCI-Public/trigger-circleci-pipeline-action/issues/27
+  # so this job will not run on forks until fixed
+  pull_request:
     branches: [master, "release/*"]
     paths:
       - ".github/workflows/ci-circleci.yml"
