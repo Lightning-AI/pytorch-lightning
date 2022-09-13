@@ -101,6 +101,9 @@ jobs:
           pkg-name: "lightning"
           pip-flags: "-U --pre --find-links ../pypi/"
 
+      - name: Run CLI
+        run: python -m lightning --version
+
   install-meta-pypi:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -148,3 +151,6 @@ jobs:
         with:
           pkg-name: "lightning"
           pip-flags: "-U --pre --find-links ../pypi/"
+
+      - name: Run CLI
+        run: python -m lightning --version
