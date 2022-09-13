@@ -97,7 +97,6 @@ jobs:
 
     - name: Statistics
       if: success()
-      working-directory: tests/tests_pytorch
       run: |
         mv ./xx01 coverage.xml
         coverage report
@@ -110,7 +109,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/tests_pytorch/coverage.xml
-        flags: tpu,pytest,python${{ matrix.python-version }}
+        file: coverage.xml
+        flags: tpu,pytest,python$PYTHON_VER
         name: TPU-coverage
         fail_ci_if_error: false
