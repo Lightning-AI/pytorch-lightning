@@ -84,8 +84,8 @@ class _Connector:
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
     ) -> None:
-        """The Connector parses several Lite arguments and instantiates the Strategy including other
-        components such as the Accelerator and Precision plugins.
+        """The Connector parses several Lite arguments and instantiates the Strategy including other components
+        such as the Accelerator and Precision plugins.
 
             A. accelerator flag could be:
                 1. accelerator class
