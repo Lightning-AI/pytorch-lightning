@@ -26,7 +26,7 @@ from lightning_lite.utilities import device_parser
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
+from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.strategies import ParallelStrategy
@@ -438,30 +438,6 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
-
-
-def test_v1_8_0_logger_collection(tmpdir):
-    logger1 = CSVLogger(tmpdir)
-    logger2 = CSVLogger(tmpdir)
-
-    trainer1 = Trainer(logger=logger1)
-    trainer2 = Trainer(logger=[logger1, logger2])
-
-    # Should have no deprecation warning
-    trainer1.logger
-    trainer1.loggers
-    trainer2.loggers
-
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = trainer2.logger
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        _ = LoggerCollection([logger1, logger2])
-
-    model = BoringModel()
-    trainer = Trainer(logger=[logger1, logger2])
-    model.trainer = trainer
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = model.logger
 
 
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):

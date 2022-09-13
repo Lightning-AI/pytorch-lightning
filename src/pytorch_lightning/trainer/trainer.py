@@ -56,7 +56,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import Logger
-from pytorch_lightning.loggers.logger import DummyLogger, LoggerCollection
+from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -2604,28 +2604,12 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[Logger]:
-        loggers = self.loggers
-        if len(loggers) == 0:
-            return None
-        if len(loggers) == 1:
-            return loggers[0]
-        else:
-            rank_zero_deprecation(
-                "Using `trainer.logger` when multiple loggers are configured."
-                " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
-                " `trainer.logger` will return the first logger available.",
-                stacklevel=5,
-            )
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                return LoggerCollection(loggers)
+        return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
         if not logger:
             self.loggers = []
-        elif isinstance(logger, LoggerCollection):
-            self.loggers = list(logger)
         else:
             self.loggers = [logger]
 
