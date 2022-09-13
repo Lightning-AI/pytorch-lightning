@@ -20,6 +20,7 @@ from lightning_lite.strategies.fairscale import DDPSpawnShardedStrategy  # noqa:
 from lightning_lite.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning_lite.strategies.registry import _StrategyRegistry, _call_register_strategies
 from lightning_lite.strategies.single_device import SingleDeviceStrategy  # noqa: F401
+from lightning_lite.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
 from lightning_lite.strategies.strategy import Strategy  # noqa: F401
 from lightning_lite.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
 
