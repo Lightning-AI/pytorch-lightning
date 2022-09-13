@@ -415,7 +415,6 @@ class Trainer(
         Trainer._log_api_event("init")
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
-        self.num_sanity_val_steps: int
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
