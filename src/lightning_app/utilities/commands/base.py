@@ -95,7 +95,9 @@ def _download_command(
             if not os.path.exists(target_file):
                 client = LightningClient()
                 project_id = _get_project(client).project_id
-                response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id=project_id, id=app_id)
+                response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(
+                    project_id=project_id, id=app_id
+                )
                 for artifact in response.artifacts:
                     if f"commands/{command_name}.py" == artifact.filename:
                         resp = requests.get(artifact.url, allow_redirects=True)
