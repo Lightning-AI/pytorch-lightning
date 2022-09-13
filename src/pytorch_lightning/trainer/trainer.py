@@ -485,7 +485,7 @@ class Trainer(
         self._call_callback_hooks("on_init_start")
 
         # init data flags
-        self.check_val_every_n_epoch: int
+        self.check_val_every_n_epoch: Optional[int]
         self._data_connector.on_trainer_init(
             val_check_interval,
             reload_dataloaders_every_n_epochs,
@@ -2105,7 +2105,7 @@ class Trainer(
     @property
     def lightning_module(self) -> "pl.LightningModule":
         # TODO: this is actually an optional return
-        return self.strategy.lightning_module
+        return self.strategy.lightning_module  # type: ignore[return-value]
 
     @property
     def optimizers(self) -> List[Optimizer]:
@@ -2186,10 +2186,10 @@ class Trainer(
     @property
     def log_dir(self) -> Optional[str]:
         if len(self.loggers) > 0:
-            if isinstance(self.loggers[0], TensorBoardLogger):
-                dirpath = self.loggers[0].log_dir
-            else:
+            if not isinstance(self.loggers[0], TensorBoardLogger):
                 dirpath = self.loggers[0].save_dir
+            else:
+                dirpath = self.loggers[0].log_dir
         else:
             dirpath = self.default_root_dir
 
