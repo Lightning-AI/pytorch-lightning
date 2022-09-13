@@ -19,10 +19,10 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
+from lightning_lite.plugins.environments import ClusterEnvironment, LightningEnvironment
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.plugins.environments import ClusterEnvironment, LightningEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10

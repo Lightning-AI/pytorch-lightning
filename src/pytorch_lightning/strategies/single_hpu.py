@@ -15,8 +15,8 @@
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.utilities.types import _DEVICE
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
