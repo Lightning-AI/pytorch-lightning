@@ -437,12 +437,12 @@ class AcceleratorConnector:
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
-                return TPUSpawnStrategy.strategy_name
+                return "tpu_spawn"
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
         if self._num_nodes_flag > 1:
-            return DDPStrategy.strategy_name
+            return "ddp"
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
