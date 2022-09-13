@@ -1507,44 +1507,6 @@ Can specify as float or int.
     total_fit_batches = total_train_batches + total_val_batches
 
 
-weights_save_path
-^^^^^^^^^^^^^^^^^
-
-
-.. warning:: `weights_save_path` has been deprecated in v1.6 and will be removed in v1.8. Please pass
-   ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
-   callback.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_save_path.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_save_path.mp4"></video>
-
-|
-
-Directory of where to save weights if specified.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(weights_save_path=os.getcwd())
-
-    # save to your custom path
-    trainer = Trainer(weights_save_path="my/path")
-
-Example::
-
-    # if checkpoint callback used, then overrides the weights path
-    # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint = ModelCheckpoint(dirpath='some/path')
-    trainer = Trainer(
-        callbacks=[checkpoint],
-        weights_save_path='my/path'
-    )
-
-
 enable_model_summary
 ^^^^^^^^^^^^^^^^^^^^
 

@@ -20,6 +20,7 @@ from unittest import mock
 import pytest
 
 from lightning_lite.plugins.environments import SLURMEnvironment
+from lightning_lite.utilities.imports import _IS_WINDOWS
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
@@ -78,8 +79,9 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
 
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("auto_requeue", (True, False))
-def test_auto_requeue_flag(auto_requeue):
-    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue)])
+@pytest.mark.parametrize("requeue_signal", [signal.SIGUSR1, signal.SIGUSR2, signal.SIGHUP] if not _IS_WINDOWS else [])
+def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
+    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=auto_requeue, requeue_signal=requeue_signal)])
     connector = SignalConnector(trainer)
     connector.register_signal_handlers()
 
@@ -88,12 +90,12 @@ def test_auto_requeue_flag(auto_requeue):
         assert len(sigterm_handlers) == 1
         assert sigterm_handlers[0].__qualname__ == "SignalConnector.sigterm_handler_fn"
 
-        sigusr1_handlers = signal.getsignal(signal.SIGUSR1).signal_handlers
-        assert len(sigusr1_handlers) == 1
-        assert sigusr1_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr1_handler_fn"
+        sigusr_handlers = signal.getsignal(requeue_signal).signal_handlers
+        assert len(sigusr_handlers) == 1
+        assert sigusr_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr_handler_fn"
     else:
         assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
-        assert signal.getsignal(signal.SIGUSR1) is signal.SIG_DFL
+        assert signal.getsignal(requeue_signal) is signal.SIG_DFL
 
     connector.teardown()
 
