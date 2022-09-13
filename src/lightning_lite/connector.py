@@ -67,8 +67,8 @@ _PLUGIN_INPUT = Union[_PLUGIN, str]
 
 
 class _Connector:
-    """The Connector parses several Lite arguments and instantiates the Strategy including other
-    components such as the Accelerator and Precision plugins.
+    """The Connector parses several Lite arguments and instantiates the Strategy including other components such as
+    the Accelerator and Precision plugins.
 
         A. accelerator flag could be:
             1. accelerator class
@@ -96,6 +96,7 @@ class _Connector:
         A. Class > str
         B. Strategy > Accelerator/precision/plugins
     """
+
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
