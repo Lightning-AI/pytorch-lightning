@@ -55,9 +55,7 @@ from lightning_lite.strategies import (
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities import (
     _StrategyType,
-    AMPType,
     device_parser,
-    LightningEnum,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
@@ -105,7 +103,6 @@ class _Connector:
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
-        amp_type: str = "native",  # TODO(lite): Remove this unused argument and adjust logic below
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
@@ -126,14 +123,12 @@ class _Connector:
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self.checkpoint_io: Optional[CheckpointIO] = None
-        self._amp_type_flag: Optional[LightningEnum] = None
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
             precision=precision,
             plugins=plugins,
-            amp_type=amp_type,
         )
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, gpus=gpus, tpu_cores=tpu_cores
@@ -170,7 +165,6 @@ class _Connector:
         accelerator: Optional[Union[str, Accelerator]],
         precision: Union[int, str],
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
-        amp_type: str,
     ) -> None:
         """This method checks:
 
@@ -180,7 +174,7 @@ class _Connector:
         3. precision: The final value of the precision flag may be determined either by the precision argument or
             by a plugin instance.
         4. plugins: The list of plugins may contain a Precision plugin, CheckpointIO, ClusterEnvironment and others.
-            Additionally, other flags such as `precision` or `sync_batchnorm` can populate the list with the
+            Additionally, other flags such as `precision` can populate the list with the
             corresponding plugin instances.
         """
         if plugins is not None:
@@ -281,9 +275,6 @@ class _Connector:
                         self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
-        amp_type = amp_type if isinstance(amp_type, str) else None
-        self._amp_type_flag = AMPType.from_str(amp_type)
-
     def _check_device_config_and_set_final_flags(
         self,
         devices: Optional[Union[List[int], str, int]],
@@ -311,7 +302,7 @@ class _Connector:
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise ValueError(
                 f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu'|'mps')` for the devices mapping."
+                " `accelerator=('auto'|'tpu'|'gpu'|'cpu'|'mps')` for the devices mapping."
             )
 
     def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
@@ -505,7 +496,7 @@ class _Connector:
                     )
                 return TPUBf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecision(self._precision_flag, self._amp_type_flag, amp_level=None)  # type: ignore
+            return DeepSpeedPrecision(self._precision_flag, amp_type="native", amp_level=None)  # type: ignore
 
         if self._precision_flag == 32:
             return Precision()
@@ -521,19 +512,18 @@ class _Connector:
 
         if self._precision_flag in (16, "bf16"):
             rank_zero_info(
-                f"Using 16bit {self._amp_type_flag.value} Automatic Mixed Precision (AMP)"  # type: ignore
+                f"Using 16-bit Automatic Mixed Precision (AMP)"  # type: ignore
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
 
-            if self._amp_type_flag == AMPType.NATIVE:
-                device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-                return NativeMixedPrecision(self._precision_flag, device)
+            device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
+            return NativeMixedPrecision(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
 
     def _validate_precision_choice(self) -> None:
-        """Validate the combination of choices for precision, AMP type, and accelerator."""
+        """Validate the combination of choices for precision, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 64:
                 raise NotImplementedError(
@@ -545,14 +535,9 @@ class _Connector:
                 self._precision_plugin_flag, (TPUPrecision, TPUBf16Precision)
             ):
                 raise ValueError(
-                    f"The `TPUAccelerator` can only be used with a `TPUPrecision`,"
+                    f"The `TPUAccelerator` can only be used with a `TPUPrecision` plugin,"
                     f" found: {self._precision_plugin_flag}."
                 )
-        if self._precision_flag == "bf16" and self._amp_type_flag != AMPType.NATIVE:
-            raise ValueError(
-                f"You passed `Lite(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but "  # type: ignore
-                "it's not supported. Try using `amp_type='native'` instead."
-            )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
