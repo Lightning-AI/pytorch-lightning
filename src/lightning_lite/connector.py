@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 from collections import Counter
 from typing import Dict, List, Optional, Union
@@ -68,10 +67,37 @@ from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS
 _PLUGIN = Union[Strategy, Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
 
-log = logging.getLogger(__name__)
-
 
 class _Connector:
+    """The Connector parses several Lite arguments and instantiates the Strategy including other
+    components such as the Accelerator and Precision plugins.
+
+        A. accelerator flag could be:
+            1. accelerator class
+            2. accelerator str
+            3. accelerator auto
+
+        B. strategy flag could be :
+            1. strategy class
+            2. strategy str registered with STRATEGY_REGISTRY
+            3. strategy str in _strategy_type enum which listed in each strategy as
+               backend (registed these too, and _strategy_type could be deprecated)
+
+        C. plugins flag could be:
+            1. List of str, which could contain:
+                i. precision str (Not supported in the old accelerator_connector version)
+                ii. checkpoint_io str (Not supported in the old accelerator_connector version)
+                iii. cluster_environment str (Not supported in the old accelerator_connector version)
+            2. List of class, which could contains:
+                i. precision class (should be removed, and precision flag should allow user pass classes)
+                ii. checkpoint_io class
+                iii. cluster_environment class
+
+
+    priorities which to take when:
+        A. Class > str
+        B. Strategy > Accelerator/precision/plugins
+    """
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
@@ -84,35 +110,6 @@ class _Connector:
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
     ) -> None:
-        """The Connector parses several Lite arguments and instantiates the Strategy including other
-        components such as the Accelerator and Precision plugins.
-
-            A. accelerator flag could be:
-                1. accelerator class
-                2. accelerator str
-                3. accelerator auto
-
-            B. strategy flag could be :
-                1. strategy class
-                2. strategy str registered with STRATEGY_REGISTRY
-                3. strategy str in _strategy_type enum which listed in each strategy as
-                   backend (registed these too, and _strategy_type could be deprecated)
-
-            C. plugins flag could be:
-                1. List of str, which could contain:
-                    i. precision str (Not supported in the old accelerator_connector version)
-                    ii. checkpoint_io str (Not supported in the old accelerator_connector version)
-                    iii. cluster_environment str (Not supported in the old accelerator_connector version)
-                2. List of class, which could contains:
-                    i. precision class (should be removed, and precision flag should allow user pass classes)
-                    ii. checkpoint_io class
-                    iii. cluster_environment class
-
-
-        priorities which to take when:
-            A. Class > str
-            B. Strategy > Accelerator/precision/plugins
-        """
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
