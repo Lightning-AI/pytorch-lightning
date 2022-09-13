@@ -71,7 +71,7 @@ _PLUGIN_INPUT = Union[_PLUGIN, str]
 log = logging.getLogger(__name__)
 
 
-class AcceleratorConnector:
+class _Connector:
     def __init__(
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
@@ -84,7 +84,7 @@ class AcceleratorConnector:
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
     ) -> None:
-        """The AcceleratorConnector parses several Lite arguments and instantiates the Strategy including other
+        """The Connector parses several Lite arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
 
             A. accelerator flag could be:
