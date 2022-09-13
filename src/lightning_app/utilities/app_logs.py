@@ -99,7 +99,7 @@ def _app_logs_reader(
                 start_timestamps[log_event.component_name] = log_event.timestamp
 
             timestamp = start_timestamps.get(log_event.component_name, None)
-            if timestamp and log_event.timestamp > timestamp:
+            if timestamp and log_event.timestamp >= timestamp:
                 if "launcher" not in log_event.message:
                     yield log_event
 
