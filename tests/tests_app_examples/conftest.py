@@ -1,4 +1,5 @@
 import os
+import sys
 
 from lightning_cloud.openapi.rest import ApiException
 
@@ -8,6 +9,9 @@ from lightning_app.utilities.network import LightningClient
 
 def pytest_timeout_cancel_timer(item):
     """This hook deletes the Lightning App when timeout triggers."""
+
+    if sys.platform == "win32":
+        return True
 
     if item.name.endswith("_example_cloud"):
         name = os.getenv("LIGHTNING_APP_NAME")

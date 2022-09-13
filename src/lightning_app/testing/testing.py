@@ -6,7 +6,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 from contextlib import contextmanager
 from multiprocessing import Process
 from subprocess import Popen
@@ -38,7 +37,6 @@ if _is_playwright_available():
 
 
 def _on_error_callback(ws_app, *_):
-    print(traceback.format_exc())
     ws_app.close()
 
 

@@ -1,6 +1,7 @@
 import json
 import queue
 from dataclasses import dataclass
+from datetime import timedelta
 from threading import Thread
 from typing import Callable, Iterator, List, Optional
 
@@ -86,13 +87,21 @@ def _app_logs_reader(
         th.start()
 
     # Print logs from queue when log event is available
+    flow = "Your app has started. View it in your browser"
+    work = "USER_RUN_WORK"
+    start_timestamps = {}
+
+    # Print logs from queue when log event is available
     try:
         while True:
-            log_event = read_queue.get(timeout=None if follow else 1.0)
-            if "lightning-launcher" in log_event.message:
-                pass
-            else:
+            log_event: _LogEvent = read_queue.get(timeout=None if follow else 1.0)
+            timestamp = start_timestamps.get(log_event.component_name, None)
+            if timestamp and log_event.timestamp > timestamp:
                 yield log_event
+
+            token = flow if log_event.component_name == "flow" else work
+            if token in log_event.message:
+                start_timestamps[log_event.component_name] = log_event.timestamp + timedelta(microseconds=1)
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
