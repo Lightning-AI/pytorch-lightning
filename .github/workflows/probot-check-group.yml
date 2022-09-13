@@ -6,7 +6,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: true
-  
+
 jobs:
   required-jobs:
     runs-on: ubuntu-latest
