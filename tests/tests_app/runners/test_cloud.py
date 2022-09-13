@@ -686,3 +686,18 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
     with caplog.at_level(logging.WARN):
         backend._check_uploaded_folder(Path("."), repo)
     assert caplog.messages[0].startswith("Your application folder . is more than 2 MB. Found 5.0 MB")
+
+
+@mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
+@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
+def test_project_has_sufficient_credits():
+    app = mock.MagicMock(spec=LightningApp)
+    cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+    credits_and_test_value = [
+        [0.3, False],
+        [1, True],
+        [1.1, True],
+    ]
+    for balance, result in credits_and_test_value:
+        project = V1Membership(name="test-project1", project_id="test-project-id1", balance=balance)
+        assert cloud_runtime._project_has_sufficient_credits(project) is result
