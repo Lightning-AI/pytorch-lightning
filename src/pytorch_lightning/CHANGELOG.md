@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed the availability check for the neptune-client package ([#14714](https://github.com/Lightning-AI/lightning/pull/14714))
+- Break HPU Graphs into two parts (forward + backward as one and optimizer as another) for better performance ([#14656](https://github.com/Lightning-AI/lightning/pull/14656))
 
 
 ## [1.7.6] - 2022-09-13
