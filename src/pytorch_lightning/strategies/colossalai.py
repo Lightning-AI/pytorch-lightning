@@ -291,4 +291,4 @@ class ColossalAIStrategy(DDPStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register("colossalai", cls, description="Default Colossalai Strategy")
+        strategy_registry.register("colossalai", cls, description="Default ColossalAI Strategy")

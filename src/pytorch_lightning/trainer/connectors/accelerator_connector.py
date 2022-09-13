@@ -701,7 +701,7 @@ class AcceleratorConnector:
                 return TPUBf16PrecisionPlugin()
 
         if isinstance(self.strategy, ColossalAIStrategy):
-            return ColossalAIPrecisionPlugin(self._precision_flag, self._amp_level_flag)
+            return ColossalAIPrecisionPlugin(self._precision_flag)
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(
                 self._precision_flag, self._amp_type_flag, self._amp_level_flag  # type: ignore
