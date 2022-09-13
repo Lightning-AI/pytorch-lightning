@@ -637,7 +637,7 @@ def test_log_tensor_and_clone_no_torch_warning(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
-    match = escape("To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach()")
+    match = r"recommended.*.clone\(\).detach\(\)"
     with no_warning_call(UserWarning, match=match):
         trainer.fit(model)
 
