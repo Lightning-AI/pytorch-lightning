@@ -103,7 +103,8 @@ class TestAppCreationClient:
             project_id="default-project-id", app_id=mock.ANY, body=body
         )
         cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
-            project_id="default-project-id", body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id")
+            project_id="default-project-id",
+            body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id"),
         )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -190,7 +191,7 @@ class TestAppCreationClient:
             args,
             kwargs,
         ) = cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.mock_calls[0]
-        body = kwargs['body']
+        body = kwargs["body"]
         assert body.dependency_cache_key == "dummy-hash"
 
         # testing with no-cache True
@@ -202,7 +203,7 @@ class TestAppCreationClient:
             args,
             kwargs,
         ) = cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.mock_calls[0]
-        body = kwargs['body']
+        body = kwargs["body"]
         assert body.dependency_cache_key is None
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
