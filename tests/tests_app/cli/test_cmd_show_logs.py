@@ -7,7 +7,7 @@ from lightning_app.cli.lightning_cli import logs
 
 @mock.patch("lightning_app.cli.lightning_cli.LightningClient")
 @mock.patch("lightning_app.cli.lightning_cli._get_project")
-def test_show_logs_errors(project, client):
+def test_show_logs_errors(_, client):
     """Test that the CLI prints the errors for the show logs command."""
 
     runner = CliRunner()
@@ -58,4 +58,4 @@ def test_show_logs_errors(project, client):
     result = runner.invoke(logs, ["MyFakeApp", "NonExistentComponent"])
 
     assert result.exit_code == 1
-    assert "Component 'NonExistentComponent' does not exist in app MyFakeApp." in result.output
+    assert "Component 'root.NonExistentComponent' does not exist in app MyFakeApp." in result.output
