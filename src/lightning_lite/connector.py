@@ -79,7 +79,7 @@ class AcceleratorConnector:
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
-        amp_type: str = "native",
+        amp_type: str = "native",  # TODO(lite): Remove this unused argument and adjust logic below
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
@@ -427,6 +427,7 @@ class AcceleratorConnector:
 
     def _is_slurm_managing_tasks(self) -> bool:
         """used by choosing cluster enviroment."""
+        # TODO(lite): Remove this, see: https://github.com/Lightning-AI/lightning/pull/14300
         if not SLURMEnvironment.detect() or SLURMEnvironment.job_name() == "bash":
             return False
 
@@ -458,7 +459,7 @@ class AcceleratorConnector:
                 return "ddp_fork"
             return "ddp_spawn"
 
-        return DDPStrategy.strategy_name
+        return "ddp"
 
     def _check_strategy_and_fallback(self) -> None:
         """Checks edge cases when the strategy selection was a string input, and we need to fall back to a
@@ -580,7 +581,7 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise RuntimeError(
-                f"`Lite(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
+                f"`Lite(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
                 f" Lite(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
                 " In case you are spawning processes yourself, make sure to include the Lite"
