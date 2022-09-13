@@ -32,7 +32,7 @@ from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.exceptions import LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
-from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
+from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI, _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
@@ -153,7 +153,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
             raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
 
     log_reader = _app_logs_reader(
-        logs_api_client=client,
+        logs_api_client=_LightningLogsSocketAPI(client.api_client),
         project_id=project.project_id,
         app_id=apps[app_name].id,
         component_names=components,

@@ -6,7 +6,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 from contextlib import contextmanager
 from multiprocessing import Process
 from subprocess import Popen
@@ -38,7 +37,6 @@ if _is_playwright_available():
 
 
 def _on_error_callback(ws_app, *_):
-    print(traceback.format_exc())
     ws_app.close()
 
 
@@ -210,7 +208,9 @@ def run_cli(args) -> Generator:
 
 @requires("playwright")
 @contextmanager
-def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str] = []) -> Generator:
+def run_app_in_cloud(
+    app_folder: str, app_name: str = "app.py", extra_args: List[str] = [], debug: bool = True
+) -> Generator:
     """This utility is used to automate testing e2e application with lightning_app.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
@@ -239,7 +239,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
-        env_copy["LIGHTNING_DEBUG"] = "1"
+        if debug:
+            env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
@@ -308,7 +309,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             """,
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
-        admin_page.goto(f"{Config.url}/{Config.username}/apps")
+        admin_page.goto(f"{Config.url}/{Config.username}/apps", timeout=60 * 1000)
 
         # Closing the Complete your profile dialog
         try:
@@ -339,15 +340,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             print("'Create Project' dialog not visible, skipping.")
 
         admin_page.locator(f"text={name}").click()
-        admin_page.evaluate(
-            """data => {
-            window.localStorage.setItem('gridUserId', data[0]);
-            window.localStorage.setItem('gridUserKey', data[1]);
-            window.localStorage.setItem('gridUserToken', data[2]);
-        }
-        """,
-            [Config.id, Config.key, token],
-        )
         sleep(5)
         # Scroll to the bottom of the page. Used to capture all logs.
         admin_page.evaluate(
@@ -376,8 +368,9 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         assert len(lightning_apps) == 1
         app_id = lightning_apps[0].id
 
-        process = Process(target=print_logs, kwargs={"app_id": app_id})
-        process.start()
+        if debug:
+            process = Process(target=print_logs, kwargs={"app_id": app_id})
+            process.start()
 
         while True:
             try:
@@ -418,40 +411,11 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
         except KeyboardInterrupt:
             pass
         finally:
-            has_finished = False
-            while not has_finished:
-                try:
-                    button = admin_page.locator('[data-cy="stop"]')
-                    try:
-                        button.wait_for(timeout=3 * 1000)
-                        button.click()
-                    except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-                        pass
-                    context.close()
-                    browser.close()
+            if debug:
+                process.kill()
 
-                    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
-                        project.project_id
-                    )
-
-                    for lightningapp in list_lightningapps.lightningapps:
-                        if lightningapp.name != name:
-                            continue
-                        try:
-                            res = client.lightningapp_instance_service_delete_lightningapp_instance(
-                                project_id=project.project_id,
-                                id=lightningapp.id,
-                            )
-                            assert res == {}
-                        except ApiException as e:
-                            print(f"Failed to delete {lightningapp.name}. Exception {e}")
-
-                    process.kill()
-                    has_finished = True
-                except Exception:
-                    pass
-
-            Popen("lightning disconnect", shell=True).wait()
+            context.close()
+            browser.close()
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
