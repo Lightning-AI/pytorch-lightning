@@ -28,30 +28,6 @@ from pytorch_lightning.strategies import (
 from tests_pytorch.helpers.runif import RunIf
 
 
-def test_strategy_registry_with_new_strategy():
-    class TestStrategy:
-
-        strategy_name = "test_strategy"
-
-        def __init__(self, param1, param2):
-            self.param1 = param1
-            self.param2 = param2
-
-    strategy_name = "test_strategy"
-    strategy_description = "Test Strategy"
-
-    StrategyRegistry.register(strategy_name, TestStrategy, description=strategy_description, param1="abc", param2=123)
-
-    assert strategy_name in StrategyRegistry
-    assert StrategyRegistry[strategy_name]["description"] == strategy_description
-    assert StrategyRegistry[strategy_name]["init_params"] == {"param1": "abc", "param2": 123}
-    assert StrategyRegistry[strategy_name]["strategy_name"] == "test_strategy"
-    assert isinstance(StrategyRegistry.get(strategy_name), TestStrategy)
-
-    StrategyRegistry.remove(strategy_name)
-    assert strategy_name not in StrategyRegistry
-
-
 @pytest.mark.parametrize(
     "strategy_name, init_params",
     [
