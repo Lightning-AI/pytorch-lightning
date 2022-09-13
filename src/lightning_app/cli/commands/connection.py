@@ -75,7 +75,9 @@ def connect(app_name_or_id: str, yes: bool = False):
         if not api_commands:
             client = LightningClient()
             project = _get_project(client)
-            lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
+            lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            )
             click.echo(
                 "We didn't find a matching App. Here are the available Apps that could be "
                 f"connected to {[app.name for app in lightningapps.lightningapps]}."
