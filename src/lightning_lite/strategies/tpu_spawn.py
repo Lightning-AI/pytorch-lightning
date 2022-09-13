@@ -24,7 +24,7 @@ from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.environments import XLAEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
-from lightning_lite.plugins.precision import PrecisionPlugin
+from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.strategies.strategy import TBroadcast
@@ -48,14 +48,12 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
-    strategy_name = "tpu_spawn"
-
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         **_: Any,
     ) -> None:
         super().__init__(
@@ -183,17 +181,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
-    def teardown(self) -> None:
-        super().teardown()
-        os.environ.pop("PT_XLA_DEBUG", None)
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+        strategy_registry.register("tpu_spawn", cls, description=cls.__class__.__name__)
 
     def _worker_setup(self, process_idx: int) -> None:
         self._launched = True
