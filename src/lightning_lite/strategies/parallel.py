@@ -35,7 +35,7 @@ from lightning_lite.utilities.rank_zero import rank_zero_deprecation
 
 
 class ParallelStrategy(Strategy, ABC):
-    """Plugin for training with multiple processes in parallel."""
+    """Strategy for training with multiple processes in parallel."""
 
     def __init__(
         self,
