@@ -14,27 +14,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
 
-
-### Deprecated
-
--
-
-### Fixed
-
-- Resolved a bug where the state change detection using DeepDiff won't worked with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
-
-### Removed
-
--
-
-### Changed
 
 - Improve Lightning App connect logic by disconnecting automatically ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
 
 
 ### Fixed
+
+- Resolved a bug where the state change detection using DeepDiff won't worked with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
+
 
 - Unification of app template: moved `app.py` to root dir for `lightning init app <app_name>` template ([#13853](https://github.com/Lightning-AI/lightning/pull/13853))
 
