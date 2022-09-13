@@ -309,7 +309,7 @@ def run_app_in_cloud(
             """,
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
-        admin_page.goto(f"{Config.url}/{Config.username}/apps")
+        admin_page.goto(f"{Config.url}/{Config.username}/apps", timeout=60 * 1000)
 
         # Closing the Create Project dialog.
         try:
@@ -325,15 +325,6 @@ def run_app_in_cloud(
             print("'Create Project' dialog not visible, skipping.")
 
         admin_page.locator(f"text={name}").click()
-        admin_page.evaluate(
-            """data => {
-            window.localStorage.setItem('gridUserId', data[0]);
-            window.localStorage.setItem('gridUserKey', data[1]);
-            window.localStorage.setItem('gridUserToken', data[2]);
-        }
-        """,
-            [Config.id, Config.key, token],
-        )
         sleep(5)
         # Scroll to the bottom of the page. Used to capture all logs.
         admin_page.evaluate(

@@ -28,9 +28,6 @@ def test_boring_app_example_cloud() -> None:
 
         wait_for(view_page, check_hello_there)
 
-        for _ in fetch_logs():
-            pass
-
         runner = CliRunner()
         result = runner.invoke(logs, [name])
         lines = result.output.splitlines()
