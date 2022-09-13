@@ -385,6 +385,12 @@ def shared_storage_path() -> pathlib.Path:
     ``SHARED_MOUNT_DIRECTORY`` environment variable. In the cloud, the shared path will point to a S3 bucket. All Works
     have access to this shared dropbox.
     """
+    storage_path = os.getenv("LIGHTNING_STORAGE_PATH", "")
+    if storage_path != "":
+        return pathlib.Path(storage_path)
+
+    # TODO[dmitsf]: this logic is still needed for compatibility reasons.
+    # We should remove it after some time.
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
 

@@ -27,6 +27,7 @@ from lightning_cloud.openapi import (
     V1LightningappInstanceState,
     V1LightningworkDrives,
     V1LightningworkSpec,
+    V1Membership,
     V1Metadata,
     V1NetworkConfig,
     V1PackageManager,
@@ -38,6 +39,7 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
+from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
@@ -224,6 +226,16 @@ class CloudRuntime(Runtime):
             repo.package()
             repo.upload(url=lightning_app_release.source_upload_url)
 
+            # check if user has sufficient credits to run an app
+            # if so set the desired state to running otherwise, create the app in stopped state,
+            # and open the admin ui to add credits and running the app.
+            has_sufficient_credits = self._project_has_sufficient_credits(project, app=self.app)
+            app_release_desired_state = (
+                V1LightningappInstanceState.RUNNING if has_sufficient_credits else V1LightningappInstanceState.STOPPED
+            )
+            if not has_sufficient_credits:
+                logger.warn("You may need Lightning credits to run your apps on the cloud.")
+
             # right now we only allow a single instance of the app
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
                 project.project_id, app_id=lightning_app.id
@@ -261,9 +273,7 @@ class CloudRuntime(Runtime):
                     project_id=project.project_id,
                     id=existing_instance.id,
                     body=Body3(
-                        spec=V1LightningappInstanceSpec(
-                            desired_state=V1LightningappInstanceState.RUNNING, env=v1_env_vars
-                        )
+                        spec=V1LightningappInstanceSpec(desired_state=app_release_desired_state, env=v1_env_vars)
                     ),
                 )
             else:
@@ -274,7 +284,7 @@ class CloudRuntime(Runtime):
                         lightning_app_release.id,
                         Body9(
                             cluster_id=cluster_id,
-                            desired_state=V1LightningappInstanceState.RUNNING,
+                            desired_state=app_release_desired_state,
                             name=lightning_app.name,
                             env=v1_env_vars,
                         ),
@@ -285,7 +295,7 @@ class CloudRuntime(Runtime):
             sys.exit(1)
 
         if on_before_run:
-            on_before_run(lightning_app_instance)
+            on_before_run(lightning_app_instance, need_credits=not has_sufficient_credits)
 
         if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
@@ -331,4 +341,14 @@ class CloudRuntime(Runtime):
                 )
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
-            logger.warn(warning_msg)
+
+            logger.warning(warning_msg)
+
+    def _project_has_sufficient_credits(self, project: V1Membership, app: Optional[LightningApp] = None):
+        """check if user has enough credits to run the app with its hardware if app is not passed return True if
+        user has 1 or more credits."""
+        balance = project.balance
+        if balance is None:
+            balance = 0  # value is missing in some tests
+
+        return balance >= 1
