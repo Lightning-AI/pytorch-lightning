@@ -28,7 +28,6 @@ jobs:
     # if: github.event.pull_request.draft == false
     env:
       PYTHON_VER: 3.7
-      CHECK_SLEEP: 5
     timeout-minutes: 60
 
     steps:
@@ -91,7 +90,7 @@ jobs:
          else
            printf ".";
          fi;
-         sleep $CHECK_SLEEP;
+         sleep 5;
        done
        echo "Done waiting. Job status code: $status_code"
        kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
