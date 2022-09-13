@@ -217,7 +217,7 @@ class ProgressBarBase(Callback):
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self._trainer = trainer
         if not trainer.is_global_zero:
             self.disable()

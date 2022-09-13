@@ -1,6 +1,8 @@
 import re
 from typing import Dict, Optional
 
+import arrow
+import click
 import requests
 
 from lightning_app.core.constants import APP_SERVER_PORT
@@ -84,23 +86,21 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
         resp = requests.get(url + "/openapi.json")
         if resp.status_code != 200:
             raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-        return url, _extract_command_from_openapi(resp.json())
+        return url, _extract_command_from_openapi(resp.json()), None
 
     # 2: If no identifier has been provided, evaluate the local application
-    failed_locally = False
-
     if app_id_or_name_or_url is None:
         try:
             url = f"http://localhost:{APP_SERVER_PORT}"
             resp = requests.get(f"{url}/openapi.json")
             if resp.status_code != 200:
                 raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-            return url, _extract_command_from_openapi(resp.json())
+            return url, _extract_command_from_openapi(resp.json()), None
         except requests.exceptions.ConnectionError:
-            failed_locally = True
+            pass
 
     # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
-    if app_id_or_name_or_url or failed_locally:
+    else:
         client = LightningClient()
         project = _get_project(client)
         list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
@@ -117,5 +117,17 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
                 resp = requests.get(lightningapp.status.url + "/openapi.json")
                 if resp.status_code != 200:
                     raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-                return lightningapp.status.url, _extract_command_from_openapi(resp.json())
-    return None, None
+                return lightningapp.status.url, _extract_command_from_openapi(resp.json()), lightningapp.id
+    return None, None, None
+
+
+def _arrow_time_callback(
+    _ctx: "click.core.Context", _param: "click.core.Option", value: str, arw_now=arrow.utcnow()
+) -> arrow.Arrow:
+    try:
+        return arw_now.dehumanize(value)
+    except ValueError:
+        try:
+            return arrow.get(value)
+        except (ValueError, TypeError):
+            raise click.ClickException(f"cannot parse time {value}")

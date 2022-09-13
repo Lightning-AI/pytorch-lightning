@@ -1,17 +1,15 @@
 import json
 import queue
-import sys
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from json import JSONDecodeError
+from datetime import timedelta
 from threading import Thread
 from typing import Callable, Iterator, List, Optional
 
 import dateutil.parser
 from websocket import WebSocketApp
 
+from lightning_app.utilities.log_helpers import _error_callback, _OrderedLogEntry
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
-from lightning_app.utilities.network import LightningClient
 
 
 @dataclass
@@ -27,17 +25,9 @@ class _LogEventLabels:
 
 
 @dataclass
-class _LogEvent:
-    message: str
-    timestamp: datetime
+class _LogEvent(_OrderedLogEntry):
     component_name: str
     labels: _LogEventLabels
-
-    def __ge__(self, other: "_LogEvent") -> bool:
-        return self.timestamp >= other.timestamp
-
-    def __gt__(self, other: "_LogEvent") -> bool:
-        return self.timestamp > other.timestamp
 
 
 def _push_log_events_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
@@ -65,19 +55,8 @@ def _push_log_events_to_read_queue_callback(component_name: str, read_queue: que
     return callback
 
 
-def _error_callback(ws_app: WebSocketApp, error: Exception):
-    errors = {
-        KeyError: "Malformed log message, missing key",
-        JSONDecodeError: "Malformed log message",
-        TypeError: "Malformed log format",
-        ValueError: "Malformed date format",
-    }
-    print(f"Error while reading logs ({errors.get(type(error), 'Unknown')})", file=sys.stderr)
-    ws_app.close()
-
-
 def _app_logs_reader(
-    client: LightningClient,
+    logs_api_client: _LightningLogsSocketAPI,
     project_id: str,
     app_id: str,
     component_names: List[str],
@@ -86,7 +65,6 @@ def _app_logs_reader(
 ) -> Iterator[_LogEvent]:
 
     read_queue = queue.PriorityQueue()
-    logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
     # We will use a socket per component
     log_sockets = [
@@ -127,7 +105,7 @@ def _app_logs_reader(
         pass
 
     except KeyboardInterrupt:
-        # User pressed CTRL+C to exit, we sould respect that
+        # User pressed CTRL+C to exit, we should respect that
         pass
 
     finally:

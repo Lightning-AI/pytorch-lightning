@@ -19,8 +19,9 @@ from unittest import mock
 import pytest
 
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.utilities import device_parser
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import argparse, device_parser
+from pytorch_lightning.utilities import argparse
 
 
 @mock.patch("argparse.ArgumentParser.parse_args")

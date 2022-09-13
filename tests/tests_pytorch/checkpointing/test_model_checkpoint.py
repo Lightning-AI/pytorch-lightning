@@ -32,11 +32,11 @@ from torch import optim
 
 import pytorch_lightning as pl
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.utilities.cloud_io import load as pl_load
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
@@ -1245,7 +1245,7 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     # Case - 2
     # Make sure that everything runs when dirpath is not initialized explicitly
     cb_restore = CustomModelCheckpoint()
-    cb_restore.setup(Trainer(), BoringModel())
+    cb_restore.setup(Trainer(), BoringModel(), stage="fit")
     with pytest.warns(UserWarning, match="The dirpath has changed from*"):
         cb_restore.load_state_dict(written_ckpt)
     make_assertions(cb_restore, written_ckpt)
@@ -1337,37 +1337,6 @@ def test_last_global_step_saved():
     model_checkpoint._save_topk_checkpoint(trainer, monitor_candidates)
     model_checkpoint._save_last_checkpoint(trainer, monitor_candidates)
     assert model_checkpoint._last_global_step_saved == 0
-
-
-# TODO: remove test_dirpath_weights_save_path in v1.8
-@pytest.mark.parametrize(
-    "logger_setting",
-    [
-        False,
-        TensorBoardLogger(save_dir="logger1"),
-        [TensorBoardLogger(save_dir="logger1"), TensorBoardLogger(save_dir="logger2")],
-    ],
-)
-def test_dirpath_weights_save_path(tmpdir, logger_setting):
-    """Tests that the ModelCheckpoint.dirpath is set correctly when user specifies weights_save_path with no
-    loggers, one logger, and multiple loggers."""
-    model = BoringModel()
-    mc = ModelCheckpoint(monitor="epoch", save_top_k=-1)
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            weights_save_path=tmpdir / "weights_save_path",
-            limit_train_batches=1,
-            limit_val_batches=1,
-            num_sanity_val_steps=0,
-            max_epochs=5,
-            check_val_every_n_epoch=2,
-            callbacks=mc,
-            enable_model_summary=False,
-            logger=logger_setting,
-        )
-    trainer.fit(model)
-    assert mc.dirpath == tmpdir / "weights_save_path" / "checkpoints"
 
 
 @pytest.mark.parametrize("every_n_epochs", (0, 5))
