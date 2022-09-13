@@ -9,6 +9,7 @@ import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from requests.exceptions import ConnectionError
 from rich.color import ANSI_COLOR_NAMES
+from utilities.logs_socket_api import _LightningLogsSocketAPI
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
@@ -34,7 +35,6 @@ from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
-from utilities.logs_socket_api import _LightningLogsSocketAPI
 
 logger = Logger(__name__)
 
@@ -119,7 +119,9 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     apps = {
         app.name: app
-        for app in client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id).lightningapps
+        for app in client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id
+        ).lightningapps
     }
 
     if not apps:
