@@ -17,7 +17,7 @@ import platform
 import sys
 
 import torch
-from lightning_utilities.core.imports import compare_version, module_available, package_available
+from lightning_utilities.core.imports import compare_version, module_available, package_available, RequirementCache
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
@@ -41,7 +41,7 @@ _POPTORCH_AVAILABLE = package_available("poptorch")
 _PSUTIL_AVAILABLE = package_available("psutil")
 _RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCHVISION_AVAILABLE = package_available("torchvision")
+_TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 _XLA_AVAILABLE: bool = package_available("torch_xla")
 
 
