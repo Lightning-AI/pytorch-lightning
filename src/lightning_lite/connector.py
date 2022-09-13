@@ -53,13 +53,7 @@ from lightning_lite.strategies import (
     TPUSpawnStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from lightning_lite.utilities import (
-    _StrategyType,
-    device_parser,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from lightning_lite.utilities import _StrategyType, device_parser, rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
 
 _PLUGIN = Union[Strategy, Precision, ClusterEnvironment, CheckpointIO]
