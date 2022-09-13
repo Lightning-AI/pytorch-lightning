@@ -15,25 +15,25 @@
 import os
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 import torch
 import torch.distributed
+from tests_lite.helpers.runif import RunIf
 
 import lightning_lite
+from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.accelerators.cpu import CPUAccelerator
+from lightning_lite.accelerators.cuda import CUDAAccelerator
+from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import AcceleratorConnector
+from lightning_lite.plugins import DoublePrecision, Precision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.accelerators.cpu import CPUAccelerator
-from lightning_lite.accelerators.cuda import CUDAAccelerator
-from lightning_lite.accelerators.mps import MPSAccelerator
-from lightning_lite.plugins import DoublePrecision, Precision
 from lightning_lite.plugins.io import TorchCheckpointIO
 from lightning_lite.strategies import (
     DataParallelStrategy,
@@ -46,7 +46,6 @@ from lightning_lite.strategies import (
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
-from tests_lite.helpers.runif import RunIf
 
 
 def test_accelerator_choice_cpu(tmpdir):
@@ -615,20 +614,23 @@ def test_devices_auto_choice_cpu(*_):
     assert trainer.strategy.root_device == torch.device("cpu")
 
 
+@RunIf(mps=False)
 @mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@RunIf(mps=False)
-def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
+def test_devices_auto_choice_gpu(*_):
     trainer = AcceleratorConnector(accelerator="auto", devices="auto")
     assert isinstance(trainer.accelerator, CUDAAccelerator)
-    # assert trainer.num_devices == 2
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert len(trainer._parallel_devices) == 2
 
 
 @RunIf(mps=True)
 def test_devices_auto_choice_mps():
-    trainer = Trainer(accelerator="auto", devices="auto")
+    trainer = AcceleratorConnector(accelerator="auto", devices="auto")
     assert isinstance(trainer.accelerator, MPSAccelerator)
-    assert trainer.num_devices == 1
+    assert isinstance(trainer.strategy, SingleDeviceStrategy)
+    assert trainer.strategy.root_device == torch.device("mps", 0)
+    assert trainer._parallel_devices == [torch.device("mps", 0)]
 
 
 @pytest.mark.parametrize(
@@ -636,43 +638,8 @@ def test_devices_auto_choice_mps():
     [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], "tpu")],
 )
 def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
-    with pytest.raises(MisconfigurationException, match=r"parallel_devices set through"):
-        Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
-
-
-@pytest.mark.parametrize("deterministic", [True, False, pytest.param("warn", marks=RunIf(min_torch="1.11.0"))])
-def test_deterministic_init(deterministic):
-    trainer = Trainer(accelerator="auto", deterministic=deterministic)
-    assert trainer._accelerator_connector.deterministic == deterministic
-    if deterministic:
-        assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
-        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
-
-
-def test_sync_batchnorm_invalid_choice(tmpdir):
-    """Test that a conflicting specification of enabled sync batchnorm and a custom plugin leads to an error."""
-    custom = Mock(spec=LayerSync)
-    with pytest.raises(
-        MisconfigurationException,
-        match=r"You set `Trainer\(sync_batchnorm=True\)` and provided a `LayerSync` plugin, but this is not allowed",
-    ):
-        Trainer(sync_batchnorm=True, plugins=[custom])
-
-
-@RunIf(skip_windows=True)
-def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
-    """Tests if layer_sync is automatically set for custom strategy."""
-
-    class CustomParallelStrategy(DDPStrategy):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            # Set to None so it will be overwritten by the accelerator connector.
-            self._layer_sync = None
-
-    strategy = CustomParallelStrategy()
-    assert strategy._layer_sync is None
-    Trainer(strategy=strategy, sync_batchnorm=True)
-    assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
+    with pytest.raises(ValueError, match=r"parallel_devices set through"):
+        AcceleratorConnector(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
 @pytest.mark.parametrize(
@@ -687,15 +654,15 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     ],
 )
 def test_plugin_only_one_instance_for_one_type(plugins, expected):
-    with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):
-        Trainer(plugins=plugins)
+    with pytest.raises(ValueError, match=f"Received multiple values for {expected}"):
+        AcceleratorConnector(plugins=plugins)
 
 
-@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu", "ipu"))
+@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu"))
 @pytest.mark.parametrize("devices", ("0", 0, []))
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
-    with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
-        Trainer(accelerator=accelerator, devices=devices)
+    with pytest.raises(ValueError, match="value is not a valid input using"):
+        AcceleratorConnector(accelerator=accelerator, devices=devices)
 
 
 @pytest.mark.parametrize(
@@ -706,17 +673,16 @@ def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     ],
 )
 def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_accelerator_class):
-
-    trainer = Trainer(accelerator="gpu")
-    assert trainer._accelerator_connector._accelerator_flag == expected_accelerator_flag
+    trainer = AcceleratorConnector(accelerator="gpu")
+    assert trainer._accelerator_flag == expected_accelerator_flag
     assert isinstance(trainer.accelerator, expected_accelerator_class)
 
 
+@mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
-def test_gpu_accelerator_backend_choice_cuda(_):
-    trainer = Trainer(accelerator="gpu")
-
-    assert trainer._accelerator_connector._accelerator_flag == "cuda"
+def test_gpu_accelerator_backend_choice_cuda(*_):
+    trainer = AcceleratorConnector(accelerator="gpu")
+    assert trainer._accelerator_flag == "cuda"
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
@@ -724,36 +690,26 @@ def test_gpu_accelerator_backend_choice_cuda(_):
 @mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
 def test_gpu_accelerator_backend_choice_mps(*_):
-    trainer = Trainer(accelerator="gpu")
-
-    assert trainer._accelerator_connector._accelerator_flag == "mps"
+    trainer = AcceleratorConnector(accelerator="gpu")
+    assert trainer._accelerator_flag == "mps"
     assert isinstance(trainer.accelerator, MPSAccelerator)
 
 
-@mock.patch("pytorch_lightning.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
-def test_gpu_accelerator_misconfiguration_exception(*_):
-    with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
-        Trainer(accelerator="gpu")
-
-
-@mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
-@mock.patch("pytorch_lightning.strategies.hpu_parallel._HPU_AVAILABLE", return_value=True)
-@mock.patch("pytorch_lightning.plugins.precision.hpu._HPU_AVAILABLE", return_value=True)
-def test_accelerator_specific_checkpoint_io(*_):
-    ckpt_plugin = TorchCheckpointIO()
-    trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
-    assert trainer.strategy.checkpoint_io is ckpt_plugin
+@mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+@mock.patch("lightning_lite.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
+def test_gpu_accelerator_no_gpu_backend_found_error(*_):
+    with pytest.raises(RuntimeError, match="No supported gpu backend found!"):
+        AcceleratorConnector(accelerator="gpu")
 
 
 @pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
 @mock.patch(
-    "pytorch_lightning.trainer.connectors.accelerator_connector.torch.multiprocessing.get_all_start_methods",
+    "lightning_lite.connector.torch.multiprocessing.get_all_start_methods",
     return_value=[],
 )
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
-        Trainer(strategy=strategy)
+        AcceleratorConnector(strategy=strategy)
 
 
 @RunIf(skip_windows=True)
@@ -762,4 +718,4 @@ def test_ddp_fork_on_unsupported_platform(_, strategy):
 def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
     """Test there is an error when forking is disabled via the environment variable and the user requests fork."""
     with pytest.raises(ValueError, match="Forking is disabled in this environment"):
-        Trainer(devices=2, strategy=strategy)
+        AcceleratorConnector(devices=2, strategy=strategy)
