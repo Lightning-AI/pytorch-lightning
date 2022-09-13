@@ -179,7 +179,7 @@ Learning Rate Scheduling
 
 Every optimizer you use can be paired with any
 `Learning Rate Scheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_. Please see the
-documentation of :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` for all the available options
+documentation of `configure_optimizers() <https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html#configure-optimizers>`_ for all the available options
 
 You can call ``lr_scheduler.step()`` at arbitrary intervals.
 Use ``self.lr_schedulers()`` in  your :class:`~pytorch_lightning.core.module.LightningModule` to access any learning rate schedulers
