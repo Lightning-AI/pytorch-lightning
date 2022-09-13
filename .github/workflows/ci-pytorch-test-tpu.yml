@@ -24,7 +24,8 @@ concurrency:
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
-    if: github.event.pull_request.draft == false
+    # FIXME: uncomment after finished
+    # if: github.event.pull_request.draft == false
     env:
       PYTHON_VER: 3.7
       CHECK_SLEEP: 5
