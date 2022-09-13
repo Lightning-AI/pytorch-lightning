@@ -13,9 +13,11 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch.distributed
+from torch.nn import Module
+from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -137,10 +139,22 @@ class HPUParallelStrategy(DDPStrategy):
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
+    def on_after_backward(self) -> None:
+        # Break lazy accumulation of graph after fwd+bwd
         htcore.mark_step()
-        return step_output
+
+    def optimizer_step(
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any,
+    ) -> Any:
+        optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
+        # Break lazy accumulation of graph after optimizer
+        htcore.mark_step()
+        return optimizer_output
 
     def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         # Break lazy accumulation of graph after every step
