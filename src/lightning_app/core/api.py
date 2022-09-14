@@ -6,8 +6,7 @@ import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
-from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from typing import Dict, List, Mapping, Optional
 
@@ -239,22 +238,25 @@ async def post_state(
 
 
 @fastapi_service.post("/api/v1/upload_file")
-def upload_file(upload_file: UploadFile = File(...)):
+async def upload_file(upload_file: UploadFile = File(...)):
     try:
-        path = Path(upload_file.filename)
-        with NamedTemporaryFile(delete=False, suffix=upload_file.filename) as tmp:
+        await upload_file.read()
+        with TemporaryDirectory() as tmp:
             drive = Drive(
                 "lit://uploaded_files",
                 component_name="file_server",
                 allow_duplicates=True,
-                root_folder=str(path.parent),
+                root_folder=tmp,
             )
-            shutil.copyfileobj(upload_file.file, tmp)
-            tmp_path = Path(tmp.name)
+            tmp_file = os.path.join(tmp, upload_file.filename)
+
+            with open(tmp_file, "wb") as f:
+                shutil.copyfileobj(upload_file.file, f)
+
+            drive.put(upload_file.filename)
     finally:
         upload_file.file.close()
-
-    drive.put(str(tmp_path))
+    return f"Successfully uploaded {upload_file.filename} to the Drive"
 
 
 @fastapi_service.get("/healthz", status_code=200)
