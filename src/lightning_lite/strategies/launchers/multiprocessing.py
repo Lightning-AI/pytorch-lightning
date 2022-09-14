@@ -24,7 +24,7 @@ from typing_extensions import Literal
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.strategies.strategy import Strategy
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _IS_INTERACTIVE
+from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 
 
