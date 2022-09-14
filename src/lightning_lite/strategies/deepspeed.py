@@ -107,8 +107,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is compatible with either `precision=16` or
-                `precision="bf16"`.
+            zero_optimization: Enable ZeRO optimization. This is compatible with either ``precision=16`` or
+                ``precision="bf16"``.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
