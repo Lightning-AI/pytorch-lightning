@@ -310,6 +310,21 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             )
         admin_page.goto(f"{Config.url}/{Config.username}/apps")
 
+        # Closing the Complete your profile dialog
+        try:
+            dialog = admin_page.locator("text=Complete your profile")
+            dialog.wait_for(timeout=10 * 1000, state="visible")
+            print("'Complete your profile' dialog visible, closing it.")
+            admin_page.locator('input[name="firstName"]').fill("first")
+            admin_page.locator('input[name="lastName"]').fill("last")
+            admin_page.locator('input[name="email"]').fill("e2e.test.admin@lightning.ai")
+            admin_page.locator('input[name="organization"]').fill("Lightning AI")
+            button = admin_page.locator('button:has-text("Confirm")')
+            button.wait_for(timeout=3 * 1000)
+            button.click()
+        except playwright._impl._api_types.TimeoutError:
+            print("'Complete your profile' dialog not visible, skipping.")
+
         # Closing the Create Project dialog.
         try:
             project_dialog = admin_page.locator("text=Create a project")
