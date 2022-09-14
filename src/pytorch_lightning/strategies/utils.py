@@ -38,8 +38,6 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
             mod.register_strategies(registry)
 
-    return tensor
-
 
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
     # TODO(lite): Remove this function once PL strategies inherit from Lite's Strategy base class
