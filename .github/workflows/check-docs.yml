@@ -18,10 +18,15 @@ on:
         default: 15
         required: false
         type: number
+      requirements-file:
+        description: 'path to the requirement file'
+        default: 'requirements/docs.txt'
+        required: false
+        type: string
 
 jobs:
 
-  doctest:
+  docs-test:
     runs-on: ubuntu-20.04
 
     steps:
@@ -36,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e . -U -f https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip install -r requirements/docs.txt
+          pip install -r ${{ inputs.requirements-file }}
           python --version
           pip --version
           pip list
@@ -52,7 +57,7 @@ jobs:
           make doctest
           make coverage
 
-  build:
+  docs-html:
     runs-on: ubuntu-20.04
 
     steps:
@@ -66,7 +71,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e . -U -r requirements/docs.txt -f https://download.pytorch.org/whl/torch_stable.html
+          pip install -e . -U -r ${{ inputs.requirements-file }} -f https://download.pytorch.org/whl/torch_stable.html
           sudo apt-get update --fix-missing
           sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           python --version

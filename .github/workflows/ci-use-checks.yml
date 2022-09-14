@@ -23,7 +23,7 @@ jobs:
     uses: ./.github/workflows/check-package.yml
     with:
       import-name: "lightning_utilities"
-      pypi-name: "lightning-tools"
+      pypi-name: "lightning-utilities"  # todo: seems it does not have effect if you set it wrong
 
   check-docs:
     uses: ./.github/workflows/check-docs.yml
