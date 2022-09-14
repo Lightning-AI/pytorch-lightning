@@ -29,8 +29,10 @@ if _COLOSSALAI_AVAILABLE:
 
 class ColossalAIStrategy(DDPStrategy):
     """ColossalAI strategy. It only supports a single optimizer, which must be
-    :class:`colossalai.nn.optimizer.CPUAdam` or :class:`colossalai.nn.optimizer.HybridAdam` now. You must
-    initialize your model in ``LightningModule.configure_sharded_model()``.
+    :class:`colossalai.nn.optimizer.CPUAdam` or :class:`colossalai.nn.optimizer.HybridAdam` now. Your model must
+    be created in the function ``LightningModule.configure_sharded_model()``. Thus, you should overwrite this function.
+    Also, you are supposed to overwrite the function ``on_load_checkpoint`` when you want to load a checkpoint to your
+    model. More details can be found in the below example.
 
     It configures accelerator and precision, and you should not configure them when initializing ``Trainer``.
     CUDA is essential for this strategy. Please make sure CUDA is available.
@@ -272,6 +274,8 @@ class ColossalAIStrategy(DDPStrategy):
             raise MisconfigurationException("`ColossalAIStrategy` is only compatible with `ColossalAIPrecisionPlugin`.")
 
         self.accelerator.setup(trainer)
+        assert self.lightning_module is not None
+        self.lightning_module._device = self.root_device
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         self.model_to_device()
