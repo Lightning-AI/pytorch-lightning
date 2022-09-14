@@ -324,6 +324,7 @@ def test_wandb_logger_offline_log_model(wandb, tmpdir):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
 
 
+@mock.patch("pytorch_lightning.loggers.wandb.Run", object)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_download_artifact(wandb, tmpdir):
     """Test that download_artifact works."""
