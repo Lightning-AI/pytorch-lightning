@@ -19,8 +19,8 @@ def _load_py_module(fname, pkg="lightning_utilities"):
 
 
 about = _load_py_module("__about__.py")
-with open(os.path.join(_PATH_REQUIRE, "dev.txt")) as fp:
-    requirements_dev = list(map(str, parse_requirements(fp.readline())))
+with open(os.path.join(_PATH_REQUIRE, "cli.txt")) as fp:
+    requirements_cli = list(map(str, parse_requirements(fp.readline())))
 with open(os.path.join(_PATH_ROOT, "README.md")) as fp:
     readme = fp.read()
 
@@ -44,7 +44,7 @@ setup(
     setup_requires=[],
     install_requires=[],
     extras_require={
-        "dev": requirements_dev,
+        "cli": requirements_cli,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Lightning-AI/utilities/issues",

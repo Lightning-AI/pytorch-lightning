@@ -9,7 +9,7 @@ __This repository covers the following use-cases:__
 
 1. **GitHub workflows**
 1. **GitHub actions**
-1. **CLI `lightning_utilities.dev`**
+1. **CLI `lightning_utilities.cli`**
 1. **General Python utilities in `lightning_utilities.core`**
 
 ## 1. Reusable workflows
@@ -56,7 +56,7 @@ jobs:
         # requires: latest
 ```
 
-## 3. CLI `lightning_utilities.dev`
+## 3. CLI `lightning_utilities.cli`
 
 The package provides common CLI commands.
 
@@ -71,7 +71,7 @@ pip install https://github.com/Lightning-AI/utilities/archive/refs/heads/main.zi
 From pypi:
 
 ```bash
-pip install lightning_utilities[dev]
+pip install lightning_utilities[cli]
 ```
 
 </details>
@@ -79,7 +79,7 @@ pip install lightning_utilities[dev]
 __Usage:__
 
 ```bash
-python -m lightning_utilities.dev [group] [command]
+python -m lightning_utilities.cli [group] [command]
 ```
 
 <details>
@@ -92,7 +92,7 @@ codecov>=2.1
 pytest>=6.0
 pytest-cov
 pytest-timeout
-$ python -m lightning_utilities.dev requirements set-oldest
+$ python -m lightning_utilities.cli requirements set-oldest
 $ cat requirements/test.txt
 coverage==5.0
 codecov==2.1

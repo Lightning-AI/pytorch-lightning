@@ -6,7 +6,7 @@ export SLURM_LOCALID=0
 export SPHINX_MOCK_REQUIREMENTS=0
 
 test:
-	pip install -q -r requirements/dev.txt
+	pip install -q -r requirements/cli.txt
 	pip install -q -r requirements/test.txt
 
 	# use this to run tests
