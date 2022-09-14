@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from threading import Thread
 from typing import Callable, Iterator, Optional
 
-import arrow
 import dateutil.parser
 from websocket import WebSocketApp
 
