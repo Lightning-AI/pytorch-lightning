@@ -56,7 +56,7 @@ First **create a file named app.py** with the app content (in the same folder as
 
     class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir='.')
+            return L.app.frontend.web.StaticWebFrontend(serve_dir='.')
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -107,7 +107,7 @@ Give the component an HTML UI, by returning a ``StaticWebFrontend`` object from 
 
     class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir='.')
+            return L.app.frontend.web.StaticWebFrontend(serve_dir='.')
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -137,7 +137,7 @@ In this case, we render the ``HelloComponent`` UI in the ``home`` tab of the app
 
     class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir='.')
+            return L.app.frontend.web.StaticWebFrontend(serve_dir='.')
 
     class LitApp(L.LightningFlow):
         def __init__(self):

@@ -111,7 +111,7 @@ class _StrategyRegistry(dict):
         return "Registered Strategies: {}".format(", ".join(self.keys()))
 
 
-def call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
+def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
