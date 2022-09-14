@@ -214,7 +214,8 @@ def test_dist_backend_accelerator_mapping(*_):
 
 
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-def test_ipython_incompatible_backend_error(_, monkeypatch):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
+def test_ipython_incompatible_backend_error(_, __, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
@@ -252,6 +253,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
     assert trainer.strategy.launcher.is_interactive_compatible
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
@@ -462,7 +464,7 @@ def test_strategy_choice_ddp_fork_cpu():
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
 @mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 def test_strategy_choice_ddp(*_):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="cuda", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
@@ -471,8 +473,8 @@ def test_strategy_choice_ddp(*_):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
 @mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="gpu", devices=1)
+def test_strategy_choice_ddp_spawn(*_):
+    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cuda", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
@@ -514,13 +516,10 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("torch.cuda.set_device")
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
 @mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 def test_strategy_choice_ddp_te(*_):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2)
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="cuda", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
@@ -561,12 +560,10 @@ def test_strategy_choice_ddp_cpu_te(*_):
         "RANK": "1",
     },
 )
-@mock.patch("torch.cuda.set_device")
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
 @mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_kubeflow(*_):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
+    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="cuda", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, KubeflowEnvironment)
@@ -779,10 +776,10 @@ def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_acce
     assert isinstance(trainer.accelerator, expected_accelerator_class)
 
 
+@RunIf(mps=False)
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
 def test_gpu_accelerator_backend_choice_cuda(_):
     trainer = Trainer(accelerator="gpu")
-
     assert trainer._accelerator_connector._accelerator_flag == "cuda"
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 

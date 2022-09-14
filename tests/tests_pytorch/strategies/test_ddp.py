@@ -59,9 +59,9 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 @mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-def test_torch_distributed_backend_env_variables(tmpdir):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=list(range(2)))
+def test_torch_distributed_backend_env_variables(_, __, tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
     with patch.dict(os.environ, _environ), patch(
