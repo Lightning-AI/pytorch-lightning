@@ -15,12 +15,12 @@ import importlib
 import os
 from inspect import getmembers, isclass
 
+import torch
+
 from lightning_lite.strategies import _StrategyRegistry
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.registry import _is_register_method_overridden
 from pytorch_lightning.strategies.strategy import Strategy
-import torch
-
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
