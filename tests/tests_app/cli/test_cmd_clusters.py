@@ -13,7 +13,7 @@ from lightning_cloud.openapi import (
     V1InstanceSpec,
     V1KubernetesClusterDriver,
 )
-from lightning_cloud.openapi.models import Externalv1Cluster, V1ClusterState, V1ClusterStatus, V1ListClustersResponse
+from lightning_cloud.openapi import Externalv1Cluster, V1ClusterState, V1ClusterStatus, V1ListClustersResponse
 
 from lightning_app.cli import cmd_clusters
 from lightning_app.cli.cmd_clusters import AWSClusterManager
