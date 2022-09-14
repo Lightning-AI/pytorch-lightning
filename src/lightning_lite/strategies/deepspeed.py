@@ -32,10 +32,7 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.apply_func import apply_to_collection
-from lightning_lite.utilities.distributed import (
-    get_default_process_group_backend_for_device,
-    log,
-)
+from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device, log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
