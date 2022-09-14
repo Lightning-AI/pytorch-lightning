@@ -25,7 +25,11 @@ def test_invalid_colosalai(monkeypatch):
     import pytorch_lightning.strategies.colossalai as colossal_strategy
 
     monkeypatch.setattr(colossal_strategy, "_COLOSSALAI_AVAILABLE", False)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(
+        MisconfigurationException,
+        match="To use the `ColossalAIStrategy`, please install `colossalai` first. "
+        "Download `colossalai` by consulting `https://colossalai.org/download`.",
+    ):
         ColossalAIStrategy()
 
 
@@ -82,7 +86,7 @@ def test_gradient_clip_algorithm_error(tmpdir):
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
     )
-    with pytest.raises(MisconfigurationException, match="clip_grad_by_value is not supported by `Colossalai`"):
+    with pytest.raises(MisconfigurationException, match="`clip_grad_by_value` is not supported by `ColossalAI`"):
         trainer.fit(model)
 
 
@@ -99,7 +103,10 @@ def test_gradient_accumulation_error(tmpdir):
         accumulate_grad_batches={0: 1, 4: 2, 8: 3},
     )
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(
+        MisconfigurationException,
+        match="ColossalAI currently does not support different `accumulate_grad_batches` at different epochs.",
+    ):
         trainer.fit(model)
 
 
@@ -117,9 +124,9 @@ def test_colossalai_optimizer(tmpdir):
         enable_model_summary=False,
     )
     with pytest.raises(
-        AssertionError,
-        match="ColossalAIStrategy only supports colossalai.nn.optimizer.CPUAdam and "
-        "colossalai.nn.optimizer.HybridAdam",
+        MisconfigurationException,
+        match="`ColossalAIStrategy` only supports `colossalai.nn.optimizer.CPUAdam` "
+        "and `colossalai.nn.optimizer.HybridAdam` as its optimizer.",
     ):
         trainer.fit(model)
 
@@ -146,7 +153,6 @@ def test_warn_colossalai_ignored(tmpdir):
 
     with pytest.warns(UserWarning, match="will be ignored since ColossalAI handles the backward"):
         trainer.fit(model)
-    print(warning_cache)
     assert any("track_grad_norm=2.0)' but this is not supported" in w for w in warning_cache)
 
 

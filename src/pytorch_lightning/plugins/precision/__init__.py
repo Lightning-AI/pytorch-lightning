@@ -28,6 +28,7 @@ from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 
 __all__ = [
     "ApexMixedPrecisionPlugin",
+    "ColossalAIPrecisionPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "FullyShardedNativeNativeMixedPrecisionPlugin",
@@ -40,5 +41,4 @@ __all__ = [
     "ShardedNativeMixedPrecisionPlugin",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
-    "ColossalAIPrecisionPlugin",
 ]

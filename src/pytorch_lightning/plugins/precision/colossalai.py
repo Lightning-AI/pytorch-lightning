@@ -17,17 +17,17 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
     def __init__(self, precision: Union[str, int] = 16) -> None:
         if not (precision == PrecisionType.HALF):
             raise MisconfigurationException(
-                f"`Trainer(strategy='colossalai', precision={precision})` is not supported. `precision` must be 16"
+                f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
+                " Consider setting `precision=16`."
             )
         super().__init__()
-        self.precision = 16
+        self.precision = precision
 
     def backward(
         self,
         model: "pl.LightningModule",
         closure_loss: Tensor,
         optimizer: Optional[Optimizer],
-        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -43,7 +43,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         optimizer.clip_grad_norm(None, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
-        raise MisconfigurationException("clip_grad_by_value is not supported by `Colossalai`")
+        raise MisconfigurationException("`clip_grad_by_value` is not supported by `ColossalAI`")
 
     def optimizer_step(self, model, optimizer, optimizer_idx: int, closure, **kwargs: Any) -> Any:
         closure_result = closure()
@@ -51,7 +51,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         skipped_backward = closure_result is None
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
             raise MisconfigurationException(
-                "Skipping backward by returning `None` from your `training_step` is not supported by `Colossalai`"
+                "Skipping backward by returning `None` from your `training_step` is not supported by `ColossalAI`."
             )
         optimizer.step()
 
