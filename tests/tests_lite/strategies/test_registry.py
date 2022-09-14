@@ -43,4 +43,5 @@ def test_strategy_registry_with_new_strategy():
 def test_available_strategies_in_registry():
     assert set(STRATEGY_REGISTRY.available_strategies()) == {
         "dp",
+        "single_tpu",
     }
