@@ -3,9 +3,9 @@ name: Test PyTorch full
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
   push:
-    branches: [master, "release/*"]
+    branches: ["*"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: ["*"]
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
 
 concurrency:
@@ -13,6 +13,18 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        with:
+          ## limits ssh access and adds the ssh public key for the user which triggered the workflow
+          limit-access-to-actor: true
+          ## limits ssh access and adds the ssh public keys of the listed GitHub users
+          limit-access-to-users: awaelchli, carmocca
 
   pl-cpu:
     runs-on: ${{ matrix.os }}
