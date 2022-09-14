@@ -94,11 +94,11 @@ class AWSClusterManager:
         click.echo(
             f"""{resp.id} is now being created... This can take up to an hour.
 
-        To view your clusters status use:
-            `lightning list clusters`
+To view your clusters status use:
+    `lightning list clusters`
 
-        To view cluster logs use:
-            `lightning show cluster logs {resp.id}`
+To view cluster logs use:
+    `lightning show cluster logs {resp.id}`
         """
         )
 
