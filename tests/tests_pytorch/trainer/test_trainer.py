@@ -39,7 +39,7 @@ from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -2180,6 +2180,7 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
         monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
     elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
         monkeypatch.setattr(device_parser, "_get_all_available_mps_gpus", lambda: [0])
+        monkeypatch.setattr(MPSAccelerator, "is_available", lambda *_: True)
     elif trainer_kwargs.get("accelerator") == "ipu":
         monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
         monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
