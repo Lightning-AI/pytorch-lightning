@@ -22,16 +22,19 @@ jobs:
       - name: Scan repo
         run: python -c "import os; is_dir = os.path.isdir('.github/actions'); print(f'GH_ACTIONS={int(is_dir)}')" >> $GITHUB_ENV
 
+      # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-workflow.json
       - name: GitHub Actions - workflow
-        run: check-jsonschema $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
+        run: check-jsonschema -v $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
 
+      # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-action.json
       - name: GitHub Actions - action
         if: ${{ env.GH_ACTIONS == '1' }}
-        run: check-jsonschema .github/actions/*/*.yml --builtin-schema "github-actions"
+        run: check-jsonschema -v .github/actions/*/*.yml --builtin-schema "github-actions"
 
+      # https://github.com/microsoft/azure-pipelines-vscode/blob/main/service-schema.json
       - name: Azure Pipelines
         if: ${{ inputs.azure-dir != '' }}
         env:
           SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.205.0/service-schema.json
         run: |
-          check-jsonschema ${{ inputs.azure-dir }}/*.yml --schemafile "$SCHEMA_FILE"
+          check-jsonschema -v ${{ inputs.azure-dir }}/*.yml --schemafile "$SCHEMA_FILE"
