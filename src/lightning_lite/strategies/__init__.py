@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_lite.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning_lite.strategies.parallel import ParallelStrategy  # noqa: F401
-from lightning_lite.strategies.registry import _StrategyRegistry, call_register_strategies
+from lightning_lite.strategies.registry import _call_register_strategies, _StrategyRegistry
 from lightning_lite.strategies.single_device import SingleDeviceStrategy  # noqa: F401
 from lightning_lite.strategies.strategy import Strategy  # noqa: F401
+from lightning_lite.strategies.dp import DataParallelStrategy  # noqa: F401
 
-_STRATEGIES_BASE_MODULE = "lightning_lite.strategies"
 STRATEGY_REGISTRY = _StrategyRegistry()
-call_register_strategies(STRATEGY_REGISTRY, _STRATEGIES_BASE_MODULE)
+_STRATEGIES_BASE_MODULE = "lightning_lite.strategies"
+_call_register_strategies(STRATEGY_REGISTRY, _STRATEGIES_BASE_MODULE)

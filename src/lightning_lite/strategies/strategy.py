@@ -159,17 +159,11 @@ class Strategy(ABC):
         """
         yield
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
-        """Run before precision plugin executes backward."""
-
     def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
-        self.pre_backward(tensor, module)
+        self.precision_plugin.pre_backward(tensor, module)
         self.precision_plugin.backward(tensor, module, *args, **kwargs)
-        self.post_backward(tensor, module)
-
-    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
-        """Run after precision plugin executes backward."""
+        self.precision_plugin.post_backward(tensor, module)
 
     def optimizer_step(
         self,
