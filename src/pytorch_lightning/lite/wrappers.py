@@ -127,7 +127,7 @@ class _LiteModule(_DeviceDtypeModuleMixin):
         ...
 
     def state_dict(
-        self, *args: Any, destination: Optional[T_destination] = None, prefix: str = "", keep_vars: bool = False
+        self, destination: Optional[T_destination] = None, prefix: str = "", keep_vars: bool = False
     ) -> Optional[T_destination]:
         return self._original_module.state_dict(
             destination=destination,  # type: ignore[type-var]
