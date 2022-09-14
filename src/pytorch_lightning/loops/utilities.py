@@ -70,7 +70,7 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
 
 
 def _parse_loop_limits(
-    min_steps: Optional[int], max_steps: int, min_epochs: Optional[int], max_epochs: int, trainer: "pl.Trainer"
+    min_steps: Optional[int], max_steps: int, min_epochs: Optional[int], max_epochs: Optional[int], trainer: "pl.Trainer"
 ) -> Tuple[int, int]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.

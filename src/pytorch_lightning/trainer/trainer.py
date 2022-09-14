@@ -2497,8 +2497,7 @@ class Trainer(
         return self.fit_loop.epoch_progress.current.completed
 
     @property
-    def max_epochs(self) -> int:
-        assert self.fit_loop.max_epochs
+    def max_epochs(self) -> Optional[int]:
         return self.fit_loop.max_epochs
 
     @property
