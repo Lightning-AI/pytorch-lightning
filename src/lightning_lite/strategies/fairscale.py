@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import torch
-from lightning_utilities.core.imports import compare_version, module_available
+from lightning_utilities.core.imports import module_available
 from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -29,7 +28,6 @@ from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _IS_WINDOWS
 
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
-_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and compare_version("fairscale", operator.ge, "0.3.3")
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -106,20 +104,19 @@ class DDPShardedStrategy(DDPStrategy):
         strategy_registry.register(
             "ddp_sharded",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
 
-    def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer]]) -> List["OSS"]:
+    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
-                    # For multi-node training, compressing the model shards in fp16 before broadcasting
-                    # improves performance. When using PyTorch AMP, it will not degrade
-                    # the model performance.
-                    zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
+                is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
+                # For multi-node training, compressing the model shards in fp16 before broadcasting
+                # improves performance. When using PyTorch AMP, it will not degrade
+                # the model performance.
+                zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
                 optimizers[x] = zero_optimizer
                 del optimizer
         return optimizers
