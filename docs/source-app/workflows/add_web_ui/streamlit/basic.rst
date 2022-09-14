@@ -46,7 +46,7 @@ First **create a file named app.py** with the app content:
 
     class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.app.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -125,7 +125,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
 
     class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.app.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -160,7 +160,7 @@ In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the appli
 
     class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.app.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
     class LitApp(L.LightningFlow):
         def __init__(self):
