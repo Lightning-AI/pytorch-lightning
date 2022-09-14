@@ -1,4 +1,3 @@
-import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
@@ -6,8 +5,9 @@ from lightning import CloudCompute
 from lightning_app import LightningFlow, structures
 from lightning_app.components.python import TracerPythonScript
 from lightning_app.storage.path import Path
+from lightning_app.utilities.app_helpers import Logger
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 class PyTorchLightningScriptRunner(TracerPythonScript):

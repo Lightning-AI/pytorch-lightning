@@ -79,7 +79,7 @@ def test_property_logger(tmpdir):
     assert model.logger is None
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(loggers=[logger])
+    trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.logger == logger
 
@@ -93,6 +93,12 @@ def test_property_loggers(tmpdir):
     trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.loggers == [logger]
+
+    logger0 = TensorBoardLogger(tmpdir)
+    logger1 = TensorBoardLogger(tmpdir)
+    trainer = Trainer(logger=[logger0, logger1])
+    model.trainer = trainer
+    assert model.loggers == [logger0, logger1]
 
 
 def test_1_optimizer_toggle_model():
