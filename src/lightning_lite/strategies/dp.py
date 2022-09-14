@@ -50,7 +50,6 @@ class DataParallelStrategy(ParallelStrategy):
         assert self.parallel_devices is not None
         return self.parallel_devices[0]
 
-
     def setup_module(self, module: Module) -> DataParallel:
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
         return DataParallel(module=module, device_ids=self.parallel_devices)
