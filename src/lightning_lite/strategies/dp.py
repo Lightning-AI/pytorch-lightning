@@ -50,21 +50,6 @@ class DataParallelStrategy(ParallelStrategy):
         assert self.parallel_devices is not None
         return self.parallel_devices[0]
 
-    @property
-    def global_rank(self) -> int:
-        return 0
-
-    @property
-    def local_rank(self) -> int:
-        return 0
-
-    @property
-    def node_rank(self) -> int:
-        return 0
-
-    @property
-    def world_size(self) -> int:
-        return 1
 
     def setup_module(self, module: Module) -> DataParallel:
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
