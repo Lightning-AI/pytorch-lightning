@@ -2162,7 +2162,6 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"devices": "1"}, [0]),
         ({"devices": 2}, [0, 1]),
         ({"accelerator": "gpu", "devices": 1}, [0]),
-        ({"accelerator": "mps", "devices": 1}, [0]),
         ({"accelerator": "cuda", "devices": 1}, [0]),
         ({"accelerator": "cuda", "devices": 2}, [0, 1]),
         ({"accelerator": "cuda", "devices": "2"}, [0, 1]),
@@ -2172,6 +2171,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
         ({"accelerator": "ipu", "devices": 1}, [0]),
         ({"accelerator": "ipu", "devices": 2}, [0, 1]),
+        pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=RunIf(min_torch="1.12")),
     ],
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
