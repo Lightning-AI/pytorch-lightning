@@ -158,13 +158,8 @@ class DDPStrategy(ParallelStrategy):
 
     def _setup_distributed(self) -> None:
         reset_seed()
-
-        # determine which process we are and world size
         self._set_world_ranks()
-
-        # set warning rank
         rank_zero_only.rank = self.global_rank
-
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)

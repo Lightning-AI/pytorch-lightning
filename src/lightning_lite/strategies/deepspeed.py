@@ -22,6 +22,7 @@ from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tupl
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -430,6 +431,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _setup_distributed(self) -> None:
         reset_seed()
         self._set_world_ranks()
+        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
