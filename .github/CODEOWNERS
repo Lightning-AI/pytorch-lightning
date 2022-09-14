@@ -56,7 +56,7 @@
 /src/lightning_app/testing                  @tchaton @manskx
 /src/lightning_app/__about__.py             @nohalon @edenlightning @lantiga
 
-/src/lightning_lite                         @awaelchli @Borda @carmocca @justusschock
+/src/lightning_lite                         @awaelchli @carmocca @justusschock
 
 # Examples
 /examples/app_*                             @tchaton @awaelchli @manskx @hhsecond
@@ -66,7 +66,7 @@
 /tests/tests_app_examples                   @tchaton @awaelchli @manskx @hhsecond
 
 # Lite tests
-/tests/tests_lite                           @awaelchli @Borda @carmocca @justusschock
+/tests/tests_lite                           @awaelchli @carmocca @justusschock
 
 # Specifics
 /src/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
