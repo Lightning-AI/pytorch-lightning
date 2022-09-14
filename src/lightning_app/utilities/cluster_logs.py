@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from threading import Thread
 from typing import Callable, Iterator, Optional
 
-import arrow
 import dateutil.parser
 from websocket import WebSocketApp
 
@@ -64,8 +63,8 @@ def _push_log_events_to_read_queue_callback(read_queue: queue.PriorityQueue):
 def _cluster_logs_reader(
     client: LightningClient,
     cluster_id: str,
-    start: arrow.Arrow,
-    end: arrow.Arrow,
+    start: int,
+    end: int,
     limit: int,
     follow: bool,
     on_error_callback: Optional[Callable] = None,
