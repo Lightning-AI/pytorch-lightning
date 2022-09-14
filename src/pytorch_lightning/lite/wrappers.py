@@ -17,6 +17,7 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import nn as nn
 from torch import Tensor
+from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -134,7 +135,7 @@ class _LiteModule(_DeviceDtypeModuleMixin):
             keep_vars=keep_vars,
         )
 
-    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> Any:
+    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> _IncompatibleKeys:
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict)
 
     def __getattr__(self, item: Any) -> Any:
