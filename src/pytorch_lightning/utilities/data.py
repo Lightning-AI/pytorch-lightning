@@ -217,7 +217,7 @@ def _get_dataloader_init_args_and_kwargs(
     else:
         dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode, disallow_batch_sampler))
 
-    required_args: Union[list[str], set[str]] = {
+    required_args = {
         p.name
         for p in params.values()
         if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
@@ -227,28 +227,28 @@ def _get_dataloader_init_args_and_kwargs(
     }
     # the dataloader has required args which we could not extract from the existing attributes
     if required_args:
-        required_args = sorted(required_args)
+        sorted_required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
-        missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in required_args)
+        missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in sorted_required_args)
         raise MisconfigurationException(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
-            f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
-            "`*_dataloader` hook of your module, we will do this for you."
+            f"The missing attributes are {sorted_required_args}. If you instantiate your `{dataloader_cls_name}` "
+            "inside a `*_dataloader` hook of your module, we will do this for you."
             f" Otherwise, define {missing_args_message} inside your `__init__`."
         )
 
     if not has_variadic_kwargs:
         # the dataloader signature does not allow keyword arguments that need to be passed
-        missing_kwargs: Union[list[str], set[str]] = (set(dl_kwargs) | set(arg_names)) - params.keys()
+        missing_kwargs = (set(dl_kwargs) | set(arg_names)) - params.keys()
         if missing_kwargs:
-            missing_kwargs = sorted(missing_kwargs)
+            sorted_missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
                 f"Trying to inject parameters into the `{dataloader_cls_name}` instance. "
                 "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
-                f"The missing arguments are {missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` class, "
-                "add the `__init__` arguments or allow passing `**kwargs`"
+                f"The missing arguments are {sorted_missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` "
+                "class, add the `__init__` arguments or allow passing `**kwargs`"
             )
 
     if _FaultTolerantMode.detect_current_mode().is_automatic:
