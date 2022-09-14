@@ -53,4 +53,5 @@ def test_available_strategies_in_registry():
         "deepspeed_stage_3",
         "deepspeed_stage_3_offload",
         "deepspeed_stage_3_offload_nvme",
+        "single_tpu",
     }
