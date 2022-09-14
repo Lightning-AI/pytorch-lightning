@@ -3,7 +3,6 @@ from dataclasses import asdict, dataclass, field
 from typing import Optional, Union
 
 import yaml
-
 from utilities.name_generator import get_unique_name
 
 _APP_CONFIG_FILENAME = ".lightning"
