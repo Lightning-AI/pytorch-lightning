@@ -195,10 +195,12 @@ def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     iterator = iter(lite_dataloader)
 
     batch0 = next(iterator)
-    assert torch.equal(batch0, torch.tensor([0, 1], device=dest_device))
+    # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+    assert torch.allclose(batch0, torch.tensor([0, 1], device=dest_device))
 
     batch1 = next(iterator)
-    assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
+    # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+    assert torch.allclose(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
 def test_lite_optimizer_wraps():

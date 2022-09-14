@@ -735,6 +735,7 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
 def test_trainer_gpus(monkeypatch, trainer_kwargs):
     monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
     monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
+    monkeypatch.setattr(device_parser, "_get_all_available_mps_gpus", lambda: list(range(4)))
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match=(
