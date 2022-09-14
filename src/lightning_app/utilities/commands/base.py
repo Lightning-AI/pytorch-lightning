@@ -60,9 +60,9 @@ class ClientCommand:
     def run(self, **cli_kwargs) -> None:
         """Overrides with the logic to execute on the client side."""
 
-    def invoke_handler(self, config: BaseModel) -> Dict[str, Any]:
+    def invoke_handler(self, config: Optional[BaseModel] = None) -> Dict[str, Any]:
         command = self.command_name.replace(" ", "_")
-        resp = requests.post(self.app_url + f"/command/{command}", data=config.json())
+        resp = requests.post(self.app_url + f"/command/{command}", data=config.json() if config else None)
         assert resp.status_code == 200, resp.json()
         return resp.json()
 
@@ -95,7 +95,9 @@ def _download_command(
             if not os.path.exists(target_file):
                 client = LightningClient()
                 project_id = _get_project(client).project_id
-                response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
+                response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(
+                    project_id=project_id, id=app_id
+                )
                 for artifact in response.artifacts:
                     if f"commands/{command_name}.py" == artifact.filename:
                         resp = requests.get(artifact.url, allow_redirects=True)
@@ -155,6 +157,7 @@ def _validate_client_command(command: ClientCommand):
 def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
     from lightning_app.storage.path import _is_s3fs_available, filesystem, shared_storage_path
 
+    command_name = command_name.replace(" ", "_")
     filepath = f"commands/{command_name}.py"
     remote_url = str(shared_storage_path() / "artifacts" / filepath)
     fs = filesystem()
@@ -164,6 +167,7 @@ def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
 
         if not isinstance(fs, S3FileSystem):
             return
+
         source_file = str(inspect.getfile(command.__class__))
         remote_url = str(shared_storage_path() / "artifacts" / filepath)
         fs.put(source_file, remote_url)

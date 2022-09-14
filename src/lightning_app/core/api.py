@@ -21,7 +21,7 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import FRONTEND_DIR
+from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
 from lightning_app.utilities.enum import OpenAPITags
@@ -261,6 +261,9 @@ async def healthz(response: Response):
 @fastapi_service.websocket("/api/v1/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    if not ENABLE_STATE_WEBSOCKET:
+        await websocket.close()
+        return
     try:
         counter = global_app_state_store.counter
         while True:
