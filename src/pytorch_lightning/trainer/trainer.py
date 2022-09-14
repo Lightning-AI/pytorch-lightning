@@ -1281,6 +1281,7 @@ class Trainer(
             self._run_sanity_check()
 
         # enable train mode
+        assert self.model is not None
         self.model.train()
         torch.set_grad_enabled(True)
 
@@ -2159,13 +2160,12 @@ class Trainer(
         return self._accelerator_connector._gpus
 
     @property
-    def model(self) -> torch.nn.Module:
+    def model(self) -> Optional[torch.nn.Module]:
         """The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
 
         To access the pure LightningModule, use
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
         """
-        assert self.strategy.model
         return self.strategy.model
 
     @model.setter
