@@ -187,7 +187,7 @@ class CloudRuntime(Runtime):
 
         try:
             list_apps_resp = self.backend.client.lightningapp_v2_service_list_lightningapps_v2(
-                project.project_id, name=app_config.name
+                project_id=project.project_id, name=app_config.name
             )
             if list_apps_resp.lightningapps:
                 # There can be only one app with unique project_id<>name pair
@@ -195,7 +195,7 @@ class CloudRuntime(Runtime):
             else:
                 app_body = Body7(name=app_config.name, can_download_source_code=True)
                 lightning_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
-                    project.project_id, app_body
+                    project_id=project.project_id, body=app_body
                 )
 
             release_body = Body8(
@@ -212,7 +212,7 @@ class CloudRuntime(Runtime):
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
-                project.project_id, lightning_app.id, release_body
+                project_id=project.project_id, app_id=lightning_app.id, body=release_body
             )
 
             if cluster_id is not None:
@@ -226,7 +226,7 @@ class CloudRuntime(Runtime):
 
             # right now we only allow a single instance of the app
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
-                project.project_id, app_id=lightning_app.id
+                project_id=project.project_id, app_id=lightning_app.id
             )
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
@@ -269,10 +269,10 @@ class CloudRuntime(Runtime):
             else:
                 lightning_app_instance = (
                     self.backend.client.lightningapp_v2_service_create_lightningapp_release_instance(
-                        project.project_id,
-                        lightning_app.id,
-                        lightning_app_release.id,
-                        Body9(
+                        project_id=project.project_id,
+                        app_id=lightning_app.id,
+                        id=lightning_app_release.id,
+                        body=Body9(
                             cluster_id=cluster_id,
                             desired_state=V1LightningappInstanceState.RUNNING,
                             name=lightning_app.name,
@@ -303,7 +303,7 @@ class CloudRuntime(Runtime):
                 return
 
         self.backend.client.projects_service_create_project_cluster_binding(
-            project_id,
+            project_id=project_id,
             body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project_id),
         )
 

@@ -115,7 +115,9 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     apps = {
         app.name: app
-        for app in client.lightningapp_instance_service_list_lightningapp_instances(project.project_id).lightningapps
+        for app in client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id
+        ).lightningapps
     }
 
     if not apps:
