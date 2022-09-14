@@ -1,14 +1,14 @@
 import os
 import warnings
 from functools import lru_cache
-from typing import Any, List, MutableSequence, Optional, Tuple, Union, Set
+from typing import Any, List, MutableSequence, Optional, Set, Tuple, Union
 
 import torch
 
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.types import _DEVICE
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning_lite.utilities.types import _DEVICE
 
 
 def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
@@ -312,13 +312,13 @@ def is_cuda_available() -> bool:
 
 
 def _parse_visible_devices() -> Set[int]:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879"""
+    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
     var = os.getenv("CUDA_VISIBLE_DEVICES")
     if var is None:
-        return set(x for x in range(64))
+        return {x for x in range(64)}
 
     def _strtoul(s: str) -> int:
-        """ Return -1 or integer sequence string starts with """
+        """Return -1 or integer sequence string starts with."""
         if len(s) == 0:
             return -1
         for idx, c in enumerate(s):
@@ -337,8 +337,9 @@ def _parse_visible_devices() -> Set[int]:
 
 
 def _raw_device_count_nvml() -> int:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879"""
-    from ctypes import CDLL, c_int
+    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
+    from ctypes import c_int, CDLL
+
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
     if rc != 0:
@@ -354,7 +355,7 @@ def _raw_device_count_nvml() -> int:
 
 
 def _device_count_nvml() -> int:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879"""
+    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
     try:
         raw_cnt = _raw_device_count_nvml()
         if raw_cnt <= 0:
