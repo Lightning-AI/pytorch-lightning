@@ -11,9 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from unittest import mock
-
 import pytest
 import torch
 
@@ -21,17 +18,15 @@ from lightning_lite.strategies import DDPStrategy
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "env_var", "device_str", "expected_process_group_backend"],
+    ["process_group_backend", "device_str", "expected_process_group_backend"],
     [
-        pytest.param("foo", None, "cpu", "foo"),
-        pytest.param("foo", "BAR", "cpu", "foo"),
-        pytest.param("foo", "BAR", "cuda:0", "foo"),
-        pytest.param(None, "BAR", "cuda:0", "BAR"),
-        pytest.param(None, None, "cuda:0", "nccl"),
-        pytest.param(None, None, "cpu", "gloo"),
+        pytest.param("foo", "cpu", "foo"),
+        pytest.param("foo", "cuda:0", "foo"),
+        pytest.param(None, "cuda:0", "nccl"),
+        pytest.param(None, "cpu", "gloo"),
     ],
 )
-def test_ddp_process_group_backend(process_group_backend, env_var, device_str, expected_process_group_backend):
+def test_ddp_process_group_backend(process_group_backend, device_str, expected_process_group_backend):
     """Test settings for process group backend."""
 
     class MockDDPStrategy(DDPStrategy):
@@ -44,11 +39,4 @@ def test_ddp_process_group_backend(process_group_backend, env_var, device_str, e
             return self._root_device
 
     strategy = MockDDPStrategy(process_group_backend=process_group_backend, root_device=torch.device(device_str))
-    if not process_group_backend and env_var:
-        with mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": env_var}):
-            with pytest.deprecated_call(
-                match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"
-            ):
-                assert strategy._get_process_group_backend() == expected_process_group_backend
-    else:
-        assert strategy._get_process_group_backend() == expected_process_group_backend
+    assert strategy._get_process_group_backend() == expected_process_group_backend
