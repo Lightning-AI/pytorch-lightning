@@ -25,17 +25,11 @@ from lightning_lite.plugins.environments.cluster_environment import ClusterEnvir
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    all_gather_ddp_if_available,
-    get_default_process_group_backend_for_device,
-    ReduceOp,
-)
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation
+from lightning_lite.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
 class ParallelStrategy(Strategy, ABC):
-    """Plugin for training with multiple processes in parallel."""
+    """Strategy for training with multiple processes in parallel."""
 
     def __init__(
         self,
@@ -88,17 +82,6 @@ class ParallelStrategy(Strategy, ABC):
             num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
         )
         return distributed_sampler_kwargs
-
-    @property
-    def torch_distributed_backend(self) -> str:
-        """Deprecated property."""
-        rank_zero_deprecation(
-            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
-        )
-        pg_backend = _get_process_group_backend_from_env()
-        if pg_backend:
-            return pg_backend
-        return get_default_process_group_backend_for_device(self.root_device)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
