@@ -30,7 +30,6 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import LightningEnum
 from lightning_lite.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
 from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterable_dataset
 from lightning_lite.utilities.data import has_len as new_has_len
@@ -41,21 +40,10 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
+# might be supported in later releases, see https://github.com/python/mypy/pull/13297
+BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore[misc]
 
 warning_cache = WarningCache()
-
-
-class _WrapAttrTag(LightningEnum):
-    SET = "set"
-    DEL = "del"
-
-    def __call__(self, *args: Any) -> None:
-        if self == self.SET:
-            fn = setattr
-        else:
-            fn = delattr
-        return fn(*args)
 
 
 def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
@@ -109,7 +97,7 @@ def extract_batch_size(batch: BType) -> int:
 
 def has_len_all_ranks(
     dataloader: DataLoader,
-    strategy: "pl.Strategy",
+    strategy: "pl.strategies.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
@@ -158,7 +146,7 @@ def get_len(dataloader: Union[DataLoader, Dataset]) -> Union[int, float]:
     """
 
     if new_has_len(dataloader):
-        return len(dataloader)
+        return len(dataloader)  # type: ignore [arg-type]
 
     return float("inf")
 
@@ -173,7 +161,7 @@ def _update_dataloader(
 
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
-    sampler: Optional[Sampler],
+    sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
     disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
@@ -273,7 +261,7 @@ def _get_dataloader_init_args_and_kwargs(
 
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
-    sampler: Optional[Sampler],
+    sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
     disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:

@@ -21,7 +21,7 @@ from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Type, Union
 
 from lightning_utilities.core.inheritance import get_all_subclasses
-from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
+from torch.utils.data import BatchSampler, DataLoader, Dataset, IterableDataset, Sampler
 
 from lightning_lite.utilities.enums import LightningEnum
 from lightning_lite.utilities.exceptions import MisconfigurationException
@@ -34,6 +34,7 @@ class _WrapAttrTag(LightningEnum):
     DEL = "del"
 
     def __call__(self, *args: Any) -> None:
+        fn: Union[Callable[[object, str], None], Callable[[object, str, Any], None]]
         if self == self.SET:
             fn = setattr
         else:
@@ -45,12 +46,12 @@ def has_iterable_dataset(dataloader: DataLoader) -> bool:
     return hasattr(dataloader, "dataset") and isinstance(dataloader.dataset, IterableDataset)
 
 
-def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
+def has_len(dataloader: Union[DataLoader, Iterable, Dataset]) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
         # try getting the length
-        if len(dataloader) == 0:
+        if len(dataloader) == 0:  # type: ignore [arg-type]
             rank_zero_warn(
                 f"`{dataloader.__class__.__name__}` returned 0 length. Please make sure this was your intention."
             )
@@ -58,7 +59,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
     except (TypeError, NotImplementedError):
         has_len = False
 
-    if has_len and has_iterable_dataset(dataloader):
+    if has_len and isinstance(dataloader, DataLoader) and has_iterable_dataset(dataloader):
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
@@ -76,7 +77,7 @@ def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]
 
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
-    sampler: Optional[Sampler],
+    sampler: Union[Sampler, Iterable],
     disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
@@ -170,7 +171,7 @@ def _get_dataloader_init_args_and_kwargs(
 
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
-    sampler: Optional[Sampler],
+    sampler: Union[Sampler, Iterable],
     disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
