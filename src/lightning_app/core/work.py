@@ -317,11 +317,12 @@ class LightningWork(abc.ABC):
         return has_succeeded_counter
 
     def _get_property_if_exists(self, name: str) -> Union[property, None]:
-        return getattr(self.__class__, name, None)
+        attr = getattr(self.__class__, name, None)
+        return attr if isinstance(attr, property) else None
 
     def __setattr__(self, name: str, value: Any) -> None:
         property_object = self._get_property_if_exists(name)
-        if isinstance(property_object, property) and property_object.fset is not None:
+        if (property_object and property_object.fset) is not None:
             property_object.fset(self, value)
         else:
             setattr_fn = getattr(self, "_setattr_replacement", None) or self._default_setattr
