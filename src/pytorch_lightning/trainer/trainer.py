@@ -2707,6 +2707,7 @@ class Trainer(
         if total_batches == float("inf"):
             return self.max_steps
 
+        assert self.max_epochs is not None
         self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
         effective_batch_size = self.accumulate_grad_batches
         max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epochs, 1)
