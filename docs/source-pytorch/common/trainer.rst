@@ -1642,6 +1642,7 @@ datamodule
 The current datamodule, which is used by the trainer.
 
 .. code-block:: python
+
     used_datamodule = trainer.datamodule
 
 is_last_batch
@@ -1748,6 +1749,7 @@ The current predict dataloaders of the trainer.
 Note that property returns a list of predict dataloaders.
 
 .. code-block:: python
+
     used_predict_dataloaders = trainer.predict_dataloaders
 
 
@@ -1838,6 +1840,7 @@ train_dataloader
 The current train dataloader of the trainer.
 
 .. code-block:: python
+
     used_train_dataloader = trainer.train_dataloader
 
 
@@ -1849,6 +1852,7 @@ Note that property returns a list of test dataloaders.
 
 
 .. code-block:: python
+
     used_test_dataloaders = trainer.test_dataloaders
 
 val_dataloaders
@@ -1860,4 +1864,5 @@ Note that property returns a list of val dataloaders.
 
 
 .. code-block:: python
+
     used_val_dataloaders = trainer.val_dataloaders
