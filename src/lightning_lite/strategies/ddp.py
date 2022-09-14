@@ -29,7 +29,6 @@ from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScr
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
     distributed_available,
     get_default_process_group_backend_for_device,
 )
@@ -157,7 +156,7 @@ class DDPStrategy(ParallelStrategy):
         strategy_registry.register(
             "ddp",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
 
     def _setup_distributed(self) -> None:
@@ -174,11 +173,7 @@ class DDPStrategy(ParallelStrategy):
         init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:

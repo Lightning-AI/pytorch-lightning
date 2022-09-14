@@ -33,7 +33,6 @@ from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.strategies.utils import _fp_to_half
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
     get_default_process_group_backend_for_device,
     log,
 )
@@ -453,11 +452,7 @@ class DeepSpeedStrategy(DDPStrategy):
         deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None
