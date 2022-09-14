@@ -40,7 +40,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `WandbLogger.download_artifact` and `WandbLogger.use_artifact` for managing artifacts with Weights and Biases ([#14551](https://github.com/Lightning-AI/lightning/issues/14551))
 
 
-- Added a friendlier error message when attempting to fork processes with pre-initialized CUDA context ([#XXXX](https://github.com/Lightning-AI/lightning/issues/XXXX))
+- Added a friendlier error message when attempting to fork processes with pre-initialized CUDA context ([#14709](https://github.com/Lightning-AI/lightning/issues/14709))
 
 
 
