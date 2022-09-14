@@ -39,7 +39,6 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
             mod.register_strategies(registry)
 
 
-
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
     # TODO(lite): Remove this function once PL strategies inherit from Lite's Strategy base class
     module = importlib.import_module(base_module)
