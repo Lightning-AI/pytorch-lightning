@@ -41,4 +41,14 @@ def test_strategy_registry_with_new_strategy():
 
 
 def test_available_strategies_in_registry():
-    assert STRATEGY_REGISTRY.available_strategies() == []
+    assert set(STRATEGY_REGISTRY.available_strategies()) == {
+        "ddp_sharded_spawn_find_unused_parameters_false",
+        "ddp_sharded_spawn",
+        "ddp_spawn",
+        "ddp_fork",
+        "ddp_notebook",
+        "ddp_spawn_find_unused_parameters_false",
+        "ddp_fork_find_unused_parameters_false",
+        "ddp_notebook_find_unused_parameters_false",
+        "tpu_spawn",
+    }
