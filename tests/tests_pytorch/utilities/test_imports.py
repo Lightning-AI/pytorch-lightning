@@ -11,52 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _module_available,
-    _OMEGACONF_AVAILABLE,
-    _POPTORCH_AVAILABLE,
-)
-from pytorch_lightning.utilities.imports import _compare_version, _FAIRSCALE_AVAILABLE, _RequirementAvailable, torch
-
-
-def test_module_exists():
-    """Test if the some 3rd party libs are available."""
-    assert _module_available("torch")
-    assert _module_available("torch.nn.parallel")
-    assert not _module_available("torch.nn.asdf")
-    assert not _module_available("asdf")
-    assert not _module_available("asdf.bla.asdf")
-
-
-def test_compare_version(monkeypatch):
-    monkeypatch.setattr(torch, "__version__", "1.8.9")
-    assert not _compare_version("torch", operator.ge, "1.10.0")
-    assert _compare_version("torch", operator.lt, "1.10.0")
-
-    monkeypatch.setattr(torch, "__version__", "1.10.0.dev123")
-    assert _compare_version("torch", operator.ge, "1.10.0.dev123")
-    assert not _compare_version("torch", operator.ge, "1.10.0.dev124")
-
-    assert _compare_version("torch", operator.ge, "1.10.0.dev123", use_base_version=True)
-    assert _compare_version("torch", operator.ge, "1.10.0.dev124", use_base_version=True)
-
-    monkeypatch.setattr(torch, "__version__", "1.10.0a0+0aef44c")  # dev version before rc
-    assert _compare_version("torch", operator.ge, "1.10.0.rc0", use_base_version=True)
-    assert not _compare_version("torch", operator.ge, "1.10.0.rc0")
-    assert _compare_version("torch", operator.ge, "1.10.0", use_base_version=True)
-    assert not _compare_version("torch", operator.ge, "1.10.0")
-
-
-def test_requirement_avaliable():
-    assert _RequirementAvailable(f"torch>={torch.__version__}")
-    assert not _RequirementAvailable(f"torch<{torch.__version__}")
-    assert "Requirement '-' not met" in str(_RequirementAvailable("-"))
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
 
 
 def test_imports():

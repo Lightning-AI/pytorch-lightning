@@ -1,11 +1,13 @@
 name: Test App
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on: # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
+    branches: [master, "release/*"]
     paths:
+      - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "requirements/app/**"
@@ -16,7 +18,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  pytest:
+  app-pytest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -29,7 +31,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
