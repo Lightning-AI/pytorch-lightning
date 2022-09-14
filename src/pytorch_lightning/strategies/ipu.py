@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, Sampler
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.strategies.utils import _fp_to_half
+from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase

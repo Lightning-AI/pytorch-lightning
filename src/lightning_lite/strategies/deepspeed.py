@@ -30,7 +30,7 @@ from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp import DDPStrategy
-from lightning_lite.strategies.utils import _fp_to_half
+from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.distributed import (
     get_default_process_group_backend_for_device,
