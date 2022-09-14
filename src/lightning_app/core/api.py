@@ -320,7 +320,7 @@ def start_server(
     api_delta_queue,
     api_response_queue,
     has_started_queue: Optional[Queue] = None,
-    host="127.0.0.1",
+    host="localhost",
     port=8000,
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
