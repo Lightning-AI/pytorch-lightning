@@ -32,6 +32,7 @@ from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_in
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.login import Auth
+from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
@@ -56,7 +57,7 @@ def main():
         if app_name:
             # 3: Handle development use case.
             is_local_app = app_name == "localhost"
-            if is_local_app and sys.argv[1:3] == ["run", "app"]:
+            if sys.argv[1:3] == ["run", "app"] or sys.argv[1:3] == ["show", "logs"]:
                 _main()
             else:
                 if is_local_app:
@@ -117,7 +118,9 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     apps = {
         app.name: app
-        for app in client.lightningapp_instance_service_list_lightningapp_instances(project.project_id).lightningapps
+        for app in client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id
+        ).lightningapps
     }
 
     if not apps:
@@ -146,12 +149,23 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     if not components:
         components = app_component_names
 
-    for component in components:
-        if component not in app_component_names:
-            raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
+    else:
+
+        def add_prefix(c: str):
+            if c == "flow":
+                return c
+            if not c.startswith("root."):
+                return "root." + c
+            return c
+
+        components = [add_prefix(c) for c in components]
+
+        for component in components:
+            if component not in app_component_names:
+                raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
 
     log_reader = _app_logs_reader(
-        client=client,
+        logs_api_client=_LightningLogsSocketAPI(client.api_client),
         project_id=project.project_id,
         app_id=apps[app_name].id,
         component_names=components,

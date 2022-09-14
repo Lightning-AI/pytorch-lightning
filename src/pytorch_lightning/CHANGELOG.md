@@ -37,6 +37,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   [#14620](https://github.com/Lightning-AI/lightning/issues/14620))
 
 
+- Added `WandbLogger.download_artifact` and `WandbLogger.use_artifact` for managing artifacts with Weights and Biases ([#14551](https://github.com/Lightning-AI/lightning/issues/14551))
+
+
 ### Changed
 
 - The `Trainer.{fit,validate,test,predict,tune}` methods now raise a useful error message if the input is not a `LightningModule` ([#13892](https://github.com/Lightning-AI/lightning/pull/13892))
@@ -167,6 +170,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated class `TrainerCallbackHookMixin` ([#14401](https://github.com/Lightning-AI/lightning/14401))
 
 
+- Removed the deprecated `BaseProfiler` and `AbstractProfiler` classes ([#14404](https://github.com/Lightning-AI/lightning/pull/14404))
+
+
 ### Fixed
 
 - Reset the dataloaders on OOM failure in batch size finder to use the last successful batch size ([#14372](https://github.com/Lightning-AI/lightning/pull/14372))
@@ -176,6 +182,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an issue where `self.log`-ing a tensor would create a user warning from PyTorch about cloning tensors ([#14599](https://github.com/Lightning-AI/lightning/pull/14599))
+
+
+- Break HPU Graphs into two parts (forward + backward as one and optimizer as another) for better performance ([#14656](https://github.com/Lightning-AI/lightning/pull/14656))
 
 
 - Fixed compatibility when `torch.distributed` is not available ([#14454](https://github.com/Lightning-AI/lightning/pull/14454))
