@@ -356,7 +356,9 @@ class _LRCallback(Callback):
         if self.progress_bar:
             self.progress_bar.update()
 
-        current_loss = trainer.fit_loop.running_loss.last().item()
+        loss_tensor = trainer.fit_loop.running_loss.last()
+        assert loss_tensor is not None
+        current_loss = loss_tensor.item()
         current_step = trainer.global_step
 
         # Avg loss (loss with momentum) + smoothing

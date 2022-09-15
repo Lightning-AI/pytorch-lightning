@@ -28,7 +28,7 @@ local tputests = base.BaseTest {
       cd lightning
       echo $PWD
       git ls-remote --refs origin
-      git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
+      git fetch origin "refs/pull/{PR_NUMBER}/head"
       git checkout {SHA}
       export PACKAGE_NAME=pytorch
       export FREEZE_REQUIREMENTS=1

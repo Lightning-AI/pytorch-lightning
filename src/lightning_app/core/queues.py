@@ -1,4 +1,3 @@
-import logging
 import multiprocessing
 import pickle
 import queue
@@ -15,12 +14,13 @@ from lightning_app.core.constants import (
     REDIS_WARNING_QUEUE_SIZE,
     STATE_UPDATE_TIMEOUT,
 )
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
 
 if _is_redis_available():
     import redis
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 READINESS_QUEUE_CONSTANT = "READINESS_QUEUE"
