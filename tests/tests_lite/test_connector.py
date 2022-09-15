@@ -54,11 +54,6 @@ def test_accelerator_choice_cpu(tmpdir):
     assert isinstance(connector.strategy, SingleDeviceStrategy)
 
 
-def test_accelerator_invalid_choice():
-    with pytest.raises(ValueError, match="You selected an invalid accelerator name: `accelerator='invalid'`"):
-        _Connector(accelerator="invalid")
-
-
 @RunIf(skip_windows=True, standalone=True)
 def test_strategy_choice_ddp_on_cpu(tmpdir):
     """Test that selecting DDPStrategy on CPU works."""
@@ -344,12 +339,14 @@ def test_unsupported_strategy_types_on_cpu_and_fallback():
     assert isinstance(connector.strategy, DDPStrategy)
 
 
-# TODO(lite): This error handling needs to be fixed
-def test_exception_invalid_strategy():
-    with pytest.raises(ValueError, match=r"strategy='ddp_cpu'\)` is not a valid"):
-        _Connector(strategy="ddp_cpu")
-    with pytest.raises(ValueError, match=r"strategy='tpu_spawn'\)` is not a valid"):
-        _Connector(strategy="tpu_spawn")
+def test_invalid_accelerator_choice():
+    with pytest.raises(ValueError, match="You selected an invalid accelerator name: `accelerator='cocofruit'`"):
+        _Connector(accelerator="cocofruit")
+
+
+def test_invalid_strategy_choice():
+    with pytest.raises(ValueError, match="You selected an invalid strategy name: `strategy='cocofruit'`"):
+        _Connector(strategy="cocofruit")
 
 
 @pytest.mark.parametrize(

@@ -105,7 +105,7 @@ class _Connector:
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
-        self._accelerator_types = ACCELERATOR_REGISTRY.available_accelerators()
+        self._registered_accelerators = ACCELERATOR_REGISTRY.available_accelerators()
         self._precision_types = ("16", "32", "64", "bf16", "mixed")
 
         # Raise an exception if there are conflicts between flags
@@ -181,15 +181,21 @@ class _Connector:
         if strategy is not None:
             self._strategy_flag = strategy
 
+        if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
+            raise ValueError(
+                f"You selected an invalid strategy name: `strategy={strategy!r}`."
+                f" Available names are: {', '.join(self._registered_strategies)}."
+            )
+
         if (
             accelerator is not None
-            and accelerator not in self._accelerator_types
+            and accelerator not in self._registered_accelerators
             and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
-                f" Available names are: {', '.join(self._accelerator_types)}."
+                f" Available names are: {', '.join(self._registered_accelerators)}."
             )
 
         self._accelerator_flag = accelerator
@@ -374,7 +380,7 @@ class _Connector:
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._accelerator_types if ACCELERATOR_REGISTRY.get(acc_str).is_available()
+                acc_str for acc_str in self._registered_accelerators if ACCELERATOR_REGISTRY.get(acc_str).is_available()
             ]
             raise RuntimeError(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
