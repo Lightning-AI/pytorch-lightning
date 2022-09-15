@@ -41,4 +41,18 @@ def test_strategy_registry_with_new_strategy():
 
 
 def test_available_strategies_in_registry():
-    assert STRATEGY_REGISTRY.available_strategies() == []
+    assert set(STRATEGY_REGISTRY.available_strategies()) == {
+        "ddp_sharded_find_unused_parameters_false",
+        "ddp_sharded",
+        "ddp_find_unused_parameters_false",
+        "ddp",
+        "deepspeed",
+        "deepspeed_stage_1",
+        "deepspeed_stage_2",
+        "deepspeed_stage_2_offload",
+        "deepspeed_stage_3",
+        "deepspeed_stage_3_offload",
+        "deepspeed_stage_3_offload_nvme",
+        "dp",
+        "single_tpu",
+    }
