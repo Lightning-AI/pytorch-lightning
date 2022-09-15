@@ -69,7 +69,7 @@ class _Connector:
             2. accelerator str
             3. accelerator auto
 
-        B. strategy flag could be :
+        B. strategy flag could be:
             1. strategy class
             2. strategy str registered with STRATEGY_REGISTRY
             3. strategy str in _strategy_type enum which listed in each strategy as
