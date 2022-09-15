@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from lightning_lite.strategies.ddp import DDPStrategy  # noqa: F401
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
+from lightning_lite.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning_lite.strategies.dp import DataParallelStrategy  # noqa: F401
+from lightning_lite.strategies.fairscale import DDPShardedStrategy  # noqa: F401
 from lightning_lite.strategies.fairscale import DDPSpawnShardedStrategy  # noqa: F401
 from lightning_lite.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning_lite.strategies.registry import _call_register_strategies, _StrategyRegistry
