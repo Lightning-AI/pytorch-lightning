@@ -68,4 +68,4 @@ class RootFlow(LightningFlow):
             self._exit()
 
 
-app = LightningApp(RootFlow())
+app = LightningApp(RootFlow(), debug=True)

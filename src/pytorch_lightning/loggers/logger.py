@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
@@ -212,97 +212,6 @@ class Logger(ABC):
         """Return the experiment version."""
 
 
-class LoggerCollection(Logger):
-    """The :class:`LoggerCollection` class is used to iterate all logging actions over the given `logger_iterable`.
-
-    .. deprecated:: v1.6
-        `LoggerCollection` is deprecated in v1.6 and will be removed in v1.8.
-        Directly pass a list of loggers to the Trainer and access the list via the `trainer.loggers` attribute.
-
-    Args:
-        logger_iterable: An iterable collection of loggers
-    """
-
-    def __init__(self, logger_iterable: Iterable[Logger]):
-        super().__init__()
-        self._logger_iterable = logger_iterable
-        rank_zero_deprecation(
-            "`LoggerCollection` is deprecated in v1.6 and will be removed in v1.8. Directly pass a list of loggers"
-            " to the Trainer and access the list via the `trainer.loggers` attribute."
-        )
-
-    def __getitem__(self, index: int) -> Logger:
-        return list(self._logger_iterable)[index]
-
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
-        for logger in self._logger_iterable:
-            logger.after_save_checkpoint(checkpoint_callback)
-
-    def update_agg_funcs(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ) -> None:
-        for logger in self._logger_iterable:
-            logger.update_agg_funcs(agg_key_funcs, agg_default_func)
-
-    @property
-    def experiment(self) -> List[Any]:
-        """Returns a list of experiment objects for all the loggers in the logger collection."""
-        return [logger.experiment for logger in self._logger_iterable]
-
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        for logger in self._logger_iterable:
-            logger.agg_and_log_metrics(metrics=metrics, step=step)
-
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        for logger in self._logger_iterable:
-            logger.log_metrics(metrics=metrics, step=step)
-
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
-        for logger in self._logger_iterable:
-            logger.log_hyperparams(params, *args, **kwargs)
-
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
-        for logger in self._logger_iterable:
-            logger.log_graph(model, input_array)
-
-    def log_text(self, *args: Any, **kwargs: Any) -> None:
-        for logger in self._logger_iterable:
-            logger.log_text(*args, **kwargs)
-
-    def log_image(self, *args: Any, **kwargs: Any) -> None:
-        for logger in self._logger_iterable:
-            logger.log_image(*args, **kwargs)
-
-    def save(self) -> None:
-        for logger in self._logger_iterable:
-            logger.save()
-
-    def finalize(self, status: str) -> None:
-        for logger in self._logger_iterable:
-            logger.finalize(status)
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """Returns ``None`` as checkpoints should be saved to default / chosen location when using multiple
-        loggers."""
-        # Checkpoints should be saved to default / chosen location when using multiple loggers
-        return None
-
-    @property
-    def name(self) -> str:
-        """Returns the unique experiment names for all the loggers in the logger collection joined by an
-        underscore."""
-        return "_".join(dict.fromkeys(str(logger.name) for logger in self._logger_iterable))
-
-    @property
-    def version(self) -> str:
-        """Returns the unique experiment versions for all the loggers in the logger collection joined by an
-        underscore."""
-        return "_".join(dict.fromkeys(str(logger.version) for logger in self._logger_iterable))
-
-
 class DummyExperiment:
     """Dummy experiment."""
 
@@ -354,10 +263,6 @@ class DummyLogger(Logger):
     def __getitem__(self, idx: int) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
-
-    def __iter__(self) -> Generator[None, None, None]:
-        # if DummyLogger is substituting a logger collection, pretend it is empty
-        yield from ()
 
     def __getattr__(self, name: str) -> Callable:
         """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""

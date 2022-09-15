@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 from threading import Thread
 from typing import Callable
@@ -12,8 +11,9 @@ from typing import Callable
 import websockets
 
 from lightning_app.core.constants import APP_SERVER_PORT
+from lightning_app.utilities.app_helpers import Logger
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 _CALLBACKS = []
 _THREAD: Thread = None

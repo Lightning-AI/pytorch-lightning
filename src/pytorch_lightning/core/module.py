@@ -18,7 +18,6 @@ import logging
 import numbers
 import os
 import tempfile
-import warnings
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
@@ -43,7 +42,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import Logger, LoggerCollection
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -89,6 +88,7 @@ class LightningModule(
             "truncated_bptt_steps",
             "use_amp",
             "trainer",
+            "_running_torchscript",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -117,8 +117,7 @@ class LightningModule(
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
-        # TODO: remove in 1.8
-        self._running_torchscript = False
+        self._running_torchscript_internal = False  # workaround for https://github.com/pytorch/pytorch/issues/67146
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
@@ -267,31 +266,23 @@ class LightningModule(
     @property
     def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
-        # this should match the implementation of `trainer.logger`
-        # we don't reuse it so we can properly set the deprecation stacklevel
-        if self._trainer is None:
-            return None
-        loggers = self.trainer.loggers
-        if len(loggers) == 0:
-            return None
-        if len(loggers) == 1:
-            return loggers[0]
-        else:
-            if not self._running_torchscript:
-                rank_zero_deprecation(
-                    "Using `lightning_module.logger` when multiple loggers are configured."
-                    " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
-                    " `lightning_module.logger` will return the first logger available.",
-                    stacklevel=5,
-                )
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                return LoggerCollection(loggers)
+        return self._trainer.logger if self._trainer is not None else None
 
     @property
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
+
+    @property
+    def _running_torchscript(self) -> bool:
+        return self._running_torchscript_internal
+
+    @_running_torchscript.setter
+    def _running_torchscript(self, value: bool) -> None:
+        for v in self.children():
+            if isinstance(v, LightningModule):
+                v._running_torchscript_internal = value
+        self._running_torchscript_internal = value
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
@@ -558,7 +549,11 @@ class LightningModule(
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
     def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
-        value = torch.tensor(value, device=self.device)
+        value = (
+            value.clone().detach().to(self.device)
+            if isinstance(value, torch.Tensor)
+            else torch.tensor(value, device=self.device)
+        )
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
