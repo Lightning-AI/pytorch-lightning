@@ -31,8 +31,7 @@ class ColossalAIStrategy(DDPStrategy):
     """ColossalAI strategy. It only supports a single optimizer, which must be
     :class:`colossalai.nn.optimizer.CPUAdam` or :class:`colossalai.nn.optimizer.HybridAdam` now. Your model must
     be created in the function ``LightningModule.configure_sharded_model()``. Thus, you should overwrite this function.
-    Also, you are supposed to overwrite the function ``on_load_checkpoint`` when you want to load a checkpoint to your
-    model. More details can be found in the below example.
+    More details can be found in the below example.
 
     It configures accelerator and precision, and you should not configure them when initializing ``Trainer``.
     CUDA is essential for this strategy. Please make sure CUDA is available.
@@ -43,9 +42,6 @@ class ColossalAIStrategy(DDPStrategy):
             ...
             def configure_sharded_model(self) -> None:
                 self.model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
-            def on_load_checkpoint(self, checkpoint) -> None:
-                if not hasattr(self, 'model'):
-                    self.configure_sharded_model()
         trainer = Trainer(..., accelerator="gpu", precision=16, strategy="colossalai")
 
     Args:

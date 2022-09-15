@@ -1,5 +1,4 @@
 import os
-from typing import Any, Dict
 
 import pytest
 import torch
@@ -57,9 +56,6 @@ class ModelParallelBoringModel(BoringModel):
 
     def configure_sharded_model(self) -> None:
         self.layer = torch.nn.Linear(32, 2)
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.configure_sharded_model()
 
     def configure_optimizers(self):
         optimizer = HybridAdam(self.layer.parameters(), lr=1e-3)
