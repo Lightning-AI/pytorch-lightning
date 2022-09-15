@@ -106,6 +106,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _configure_launcher(self) -> None:
         self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
+    def setup_environment(self) -> None:
+        self._setup_distributed()
+        super().setup_environment()
+
     def setup_module(self, module: Module) -> Module:
         return DistributedDataParallel(module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs)
 
