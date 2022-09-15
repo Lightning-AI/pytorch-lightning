@@ -20,7 +20,7 @@ class _Launcher(ABC):
     Abstract base class for all Launchers.
 
     Launchers are responsible for the creation and instrumentation of new processes so that the
-    :class:`~pytorch_lightning.strategies.base.Strategy` can set up communication between all them.
+    :class:`~lightning_lite.strategies.strategy.Strategy` can set up communication between all them.
 
     Subclass this class and override any of the relevant methods to provide a custom implementation depending on
     cluster environment, hardware, strategy, etc.
