@@ -8,7 +8,6 @@ from torch.nn import functional as F
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation
 from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
 
 if _TPU_AVAILABLE:
@@ -251,14 +250,3 @@ def tpu_distributed() -> bool:
 
 def get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
-
-
-def _get_process_group_backend_from_env() -> Optional[str]:
-    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
-    if torch_backend is not None:
-        rank_zero_deprecation(
-            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
-            " was deprecated in v1.6 and will be removed in v1.8."
-            " Specify `process_group_backend` directly on the strategy constructor."
-        )
-    return torch_backend
