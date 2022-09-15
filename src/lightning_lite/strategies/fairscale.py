@@ -124,7 +124,7 @@ class DDPShardedStrategy(DDPStrategy):
 
 
 class DDPSpawnShardedStrategy(DDPSpawnStrategy):
-    """Optimizer sharded training provided by FairScale."""
+    """Optimizer and gradient sharded training provided by FairScale with Spawn."""
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
@@ -163,7 +163,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         strategy_registry.register(
             "ddp_sharded_spawn",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
 
     def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
