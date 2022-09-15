@@ -230,26 +230,6 @@ class ModelParallelClassificationModel(LightningModule):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
-def test_multi_gpu_model_colossalai_fit_only(tmpdir):
-    dm = ClassifDataModule()
-    model = ModelParallelClassificationModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, precision=16, strategy="colossalai", max_epochs=1
-    )
-    trainer.fit(model, datamodule=dm)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
-def test_multi_gpu_model_colossalai_test_only(tmpdir):
-    dm = ClassifDataModule()
-    model = ModelParallelClassificationModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, precision=16, strategy="colossalai", max_epochs=1
-    )
-    trainer.test(model, datamodule=dm)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
 def test_multi_gpu_model_colossalai_fit_test(tmpdir):
     seed_everything(4321)
     dm = ClassifDataModule()
@@ -263,7 +243,10 @@ def test_multi_gpu_model_colossalai_fit_test(tmpdir):
         max_epochs=1,
     )
     trainer.fit(model, datamodule=dm)
-    result = trainer.test(model, datamodule=dm)
+    out_metrics = trainer.callback_metrics
+    assert out_metrics["train_acc"] > 0.7
+    assert out_metrics["val_acc"] > 0.7
 
+    result = trainer.test(model, datamodule=dm)
     for out in result:
         assert out["test_acc"] > 0.7

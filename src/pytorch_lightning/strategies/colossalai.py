@@ -103,8 +103,9 @@ class ColossalAIStrategy(DDPStrategy):
     .. _colossalai.nn.optimizer.HybridAdam:
         https://colossalai.readthedocs.io/en/latest/colossalai/colossalai.nn.optimizer.hybrid_adam.html
 
-        strategy_name = "colossalai"
     """
+
+    strategy_name = "colossalai"
 
     def __init__(
         self,
