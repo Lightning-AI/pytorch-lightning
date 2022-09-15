@@ -90,7 +90,7 @@ class LightningLite(ABC):
             gpus=gpus,
         )
         self._strategy: Strategy = self._connector.strategy
-        self._accelerator: Accelerator = self._strategy.accelerator
+        self._accelerator: Accelerator = self._connector.accelerator
         self._precision_plugin: Precision = self._strategy.precision_plugin
         self._models_setup: int = 0
 
