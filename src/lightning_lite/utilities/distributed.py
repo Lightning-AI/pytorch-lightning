@@ -309,8 +309,8 @@ class _DatasetSamplerWrapper(Dataset):
 class DistributedSamplerWrapper(DistributedSampler):
     """Wrapper over ``Sampler`` for distributed training.
 
-    Allows you to use any sampler in distributed mode. It will be automatically used by Lightning in distributed
-    mode if sampler replacement is enabled.
+    Allows you to use any sampler in distributed mode. It will be automatically used by Lightning in distributed mode if
+    sampler replacement is enabled.
     """
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
