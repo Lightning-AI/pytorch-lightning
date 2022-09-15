@@ -47,7 +47,6 @@ subprojects:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "mypy"
-      - "PR Gatekeeper (pytorch)"
       - "pytorch-lightning (GPUs)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
