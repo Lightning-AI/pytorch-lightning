@@ -292,7 +292,8 @@ class LightningLite(ABC):
         """
         if isinstance(obj, nn.Module):
             self._accelerator.setup_device(self.device)
-            return self._strategy.module_to_device(obj)
+            self._strategy.module_to_device(obj)
+            return obj
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:
