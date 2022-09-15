@@ -421,7 +421,6 @@ class LightningLite(ABC):
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        # TODO(lite): Bring the DistributedSamplerWrapper to Lite package
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     @staticmethod
