@@ -15,10 +15,7 @@ import importlib
 import os
 from inspect import getmembers, isclass
 
-import torch
-
 from lightning_lite.strategies import _StrategyRegistry
-from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.registry import _is_register_method_overridden
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -29,16 +26,6 @@ def on_colab_kaggle() -> bool:
         "The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v1.10.0."
     )
     return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
-
-
-def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
-    if torch.is_floating_point(tensor):
-        if precision == PrecisionType.HALF:
-            return tensor.half()
-        if precision == PrecisionType.BFLOAT:
-            return tensor.bfloat16()
-
-    return tensor
 
 
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
