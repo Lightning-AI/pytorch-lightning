@@ -180,8 +180,6 @@ subprojects:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (HPUs)"
-      - "pytorch-lightning (IPUs)"
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
       - "pl-slow (windows-2022, 3.7, 1.11)"
