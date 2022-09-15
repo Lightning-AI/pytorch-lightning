@@ -350,7 +350,7 @@ class DeepSpeedStrategy(DDPStrategy):
             config = os.environ[self.DEEPSPEED_ENV_VAR]
         if isinstance(config, (str, Path)):
             if not os.path.isfile(config):
-                raise FileNotFoundError(
+                raise MisconfigurationException(
                     f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
                 )
             with open(config) as f:
