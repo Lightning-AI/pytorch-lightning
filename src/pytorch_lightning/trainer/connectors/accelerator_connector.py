@@ -336,7 +336,7 @@ class AcceleratorConnector:
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
-        # TODO: @awaelchli improve the error messages below
+        # TODO: improve the error messages below
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
@@ -461,7 +461,7 @@ class AcceleratorConnector:
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
             if devices:
-                # TODO: @awaelchli improve error message
+                # TODO improve error message
                 rank_zero_warn(
                     f"The flag `devices={devices}` will be ignored, "
                     f"instead the device specific number {deprecated_devices_specific_flag} will be used"
@@ -470,7 +470,7 @@ class AcceleratorConnector:
             if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
                 True
             ) > 1:
-                # TODO: @awaelchli improve error message
+                # TODO: improve error message
                 rank_zero_warn("more than one device specific flag has been set")
             self._devices_flag = deprecated_devices_specific_flag
 

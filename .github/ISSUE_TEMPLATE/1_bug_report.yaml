@@ -1,0 +1,98 @@
+name: Report a bug
+description: Any errors that are not UI related.
+labels: ["needs triage", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        WAIT!
+
+        Before you go any further. Is this really a **🐛 bug**?
+
+        If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
+        or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
+
+        If it really is a **🐛 bug**, please fill out this form as completely as you can.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: First check
+      description: Please confirm and check all the following options.
+      options:
+        - label: I'm sure this is a bug.
+          required: true
+        - label: I've added a descriptive title to this bug.
+          required: true
+        - label: I've provided clear instructions on how to reproduce the bug.
+          required: true
+        - label: I've added a code sample.
+          required: true
+        - label: I've provided any other important info that is required.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Bug description
+      description: A clear and concise description of the 🐛bug🐛.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How to reproduce the bug
+      description: >
+        Provide steps and example code here.
+      placeholder: "# Insert code here"
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Error messages and logs
+      description: >
+        Provide any error messages and/or logs
+      placeholder: "# Copy the complete error messages and logs"
+      value: |
+        ```
+
+        # Error messages and logs here please
+
+        ```
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Important info
+      description: >
+        Provide all the following info
+      value: |
+        ```
+
+        #- Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
+        #- PyTorch Lightning Version (e.g., 1.5.0):
+        #- Lightning App Version (e.g., 0.5.2):
+        #- PyTorch Version (e.g., 1.10):
+        #- Python version (e.g., 3.9):
+        #- OS (e.g., Linux):
+        #- CUDA/cuDNN version:
+        #- GPU models and configuration:
+        #- How you installed Lightning(`conda`, `pip`, source):
+        #- Running environment of LightningApp (e.g. local, cloud):
+
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: More info
+      description: Add any other info about the issue here.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "**Happy engineering!**"
