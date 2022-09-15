@@ -20,14 +20,22 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
+from lightning_lite.plugins.environments import (
+    ClusterEnvironment,
+    KubeflowEnvironment,
+    LightningEnvironment,
+    LSFEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
+from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -44,15 +52,7 @@ from pytorch_lightning.plugins import (
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments import (
-    BaguaEnvironment,
-    ClusterEnvironment,
-    KubeflowEnvironment,
-    LightningEnvironment,
-    LSFEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
+from pytorch_lightning.plugins.environments import BaguaEnvironment
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
@@ -336,7 +336,7 @@ class AcceleratorConnector:
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
-        # TODO: @awaelchli improve the error messages below
+        # TODO: improve the error messages below
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
@@ -461,7 +461,7 @@ class AcceleratorConnector:
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
             if devices:
-                # TODO: @awaelchli improve error message
+                # TODO improve error message
                 rank_zero_warn(
                     f"The flag `devices={devices}` will be ignored, "
                     f"instead the device specific number {deprecated_devices_specific_flag} will be used"
@@ -470,7 +470,7 @@ class AcceleratorConnector:
             if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
                 True
             ) > 1:
-                # TODO: @awaelchli improve error message
+                # TODO: improve error message
                 rank_zero_warn("more than one device specific flag has been set")
             self._devices_flag = deprecated_devices_specific_flag
 
@@ -524,7 +524,9 @@ class AcceleratorConnector:
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
+                acc_str
+                for acc_str in self._accelerator_types
+                if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"

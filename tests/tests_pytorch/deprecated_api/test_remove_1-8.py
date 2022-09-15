@@ -26,10 +26,9 @@ from lightning_lite.utilities import device_parser
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
+from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.profiler import AbstractProfiler, BaseProfiler
-from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfiler
+from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
@@ -399,13 +398,6 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_8_0_weights_save_path(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(weights_save_path=tmpdir)
-    with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
-        _ = trainer.weights_save_path
-
-
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
@@ -448,30 +440,6 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
-def test_v1_8_0_logger_collection(tmpdir):
-    logger1 = CSVLogger(tmpdir)
-    logger2 = CSVLogger(tmpdir)
-
-    trainer1 = Trainer(logger=logger1)
-    trainer2 = Trainer(logger=[logger1, logger2])
-
-    # Should have no deprecation warning
-    trainer1.logger
-    trainer1.loggers
-    trainer2.loggers
-
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = trainer2.logger
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        _ = LoggerCollection([logger1, logger2])
-
-    model = BoringModel()
-    trainer = Trainer(logger=[logger1, logger2])
-    model.trainer = trainer
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = model.logger
-
-
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
     class PrecisionPluginSaveHook(PrecisionPlugin):
         def on_save_checkpoint(self, checkpoint):
@@ -498,10 +466,6 @@ def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
         trainer.fit(model)
-
-
-def test_v1_8_0_abstract_profiler():
-    assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
 
 
 def test_v1_8_0_datamodule_checkpointhooks():
@@ -670,28 +634,6 @@ def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
         " Please use `Trainer.num_devices` instead."
     ):
         assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-def test_v1_8_0_base_profiler(tmpdir):
-    class CustomProfiler1(BaseProfiler):
-        def start(self, action_name: str) -> None:
-            pass
-
-        def stop(self, action_name: str) -> None:
-            pass
-
-    class CustomProfiler2(Profiler):
-        def start(self, action_name: str) -> None:
-            pass
-
-        def stop(self, action_name: str) -> None:
-            pass
-
-    with pytest.deprecated_call(match="`BaseProfiler` was deprecated in v1.6"):
-        CustomProfiler1()
-
-    # No deprecation message
-    CustomProfiler2()
 
 
 @pytest.mark.parametrize(

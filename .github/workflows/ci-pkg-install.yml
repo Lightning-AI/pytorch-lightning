@@ -33,7 +33,7 @@ jobs:
       fail-fast: true
       max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2022]
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
         pkg: ["app", "lite", "pytorch"]
         python-version: [3.8]  # , 3.9
 
@@ -69,7 +69,7 @@ jobs:
       fail-fast: false
       # max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2022]
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
         pkg: ["", "lightning"]
         python-version: [3.8]  # , 3.9
 
@@ -96,13 +96,16 @@ jobs:
           pkg-name: "lightning"
           pip-flags: "-U --pre --find-links ../pypi/"
 
+      - name: Run CLI
+        run: python -m lightning --version
+
   install-meta-pypi:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       # max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-11, windows-2022]
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
         python-version: [3.8]  # , 3.9
 
     steps:
@@ -143,3 +146,6 @@ jobs:
         with:
           pkg-name: "lightning"
           pip-flags: "-U --pre --find-links ../pypi/"
+
+      - name: Run CLI
+        run: python -m lightning --version

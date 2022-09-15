@@ -11,32 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Union
+from abc import ABC
+from typing import Any, Dict
 
 import torch
+from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.accelerator import Accelerator as _Accelerator
+from lightning_lite.utilities.types import _DEVICE
 
 
-class Accelerator(ABC):
-    """The Accelerator Base Class. An Accelerator is meant to deal with one type of Hardware.
+class Accelerator(_Accelerator, ABC):
+    """The Accelerator base class for Lightning PyTorch.
 
-    Currently there are accelerators for:
-
-    - CPU
-    - GPU
-    - TPU
-    - IPU
-    - HPU
+    An Accelerator is meant to deal with one type of hardware.
     """
 
     def setup_environment(self, root_device: torch.device) -> None:
-        """Setup any processes or distributed connections.
-
-        This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
-        environment before setup is complete.
         """
+        .. deprecated:: v1.8.0
+            This hook was deprecated in v1.8.0 and will be removed in v1.10.0. Please use ``setup_device()`` instead.
+        """
+        rank_zero_deprecation(
+            "`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0 and will be removed in"
+            " v1.10.0. Please use ``setup_device()`` instead."
+        )
+        self.setup_device(root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         """Setup plugins for the trainer fit and creates optimizers.
@@ -45,7 +46,7 @@ class Accelerator(ABC):
             trainer: the trainer instance
         """
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get stats for a given device.
 
         Args:
@@ -55,30 +56,3 @@ class Accelerator(ABC):
             Dictionary of device stats
         """
         raise NotImplementedError
-
-    def teardown(self) -> None:
-        """Clean up any state created by the accelerator."""
-
-    @staticmethod
-    @abstractmethod
-    def parse_devices(devices: Any) -> Any:
-        """Accelerator device parsing logic."""
-
-    @staticmethod
-    @abstractmethod
-    def get_parallel_devices(devices: Any) -> Any:
-        """Gets parallel devices for the Accelerator."""
-
-    @staticmethod
-    @abstractmethod
-    def auto_device_count() -> int:
-        """Get the device count when set to auto."""
-
-    @staticmethod
-    @abstractmethod
-    def is_available() -> bool:
-        """Detect if the hardware is available."""
-
-    @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
-        pass

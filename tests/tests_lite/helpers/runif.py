@@ -20,7 +20,10 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _PSUTIL_AVAILABLE, _TPU_AVAILABLE
+from lightning_lite.accelerators.mps import MPSAccelerator
+from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.utilities.imports import _TPU_AVAILABLE
 
 
 class RunIf:
@@ -40,10 +43,11 @@ class RunIf:
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
         tpu: bool = False,
+        mps: Optional[bool] = None,
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
-        psutil: bool = False,
+        deepspeed: bool = False,
         **kwargs,
     ):
         """
@@ -54,11 +58,13 @@ class RunIf:
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
             tpu: Require that TPU is available.
+            mps: If True: Require that MPS (Apple Silicon) is available,
+                if False: Explicitly Require that MPS is not available
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             fairscale: Require that facebookresearch/fairscale is installed.
-            psutil: Require that psutil is installed.
+            deepspeed: Require that microsoft/DeepSpeed is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -95,6 +101,14 @@ class RunIf:
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True
 
+        if mps is not None:
+            if mps:
+                conditions.append(not MPSAccelerator.is_available())
+                reasons.append("MPS")
+            else:
+                conditions.append(MPSAccelerator.is_available())
+                reasons.append("not MPS")
+
         if standalone:
             env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
             conditions.append(env_flag != "1")
@@ -110,9 +124,9 @@ class RunIf:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
 
-        if psutil:
-            conditions.append(not _PSUTIL_AVAILABLE)
-            reasons.append("psutil")
+        if deepspeed:
+            conditions.append(not _DEEPSPEED_AVAILABLE)
+            reasons.append("Deepspeed")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
