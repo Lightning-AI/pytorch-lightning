@@ -205,18 +205,19 @@ def test_dist_backend_accelerator_mapping(*_):
 
 
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-def test_ipython_incompatible_backend_error(_, monkeypatch):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
+def test_ipython_incompatible_backend_error(_, __, monkeypatch):
     monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
+    with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         _Connector(strategy="ddp", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
+    with pytest.raises(RuntimeError, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         _Connector(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
+    with pytest.raises(RuntimeError, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
         _Connector(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
+    with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: _Connector maps dp to ddp if accelerator != gpu
         _Connector(strategy="dp")
 
@@ -593,7 +594,8 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 
 
 @mock.patch("lightning_lite.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_unsupported_tpu_choice(_):
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_unsupported_tpu_choice(*_):
 
     with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         _Connector(accelerator="tpu", precision=64)
