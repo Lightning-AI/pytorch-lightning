@@ -15,6 +15,7 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
+from unittest import mock
 from unittest.mock import call, MagicMock, patch
 
 import pytest
@@ -78,6 +79,10 @@ def tmpdir_unittest_fixture(request, tmpdir):
 
 @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
 class TestNeptuneLogger(unittest.TestCase):
+    def run(self, *args, **kwargs):
+        with mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
+            super().run(*args, **kwargs)
+
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
         created_run_mock = logger.run
@@ -354,10 +359,11 @@ class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
         for legacy_kwarg in legacy_neptune_kwargs:
             self._assert_legacy_usage(NeptuneLogger, **{legacy_kwarg: None})
 
+    @patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True)
     @patch("pytorch_lightning.loggers.neptune.warnings")
     @patch("pytorch_lightning.loggers.neptune.NeptuneFile")
     @patch("pytorch_lightning.loggers.neptune.neptune")
-    def test_legacy_functions(self, neptune, neptune_file_mock, warnings_mock):
+    def test_legacy_functions(self, _, neptune, neptune_file_mock, warnings_mock):
         logger = NeptuneLogger(api_key="test", project="project")
 
         # test deprecated functions which will be shut down in pytorch-lightning 1.7.0
