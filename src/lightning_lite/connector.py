@@ -507,7 +507,7 @@ class _Connector:
 
         if self._precision_flag in (16, "bf16"):
             rank_zero_info(
-                f"Using 16-bit Automatic Mixed Precision (AMP)"  # type: ignore
+                "Using 16-bit Automatic Mixed Precision (AMP)"
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
