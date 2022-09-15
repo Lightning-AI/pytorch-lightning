@@ -46,7 +46,7 @@ def test_imports():
         assert _APEX_AVAILABLE
 
     try:
-        import deepspeed
+        import deepspeed  # noqa
     except ModuleNotFoundError:
         assert not _DEEPSPEED_AVAILABLE
     else:
