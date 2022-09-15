@@ -115,7 +115,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def module_to_device(self, module: Module) -> None:
         if self.root_device.type == "cuda":
-            # TODO(lite): This should be handled outside module_to_device, by a call to accelertor.setup_device()
+            # TODO(lite): This should be handled outside module_to_device, by a call to accelerator.setup_device()
             # set the device on the spawned subprocesses
             torch.cuda.set_device(self.root_device)
         module.to(self.root_device)
