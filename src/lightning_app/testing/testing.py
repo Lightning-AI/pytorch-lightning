@@ -315,6 +315,21 @@ def run_app_in_cloud(
             )
         admin_page.goto(f"{Config.url}/{Config.username}/apps", timeout=60 * 1000)
 
+        # Closing the Complete your profile dialog
+        try:
+            dialog = admin_page.locator("text=Complete your profile")
+            dialog.wait_for(timeout=10 * 1000, state="visible")
+            print("'Complete your profile' dialog visible, closing it.")
+            admin_page.locator('input[name="firstName"]').fill("first")
+            admin_page.locator('input[name="lastName"]').fill("last")
+            admin_page.locator('input[name="email"]').fill("e2e.test.admin@lightning.ai")
+            admin_page.locator('input[name="organization"]').fill("Lightning AI")
+            button = admin_page.locator('button:has-text("Confirm")')
+            button.wait_for(timeout=3 * 1000)
+            button.click()
+        except playwright._impl._api_types.TimeoutError:
+            print("'Complete your profile' dialog not visible, skipping.")
+
         # Closing the Create Project dialog.
         try:
             project_dialog = admin_page.locator("text=Create a project")
@@ -346,7 +361,7 @@ def run_app_in_cloud(
         lightning_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                project.project_id
+                project_id=project.project_id
             ).lightningapps
             if app.name == name
         ]
@@ -444,7 +459,7 @@ def delete_cloud_lightning_apps():
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
-    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
     print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
 
