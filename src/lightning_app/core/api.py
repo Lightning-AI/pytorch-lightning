@@ -250,7 +250,8 @@ async def upload_file(filename: Optional[str] = None, uploaded_file: UploadFile 
             tmp_file = os.path.join(tmp, filename)
 
             with open(tmp_file, "wb") as f:
-                f.write(await uploaded_file.read())
+                while content := await uploaded_file.read(10240):
+                    f.write(content)
 
             drive.put(filename)
     finally:
