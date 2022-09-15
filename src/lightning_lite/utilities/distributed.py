@@ -9,7 +9,6 @@ from torch.nn import functional as F
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
 
