@@ -1,12 +1,12 @@
 import logging
 import os
-from typing import Any, List, Optional, Tuple, Union, Iterable, Sized, Iterator
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_deprecation
 from torch import Tensor
 from torch.nn import functional as F
-from torch.utils.data import Dataset, Sampler, DistributedSampler
+from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException

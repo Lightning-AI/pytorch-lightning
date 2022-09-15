@@ -38,9 +38,9 @@ from lightning_lite.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 
 
 class LightningLite(ABC):
