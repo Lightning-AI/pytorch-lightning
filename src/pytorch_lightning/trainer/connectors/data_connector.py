@@ -25,7 +25,8 @@ from torch.utils.data.distributed import DistributedSampler
 import pytorch_lightning as pl
 from lightning_lite.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
+from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSamplerWrapper
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator

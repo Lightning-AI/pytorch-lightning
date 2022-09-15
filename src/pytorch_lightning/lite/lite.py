@@ -40,7 +40,7 @@ from lightning_lite.utilities.data import (
 )
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 
 
 class LightningLite(ABC):
@@ -292,7 +292,7 @@ class LightningLite(ABC):
         """
         if isinstance(obj, nn.Module):
             self._accelerator.setup_device(self.device)
-            return obj.to(self.device)
+            return self._strategy.module_to_device(obj)
         return move_data_to_device(obj, device=self.device)
 
     def print(self, *args: Any, **kwargs: Any) -> None:

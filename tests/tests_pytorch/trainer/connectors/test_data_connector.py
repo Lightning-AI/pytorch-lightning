@@ -24,7 +24,7 @@ from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
