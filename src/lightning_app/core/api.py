@@ -1,7 +1,6 @@
 import asyncio
 import os
 import queue
-import shutil
 import sys
 import traceback
 from copy import deepcopy
@@ -237,10 +236,10 @@ async def post_state(
     api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
 
 
-@fastapi_service.post("/api/v1/upload_file")
-async def upload_file(upload_file: UploadFile = File(...)):
+@fastapi_service.put("/api/v1/upload_file/{filename}")
+async def upload_file(filename: Optional[str] = None, uploaded_file: UploadFile = File(...)):
     try:
-        await upload_file.read()
+        filename = filename if filename else uploaded_file.filename
         with TemporaryDirectory() as tmp:
             drive = Drive(
                 "lit://uploaded_files",
@@ -248,15 +247,15 @@ async def upload_file(upload_file: UploadFile = File(...)):
                 allow_duplicates=True,
                 root_folder=tmp,
             )
-            tmp_file = os.path.join(tmp, upload_file.filename)
+            tmp_file = os.path.join(tmp, filename)
 
             with open(tmp_file, "wb") as f:
-                shutil.copyfileobj(upload_file.file, f)
+                f.write(await uploaded_file.read())
 
-            drive.put(upload_file.filename)
+            drive.put(filename)
     finally:
-        upload_file.file.close()
-    return f"Successfully uploaded {upload_file.filename} to the Drive"
+        uploaded_file.file.close()
+    return f"Successfully uploaded '{filename}' to the Drive"
 
 
 @fastapi_service.get("/healthz", status_code=200)
