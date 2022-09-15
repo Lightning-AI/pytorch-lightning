@@ -32,11 +32,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.precision.utils import _fp_to_half
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    get_default_process_group_backend_for_device,
-    log,
-)
+from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
