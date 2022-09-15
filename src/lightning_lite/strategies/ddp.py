@@ -28,11 +28,7 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    distributed_available,
-    get_default_process_group_backend_for_device,
-)
+from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from lightning_lite.utilities.rank_zero import rank_zero_only
@@ -157,28 +153,19 @@ class DDPStrategy(ParallelStrategy):
         strategy_registry.register(
             "ddp",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
 
     def _setup_distributed(self) -> None:
         reset_seed()
-
-        # determine which process we are and world size
         self._set_world_ranks()
-
-        # set warning rank
         rank_zero_only.rank = self.global_rank
-
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:

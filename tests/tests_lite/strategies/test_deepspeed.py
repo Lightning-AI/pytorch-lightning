@@ -17,7 +17,7 @@ import os
 import pytest
 from tests_lite.helpers.runif import RunIf
 
-from pytorch_lightning.strategies import DeepSpeedStrategy
+from lightning_lite.strategies import DeepSpeedStrategy
 
 
 @pytest.fixture

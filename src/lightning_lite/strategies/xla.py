@@ -44,7 +44,7 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class TPUSpawnStrategy(DDPSpawnStrategy):
+class XLAStrategy(DDPSpawnStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
@@ -95,6 +95,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
+    def setup_environment(self) -> None:
+        self._launched = True
+        self._set_world_ranks()
+        rank_zero_only.rank = self.global_rank
+
     def setup_module(self, module: Module) -> Module:
         return module
 
@@ -102,7 +107,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         module.to(self.root_device)
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
-        TPUSpawnStrategy._validate_dataloader(dataloader)
+        XLAStrategy._validate_dataloader(dataloader)
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
@@ -118,7 +123,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if invalid_reduce_op or invalid_reduce_op_str:
             raise ValueError(
-                "Currently, the TPUSpawnStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                "Currently, the XLAStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
                 f" {reduce_op}"
             )
 
@@ -183,12 +188,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
+        # TODO(lite): Deprecate the name "tpu_spawn" through the connector
         strategy_registry.register("tpu_spawn", cls, description=cls.__class__.__name__)
-
-    def _worker_setup(self, process_idx: int) -> None:
-        self._launched = True
-        self.set_world_ranks(process_idx)
-        rank_zero_only.rank = self.global_rank
+        strategy_registry.register("xla", cls, description=cls.__class__.__name__)
 
     @staticmethod
     def _validate_dataloader(dataloaders: DataLoader) -> None:

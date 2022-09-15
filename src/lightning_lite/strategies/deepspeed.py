@@ -22,6 +22,7 @@ from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tupl
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -29,14 +30,10 @@ from torch.optim import Optimizer
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.strategies.ddp import DDPStrategy
-from lightning_lite.strategies.utils import _fp_to_half
 from lightning_lite.utilities.apply_func import apply_to_collection
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    get_default_process_group_backend_for_device,
-    log,
-)
+from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device, log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
@@ -110,8 +107,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is compatible with either `precision=16` or
-                `precision="bf16"`.
+            zero_optimization: Enable ZeRO optimization. This is compatible with either ``precision=16`` or
+                ``precision="bf16"``.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
@@ -434,6 +431,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _setup_distributed(self) -> None:
         reset_seed()
         self._set_world_ranks()
+        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
         if not self._config_initialized:
             self._format_config()
@@ -453,11 +451,7 @@ class DeepSpeedStrategy(DDPStrategy):
         deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None

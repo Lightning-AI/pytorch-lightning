@@ -50,22 +50,6 @@ class DataParallelStrategy(ParallelStrategy):
         assert self.parallel_devices is not None
         return self.parallel_devices[0]
 
-    @property
-    def global_rank(self) -> int:
-        return 0
-
-    @property
-    def local_rank(self) -> int:
-        return 0
-
-    @property
-    def node_rank(self) -> int:
-        return 0
-
-    @property
-    def world_size(self) -> int:
-        return 1
-
     def setup_module(self, module: Module) -> DataParallel:
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
         return DataParallel(module=module, device_ids=self.parallel_devices)
@@ -73,7 +57,7 @@ class DataParallelStrategy(ParallelStrategy):
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         # DataParallel handles the transfer of batch to the device
         return batch
 
