@@ -174,10 +174,18 @@ def test_torchscript_with_no_input(tmpdir):
 
 
 def test_torchscript_script_recursively():
-    class Child(LightningModule):
+    class GrandChild(LightningModule):
         def __init__(self):
             super().__init__()
             self.model = torch.nn.Linear(1, 1)
+
+        def forward(self, inputs):
+            return self.model(inputs)
+
+    class Child(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = GrandChild()
 
         def forward(self, inputs):
             return self.model(inputs)
