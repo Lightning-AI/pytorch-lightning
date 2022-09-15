@@ -24,6 +24,7 @@ _DEVICE = Union[torch.device, str, int]
 _MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
+
 _DictKey = TypeVar("_DictKey")
 
 
