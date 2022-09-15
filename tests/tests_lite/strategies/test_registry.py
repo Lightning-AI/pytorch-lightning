@@ -51,4 +51,5 @@ def test_available_strategies_in_registry():
         "ddp_fork_find_unused_parameters_false",
         "ddp_notebook_find_unused_parameters_false",
         "tpu_spawn",
+        "xla",
     }
