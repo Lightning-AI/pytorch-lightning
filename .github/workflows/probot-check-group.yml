@@ -1,8 +1,11 @@
 name: Probot
 
 on:
-  # TODO: change to `pull_request_target` after this is merged
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
 
 jobs:
   required-jobs:
@@ -14,4 +17,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          interval: 120  # seconds
+          interval: 180  # seconds
