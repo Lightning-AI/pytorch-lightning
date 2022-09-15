@@ -35,4 +35,4 @@ Install with pip
 
 	.. code:: bash
 
-        pip list | grep lightning
+            pip list | grep lightning
