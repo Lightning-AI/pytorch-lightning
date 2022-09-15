@@ -257,4 +257,12 @@ def test_lite_optimizer_steps():
     step_output = lite_optimizer.step()
     assert step_output == 123
     strategy.optimizer_step.assert_called_once()
-    strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)
+    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model)
+
+    strategy.optimizer_step.reset_mock()
+
+    # with closure as input
+    closure = Mock()
+    lite_optimizer.step(closure=closure)
+    strategy.optimizer_step.assert_called_once()
+    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model, closure=closure)
