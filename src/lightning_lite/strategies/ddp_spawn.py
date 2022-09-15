@@ -200,8 +200,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
-    def _set_world_ranks(self, process_idx: int = 0) -> None:
-        self._local_rank = process_idx
+    def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:
             return
         self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
