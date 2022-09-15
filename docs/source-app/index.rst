@@ -27,7 +27,7 @@ Install Lightning
 
 .. code-block:: bash
 
-   pip install lightning
+   python -m pip install -U lightning
 
 
 Or read the :ref:`advanced install <install>` guide.
@@ -270,7 +270,9 @@ Keep Learning
    DAG <glossary/dag>
    Event Loop <glossary/event_loop>
    Environment Variables <glossary/environment_variables>
+   Encrypted Secrets <glossary/secrets>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
+   Apple and Android mobile devices with Lighting Apps <glossary/ios_and_android>
    REST API <glossary/restful_api/restful_api>
    Sharing Components <glossary/sharing_components>
    Scheduling <glossary/scheduling.rst>

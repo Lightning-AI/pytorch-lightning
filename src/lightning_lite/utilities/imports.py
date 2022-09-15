@@ -35,11 +35,7 @@ _HIVEMIND_AVAILABLE = package_available("hivemind")
 _HOROVOD_AVAILABLE = module_available("horovod.torch")
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
-_PSUTIL_AVAILABLE = package_available("psutil")
 _XLA_AVAILABLE: bool = package_available("torch_xla")
-
-# TODO(lite): import this from the fairscale files once they move to lite package
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
 
 
 from lightning_lite.utilities.xla_device import XLADeviceUtils  # noqa: E402

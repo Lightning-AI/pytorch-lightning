@@ -56,8 +56,7 @@ class CheckpointConnector:
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        # TODO: in v1.8 set this equal to self.trainer.default_root_dir
-        dir_path_hpc = self.trainer._weights_save_path_internal
+        dir_path_hpc = self.trainer.default_root_dir
         fs = get_filesystem(dir_path_hpc)
         if not fs.isdir(dir_path_hpc):
             return None
