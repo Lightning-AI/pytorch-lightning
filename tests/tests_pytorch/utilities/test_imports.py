@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
 
 
@@ -32,20 +30,6 @@ def test_imports():
         assert not _BAGUA_AVAILABLE
     else:
         assert _BAGUA_AVAILABLE
-
-    try:
-        import deepspeed  # noqa
-    except ModuleNotFoundError:
-        assert not _DEEPSPEED_AVAILABLE
-    else:
-        assert _DEEPSPEED_AVAILABLE
-
-    try:
-        import fairscale.nn  # noqa
-    except ModuleNotFoundError:
-        assert not _FAIRSCALE_AVAILABLE
-    else:
-        assert _FAIRSCALE_AVAILABLE
 
     try:
         import horovod.torch  # noqa
