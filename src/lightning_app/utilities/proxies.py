@@ -405,8 +405,29 @@ class WorkRunner:
         except BaseException as e:
             # 10.2 Send failed delta to the flow.
             reference_state = deepcopy(self.work.state)
+            exp, val, tb = sys.exc_info()
+            listing = traceback.format_exception(exp, val, tb)
+            user_exception = False
+            used_runpy = False
+            trace = []
+            for p in listing:
+                if "runpy.py" in p:
+                    trace = []
+                    used_runpy = True
+                if user_exception:
+                    trace.append(p)
+                if "ret = work_run(*args, **kwargs)" in p:
+                    user_exception = True
+
+            if used_runpy:
+                trace = trace[1:]
+
             self.work._calls[call_hash]["statuses"].append(
-                make_status(WorkStageStatus.FAILED, message=str(e), reason=WorkFailureReasons.USER_EXCEPTION)
+                make_status(
+                    WorkStageStatus.FAILED,
+                    message=str("\n".join(trace)),
+                    reason=WorkFailureReasons.USER_EXCEPTION,
+                )
             )
             self.delta_queue.put(
                 ComponentDelta(
@@ -452,6 +473,7 @@ class WorkRunner:
         logger.info(f"Received SIGTERM signal. Gracefully terminating {self.work.name.replace('root.', '')}...")
         persist_artifacts(work=self.work)
         with _state_observer_lock:
+            self.work.on_exit()
             self.work._calls[call_hash]["statuses"] = []
             state = deepcopy(self.work.state)
             self.work._calls[call_hash]["statuses"].append(
