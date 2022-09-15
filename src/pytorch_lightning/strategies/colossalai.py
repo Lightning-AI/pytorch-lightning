@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -185,6 +185,11 @@ class ColossalAIStrategy(DDPStrategy):
         """Whether the plugin handles gradient accumulation internally."""
         return True
 
+    @property
+    def restore_checkpoint_after_setup(self) -> bool:
+        """Override to delay restoring from checkpoint till after pre-dispatch."""
+        return True
+
     def setup_distributed(self):
         if not gpc.is_initialized(ParallelMode.GLOBAL):
             disable_existing_loggers()
@@ -316,6 +321,21 @@ class ColossalAIStrategy(DDPStrategy):
             mapping_dict[key] = key.replace(prefix, "")  # remove "_forward_module." from the key
 
         return {mapping_dict[key]: value for key, value in org_dict.items()}
+
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        org_dict = checkpoint["state_dict"]
+
+        children = list(self.model.named_children())
+        assert len(children) == 1
+        prefix, child = children[0]
+        prefix += "."
+        assert child is self.lightning_module
+
+        mapping_dict = dict()
+        for key in org_dict.keys():
+            mapping_dict[key] = prefix + key  # add "_forward_module." to the key
+        load_dict = {mapping_dict[key]: value for key, value in org_dict.items()}
+        self.model.load_state_dict(load_dict)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None

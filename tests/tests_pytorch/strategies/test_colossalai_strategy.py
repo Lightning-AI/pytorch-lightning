@@ -9,6 +9,7 @@ from torch.optim import Optimizer
 from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies import ColossalAIStrategy
@@ -227,6 +228,35 @@ class ModelParallelClassificationModel(LightningModule):
     def predict_step(self, batch, batch_idx):
         x, _ = batch
         return self.forward(x)
+
+
+@RunIf(min_cuda_gpus=2, standalone=False, colossalai=True)
+def test_multi_gpu_checkpointing(tmpdir):
+    seed_everything(4321)
+    dm = ClassifDataModule()
+    model = ModelParallelClassificationModel()
+    ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        accelerator="gpu",
+        devices=2,
+        precision=16,
+        strategy="colossalai",
+        callbacks=[ck],
+    )
+    trainer.fit(model, datamodule=dm)
+
+    results = trainer.test(datamodule=dm)
+    saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
+    assert saved_results == results
+
+    # here, we test whether restore_checkpoint_after_setup is worked
+    model = ModelParallelClassificationModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, precision=16, strategy="colossalai")
+    saved_results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
+    assert saved_results == results
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
