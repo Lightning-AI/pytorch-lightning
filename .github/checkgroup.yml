@@ -31,7 +31,7 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/docs-*.yml"
     checks:
-      # Note: updates here should be applied ot the lightning_lite group
+      # Note: updates here should be applied to the lightning_lite group
       - "pl-conda (3.8, 1.10)"
       - "pl-conda (3.8, 1.9)"
       - "pl-conda (3.9, 1.11)"
