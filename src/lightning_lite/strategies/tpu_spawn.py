@@ -95,6 +95,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
+    def setup_environment(self) -> None:
+        self._launched = True
+        self._set_world_ranks()
+        rank_zero_only.rank = self.global_rank
+
     def setup_module(self, module: Module) -> Module:
         return module
 
@@ -184,11 +189,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("tpu_spawn", cls, description=cls.__class__.__name__)
-
-    def _worker_setup(self, process_idx: int) -> None:
-        self._launched = True
-        self.set_world_ranks(process_idx)
-        rank_zero_only.rank = self.global_rank
 
     @staticmethod
     def _validate_dataloader(dataloaders: DataLoader) -> None:
