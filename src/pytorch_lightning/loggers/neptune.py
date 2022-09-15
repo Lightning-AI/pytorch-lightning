@@ -37,10 +37,7 @@ from pytorch_lightning.utilities.model_summary import ModelSummary
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 _NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
-_NEPTUNE_GREATER_EQUAL_0_9 = RequirementCache("neptune-client>=0.9.0")
-
-
-if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
+if _NEPTUNE_AVAILABLE:
     try:
         from neptune import new as neptune
         from neptune.new.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
@@ -272,13 +269,10 @@ class NeptuneLogger(Logger):
         agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **neptune_run_kwargs: Any,
     ):
+        if not _NEPTUNE_AVAILABLE:
+            raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
-        if neptune is None:
-            raise ModuleNotFoundError(
-                "You want to use the `Neptune` logger which is not installed yet, install it with"
-                " `pip install neptune-client`."
-            )
 
         super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._log_model_checkpoints = log_model_checkpoints
