@@ -38,7 +38,6 @@ from lightning_lite.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
-from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
@@ -245,18 +244,18 @@ class LightningLite(ABC):
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
-                    raise MisconfigurationException(
-                        "No models were setup for backward. Did you forget to call `self.setup()`?"
+                    raise RuntimeError(
+                        "No models were set up for backward. Did you forget to call `self.setup()`?"
                     )
                 if self._models_setup > 1:
-                    raise MisconfigurationException(
+                    raise ValueError(
                         "When using multiple models + deepspeed, please provide the model used to perform"
                         " the optimization: `self.backward(loss, model=model)`"
                     )
                 module = self._strategy.model
             else:
                 # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
-                self._strategy.model = module
+                self._strategy._deepspeed_engine = module
 
         self._precision_plugin.backward(tensor, module, *args, **kwargs)
 
@@ -429,15 +428,15 @@ class LightningLite(ABC):
     @staticmethod
     def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(model, _LiteModule):
-            raise MisconfigurationException("A model should be passed only once to the `setup` method.")
+            raise ValueError("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
-            raise MisconfigurationException("An optimizer should be passed only once to the `setup` method.")
+            raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
     @staticmethod
     def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
         if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
-            raise MisconfigurationException("A dataloader should be passed only once to the `setup_dataloaders` method")
+            raise ValueError("A dataloader should be passed only once to the `setup_dataloaders` method")
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
-            raise MisconfigurationException("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+            raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")

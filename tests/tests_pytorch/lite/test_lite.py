@@ -116,11 +116,11 @@ def test_setup_twice_fails():
     optimizer = torch.optim.Adam(model.parameters())
 
     lite_model, lite_optimizer = lite.setup(model, optimizer)
-    with pytest.raises(MisconfigurationException, match="A model should be passed only once to the"):
+    with pytest.raises(ValueError, match="A model should be passed only once to the"):
         lite.setup(lite_model, optimizer)
 
     lite_model, lite_optimizer = lite.setup(model, optimizer)
-    with pytest.raises(MisconfigurationException, match="An optimizer should be passed only once to the"):
+    with pytest.raises(ValueError, match="An optimizer should be passed only once to the"):
         lite.setup(model, lite_optimizer)
 
 
@@ -141,7 +141,7 @@ def test_setup_tracks_num_models():
 def test_setup_dataloaders_unsupported_type():
     """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
     lite = EmptyLite()
-    with pytest.raises(MisconfigurationException, match="Only PyTorch DataLoader are currently supported"):
+    with pytest.raises(TypeError, match="Only PyTorch DataLoader are currently supported"):
         lite.setup_dataloaders(range(2))  # type: ignore
 
 
@@ -205,7 +205,7 @@ def test_setup_dataloaders_twice_fails():
     dataloader = DataLoader(range(2))
     lite_dataloader = lite.setup_dataloaders(dataloader)
 
-    with pytest.raises(MisconfigurationException, match="A dataloader should be passed only once to the"):
+    with pytest.raises(ValueError, match="A dataloader should be passed only once to the"):
         lite.setup_dataloaders(lite_dataloader)
 
 
@@ -378,7 +378,7 @@ def test_backward_model_input_required():
 
     loss = model0(torch.randn(1, 1)).sum()
 
-    with pytest.raises(MisconfigurationException, match="please provide the model used to perform"):
+    with pytest.raises(ValueError, match="please provide the model used to perform"):
         lite.backward(loss)
 
 
