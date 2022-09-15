@@ -30,7 +30,6 @@ from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _IS_WINDOWS
 
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
-_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and compare_version("fairscale", operator.ge, "0.3.3")
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
