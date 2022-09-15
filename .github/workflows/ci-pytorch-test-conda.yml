@@ -7,11 +7,11 @@ on:
   pull_request:
     branches: [master, "release/*"]
     paths:
+      - ".github/workflows/ci-pytorch-test-conda.yml"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-pytorch-test-conda.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

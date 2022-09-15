@@ -13,6 +13,9 @@ on:
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-pytorch-test-full.yml"
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
