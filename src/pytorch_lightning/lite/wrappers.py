@@ -29,10 +29,6 @@ from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
 
-def _do_nothing_closure() -> None:
-    return None
-
-
 class _LiteOptimizer:
     def __init__(self, optimizer: Optimizer, strategy: Strategy) -> None:
         """LiteOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
