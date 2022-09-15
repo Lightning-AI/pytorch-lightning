@@ -59,11 +59,11 @@ class _LiteOptimizer:
         return self._strategy.get_optimizer_state(self.optimizer)
 
     def step(self, closure: Optional[Callable] = None, module: Optional["_LiteModule"] = None) -> Any:
-        closure = closure or _do_nothing_closure
+        kwargs = dict(closure=closure) if closure is not None else {}
         return self._strategy.optimizer_step(
             self.optimizer,
             model=(module if module is not None else getattr(self._strategy, "model", None)),
-            closure=closure,
+            **kwargs,
         )
 
 

@@ -244,9 +244,7 @@ class LightningLite(ABC):
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
-                    raise RuntimeError(
-                        "No models were set up for backward. Did you forget to call `self.setup()`?"
-                    )
+                    raise RuntimeError("No models were set up for backward. Did you forget to call `self.setup()`?")
                 if self._models_setup > 1:
                     raise ValueError(
                         "When using multiple models + deepspeed, please provide the model used to perform"
