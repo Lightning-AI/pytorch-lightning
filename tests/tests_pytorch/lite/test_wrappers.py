@@ -222,10 +222,12 @@ def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     iterator = iter(lite_dataloader)
 
     batch0 = next(iterator)
-    assert torch.equal(batch0, torch.tensor([0, 1], device=dest_device))
+    # TODO: This should be torch.equal, but not supported on MPS at this time (torch 1.12)
+    assert torch.allclose(batch0, torch.tensor([0, 1], device=dest_device))
 
     batch1 = next(iterator)
-    assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
+    # TODO: This should be torch.equal, but not supported on MPS at this time (torch 1.12)
+    assert torch.allclose(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
 def test_lite_optimizer_wraps():
@@ -243,7 +245,7 @@ def test_lite_optimizer_state_dict():
     strategy = Mock()
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.state_dict()
-    strategy.optimizer_state.assert_called_with(optimizer)
+    strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
 def test_lite_optimizer_steps():

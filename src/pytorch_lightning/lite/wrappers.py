@@ -21,10 +21,10 @@ from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+from lightning_lite.plugins import Precision
+from lightning_lite.strategies import Strategy
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from pytorch_lightning.plugins import PrecisionPlugin
-from pytorch_lightning.strategies import Strategy
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
@@ -56,21 +56,20 @@ class _LiteOptimizer:
         return self._optimizer
 
     def state_dict(self) -> Dict[str, Tensor]:
-        return self._strategy.optimizer_state(self.optimizer)
+        return self._strategy.get_optimizer_state(self.optimizer)
 
-    def step(self, closure: Optional[Callable] = None) -> Any:
+    def step(self, closure: Optional[Callable] = None, module: Optional["_LiteModule"] = None) -> Any:
         closure = closure or _do_nothing_closure
         return self._strategy.optimizer_step(
             self.optimizer,
-            opt_idx=0,
+            model=(module if module is not None else getattr(self._strategy, "model", None)),
             closure=closure,
-            model=self._strategy.model,
         )
 
 
 class _LiteModule(_DeviceDtypeModuleMixin):
     def __init__(
-        self, forward_module: nn.Module, precision_plugin: PrecisionPlugin, original_module: Optional[nn.Module] = None
+        self, forward_module: nn.Module, precision_plugin: Precision, original_module: Optional[nn.Module] = None
     ) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
