@@ -32,12 +32,11 @@ To *connect* this user interface to the Component, define the configure_layout m
     :emphasize-lines: 5, 6
 
     import lightning as L
-    from lightning_app.frontend.web import StaticWebFrontend
 
 
     class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.app.frontend.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
 Finally, route the Component's UI through the root Component's **configure_layout** method:
 
@@ -50,7 +49,7 @@ Finally, route the Component's UI through the root Component's **configure_layou
 
     class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.app.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
 
     class LitApp(L.LightningFlow):
