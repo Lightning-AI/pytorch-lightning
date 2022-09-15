@@ -3,6 +3,7 @@ import os
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.rank_zero import rank_zero_deprecation
 from torch import Tensor
 from torch.nn import functional as F
 
