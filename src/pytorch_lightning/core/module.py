@@ -297,7 +297,7 @@ class LightningModule(
     def _running_torchscript(self, value: bool) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
-                v._running_torchscript_internal = value
+                v._running_torchscript = value
         self._running_torchscript_internal = value
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
