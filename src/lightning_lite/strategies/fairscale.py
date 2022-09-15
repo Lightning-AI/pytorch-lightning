@@ -77,7 +77,7 @@ class DDPShardedStrategy(DDPStrategy):
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = self._reinit_optimizers_with_oss(optimizers)
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
@@ -108,23 +108,37 @@ class DDPShardedStrategy(DDPStrategy):
             description=cls.__class__.__name__,
         )
 
-    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
-                # For multi-node training, compressing the model shards in fp16 before broadcasting
-                # improves performance. When using PyTorch AMP, it will not degrade
-                # the model performance.
-                zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
-
 
 class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     """Optimizer and gradient sharded training provided by FairScale with Spawn."""
+
+    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
+
+    def __init__(
+        self,
+        accelerator: Optional[Accelerator] = None,
+        parallel_devices: Optional[List[torch.device]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[Precision] = None,
+        process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(
+            accelerator=accelerator,
+            parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
+            checkpoint_io=checkpoint_io,
+            precision_plugin=precision_plugin,
+            process_group_backen=process_group_backend,
+            timeout=timeout,
+            **kwargs,
+        )
+        super().__init__()
+        if "reduce_buffer_size" not in self._ddp_kwargs:
+            # For multi-node training, enabling bucketing will improve performance.
+            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
@@ -135,7 +149,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = self._reinit_optimizers_with_oss(optimizers)
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
@@ -174,3 +188,20 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
                 optimizers[x] = zero_optimizer
                 del optimizer
         return optimizers
+
+
+def _reinit_optimizers_with_oss(
+    optimizers: List[Optimizer], precision_plugin: Precision, num_nodes: int
+) -> List["OSS"]:
+    for x, optimizer in enumerate(optimizers):
+        if not isinstance(optimizer, OSS):
+            optim_class = type(optimizer)
+            zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
+            is_fp16 = precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
+            # For multi-node training, compressing the model shards in fp16 before broadcasting
+            # improves performance. When using PyTorch AMP, it will not degrade
+            # the model performance.
+            zero_optimizer.broadcast_fp16 = is_fp16 and num_nodes > 1
+            optimizers[x] = zero_optimizer
+            del optimizer
+    return optimizers
