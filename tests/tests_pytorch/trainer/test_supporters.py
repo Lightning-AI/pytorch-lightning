@@ -314,8 +314,8 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("use_fault_tolerant", [False, True])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
 def test_combined_data_loader_validation_test(

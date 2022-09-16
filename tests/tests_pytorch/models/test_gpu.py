@@ -121,8 +121,8 @@ def test_root_gpu_property_0_raising(mocked_device_count_0, devices, expected_ro
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
 def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit

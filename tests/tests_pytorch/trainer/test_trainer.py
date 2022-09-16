@@ -1258,8 +1258,8 @@ def test_trainer_subclassing():
     "trainer_params",
     [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
 )
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_trainer_omegaconf(_, __, trainer_params):
     config = OmegaConf.create(trainer_params)
     Trainer(**config)

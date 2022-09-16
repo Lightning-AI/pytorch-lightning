@@ -42,7 +42,7 @@ def determine_root_gpu_device(*args: Any, **kwargs: Any) -> Any:
 def is_cuda_available() -> bool:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.is_cuda_available` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. Please use `lightning_lite.utilities.device_parser.is_cuda_available` instead."
+        " be removed in v1.10.0. Please use `lightning_lite.accelerators.cuda.is_cuda_available` instead."
     )
     return new_is_cuda_available()
 
@@ -50,7 +50,7 @@ def is_cuda_available() -> bool:
 def num_cuda_devices() -> int:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.num_cuda_devices` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. Please use `lightning_lite.utilities.device_parser.num_cuda_devices` instead."
+        " be removed in v1.10.0. Please use `lightning_lite.accelerators.cuda.num_cuda_devices` instead."
     )
     return new_num_cuda_devices()
 
