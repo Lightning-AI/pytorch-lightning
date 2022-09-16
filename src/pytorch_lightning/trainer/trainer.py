@@ -728,7 +728,7 @@ class Trainer(
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None  # type: ignore
+            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None  # type: ignore[arg-type]
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
 
@@ -972,7 +972,7 @@ class Trainer(
         self.state.status = TrainerStatus.RUNNING
         self.predicting = True
 
-        self.predict_loop.return_predictions = return_predictions  # type: ignore
+        self.predict_loop.return_predictions = return_predictions  # type: ignore[assignment]
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
@@ -1438,7 +1438,7 @@ class Trainer(
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
                 return None
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))  # type: ignore
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))  # type: ignore[arg-type]
 
         if not ckpt_path:
             raise MisconfigurationException(
