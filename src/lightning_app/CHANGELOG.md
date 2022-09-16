@@ -22,6 +22,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Improve Lightning App connect logic by disconnecting automatically ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
 
 
+- Improved the error messsage when the `LightningWork` is missing the `run` method ([#14759](https://github.com/Lightning-AI/lightning/pull/14759))
+
+
+
 ### Fixed
 
 - Making threadpool non default from LightningCloud client  ([#14757](https://github.com/Lightning-AI/lightning/pull/14757))
