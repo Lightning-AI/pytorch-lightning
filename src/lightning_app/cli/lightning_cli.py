@@ -153,7 +153,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
             raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
 
     log_reader = _app_logs_reader(
-        client=client,
+        logs_api_client=client,
         project_id=project.project_id,
         app_id=apps[app_name].id,
         component_names=components,
