@@ -54,11 +54,11 @@ class _LiteOptimizer:
     def state_dict(self) -> Dict[str, Tensor]:
         return self._strategy.get_optimizer_state(self.optimizer)
 
-    def step(self, closure: Optional[Callable] = None, module: Optional["_LiteModule"] = None) -> Any:
+    def step(self, closure: Optional[Callable] = None) -> Any:
         kwargs = dict(closure=closure) if closure is not None else {}
         return self._strategy.optimizer_step(
             self.optimizer,
-            model=(module if module is not None else getattr(self._strategy, "model", None)),
+            model=getattr(self._strategy, "model", None),
             **kwargs,
         )
 
