@@ -25,7 +25,7 @@ from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Literal, Optional, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -36,6 +36,7 @@ from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
