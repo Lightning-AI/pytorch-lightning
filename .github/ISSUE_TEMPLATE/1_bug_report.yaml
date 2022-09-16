@@ -85,6 +85,13 @@ body:
         ```
     validations:
       required: true
+      
+  - type: markdown
+    attributes:
+      value: >
+        TIP:
+
+        Use this [script to gather](https://github.com/Lightning-AI/lightning/blob/master/requirements/collect_env_details.py) the **Important info**. 
 
   - type: textarea
     attributes:
