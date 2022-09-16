@@ -5,17 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2022-MM-DD
-
-### Added
-
--
-
+## [0.6.1] - 2022-09-16
 
 ### Changed
 
 - Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
-- LightningCloud client calls to use key word arguments instead of positional arguments ([#14685](https://github.com/Lightning-AI/lightning/pull/14685)
+- LightningCloud client calls to use key word arguments instead of positional arguments ([#14685](https://github.com/Lightning-AI/lightning/pull/14685))
 
 ### Fixed
 
@@ -28,20 +23,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
 
 
-### Deprecated
-
--
-
-
-### Removed
-
--
-
-
 ## [0.6.0] - 2022-08-23
 
 ### Added
-
 
 - Introduce lightning connect ([#14452](https://github.com/Lightning-AI/lightning/pull/14452))
 - Adds `PanelFrontend` to easily create complex UI in Python ([#13531](https://github.com/Lightning-AI/lightning/pull/13531))
