@@ -67,8 +67,7 @@ jobs:
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
-        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/torch_stable.html
-        pip install -r requirements/pytorch/strategies.txt
+        pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --find-links https://download.pytorch.org/whl/torch_stable.html
         # set a per-test timeout of 2.5 minutes to fail sooner; this aids with hanging tests
         pip install pytest-timeout
         pip list
