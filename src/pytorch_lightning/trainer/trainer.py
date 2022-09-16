@@ -25,7 +25,7 @@ from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Literal, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -642,10 +642,10 @@ class Trainer(
             else:
                 return trainer_fn(*args, **kwargs)
 
-        except _TunerExitException as exception:
-            self.state.status = TrainerStatus.FINISHED
-            self._call_callback_hooks("on_exception", exception)
+        except _TunerExitException:
+            self._call_teardown_hook()
             self._teardown()
+            self.state.status = TrainerStatus.FINISHED
             self.state.stage = None
 
         # TODO(awaelchli): Unify both exceptions below, where `KeyboardError` doesn't re-raise
@@ -1017,7 +1017,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        method: str = "fit",
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
     ) -> _TunerResult:
         r"""
         Runs routines to tune hyperparameters before training.

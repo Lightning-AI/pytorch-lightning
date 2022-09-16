@@ -266,12 +266,12 @@ def _adjust_batch_size(
     if desc:
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-    # TODO improve this for multi eval dataloaders
     if trainer.state.fn == "fit":
         if trainer.train_dataloader is None:
             trainer.reset_train_dataloader()
 
         assert trainer.train_dataloader is not None
+        # TODO: should we check val_dataloaders here too?
         if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
             new_size = min(new_size, len(trainer.train_dataloader.dataset))
     else:
@@ -279,10 +279,11 @@ def _adjust_batch_size(
         assert stage is not None
         dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
         if dataloaders is None:
-            getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")()
+            _reset_dataloaders(trainer, model)
 
         dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
         assert dataloaders is not None
+        # TODO: should we consider all the eval dataloaders here?
         if not _is_valid_batch_size(new_size, dataloaders[0], trainer):
             new_size = min(new_size, len(dataloaders[0].dataset))
 
@@ -305,7 +306,8 @@ def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -
     else:
         stage = trainer.state.stage
         assert stage is not None
-        getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")(pl_module)
+        reset_fn = getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")
+        reset_fn(pl_module)
 
 
 def _try_loop_run(trainer: "pl.Trainer", params) -> None:

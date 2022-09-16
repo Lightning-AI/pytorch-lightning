@@ -391,7 +391,7 @@ def test_invalid_method_in_tuner():
     trainer = Trainer(auto_scale_batch_size=True)
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="method .* is invalid."):
+    with pytest.raises(ValueError, match="method .* is invalid."):
         trainer.tune(model, method="prediction")
 
 

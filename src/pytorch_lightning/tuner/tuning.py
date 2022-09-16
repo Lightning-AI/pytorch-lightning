@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 from typing_extensions import NotRequired, TypedDict
 
@@ -49,7 +49,7 @@ class Tuner:
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        method: str = "fit",
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
     ) -> _TunerResult:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
@@ -118,7 +118,7 @@ class Tuner:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
-        method: str = "fit",
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
         mode: str = "power",
         steps_per_trial: int = 3,
         init_val: int = 2,
@@ -167,7 +167,7 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
-        # TODO: TrainerFn.TUNING since we are now calling fit/validate/test/predict methods directly
+        # TODO: Remove TrainerFn.TUNING since we are now calling fit/validate/test/predict methods directly
         self.trainer.state.fn = TrainerFn.TUNING
         self.tuning = True
 
@@ -270,11 +270,11 @@ def _check_tuner_configuration(
     train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
     val_dataloaders: Optional[EVAL_DATALOADERS] = None,
     dataloaders: Optional[EVAL_DATALOADERS] = None,
-    method: str = "fit",
+    method: Literal["fit", "validate", "test", "predict"] = "fit",
 ) -> None:
     supported_methods = ("fit", "validate", "test", "predict")
     if method not in supported_methods:
-        raise MisconfigurationException(f"method {method!r} is invalid. Should be one of {supported_methods}.")
+        raise ValueError(f"method {method!r} is invalid. Should be one of {supported_methods}.")
 
     if method == "fit":
         if dataloaders is not None:
