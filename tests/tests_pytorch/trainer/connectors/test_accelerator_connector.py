@@ -481,7 +481,7 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 # @mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 # @mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", ["ddp"])
+@pytest.mark.parametrize("strategy", [DDPStrategy()])
 def test_strategy_choice_ddp_slurm(strategy, job_name, expected_env):
     with mock.patch.dict(
         os.environ,
