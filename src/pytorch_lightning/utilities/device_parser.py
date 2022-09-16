@@ -11,37 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Union
+from typing import Any
 
+from lightning_lite.accelerators.cpu import parse_cpu_cores as new_parse_cpu_cores
+from lightning_lite.accelerators.cuda import is_cuda_available as new_is_cuda_available
+from lightning_lite.accelerators.cuda import num_cuda_devices as new_num_cuda_devices
+from lightning_lite.accelerators.tpu import parse_tpu_cores as new_parse_tpu_cores
 from lightning_lite.utilities.device_parser import determine_root_gpu_device as new_determine_root_gpu_device
-from lightning_lite.utilities.device_parser import is_cuda_available as new_is_cuda_available
-from lightning_lite.utilities.device_parser import num_cuda_devices as new_num_cuda_devices
-from lightning_lite.utilities.device_parser import parse_cpu_cores as new_parse_cpu_cores
 from lightning_lite.utilities.device_parser import parse_gpu_ids as new_parse_gpu_ids
-from lightning_lite.utilities.device_parser import parse_tpu_cores as new_parse_tpu_cores
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.accelerators.hpu import parse_hpus as new_parse_hpus
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
-def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
-    """
-    Parses the hpus given in the format as accepted by the
-    :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
-
-    Args:
-        devices: An integer that indicates the number of Gaudi devices to be used
-
-    Returns:
-        Either an integer or ``None`` if no devices were requested
-
-    Raises:
-        MisconfigurationException:
-            If devices aren't of type `int` or `str`
-    """
-    if devices is not None and not isinstance(devices, (int, str)):
-        raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
-
-    return int(devices) if isinstance(devices, str) else devices
+def parse_hpus(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.device_parser.parse_hpus` has been deprecated in v1.8.0 and will"
+        " be removed in v1.10.0. Please use `pytorch_lightning.accelerators.hpu.parse_hpus` instead."
+    )
+    return new_parse_hpus(*args, **kwargs)
 
 
 def determine_root_gpu_device(*args: Any, **kwargs: Any) -> Any:

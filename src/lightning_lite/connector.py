@@ -53,7 +53,8 @@ from lightning_lite.strategies import (
     XLAStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from lightning_lite.utilities import _StrategyType, device_parser, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from lightning_lite.utilities import _StrategyType, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from lightning_lite.utilities.device_parser import determine_root_gpu_device
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
 
 _PLUGIN = Union[Strategy, Precision, ClusterEnvironment, CheckpointIO]
@@ -438,7 +439,7 @@ class _Connector:
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
-                device = device_parser.determine_root_gpu_device(self._parallel_devices)
+                device = determine_root_gpu_device(self._parallel_devices)
             else:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
