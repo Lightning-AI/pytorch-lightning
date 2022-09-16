@@ -22,6 +22,8 @@ from typing import List
 import pytest
 import torch.distributed
 
+import lightning_lite
+import pytorch_lightning
 from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.imports import _IS_WINDOWS
@@ -116,6 +118,31 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
+
+
+def mock_cuda_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_0(monkeypatch):
+    mock_cuda_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_1(monkeypatch):
+    mock_cuda_count(monkeypatch, 1)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_2(monkeypatch):
+    mock_cuda_count(monkeypatch, 2)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_4(monkeypatch):
+    mock_cuda_count(monkeypatch, 4)
 
 
 @pytest.fixture

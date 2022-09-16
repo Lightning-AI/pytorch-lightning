@@ -14,12 +14,12 @@
 import pytest
 import torch
 
-import lightning_lite
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests_pytorch.conftest import mock_cuda_count
 
 
 def test_wrong_train_setting(tmpdir):
@@ -141,7 +141,7 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
     """Test that an exception is raised when overriding batch_transfer_hooks."""
     if trainer_kwargs.get("accelerator") == "gpu":
         match_pattern = rf"Overriding `{hook}` is not .* in DP mode."
-        monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", lambda: 2)
+        mock_cuda_count(monkeypatch, 2)
     elif trainer_kwargs.get("accelerator") == "ipu":
         match_pattern = rf"Overriding `{hook}` is not .* with IPUs"
         monkeypatch.setattr(pl.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)

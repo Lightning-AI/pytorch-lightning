@@ -84,8 +84,7 @@ def test_single_gpu_model(tmpdir, devices):
         ("-1", None, "ddp"),
     ],
 )
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
-def test_root_gpu_property_0_raising(_, devices, expected_root_gpu, strategy):
+def test_root_gpu_property_0_raising(cuda_count_0, devices, expected_root_gpu, strategy):
     with pytest.raises(MisconfigurationException):
         Trainer(accelerator="gpu", devices=devices, strategy=strategy)
 
@@ -102,9 +101,8 @@ def test_root_gpu_property_0_raising(_, devices, expected_root_gpu, strategy):
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
-def test_torchelastic_gpu_parsing(_, gpus):
+def test_torchelastic_gpu_parsing(cuda_count_1, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):

@@ -525,8 +525,7 @@ def test_trainer_config_device_ids():
         pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
     ],
 )
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=16)
-def test_root_gpu_property(_, gpus, expected_root_gpu, strategy):
+def test_root_gpu_property(cuda_count_4, gpus, expected_root_gpu, strategy):
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -542,8 +541,7 @@ def test_root_gpu_property(_, gpus, expected_root_gpu, strategy):
         pytest.param(0, None, "ddp", id="None is None"),
     ],
 )
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
-def test_root_gpu_property_0_passing(_, gpus, expected_root_gpu, strategy):
+def test_root_gpu_property_0_passing(cuda_count_0, gpus, expected_root_gpu, strategy):
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -557,13 +555,12 @@ def test_root_gpu_property_0_passing(_, gpus, expected_root_gpu, strategy):
         pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
         pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
         pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
-        pytest.param(-1, 16, "ddp", id="-1 - use all gpus"),
-        pytest.param("-1", 16, "ddp", id="'-1' - use all gpus"),
+        pytest.param(-1, 4, "ddp", id="-1 - use all gpus"),
+        pytest.param("-1", 4, "ddp", id="'-1' - use all gpus"),
         pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
     ],
 )
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=16)
-def test_trainer_gpu_parse(_, gpus, expected_num_gpus, strategy):
+def test_trainer_gpu_parse(cuda_count_4, gpus, expected_num_gpus, strategy):
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -578,8 +575,7 @@ def test_trainer_gpu_parse(_, gpus, expected_num_gpus, strategy):
         pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
     ],
 )
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
-def test_trainer_num_gpu_0(_, gpus, expected_num_gpus, strategy):
+def test_trainer_num_gpu_0(cuda_count_0, gpus, expected_num_gpus, strategy):
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -683,8 +679,7 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
         {"accelerator": "gpu", "devices": "0,"},
     ],
 )
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=4)
-def test_trainer_gpus(_, trainer_kwargs):
+def test_trainer_gpus(cuda_count_4, trainer_kwargs):
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match=(
