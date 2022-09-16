@@ -499,7 +499,7 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_te(_, cuda_count_2):
+def test_strategy_choice_ddp_te(_, __, cuda_count_2):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
