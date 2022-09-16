@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import ANY, Mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -222,10 +222,12 @@ def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     iterator = iter(lite_dataloader)
 
     batch0 = next(iterator)
-    assert torch.equal(batch0, torch.tensor([0, 1], device=dest_device))
+    # TODO: This should be torch.equal, but not supported on MPS at this time (torch 1.12)
+    assert torch.allclose(batch0, torch.tensor([0, 1], device=dest_device))
 
     batch1 = next(iterator)
-    assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
+    # TODO: This should be torch.equal, but not supported on MPS at this time (torch 1.12)
+    assert torch.allclose(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
 def test_lite_optimizer_wraps():
@@ -243,7 +245,7 @@ def test_lite_optimizer_state_dict():
     strategy = Mock()
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.state_dict()
-    strategy.optimizer_state.assert_called_with(optimizer)
+    strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
 def test_lite_optimizer_steps():
@@ -255,4 +257,12 @@ def test_lite_optimizer_steps():
     step_output = lite_optimizer.step()
     assert step_output == 123
     strategy.optimizer_step.assert_called_once()
-    strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)
+    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model)
+
+    strategy.optimizer_step.reset_mock()
+
+    # with closure as input
+    closure = Mock()
+    lite_optimizer.step(closure=closure)
+    strategy.optimizer_step.assert_called_once()
+    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model, closure=closure)
