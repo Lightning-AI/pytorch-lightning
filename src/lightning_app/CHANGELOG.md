@@ -52,9 +52,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
 
 
-- Resolved a bug where the state change detection using `DeepDiff` won't worked with `Path`, `Drive` objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
-
-
 - Fixed an issue where custom property setters were not being used `LightningWork` class. ([#14259](https://github.com/Lightning-AI/lightning/pull/14259))
 
 
