@@ -88,8 +88,14 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect() -> bool:
-        """Returns ``True`` if the current process was launched on a SLURM cluster."""
-        return "SLURM_NTASKS" in os.environ
+        """Returns ``True`` if the current process was launched on a SLURM cluster.
+
+        It is possible to use the SLURM scheduler to request resources and then launch processes manually using a
+        different environment. For this, the user can set the job name in SLURM to 'bash' (``SLURM_JOB_NAME=bash``).
+        This will then avoid the detection of ``SLURMEnvironment`` and another environment can be detected
+        automatically.
+        """
+        return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
 
     @staticmethod
     def job_name() -> Optional[str]:
