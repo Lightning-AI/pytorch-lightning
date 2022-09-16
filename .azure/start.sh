@@ -5,8 +5,14 @@
 
 set -e
 
-AZP_AGENT_NAME=$1
-printf $AZP_AGENT_NAME
+# export all args as env variables
+for var in "$@"
+do
+    echo "$var"
+    eval "export $var"
+done
+
+printenv
 
 if [ -z "$AZP_URL" ]; then
   echo 1>&2 "error: missing AZP_URL environment variable"
