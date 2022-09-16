@@ -17,7 +17,7 @@ from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 def test_lightning_work_run_method_required():
     """Test that a helpful exception is raised when the user did not implement the `LightningWork.run()` method."""
 
-    with pytest.raises(NotImplementedError, match=escape("The work `LightningWork` is missing the `run()` method")):
+    with pytest.raises(TypeError, match=escape("The work `LightningWork` is missing the `run()` method")):
         LightningWork()
 
     class WorkWithoutRun(LightningWork):
@@ -25,7 +25,7 @@ def test_lightning_work_run_method_required():
             super().__init__()
             self.started = False
 
-    with pytest.raises(NotImplementedError, match=escape("The work `WorkWithoutRun` is missing the `run()` method")):
+    with pytest.raises(TypeError, match=escape("The work `WorkWithoutRun` is missing the `run()` method")):
         WorkWithoutRun()
 
     class WorkWithRun(WorkWithoutRun):

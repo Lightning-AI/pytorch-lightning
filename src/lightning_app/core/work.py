@@ -563,7 +563,7 @@ class LightningWork:
 
     def _check_run_is_implemented(self) -> None:
         if not is_overridden("run", instance=self, parent=LightningWork):
-            raise NotImplementedError(
+            raise TypeError(
                 f"The work `{self.__class__.__name__}` is missing the `run()` method. This is required. Implement it"
                 " first and then call it in your Flow."
             )
