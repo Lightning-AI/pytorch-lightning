@@ -21,47 +21,40 @@ def test_lightning_work_run_method_required():
         LightningWork()
 
     class WorkWithoutRun(LightningWork):
-        pass
-
-    with pytest.raises(NotImplementedError, match=escape("The work `WorkWithoutRun` is missing the `run()` method")):
-        WorkWithoutRun()
-
-    class WorkWithRun(LightningWork):
-        def run(self):
-            pass
-
-    WorkWithRun()  # no error
-
-
-def test_simple_lightning_work():
-    class Work_A(LightningWork):
         def __init__(self):
             super().__init__()
             self.started = False
 
-    with pytest.raises(TypeError, match="Work_A"):
-        Work_A()
+    with pytest.raises(NotImplementedError, match=escape("The work `WorkWithoutRun` is missing the `run()` method")):
+        WorkWithoutRun()
 
-    class Work_B(Work_A):
+    class WorkWithRun(WorkWithoutRun):
         def run(self, *args, **kwargs):
             self.started = True
 
-    work_b = Work_B()
-    work_b.run()
-    assert work_b.started
+    work = WorkWithRun()
+    work.run()
+    assert work.started
 
-    class Work_C(LightningWork):
+
+def test_lightning_work_no_children_allowed():
+    """Test that a LightningWork can't have any children (work or flow)."""
+
+    class ChildWork(EmptyWork):
+        pass
+
+    class ParentWork(LightningWork):
         def __init__(self):
             super().__init__()
-            self.work_b = Work_B()
+            self.work_b = ChildWork()
 
         def run(self, *args, **kwargs):
             pass
 
     with pytest.raises(LightningWorkException, match="isn't allowed to take any children such as"):
-        Work_C()
+        ParentWork()
 
-    class Work_C(LightningWork):
+    class ParentWork(LightningWork):
         def __init__(self):
             super().__init__()
             self.flow = LightningFlow()
@@ -70,7 +63,7 @@ def test_simple_lightning_work():
             pass
 
     with pytest.raises(LightningWorkException, match="LightningFlow"):
-        Work_C()
+        ParentWork()
 
 
 def test_forgot_to_call_init():
