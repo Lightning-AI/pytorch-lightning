@@ -478,11 +478,14 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
 
-# @mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
-# @mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
+@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
+@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
-@pytest.mark.parametrize("strategy", [DDPStrategy()])
-def test_strategy_choice_ddp_slurm(strategy, job_name, expected_env):
+@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
+def test_strategy_choice_ddp_slurm(_, __, strategy, job_name, expected_env):
+    if not isinstance(strategy, str):
+        strategy = strategy()
+
     with mock.patch.dict(
         os.environ,
         {
@@ -494,8 +497,8 @@ def test_strategy_choice_ddp_slurm(strategy, job_name, expected_env):
             "SLURM_LOCALID": "1",
         },
     ):
-        trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cpu", devices=2)
-        # assert isinstance(trainer.accelerator, CUDAAccelerator)
+        trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cuda", devices=2)
+        assert isinstance(trainer.accelerator, CUDAAccelerator)
         assert isinstance(trainer.strategy, DDPStrategy)
         assert isinstance(trainer.strategy.cluster_environment, expected_env)
 
