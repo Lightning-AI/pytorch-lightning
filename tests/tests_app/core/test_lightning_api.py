@@ -26,7 +26,7 @@ from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.storage.path import shared_storage_path
-from lightning_app.testing.helpers import MockQueue
+from lightning_app.testing.helpers import MockQueue, RunIf
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
@@ -430,6 +430,7 @@ def target():
     MultiProcessRuntime(app).dispatch()
 
 
+@RunIf(skip_linux=True)
 def test_configure_api_and_upload_files():
 
     process = Process(target=target)
@@ -449,11 +450,11 @@ def test_configure_api_and_upload_files():
     assert response.json() == {"name": "hello", "counter": 1}
 
     with open(__file__, "rb") as f:
+        drive = Drive("lit://uploaded_files", component_name="dummy")
         response = requests.put(
             f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/example.txt", files={"uploaded_file": f}
         )
         assert response.json() == "Successfully uploaded 'example.txt' to the Drive"
-        drive = Drive("lit://uploaded_files", component_name="dummy")
         assert drive.list() == ["example.txt"]
         example_path = os.path.join(
             shared_storage_path(), "artifacts", "drive", "uploaded_files", "file_server", "example.txt"

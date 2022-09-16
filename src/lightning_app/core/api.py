@@ -237,25 +237,25 @@ async def post_state(
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")
-async def upload_file(filename: Optional[str] = None, uploaded_file: UploadFile = File(...)):
-    try:
-        filename = filename if filename else uploaded_file.filename
-        with TemporaryDirectory() as tmp:
-            drive = Drive(
-                "lit://uploaded_files",
-                component_name="file_server",
-                allow_duplicates=True,
-                root_folder=tmp,
-            )
-            tmp_file = os.path.join(tmp, filename)
+async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
+    with TemporaryDirectory() as tmp:
+        drive = Drive(
+            "lit://uploaded_files",
+            component_name="file_server",
+            allow_duplicates=True,
+            root_folder=tmp,
+        )
+        tmp_file = os.path.join(tmp, filename)
 
-            with open(tmp_file, "wb") as f:
-                while content := await uploaded_file.read(10240):
-                    f.write(content)
+        with open(tmp_file, "wb") as f:
+            done = False
+            while not done:
+                # Note: The 8192 number doesn't have a strong reason.
+                content = await uploaded_file.read(8192)
+                f.write(content)
+                done = content == b""
 
-            drive.put(filename)
-    finally:
-        uploaded_file.file.close()
+        drive.put(filename)
     return f"Successfully uploaded '{filename}' to the Drive"
 
 
