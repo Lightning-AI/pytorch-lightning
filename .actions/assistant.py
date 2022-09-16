@@ -122,8 +122,8 @@ class AssistantCLI:
         url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
         data = json.load(urlopen(Request(url)))
         if not version:
-            versions = list(data["releases"].keys())
-            version = sorted(versions, key=LooseVersion)[-1]
+            pypi_vers = pypi_versions(PACKAGE_MAPPING[package])
+            version = pypi_vers[-1]
         releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
         assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
         release = releases[0]
