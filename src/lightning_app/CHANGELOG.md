@@ -5,43 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2022-MM-DD
-
-### Added
-
--
-
+## [0.6.1] - 2022-09-16
 
 ### Changed
 
 - Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
-- LightningCloud client calls to use key word arguments instead of positional arguments ([#14685](https://github.com/Lightning-AI/lightning/pull/14685)
+- LightningCloud client calls to use key word arguments instead of positional arguments ([#14685](https://github.com/Lightning-AI/lightning/pull/14685))
 
 ### Fixed
 
 - Resolved a bug where the state change detection using DeepDiff won't worked with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
 - Resolved a bug where the wrong client was passed to collect cloud logs ([#14684](https://github.com/Lightning-AI/lightning/pull/14684))
 - Resolved the memory leak issue with Lightning Cloud package and bumped the requirements to use the latest version ([#14697](https://github.com/Lightning-AI/lightning/pull/14697))
-- Unification of app template: moved `app.py` to root dir for `lightning init app <app_name>` template ([#13853](https://github.com/Lightning-AI/lightning/pull/13853))
 - Fixing 5000 log line limitation for Lightning AI BYOC cluster logs ([#14458](https://github.com/Lightning-AI/lightning/pull/14458))
 - Fixed a bug where the uploaded command file wasn't properly parsed ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
 - Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
 
 
-### Deprecated
-
--
-
-
-### Removed
-
--
-
-
 ## [0.6.0] - 2022-08-23
 
 ### Added
-
 
 - Introduce lightning connect ([#14452](https://github.com/Lightning-AI/lightning/pull/14452))
 - Adds `PanelFrontend` to easily create complex UI in Python ([#13531](https://github.com/Lightning-AI/lightning/pull/13531))
