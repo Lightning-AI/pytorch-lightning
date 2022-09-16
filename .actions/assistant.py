@@ -4,7 +4,7 @@ import json
 import os
 import re
 import shutil
-from distutils.version import LooseVersion, StrictVersion
+from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from pathlib import Path
