@@ -22,7 +22,6 @@ import pytest
 import torch
 
 import pytorch_lightning
-from lightning_lite.utilities import device_parser
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
@@ -572,9 +571,8 @@ def test_trainer_config_device_ids():
         pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
     ],
 )
-def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=16)
+def test_root_gpu_property(_, gpus, expected_root_gpu, strategy):
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -590,8 +588,8 @@ def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
         pytest.param(0, None, "ddp", id="None is None"),
     ],
 )
-def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strategy):
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 0)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
+def test_root_gpu_property_0_passing(_, gpus, expected_root_gpu, strategy):
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -610,9 +608,8 @@ def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strat
         pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
     ],
 )
-def test_trainer_gpu_parse(monkeypatch, gpus, expected_num_gpus, strategy):
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=16)
+def test_trainer_gpu_parse(_, gpus, expected_num_gpus, strategy):
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -627,8 +624,8 @@ def test_trainer_gpu_parse(monkeypatch, gpus, expected_num_gpus, strategy):
         pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
     ],
 )
-def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 0)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
+def test_trainer_num_gpu_0(_, gpus, expected_num_gpus, strategy):
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -732,9 +729,8 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
         {"accelerator": "gpu", "devices": "0,"},
     ],
 )
-def test_trainer_gpus(monkeypatch, trainer_kwargs):
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=4)
+def test_trainer_gpus(_, trainer_kwargs):
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match=(

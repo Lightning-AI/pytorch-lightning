@@ -263,16 +263,13 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
     ],
 )
 @pytest.mark.parametrize("devices", [1, 2])
-@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_accelerator_choice_multi_node_gpu(
-    mock_is_available, mock_device_count, tmpdir, strategy, strategy_class, devices
-):
+def test_accelerator_choice_multi_node_gpu(_, tmpdir, strategy, strategy_class, devices):
     trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@mock.patch("pytorch_lightning.accelerators.cuda.device_parser.num_cuda_devices", return_value=0)
+@mock.patch("pytorch_lightning.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_accelerator_cpu(_):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)

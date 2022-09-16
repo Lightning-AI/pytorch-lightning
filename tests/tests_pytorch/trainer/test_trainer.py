@@ -33,9 +33,9 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
+import lightning_lite
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -2107,8 +2107,7 @@ def test_detect_anomaly_nan(tmpdir):
 )
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
     if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: trainer_kwargs["devices"])
+        monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", trainer_kwargs["devices"])
 
     trainer = Trainer(**trainer_kwargs)
 
@@ -2174,8 +2173,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
     if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
+        monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", lambda: 4)
     elif trainer_kwargs.get("accelerator") == "ipu":
         monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
         monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
