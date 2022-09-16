@@ -1,7 +1,6 @@
 import datetime
 import glob
 import json
-import logging
 import os
 import re
 import shutil
@@ -17,7 +16,6 @@ from urllib.request import Request, urlopen
 
 import fire
 import pkg_resources
-from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
     "pytorch": (
