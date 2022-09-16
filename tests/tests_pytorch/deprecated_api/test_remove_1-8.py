@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
-import os
 import time
 from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
-import torch
 
 import pytorch_lightning
 from lightning_lite.utilities import device_parser
@@ -29,7 +27,6 @@ from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
-from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
@@ -507,49 +504,6 @@ def test_v1_8_0_lightning_module_use_amp():
         _ = model.use_amp
     with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
         model.use_amp = False
-
-
-@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
-def test_v1_8_0_torch_distributed_backend_env():
-    from lightning_lite.utilities.distributed import _get_process_group_backend_from_env
-
-    with pytest.deprecated_call(
-        match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
-        " was deprecated in v1.6 and will be removed in v1.8."
-    ):
-        _get_process_group_backend_from_env()
-
-
-def test_parallel_strategy_torch_distributed_backend():
-    class CustomParallel(ParallelStrategy):
-        @property
-        def root_device(self) -> torch.device:
-            return torch.device("cpu")
-
-        def model_to_device(self):
-            pass
-
-        @property
-        def is_global_zero(self):
-            return True
-
-        def broadcast(self, obj):
-            return obj
-
-        def reduce(self, tensor):
-            return tensor
-
-        def barrier(self):
-            return
-
-        def all_gather(self, tensor):
-            return tensor
-
-    strategy = CustomParallel()
-    with pytest.deprecated_call(
-        match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
-    ):
-        strategy.torch_distributed_backend
 
 
 def test_trainer_config_device_ids():
