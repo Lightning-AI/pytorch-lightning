@@ -49,8 +49,7 @@ subprojects:
       - "make-html (pytorch)"
       - "mypy"
       - "pytorch-lightning (GPUs)"
-      # TODO: the HPU server is down
-      #- "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"

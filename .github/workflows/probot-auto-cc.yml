@@ -3,7 +3,10 @@ name: Probot
 on:
   issues:
     types: [labeled]
-  pull_request_target:
+  # should use `pull_request_target` but it's blocked by
+  # https://github.com/probot/probot/issues/1635
+  # so this job will not run on forks until the above is fixed
+  pull_request:
     types: [labeled, ready_for_review]
 
 jobs:

@@ -3,7 +3,6 @@ import os
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_deprecation
 from torch import Tensor
 from torch.nn import functional as F
 from torch.utils.data import Dataset, DistributedSampler, Sampler
@@ -252,17 +251,6 @@ def tpu_distributed() -> bool:
 
 def get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
-
-
-def _get_process_group_backend_from_env() -> Optional[str]:
-    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
-    if torch_backend is not None:
-        rank_zero_deprecation(
-            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
-            " was deprecated in v1.6 and will be removed in v1.8."
-            " Specify `process_group_backend` directly on the strategy constructor."
-        )
-    return torch_backend
 
 
 # TODO(lite): The error messages refer to 'replace_sampler_ddp' in PL but Lite has it named 'replace_sampler'
