@@ -1,4 +1,5 @@
 from queue import Empty
+from re import escape
 from unittest.mock import Mock
 
 import pytest
@@ -11,6 +12,25 @@ from lightning_app.storage import Path
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
+
+
+def test_lightning_work_run_method_required():
+    """Test that a helpful exception is raised when the user did not implement the `LightningWork.run()` method."""
+
+    with pytest.raises(NotImplementedError, match=escape("The work `LightningWork` is missing the `run()` method")):
+        LightningWork()
+
+    class WorkWithoutRun(LightningWork):
+        pass
+
+    with pytest.raises(NotImplementedError, match=escape("The work `WorkWithoutRun` is missing the `run()` method")):
+        WorkWithoutRun()
+
+    class WorkWithRun(LightningWork):
+        def run(self):
+            pass
+
+    WorkWithRun()  # no error
 
 
 def test_simple_lightning_work():
