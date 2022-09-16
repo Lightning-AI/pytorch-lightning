@@ -133,10 +133,12 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
 
     state_dict = apply_to_collection(state_dict, torch.Tensor, lite.to_device)
     for w_pure, w_lite in zip(state_dict.values(), lite_state_dict.values()):
-        assert not torch.equal(w_pure, w_lite)
+        # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+        assert not torch.allclose(w_pure, w_lite)
 
     for w_pure, w_lite in zip(pure_state_dict.values(), lite_state_dict.values()):
-        assert torch.equal(w_pure, w_lite)
+        # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+        assert torch.allclose(w_pure, w_lite)
 
 
 def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir):
