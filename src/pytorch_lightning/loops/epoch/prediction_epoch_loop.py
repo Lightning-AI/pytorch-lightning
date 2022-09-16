@@ -2,13 +2,12 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Tuple
 
 import torch
-from deprecate import void
+from lightning_utilities.core.rank_zero import WarningCache
 
+from lightning_lite.utilities.apply_func import move_data_to_device
 from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 
@@ -63,7 +62,6 @@ class PredictionEpochLoop(Loop):
             dl_max_batches: the maximum number of batches the current loader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter, dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
         # this call requires that `self.return_predictions` is set
@@ -163,8 +161,9 @@ class PredictionEpochLoop(Loop):
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
         :class:`~pytorch_lightning.overrides.distributed.IndexBatchSamplerWrapper`."""
         # the batch_sampler is not be defined in case of CombinedDataLoaders
+        assert self.trainer.predict_dataloaders
         batch_sampler = getattr(
-            self.trainer.predict_dataloaders[dataloader_idx],  # type: ignore[has-type]
+            self.trainer.predict_dataloaders[dataloader_idx],
             "batch_sampler",
             None,
         )

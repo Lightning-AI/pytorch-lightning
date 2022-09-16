@@ -3,4 +3,4 @@
 
 torchvision>=0.10.*, <=0.13.0
 gym[classic_control]>=0.17.0, <0.24.2
-ipython[all] <=8.1.1
+ipython[all] <8.5.1

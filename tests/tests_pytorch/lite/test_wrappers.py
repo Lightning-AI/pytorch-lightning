@@ -17,7 +17,7 @@ import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from tests_pytorch.helpers.runif import RunIf
@@ -39,7 +39,7 @@ def test_lite_module_wraps():
 
 
 def test_lite_module_attribute_lookup():
-    """Test that attribute lookup passes through to the original model when possible."""
+    """Test that attribute lookup passes through to the original module when possible."""
 
     class OriginalModule(torch.nn.Module):
         def __init__(self):
@@ -67,6 +67,33 @@ def test_lite_module_attribute_lookup():
 
     with pytest.raises(AttributeError):
         _ = lite_module.not_exists
+
+
+def test_lite_module_state_dict_access():
+    """Test that state_dict access passes through to the original module."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
+
+    lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
+    state_dict = lite_module.state_dict()
+    assert set(state_dict.keys()) == {"layer.weight", "layer.bias"}
+
+    weight, bias = torch.rand(3, 2), torch.rand(3)
+    lite_module.load_state_dict({"layer.weight": weight, "layer.bias": bias})
+    assert torch.equal(lite_module.layer.weight, weight)
+    assert torch.equal(lite_module.layer.bias, bias)
 
 
 @pytest.mark.parametrize(
@@ -136,7 +163,7 @@ def test_lite_module_device_dtype_propagation(device_str, dtype):
 
     device = torch.device(device_str)
 
-    class DeviceModule(DeviceDtypeModuleMixin):
+    class DeviceModule(_DeviceDtypeModuleMixin):
         pass
 
     device_module = DeviceModule()

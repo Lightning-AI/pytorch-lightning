@@ -1,17 +1,14 @@
 import json
 import queue
-import sys
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from json import JSONDecodeError
 from threading import Thread
 from typing import Callable, Iterator, List, Optional
 
 import dateutil.parser
 from websocket import WebSocketApp
 
+from lightning_app.utilities.log_helpers import _error_callback, _OrderedLogEntry
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
-from lightning_app.utilities.network import LightningClient
 
 
 @dataclass
@@ -27,17 +24,9 @@ class _LogEventLabels:
 
 
 @dataclass
-class _LogEvent:
-    message: str
-    timestamp: datetime
+class _LogEvent(_OrderedLogEntry):
     component_name: str
     labels: _LogEventLabels
-
-    def __ge__(self, other: "_LogEvent") -> bool:
-        return self.timestamp >= other.timestamp
-
-    def __gt__(self, other: "_LogEvent") -> bool:
-        return self.timestamp > other.timestamp
 
 
 def _push_log_events_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
@@ -65,19 +54,8 @@ def _push_log_events_to_read_queue_callback(component_name: str, read_queue: que
     return callback
 
 
-def _error_callback(ws_app: WebSocketApp, error: Exception):
-    errors = {
-        KeyError: "Malformed log message, missing key",
-        JSONDecodeError: "Malformed log message",
-        TypeError: "Malformed log format",
-        ValueError: "Malformed date format",
-    }
-    print(f"Error while reading logs ({errors.get(type(error), 'Unknown')})", file=sys.stderr)
-    ws_app.close()
-
-
 def _app_logs_reader(
-    client: LightningClient,
+    logs_api_client: _LightningLogsSocketAPI,
     project_id: str,
     app_id: str,
     component_names: List[str],
@@ -86,7 +64,6 @@ def _app_logs_reader(
 ) -> Iterator[_LogEvent]:
 
     read_queue = queue.PriorityQueue()
-    logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
     # We will use a socket per component
     log_sockets = [
@@ -109,25 +86,29 @@ def _app_logs_reader(
         th.start()
 
     # Print logs from queue when log event is available
-    user_log_start = "<<< BEGIN USER_RUN_FLOW SECTION >>>"
-    start_timestamp = None
+    flow = "Your app has started. View it in your browser"
+    work = "USER_RUN_WORK"
+    start_timestamps = {}
 
     # Print logs from queue when log event is available
     try:
         while True:
-            log_event = read_queue.get(timeout=None if follow else 1.0)
-            if user_log_start in log_event.message:
-                start_timestamp = log_event.timestamp + timedelta(seconds=0.5)
+            log_event: _LogEvent = read_queue.get(timeout=None if follow else 1.0)
+            token = flow if log_event.component_name == "flow" else work
+            if token in log_event.message:
+                start_timestamps[log_event.component_name] = log_event.timestamp
 
-            if start_timestamp and log_event.timestamp > start_timestamp:
-                yield log_event
+            timestamp = start_timestamps.get(log_event.component_name, None)
+            if timestamp and log_event.timestamp >= timestamp:
+                if "launcher" not in log_event.message:
+                    yield log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.
         pass
 
     except KeyboardInterrupt:
-        # User pressed CTRL+C to exit, we sould respect that
+        # User pressed CTRL+C to exit, we should respect that
         pass
 
     finally:

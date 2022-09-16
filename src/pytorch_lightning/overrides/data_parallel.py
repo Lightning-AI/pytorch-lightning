@@ -13,14 +13,14 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any, cast, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
@@ -77,7 +77,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any) -> Any:
-            device = cast(torch.device, self.lightning_module.device)
+            device = self.lightning_module.device
             data = python_scalar_to_tensor(data, device)
             data = unsqueeze_scalar_tensor(data)
             return data

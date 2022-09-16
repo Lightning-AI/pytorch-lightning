@@ -518,7 +518,11 @@ class LightningWork(abc.ABC):
 
     @abc.abstractmethod
     def run(self, *args, **kwargs):
-        """Override to add your own logic."""
+        """Override to add your own logic.
+
+        Raises:
+            LightningPlatformException: If resource exceeds platform quotas or other constraints.
+        """
         pass
 
     def on_exception(self, exception: BaseException):
@@ -539,10 +543,6 @@ class LightningWork(abc.ABC):
         assert statuses[0]["stage"] == WorkStageStatus.PENDING
         status = {**timeout_statuses[-1], "timestamp": statuses[0]["timestamp"]}
         return WorkStatus(**status, count=len(timeout_statuses))
-
-    def load_state_dict(self, state):
-        # TODO (tchaton) Implement logic for state reloading.
-        pass
 
     def on_exit(self):
         """Override this hook to add your logic when the work is exiting."""

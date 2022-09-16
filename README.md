@@ -1,9 +1,9 @@
-### \*\* NEWS: PyTorch Lightning has been renamed Lightning! In addition to building models, you can now build research workflows and production pipelines\*\*
+### \*\* NEWS: PyTorch Lightning has been renamed Lightning! In addition to building models, you can now build lightning apps that glue together everything around the models, without the pain of infrastructure, cost management, scaling and everything else.\*\*
 
 <div align="center">
 <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
 
-**Build high-performance (PyTorch) models, research workflows, ML production pipelines.**
+**Build and train PyTorch models and connect them to the ML lifecycle using Lightning App templates, without handling DIY infrastructure, cost management, scaling, and other headaches.**
 
 ______________________________________________________________________
 

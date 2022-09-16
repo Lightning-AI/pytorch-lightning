@@ -1,65 +1,93 @@
-import logging
 import os
 import sys
-from argparse import ArgumentParser
 from pathlib import Path
 from typing import List, Tuple, Union
 
+import arrow
 import click
-import requests
 import rich
+from lightning_cloud.openapi import Externalv1LightningappInstance
 from requests.exceptions import ConnectionError
 from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.cmd_clusters import AWSClusterManager
+from lightning_app.cli.commands.app_commands import _run_app_command
+from lightning_app.cli.commands.connection import (
+    _list_app_commands,
+    _retrieve_connection_to_an_app,
+    connect,
+    disconnect,
+)
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
+from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.app_logs import _app_logs_reader
-from lightning_app.utilities.cli_helpers import (
-    _format_input_env_variables,
-    _retrieve_application_url_and_available_commands,
-)
+from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.enum import OpenAPITags
-from lightning_app.utilities.install_components import register_all_external_components
+from lightning_app.utilities.cluster_logs import _cluster_logs_reader
+from lightning_app.utilities.exceptions import LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
+from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI, _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
-def get_app_url(runtime_type: RuntimeType, *args) -> str:
+def get_app_url(runtime_type: RuntimeType, *args, need_credits: bool = False) -> str:
     if runtime_type == RuntimeType.CLOUD:
-        lightning_app = args[0]
-        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}"
+        lightning_app: Externalv1LightningappInstance = args[0]
+        action = "?action=add_credits" if need_credits else ""
+        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}{action}"
     else:
-        return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
+        return "http://127.0.0.1:7501/view"
 
 
 def main():
-    if len(sys.argv) == 1:
-        _main()
-    elif sys.argv[1] in _main.commands.keys() or sys.argv[1] == "--help":
+    # 1: Handle connection to a Lightning App.
+    if sys.argv[1] in ("connect", "disconnect"):
         _main()
     else:
-        app_command()
+        # 2: Collect the connection a Lightning App.
+        app_name, app_id = _retrieve_connection_to_an_app()
+        if app_name:
+            # 3: Handle development use case.
+            is_local_app = app_name == "localhost"
+            if sys.argv[1:3] == ["run", "app"] or sys.argv[1:3] == ["show", "logs"]:
+                _main()
+            else:
+                if is_local_app:
+                    click.echo("You are connected to the local Lightning App.")
+                else:
+                    click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+
+                if "help" in sys.argv[1]:
+                    _list_app_commands()
+                else:
+                    _run_app_command(app_name, app_id)
+        else:
+            _main()
 
 
 @click.group()
 @click.version_option(ver)
 def _main():
-    register_all_external_components()
+    pass
 
 
 @_main.group()
 def show():
     """Show given resource."""
     pass
+
+
+_main.command(connect)
+_main.command(disconnect)
 
 
 @show.command()
@@ -91,7 +119,9 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     apps = {
         app.name: app
-        for app in client.lightningapp_instance_service_list_lightningapp_instances(project.project_id).lightningapps
+        for app in client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id
+        ).lightningapps
     }
 
     if not apps:
@@ -120,12 +150,23 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     if not components:
         components = app_component_names
 
-    for component in components:
-        if component not in app_component_names:
-            raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
+    else:
+
+        def add_prefix(c: str):
+            if c == "flow":
+                return c
+            if not c.startswith("root."):
+                return "root." + c
+            return c
+
+        components = [add_prefix(c) for c in components]
+
+        for component in components:
+            if component not in app_component_names:
+                raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
 
     log_reader = _app_logs_reader(
-        client=client,
+        logs_api_client=_LightningLogsSocketAPI(client.api_client),
         project_id=project.project_id,
         app_id=apps[app_name].id,
         component_names=components,
@@ -139,6 +180,99 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
         date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
         color = colors[log_event.component_name]
         rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
+
+
+@show.group()
+def cluster():
+    """Groups cluster commands inside show."""
+    pass
+
+
+@cluster.command(name="logs")
+@click.argument("cluster_name", required=True)
+@click.option(
+    "--from",
+    "from_time",
+    default="24 hours ago",
+    help="The starting timestamp to query cluster logs from. Human-readable (e.g. '48 hours ago') or ISO 8601 "
+    "(e.g. '2022-08-23 12:34') formats.",
+    callback=_arrow_time_callback,
+)
+@click.option(
+    "--to",
+    "to_time",
+    default="0 seconds ago",
+    callback=_arrow_time_callback,
+    help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
+    "-f/--follow). The same format as --from option has.",
+)
+@click.option("--limit", default=10000, help="The max number of log lines returned.")
+@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
+def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
+    """Show cluster logs.
+
+    Example uses:
+
+        Print cluster logs:
+
+            $ lightning show cluster logs my-cluster
+
+
+        Print cluster logs and wait for new logs:
+
+            $ lightning show cluster logs my-cluster --follow
+
+
+        Print cluster logs, from 48 hours ago to now:
+
+            $ lightning show cluster logs my-cluster --from "48 hours ago"
+
+
+        Print cluster logs, 10 most recent lines:
+
+            $ lightning show cluster logs my-cluster --limit 10
+    """
+
+    client = LightningClient()
+    cluster_manager = AWSClusterManager()
+    existing_cluster_list = cluster_manager.get_clusters()
+
+    clusters = {cluster.name: cluster.id for cluster in existing_cluster_list.clusters}
+
+    if not clusters:
+        raise click.ClickException("You don't have any clusters.")
+
+    if not cluster_name:
+        raise click.ClickException(
+            f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
+        )
+
+    if cluster_name not in clusters:
+        raise click.ClickException(
+            f"The cluster '{cluster_name}' does not exist."
+            f" Please select one of the following: [{', '.join(clusters.keys())}]"
+        )
+
+    try:
+        log_reader = _cluster_logs_reader(
+            logs_api_client=_ClusterLogsSocketAPI(client.api_client),
+            cluster_id=clusters[cluster_name],
+            start=from_time.int_timestamp,
+            end=to_time.int_timestamp if not follow else None,
+            limit=limit,
+            follow=follow,
+        )
+
+        colors = {"error": "red", "warn": "yellow", "info": "green"}
+
+        for log_event in log_reader:
+            date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+            color = colors.get(log_event.labels.level, "green")
+            rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
+    except LogLinesLimitExceeded:
+        raise click.ClickException(f"Read {limit} log lines, but there may be more. Use --limit param to read more")
+    except Exception as error:
+        logger.error(f"⚡ Error while reading logs ({type(error)}), {error}", exc_info=DEBUG)
 
 
 @_main.command()
@@ -158,6 +292,7 @@ def login():
 def logout():
     """Log out of your lightning.ai account."""
     Auth().clear()
+    disconnect(logout=True)
 
 
 def _run_app(
@@ -170,6 +305,7 @@ def _run_app(
     blocking: bool,
     open_ui: bool,
     env: tuple,
+    secret: tuple,
 ):
     file = _prepare_file(file)
 
@@ -185,13 +321,20 @@ def _run_app(
                 "Caching is a property of apps running in cloud. "
                 "Using the flag --no-cache in local execution is not supported."
             )
+        if secret:
+            raise click.ClickException(
+                "Secrets can only be used for apps running in cloud. "
+                "Using the option --secret in local execution is not supported."
+            )
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
 
-    def on_before_run(*args):
+    secrets = _format_input_env_variables(secret)
+
+    def on_before_run(*args, **kwargs):
         if open_ui and not without_server:
-            click.launch(get_app_url(runtime_type, *args))
+            click.launch(get_app_url(runtime_type, *args, **kwargs))
 
     click.echo("Your Lightning App is starting. This won't take long.")
 
@@ -207,6 +350,7 @@ def _run_app(
         on_before_run=on_before_run,
         name=name,
         env_vars=env_vars,
+        secrets=secrets,
         cluster_id=cluster_id,
     )
     if runtime_type == RuntimeType.CLOUD:
@@ -222,16 +366,28 @@ def run():
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--cloud", type=bool, default=False, is_flag=True)
 @click.option(
-    "--cluster-id", type=str, default=None, help="Run Lightning App on a specific Lightning AI BYOC compute cluster"
+    "--cluster-id",
+    type=str,
+    default=None,
+    help="Run Lightning App on a specific Lightning AI BYOC compute cluster",
 )
 @click.option("--name", help="The current application name", default="", type=str)
 @click.option("--without-server", is_flag=True, default=False)
 @click.option(
-    "--no-cache", is_flag=True, default=False, help="Disable caching of packages " "installed from requirements.txt"
+    "--no-cache",
+    is_flag=True,
+    default=False,
+    help="Disable caching of packages " "installed from requirements.txt",
 )
 @click.option("--blocking", "blocking", type=bool, default=False)
-@click.option("--open-ui", type=bool, default=True, help="Decide whether to launch the app UI in a web browser")
-@click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
+@click.option(
+    "--open-ui",
+    type=bool,
+    default=True,
+    help="Decide whether to launch the app UI in a web browser",
+)
+@click.option("--env", type=str, default=[], multiple=True, help="Environment variables to be set for the app.")
+@click.option("--secret", type=str, default=[], multiple=True, help="Secret variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
     file: str,
@@ -243,63 +399,11 @@ def run_app(
     blocking: bool,
     open_ui: bool,
     env: tuple,
-    app_args: List[str],
+    secret: tuple,
+    app_args: tuple,
 ):
     """Run an app from a file."""
-    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
-
-
-def app_command():
-    """Execute a function in a running application from its name."""
-    from lightning_app.utilities.commands.base import _download_command
-
-    logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
-
-    debug_mode = bool(int(os.getenv("DEBUG", "0")))
-
-    parser = ArgumentParser()
-    parser.add_argument("--app_id", default=None, type=str, help="Optional argument to identify an application.")
-    hparams, argv = parser.parse_known_args()
-
-    # 1: Collect the url and comments from the running application
-    url, api_commands = _retrieve_application_url_and_available_commands(hparams.app_id)
-    if url is None or api_commands is None:
-        raise Exception("We couldn't find any matching running app.")
-
-    if not api_commands:
-        raise Exception("This application doesn't expose any commands yet.")
-
-    command = argv[0]
-
-    if command not in api_commands:
-        raise Exception(f"The provided command {command} isn't available in {list(api_commands)}")
-
-    # 2: Send the command from the user
-    metadata = api_commands[command]
-
-    # 3: Execute the command
-    if metadata["tag"] == OpenAPITags.APP_COMMAND:
-        # TODO: Improve what is current supported
-        kwargs = [v.replace("--", "") for v in argv[1:]]
-
-        for p in kwargs:
-            if p.split("=")[0] not in metadata["parameters"]:
-                raise Exception(f"Some arguments need to be provided. The keys are {list(metadata['parameters'])}.")
-        # TODO: Encode the parameters and validate their type.
-        query_parameters = "&".join(kwargs)
-        resp = requests.post(url + f"/command/{command}?{query_parameters}")
-        assert resp.status_code == 200, resp.json()
-    else:
-        client_command = _download_command(
-            command,
-            metadata["cls_path"],
-            metadata["cls_name"],
-            hparams.app_id,
-            debug_mode=debug_mode,
-        )
-        client_command._setup(command_name=command, app_url=url)
-        sys.argv = argv
-        client_command.run()
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
 
 
 @_main.group(hidden=True)
@@ -326,7 +430,12 @@ def install():
 
 @install.command("app")
 @click.argument("name", type=str)
-@click.option("--yes", "-y", is_flag=True, help="disables prompt to ask permission to create env and run install cmds")
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="disables prompt to ask permission to create env and run install cmds",
+)
 @click.option(
     "--version",
     "-v",
@@ -345,7 +454,7 @@ def install():
 def install_app(name, yes, version, overwrite: bool = False):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
@@ -356,7 +465,12 @@ def install_app(name, yes, version, overwrite: bool = False):
 
 @install.command("component")
 @click.argument("name", type=str)
-@click.option("--yes", "-y", is_flag=True, help="disables prompt to ask permission to create env and run install cmds")
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="disables prompt to ask permission to create env and run install cmds",
+)
 @click.option(
     "--version",
     "-v",
@@ -368,7 +482,7 @@ def install_app(name, yes, version, overwrite: bool = False):
 def install_component(name, yes, version):
     if "github.com" in name:
         if version != "latest":
-            logger.warning(
+            logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
@@ -431,7 +545,12 @@ def init_component(name):
 
 
 @init.command("react-ui")
-@click.option("--dest_dir", "-dest_dir", type=str, help="optional destination directory to create the react ui")
+@click.option(
+    "--dest_dir",
+    "-dest_dir",
+    type=str,
+    help="optional destination directory to create the react ui",
+)
 def init_react_ui(dest_dir):
     """Create a react UI to give a Lightning component a React.js web user interface (UI)"""
     cmd_react_ui_init.react_ui(dest_dir)

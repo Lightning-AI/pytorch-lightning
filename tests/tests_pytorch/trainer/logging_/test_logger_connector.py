@@ -183,12 +183,7 @@ class HookedModel(BoringModel):
     def __init__(self, not_supported):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
-        pl_module_hooks.difference_update(
-            {
-                "log",
-                "log_dict",
-            }
-        )
+        pl_module_hooks.difference_update({"log", "log_dict"})
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -236,8 +231,6 @@ def test_fx_validator_integration(tmpdir):
         "on_validation_model_eval": "You can't",
         "on_validation_model_train": "You can't",
         "lr_scheduler_step": "You can't",
-        "configure_gradient_clipping": "You can't",
-        "clip_gradients": "You can't",
         "on_save_checkpoint": "You can't",
         "on_load_checkpoint": "You can't",
         "on_exception": "You can't",
@@ -257,7 +250,7 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    with pytest.deprecated_call(match="is deprecated in"):
+    with pytest.deprecated_call(match="was deprecated in"):
         trainer.fit(model)
 
     not_supported.update(
@@ -270,7 +263,7 @@ def test_fx_validator_integration(tmpdir):
             "on_test_end": "You can't",
         }
     )
-    with pytest.deprecated_call(match="is deprecated in"):
+    with pytest.deprecated_call(match="was deprecated in"):
         trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
@@ -287,7 +280,7 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "result collection is not registered yet",
         }
     )
-    with pytest.deprecated_call(match="is deprecated in"):
+    with pytest.deprecated_call(match="was deprecated in"):
         trainer.predict(model)
 
 
