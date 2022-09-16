@@ -118,6 +118,9 @@ class TestNeptuneLogger(unittest.TestCase):
         """Tests combinations of kwargs together with `run` kwarg which makes some of other parameters unavailable
         in init."""
         with self.assertRaises(ValueError):
+            NeptuneLogger(run="some string")
+
+        with self.assertRaises(ValueError):
             NeptuneLogger(run=Run(), project="redundant project")
 
         with self.assertRaises(ValueError):

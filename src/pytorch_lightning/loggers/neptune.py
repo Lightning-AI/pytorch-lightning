@@ -38,6 +38,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 _NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
     from neptune import new as neptune
+    from neptune.new.exceptions import NeptuneOfflineModeFetchException
     from neptune.new.run import Run
 else:
     # needed for test mocks, and function signatures
@@ -254,10 +255,14 @@ class NeptuneLogger(Logger):
             self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
-        assert self._run_instance is not None
-        self._run_instance.wait()
-        self._run_short_id = self._run_instance["sys/id"].fetch()
-        self._run_name = self._run_instance["sys/name"].fetch()
+        try:
+            assert self._run_instance is not None
+            self._run_instance.wait()
+            self._run_short_id = self._run_instance["sys/id"].fetch()
+            self._run_name = self._run_instance["sys/name"].fetch()
+        except NeptuneOfflineModeFetchException:
+            self._run_short_id = "OFFLINE"
+            self._run_name = "offline-name"
 
     @property
     def _neptune_init_args(self) -> Dict:
@@ -300,6 +305,9 @@ class NeptuneLogger(Logger):
         run: Optional["Run"],
         neptune_run_kwargs: dict,
     ) -> None:
+        # check if user passed the client `Run` object
+        if run is not None and not isinstance(run, Run):
+            raise ValueError("Run parameter expected to be of type `neptune.new.Run`.")
         # check if user passed redundant neptune.init arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
