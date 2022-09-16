@@ -2,7 +2,7 @@
 
 ## Prepare the machine
 
-This is a slightly modified version of the script from 
+This is a slightly modified version of the script from
 https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/docker
 
 ```bash
