@@ -265,7 +265,7 @@ def _get_process_group_backend_from_env() -> Optional[str]:
     return torch_backend
 
 
-# TODO(lite): The error messsages refer to 'replace_sampler_ddp' in PL but Lite has it named 'replace_sampler'
+# TODO(lite): The error messages refer to 'replace_sampler_ddp' in PL but Lite has it named 'replace_sampler'
 class _DatasetSamplerWrapper(Dataset):
     """Dataset to create indexes from `Sampler` or `Iterable`"""
 
