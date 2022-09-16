@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning_lite.strategies.ddp import DDPStrategy  # noqa: F401
+from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
 from lightning_lite.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning_lite.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning_lite.strategies.fairscale import DDPShardedStrategy  # noqa: F401
+from lightning_lite.strategies.fairscale import DDPSpawnShardedStrategy  # noqa: F401
 from lightning_lite.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning_lite.strategies.registry import _call_register_strategies, _StrategyRegistry
 from lightning_lite.strategies.single_device import SingleDeviceStrategy  # noqa: F401
 from lightning_lite.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
 from lightning_lite.strategies.strategy import Strategy  # noqa: F401
+from lightning_lite.strategies.xla import XLAStrategy  # noqa: F401
 
 STRATEGY_REGISTRY = _StrategyRegistry()
 _STRATEGIES_BASE_MODULE = "lightning_lite.strategies"
