@@ -167,6 +167,7 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
+        # TODO: TrainerFn.TUNING since we are now calling fit/validate/test/predict methods directly
         self.trainer.state.fn = TrainerFn.TUNING
         self.tuning = True
 

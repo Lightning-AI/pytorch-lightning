@@ -60,7 +60,7 @@ def scale_batch_size(
     elif mode == "binsearch":
         new_size = _run_binary_scaling(trainer, model, new_size, batch_arg_name, max_trials, params)
 
-    _collect_garbage()
+    garbage_collection_cuda()
 
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
@@ -83,6 +83,7 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     if trainer.state.fn == "fit":
         loop = trainer.fit_loop
         dumped_params["max_steps"] = trainer.max_steps
+        dumped_params["limit_train_batches"] = trainer.limit_train_batches
         dumped_params["limit_val_batches"] = trainer.limit_val_batches
     else:
         stage = trainer.state.stage
@@ -104,6 +105,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
     trainer.callbacks = []
 
     if trainer.state.fn == "fit":
+        trainer.limit_train_batches = 1.0
         trainer.limit_val_batches = steps_per_trial
         trainer.fit_loop.max_steps = steps_per_trial
     else:
@@ -124,6 +126,7 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     if trainer.state.fn == "fit":
         loop = trainer.fit_loop
         loop.max_steps = params["max_steps"]
+        trainer.limit_train_batches = params["limit_train_batches"]
         trainer.limit_val_batches = params["limit_val_batches"]
     else:
         stage = trainer.state.stage
@@ -145,7 +148,7 @@ def _run_power_scaling(
     # if it was we exit, else we continue downscaling in case we haven't encountered a single optimal batch size
     any_success = False
     for _ in range(max_trials):
-        _collect_garbage()
+        garbage_collection_cuda()
 
         # reset after each try
         _reset_progress(trainer)
@@ -163,7 +166,7 @@ def _run_power_scaling(
         except RuntimeError as exception:
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
-                _collect_garbage()
+                garbage_collection_cuda()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
                 # Force the train dataloader to reset as the batch size has changed
                 _reset_dataloaders(trainer, pl_module)
@@ -187,7 +190,7 @@ def _run_binary_scaling(
     high = None
     count = 0
     while True:
-        _collect_garbage()
+        garbage_collection_cuda()
 
         # reset after each try
         _reset_progress(trainer)
@@ -218,7 +221,7 @@ def _run_binary_scaling(
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
-                _collect_garbage()
+                garbage_collection_cuda()
 
                 high = new_size
                 midval = (high + low) // 2
@@ -293,10 +296,6 @@ def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.T
 
     module = trainer.lightning_module or trainer.datamodule
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
-
-
-def _collect_garbage() -> None:
-    garbage_collection_cuda()
 
 
 def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
