@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import ANY, Mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -39,7 +39,7 @@ def test_lite_module_wraps():
 
 
 def test_lite_module_attribute_lookup():
-    """Test that attribute lookup passes through to the original model when possible."""
+    """Test that attribute lookup passes through to the original module when possible."""
 
     class OriginalModule(torch.nn.Module):
         def __init__(self):
@@ -67,6 +67,33 @@ def test_lite_module_attribute_lookup():
 
     with pytest.raises(AttributeError):
         _ = lite_module.not_exists
+
+
+def test_lite_module_state_dict_access():
+    """Test that state_dict access passes through to the original module."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
+
+    lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
+    state_dict = lite_module.state_dict()
+    assert set(state_dict.keys()) == {"layer.weight", "layer.bias"}
+
+    weight, bias = torch.rand(3, 2), torch.rand(3)
+    lite_module.load_state_dict({"layer.weight": weight, "layer.bias": bias})
+    assert torch.equal(lite_module.layer.weight, weight)
+    assert torch.equal(lite_module.layer.bias, bias)
 
 
 @pytest.mark.parametrize(
@@ -195,11 +222,11 @@ def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     iterator = iter(lite_dataloader)
 
     batch0 = next(iterator)
-    # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+    # TODO: This should be torch.equal, but not supported on MPS at this time (torch 1.12)
     assert torch.allclose(batch0, torch.tensor([0, 1], device=dest_device))
 
     batch1 = next(iterator)
-    # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+    # TODO: This should be torch.equal, but not supported on MPS at this time (torch 1.12)
     assert torch.allclose(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
@@ -218,7 +245,7 @@ def test_lite_optimizer_state_dict():
     strategy = Mock()
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.state_dict()
-    strategy.optimizer_state.assert_called_with(optimizer)
+    strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
 def test_lite_optimizer_steps():
@@ -230,4 +257,12 @@ def test_lite_optimizer_steps():
     step_output = lite_optimizer.step()
     assert step_output == 123
     strategy.optimizer_step.assert_called_once()
-    strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)
+    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model)
+
+    strategy.optimizer_step.reset_mock()
+
+    # with closure as input
+    closure = Mock()
+    lite_optimizer.step(closure=closure)
+    strategy.optimizer_step.assert_called_once()
+    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model, closure=closure)

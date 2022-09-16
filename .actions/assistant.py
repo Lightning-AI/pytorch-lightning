@@ -1,7 +1,6 @@
 import datetime
 import glob
 import json
-import logging
 import os
 import re
 import shutil
@@ -17,7 +16,6 @@ from urllib.request import Request, urlopen
 
 import fire
 import pkg_resources
-from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -124,10 +122,8 @@ class AssistantCLI:
         url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
         data = json.load(urlopen(Request(url)))
         if not version:
-            versions = list(data["releases"].keys())
-            versions = sorted(versions, key=lambda x: version_parse(x))
-            logging.debug(f"Available versions: {versions}")
-            version = versions[-1]
+            pypi_vers = pypi_versions(PACKAGE_MAPPING[package])
+            version = pypi_vers[-1]
         releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
         assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
         release = releases[0]
