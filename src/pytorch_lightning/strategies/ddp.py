@@ -31,8 +31,8 @@ from torch.optim.optimizer import Optimizer
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from lightning_lite.utilities.optimizer import optimizers_to_device
