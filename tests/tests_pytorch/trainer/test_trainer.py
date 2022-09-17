@@ -22,7 +22,7 @@ from copy import deepcopy
 from pathlib import Path
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, call, patch, Mock
+from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
 import pytest

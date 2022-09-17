@@ -430,6 +430,10 @@ class NeptuneLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        if not self._run_instance:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
         if status:
             self.run[self._construct_path_with_prefix("status")] = status
 

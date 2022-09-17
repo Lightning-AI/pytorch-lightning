@@ -552,6 +552,10 @@ class WandbLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        if self._experiment is None:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
         # log checkpoints as artifacts
         if self._checkpoint_callback:
             self._scan_and_log_checkpoints(self._checkpoint_callback)

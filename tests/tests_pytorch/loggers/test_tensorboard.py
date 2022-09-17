@@ -275,6 +275,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 def test_tensorboard_finalize(summary_writer, tmpdir):
     """Test that the SummaryWriter closes in finalize."""
     logger = TensorBoardLogger(save_dir=tmpdir)
+    _ = logger.experiment  # without an experiment, finalize would be no-op
     logger.finalize("any")
     summary_writer().flush.assert_called()
     summary_writer().close.assert_called()
