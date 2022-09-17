@@ -122,6 +122,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         logger.experiment.name = "bar"
 
     if logger_class == CometLogger:
+        logger._experiment_key = "foo"
         logger.experiment.id = "foo"
         logger.experiment.project_name = "bar"
 
