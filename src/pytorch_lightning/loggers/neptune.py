@@ -20,6 +20,7 @@ __all__ = [
 ]
 
 import logging
+import operator
 import os
 import warnings
 from argparse import Namespace
@@ -33,13 +34,14 @@ from torch import Tensor
 from pytorch_lightning import __version__
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.utilities.imports import _compare_version, _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = _RequirementAvailable("neptune-client")
-_NEPTUNE_GREATER_EQUAL_0_9 = _RequirementAvailable("neptune-client>=0.9.0")
+# Note: Do not use RequirementCache. See: https://github.com/Lightning-AI/lightning/issues/14695
+_NEPTUNE_AVAILABLE = _module_available("neptune")
+_NEPTUNE_GREATER_EQUAL_0_9 = _compare_version("neptune", operator.ge, "0.9.0")
 
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
