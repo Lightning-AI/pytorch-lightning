@@ -348,7 +348,7 @@ class DataConnector:
 
     def _reset_eval_dataloader(
         self, mode: RunningStage, model: Optional["pl.LightningModule"] = None
-    ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
+    ) -> Tuple[List[int], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -399,6 +399,7 @@ class DataConnector:
                 )
 
                 if orig_num_batches == 0:
+                    assert isinstance(orig_num_batches, int)
                     loader_num_batches.append(orig_num_batches)
                     continue
 
@@ -432,6 +433,7 @@ class DataConnector:
                         f" `limit_{mode.dataloader_prefix}_batches={min_percentage}`"
                     )
 
+                assert isinstance(num_batches, int)
                 loader_num_batches.append(num_batches)
 
         return loader_num_batches, dataloaders

@@ -618,10 +618,10 @@ class Trainer(
 
         self.train_dataloader: Optional[Union[CombinedLoader, Any]] = None
 
-        self.num_sanity_val_batches: List[Union[int, float]] = []
-        self.num_test_batches: List[Union[int, float]] = []
-        self.num_val_batches: List[Union[int, float]] = []
-        self.num_predict_batches: List[Union[int, float]] = []
+        self.num_sanity_val_batches: List[int] = []
+        self.num_test_batches: List[int] = []
+        self.num_val_batches: List[int] = []
+        self.num_predict_batches: List[int] = []
 
         self.test_dataloaders: Optional[List[DataLoader]] = None
         self.val_dataloaders: Optional[List[DataLoader]] = None

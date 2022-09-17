@@ -52,7 +52,7 @@ class PredictionLoop(DataLoaderLoop):
         return length
 
     @property
-    def max_batches(self) -> List[Union[int, float]]:
+    def max_batches(self) -> List[int]:
         """The max number of batches this loop will run for each dataloader."""
         return self.trainer.num_predict_batches
 
