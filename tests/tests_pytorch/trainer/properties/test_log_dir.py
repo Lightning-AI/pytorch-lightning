@@ -20,16 +20,16 @@ from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 
 
 class TestModel(BoringModel):
-    def __init__(self, expected_log_dir):
+    def __init__(self, expected_experiment_dir):
         super().__init__()
-        self.expected_log_dir = expected_log_dir
+        self.expected_experiment_dir = expected_experiment_dir
 
     def training_step(self, *args, **kwargs):
-        assert self.trainer.log_dir == self.expected_log_dir
+        assert self.trainer.experiment_dir == self.expected_experiment_dir
         return super().training_step(*args, **kwargs)
 
 
-def test_logdir(tmpdir):
+def test_experiment_dir(tmpdir):
     """Tests that the path is correct when checkpoint and loggers are used."""
     expected = os.path.join(tmpdir, "lightning_logs", "version_0")
 
@@ -37,9 +37,9 @@ def test_logdir(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_no_checkpoint_cb(tmpdir):
@@ -49,9 +49,9 @@ def test_logdir_no_checkpoint_cb(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False)
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_no_logger(tmpdir):
@@ -61,9 +61,9 @@ def test_logdir_no_logger(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_no_logger_no_checkpoint(tmpdir):
@@ -73,9 +73,9 @@ def test_logdir_no_logger_no_checkpoint(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, logger=False, enable_checkpointing=False)
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_custom_callback(tmpdir):
@@ -87,9 +87,9 @@ def test_logdir_custom_callback(tmpdir):
         default_root_dir=tmpdir, max_steps=2, callbacks=[ModelCheckpoint(dirpath=os.path.join(tmpdir, "ckpts"))]
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_custom_logger(tmpdir):
@@ -104,9 +104,9 @@ def test_logdir_custom_logger(tmpdir):
         logger=TensorBoardLogger(save_dir=tmpdir, name="custom_logs"),
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_multiple_loggers(tmpdir):
@@ -121,6 +121,6 @@ def test_logdir_multiple_loggers(tmpdir):
         logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), CSVLogger(tmpdir)],
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected

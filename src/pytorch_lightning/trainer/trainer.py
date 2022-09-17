@@ -278,7 +278,7 @@ class Trainer(
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
-                provided, local files (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of
+                provided, local files (checkpoints, profiler traces, etc.) are saved in the ``experiment_dir`` of
                 the first logger.
                 Default: ``True``.
 
@@ -1524,7 +1524,7 @@ class Trainer(
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
-        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.experiment_dir)
 
     """
     Data loading methods
@@ -1862,7 +1862,7 @@ class Trainer(
     """
 
     @property
-    def log_dir(self) -> str:
+    def experiment_dir(self) -> str:
         if len(self.loggers) > 0:
             if self.loggers[0].save_dir is not None:
                 save_dir = self.loggers[0].save_dir
@@ -1874,6 +1874,14 @@ class Trainer(
 
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath
+
+    @property
+    def log_dir(self) -> str:
+        rank_zero_deprecation(
+            "`trainer.experiment_dir` is deprecated in v1.8.0 and will be removed in v2.0."
+            " Please use `Trainer.experiment_dir` instead."
+        )
+        return self.experiment_dir
 
     @property
     def is_global_zero(self) -> bool:

@@ -211,7 +211,7 @@ class SaveConfigCallback(Callback):
         self.multifile = multifile
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-        log_dir = trainer.log_dir  # this broadcasts the directory
+        log_dir = trainer.experiment_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
         fs = get_filesystem(log_dir)

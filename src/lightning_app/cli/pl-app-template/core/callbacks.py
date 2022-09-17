@@ -287,7 +287,7 @@ class PLAppArtifactsTracker(Callback):
         pl_module: "pl.LightningModule",
         stage: str,
     ) -> None:
-        log_dir = self._get_logdir(trainer)
+        log_dir = self._get_experiment_dir(trainer)
         self.work.log_dir = Path(log_dir) if log_dir is not None else None
         self._collect_logger_metadata(trainer)
 
@@ -310,13 +310,14 @@ class PLAppArtifactsTracker(Callback):
                 self.work.logger_metadatas.append(metadata)
 
     @staticmethod
-    def _get_logdir(trainer: "pl.Trainer") -> str:
-        """The code here is the same as in the ``Trainer.log_dir``, with the exception of the broadcast call."""
-        if len(trainer.loggers) == 1:
-            if isinstance(trainer.logger, TensorBoardLogger):
-                dirpath = trainer.logger.log_dir
+    def _get_experiment_dir(trainer: "pl.Trainer") -> str:
+        """The code here is the same as in the ``Trainer.experiment_dir``, with the exception of the broadcast call."""
+        if len(trainer.loggers) > 0:
+            if trainer.loggers[0].save_dir is not None:
+                save_dir = trainer.loggers[0].save_dir
             else:
-                dirpath = trainer.logger.save_dir
+                save_dir = trainer.default_root_dir
+            dirpath = os.path.join(save_dir, trainer.loggers[0].experiment_dir)
         else:
             dirpath = trainer.default_root_dir
         return dirpath

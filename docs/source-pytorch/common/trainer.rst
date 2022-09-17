@@ -1674,7 +1674,7 @@ The directory for the current experiment. Use this to save images to, etc...
 
     def training_step(self, batch, batch_idx):
         img = ...
-        save_img(img, self.trainer.log_dir)
+        save_img(img, self.trainer.experiment_dir)
 
 
 

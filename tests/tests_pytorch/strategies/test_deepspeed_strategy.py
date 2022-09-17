@@ -235,7 +235,7 @@ def test_warn_deepspeed_ignored(tmpdir):
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
-@mock.patch("pytorch_lightning.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
+@mock.patch("pytorch_lightning.Trainer.experiment_dir", new_callable=mock.PropertyMock, return_value="abc")
 def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, mock_log_dir, tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 

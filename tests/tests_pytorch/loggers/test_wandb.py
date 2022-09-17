@@ -134,7 +134,7 @@ def test_wandb_pickle(wandb, tmpdir):
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
         # Access the experiment to ensure it's created
         assert trainer.logger.experiment, "missing experiment"
-        assert trainer.log_dir == os.path.join(logger.save_dir, logger.experiment_dir)
+        assert trainer.experiment_dir == os.path.join(logger.save_dir, logger.experiment_dir)
         pkl_bytes = pickle.dumps(trainer)
         trainer2 = pickle.loads(pkl_bytes)
 
@@ -175,12 +175,12 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     version = logger.version
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
-    assert trainer.log_dir == os.path.join(logger.save_dir, logger.experiment_dir)
+    assert trainer.experiment_dir == os.path.join(logger.save_dir, logger.experiment_dir)
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / "project" / version / "checkpoints")
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
-    assert trainer.log_dir == os.path.join(logger.save_dir, logger.experiment_dir)
+    assert trainer.experiment_dir == os.path.join(logger.save_dir, logger.experiment_dir)
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)

@@ -40,7 +40,7 @@ class AdvancedProfiler(Profiler):
         """
         Args:
             dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
-                ``trainer.log_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
+                ``trainer.experiment_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
                 will be used.
 
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.

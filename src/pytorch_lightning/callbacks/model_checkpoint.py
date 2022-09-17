@@ -576,8 +576,7 @@ class ModelCheckpoint(Checkpoint):
         determine where to save checkpoints. The path for saving weights is set in this priority:
 
         1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
-        2.  The ``Logger``'s ``log_dir`` if the trainer has loggers
-        3.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
+        2.  The ``Trainer``'s ``experiment_dir``
 
         The path gets extended with subdirectory "checkpoints".
         """
@@ -585,7 +584,7 @@ class ModelCheckpoint(Checkpoint):
             # short circuit if dirpath was passed to ModelCheckpoint
             return
 
-        ckpt_path = os.path.join(trainer.log_dir, "checkpoints")
+        ckpt_path = os.path.join(trainer.experiment_dir, "checkpoints")
         ckpt_path = trainer.strategy.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
