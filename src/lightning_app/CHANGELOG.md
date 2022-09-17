@@ -6,16 +6,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.2] - 2022-09-21
 
-
 ### Changed
 
 - Improved Lightning App connect logic by disconnecting automatically ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
+- Improved the error message when the `LightningWork` is missing the `run` method ([#14759](https://github.com/Lightning-AI/lightning/pull/14759))
 - Improved the error message when the root `LightningFlow` passed to `LightningApp` is missing the `run` method ([#14760](https://github.com/Lightning-AI/lightning/pull/14760))
 
 ### Fixed
 
 - Fixed a bug where the uploaded command file wasn't properly parsed ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
 - Fixed an issue where custom property setters were not being used `LightningWork` class. ([#14259](https://github.com/Lightning-AI/lightning/pull/14259))
+
 
 ## [0.6.1] - 2022-09-19
 
