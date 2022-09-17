@@ -46,7 +46,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning when the model passed to `LightningLite.setup()` does not have all parameters on the same device ([#14822](https://github.com/Lightning-AI/lightning/pull/14822))
 
 
-- Introduce `Logger.experiement_dir` ([#14188](https://github.com/Lightning-AI/lightning/pull/14508))
+- Introduce `Logger.experiement_dir` ([#14508](https://github.com/Lightning-AI/lightning/pull/14508))
 
 
 ### Changed
