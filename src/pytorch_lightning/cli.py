@@ -183,7 +183,7 @@ class LightningArgumentParser(ArgumentParser):
 
 
 class SaveConfigCallback(Callback):
-    """Saves a LightningCLI config to the log_dir when training starts.
+    """Saves a LightningCLI config to the experiment_dir when training starts.
 
     Args:
         parser: The parser object used to parse the configuration.
@@ -211,10 +211,10 @@ class SaveConfigCallback(Callback):
         self.multifile = multifile
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-        log_dir = trainer.experiment_dir  # this broadcasts the directory
-        assert log_dir is not None
-        config_path = os.path.join(log_dir, self.config_filename)
-        fs = get_filesystem(log_dir)
+        experiment_dir = trainer.experiment_dir  # this broadcasts the directory
+        assert experiment_dir is not None
+        config_path = os.path.join(experiment_dir, self.config_filename)
+        fs = get_filesystem(experiment_dir)
 
         if not self.overwrite:
             # check if the file exists on rank 0
@@ -232,9 +232,9 @@ class SaveConfigCallback(Callback):
         # save the file on rank 0
         if trainer.is_global_zero:
             # save only on rank zero to avoid race conditions.
-            # the `log_dir` needs to be created as we rely on the logger to do it usually
+            # the `experiment_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
-            fs.makedirs(log_dir, exist_ok=True)
+            fs.makedirs(experiment_dir, exist_ok=True)
             self.parser.save(
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )

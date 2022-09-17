@@ -137,8 +137,8 @@ def test_mlflow_run_id_setting(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_log_dir(client, mlflow, tmpdir):
-    """Test that the trainer saves checkpoints in the logger's save dir."""
+def test_mlflow_experiment_dir(client, mlflow, tmpdir):
+    """Test that the trainer saves checkpoints in the logger's save_dir/experiment_dir."""
 
     # simulate experiment creation with mlflow client mock
     run = MagicMock()

@@ -189,7 +189,7 @@ class CallbackConnector:
 
         if any(isinstance(cb, _FaultToleranceCheckpoint) for cb in self.trainer.callbacks):
             raise RuntimeError("There should be only one fault-tolerance checkpoint callback.")
-        # don't use `log_dir` to minimize the chances of failure
+        # don't use `experiment_dir` to minimize the chances of failure
         self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
 
     def _attach_model_logging_functions(self) -> None:

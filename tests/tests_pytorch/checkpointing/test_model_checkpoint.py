@@ -917,7 +917,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert chk["epoch"] == epochs - 1
         assert chk["global_step"] == 4
 
-    def assert_checkpoint_log_dir(idx):
+    def assert_checkpoint_experiment_dir(idx):
         lightning_logs = tmpdir / "lightning_logs"
         actual = [d.basename for d in lightning_logs.listdir(sort=True)]
         assert actual == [f"version_{i}" for i in range(idx + 1)]
@@ -943,7 +943,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     trainer.fit(model)
     assert trainer.global_step == epochs * limit_train_batches
     assert trainer.current_epoch == epochs
-    assert_checkpoint_log_dir(0)
+    assert_checkpoint_experiment_dir(0)
     assert_checkpoint_content(ckpt_dir)
 
     trainer.validate(model)
@@ -979,7 +979,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert trainer.fit_loop.epoch_progress.current.processed == epochs
-        assert_checkpoint_log_dir(idx)
+        assert_checkpoint_experiment_dir(idx)
 
 
 def test_configure_model_checkpoint(tmpdir):

@@ -1524,7 +1524,7 @@ class Trainer(
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
-        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.experiment_dir)
+        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, experiment_dir=self.experiment_dir)
 
     """
     Data loading methods

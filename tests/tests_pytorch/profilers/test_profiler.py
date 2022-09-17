@@ -112,8 +112,8 @@ def test_simple_profiler_dirpath(tmpdir):
     assert expected.join("fit-profiler.txt").exists()
 
 
-def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
-    """Ensure the profiler dirpath defaults to `trainer.experiment_dir`and creates it when not present."""
+def test_simple_profiler_with_nonexisting_experiment_dir(tmpdir):
+    """Ensure the profiler dirpath defaults to `trainer.experiment_dir` and creates it when not present."""
     nonexisting_tmpdir = tmpdir / "nonexisting"
 
     profiler = SimpleProfiler(filename="profiler")
