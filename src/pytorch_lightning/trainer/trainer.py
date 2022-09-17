@@ -616,7 +616,7 @@ class Trainer(
         self.state = TrainerState()
         self.num_training_batches = float("inf")
 
-        self.train_dataloader: Optional[Union[CombinedLoader, Any]] = None
+        self.train_dataloader: Optional[Union[CombinedLoader, TRAIN_DATALOADERS]] = None
 
         self.num_sanity_val_batches: List[int] = []
         self.num_test_batches: List[int] = []
@@ -1852,7 +1852,7 @@ class Trainer(
 
         module = model or self.lightning_module or self.datamodule
         orig_train_batches = self.num_training_batches = (
-            len(self.train_dataloader)
+            len(self.train_dataloader)  # type: ignore[arg-type]
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
