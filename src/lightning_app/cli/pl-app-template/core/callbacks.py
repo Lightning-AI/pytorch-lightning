@@ -311,7 +311,8 @@ class PLAppArtifactsTracker(Callback):
 
     @staticmethod
     def _get_experiment_dir(trainer: "pl.Trainer") -> str:
-        """The code here is the same as in the ``Trainer.experiment_dir``, with the exception of the broadcast call."""
+        """The code here is the same as in the ``Trainer.experiment_dir``, with the exception of the broadcast
+        call."""
         if len(trainer.loggers) > 0:
             if trainer.loggers[0].save_dir is not None:
                 save_dir = trainer.loggers[0].save_dir
