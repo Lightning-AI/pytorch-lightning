@@ -113,6 +113,7 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
     assert trainer.estimated_stepping_batches == expected_steps
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     ["trainer_kwargs", "estimated_steps"],
     [

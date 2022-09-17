@@ -71,22 +71,23 @@ def test_single_gpu_model(tmpdir, devices):
     tpipes.run_model_test(trainer_options, model)
 
 
-# Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.parametrize(
-    ["devices", "expected_root_gpu", "strategy"],
+    "devices",
     [
-        (1, None, "ddp"),
-        (3, None, "ddp"),
-        (3, None, "ddp"),
-        ([1, 2], None, "ddp"),
-        ([0, 1], None, "ddp"),
-        (-1, None, "ddp"),
-        ("-1", None, "ddp"),
+        1,
+        3,
+        3,
+        [1, 2],
+        [0, 1],
+        -1,
+        "-1",
     ],
 )
-def test_root_gpu_property_0_raising(cuda_count_0, devices, expected_root_gpu, strategy):
-    with pytest.raises(MisconfigurationException):
-        Trainer(accelerator="gpu", devices=devices, strategy=strategy)
+@mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_root_gpu_property_0_raising(_, mocked_device_count_0, devices):
+    """Test that asking for a GPU when none are available will result in a MisconfigurationException."""
+    with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
+        Trainer(accelerator="gpu", devices=devices, strategy="ddp")
 
 
 @mock.patch.dict(

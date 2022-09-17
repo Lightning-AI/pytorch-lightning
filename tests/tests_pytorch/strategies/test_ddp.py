@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from unittest import mock
 
 import pytest
@@ -58,8 +57,8 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 
 
 @RunIf(skip_windows=True)
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}, clear=True)
-def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=list(range(2)))
+def test_torch_distributed_backend_invalid(_, cuda_count_2, tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     model = BoringModel()
     trainer = Trainer(

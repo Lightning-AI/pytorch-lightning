@@ -47,6 +47,7 @@ def test_pick_multiple_gpus_more_than_available(cuda_count_1):
         pick_multiple_gpus(3)
 
 
+@RunIf(mps=False)
 @mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector.pick_multiple_gpus", return_value=[1])
 def test_auto_select_gpus(_, cuda_count_2):
     trainer = Trainer(auto_select_gpus=True, accelerator="gpu", devices=1)

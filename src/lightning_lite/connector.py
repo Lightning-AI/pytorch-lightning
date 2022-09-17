@@ -185,7 +185,8 @@ class _Connector:
         if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
-                f" Available names are: {', '.join(self._registered_strategies)}."
+                " Example choices: ddp, ddp_spawn, deepspeed, dp, ..."
+                " Find a complete list of options in our documentation at https://lightning.ai"
             )
 
         if (

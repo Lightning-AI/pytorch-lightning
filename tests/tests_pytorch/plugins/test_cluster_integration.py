@@ -85,7 +85,8 @@ def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strat
         dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
     ],
 )
-def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwargs):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=list(range(4)))
+def test_ranks_available_automatic_strategy_selection(_, cuda_count_4, trainer_kwargs):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)

@@ -679,7 +679,8 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
         {"accelerator": "gpu", "devices": "0,"},
     ],
 )
-def test_trainer_gpus(cuda_count_4, trainer_kwargs):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
+def test_trainer_gpus(_, cuda_count_4, trainer_kwargs):
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match=(

@@ -1,10 +1,11 @@
 import logging
 import os
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
 from torch import Tensor
 from torch.nn import functional as F
+from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
@@ -250,3 +251,58 @@ def tpu_distributed() -> bool:
 
 def get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
+
+
+# TODO(lite): The error messages refer to 'replace_sampler_ddp' in PL but Lite has it named 'replace_sampler'
+class _DatasetSamplerWrapper(Dataset):
+    """Dataset to create indexes from `Sampler` or `Iterable`"""
+
+    def __init__(self, sampler: Union[Sampler, Iterable]) -> None:
+        if not isinstance(sampler, Sized):
+            raise TypeError(
+                "You seem to have configured a sampler in your DataLoader which"
+                " does not provide `__len__` method. The sampler was about to be"
+                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " is True and you are using distributed training. Either provide `__len__`"
+                " method in your sampler, remove it from DataLoader or set `replace_sampler_ddp=False`"
+                " if you want to handle distributed sampling yourself."
+            )
+        if len(sampler) == float("inf"):
+            raise TypeError(
+                "You seem to have configured a sampler in your DataLoader which"
+                " does not provide finite `__len__` method. The sampler was about to be"
+                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " is True and you are using distributed training. Either provide `__len__`"
+                " method in your sampler which returns a finite number, remove it from DataLoader"
+                " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
+            )
+        self._sampler = sampler
+        # defer materializing an iterator until it is necessary
+        self._sampler_list: Optional[List[Any]] = None
+
+    def __getitem__(self, index: int) -> Any:
+        if self._sampler_list is None:
+            self._sampler_list = list(self._sampler)
+        return self._sampler_list[index]
+
+    def __len__(self) -> int:
+        return len(self._sampler)
+
+    def reset(self) -> None:
+        """Reset the sampler list in order to get new sampling."""
+        self._sampler_list = list(self._sampler)
+
+
+class DistributedSamplerWrapper(DistributedSampler):
+    """Wrapper over ``Sampler`` for distributed training.
+
+    Allows you to use any sampler in distributed mode. It will be automatically used by Lightning in distributed mode if
+    sampler replacement is enabled.
+    """
+
+    def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
+        super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
+
+    def __iter__(self) -> Iterator:
+        self.dataset.reset()
+        return (self.dataset[index] for index in super().__iter__())

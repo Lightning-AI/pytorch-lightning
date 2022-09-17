@@ -210,7 +210,8 @@ def test_dist_backend_accelerator_mapping(cuda_count_0):
     assert trainer.strategy.local_rank == 0
 
 
-def test_ipython_incompatible_backend_error(cuda_count_2, monkeypatch):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
+def test_ipython_incompatible_backend_error(_, cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
@@ -247,6 +248,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
     assert trainer.strategy.launcher.is_interactive_compatible
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
