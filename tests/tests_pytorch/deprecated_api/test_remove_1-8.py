@@ -673,14 +673,16 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        {"accelerator": "gpu", "devices": 2},
-        {"accelerator": "gpu", "devices": [0, 2]},
-        {"accelerator": "gpu", "devices": "2"},
-        {"accelerator": "gpu", "devices": "0,"},
+        pytest.param({"accelerator": "gpu", "devices": 2}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": [0, 2]}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": "2"}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": "0,"}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": 1}, marks=RunIf(mps=True)),
+        pytest.param({"accelerator": "gpu", "devices": [0]}, marks=RunIf(mps=True)),
+        pytest.param({"accelerator": "gpu", "devices": "0,"}, marks=RunIf(mps=True)),
     ],
 )
-@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
-def test_trainer_gpus(_, cuda_count_4, trainer_kwargs):
+def test_trainer_gpus(cuda_count_4, trainer_kwargs):
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match=(

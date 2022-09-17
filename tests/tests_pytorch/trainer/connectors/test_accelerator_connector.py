@@ -448,19 +448,19 @@ def test_strategy_choice_ddp_fork_cpu():
     assert trainer.strategy.launcher._start_method == "fork"
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-def test_strategy_choice_ddp(cuda_count_2):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
+@pytest.mark.parametrize("strategy,expected_cls", [("ddp", DDPStrategy), ("ddp_spawn", DDPSpawnStrategy)])
+def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_count_2):
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, DDPStrategy)
+    assert isinstance(trainer.strategy, expected_cls)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-def test_strategy_choice_ddp_spawn(cuda_count_2):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="gpu", devices=1)
-    assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+@pytest.mark.parametrize("strategy,expected_cls", [("ddp", DDPStrategy), ("ddp_spawn", DDPSpawnStrategy)])
+def test_strategy_choice_ddp_mps(strategy, expected_cls, mps_count_1, cuda_count_0):
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=1)
+    assert isinstance(trainer.accelerator, MPSAccelerator)
+    assert isinstance(trainer.strategy, expected_cls)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
 
@@ -501,7 +501,7 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_te(_, __, cuda_count_2):
+def test_strategy_choice_ddp_te(_, __, mps_count_0, cuda_count_2):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
@@ -544,7 +544,7 @@ def test_strategy_choice_ddp_cpu_te(cuda_count_0):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-def test_strategy_choice_ddp_kubeflow(_, __, cuda_count_1):
+def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_1):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)

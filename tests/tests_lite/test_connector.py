@@ -199,9 +199,9 @@ def test_dist_backend_accelerator_mapping(*_):
     assert connector.strategy.local_rank == 0
 
 
+@RunIf(mps=False)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.accelerators.mps._get_all_available_mps_gpus", return_value=[0, 1])
-def test_ipython_incompatible_backend_error(_, __, monkeypatch):
+def test_ipython_incompatible_backend_error(_, monkeypatch):
     monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         _Connector(strategy="ddp", accelerator="gpu", devices=2)
@@ -239,6 +239,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
     assert connector.strategy.launcher.is_interactive_compatible
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
@@ -251,8 +252,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
 )
 @pytest.mark.parametrize("devices", [1, 2])
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.accelerators.mps._get_all_available_mps_gpus", return_value=[0, 1])
-def test_accelerator_choice_multi_node_gpu(_, __, strategy, strategy_class, devices):
+def test_accelerator_choice_multi_node_gpu(_, strategy, strategy_class, devices):
     connector = _Connector(num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(connector.strategy, strategy_class)
 
