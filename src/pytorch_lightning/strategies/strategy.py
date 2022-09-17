@@ -237,19 +237,19 @@ class Strategy(ABC):
         The returned objects are expected to be in the same order they were passed in. The default implementation will
         call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
         """
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         model = self._setup_model(model)
         optimizers = [self._setup_optimizer(optimizer) for optimizer in optimizers]
         return model, optimizers
 
     def _setup_model(self, model: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return model
 
     def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Performs setup for the optimizer, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:

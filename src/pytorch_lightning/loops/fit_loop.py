@@ -91,7 +91,7 @@ class FitLoop(Loop[None]):
     @min_steps.setter
     def min_steps(self, value: Optional[int]) -> None:
         """Sets the minimum number of steps (forwards to epoch_loop)"""
-        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
         self.epoch_loop.min_steps = value
 
     @property
@@ -102,7 +102,7 @@ class FitLoop(Loop[None]):
     @max_steps.setter
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
-        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
         if value < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
@@ -159,7 +159,7 @@ class FitLoop(Loop[None]):
             rank_zero_info("`Trainer.fit` stopped: No training batches.")
             return True
 
-        # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
+        # TODO: Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.epoch_loop.global_step, self.max_steps)
         if stop_steps:
             rank_zero_info(f"`Trainer.fit` stopped: `max_steps={self.max_steps!r}` reached.")
