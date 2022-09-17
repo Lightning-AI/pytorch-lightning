@@ -585,21 +585,7 @@ class ModelCheckpoint(Checkpoint):
             # short circuit if dirpath was passed to ModelCheckpoint
             return
 
-        if len(trainer.loggers) > 0:
-            if trainer.loggers[0].save_dir is not None:
-                save_dir = trainer.loggers[0].save_dir
-            else:
-                save_dir = trainer.default_root_dir
-            save_dir = trainer.loggers[0].save_dir or trainer.default_root_dir
-            name = trainer.loggers[0].name
-            version = trainer.loggers[0].version
-            version = version if isinstance(version, str) else f"version_{version}"
-
-            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
-        else:
-            # if no loggers, use default_root_dir
-            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
-
+        ckpt_path = os.path.join(trainer.log_dir, "checkpoints")
         ckpt_path = trainer.strategy.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
