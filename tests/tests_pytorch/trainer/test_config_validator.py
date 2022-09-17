@@ -23,16 +23,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_wrong_train_setting(tmpdir):
-    """
-    * Test that an error is thrown when no `train_dataloader()` is defined
-    * Test that an error is thrown when no `training_step()` is defined
-    """
+    """Test that an error is raised when no `training_step()` is defined."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-
-    with pytest.raises(MisconfigurationException, match=r"No `train_dataloader\(\)` method defined."):
-        model = BoringModel()
-        model.train_dataloader = None
-        trainer.fit(model)
 
     with pytest.raises(MisconfigurationException, match=r"No `training_step\(\)` method defined."):
         model = BoringModel()
@@ -71,35 +63,17 @@ def test_eval_loop_config(tmpdir):
     """When either eval step or eval data is missing."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    # has val step but no val data
-    model = BoringModel()
-    model.val_dataloader = None
-    with pytest.raises(MisconfigurationException, match=r"No `val_dataloader\(\)` method defined"):
-        trainer.validate(model)
-
     # has test data but no val step
     model = BoringModel()
     model.validation_step = None
     with pytest.raises(MisconfigurationException, match=r"No `validation_step\(\)` method defined"):
         trainer.validate(model)
 
-    # has test loop but no test data
-    model = BoringModel()
-    model.test_dataloader = None
-    with pytest.raises(MisconfigurationException, match=r"No `test_dataloader\(\)` method defined"):
-        trainer.test(model)
-
     # has test data but no test step
     model = BoringModel()
     model.test_step = None
     with pytest.raises(MisconfigurationException, match=r"No `test_step\(\)` method defined"):
         trainer.test(model)
-
-    # has predict step but no predict data
-    model = BoringModel()
-    model.predict_dataloader = None
-    with pytest.raises(MisconfigurationException, match=r"No `predict_dataloader\(\)` method defined"):
-        trainer.predict(model)
 
     # has predict data but no predict_step
     model = BoringModel()

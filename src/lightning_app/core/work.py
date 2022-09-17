@@ -3,7 +3,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from deepdiff import DeepHash
 
@@ -316,9 +316,17 @@ class LightningWork(abc.ABC):
 
         return has_succeeded_counter
 
+    def _get_property_if_exists(self, name: str) -> Union[property, None]:
+        attr = getattr(self.__class__, name, None)
+        return attr if isinstance(attr, property) else None
+
     def __setattr__(self, name: str, value: Any) -> None:
-        setattr_fn = getattr(self, "_setattr_replacement", None) or self._default_setattr
-        setattr_fn(name, value)
+        property_object = self._get_property_if_exists(name)
+        if property_object is not None and property_object.fset is not None:
+            property_object.fset(self, value)
+        else:
+            setattr_fn = getattr(self, "_setattr_replacement", None) or self._default_setattr
+            setattr_fn(name, value)
 
     def _default_setattr(self, name: str, value: Any) -> None:
         from lightning_app.core.flow import LightningFlow
@@ -543,10 +551,6 @@ class LightningWork(abc.ABC):
         assert statuses[0]["stage"] == WorkStageStatus.PENDING
         status = {**timeout_statuses[-1], "timestamp": statuses[0]["timestamp"]}
         return WorkStatus(**status, count=len(timeout_statuses))
-
-    def load_state_dict(self, state):
-        # TODO (tchaton) Implement logic for state reloading.
-        pass
 
     def on_exit(self):
         """Override this hook to add your logic when the work is exiting."""

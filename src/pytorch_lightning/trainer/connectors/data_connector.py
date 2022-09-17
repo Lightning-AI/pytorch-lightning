@@ -24,8 +24,9 @@ from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
+from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
@@ -139,6 +140,17 @@ class DataConnector:
             predict_dataloaders=predict_dataloaders,
         )
         self.attach_datamodule(model, datamodule=datamodule)
+
+        # Validate that the required data sources are available
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            _check_dataloader_none(train_dataloaders, self._train_dataloader_source, self.trainer.state.fn)
+        elif self.trainer.state.fn == TrainerFn.VALIDATING:
+            _check_dataloader_none(val_dataloaders, self._val_dataloader_source, self.trainer.state.fn)
+        elif self.trainer.state.fn == TrainerFn.TESTING:
+            _check_dataloader_none(test_dataloaders, self._test_dataloader_source, self.trainer.state.fn)
+        elif self.trainer.state.fn == TrainerFn.PREDICTING:
+            _check_dataloader_none(predict_dataloaders, self._predict_dataloader_source, self.trainer.state.fn)
+
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
@@ -580,3 +592,18 @@ class _DataHookSelector:
                 " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
             )
         return self.model
+
+
+def _check_dataloader_none(
+    dataloader: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]],
+    dataloader_source: _DataLoaderSource,
+    trainer_fn: TrainerFn,
+) -> None:
+    # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
+    prefix = "train_" if trainer_fn == TrainerFn.FITTING else ""
+    if dataloader is None and not dataloader_source.is_defined():
+        raise ValueError(
+            f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
+            f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
+            f" `def {dataloader_source.name}(self):` in your LightningModule/LightningDataModule."
+        )

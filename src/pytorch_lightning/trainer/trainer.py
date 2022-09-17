@@ -56,7 +56,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import Logger
-from pytorch_lightning.loggers.logger import DummyLogger, LoggerCollection
+from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -169,7 +169,6 @@ class Trainer(
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
-        weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[Profiler, str]] = None,
@@ -402,17 +401,6 @@ class Trainer(
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
-            weights_save_path: Where to save weights if specified. Will override default_root_dir
-                for checkpoints only. Use this if for whatever reason you need the checkpoints
-                stored in a different place than the logs written in `default_root_dir`.
-                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
-                Defaults to `default_root_dir`.
-
-                .. deprecated:: v1.6
-                    ``weights_save_path`` has been deprecated in v1.6 and will be removed in v1.8. Please pass
-                    ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
-                    callback.
-
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
                 Default: ``False``.
@@ -427,6 +415,7 @@ class Trainer(
         Trainer._log_api_event("init")
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
+        self.num_sanity_val_steps: int
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
@@ -488,7 +477,6 @@ class Trainer(
             enable_checkpointing,
             enable_progress_bar,
             default_root_dir,
-            weights_save_path,
             enable_model_summary,
             max_time,
             accumulate_grad_batches,
@@ -649,7 +637,7 @@ class Trainer(
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
-        # TODO(awaelchli): Unify both exceptions below, where `KeyboardError` doesn't re-raise
+        # TODO: Unify both exceptions below, where `KeyboardError` doesn't re-raise
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
@@ -2238,30 +2226,6 @@ class Trainer(
         return self._default_root_dir
 
     @property
-    def weights_save_path(self) -> str:
-        """
-        The default root location to save weights (checkpoints), e.g., when the
-        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
-
-        .. deprecated:: v1.6
-            `Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.
-        """
-        rank_zero_deprecation("`Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.")
-        return self._weights_save_path_internal
-
-    # TODO: Remove _weights_save_path_internal in v1.8
-    @property
-    def _weights_save_path_internal(self) -> str:
-        """This is an internal implementation of weights_save_path which allows weights_save_path to be used
-        internally by the framework without emitting a deprecation warning.
-
-        To be removed in v1.8.
-        """
-        if get_filesystem(self._weights_save_path).protocol == "file":
-            return os.path.normpath(self._weights_save_path)
-        return self._weights_save_path
-
-    @property
     def early_stopping_callback(self) -> Optional[EarlyStopping]:
         """The first :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
@@ -2644,28 +2608,12 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[Logger]:
-        loggers = self.loggers
-        if len(loggers) == 0:
-            return None
-        if len(loggers) == 1:
-            return loggers[0]
-        else:
-            rank_zero_deprecation(
-                "Using `trainer.logger` when multiple loggers are configured."
-                " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
-                " `trainer.logger` will return the first logger available.",
-                stacklevel=5,
-            )
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                return LoggerCollection(loggers)
+        return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
         if not logger:
             self.loggers = []
-        elif isinstance(logger, LoggerCollection):
-            self.loggers = list(logger)
         else:
             self.loggers = [logger]
 
