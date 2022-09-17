@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+
+## [1.7.7] - 2022-09-??
+
+### Fixed
+
+- Fixed the availability check for the neptune-client package ([#14714](https://github.com/Lightning-AI/lightning/pull/14714))
+
+
 ## [1.7.6] - 2022-09-13
 
 ### Changed
