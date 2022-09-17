@@ -747,12 +747,12 @@ def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     ],
 )
 def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_accelerator_class):
-
     trainer = Trainer(accelerator="gpu")
     assert trainer._accelerator_connector._accelerator_flag == expected_accelerator_flag
     assert isinstance(trainer.accelerator, expected_accelerator_class)
 
 
+@RunIf(mps=False)
 def test_gpu_accelerator_backend_choice_cuda(cuda_count_1):
     trainer = Trainer(accelerator="gpu")
     assert trainer._accelerator_connector._accelerator_flag == "cuda"
