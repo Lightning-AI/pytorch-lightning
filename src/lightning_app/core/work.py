@@ -1,4 +1,3 @@
-import abc
 import time
 import warnings
 from copy import deepcopy
@@ -11,7 +10,7 @@ from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
@@ -29,7 +28,7 @@ from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
 
 
-class LightningWork(abc.ABC):
+class LightningWork:
 
     _INTERNAL_STATE_VARS = (
         # Internal protected variables that are still part of the state (even though they are prefixed with "_")
@@ -139,6 +138,7 @@ class LightningWork(abc.ABC):
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
         self._backend: Optional[Backend] = None
+        self._check_run_is_implemented()
         self._on_init_end()
 
     @property
@@ -524,14 +524,12 @@ class LightningWork(abc.ABC):
                         final_statuses.append(status)
                 calls[call_hash]["statuses"] = final_statuses
 
-    @abc.abstractmethod
     def run(self, *args, **kwargs):
         """Override to add your own logic.
 
         Raises:
             LightningPlatformException: If resource exceeds platform quotas or other constraints.
         """
-        pass
 
     def on_exception(self, exception: BaseException):
         """Override to customize how to handle exception in the run method."""
@@ -574,3 +572,10 @@ class LightningWork(abc.ABC):
         self._calls[latest_hash]["statuses"].append(stop_status)
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)
+
+    def _check_run_is_implemented(self) -> None:
+        if not is_overridden("run", instance=self, parent=LightningWork):
+            raise TypeError(
+                f"The work `{self.__class__.__name__}` is missing the `run()` method. This is required. Implement it"
+                " first and then call it in your Flow."
+            )
