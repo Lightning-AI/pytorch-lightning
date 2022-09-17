@@ -886,7 +886,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
 
     # no new versions created after the initial fit, because the ones that resume from ckpt do not log anything
-    assert set(os.listdir(tmpdir / "lightning_logs")) == {f"version_0"}
+    assert set(os.listdir(tmpdir / "lightning_logs")) == {"version_0"}
 
 
 def test_checkpoint_repeated_strategy_extended(tmpdir):
