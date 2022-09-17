@@ -1607,6 +1607,19 @@ The current datamodule, which is used by the trainer.
 
     used_datamodule = trainer.datamodule
 
+
+experiment_dir
+**************
+
+The directory for the current experiment. Use this to save images to, etc...
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        img = ...
+        save_img(img, self.trainer.experiment_dir)
+
+
 is_last_batch
 *************
 
@@ -1666,17 +1679,20 @@ The metrics sent to the logger (visualizer).
     logged_metrics = trainer.logged_metrics
     assert logged_metrics["a_val"] == 2
 
+
 log_dir
 *******
+
+.. warning:: ``log_dir`` has been deprecated in v1.8 and will be removed in v2.0.
+    Please use ``experiment_dir`` instead.
+
 The directory for the current experiment. Use this to save images to, etc...
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         img = ...
-        save_img(img, self.trainer.experiment_dir)
-
-
+        save_img(img, self.trainer.log_dir)
 
 is_global_zero
 **************
