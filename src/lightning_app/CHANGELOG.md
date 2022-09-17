@@ -25,7 +25,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Improve Lightning App connect logic by disconnecting automatically ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
 
 
+- Improved the error messsage when the root `LightningFlow` passed to `LightningApp` is missing the `run` method ([#14760](https://github.com/Lightning-AI/lightning/pull/14760))
+
+
+
 ### Fixed
+
+- Making threadpool non default from LightningCloud client  ([#14757](https://github.com/Lightning-AI/lightning/pull/14757))
 
 - Resolved a bug where the state change detection using DeepDiff won't worked with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
 
