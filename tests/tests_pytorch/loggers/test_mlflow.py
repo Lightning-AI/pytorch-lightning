@@ -263,35 +263,17 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_logger_run_status_failed(client, mlflow):
-    class CustomModel(BoringModel):
-        def on_fit_start(self):
-            super().on_fit_start()
-            raise BaseException
-
-    model = CustomModel()
+def test_mlflow_logger_finalize_when_exception(*_):
     logger = MLFlowLogger("test")
-    run = MagicMock()
-    run.info.run_id = "run_id"
-    logger._mlflow_client.create_run = MagicMock(return_value=run)
-    trainer = Trainer(logger=logger)
 
-    with pytest.raises(BaseException):
-        trainer.fit(model)
-    client.return_value.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
+    # Pretend we are on the main process and failing
+    assert logger._mlflow_client
+    assert not logger._initialized
+    logger.finalize("failed")
+    logger.experiment.set_terminated.assert_not_called()
 
-
-@pytest.mark.parametrize("_mlflow_client", [None, "not none something"], ids=["worker process", "main process"])
-@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
-@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-@mock.patch("pytorch_lightning.loggers.mlflow.MLFlowLogger.finalize")
-def test_mlflow_logger_finalize_when_exception(finalize, client, mlflow, _mlflow_client):
-    logger = MLFlowLogger("test")
-    logger._mlflow_client = _mlflow_client
-
-    logger.finalize_when_exception()
-
-    if logger._mlflow_client:
-        finalize.assert_called_once_with("failed")
-    else:
-        finalize.assert_not_called()
+    # Pretend we are in a worker process and failing
+    _ = logger.experiment
+    assert logger._initialized
+    logger.finalize("failed")
+    logger.experiment.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
