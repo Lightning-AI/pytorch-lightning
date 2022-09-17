@@ -40,7 +40,7 @@ from lightning_lite.utilities.data import (
 )
 from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
 class LightningLite(ABC):

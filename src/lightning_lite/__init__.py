@@ -12,15 +12,11 @@ if not _root_logger.hasHandlers():
     _logger.addHandler(logging.StreamHandler())
     _logger.propagate = False
 
-# TODO(lite): Re-enable this import
-# from lightning_lite.lite import LightningLite
+
+from lightning_lite.lite import LightningLite  # noqa: E402
 from lightning_lite.utilities.seed import seed_everything  # noqa: E402
 
-__all__ = [
-    # TODO(lite): Re-enable this import
-    # "LightningLite",
-    "seed_everything",
-]
+__all__ = ["LightningLite", "seed_everything"]
 
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)
