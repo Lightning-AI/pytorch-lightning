@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle
+from re import escape
 from time import sleep
 from unittest import mock
 from unittest.mock import ANY
@@ -30,6 +31,29 @@ from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.warnings import LightningFlowWarning
 
 logger = logging.getLogger()
+
+
+def test_lightning_app_requires_root_run_method():
+    """Test that a useful exception is raised if the root flow does not override the run method."""
+
+    with pytest.raises(
+        TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
+    ):
+        LightningApp(LightningFlow())
+
+    class FlowWithoutRun(LightningFlow):
+        pass
+
+    with pytest.raises(
+        TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
+    ):
+        LightningApp(FlowWithoutRun())
+
+    class FlowWithRun(LightningFlow):
+        def run(self):
+            pass
+
+    LightningApp(FlowWithRun())  # no error
 
 
 class B1(LightningFlow):

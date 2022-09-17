@@ -26,7 +26,7 @@ from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
 from lightning_app.utilities.commands.base import _process_requests
-from lightning_app.utilities.component import _convert_paths_after_init
+from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.layout import _collect_layout
@@ -58,8 +58,8 @@ class LightningApp:
         the :class:`~lightning.app.core.flow.LightningFlow` provided.
 
         Arguments:
-            root: The root LightningFlow component, that defined all
-                the app's nested components, running infinitely.
+            root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
+                It must define a `run()` method that the app can call.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
 
@@ -77,6 +77,7 @@ class LightningApp:
             Hello World!
         """
 
+        _validate_root_flow(root)
         self._root = root
 
         # queues definition.
