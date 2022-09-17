@@ -84,7 +84,7 @@ def test_single_gpu_model(tmpdir, devices):
     ],
 )
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_root_gpu_property_0_raising(_, mocked_device_count_0, devices):
+def test_root_gpu_property_0_raising(_, devices):
     """Test that asking for a GPU when none are available will result in a MisconfigurationException."""
     with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
         Trainer(accelerator="gpu", devices=devices, strategy="ddp")

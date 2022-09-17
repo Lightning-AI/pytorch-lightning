@@ -146,6 +146,21 @@ def cuda_count_4(monkeypatch):
     mock_cuda_count(monkeypatch, 4)
 
 
+def mock_mps_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
+    monkeypatch.setattr(lightning_lite.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_0(monkeypatch):
+    mock_mps_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_1(monkeypatch):
+    mock_mps_count(monkeypatch, 1)
+
+
 @pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
