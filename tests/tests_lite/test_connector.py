@@ -459,28 +459,27 @@ def test_strategy_choice_ddp_spawn(*_):
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
 
 
-@RunIf(min_cuda_gpus=2)
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "SLURM_PROCID": "1",
-        "SLURM_LOCALID": "1",
-    },
-)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
-def test_strategy_choice_ddp_slurm(_, strategy):
-    connector = _Connector(strategy=strategy, accelerator="gpu", devices=2)
-    assert connector._is_slurm_managing_tasks()
-    assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert isinstance(connector.strategy.cluster_environment, SLURMEnvironment)
-    assert connector.strategy.cluster_environment.local_rank() == 1
-    assert connector.strategy.local_rank == 1
+@pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
+@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
+def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_env):
+    if not isinstance(strategy, str):
+        strategy = strategy()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "CUDA_VISIBLE_DEVICES": "0,1",
+            "SLURM_NTASKS": "2",
+            "SLURM_JOB_NAME": job_name,
+            "SLURM_NODEID": "0",
+            "SLURM_PROCID": "1",
+            "SLURM_LOCALID": "1",
+        },
+    ):
+        trainer = _Connector(strategy=strategy, accelerator="cuda", devices=2)
+        assert isinstance(trainer.accelerator, CUDAAccelerator)
+        assert isinstance(trainer.strategy, DDPStrategy)
+        assert isinstance(trainer.strategy.cluster_environment, expected_env)
 
 
 @mock.patch.dict(
