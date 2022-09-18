@@ -27,6 +27,9 @@ jobs:
           - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+        exclude:
+          - {python-version: "3.10", pytorch-version: "1.9"}  # No distribution with Python 3.10
+          - {python-version: "3.10", pytorch-version: "1.10"}  # No distribution with Python 3.10
         # include:
         #   - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
         #   - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.12"}
