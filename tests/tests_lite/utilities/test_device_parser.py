@@ -104,8 +104,8 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 @mock.patch("lightning_lite.utilities.device_parser._device_count_nvml", return_value=-1)
 @mock.patch("torch.cuda.device_count", return_value=100)
 def test_num_cuda_devices_without_forking(*_):
-    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for determining
-    CUDA availability."""
+    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for
+    determining CUDA availability."""
     assert device_parser.is_cuda_available()
     assert device_parser.num_cuda_devices() == 100
 
