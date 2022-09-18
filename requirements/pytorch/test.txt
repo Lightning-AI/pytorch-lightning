@@ -4,6 +4,7 @@ pytest>=7.0, <=7.1.2
 pytest-cov <=3.0.0
 pytest-forked <=1.4.0
 pytest-rerunfailures>=10.2
+pytest-reportlog<=0.1.2
 pre-commit>=1.0
 mypy==0.971
 
