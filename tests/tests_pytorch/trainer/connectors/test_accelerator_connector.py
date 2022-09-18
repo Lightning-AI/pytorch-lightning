@@ -456,6 +456,7 @@ def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_coun
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
 
+@RunIf(mps=True)
 @pytest.mark.parametrize("strategy,expected_cls", [("ddp", DDPStrategy), ("ddp_spawn", DDPSpawnStrategy)])
 def test_strategy_choice_ddp_mps(strategy, expected_cls, mps_count_1, cuda_count_0):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=1)
