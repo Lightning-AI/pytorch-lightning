@@ -267,8 +267,9 @@ class TensorBoardLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        self.experiment.flush()
-        self.experiment.close()
+        if self._experiment is not None:
+            self.experiment.flush()
+            self.experiment.close()
         self.save()
 
     @property
