@@ -280,9 +280,8 @@ def test_accelerator_cpu(*_):
 
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
-def test_accelererator_invalid_type_devices(_, __, device_count):
+def test_accelererator_invalid_type_devices(_, device_count):
     with pytest.raises(
         MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
     ):
@@ -439,7 +438,6 @@ def test_strategy_choice_ddp_fork_cpu():
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp(*_):
     connector = _Connector(strategy="ddp", accelerator="gpu", devices=1)
@@ -450,7 +448,6 @@ def test_strategy_choice_ddp(*_):
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_spawn(*_):
     connector = _Connector(strategy="ddp_spawn", accelerator="gpu", devices=1)
@@ -459,9 +456,10 @@ def test_strategy_choice_ddp_spawn(*_):
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
 
 
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
-def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_env):
+def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
     if not isinstance(strategy, str):
         strategy = strategy()
 
@@ -495,7 +493,6 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
     },
 )
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_te(*_):
     connector = _Connector(strategy="ddp", accelerator="gpu", devices=2)
@@ -538,7 +535,6 @@ def test_strategy_choice_ddp_cpu_te():
     },
 )
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
-@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_kubeflow(*_):
     connector = _Connector(strategy="ddp", accelerator="gpu", devices=1)
@@ -612,7 +608,6 @@ def test_devices_auto_choice_cpu(*_):
 
 
 @RunIf(mps=False)
-@mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_devices_auto_choice_gpu(*_):
     connector = _Connector(accelerator="auto", devices="auto")
