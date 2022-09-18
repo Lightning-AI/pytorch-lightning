@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
-import os
 import time
 from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
-import torch
 
 import pytorch_lightning
 from lightning_lite.utilities import device_parser
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
+from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.profiler import AbstractProfiler, BaseProfiler
-from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfiler
-from pytorch_lightning.strategies import ParallelStrategy
+from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
@@ -399,13 +395,6 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_8_0_weights_save_path(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(weights_save_path=tmpdir)
-    with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
-        _ = trainer.weights_save_path
-
-
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
@@ -448,30 +437,6 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
-def test_v1_8_0_logger_collection(tmpdir):
-    logger1 = CSVLogger(tmpdir)
-    logger2 = CSVLogger(tmpdir)
-
-    trainer1 = Trainer(logger=logger1)
-    trainer2 = Trainer(logger=[logger1, logger2])
-
-    # Should have no deprecation warning
-    trainer1.logger
-    trainer1.loggers
-    trainer2.loggers
-
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = trainer2.logger
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        _ = LoggerCollection([logger1, logger2])
-
-    model = BoringModel()
-    trainer = Trainer(logger=[logger1, logger2])
-    model.trainer = trainer
-    with pytest.deprecated_call(match="logger` will return the first logger"):
-        _ = model.logger
-
-
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
     class PrecisionPluginSaveHook(PrecisionPlugin):
         def on_save_checkpoint(self, checkpoint):
@@ -498,10 +463,6 @@ def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
         trainer.fit(model)
-
-
-def test_v1_8_0_abstract_profiler():
-    assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
 
 
 def test_v1_8_0_datamodule_checkpointhooks():
@@ -543,49 +504,6 @@ def test_v1_8_0_lightning_module_use_amp():
         _ = model.use_amp
     with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
         model.use_amp = False
-
-
-@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
-def test_v1_8_0_torch_distributed_backend_env():
-    from lightning_lite.utilities.distributed import _get_process_group_backend_from_env
-
-    with pytest.deprecated_call(
-        match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
-        " was deprecated in v1.6 and will be removed in v1.8."
-    ):
-        _get_process_group_backend_from_env()
-
-
-def test_parallel_strategy_torch_distributed_backend():
-    class CustomParallel(ParallelStrategy):
-        @property
-        def root_device(self) -> torch.device:
-            return torch.device("cpu")
-
-        def model_to_device(self):
-            pass
-
-        @property
-        def is_global_zero(self):
-            return True
-
-        def broadcast(self, obj):
-            return obj
-
-        def reduce(self, tensor):
-            return tensor
-
-        def barrier(self):
-            return
-
-        def all_gather(self, tensor):
-            return tensor
-
-    strategy = CustomParallel()
-    with pytest.deprecated_call(
-        match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
-    ):
-        strategy.torch_distributed_backend
 
 
 def test_trainer_config_device_ids():
@@ -670,28 +588,6 @@ def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
         " Please use `Trainer.num_devices` instead."
     ):
         assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-def test_v1_8_0_base_profiler(tmpdir):
-    class CustomProfiler1(BaseProfiler):
-        def start(self, action_name: str) -> None:
-            pass
-
-        def stop(self, action_name: str) -> None:
-            pass
-
-    class CustomProfiler2(Profiler):
-        def start(self, action_name: str) -> None:
-            pass
-
-        def stop(self, action_name: str) -> None:
-            pass
-
-    with pytest.deprecated_call(match="`BaseProfiler` was deprecated in v1.6"):
-        CustomProfiler1()
-
-    # No deprecation message
-    CustomProfiler2()
 
 
 @pytest.mark.parametrize(
@@ -793,6 +689,7 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
 def test_trainer_gpus(monkeypatch, trainer_kwargs):
     monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
     monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
+    monkeypatch.setattr(device_parser, "_get_all_available_mps_gpus", lambda: list(range(4)))
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match=(

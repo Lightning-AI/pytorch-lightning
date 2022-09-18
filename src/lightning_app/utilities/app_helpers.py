@@ -12,7 +12,6 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
-from unittest.mock import Mock
 
 import websockets
 from deepdiff import Delta
@@ -25,7 +24,6 @@ if TYPE_CHECKING:
     from lightning_app.core.app import LightningApp
     from lightning_app.core.flow import LightningFlow
     from lightning_app.utilities.types import Component
-
 
 logger = logging.getLogger(__name__)
 
@@ -231,12 +229,9 @@ class StreamLitStatePlugin(BaseStatePlugin):
         pass
 
 
-# Adapted from
-# https://github.com/Lightning-AI/pytorch-lightning/blob/master/pytorch_lightning/utilities/model_helpers.py#L21
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
     if instance is None:
         return False
-
     if parent is None:
         if isinstance(instance, lightning_app.LightningFlow):
             parent = lightning_app.LightningFlow
@@ -244,22 +239,9 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
             parent = lightning_app.LightningWork
         if parent is None:
             raise ValueError("Expected a parent")
+    from lightning_utilities.core.overrides import is_overridden
 
-    instance_attr = getattr(instance, method_name, None)
-    if instance_attr is None:
-        return False
-    # `Mock(wraps=...)` support
-    if isinstance(instance_attr, Mock):
-        # access the wrapped function
-        instance_attr = instance_attr._mock_wraps
-    if instance_attr is None:
-        return False
-
-    parent_attr = getattr(parent, method_name, None)
-    if parent_attr is None:
-        raise ValueError("The parent should define the method")
-
-    return instance_attr.__code__ != parent_attr.__code__
+    return is_overridden(method_name, instance, parent)
 
 
 def _is_json_serializable(x: Any) -> bool:
@@ -402,3 +384,97 @@ class LightningJSONEncoder(json.JSONEncoder):
         if callable(getattr(obj, "__json__", None)):
             return obj.__json__()
         return json.JSONEncoder.default(self, obj)
+
+
+class Logger:
+
+    """This class is used to improve the debugging experience."""
+
+    def __init__(self, name: str):
+        self.logger = logging.getLogger(name)
+        self.level = None
+
+    def info(self, msg, *args, **kwargs):
+        self.logger.info(msg, *args, **kwargs)
+
+    def warn(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.warn(msg, *args, **kwargs)
+
+    def debug(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.debug(msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.error(msg, *args, **kwargs)
+
+    def _set_level(self):
+        """Lazily set the level once set by the users."""
+        # Set on the first from either log, warn, debug or error call.
+        if self.level is None:
+            self.level = logging.DEBUG if bool(int(os.getenv("LIGHTNING_DEBUG", "0"))) else logging.INFO
+            self.logger.setLevel(self.level)
+
+
+def _state_dict(flow: "LightningFlow"):
+    state = {}
+    flows = [flow] + list(flow.flows.values())
+    for f in flows:
+        state[f.name] = f.state_dict()
+    for w in flow.works():
+        state[w.name] = w.state
+    return state
+
+
+def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: bool = True) -> None:
+    """This function is used to reload the state assuming dynamic components creation.
+
+    When a component isn't found but its state exists, its state is passed up to its closest existing parent.
+
+    Arguments:
+        root_flow: The flow at the top of the component tree.
+        state: The collected state dict.
+        strict: Whether to validate all components have been re-created.
+    """
+    # 1: Reload the state of the existing works
+    for w in root_flow.works():
+        w.set_state(state.pop(w.name))
+
+    # 2: Collect the existing flows
+    flows = [root_flow] + list(root_flow.flows.values())
+    flow_map = {f.name: f for f in flows}
+
+    # 3: Find the state of the all dynamic components
+    dynamic_components = {k: v for k, v in state.items() if k not in flow_map}
+
+    # 4: Propagate the state of the dynamic components to their closest parents
+    dynamic_children_state = {}
+    for name, component_state in dynamic_components.items():
+        affiliation = name.split(".")
+        for idx in range(0, len(affiliation)):
+            parent_name = ".".join(affiliation[:-idx])
+            has_matched = False
+            for flow_name, flow in flow_map.items():
+                if flow_name == parent_name:
+                    if flow_name not in dynamic_children_state:
+                        dynamic_children_state[flow_name] = {}
+
+                    dynamic_children_state[flow_name].update({name.replace(parent_name + ".", ""): component_state})
+                    has_matched = True
+                    break
+            if has_matched:
+                break
+
+    # 5: Reload the flow states
+    for flow_name, flow in flow_map.items():
+        flow.load_state_dict(state.pop(flow_name), dynamic_children_state.get(flow_name, {}), strict=strict)
+
+    # 6: Verify all dynamic components has been re-created.
+    if strict:
+        components_names = (
+            [root_flow.name] + [f.name for f in root_flow.flows.values()] + [w.name for w in root_flow.works()]
+        )
+        for component_name in dynamic_components:
+            if component_name not in components_names:
+                raise Exception(f"The component {component_name} was re-created during state reloading.")

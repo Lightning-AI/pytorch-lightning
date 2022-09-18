@@ -52,12 +52,7 @@ warn_no_return = "False"
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
-    "pytorch_lightning.profilers.base",
-    "pytorch_lightning.profilers.pytorch",
-    "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
-    "pytorch_lightning.tuner.batch_size_scaling",
-    "pytorch_lightning.utilities.data",
-    "lightning_lite.utilities.data",
+    "pytorch_lightning.tuner.batch_size_scaling"
 ]
 ignore_errors = "True"

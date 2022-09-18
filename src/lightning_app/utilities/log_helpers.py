@@ -1,11 +1,12 @@
-import logging
 from dataclasses import dataclass
 from datetime import datetime
 from json import JSONDecodeError
 
 from websocket import WebSocketApp
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 # This is a superclass to inherit log entry classes from it:

@@ -39,6 +39,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
     pass
 
 
+@RunIf(mps=False)
 @mock.patch.dict(
     os.environ,
     {

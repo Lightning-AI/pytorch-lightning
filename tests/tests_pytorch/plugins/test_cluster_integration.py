@@ -17,8 +17,8 @@ from unittest import mock
 import pytest
 import torch
 
+from lightning_lite.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
@@ -87,7 +87,8 @@ def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strat
 )
 @mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 @mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=4)
-def test_ranks_available_automatic_strategy_selection(mock0, mock1, trainer_kwargs):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=list(range(4)))
+def test_ranks_available_automatic_strategy_selection(_, __, ___, trainer_kwargs):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
