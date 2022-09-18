@@ -8,10 +8,6 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
-
 jobs:
 
   pl-cpu:
