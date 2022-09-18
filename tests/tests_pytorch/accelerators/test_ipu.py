@@ -96,6 +96,10 @@ class IPUClassificationModel(ClassificationModel):
         self.log("test_acc", torch.stack(outputs).mean())
 
 
+def test_auto_device_count():
+    assert IPUAccelerator.auto_device_count() == 4
+
+
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_ipus(_, tmpdir):
