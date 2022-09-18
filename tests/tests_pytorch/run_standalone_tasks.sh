@@ -15,6 +15,9 @@
 set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
 
+# this environment variable allows special tests to run
+export PL_RUN_STANDALONE_TESTS=1
+
 if nvcc --version; then
     echo "Running profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx"
     nvprof --profile-from-start off -o trace_name.prof -- python -m coverage run --source pytorch_lightning --append -m pytest --no-header profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
