@@ -275,8 +275,17 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 def test_tensorboard_finalize(summary_writer, tmpdir):
     """Test that the SummaryWriter closes in finalize."""
     logger = TensorBoardLogger(save_dir=tmpdir)
-    _ = logger.experiment  # without an experiment, finalize would be no-op
+    assert logger._experiment is None
     logger.finalize("any")
+
+    # no log calls, no experiment created -> nothing to flush
+    summary_writer.assert_not_called()
+
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.log_metrics({"flush_me": 11.1})  # trigger creation of an experiment
+    logger.finalize("any")
+
+    # finalize flushes to experiment directory
     summary_writer().flush.assert_called()
     summary_writer().close.assert_called()
 

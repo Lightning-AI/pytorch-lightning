@@ -269,8 +269,6 @@ class TensorBoardLogger(Logger):
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is not None:
-            # When using multiprocessing, finalize() should be a no-op on the main process w.r.t. the experiment
-            # object, as no experiment has been initialized there
             self.experiment.flush()
             self.experiment.close()
 
