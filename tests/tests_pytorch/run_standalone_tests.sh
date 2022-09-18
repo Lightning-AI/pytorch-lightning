@@ -12,12 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -e
+set -ex
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_<package> DIRECTORY
 
 # Batch size for testing: Determines how many standalone test invocations run in parallel
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
-test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
+test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-1}"
 source="${PL_STANDALONE_TESTS_SOURCE}"
 
 # this environment variable allows special tests to run
@@ -52,7 +52,11 @@ function show_batched_output {
     rm standalone_test_output.txt
   fi
 }
-trap show_batched_output EXIT  # show the output on exit
+function trap_show_batched_output {
+  echo "trap on EXIT triggered!"
+  show_batched_output
+}
+trap trap_show_batched_output EXIT  # show the output on exit
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
