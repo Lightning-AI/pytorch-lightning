@@ -48,7 +48,7 @@ jobs:
         #   # TODO: re-enable RC testing
         #   # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
 
-    timeout-minutes: 50
+    timeout-minutes: 100
 
     steps:
     - uses: actions/checkout@v3
