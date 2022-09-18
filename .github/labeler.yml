@@ -26,7 +26,7 @@ pl:
 - any: ['requirements/pytorch/*']
   all: ['!src/lightning/**/*', '!src/lightning_app/**/*', '!src/lightning_lite/**/*', '!tests/tests_app/**/*', '!tests/tests_lite/**/*', '!tests/tests_clusters/**/*', '!tests/tests_app_examples/**/*', '!docs/source-app/**/*', '!docs/source-lit/**/*', '!requirements/app/*', '!requirements/lite/*', '!requirements/lit/*']
 
-lite:
+lightning-lite:
 - any: ['src/lightning_lite/**/*']
   all: ['!src/lightning/**/*', '!src/lightning_app/**/*', '!src/pytorch_lightning/**/*', '!tests/tests_app/**/*', '!tests/tests_pytorch/**/*', '!tests/tests_app_examples/**/*', '!tests/tests_clusters/**/*', '!docs/source-app/**/*', '!docs/source-pytorch/**/*', '!docs/source-lit/**/*', '!requirements/app/*', '!requirements/pytorch/*', '!requirements/lit/*']
 - any: ['tests/tests_lite/**/*']
