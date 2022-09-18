@@ -91,7 +91,6 @@ def mocked_device_count_0(monkeypatch):
     monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
 
 
-# Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.parametrize(
     ["devices", "expected_root_gpu", "strategy"],
     [
@@ -104,8 +103,11 @@ def mocked_device_count_0(monkeypatch):
         ("-1", None, "ddp"),
     ],
 )
-def test_root_gpu_property_0_raising(mocked_device_count_0, devices, expected_root_gpu, strategy):
-    with pytest.raises(MisconfigurationException):
+@mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+@mock.patch("lightning_lite.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
+def test_root_gpu_property_0_raising(_, __, devices, expected_root_gpu, strategy):
+    """Test that asking for a GPU when none are available will result in a MisconfigurationException."""
+    with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
         Trainer(accelerator="gpu", devices=devices, strategy=strategy)
 
 
