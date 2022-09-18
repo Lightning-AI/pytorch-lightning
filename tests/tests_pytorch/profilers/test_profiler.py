@@ -476,8 +476,6 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
 @RunIf(min_cuda_gpus=1, standalone=True)
 def test_pytorch_profiler_nested_emit_nvtx():
     """This test check emit_nvtx is correctly supported."""
-    if torch.cuda.get_device_capability()[0] >= 8:
-        pytest.skip("nvprof is not supported on devices with compute capability 8.0 and higher")
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
     model = BoringModel()
     trainer = Trainer(
