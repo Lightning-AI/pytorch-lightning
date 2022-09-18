@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment  # noqa: F401
-from lightning_lite.plugins.environments.kubeflow_environment import KubeflowEnvironment  # noqa: F401
-from lightning_lite.plugins.environments.lightning_environment import LightningEnvironment  # noqa: F401
-from lightning_lite.plugins.environments.lsf_environment import LSFEnvironment  # noqa: F401
-from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment  # noqa: F401
-from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment  # noqa: F401
-from lightning_lite.plugins.environments.xla_environment import XLAEnvironment  # noqa: F401
+from lightning_lite.plugins import ClusterEnvironment  # noqa: F401
+from lightning_lite.plugins.environments import KubeflowEnvironment  # noqa: F401
+from lightning_lite.plugins.environments import LightningEnvironment  # noqa: F401
+from lightning_lite.plugins.environments import LSFEnvironment  # noqa: F401
+from lightning_lite.plugins.environments import SLURMEnvironment  # noqa: F401
+from lightning_lite.plugins.environments import TorchElasticEnvironment  # noqa: F401
+from lightning_lite.plugins.environments import XLAEnvironment  # noqa: F401
 from pytorch_lightning.plugins.environments.bagua_environment import BaguaEnvironment  # noqa: F401
