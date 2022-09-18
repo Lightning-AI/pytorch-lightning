@@ -201,7 +201,7 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v3
       with:
-        name: pytest-log-pl
+        name: pytest-logs-pl
         path: pytest_logs
 
     - name: Check files
