@@ -16,37 +16,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-20.04", "macos-11", "windows-2022"]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
-        pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
-        include:
-          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-        exclude:
-          - {python-version: "3.10", pytorch-version: "1.9"}  # No distribution with Python 3.10
-          - {python-version: "3.10", pytorch-version: "1.10"}  # No distribution with Python 3.10
+        # os: ["ubuntu-20.04", "macos-11", "windows-2022"]
+        # python-version: ["3.7", "3.8", "3.9", "3.10"]
+        # pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
         # include:
         #   - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-        #   - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.12"}
-        #   - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.9"}  # non-oldest to simulate conda job
-        #   - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.10"}
-        #   - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.11"}
-        #   - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.12"}
         #   - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-        #   - {os: "macos-11", python-version: "3.7", pytorch-version: "1.12"}
-        #   - {os: "macos-11", python-version: "3.8", pytorch-version: "1.9"}  # non-oldest to simulate conda job
-        #   - {os: "macos-11", python-version: "3.8", pytorch-version: "1.10"}
-        #   - {os: "macos-11", python-version: "3.9", pytorch-version: "1.11"}
-        #   - {os: "macos-11", python-version: "3.10", pytorch-version: "1.12"}
         #   - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-        #   - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.12"}
-        #   - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.9"}  # non-oldest to simulate conda job
-        #   - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.10"}
-        #   - {os: "windows-2022", python-version: "3.9", pytorch-version: "1.11"}
-        #   - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
-        #   # TODO: re-enable RC testing
-        #   # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
+        # exclude:
+        #   - {python-version: "3.10", pytorch-version: "1.9"}  # No distribution with Python 3.10
+        #   - {python-version: "3.10", pytorch-version: "1.10"}  # No distribution with Python 3.10
+        include:
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.12"}
+          - {os: "macos-11", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "macos-11", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "macos-11", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.12"}
+          - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "windows-2022", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
+          # TODO: re-enable RC testing
+          # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
 
     timeout-minutes: 100
 
