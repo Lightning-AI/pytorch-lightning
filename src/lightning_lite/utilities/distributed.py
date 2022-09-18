@@ -3,17 +3,13 @@ import os
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
-from torch.nn import functional as F
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
-from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-
+from lightning_lite.utilities.imports import _HPU_AVAILABLE
+from lightning_lite.utilities.rank_zero import rank_zero_info
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
@@ -89,6 +85,8 @@ def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> L
 
 
 def distributed_available() -> bool:
+    from lightning_lite.accelerators.tpu import tpu_distributed
+
     return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
 
 
@@ -143,7 +141,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
         is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
         if is_hpu_backend:
             if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
-                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                rank_zero_info("Long tensor unsupported on HPU, casting to float")
                 result = result.float()
 
     # Sync all processes before reduction
@@ -204,7 +202,7 @@ def all_gather_ddp_if_available(
 
 
 def init_dist_connection(
-    cluster_environment: "ClusterEnvironment",
+    cluster_environment: ClusterEnvironment,
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
@@ -237,16 +235,12 @@ def init_dist_connection(
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
     # On rank=0 let everyone know training is starting
-    new_rank_zero_info(
+    rank_zero_info(
         f"{'-' * 100}\n"
         f"distributed_backend={torch_distributed_backend}\n"
         f"All distributed processes registered. Starting with {world_size} processes\n"
         f"{'-' * 100}\n"
     )
-
-
-def tpu_distributed() -> bool:
-    return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
 def get_default_process_group_backend_for_device(device: torch.device) -> str:

@@ -21,6 +21,7 @@ import torch.multiprocessing as mp
 from torch.multiprocessing import ProcessContext
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.utilities.apply_func import move_data_to_device
 from pytorch_lightning.strategies.launchers.multiprocessing import (
     _FakeQueue,
@@ -29,14 +30,7 @@ from pytorch_lightning.strategies.launchers.multiprocessing import (
     _WorkerOutput,
 )
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-else:
-    xm, xmp = None, None
 
 if TYPE_CHECKING:
     from pytorch_lightning.strategies import Strategy
@@ -59,6 +53,8 @@ class _XLALauncher(_MultiProcessingLauncher):
     """
 
     def __init__(self, strategy: "Strategy") -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
@@ -151,6 +147,8 @@ def _save_spawn(
 ) -> Optional[ProcessContext]:
     """Wraps the :func:`torch_xla.distributed.xla_multiprocessing.spawn` with added teardown logic for the worker
     processes."""
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
 
     @wraps(fn)
     def wrapped(rank: int, *_args: Any) -> None:

@@ -90,14 +90,7 @@ from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
-from pytorch_lightning.utilities import (
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TPU_AVAILABLE,
-    AMPType,
-    GradClipAlgorithmType,
-    parsing,
-)
+from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, AMPType, GradClipAlgorithmType, parsing
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,
@@ -582,7 +575,7 @@ class Trainer(
             self.limit_test_batches = num_batches
             self.limit_predict_batches = num_batches
             self.fit_loop.max_steps = num_batches
-            self.num_sanity_val_steps = 0
+            self.num_sanity_val_steps: Union[float, int] = 0
             self.fit_loop.max_epochs = 1
             self.val_check_interval = 1.0
             self.check_val_every_n_epoch = 1
@@ -1745,7 +1738,7 @@ class Trainer(
         rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
         num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
-        rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
+        rank_zero_info(f"TPU available: {TPUAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
@@ -1761,7 +1754,7 @@ class Trainer(
                 category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
+        if isinstance(self.accelerator, TPUAccelerator) and self.accelerator.is_available():
             rank_zero_warn(
                 "TPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."

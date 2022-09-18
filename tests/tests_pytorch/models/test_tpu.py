@@ -29,12 +29,8 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _save_spawn
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-
-if _TPU_AVAILABLE:
-    import torch_xla
 
 
 class SerialLoaderBoringModel(BoringModel):
@@ -80,6 +76,8 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
+    import torch_xla
+
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
@@ -139,6 +137,8 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
+    import torch_xla
+
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
@@ -244,7 +244,7 @@ def test_tpu_misconfiguration(tpu_cores):
         Trainer(accelerator="tpu", devices=tpu_cores)
 
 
-@pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
+@pytest.mark.skipif(TPUAccelerator.is_available(), reason="test requires missing TPU")
 def test_exception_when_no_tpu_found():
     """Test if exception is thrown when xla devices are not available."""
 

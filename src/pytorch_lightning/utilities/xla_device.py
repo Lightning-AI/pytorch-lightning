@@ -15,16 +15,16 @@
 from multiprocessing import Queue
 from typing import Any, Callable
 
-from lightning_lite.utilities.xla_device import inner_f as new_inner_f
-from lightning_lite.utilities.xla_device import pl_multi_process as new_pl_multi_process
-from lightning_lite.utilities.xla_device import XLADeviceUtils as NewXLADeviceUtils
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.accelerators.tpu import _inner_f as new_inner_f
+from pytorch_lightning.accelerators.tpu import _multi_process as new_pl_multi_process
+from pytorch_lightning.accelerators.tpu import _XLA_AVAILABLE
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.xla_device.inner_f` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_lite.utilities.xla_device.inner_f` instead."
+        " removed in v1.10.0. This class is internal but you can copy over its implementation."
     )
     return new_inner_f(queue, func, *args, **kwargs)
 
@@ -32,31 +32,34 @@ def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  #
 def pl_multi_process(func: Callable) -> Callable:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.xla_device.pl_multi_process` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_lite.utilities.xla_device.pl_multi_process` instead."
+        " removed in v1.10.0. This class is internal but you can copy over its implementation."
     )
     return new_pl_multi_process(func)
 
 
-class XLADeviceUtils(NewXLADeviceUtils):
+class XLADeviceUtils:
     def __init__(self) -> None:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.xla_device.XLADeviceUtils` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. Please use `lightning_lite.utilities.xla_device.XLADeviceUtils` instead."
+            " removed in v1.10.0. This class is internal but you can copy over its implementation."
         )
-        super().__init__()
 
     @staticmethod
     def xla_available() -> bool:
         rank_zero_deprecation(
-            "`pytorch_lightning.utilities.xla_device.XLADeviceUtils` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. Please use `lightning_lite.utilities.xla_device.XLADeviceUtils` instead."
+            "`pytorch_lightning.utilities.xla_device.XLADeviceUtils.xla_available` has been deprecated in v1.8.0 and"
+            " will be removed in v1.10.0. This method is internal."
+            " instead."
         )
-        return NewXLADeviceUtils.xla_available()
+        return bool(_XLA_AVAILABLE)
 
     @staticmethod
     def tpu_device_exists() -> bool:
         rank_zero_deprecation(
-            "`pytorch_lightning.utilities.xla_device.XLADeviceUtils` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. Please use `lightning_lite.utilities.xla_device.XLADeviceUtils` instead."
+            "`pytorch_lightning.utilities.xla_device.XLADeviceUtils.tpu_device_exists` has been deprecated in v1.8.0"
+            " and will be removed in v1.10.0. Please use `pytorch_lightning.accelerators.TPUAccelerator.is_available()`"
+            " instead."
         )
-        return NewXLADeviceUtils.tpu_device_exists()
+        from pytorch_lightning.accelerators.tpu import TPUAccelerator
+
+        return TPUAccelerator.is_available()
