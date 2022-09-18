@@ -880,7 +880,6 @@ def test_checkpoint_repeated_strategy(tmpdir):
         # load from checkpoint
         trainer = Trainer(**trainer_kwargs)
         trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
-        # assert trainer.logger._experiment, str(idx)
         trainer.test(ckpt_path=checkpoint_callback.best_model_path, verbose=False)
 
         assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
