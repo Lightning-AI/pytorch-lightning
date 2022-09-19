@@ -400,7 +400,7 @@ Here’s an example:
 
 .. code:: bash
 
-    lightning run app app.py —-cluster my-byoc-cluster-01 –cloud
+    lightning run app app.py —-cluster my-byoc-cluster-01 –-cloud
 
 Once you attempt to run the App on the cluster, you can also view the status of your App using the following command:
 
