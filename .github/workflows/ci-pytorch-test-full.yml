@@ -39,7 +39,7 @@ jobs:
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v29.0.4
+      uses: tj-actions/changed-files@v29.0.7
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
