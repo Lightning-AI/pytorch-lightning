@@ -226,7 +226,7 @@ class ModelParallelClassificationModel(LightningModule):
         return self.forward(x)
 
 
-@RunIf(min_cuda_gpus=2, standalone=False, colossalai=True)
+@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
 def test_multi_gpu_checkpointing(tmpdir):
     seed_everything(4321)
     dm = ClassifDataModule()

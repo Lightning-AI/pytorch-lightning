@@ -187,6 +187,7 @@ class ColossalAIStrategy(DDPStrategy):
         return True
 
     def setup_distributed(self):
+        self.set_world_ranks()
         if not gpc.is_initialized(ParallelMode.GLOBAL):
             disable_existing_loggers()
             gpc.init_global_dist(
@@ -290,7 +291,18 @@ class ColossalAIStrategy(DDPStrategy):
                 child.to(self.root_device)
 
     def teardown(self) -> None:
-        return
+        optimizers = self.optimizers
+        self.optimizers = list()
+        zero_model = self.model
+        self.model = None
+        pl_module = self._lightning_module
+        self._lightning_module = None
+
+        super().teardown()
+
+        self.optimizers = optimizers
+        self.model = zero_model
+        self._lightning_module = pl_module
 
     def optimizer_step(self, optimizer, opt_idx: int, closure, model=None, **kwargs: Any) -> Any:
         model = model or self.lightning_module
