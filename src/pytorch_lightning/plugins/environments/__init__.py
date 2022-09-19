@@ -13,6 +13,11 @@
 # limitations under the License.
 from lightning_lite.plugins import ClusterEnvironment  # noqa: F401
 from lightning_lite.plugins.environments import (  # noqa: F401
-KubeflowEnvironment, LightningEnvironment, LSFEnvironment, SLURMEnvironment, TorchElasticEnvironment, XLAEnvironment
+    KubeflowEnvironment,
+    LightningEnvironment,
+    LSFEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+    XLAEnvironment,
 )
 from pytorch_lightning.plugins.environments.bagua_environment import BaguaEnvironment  # noqa: F401
