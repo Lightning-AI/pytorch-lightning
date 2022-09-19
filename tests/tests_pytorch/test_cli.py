@@ -49,7 +49,9 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
-    from jsonargparse import lazy_instance
+    from jsonargparse import lazy_instance, Namespace
+else:
+    from argparse import Namespace
 
 
 @contextmanager
@@ -1403,3 +1405,26 @@ def test_pytorch_profiler_init_args():
     init["record_shapes"] = unresolved.pop("record_shapes")  # Test move to init_args
     assert {k: cli.config.trainer.profiler.init_args[k] for k in init} == init
     assert cli.config.trainer.profiler.dict_kwargs == unresolved
+
+
+@pytest.mark.parametrize(
+    ["args"],
+    [
+        (["--trainer.logger=False", "--model.foo=456"],),
+        ({"trainer": {"logger": False}, "model": {"foo": 456}},),
+        (Namespace(trainer=Namespace(logger=False), model=Namespace(foo=456)),),
+    ],
+)
+def test_lightning_cli_with_args_given(args):
+    with mock.patch("sys.argv", [""]):
+        cli = LightningCLI(TestModel, run=False, args=args)
+    assert isinstance(cli.model, TestModel)
+    assert cli.config.trainer.logger is False
+    assert cli.model.foo == 456
+
+
+def test_lightning_cli_args_and_sys_argv_exception():
+    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.raises(
+        ValueError, match="LightningCLI's args parameter "
+    ):
+        LightningCLI(TestModel, run=False, args=["--model.foo=789"])
