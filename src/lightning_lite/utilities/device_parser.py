@@ -1,3 +1,16 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 from lightning_lite.accelerators.cuda import _get_all_available_cuda_gpus
@@ -187,25 +200,3 @@ def _check_data_type(device_ids: Any) -> None:
                 raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}.")
     elif type(device_ids) not in (int, str):
         raise MisconfigurationException(f"{msg} {type(device_ids).__name__}.")
-
-
-def _tpu_cores_valid(tpu_cores: Any) -> bool:
-    # allow 1 or 8 cores
-    if tpu_cores in (1, 8, None):
-        return True
-
-    # allow picking 1 of 8 indexes
-    if isinstance(tpu_cores, (list, tuple, set)):
-        has_1_tpu_idx = len(tpu_cores) == 1
-        is_valid_tpu_idx = 1 <= list(tpu_cores)[0] <= 8
-
-        is_valid_tpu_core_choice = has_1_tpu_idx and is_valid_tpu_idx
-        return is_valid_tpu_core_choice
-
-    return False
-
-
-def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
-    if tpu_cores in ("1", "8"):
-        return int(tpu_cores)
-    return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
