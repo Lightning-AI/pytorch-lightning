@@ -17,12 +17,9 @@ What is Lightning BYOC?
 
 BYOC - Bring Your Own Cloud, is an alternate deployment model to Lightning Cloud (fully managed SaaS).
 BYOC separates the control and data plane. The data plane, that includes
-Lightning clusters, services and Lightning Apps, reside inside the user’s VPC.
 Lightning clusters, services and Lightning Apps (App), reside inside the user’s cloud account.
 The control plane resides on Lightning Cloud.
 
-Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
-delegated access and an identity provider for secure access to the data plane.
 Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your
 personal credentials (this could include your CLI profile name, secret, and key) for delegated
 access and an identity provider for secure access to the data plane.
@@ -39,8 +36,9 @@ What does Lightning BYOC do for me?
 
 Lightning BYOC allows you to use Lightning while keeping your data behind a wall.
 Lightning can interact with your data, but your data never leaves your cloud.
-This means you can run Apps, train Apps, collaborate on creating Apps and component
-within your own cloud. So your data is protected and you save money.
+This means you can run Apps, train Apps, collaborate on creating Apps and Components
+within your own cloud. So your data is protected. You also save money by running
+Apps in your own cloud instead of using Lightning Cloud.
 
 ----
 
@@ -394,13 +392,13 @@ Once your cluster is running, you can run any Lightning App on your cluster. To 
 
 .. code:: bash
 
-    lightning run app app.py —-cluster <cluster-name> —-cloud
+    lightning run app app.py —-cluster <cluster-name> --cloud
 
 Here’s an example:
 
 .. code:: bash
 
-    lightning run app app.py —-cluster my-byoc-cluster-01 –-cloud
+    lightning run app app.py —-cluster my-byoc-cluster-01 --cloud
 
 Once you attempt to run the App on the cluster, you can also view the status of your App using the following command:
 
