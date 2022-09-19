@@ -18,6 +18,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.mixed import MixedPrecision
 from lightning_lite.utilities.enums import AMPType
@@ -41,7 +42,7 @@ class NativeMixedPrecision(MixedPrecision):
     backend = AMPType.NATIVE
 
     def __init__(
-        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal[16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
         if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
@@ -58,6 +59,11 @@ class NativeMixedPrecision(MixedPrecision):
     def forward_context(self) -> Generator[None, None, None]:
         with self._autocast_context_manager():
             yield
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16}
+        to_type = precision_to_type[self.precision]
+        return data.to(to_type) if torch.is_floating_point(data) else data
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:

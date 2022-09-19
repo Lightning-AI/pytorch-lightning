@@ -23,16 +23,13 @@ from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tupl
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_only
-from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.precision import Precision
-from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.strategies.ddp import DDPStrategy
-from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.distributed import log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
@@ -368,10 +365,6 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.load_full_weights and self.zero_stage_3:
             self.module_to_device(module)
             self._restore_zero_state(module, checkpoint)
-
-    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
-        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
-        return super().batch_to_device(batch, device)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

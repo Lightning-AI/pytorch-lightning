@@ -14,6 +14,7 @@
 import contextlib
 from typing import Any, Dict, Generator, Optional, Union
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -33,6 +34,18 @@ class Precision:
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        """Convert model inputs (forward) to the floating point precision type of this plugin.
+        This is a no-op for tensors that are not of floating-point type or already have the desired type.
+        """
+        return data.to(torch.float32) if torch.is_floating_point(data) else data
+
+    def convert_output(self, data: Tensor) -> Tensor:
+        """Convert model outputs (forward) back to the default floating point precision type.
+        This is a no-op for tensors that are not of floating-point type or already have the desired type.
+        """
+        return data.to(torch.get_default_dtype()) if torch.is_floating_point(data) else data
 
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
         """Runs before precision plugin executes backward.

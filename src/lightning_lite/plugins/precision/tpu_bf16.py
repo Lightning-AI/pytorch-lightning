@@ -13,6 +13,9 @@
 # limitations under the License.
 import os
 
+import torch
+from torch import Tensor
+
 from lightning_lite.plugins.precision import TPUPrecision
 
 
@@ -24,6 +27,9 @@ class TPUBf16Precision(TPUPrecision):
     def __init__(self) -> None:
         super().__init__()
         os.environ["XLA_USE_BF16"] = "1"
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        return data.to(torch.bfloat16) if torch.is_floating_point(data) else data
 
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)

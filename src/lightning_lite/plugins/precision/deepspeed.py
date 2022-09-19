@@ -13,9 +13,11 @@
 # limitations under the License.
 from typing import Any, Optional, TYPE_CHECKING, Union
 
+import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.utilities.enums import AMPType, PrecisionType
@@ -30,7 +32,7 @@ class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Full precision (32), half precision (16) or bfloat16 precision (bf16).
         amp_type: The mixed precision backend to use ("native" or "apex").
         amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
             if ``amp_type`` is set to "apex".
@@ -43,7 +45,7 @@ class DeepSpeedPrecision(Precision):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
+    def __init__(self, precision: Literal[16, 32, "bf16"], amp_type: str, amp_level: Optional[str] = None) -> None:
         if amp_type == AMPType.APEX:
             if not _APEX_AVAILABLE:
                 raise ImportError(
@@ -53,17 +55,22 @@ class DeepSpeedPrecision(Precision):
 
             amp_level = amp_level or "O2"
 
-        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
-        if precision not in supported_precision:
+        supported_precision = ("16", "32", "bf16")
+        if str(precision) not in supported_precision:
             raise ValueError(
                 f"`precision={precision!r})` is not supported in DeepSpeed."
-                f" `precision` must be one of: {(x.value for x in supported_precision)}."
+                f" `precision` must be one of: {', '.join(supported_precision)}."
             )
 
         super().__init__()
         self.precision = precision
         self.amp_type = amp_type
         self.amp_level = amp_level
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16, 32: torch.float32}
+        to_type = precision_to_type[self.precision]
+        return data.to(to_type) if torch.is_floating_point(data) else data
 
     def backward(self, tensor: Tensor, model: Optional["deepspeed.DeepSpeedEngine"], *args: Any, **kwargs: Any) -> None:
         """Performs back-propagation using DeepSpeed's engine."""
