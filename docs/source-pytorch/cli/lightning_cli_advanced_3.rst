@@ -368,9 +368,11 @@ the main function as follows:
 
     from pytorch_lightning.cli import ArgsType, LightningCLI
 
+
     def cli_main(args: ArgsType = None):
         cli = LightningCLI(MyModel, ..., args=args)
         ...
+
 
     if __name__ == "__main__":
         cli_main()
