@@ -174,19 +174,17 @@ class TestHPUProfiler:
             assert Path(os.path.join(os.getcwd(), profiler.dirpath, f)).read_text("utf-8")
 
     def test_hpu_pytorch_profiler_instances(tmpdir):
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
-        trainer = Trainer(profiler="hpu", accelerator="hpu", devices=devices, max_epochs=1)
+        trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1, max_epochs=1)
         assert isinstance(trainer.profiler, HPUProfiler)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     def test_hpu_trace_event_cpu_instant_event(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler(profile_memory=True))
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(profile_memory=True))
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -212,10 +210,9 @@ class TestHPUProfiler:
 
     def test_hpu_trace_event_python_function(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler(with_stack=True))
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(with_stack=True))
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -244,7 +241,7 @@ class TestHPUProfiler:
         devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -270,10 +267,9 @@ class TestHPUProfiler:
 
     def test_hpu_trace_event_hpu_op(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -298,10 +294,9 @@ class TestHPUProfiler:
 
     def test_hpu_trace_event_hpu_meta_op(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -327,9 +322,8 @@ class TestHPUProfiler:
 
     def test_hpu_trace_event_kernel(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
         # get trace path
@@ -354,10 +348,9 @@ class TestHPUProfiler:
 
     def test_hpu_trace_event_cpu_op_input_dim(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler(record_shapes=True))
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(record_shapes=True))
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -383,10 +376,9 @@ class TestHPUProfiler:
 
     def test_hpu_trace_event_call_stack(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=devices, max_epochs=1, profiler=HPUProfiler(with_stack=True))
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(with_stack=True))
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
