@@ -20,8 +20,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
 import torch
-from torch.autograd.profiler import EventList
-from torch.autograd.profiler import record_function
+from torch.autograd.profiler import EventList, record_function
 from torch.profiler import ProfilerAction
 
 from pytorch_lightning import LightningModule
@@ -119,7 +118,7 @@ class HPUProfiler(PyTorchProfiler):
         activities = profiler_kwargs.get("activities", None)
         self._profiler_kwargs["activities"] = self.profile_hpu_activities(activities)
 
-    def profile_hpu_activities(self, activities) -> List["ProfilerActivity"]: # type: ignore
+    def profile_hpu_activities(self, activities) -> List["ProfilerActivity"]:  # type: ignore
         if not _KINETO_AVAILABLE:
             return activities
         activities.append(ProfilerActivity.HPU)
