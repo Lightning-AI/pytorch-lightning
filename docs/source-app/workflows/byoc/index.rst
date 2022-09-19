@@ -390,7 +390,7 @@ Your cluster is now up and running, so researchers, data scientists, Lightning A
 Use the Lightning BYOC Cluster
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once your cluster is running, you can run any Lightning App on your cluster. To run an App on the Lightning BYOC cluster, use --cloud –cluster <cluster name> in the command:
+Once your cluster is running, you can run any Lightning App on your cluster. To run an App on the Lightning BYOC cluster, use --cloud –-cluster <cluster name> in the command:
 
 .. code:: bash
 
