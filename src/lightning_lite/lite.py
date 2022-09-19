@@ -64,8 +64,6 @@ class LightningLite(ABC):
         precision: Double precision (``64``), full precision (``32``), half precision (``16``),
             or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
-        gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
-        tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
     """
 
     def __init__(
@@ -76,8 +74,6 @@ class LightningLite(ABC):
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
-        gpus: Optional[Union[List[int], str, int]] = None,
-        tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
@@ -86,8 +82,6 @@ class LightningLite(ABC):
             num_nodes=num_nodes,
             precision=precision,
             plugins=plugins,
-            tpu_cores=tpu_cores,
-            gpus=gpus,
         )
         self._strategy: Strategy = self._connector.strategy
         self._accelerator: Accelerator = self._connector.accelerator
