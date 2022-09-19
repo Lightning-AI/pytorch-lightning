@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
-from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
+from lightning_lite.utilities.rank_zero import rank_zero_info
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -143,7 +143,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
         is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
         if is_hpu_backend:
             if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
-                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                rank_zero_info("Long tensor unsupported on HPU, casting to float")
                 result = result.float()
 
     # Sync all processes before reduction
@@ -204,7 +204,7 @@ def all_gather_ddp_if_available(
 
 
 def init_dist_connection(
-    cluster_environment: "ClusterEnvironment",
+    cluster_environment: ClusterEnvironment,
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
@@ -237,7 +237,7 @@ def init_dist_connection(
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
     # On rank=0 let everyone know training is starting
-    new_rank_zero_info(
+    rank_zero_info(
         f"{'-' * 100}\n"
         f"distributed_backend={torch_distributed_backend}\n"
         f"All distributed processes registered. Starting with {world_size} processes\n"
