@@ -360,27 +360,49 @@ Run from Python
 ^^^^^^^^^^^^^^^
 
 Even though the :class:`~pytorch_lightning.cli.LightningCLI` class is designed to help in the implementation of command
-line tools, for some use cases it is desired to run directly from Python. To support these use cases, the ``args``
-parameter can be used, for example:
+line tools, for some use cases it is desired to run directly from Python. To allow this there is the ``args`` parameter.
+An example could be to first implement a normal CLI script, but adding an ``args`` parameter with default ``None`` to
+the main function as follows:
 
-.. testcode::
+.. code:: python
 
-    cli = LightningCLI(MyModel, args=["--trainer.max_epochs=100", "--model.encoder_layers=24"])
+    from pytorch_lightning.cli import ArgsType, LightningCLI
+
+    def cli_main(args: ArgsType = None):
+        cli = LightningCLI(MyModel, ..., args=args)
+        ...
+
+    if __name__ == "__main__":
+        cli_main()
+
+Then it is possible to import the ``cli_main`` function to run it. Executing in a shell ``my_cli.py
+--trainer.max_epochs=100", "--model.encoder_layers=24`` would be equivalent to:
+
+.. code:: python
+
+    from my_module.my_cli import cli_main
+
+    cli_main(["--trainer.max_epochs=100", "--model.encoder_layers=24"])
 
 All the features that are supported from the command line can be used when giving ``args`` as a list of strings. It is
-also possible to provide to ``args`` a ``dict`` or `Namespace
+also possible to provide a ``dict`` or `jsonargparse.Namespace
 <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.Namespace>`__. For example:
 
-.. testcode::
+.. code:: python
 
-    cli = LightningCLI(
-        MyModel,
-        args={
-            "trainer": {
-                "max_epochs": 100,
-            },
-            "model": {
-                "encoder_layers": 24,
-            },
+    args = {
+        "trainer": {
+            "max_epochs": 100,
         },
-    )
+        "model": {},
+    }
+
+    for encoder_layers in [8, 16, 24]:
+        args["model"]["encoder_layers"] = encoder_layers
+        cli_main(args)
+
+.. note::
+
+    The ``args`` parameter must be ``None`` when running from command line so that ``sys.argv`` is used as arguments.
+    Also, note that the purpose of ``trainer_defaults`` is different to ``args``. It is okay to use ``trainer_defaults``
+    in the ``cli_main`` function to modify the defaults of some trainer parameters.

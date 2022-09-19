@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from functools import partial, update_wrapper
 from types import MethodType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
@@ -46,6 +47,9 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+
+ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -256,7 +260,7 @@ class LightningCLI:
         parser_kwargs: Optional[Union[Dict[str, Any], Dict[str, Dict[str, Any]]]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
-        args: Union[List[str], Dict[str, Any], Namespace] = None,
+        args: ArgsType = None,
         run: bool = True,
         auto_registry: bool = False,
     ) -> None:
@@ -302,7 +306,7 @@ class LightningCLI:
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
             args: Arguments to parse. If ``None`` the arguments are taken from ``sys.argv``. Command line style
-                arguments can be given in a ``list``. Alternatively a structured config options can be given in a
+                arguments can be given in a ``list``. Alternatively, structured config options can be given in a
                 ``dict`` or ``jsonargparse.Namespace``.
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
@@ -478,10 +482,14 @@ class LightningCLI:
                 add_class_path = _add_class_path_generator(class_type)
                 parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
-    def parse_arguments(
-        self, parser: LightningArgumentParser, args: Union[List[str], Dict[str, Any], Namespace]
-    ) -> None:
+    def parse_arguments(self, parser: LightningArgumentParser, args: ArgsType) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
+        if args is not None and len(sys.argv) > 1:
+            raise MisconfigurationException(
+                "LightningCLI's args parameter is intended to run from within Python like if it were from the command "
+                "line. To prevent mistakes it is not allowed to provide both args and command line arguments, got: "
+                f"sys.argv[1:]={sys.argv[1:]}, args={args}."
+            )
         if isinstance(args, (dict, Namespace)):
             self.config = parser.parse_object(args)
         else:

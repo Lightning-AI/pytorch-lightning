@@ -1414,7 +1414,15 @@ def test_pytorch_profiler_init_args():
     ],
 )
 def test_lightning_cli_with_args_given(args):
-    cli = LightningCLI(TestModel, run=False, args=args)
+    with mock.patch("sys.argv", [""]):
+        cli = LightningCLI(TestModel, run=False, args=args)
     assert isinstance(cli.model, TestModel)
     assert cli.config.trainer.logger is False
     assert cli.model.foo == 456
+
+
+def test_lightning_cli_args_and_sys_argv_exception():
+    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.raises(
+        MisconfigurationException, match="LightningCLI's args parameter "
+    ):
+        LightningCLI(TestModel, run=False, args=["--model.foo=789"])

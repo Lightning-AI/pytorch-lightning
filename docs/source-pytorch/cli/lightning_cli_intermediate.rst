@@ -87,8 +87,12 @@ The simplest way to control a model with the CLI is to wrap it in the LightningC
     # simple demo classes for your convenience
     from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
 
-    cli = LightningCLI(DemoModel, BoringDataModule)
-    # note: don't call fit!!
+    def cli_main():
+        cli = LightningCLI(DemoModel, BoringDataModule)
+        # note: don't call fit!!
+
+    if __name__ == "__main__":
+        cli_main()
 
 Now your model can be managed via the CLI. To see the available commands type:
 
