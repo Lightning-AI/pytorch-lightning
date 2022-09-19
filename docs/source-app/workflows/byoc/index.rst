@@ -404,4 +404,10 @@ Once you attempt to run the App on the cluster, you can also view the status of 
 
 .. code:: bash
 
-    lightning list apps
+    lightning list apps —-cluster <cluster-name> --cloud
+
+Here’s an example:
+
+.. code:: bash
+
+    lightning list apps —-cluster my-byoc-cluster-01 --cloud
