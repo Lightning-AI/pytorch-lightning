@@ -55,7 +55,7 @@ def test_set_cuda_device(set_device_mock):
 
 @mock.patch("lightning_lite.accelerators.cuda._device_count_nvml", return_value=-1)
 @mock.patch("torch.cuda.device_count", return_value=100)
-def test_num_cuda_devices_without_forking(*_):
+def test_num_cuda_devices_without_nvml(*_):
     """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for
     determining CUDA availability."""
     assert is_cuda_available()
