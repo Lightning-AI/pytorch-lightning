@@ -19,12 +19,13 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
+from lightning_lite.plugins.environments import ClusterEnvironment, LightningEnvironment
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.environments import ClusterEnvironment, LightningEnvironment
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
@@ -265,7 +266,7 @@ class BoringFairScaleOptimizerModel(BoringModel):
         return OSS(params=base_optimizer.param_groups, optim=type(base_optimizer), **base_optimizer.defaults)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
+@RunIf(min_cuda_gpus=2, fairscale=True)
 @pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
 def test_ddp_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using faircale optimizer."""

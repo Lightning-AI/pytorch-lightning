@@ -4,7 +4,7 @@ import json
 import os
 import re
 import shutil
-from distutils.version import LooseVersion, StrictVersion
+from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from pathlib import Path
@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 
 import fire
 import pkg_resources
+from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -30,15 +31,20 @@ REQUIREMENT_FILES_ALL = tuple(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
 
 
-def pypi_versions(package_name: str) -> List[str]:
-    """Return a list of released versions of a provided pypi name."""
+def pypi_versions(package_name: str, drop_pre: bool = True) -> List[str]:
+    """Return a list of released versions of a provided pypi name.
+
+    >>> _ = pypi_versions("lightning_app", drop_pre=False)
+    """
     # https://stackoverflow.com/a/27239645/4521646
     url = f"https://pypi.org/pypi/{package_name}/json"
     data = json.load(urlopen(Request(url)))
     versions = list(data["releases"].keys())
     # todo: drop this line after cleaning Pypi history from invalid versions
-    versions = list(filter(lambda v: v.count(".") == 2 and "rc" not in v, versions))
-    versions.sort(key=StrictVersion)
+    versions = list(filter(lambda v: v.count(".") == 2, versions))
+    if drop_pre:
+        versions = list(filter(lambda v: all(c not in v for c in ["rc", "dev"]), versions))
+    versions.sort(key=version_parse)
     return versions
 
 
@@ -122,8 +128,8 @@ class AssistantCLI:
         url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
         data = json.load(urlopen(Request(url)))
         if not version:
-            versions = list(data["releases"].keys())
-            version = sorted(versions, key=LooseVersion)[-1]
+            pypi_vers = pypi_versions(PACKAGE_MAPPING[package], drop_pre=False)
+            version = pypi_vers[-1]
         releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
         assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
         release = releases[0]
@@ -131,6 +137,7 @@ class AssistantCLI:
         pkg_file = os.path.basename(pkg_url)
         pkg_path = os.path.join(folder, pkg_file)
         os.makedirs(folder, exist_ok=True)
+        print(f"downloading: {pkg_url}")
         request.urlretrieve(pkg_url, pkg_path)
 
     @staticmethod

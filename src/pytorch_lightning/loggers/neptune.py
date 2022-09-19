@@ -21,71 +21,32 @@ __all__ = [
 
 import logging
 import os
-import warnings
 from argparse import Namespace
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-_NEPTUNE_AVAILABLE = _RequirementAvailable("neptune-client")
-_NEPTUNE_GREATER_EQUAL_0_9 = _RequirementAvailable("neptune-client>=0.9.0")
-
-
-if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
-    try:
-        from neptune import new as neptune
-        from neptune.new.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
-        from neptune.new.run import Run
-        from neptune.new.types import File as NeptuneFile
-    except ModuleNotFoundError:
-        import neptune
-        from neptune.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
-        from neptune.run import Run
-        from neptune.types import File as NeptuneFile
+_NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
+if _NEPTUNE_AVAILABLE:
+    from neptune import new as neptune
+    from neptune.new.exceptions import NeptuneOfflineModeFetchException
+    from neptune.new.run import Run
 else:
     # needed for test mocks, and function signatures
-    neptune, Run, NeptuneFile = None, None, None
+    neptune, Run = None, None
 
 log = logging.getLogger(__name__)
 
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
-
-# kwargs used in previous NeptuneLogger version, now deprecated
-_LEGACY_NEPTUNE_INIT_KWARGS = [
-    "project_name",
-    "offline_mode",
-    "experiment_name",
-    "experiment_id",
-    "params",
-    "properties",
-    "upload_source_files",
-    "abort_callback",
-    "logger",
-    "upload_stdout",
-    "upload_stderr",
-    "send_hardware_metrics",
-    "run_monitoring_thread",
-    "handle_uncaught_exceptions",
-    "git_info",
-    "hostname",
-    "notebook_id",
-    "notebook_path",
-]
-
-# kwargs used in legacy NeptuneLogger from neptune-pytorch-lightning package
-_LEGACY_NEPTUNE_LOGGER_KWARGS = [
-    "base_namespace",
-    "close_after_fit",
-]
 
 
 class NeptuneLogger(Logger):
@@ -248,9 +209,7 @@ class NeptuneLogger(Logger):
 
     Raises:
         ModuleNotFoundError:
-            If required Neptune package in version >=0.9 is not installed on the device.
-        TypeError:
-            If configured project has not been migrated to new structure yet.
+            If required Neptune package is not installed.
         ValueError:
             If argument passed to the logger's constructor is incorrect.
     """
@@ -272,14 +231,13 @@ class NeptuneLogger(Logger):
         agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **neptune_run_kwargs: Any,
     ):
-        # verify if user passed proper init arguments
-        self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         if neptune is None:
             raise ModuleNotFoundError(
                 "You want to use the `Neptune` logger which is not installed yet, install it with"
                 " `pip install neptune-client`."
             )
-
+        # verify if user passed proper init arguments
+        self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._log_model_checkpoints = log_model_checkpoints
         self._prefix = prefix
@@ -347,43 +305,9 @@ class NeptuneLogger(Logger):
         run: Optional["Run"],
         neptune_run_kwargs: dict,
     ) -> None:
-        legacy_kwargs_msg = (
-            "Following kwargs are deprecated: {legacy_kwargs}.\n"
-            "If you are looking for the Neptune logger using legacy Python API,"
-            " it's still available as part of neptune-contrib package:\n"
-            "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-            "The NeptuneLogger was re-written to use the neptune.new Python API\n"
-            "  - https://neptune.ai/blog/neptune-new\n"
-            "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
-            "You should use arguments accepted by either NeptuneLogger.init() or neptune.init()"
-        )
-
-        # check if user used legacy kwargs expected in `NeptuneLegacyLogger`
-        used_legacy_kwargs = [
-            legacy_kwarg for legacy_kwarg in neptune_run_kwargs if legacy_kwarg in _LEGACY_NEPTUNE_INIT_KWARGS
-        ]
-        if used_legacy_kwargs:
-            raise ValueError(legacy_kwargs_msg.format(legacy_kwargs=used_legacy_kwargs))
-
-        # check if user used legacy kwargs expected in `NeptuneLogger` from neptune-pytorch-lightning package
-        used_legacy_neptune_kwargs = [
-            legacy_kwarg for legacy_kwarg in neptune_run_kwargs if legacy_kwarg in _LEGACY_NEPTUNE_LOGGER_KWARGS
-        ]
-        if used_legacy_neptune_kwargs:
-            raise ValueError(legacy_kwargs_msg.format(legacy_kwargs=used_legacy_neptune_kwargs))
-
-        # check if user passed new client `Run` object
+        # check if user passed the client `Run` object
         if run is not None and not isinstance(run, Run):
-            raise ValueError(
-                "Run parameter expected to be of type `neptune.new.Run`.\n"
-                "If you are looking for the Neptune logger using legacy Python API,"
-                " it's still available as part of neptune-contrib package:\n"
-                "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-                "The NeptuneLogger was re-written to use the neptune.new Python API\n"
-                "  - https://neptune.ai/blog/neptune-new\n"
-                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
-            )
-
+            raise ValueError("Run parameter expected to be of type `neptune.new.Run`.")
         # check if user passed redundant neptune.init arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
@@ -435,21 +359,13 @@ class NeptuneLogger(Logger):
     @property  # type: ignore[misc]
     @rank_zero_experiment
     def run(self) -> Run:
-        try:
-            if not self._run_instance:
-                self._run_instance = neptune.init(**self._neptune_init_args)
-                self._retrieve_run_data()
-                # make sure that we've log integration version for newly created
-                self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
+        if not self._run_instance:
+            self._run_instance = neptune.init(**self._neptune_init_args)
+            self._retrieve_run_data()
+            # make sure that we've log integration version for newly created
+            self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
-            return self._run_instance
-        except NeptuneLegacyProjectException as e:
-            raise TypeError(
-                f"Project {self._project_name} has not been migrated to the new structure."
-                " You can still integrate it with the Neptune logger using legacy Python API"
-                " available as part of neptune-contrib package:"
-                " https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-            ) from e
+        return self._run_instance
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
@@ -628,63 +544,3 @@ class NeptuneLogger(Logger):
         It's Neptune Run's short_id
         """
         return self._run_short_id
-
-    @staticmethod
-    def _signal_deprecated_api_usage(f_name: str, sample_code: str, raise_exception: bool = False) -> None:
-        msg_suffix = (
-            f"If you are looking for the Neptune logger using legacy Python API,"
-            f" it's still available as part of neptune-contrib package:\n"
-            f"  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
-            f"The NeptuneLogger was re-written to use the neptune.new Python API\n"
-            f"  - https://neptune.ai/blog/neptune-new\n"
-            f"  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
-            f"Instead of `logger.{f_name}` you can use:\n"
-            f"\t{sample_code}"
-        )
-
-        if not raise_exception:
-            warnings.warn(
-                "The function you've used is deprecated in v1.5.0 and will be removed in v1.7.0. " + msg_suffix
-            )
-        else:
-            raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
-
-    @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: Union[Tensor, float, str], step: Optional[int] = None) -> None:
-        key = f"{self._prefix}/{metric_name}"
-        self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
-        if isinstance(metric_value, Tensor):
-            metric_value = metric_value.cpu().detach()
-
-        self.run[key].log(metric_value, step=step)
-
-    @rank_zero_only
-    def log_text(self, log_name: str, text: str, step: Optional[int] = None) -> None:
-        key = f"{self._prefix}/{log_name}"
-        self._signal_deprecated_api_usage("log_text", f"logger.run['{key}].log('text')")
-        self.run[key].log(str(text), step=step)
-
-    @rank_zero_only
-    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
-        key = f"{self._prefix}/{log_name}"
-        self._signal_deprecated_api_usage("log_image", f"logger.run['{key}'].log(File('path_to_image'))")
-        if isinstance(image, str):
-            # if `img` is path to file, convert it to file object
-            image = NeptuneFile(image)
-        self.run[key].log(image, step=step)
-
-    @rank_zero_only
-    def log_artifact(self, artifact: str, destination: Optional[str] = None) -> None:
-        key = f"{self._prefix}/{self.ARTIFACTS_KEY}/{artifact}"
-        self._signal_deprecated_api_usage("log_artifact", f"logger.run['{key}].log('path_to_file')")
-        self.run[key].log(destination)
-
-    def set_property(self, *args: Any, **kwargs: Any) -> None:
-        self._signal_deprecated_api_usage(
-            "log_artifact", f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)", raise_exception=True
-        )
-
-    def append_tags(self, *args: Any, **kwargs: Any) -> None:
-        self._signal_deprecated_api_usage(
-            "append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])", raise_exception=True
-        )

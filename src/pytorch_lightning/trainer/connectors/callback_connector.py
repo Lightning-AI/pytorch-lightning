@@ -32,7 +32,7 @@ from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 _log = logging.getLogger(__name__)
 
@@ -47,20 +47,12 @@ class CallbackConnector:
         enable_checkpointing: bool,
         enable_progress_bar: bool,
         default_root_dir: Optional[str],
-        weights_save_path: Optional[str],
         enable_model_summary: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
     ) -> None:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
-        if weights_save_path:
-            rank_zero_deprecation(
-                "Setting `Trainer(weights_save_path=)` has been deprecated in v1.6 and will be"
-                " removed in v1.8. Please pass ``dirpath`` directly to the `ModelCheckpoint` callback"
-            )
-
-        self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
 
         # init callbacks
         if isinstance(callbacks, Callback):

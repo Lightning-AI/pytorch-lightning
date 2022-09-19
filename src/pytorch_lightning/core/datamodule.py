@@ -19,6 +19,7 @@ from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Unio
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import _load_from_checkpoint
@@ -28,7 +29,7 @@ from pytorch_lightning.utilities.argparse import (
     get_init_arguments_and_types,
     parse_argparser,
 )
-from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, _PATH, EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
@@ -112,15 +113,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             (argument name, set with argument types, argument default value).
         """
         return get_init_arguments_and_types(cls)
-
-    @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated DataModule arguments."""
-        depr_arg_names: List[str] = []
-        for name, val in cls.__dict__.items():
-            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
 
     @classmethod
     def from_datasets(

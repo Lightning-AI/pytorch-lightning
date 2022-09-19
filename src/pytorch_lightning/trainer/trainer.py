@@ -30,12 +30,19 @@ from weakref import proxy
 
 import torch
 import torch.distributed as dist
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import module_available
 from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.data import _auto_add_worker_init_fn
+from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
     Accelerator,
     CUDAAccelerator,
@@ -49,7 +56,7 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import Logger
-from pytorch_lightning.loggers.logger import DummyLogger, LoggerCollection
+from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -70,7 +77,6 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -92,7 +98,6 @@ from pytorch_lightning.utilities import (
     GradClipAlgorithmType,
     parsing,
 )
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,
@@ -101,23 +106,19 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _module_available
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
-    _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerConfig,
     TRAIN_DATALOADERS,
 )
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -127,7 +128,6 @@ warnings.filterwarnings(
 
 
 class Trainer(
-    TrainerCallbackHookMixin,  # TODO: Remove in v1.8
     TrainerOptimizersMixin,  # TODO: Remove in v1.8
     TrainerDataLoadingMixin,  # TODO: Remove in v1.8
 ):
@@ -169,7 +169,6 @@ class Trainer(
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
-        weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[Profiler, str]] = None,
@@ -402,17 +401,6 @@ class Trainer(
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
-            weights_save_path: Where to save weights if specified. Will override default_root_dir
-                for checkpoints only. Use this if for whatever reason you need the checkpoints
-                stored in a different place than the logs written in `default_root_dir`.
-                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
-                Defaults to `default_root_dir`.
-
-                .. deprecated:: v1.6
-                    ``weights_save_path`` has been deprecated in v1.6 and will be removed in v1.8. Please pass
-                    ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
-                    callback.
-
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
                 Default: ``False``.
@@ -427,6 +415,7 @@ class Trainer(
         Trainer._log_api_event("init")
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
+        self.num_sanity_val_steps: int
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
@@ -488,7 +477,6 @@ class Trainer(
             enable_checkpointing,
             enable_progress_bar,
             default_root_dir,
-            weights_save_path,
             enable_model_summary,
             max_time,
             accumulate_grad_batches,
@@ -649,7 +637,7 @@ class Trainer(
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
-        # TODO(awaelchli): Unify both exceptions below, where `KeyboardError` doesn't re-raise
+        # TODO: Unify both exceptions below, where `KeyboardError` doesn't re-raise
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
@@ -1465,7 +1453,7 @@ class Trainer(
     def _call_configure_sharded_model(self) -> None:
         with self.strategy.model_sharded_context():
             # experimental support for torchdistx
-            if _module_available("torchdistx.deferred_init"):
+            if module_available("torchdistx.deferred_init"):
                 from torchdistx.deferred_init import materialize_module
 
                 materialize_module(self.lightning_module)
@@ -2061,14 +2049,6 @@ class Trainer(
         return len(self.device_ids)
 
     @property
-    def num_processes(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.num_devices` instead."
-        )
-        return self.num_devices
-
-    @property
     def root_gpu(self) -> Optional[int]:
         rank_zero_deprecation(
             "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
@@ -2109,14 +2089,6 @@ class Trainer(
         return self.num_devices
 
     @property
-    def data_parallel_device_ids(self) -> Optional[List[int]]:
-        rank_zero_deprecation(
-            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.device_ids` instead."
-        )
-        return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
-
-    @property
     def lightning_module(self) -> "pl.LightningModule":
         # TODO: this is actually an optional return
         return self.strategy.lightning_module
@@ -2139,17 +2111,6 @@ class Trainer(
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
         return self.strategy.lr_scheduler_configs
-
-    @property
-    def lr_schedulers(self) -> List[Dict[str, Any]]:
-        rank_zero_deprecation(
-            "`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."
-            " You can use `trainer.lr_scheduler_configs` instead which contains dataclasses instead of dictionaries.",
-            stacklevel=5,
-        )
-        from dataclasses import asdict
-
-        return [asdict(config) for config in self.strategy.lr_scheduler_configs]
 
     @property
     def optimizer_frequencies(self) -> List[int]:
@@ -2259,30 +2220,6 @@ class Trainer(
         if get_filesystem(self._default_root_dir).protocol == "file":
             return os.path.normpath(self._default_root_dir)
         return self._default_root_dir
-
-    @property
-    def weights_save_path(self) -> str:
-        """
-        The default root location to save weights (checkpoints), e.g., when the
-        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
-
-        .. deprecated:: v1.6
-            `Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.
-        """
-        rank_zero_deprecation("`Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.")
-        return self._weights_save_path_internal
-
-    # TODO: Remove _weights_save_path_internal in v1.8
-    @property
-    def _weights_save_path_internal(self) -> str:
-        """This is an internal implementation of weights_save_path which allows weights_save_path to be used
-        internally by the framework without emitting a deprecation warning.
-
-        To be removed in v1.8.
-        """
-        if get_filesystem(self._weights_save_path).protocol == "file":
-            return os.path.normpath(self._weights_save_path)
-        return self._weights_save_path
 
     @property
     def early_stopping_callback(self) -> Optional[EarlyStopping]:
@@ -2432,15 +2369,6 @@ class Trainer(
     def default_attributes(cls) -> dict:
         init_signature = inspect.signature(cls)
         return {k: v.default for k, v in init_signature.parameters.items()}
-
-    @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated Trainer arguments."""
-        depr_arg_names = []
-        for name, val in cls.__dict__.items():
-            if name.startswith("DEPRECATED") and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
 
     @classmethod
     def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs) -> Any:
@@ -2676,28 +2604,12 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[Logger]:
-        loggers = self.loggers
-        if len(loggers) == 0:
-            return None
-        if len(loggers) == 1:
-            return loggers[0]
-        else:
-            rank_zero_deprecation(
-                "Using `trainer.logger` when multiple loggers are configured."
-                " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
-                " `trainer.logger` will return the first logger available.",
-                stacklevel=5,
-            )
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                return LoggerCollection(loggers)
+        return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
         if not logger:
             self.loggers = []
-        elif isinstance(logger, LoggerCollection):
-            self.loggers = list(logger)
         else:
             self.loggers = [logger]
 
@@ -2767,8 +2679,8 @@ class Trainer(
             )
 
         # infinite training
-        if self.max_epochs == -1 and self.max_steps == -1:
-            return float("inf")
+        if self.max_epochs == -1:
+            return float("inf") if self.max_steps == -1 else self.max_steps
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")

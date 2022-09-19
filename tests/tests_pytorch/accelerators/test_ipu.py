@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -95,6 +94,10 @@ class IPUClassificationModel(ClassificationModel):
 
     def test_epoch_end(self, outputs) -> None:
         self.log("test_acc", torch.stack(outputs).mean())
+
+
+def test_auto_device_count():
+    assert IPUAccelerator.auto_device_count() == 4
 
 
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
@@ -187,7 +190,7 @@ def test_optimization(tmpdir):
 @RunIf(ipu=True)
 def test_half_precision(tmpdir):
     class TestCallback(Callback):
-        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
             assert trainer.strategy.model.precision == 16
             raise SystemExit
 

@@ -5,15 +5,17 @@ from datetime import datetime
 
 import click
 from lightning_cloud.openapi import (
+    Externalv1Cluster,
     V1AWSClusterDriverSpec,
     V1ClusterDriver,
     V1ClusterPerformanceProfile,
     V1ClusterSpec,
+    V1ClusterState,
+    V1ClusterType,
     V1CreateClusterRequest,
     V1InstanceSpec,
     V1KubernetesClusterDriver,
 )
-from lightning_cloud.openapi.models import Externalv1Cluster, V1ClusterState, V1ClusterType
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -91,7 +93,7 @@ class AWSClusterManager:
         if wait:
             _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
-        click.echo(f"${resp.id} cluster is ${resp.status.phase}")
+        click.echo(f"{resp.id} cluster is in {resp.status.phase} state")
 
     def get_clusters(self):
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
