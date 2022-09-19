@@ -48,6 +48,7 @@ from pytorch_lightning.utilities.device_parser import (
     num_cuda_devices,
     parse_cpu_cores,
     parse_gpu_ids,
+    parse_hpus,
     parse_tpu_cores,
 )
 from pytorch_lightning.utilities.distributed import (
@@ -190,6 +191,9 @@ def test_v1_10_deprecated_device_parser_utilities():
 
     with pytest.deprecated_call(match="device_parser.num_cuda_devices` has been deprecated in v1.8.0"):
         num_cuda_devices()
+
+    with pytest.deprecated_call(match="device_parser.parse_hpus` has been deprecated in v1.8.0"):
+        parse_hpus(1)
 
     with pytest.deprecated_call(match="device_parser.parse_cpu_cores` has been deprecated in v1.8.0"):
         parse_cpu_cores(1)

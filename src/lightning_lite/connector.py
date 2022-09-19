@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from collections import Counter
 from typing import Dict, List, Optional, Union
 
@@ -53,7 +52,8 @@ from lightning_lite.strategies import (
     XLAStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from lightning_lite.utilities import _StrategyType, device_parser, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from lightning_lite.utilities import _StrategyType, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from lightning_lite.utilities.device_parser import determine_root_gpu_device
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
 
 _PLUGIN = Union[Strategy, Precision, ClusterEnvironment, CheckpointIO]
@@ -406,24 +406,15 @@ class _Connector:
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
-        if self._is_slurm_managing_tasks():
-            rank_zero_info("Multiprocessing is handled by SLURM.")
-            return SLURMEnvironment()
-        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (
+            SLURMEnvironment,
+            TorchElasticEnvironment,
+            KubeflowEnvironment,
+            LSFEnvironment,
+        ):
             if env_type.detect():
-                # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
-                return env_type()  # type: ignore[abstract]
+                return env_type()
         return LightningEnvironment()
-
-    def _is_slurm_managing_tasks(self) -> bool:
-        """used by choosing cluster enviroment."""
-        # TODO(lite): Remove this, see: https://github.com/Lightning-AI/lightning/pull/14300
-        if not SLURMEnvironment.detect() or SLURMEnvironment.job_name() == "bash":
-            return False
-
-        total_requested_devices = len(self._parallel_devices) * self._num_nodes_flag
-        num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
-        return num_slurm_tasks == total_requested_devices
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "tpu":
@@ -439,7 +430,7 @@ class _Connector:
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
-                device = device_parser.determine_root_gpu_device(self._parallel_devices)
+                device = determine_root_gpu_device(self._parallel_devices)
             else:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
@@ -459,7 +450,7 @@ class _Connector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
-            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
+            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or SLURMEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
