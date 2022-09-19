@@ -50,6 +50,8 @@ from tests_pytorch.helpers.utils import no_warning_call
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import lazy_instance, Namespace
+else:
+    from argparse import Namespace
 
 
 @contextmanager
