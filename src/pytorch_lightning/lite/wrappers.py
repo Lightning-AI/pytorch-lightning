@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader
 
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import Strategy
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])

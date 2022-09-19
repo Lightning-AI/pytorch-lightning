@@ -28,7 +28,8 @@ from lightning_lite.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_lite.utilities import _StrategyType, AMPType, device_parser, LightningEnum
+from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum
+from lightning_lite.utilities.device_parser import determine_root_gpu_device
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -591,7 +592,7 @@ class AcceleratorConnector:
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
-                device = device_parser.determine_root_gpu_device(self._parallel_devices)
+                device = determine_root_gpu_device(self._parallel_devices)
             else:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"

@@ -1,10 +1,7 @@
-import os
-import warnings
-from functools import lru_cache
-from typing import Any, List, MutableSequence, Optional, Set, Tuple, Union
+from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
-import torch
-
+from lightning_lite.accelerators.cuda import _get_all_available_cuda_gpus
+from lightning_lite.accelerators.mps import _get_all_available_mps_gpus
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13
@@ -96,58 +93,6 @@ def parse_gpu_ids(
     return _sanitize_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps)
 
 
-def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
-    """
-    Parses the tpu_cores given in the format as accepted by the
-    :class:`~pytorch_lightning.trainer.Trainer`.
-
-    Args:
-        tpu_cores: An int of 1 or string '1' indicates that 1 core with multi-processing should be used
-            An int 8 or string '8' indicates that all 8 cores with multi-processing should be used
-            A list of ints or a strings containing a list of comma separated integers
-            indicates the specific TPU core to use.
-
-    Returns:
-        A list of tpu_cores to be used or ``None`` if no TPU cores were requested
-
-    Raises:
-        MisconfigurationException:
-            If TPU cores aren't 1, 8 or [<1-8>]
-    """
-    _check_data_type(tpu_cores)
-
-    if isinstance(tpu_cores, str):
-        tpu_cores = _parse_tpu_cores_str(tpu_cores.strip())
-
-    if not _tpu_cores_valid(tpu_cores):
-        raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
-
-    return tpu_cores
-
-
-def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
-    """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
-    :class:`~pytorch_lightning.trainer.Trainer`.
-
-    Args:
-        cpu_cores: An int > 0.
-
-    Returns:
-        An int representing the number of processes
-
-    Raises:
-        MisconfigurationException:
-            If cpu_cores is not an int > 0
-    """
-    if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
-        cpu_cores = int(cpu_cores)
-
-    if not isinstance(cpu_cores, int) or cpu_cores <= 0:
-        raise MisconfigurationException("`devices` selected with `CPUAccelerator` should be an int > 0.")
-
-    return cpu_cores
-
-
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
     if not isinstance(s, str):
         return s
@@ -207,25 +152,6 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     cuda_gpus = _get_all_available_cuda_gpus() if include_cuda else []
     mps_gpus = _get_all_available_mps_gpus() if include_mps else []
     return cuda_gpus + mps_gpus
-
-
-def _get_all_available_mps_gpus() -> List[int]:
-    """
-    Returns:
-        A list of all available MPS GPUs
-    """
-    # lazy import to avoid circular dependencies
-    from lightning_lite.accelerators.mps import MPSAccelerator
-
-    return [0] if MPSAccelerator.is_available() else []
-
-
-def _get_all_available_cuda_gpus() -> List[int]:
-    """
-    Returns:
-         A list of all available CUDA GPUs
-    """
-    return list(range(num_cuda_devices()))
 
 
 def _check_unique(device_ids: List[int]) -> None:

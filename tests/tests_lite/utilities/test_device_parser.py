@@ -15,30 +15,12 @@ from unittest import mock
 
 import pytest
 
+from lightning_lite.accelerators.cpu import parse_cpu_cores
+from lightning_lite.accelerators.cuda import is_cuda_available, num_cuda_devices
 from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.exceptions import MisconfigurationException
 
 _PRETEND_N_OF_GPUS = 16
-
-
-@pytest.fixture
-def mocked_device_count(monkeypatch):
-    def device_count():
-        return _PRETEND_N_OF_GPUS
-
-    def is_available():
-        return True
-
-    monkeypatch.setattr(device_parser, "is_cuda_available", is_available)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
-
-
-@pytest.fixture
-def mocked_device_count_0(monkeypatch):
-    def device_count():
-        return 0
-
-    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
 
 
 @pytest.mark.parametrize(
@@ -74,29 +56,34 @@ def test_determine_root_gpu_device(devices, expected_root_gpu):
         pytest.param("-1", list(range(_PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
     ],
 )
-def test_parse_gpu_ids(mocked_device_count, devices, expected_gpu_ids):
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
+def test_parse_gpu_ids(_, devices, expected_gpu_ids):
     assert device_parser.parse_gpu_ids(devices, include_cuda=True) == expected_gpu_ids
 
 
 @pytest.mark.parametrize("devices", [0.1, -2, False, [-1], [None], ["0"], [0, 0]])
-def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, devices):
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
+def test_parse_gpu_fail_on_unsupported_inputs(_, devices):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(devices, include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [[1, 2, 19], -1, "-1"])
-def test_parse_gpu_fail_on_non_existent_id(mocked_device_count_0, devices):
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
+def test_parse_gpu_fail_on_non_existent_id(_, devices):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(devices, include_cuda=True)
 
 
-def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
+def test_parse_gpu_fail_on_non_existent_id_2(_):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids([1, 2, 19], include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [-1, "-1"])
-def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_count_0, devices):
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
+def test_parse_gpu_returns_none_when_no_devices_are_available(_, devices):
     with pytest.raises(MisconfigurationException):
         device_parser.parse_gpu_ids(devices, include_cuda=True)
 
@@ -113,5 +100,5 @@ def test_num_cuda_devices_without_forking(*_):
 @pytest.mark.parametrize("devices", ([3], -1))
 def test_invalid_devices_with_cpu_accelerator(devices):
     """Test invalid device flag raises MisconfigurationException."""
-    with pytest.raises(MisconfigurationException, match="should be an int > 0"):
-        device_parser.parse_cpu_cores(devices)
+    with pytest.raises(TypeError, match="should be an int > 0"):
+        parse_cpu_cores(devices)
