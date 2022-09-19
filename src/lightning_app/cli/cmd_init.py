@@ -1,10 +1,11 @@
-import logging
 import os
 import re
 import shutil
 from typing import List, Tuple
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def app(app_name: str) -> None:

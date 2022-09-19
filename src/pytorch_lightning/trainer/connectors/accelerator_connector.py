@@ -20,13 +20,23 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
+from lightning_lite.plugins.environments import (
+    ClusterEnvironment,
+    KubeflowEnvironment,
+    LightningEnvironment,
+    LSFEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
+from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum
+from lightning_lite.utilities.device_parser import determine_root_gpu_device
+from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -43,15 +53,7 @@ from pytorch_lightning.plugins import (
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments import (
-    BaguaEnvironment,
-    ClusterEnvironment,
-    KubeflowEnvironment,
-    LightningEnvironment,
-    LSFEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
+from pytorch_lightning.plugins.environments import BaguaEnvironment
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
@@ -75,15 +77,6 @@ from pytorch_lightning.strategies import (
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.launchers.multiprocessing import _is_forking_disabled
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import (
-    _StrategyType,
-    AMPType,
-    device_parser,
-    LightningEnum,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_warn,
-)
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
@@ -93,6 +86,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -343,7 +337,7 @@ class AcceleratorConnector:
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
-        # TODO: @awaelchli improve the error messages below
+        # TODO: improve the error messages below
         if self._strategy_flag and isinstance(self._strategy_flag, Strategy):
             if self._strategy_flag._accelerator:
                 if self._accelerator_flag:
@@ -468,7 +462,7 @@ class AcceleratorConnector:
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
         if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
             if devices:
-                # TODO: @awaelchli improve error message
+                # TODO improve error message
                 rank_zero_warn(
                     f"The flag `devices={devices}` will be ignored, "
                     f"instead the device specific number {deprecated_devices_specific_flag} will be used"
@@ -477,7 +471,7 @@ class AcceleratorConnector:
             if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
                 True
             ) > 1:
-                # TODO: @awaelchli improve error message
+                # TODO: improve error message
                 rank_zero_warn("more than one device specific flag has been set")
             self._devices_flag = deprecated_devices_specific_flag
 
@@ -531,7 +525,9 @@ class AcceleratorConnector:
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
+                acc_str
+                for acc_str in self._accelerator_types
+                if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
@@ -563,23 +559,16 @@ class AcceleratorConnector:
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
-        if self._is_slurm_managing_tasks():
-            rank_zero_info("Multiprocessing is handled by SLURM.")
-            return SLURMEnvironment()
-        for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (
+            SLURMEnvironment,
+            BaguaEnvironment,
+            TorchElasticEnvironment,
+            KubeflowEnvironment,
+            LSFEnvironment,
+        ):
             if env_type.detect():
-                # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
-                return env_type()  # type: ignore[abstract]
+                return env_type()
         return LightningEnvironment()
-
-    def _is_slurm_managing_tasks(self) -> bool:
-        """used by choosing cluster enviroment."""
-        if not SLURMEnvironment.detect() or SLURMEnvironment.job_name() == "bash":
-            return False
-
-        total_requested_devices = len(self._parallel_devices) * self._num_nodes_flag
-        num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
-        return num_slurm_tasks == total_requested_devices
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
@@ -604,7 +593,7 @@ class AcceleratorConnector:
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
-                device = device_parser.determine_root_gpu_device(self._parallel_devices)
+                device = determine_root_gpu_device(self._parallel_devices)
             else:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
@@ -624,7 +613,7 @@ class AcceleratorConnector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
-            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
+            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or SLURMEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":

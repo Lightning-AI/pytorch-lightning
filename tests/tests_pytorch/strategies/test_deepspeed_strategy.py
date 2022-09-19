@@ -15,7 +15,7 @@ import contextlib
 import json
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -169,12 +169,11 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
 @pytest.mark.parametrize(
     "amp_backend",
     ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
 )
-def test_deepspeed_precision_choice(_, amp_backend, tmpdir):
+def test_deepspeed_precision_choice(cuda_count_1, amp_backend, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
@@ -263,7 +262,7 @@ def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, moc
             return DataLoader(dataset_cls(32, 64))
 
     class AssertCallback(Callback):
-        def setup(self, trainer, pl_module, stage: Optional[str] = None) -> None:
+        def setup(self, trainer, pl_module, stage: str) -> None:
             assert isinstance(trainer.strategy, DeepSpeedStrategy)
             config = trainer.strategy.config
 
@@ -1059,7 +1058,7 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
             super().__init__()
             self._setup = False
 
-        def setup(self, stage: Optional[str] = None) -> None:
+        def setup(self, stage: str) -> None:
             self._setup = True
 
         def train_dataloader(self):

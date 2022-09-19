@@ -25,18 +25,18 @@ class _AppManager:
     def list(self, cluster_id: str = None, limit: int = 100) -> None:
         project = _get_project(self.api_client)
 
-        args = {
+        kwargs = {
             "project_id": project.project_id,
             "limit": limit,
         }
         if cluster_id is not None:
-            args["cluster_id"] = cluster_id
+            kwargs["cluster_id"] = cluster_id
 
-        resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**args)
+        resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**kwargs)
         apps = resp.lightningapps
         while resp.next_page_token is not None and resp.next_page_token != "":
-            args["page_token"] = resp.next_page_token
-            resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**args)
+            kwargs["page_token"] = resp.next_page_token
+            resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**kwargs)
             apps = apps + resp.lightningapps
         console = Console()
         console.print(_AppList(resp.lightningapps).as_table())

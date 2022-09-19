@@ -23,16 +23,17 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:

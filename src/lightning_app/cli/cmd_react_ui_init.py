@@ -1,10 +1,11 @@
-import logging
 import os
 import re
 import shutil
 import subprocess
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def react_ui(dest_dir: str = None) -> None:

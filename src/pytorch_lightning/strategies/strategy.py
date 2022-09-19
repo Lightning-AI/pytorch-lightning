@@ -23,18 +23,18 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO
+from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.utilities import move_data_to_device
+from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.plugins import TorchCheckpointIO
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import (
-    _PATH,
     LRSchedulerConfig,
     PredictStep,
     STEP_OUTPUT,
@@ -54,11 +54,11 @@ class Strategy(ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
-        self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
+        self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
         self._lightning_module: Optional[pl.LightningModule] = None
@@ -74,11 +74,11 @@ class Strategy(ABC):
         return self._launcher
 
     @property
-    def accelerator(self) -> Optional["pl.accelerators.accelerator.Accelerator"]:
+    def accelerator(self) -> Optional["pl.accelerators.Accelerator"]:
         return self._accelerator
 
     @accelerator.setter
-    def accelerator(self, accelerator: "pl.accelerators.accelerator.Accelerator") -> None:
+    def accelerator(self, accelerator: "pl.accelerators.Accelerator") -> None:
         self._accelerator = accelerator
 
     @property
@@ -128,7 +128,7 @@ class Strategy(ABC):
         environment before setup is complete.
         """
         assert self.accelerator is not None
-        self.accelerator.setup_environment(self.root_device)
+        self.accelerator.setup_device(self.root_device)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -237,19 +237,19 @@ class Strategy(ABC):
         The returned objects are expected to be in the same order they were passed in. The default implementation will
         call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
         """
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         model = self._setup_model(model)
         optimizers = [self._setup_optimizer(optimizer) for optimizer in optimizers]
         return model, optimizers
 
     def _setup_model(self, model: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return model
 
     def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Performs setup for the optimizer, e.g., by wrapping it by another class."""
-        # TODO (@awaelchli): standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         return optimizer
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
@@ -443,7 +443,7 @@ class Strategy(ABC):
         """Whether the plugin handles gradient accumulation internally."""
         return False
 
-    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+    def lightning_module_state_dict(self) -> Dict[str, Any]:
         """Returns model state."""
         assert self.lightning_module is not None
         return self.lightning_module.state_dict()

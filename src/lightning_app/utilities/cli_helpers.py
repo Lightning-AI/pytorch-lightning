@@ -86,26 +86,26 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
         resp = requests.get(url + "/openapi.json")
         if resp.status_code != 200:
             raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-        return url, _extract_command_from_openapi(resp.json())
+        return url, _extract_command_from_openapi(resp.json()), None
 
     # 2: If no identifier has been provided, evaluate the local application
-    failed_locally = False
-
     if app_id_or_name_or_url is None:
         try:
             url = f"http://localhost:{APP_SERVER_PORT}"
             resp = requests.get(f"{url}/openapi.json")
             if resp.status_code != 200:
                 raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-            return url, _extract_command_from_openapi(resp.json())
+            return url, _extract_command_from_openapi(resp.json()), None
         except requests.exceptions.ConnectionError:
-            failed_locally = True
+            pass
 
     # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
-    if app_id_or_name_or_url or failed_locally:
+    else:
         client = LightningClient()
         project = _get_project(client)
-        list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+        list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id
+        )
 
         lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
 
@@ -118,9 +118,11 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
                     raise Exception("The application is starting. Try in a few moments.")
                 resp = requests.get(lightningapp.status.url + "/openapi.json")
                 if resp.status_code != 200:
-                    raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-                return lightningapp.status.url, _extract_command_from_openapi(resp.json())
-    return None, None
+                    raise Exception(
+                        "The server didn't process the request properly. " "Try once your application is ready."
+                    )
+                return lightningapp.status.url, _extract_command_from_openapi(resp.json()), lightningapp.id
+    return None, None, None
 
 
 def _arrow_time_callback(

@@ -21,16 +21,16 @@ import pytest
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -570,3 +570,38 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
         match="Please increase the `limit_train_batches` argument. Try at least",
     ):
         trainer.reset_train_dataloader(model)
+
+
+@pytest.mark.parametrize(
+    "trainer_fn_name, dataloader_name",
+    [
+        ("fit", "train_dataloaders"),
+        ("validate", "dataloaders"),
+        ("test", "dataloaders"),
+        ("predict", "dataloaders"),
+    ],
+)
+def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
+    """Test that passing `Trainer.method(x_dataloader=None)` with no module-method implementations available raises
+    an error."""
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    trainer_fn = getattr(trainer, trainer_fn_name)
+
+    # Pretend that these methods are not implemented
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+    model.predict_dataloader = None
+
+    datamodule.train_dataloader = None
+    datamodule.val_dataloader = None
+    datamodule.test_dataloader = None
+    datamodule.predict_dataloader = None
+
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+        trainer_fn(model, **{dataloader_name: None}, datamodule=datamodule)
+
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+        trainer_fn(model, **{dataloader_name: None}, datamodule=None)

@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import shutil
@@ -10,8 +9,9 @@ import requests
 from packaging.version import Version
 
 from lightning_app.core.constants import LIGHTNING_APPS_PUBLIC_REGISTRY, LIGHTNING_COMPONENT_PUBLIC_REGISTRY
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> None:

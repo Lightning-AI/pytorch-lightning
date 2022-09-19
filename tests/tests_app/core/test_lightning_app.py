@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle
+from re import escape
 from time import sleep
 from unittest import mock
 from unittest.mock import ANY
@@ -20,6 +21,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue, SingleProcessQueue
 from lightning_app.frontend import StreamlitFrontend
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import RunIf
 from lightning_app.testing.testing import LightningTestApp
@@ -29,6 +31,29 @@ from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.warnings import LightningFlowWarning
 
 logger = logging.getLogger()
+
+
+def test_lightning_app_requires_root_run_method():
+    """Test that a useful exception is raised if the root flow does not override the run method."""
+
+    with pytest.raises(
+        TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
+    ):
+        LightningApp(LightningFlow())
+
+    class FlowWithoutRun(LightningFlow):
+        pass
+
+    with pytest.raises(
+        TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
+    ):
+        LightningApp(FlowWithoutRun())
+
+    class FlowWithRun(LightningFlow):
+        def run(self):
+            pass
+
+    LightningApp(FlowWithRun())  # no error
 
 
 class B1(LightningFlow):
@@ -955,3 +980,64 @@ def test_non_updated_flow(caplog):
         MultiProcessRuntime(app, start_server=False).dispatch()
     assert caplog.messages == ["Hello World"]
     assert app.counter == 3
+
+
+def test_debug_mode_logging():
+    """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and
+    cleanup once finished."""
+
+    from lightning_app.core.app import _console
+
+    app = LightningApp(A4(), debug=True)
+    assert _console.level == logging.DEBUG
+    assert os.getenv("LIGHTNING_DEBUG") == "2"
+
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+    assert os.getenv("LIGHTNING_DEBUG") is None
+    assert _console.level == logging.INFO
+
+    app = LightningApp(A4())
+    assert _console.level == logging.INFO
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkPath(LightningWork):
+    def __init__(self):
+        super().__init__()
+        self.path = None
+
+    def run(self):
+        self.path = Path(__file__)
+
+
+class FlowPath(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkPath()
+
+    def run(self):
+        self.w.run()
+
+
+class TestLightningHasUpdatedApp(LightningApp):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = 0
+
+    def run_once(self):
+        res = super().run_once()
+
+        if self.root.w.has_succeeded:
+            self.counter += 1
+
+        # TODO: Resolve bug where it should work with self.counter == 2
+        if self.counter > 5:
+            assert not self._has_updated
+            return True
+        return res
+
+
+def test_lightning_app_has_updated():
+    app = TestLightningHasUpdatedApp(FlowPath())
+    MultiProcessRuntime(app, start_server=False).dispatch()

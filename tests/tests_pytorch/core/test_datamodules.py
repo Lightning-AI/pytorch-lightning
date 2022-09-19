@@ -117,7 +117,7 @@ def test_hooks_no_recursion_error():
 def test_helper_boringdatamodule():
     dm = BoringDataModule()
     dm.prepare_data()
-    dm.setup()
+    dm.setup("fit")
 
 
 def test_helper_boringdatamodule_with_verbose_setup():
@@ -140,7 +140,7 @@ def test_dm_init_from_argparse_args(tmpdir):
     args = parser.parse_args(["--data_dir", str(tmpdir)])
     dm = BoringDataModule.from_argparse_args(args)
     dm.prepare_data()
-    dm.setup()
+    dm.setup("fit")
     assert dm.data_dir == args.data_dir == str(tmpdir)
 
 
