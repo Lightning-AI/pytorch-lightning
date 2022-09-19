@@ -37,6 +37,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   [#14620](https://github.com/Lightning-AI/lightning/issues/14620))
 
 
+- Added support for `HPUProfiler` ([#14773](https://github.com/Lightning-AI/lightning/issues/14773))
+
+
 ### Changed
 
 - The `Trainer.{fit,validate,test,predict,tune}` methods now raise a useful error message if the input is not a `LightningModule` ([#13892](https://github.com/Lightning-AI/lightning/pull/13892))

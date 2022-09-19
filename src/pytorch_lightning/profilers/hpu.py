@@ -19,13 +19,18 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
+import torch
+from torch.autograd.profiler import EventList
 from torch.autograd.profiler import record_function
 from torch.profiler import ProfilerAction
 
+from pytorch_lightning import LightningModule
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
+from pytorch_lightning.trainer.connectors.data_connector import warning_cache
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 if _KINETO_AVAILABLE:
     from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
@@ -114,7 +119,7 @@ class HPUProfiler(PyTorchProfiler):
         activities = profiler_kwargs.get("activities", None)
         self._profiler_kwargs["activities"] = self.profile_hpu_activities(activities)
 
-    def profile_hpu_activities(self, activities) -> List["ProfilerActivity"]:
+    def profile_hpu_activities(self, activities) -> List["ProfilerActivity"]: # type: ignore
         if not _KINETO_AVAILABLE:
             return activities
         activities.append(ProfilerActivity.HPU)
@@ -142,12 +147,12 @@ class HPUProfiler(PyTorchProfiler):
                 self._schedule = None
                 self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
 
-            def on_trace_ready(profiler):
+            def on_trace_ready(profiler: _PROFILER) -> None:
                 if self.dirpath is not None:
                     if self._export_to_chrome:
                         file_name = re.sub(r"[^a-zA-Z0-9]+", "_", action_name)
                         handler = tensorboard_trace_handler(
-                            self.dirpath, self._prepare_filename(action_name=file_name, extension="")
+                            str(self.dirpath), self._prepare_filename(action_name=file_name, extension="")
                         )
                         handler(profiler)
 
