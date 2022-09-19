@@ -37,4 +37,4 @@ def test_requirement_cache():
 
     assert RequirementCache(f"pytest>={pytest.__version__}")
     assert not RequirementCache(f"pytest<{pytest.__version__}")
-    assert "Requirement '-' not met" in str(RequirementCache("-"))
+    assert "pip install -U '-'" in str(RequirementCache("-"))

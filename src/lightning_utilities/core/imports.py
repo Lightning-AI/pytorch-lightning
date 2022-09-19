@@ -95,7 +95,7 @@ class RequirementCache:
                 self.message = f"Requirement {self.requirement!r} met"
             except Exception as ex:
                 self.available = False
-                self.message = f"Requirement {self.requirement!r} not met, {ex.__class__.__name__}: {ex}"
+                self.message = f"{ex.__class__.__name__}: {ex}. HINT: Try running `pip install -U {self.requirement!r}`"
 
     def __bool__(self) -> bool:
         self._check_requirement()
