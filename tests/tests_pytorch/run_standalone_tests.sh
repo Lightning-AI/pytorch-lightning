@@ -52,7 +52,11 @@ function show_batched_output {
     rm standalone_test_output.txt
   fi
 }
-trap show_batched_output EXIT  # show the output on exit
+function trap_show_batched_output {
+  echo "trap on EXIT triggered!"
+  show_batched_output
+}
+trap trap_show_batched_output EXIT  # show the output on exit
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
