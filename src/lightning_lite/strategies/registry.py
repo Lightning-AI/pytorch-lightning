@@ -15,9 +15,8 @@ import importlib
 from inspect import getmembers, isclass
 from typing import Any, Callable, Dict, List, Optional
 
+from lightning_lite.strategies.strategy import Strategy
 from lightning_lite.utilities.registry import _is_register_method_overridden
-from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class _StrategyRegistry(dict):
@@ -65,7 +64,7 @@ class _StrategyRegistry(dict):
             raise TypeError(f"`name` must be a str, found {name}")
 
         if name in self and not override:
-            raise MisconfigurationException(f"'{name}' is already present in the registry. HINT: Use `override=True`.")
+            raise ValueError(f"'{name}' is already present in the registry. HINT: Use `override=True`.")
 
         data: Dict[str, Any] = {}
         data["description"] = description if description is not None else ""
@@ -74,7 +73,7 @@ class _StrategyRegistry(dict):
 
         def do_register(strategy: Callable) -> Callable:
             data["strategy"] = strategy
-            data["strategy_name"] = strategy.strategy_name
+            data["strategy_name"] = name
             self[name] = data
             return strategy
 
@@ -112,11 +111,8 @@ class _StrategyRegistry(dict):
         return "Registered Strategies: {}".format(", ".join(self.keys()))
 
 
-StrategyRegistry = _StrategyRegistry()
-
-
-def call_register_strategies(base_module: str) -> None:
+def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
-            mod.register_strategies(StrategyRegistry)
+            mod.register_strategies(registry)

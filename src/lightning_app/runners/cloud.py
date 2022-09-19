@@ -50,6 +50,7 @@ from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
+from lightning_app.utilities.secrets import _names_to_ids
 
 logger = Logger(__name__)
 
@@ -98,8 +99,16 @@ class CloudRuntime(Runtime):
 
         print(f"The name of the app is: {app_config.name}")
 
-        work_reqs: List[V1Work] = []
         v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in self.env_vars.items()]
+
+        if len(self.secrets.values()) > 0:
+            secret_names_to_ids = _names_to_ids(self.secrets.values())
+            env_vars_from_secrets = [
+                V1EnvVar(name=k, from_secret=secret_names_to_ids[v]) for k, v in self.secrets.items()
+            ]
+            v1_env_vars.extend(env_vars_from_secrets)
+
+        work_reqs: List[V1Work] = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
                 work_requirements = "\n".join(work.cloud_build_config.requirements)
@@ -189,7 +198,7 @@ class CloudRuntime(Runtime):
 
         try:
             list_apps_resp = self.backend.client.lightningapp_v2_service_list_lightningapps_v2(
-                project.project_id, name=app_config.name
+                project_id=project.project_id, name=app_config.name
             )
             if list_apps_resp.lightningapps:
                 # There can be only one app with unique project_id<>name pair
@@ -197,7 +206,7 @@ class CloudRuntime(Runtime):
             else:
                 app_body = Body7(name=app_config.name, can_download_source_code=True)
                 lightning_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
-                    project.project_id, app_body
+                    project_id=project.project_id, body=app_body
                 )
 
             release_body = Body8(
@@ -214,7 +223,7 @@ class CloudRuntime(Runtime):
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
-                project.project_id, lightning_app.id, release_body
+                project_id=project.project_id, app_id=lightning_app.id, body=release_body
             )
 
             if cluster_id is not None:
@@ -238,7 +247,7 @@ class CloudRuntime(Runtime):
 
             # right now we only allow a single instance of the app
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
-                project.project_id, app_id=lightning_app.id
+                project_id=project.project_id, app_id=lightning_app.id
             )
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
@@ -279,10 +288,10 @@ class CloudRuntime(Runtime):
             else:
                 lightning_app_instance = (
                     self.backend.client.lightningapp_v2_service_create_lightningapp_release_instance(
-                        project.project_id,
-                        lightning_app.id,
-                        lightning_app_release.id,
-                        Body9(
+                        project_id=project.project_id,
+                        app_id=lightning_app.id,
+                        id=lightning_app_release.id,
+                        body=Body9(
                             cluster_id=cluster_id,
                             desired_state=app_release_desired_state,
                             name=lightning_app.name,
@@ -313,7 +322,7 @@ class CloudRuntime(Runtime):
                 return
 
         self.backend.client.projects_service_create_project_cluster_binding(
-            project_id,
+            project_id=project_id,
             body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project_id),
         )
 
