@@ -140,7 +140,7 @@ Here's a short video showing you the process.
 
 ----
 
-Method 2: Use Terraform to set up AWS
+Method 2: Use Terraform to set up AWS (advanced)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This process is intended for advanced users only. If you have not used Terraform before, you might want to consider using the AWS console.
