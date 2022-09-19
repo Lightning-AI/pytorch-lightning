@@ -15,18 +15,20 @@
 import logging
 import os
 import re
-from warnings import warn
-from pytorch_lightning.profilers.pytorch import PyTorchProfiler, ScheduleWrapper, RegisterRecordFunction
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import _HPU_AVAILABLE
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
+from warnings import warn
+
 from torch.autograd.profiler import record_function
 from torch.profiler import ProfilerAction
-from typing import Any, List, Optional, Union, Callable, Dict
+
+from pytorch_lightning.profilers.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
+from pytorch_lightning.utilities import _HPU_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
 if _KINETO_AVAILABLE:
-    from torch.profiler import ProfilerActivity, tensorboard_trace_handler, profile
+    from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
 
@@ -81,14 +83,15 @@ class HPUProfiler(PyTorchProfiler):
                 If arg ``schedule`` is not a ``Callable``.
                 If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
         """
-        super().__init__(dirpath=dirpath,
-                         filename=filename,
-                         group_by_input_shapes=group_by_input_shapes,
-                         export_to_chrome=export_to_chrome,
-                         row_limit=row_limit,
-                         sort_by_key=sort_by_key or f"{'hpu' if profiler_kwargs.get('use_hpu', False) else 'cpu'}_time_total",
-                         record_module_names=record_module_names,
-                         )
+        super().__init__(
+            dirpath=dirpath,
+            filename=filename,
+            group_by_input_shapes=group_by_input_shapes,
+            export_to_chrome=export_to_chrome,
+            row_limit=row_limit,
+            sort_by_key=sort_by_key or f"{'hpu' if profiler_kwargs.get('use_hpu', False) else 'cpu'}_time_total",
+            record_module_names=record_module_names,
+        )
 
         self.profiler: Optional[_PROFILER] = None
         self.function_events: Optional["EventList"] = None
@@ -142,7 +145,7 @@ class HPUProfiler(PyTorchProfiler):
             def on_trace_ready(profiler):
                 if self.dirpath is not None:
                     if self._export_to_chrome:
-                        file_name = re.sub(r"[^a-zA-Z0-9]+", '_', action_name)
+                        file_name = re.sub(r"[^a-zA-Z0-9]+", "_", action_name)
                         handler = tensorboard_trace_handler(
                             self.dirpath, self._prepare_filename(action_name=file_name, extension="")
                         )

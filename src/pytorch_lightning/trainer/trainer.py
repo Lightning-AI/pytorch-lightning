@@ -70,12 +70,12 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
+    HPUProfiler,
     PassThroughProfiler,
     Profiler,
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
-    HPUProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations

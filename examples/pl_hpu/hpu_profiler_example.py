@@ -23,18 +23,20 @@ visualized in 2 ways:
 """
 
 import os
+
 import torch
 from torch.nn import functional as F
-
 from torch.utils.data import DataLoader
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.cli import LightningCLI
 from torchvision import transforms
 from torchvision.datasets import MNIST
+
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
 if _KINETO_AVAILABLE:
     from pytorch_lightning.profilers.hpu import HPUProfiler
+
 
 class SimpleMNISTModel(LightningModule):
     def __init__(self):
@@ -56,6 +58,7 @@ class SimpleMNISTModel(LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
 
+
 class SimpleMNISTDataModule(LightningDataModule):
     def setup(self, stage):
         transform = transforms.Compose([transforms.ToTensor()])
@@ -72,7 +75,7 @@ if __name__ == "__main__":
 
     trainer = Trainer(
         profiler=HPUProfiler(),
-        accelerator='hpu',
+        accelerator="hpu",
         devices=1,
         max_epochs=1,
         limit_train_batches=16,
