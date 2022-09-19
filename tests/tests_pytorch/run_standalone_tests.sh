@@ -23,7 +23,7 @@ source="${PL_STANDALONE_TESTS_SOURCE}"
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults="-m coverage run --source $source --append -m pytest --no-header"
+defaults="-m pytest --no-header"
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
 grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
