@@ -93,7 +93,7 @@ b. Terraform (recommended for Terraform users)
 
 ----
 
-Method 1: Use the AWS Console to set up AWS
+Method 1: Use the AWS Console to create role
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You're going to create a custom role in AWS using the AWS management console.
