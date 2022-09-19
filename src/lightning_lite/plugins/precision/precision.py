@@ -37,12 +37,14 @@ class Precision:
 
     def convert_input(self, data: Tensor) -> Tensor:
         """Convert model inputs (forward) to the floating point precision type of this plugin.
+
         This is a no-op for tensors that are not of floating-point type or already have the desired type.
         """
         return data.to(torch.float32) if torch.is_floating_point(data) else data
 
     def convert_output(self, data: Tensor) -> Tensor:
         """Convert model outputs (forward) back to the default floating point precision type.
+
         This is a no-op for tensors that are not of floating-point type or already have the desired type.
         """
         return data.to(torch.get_default_dtype()) if torch.is_floating_point(data) else data
