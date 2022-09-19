@@ -23,9 +23,8 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.plugins import CheckpointIO
+from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
 from lightning_lite.plugins.environments import XLAEnvironment
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
 from lightning_lite.utilities.data import has_len
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizers_to_device

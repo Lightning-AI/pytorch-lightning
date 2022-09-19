@@ -351,7 +351,7 @@ class CloudRuntime(Runtime):
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
 
-            logger.warning(warning_msg)
+            logger.warn(warning_msg)
 
     def _project_has_sufficient_credits(self, project: V1Membership, app: Optional[LightningApp] = None):
         """check if user has enough credits to run the app with its hardware if app is not passed return True if

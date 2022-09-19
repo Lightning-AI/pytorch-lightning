@@ -16,8 +16,7 @@ from typing import Dict, Optional
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.plugins import CheckpointIO
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
