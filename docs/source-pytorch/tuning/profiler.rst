@@ -29,7 +29,7 @@ Find bottlenecks in your code
 
 .. displayitem::
    :header: Advanced
-   :description: Learn to profile TPU code.
+   :description: Learn to profile TPU and HPU code.
    :col_css: col-md-3
    :button_link: profiler_advanced.html
    :height: 150

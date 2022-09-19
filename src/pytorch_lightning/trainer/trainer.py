@@ -75,6 +75,7 @@ from pytorch_lightning.profilers import (
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
+    HPUProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
@@ -1713,6 +1714,7 @@ class Trainer(
                 "advanced": AdvancedProfiler,
                 "pytorch": PyTorchProfiler,
                 "xla": XLAProfiler,
+                "hpu": HPUProfiler,
             }
             profiler = profiler.lower()
             if profiler not in PROFILERS:
