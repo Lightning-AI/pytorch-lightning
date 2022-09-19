@@ -20,7 +20,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO
 from lightning_lite.utilities.distributed import distributed_available
 from lightning_lite.utilities.distributed import group as dist_group
 from lightning_lite.utilities.distributed import ReduceOp
@@ -43,7 +43,7 @@ class HorovodStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
