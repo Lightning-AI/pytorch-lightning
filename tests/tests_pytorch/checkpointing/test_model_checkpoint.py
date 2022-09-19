@@ -869,18 +869,23 @@ def test_checkpoint_repeated_strategy(tmpdir):
         "limit_test_batches": 2,
         "enable_progress_bar": False,
         "enable_model_summary": False,
+        "log_every_n_steps": 1,
+        "default_root_dir": tmpdir,
     }
     trainer = Trainer(**trainer_kwargs, callbacks=[checkpoint_callback])
     trainer.fit(model)
-    assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
+    assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
 
     for idx in range(4):
         # load from checkpoint
-        trainer = pl.Trainer(**trainer_kwargs, default_root_dir=tmpdir)
+        trainer = Trainer(**trainer_kwargs)
         trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
         trainer.test(ckpt_path=checkpoint_callback.best_model_path, verbose=False)
+
         assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
-    assert set(os.listdir(tmpdir / "lightning_logs")) == {f"version_{i}" for i in range(4)}
+
+    # no new versions created after the initial fit, because the ones that resume from ckpt do not log anything
+    assert set(os.listdir(tmpdir / "lightning_logs")) == {"version_0"}
 
 
 def test_checkpoint_repeated_strategy_extended(tmpdir):
@@ -891,6 +896,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
+            self.log("val_loss", loss)
             return {"val_loss": loss}
 
         def validation_epoch_end(self, *_):
@@ -930,7 +936,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         limit_test_batches=4,
         callbacks=[checkpoint_cb],
     )
-    trainer = pl.Trainer(**trainer_config)
+    trainer = Trainer(**trainer_config)
     assert_trainer_init(trainer)
 
     model = ExtendedBoringModel()
