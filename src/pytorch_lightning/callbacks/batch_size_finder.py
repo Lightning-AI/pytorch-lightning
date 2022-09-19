@@ -39,11 +39,10 @@ class BatchSizeFinder(Callback):
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
     ) -> None:
-        """The `BatchSizeFinder` callback tries to find the largest batch size for a given model that does not give
-        an out of memory (OOM) error. It works with both training and evalation. All you need to do is add it as a
-        callback inside Trainer and call ``trainer.fit/validate/test/predict()``. Internally it calls the
-        respective step function ``steps_per_trial`` times for each batch size until one of the batch size
-        generates an OOM error.
+        """The ``BatchSizeFinder`` callback tries to find the largest batch size for a given model that does not
+        give an out of memory (OOM) error. All you need to do is add it as a callback inside Trainer and call
+        ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function
+        ``steps_per_trial`` times for each batch size until one of the batch sizes generates an OOM error.
 
         Args:
             mode: search strategy to update the batch size:
@@ -72,13 +71,12 @@ class BatchSizeFinder(Callback):
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
             raise ValueError(f"`mode` should be either of {self.SUPPORTED_MODES}")
-
-        self.mode = mode
-        self.steps_per_trial = steps_per_trial
-        self.init_val = init_val
-        self.max_trials = max_trials
-        self.batch_arg_name = batch_arg_name
         self.optimal_batch_size = init_val
+        self._mode = mode
+        self._steps_per_trial = steps_per_trial
+        self._init_val = init_val
+        self._max_trials = max_trials
+        self._batch_arg_name = batch_arg_name
         self._early_exit = False
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
@@ -104,25 +102,31 @@ class BatchSizeFinder(Callback):
                     f"The Batch size finder cannot be used with multiple {running_stage.dataloader_prefix} dataloaders."
                 )
 
-        if not lightning_hasattr(pl_module, self.batch_arg_name):
+        if not lightning_hasattr(pl_module, self._batch_arg_name):
             raise MisconfigurationException(
-                f"Field {self.batch_arg_name} not found in both `model` and `model.hparams`"
+                f"Field {self._batch_arg_name} not found in both `model` and `model.hparams`"
             )
 
         if (
-            hasattr(pl_module, self.batch_arg_name)
+            hasattr(pl_module, self._batch_arg_name)
             and hasattr(pl_module, "hparams")
-            and self.batch_arg_name in pl_module.hparams
+            and self._batch_arg_name in pl_module.hparams
         ):
             rank_zero_warn(
-                f"Field `model.{self.batch_arg_name}` and `model.hparams.{self.batch_arg_name}` are mutually exclusive!"
-                f" `model.{self.batch_arg_name}` will be used as the initial batch size for scaling."
+                f"Field `model.{self._batch_arg_name}` and `model.hparams.{self._batch_arg_name}` are mutually"
+                f" exclusive! `model.{self._batch_arg_name}` will be used as the initial batch size for scaling."
                 " If this is not the intended behavior, please remove either one."
             )
 
     def scale_batch_size(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         new_size = scale_batch_size(
-            trainer, pl_module, self.mode, self.steps_per_trial, self.init_val, self.max_trials, self.batch_arg_name
+            trainer,
+            pl_module,
+            self._mode,
+            self._steps_per_trial,
+            self._init_val,
+            self._max_trials,
+            self._batch_arg_name,
         )
 
         self.optimal_batch_size = new_size
