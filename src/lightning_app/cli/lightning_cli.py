@@ -406,59 +406,6 @@ def run_app(
     _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
 
 
-def app_command() -> None:
-    """Execute a function in a running application from its name."""
-    from lightning_app.utilities.commands.base import _download_command
-
-    logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
-
-    debug_mode = bool(int(os.getenv("DEBUG", "0")))
-
-    parser = ArgumentParser()
-    parser.add_argument("--app_id", default=None, type=str, help="Optional argument to identify an application.")
-    hparams, argv = parser.parse_known_args()
-
-    # 1: Collect the url and comments from the running application
-    url, api_commands = _retrieve_application_url_and_available_commands(hparams.app_id)
-    if url is None or api_commands is None:
-        raise Exception("We couldn't find any matching running app.")
-
-    if not api_commands:
-        raise Exception("This application doesn't expose any commands yet.")
-
-    command = argv[0]
-
-    if command not in api_commands:
-        raise Exception(f"The provided command {command} isn't available in {list(api_commands)}")
-
-    # 2: Send the command from the user
-    metadata = api_commands[command]
-
-    # 3: Execute the command
-    if metadata["tag"] == OpenAPITags.APP_COMMAND:
-        # TODO: Improve what is current supported
-        kwargs = [v.replace("--", "") for v in argv[1:]]
-
-        for p in kwargs:
-            if p.split("=")[0] not in metadata["parameters"]:
-                raise Exception(f"Some arguments need to be provided. The keys are {list(metadata['parameters'])}.")
-        # TODO: Encode the parameters and validate their type.
-        query_parameters = "&".join(kwargs)
-        resp = requests.post(url + f"/command/{command}?{query_parameters}")
-        assert resp.status_code == 200, resp.json()
-    else:
-        client_command = _download_command(
-            command,
-            metadata["cls_path"],
-            metadata["cls_name"],
-            hparams.app_id,
-            debug_mode=debug_mode,
-        )
-        client_command._setup(command_name=command, app_url=url)
-        sys.argv = argv
-        client_command.run()
-
-
 @_main.group(hidden=True)
 def fork() -> None:
     """Fork an application."""
