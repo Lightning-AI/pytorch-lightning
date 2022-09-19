@@ -23,8 +23,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins import TorchCheckpointIO
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
