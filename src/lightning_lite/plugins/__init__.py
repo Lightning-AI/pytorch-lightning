@@ -30,7 +30,6 @@ __all__ = [
     "XLACheckpointIO",
     "DeepSpeedPrecision",
     "DoublePrecision",
-    "MixedPrecision",
     "NativeMixedPrecision",
     "Precision",
     "TPUPrecision",
