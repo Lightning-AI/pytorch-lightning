@@ -79,27 +79,17 @@ For Lightning and Lightning BYOC:
 
 ----
 
-******************
-Step 1: Set up AWS
-******************
+************************
+Step 1: Set up AWS Role
+************************
 
-In this step, you are going to create a role with permissions that allow Lightning to make changes to your AWS resources on your behalf.
-You can do this directly in AWS or you can use Terraform. They both accomplish the same goal,
-so choose the method that works best for you.
+**Who should do this:** IT department, or anyone with admin access to the cloud provider.
 
-----
+The first step is to create a role with permissions that allow Lightning to make changes to your AWS resources on your behalf.
 
-Who should set up AWS?
-^^^^^^^^^^^^^^^^^^^^^^
-
-In companies that have an IT department or a department that oversees your cloud provider resources,
-they will be the ones to set up and assign/add this role to your AWS account.
-If you’re a one person army (you’re a researcher, data scientist, Lightning App creator, or more),
-you’re going to have to set up the role for your own account by yourself.
-
-.. note::
-
-    If you are an IT person setting this role up for someone else, assign the role to their account once the role is created.
+You can do that in 2 ways:
+a. Directly in AWS
+b. Terraform (recommended for Terraform users)
 
 ----
 
