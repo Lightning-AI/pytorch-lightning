@@ -388,7 +388,8 @@ Then it is possible to import the ``cli_main`` function to run it. Executing in 
 
 All the features that are supported from the command line can be used when giving ``args`` as a list of strings. It is
 also possible to provide a ``dict`` or `jsonargparse.Namespace
-<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.Namespace>`__. For example:
+<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.Namespace>`__. For example in a jupyter notebook someone
+might do:
 
 .. code:: python
 
@@ -399,9 +400,12 @@ also possible to provide a ``dict`` or `jsonargparse.Namespace
         "model": {},
     }
 
-    for encoder_layers in [8, 16, 24]:
-        args["model"]["encoder_layers"] = encoder_layers
-        cli_main(args)
+    args["model"]["encoder_layers"] = 8
+    cli_main(args)
+    args["model"]["encoder_layers"] = 12
+    cli_main(args)
+    args["trainer"]["max_epochs"] = 200
+    cli_main(args)
 
 .. note::
 
