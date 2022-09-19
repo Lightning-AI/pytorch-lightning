@@ -5,62 +5,287 @@ Run Apps on your own cloud (BYOC)
 
 **Audience:** Users looking to run Lightning Apps on their own private cloud.
 
+.. note::
+
+    This feature is in EARLY ACCESS. Contact us to request access.
+
 ----
 
-*******************
-A bit of background
-*******************
+***********************
+What is Lightning BYOC?
+***********************
 
 BYOC - Bring Your Own Cloud, is an alternate deployment model to Lightning Cloud (fully managed SaaS).
 BYOC separates the control and data plane. The data plane, that includes
 Lightning clusters, services and Lightning Apps, reside inside the user’s VPC.
+Lightning clusters, services and Lightning Apps (App), reside inside the user’s cloud account.
 The control plane resides on Lightning Cloud.
 
 Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
 delegated access and an identity provider for secure access to the data plane.
+Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your
+personal credentials (this could include your CLI profile name, secret, and key) for delegated
+access and an identity provider for secure access to the data plane.
 
-Next, as part of the environment creation process, you can configure networking,
-security, and select among cluster configuration options based on their own use cases.
+After submitting a cluster creation request, the Lightning Control Plane creates the required cloud
+infrastructure on the user cloud account. On AWS this includes creating the EKS kubernetes cluster,
+necessary S3 buckets, IAM roles, and Lighting agent managing this environment.
 
-After submitting a cluster creation request, the Lightning Control Plane creates the required cloud infrastructure on the user account. This
-sets up a new Lightning Cluster along with a Lightning Kubernetes Operator.
+----
 
+***********************************
+What does Lightning BYOC do for me?
+***********************************
 
-*******************************
-Create a Lightning BYOC cluster
-*******************************
+Lightning BYOC allows you to use Lightning while keeping your data behind a wall.
+Lightning can interact with your data, but your data never leaves your cloud.
+This means you can run Apps, train Apps, collaborate on creating Apps and component
+within your own cloud. So your data is protected and you save money.
 
-You must have your cloud configured before you try and create a BYOC cluster.
+----
 
-And to make your life a little easier, we've made a `Terraform module to help with that <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_.
+*************************
+What are you going to do?
+*************************
 
-Create a Lightning BYOC cluster using the following command:
+The goal of this document is to get you to run a Lightning App on your cloud/cluster. 
+There are other things you can do with Lightning BYOC, but running an App on your own
+cloud/cluster will show you that the Lightning cluster works.
+
+At a high level, to accomplish that, you need to do these things:
+
+#. Give Lightning permission to act on your behalf in your AWS account.
+#. Install Lightning.
+#. Create a Lightning cluster and then view the list of clusters and cluster logs.
+#. Run an App on your cluster.
+
+----
+
+*************
+Prerequisites
+*************
+
+For Lightning and Lightning BYOC:
+
+* Python 3.8.x or later (3.8.x, 3.9.x, 3.10.x) for Lightning installation
+
+* An active AWS account with enough permissions to create AWS objects
+
+(Optional) For Terraform only:
+
+* Terraform installed
+
+* AWS CLI installed
+
+* AWS credentials to sign in to AWS
+
+----
+
+******************
+Step 1: Set up AWS
+******************
+
+In this step, you are going to create a role with permissions that allow Lightning to make changes to your AWS resources on your behalf. 
+You can do this directly in AWS or you can use Terraform. They both accomplish the same goal,
+so choose the method that works best for you.
+
+----
+
+Who should set up AWS?
+^^^^^^^^^^^^^^^^^^^^^^
+
+In companies that have an IT department or a department that oversees your cloud provider resources,
+they will be the ones to set up and assign/add this role to your AWS account.
+If you’re a one person army (you’re a researcher, data scientist, Lightning App creator, or more),
+you’re going to have to set up the role for your own account by yourself. 
+
+.. note:: 
+
+    If you are an IT person setting this role up for someone else, assign the role to their account once the role is created.
+
+----
+
+Method 1: Use the AWS Console to set up AWS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You're going to create a custom role in AWS using the AWS management console. 
+
+These are the settings you'll configure for the role:
+
+* **AWS account**
+
+* **Another AWS account number:** **748115360335**
+
+    .. note:: 
+
+        This is Lightning AI's account number. It allows Lightning AI to make changes to your AWS resources
+		(like creating EC2 instances for your BYOC cluster) on your behalf.
+
+* **Require external ID:** 
+
+    .. warning:: 
+
+        AWS does not treat the external ID as a secret. But Lightning AI uses the external ID to access AWS on your behalf. ***Do not share the external ID.*** To read more on what the AWS external ID is and why it's useful go `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html>`_.
+
+* Copy-paste the `contents of this JSON file <https://github.com/Lightning-AI/terraform-aws-lightning-byoc/blob/main/iam_policy.json>`_ into the JSON workspace
+  for the custom policy that the custom role uses.
+
+   .. note:: Ignore the warnings generated by AWS when you create the policy.
+
+Here's a short video showing you the process.
+
+.. raw:: html
+
+   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/aws_signin.png" width="100%">
+      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/byoc_aws_setup_shorter.mp4" type="video/mp4" width="100%">
+   </video>
+
+----
+
+Method 2: Use Terraform to set up AWS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This process is intended for advanced users only. If you have not used Terraform before, you might want to consider using the AWS console.
+
+#. `Download and install Terraform. <https://www.terraform.io/downloads>`_ If you haven’t used Terraform, `here is their tutorial <https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=terraform_io_download>`_.
+
+#. Install `AWS CLI <https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html>`_.
+
+#. Using the AWS CLI log into your `AWS account <https://aws.amazon.com/free>`_ using `associated credentials <https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html>`_ that allow you to create resources. For example:
+    
+    .. code:: bash
+
+        aws configure sso
+        aws sso login
+    
+#. Clone the `terraform-aws-lightning-byoc <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_ repo.
+
+#. Go to the quick-start directory inside the cloned repo.
+
+#. Run the following commands in the quick-start directory:
+
+    .. code:: bash
+
+        terraform init
+        export AWS_PROFILE=<your profile>
+        aws sts get-caller-identity
+        terraform apply
+
+#. Follow the directions in the CLI.
+
+#. Run the following to get the ARN and external ID:
+
+    .. code:: bash
+
+        terraform out -json
+
+----
+
+Get the ARN and external ID
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once IT or you yourself have created the role, you need to get the ARN and external ID from the AWS console.
+
+Here's a short video showing you the process.
+
+.. raw:: html
+
+   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/aws_signin.png" width="100%">
+      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/byoc_aws_get_arn_exid.mp4" type="video/mp4" width="100%">
+   </video>
+
+----
+
+*************************
+Step 2: Install Lightning
+*************************
+
+Lightning must be installed before you can create a Lightning BYOC cluster.
+
+----
+
+Who should install Lightning?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once your AWS account is ready, IT’s job is done. That means you are the one who will be doing this (researchers, data scientists, Lightning App creators).
+
+----
+
+Install Lightning
+^^^^^^^^^^^^^^^^^
+
+From your local machine use the following command to install Lightning:
 
 .. code:: bash
 
-   lightning create cluster <cluster-name> <cloud-provider-parameters>
+    python -m pip install lightning
+
+We have versioned pinned requirements at the time of the writing. Feel free to use the newer versions:
+
+.. code:: bash
+
+    torch==1.1
+    torchvision
+    pytorch_lightning
+
+----
+
+******************************************
+Step 3: Set up your Lightning BYOC cluster
+******************************************
+
+Creating a cluster is a one time operation, unless you intend to add more clusters.
+
+----
+
+Who should set up your Lightning BYOC cluster?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With Lightning installed, researchers, data scientists, Lightning App creators, and more, can now start creating and monitoring clusters.
+
+----
+
+Create a Lightning BYOC cluster
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You must have your cloud configured before you try and create a BYOC cluster.
+
+Create a Lightning BYOC cluster using the following command from your local machine:
+
+.. code:: bash
+
+     python -m lightning create cluster <cluster-name> --provider aws --role-arn <ARN-you-copied-earlier> --external-id <external-id-you-copied-earlier> --region <aws-region> <other-cloud-provider-parameters> --wait
+
+.. note:: 
+
+    Most AWS regions should work, but we recommend using one of the following AWS regions when creating a cluster:
+
+    * us-east-1
+    * us-west-2
+    * eu-west-1
+    * ap-south-1
 
 Here's an example:
 
 .. code:: bash
 
-   lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --enable-performance
+    python -m lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge –-wait
 
-.. note:: Cluster creation is going to take an hour or more after you run this command.
+.. note::
 
-----
+    Creating the cluster is a one-time operation that can take about an hour to complete. Once a cluster is created, you can start running Lightning Apps on the cluster.
 
-Arguments
-^^^^^^^^^
+**Arguments**
 
 * cluster_name: The name of the cluster to be created
 
-.. note:: Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ).
+.. note::
 
-----
+    Cluster names must be unique and can only contain lowercase letters, numbers, and periodic hyphens ( - ).
 
-Parameters
-^^^^^^^^^^
+    Cluster names cannot be reused. Even if you delete a cluster, the name used for that cluster cannot be used again.
+
+**Parameters**
 
 +------------------------+----------------------------------------------------------------------------------------------------+
 |Parameter               | Descritption                                                                                       |
@@ -82,40 +307,103 @@ Parameters
 |                        |                                                                                                    |
 |                        | For now, this is the AWS instance types supported by the cluster.                                  |
 +------------------------+----------------------------------------------------------------------------------------------------+
-| enable-performance     | Specifies if the cluster uses cost savings mode.                                                   |
+| cost-savings           | By default cost saving mode is enabled.                                                            |
 |                        |                                                                                                    |
 |                        | In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters  |
-|                        | with low utilization.                                                                              |
-+------------------------+----------------------------------------------------------------------------------------------------+
-| edit-before-creation   | Enables interactive editing of requests before submitting it to Lightning AI.                      |
+|                        | with low utilization. Disabling cost savings mode adds another node for HA use.                    |
 +------------------------+----------------------------------------------------------------------------------------------------+
 | wait                   | Waits for the cluster to be in a RUNNING state. Only use this for debugging.                       |
 +------------------------+----------------------------------------------------------------------------------------------------+
 
 ----
 
-*******************************************
 View a list of your Lightning BYOC clusters
-*******************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+List all of your Lightning clusters using the following command:
 
 .. code:: bash
 
-   lightning list clusters
+    lightning list clusters
 
 ----
 
-*******************************
-Delete a Lightning BYOC cluster
-*******************************
+View Lightning BYOC cluster logs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Deletes a Lightning BYOC cluster. Lightning AI removes cluster artifacts and any resources running on the cluster.
-
-.. warning:: Using the ``--force`` parameter when deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
-
-Deletion permanently removes not only the record of all runs on a cluster, but all associated artifacts, metrics, logs, etc.
-
-.. warning:: This process may take a few minutes to complete, but once started it CANNOT be rolled back. Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down every BYOC resource Lightning AI managed (for that cluster id) in the host cloud. All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
+View the logs from your cluster using the following command:
 
 .. code:: bash
 
-   lightning delete cluster <cluster-name>
+    lightning show cluster logs <cluster-name>
+
+Here’s an example:
+
+.. code:: bash
+
+    lightning show cluster logs my-byoc-cluster-01
+
+----
+
+Delete a Lightning BYOC cluster
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once you’re done with a Lightning BYOC cluster, you can delete it if you want to. Lightning AI removes cluster artifacts and any resources running on the cluster.
+
+.. warning::
+
+    Using the ``--force`` parameter when deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
+
+    Deletion permanently removes not only the record of all runs on a cluster, but all associated artifacts, metrics, logs, etc.
+
+    This process may take a few minutes to complete, but once started it CANNOT be rolled back. Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down every BYOC resource Lightning AI managed (for that cluster id) in the host cloud. All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
+
+Use the following command to delete a Lightning cluster:
+
+.. code:: bash
+
+    lightning delete cluster <cluster-name>
+
+Here’s an example:
+
+.. code:: bash
+
+    lightning delete cluster my-byoc-cluster-01
+
+----
+
+*************************************************
+Step 4: Run an App on your Lightning BYOC Cluster
+*************************************************
+
+After starting an App on your cluster, you can also view the App's status.
+
+----
+
+Who should run an App?
+^^^^^^^^^^^^^^^^^^^^^^
+
+Your cluster is now up and running, so researchers, data scientists, Lightning App creators, and more, can now start running and monitoring Apps on the clusters.
+
+----
+
+Use the Lightning BYOC Cluster
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once your cluster is running, you can run any Lightning App on your cluster. To run an App on the Lightning BYOC cluster, use --cloud –cluster <cluster name> in the command:
+
+.. code:: bash
+
+    lightning run app app.py —-cluster <cluster-name> —-cloud
+
+Here’s an example:
+
+.. code:: bash
+
+    lightning run app app.py —-cluster my-byoc-cluster-01 –cloud
+
+Once you attempt to run the App on the cluster, you can also view the status of your App using the following command:
+
+.. code:: bash
+
+    lightning list apps
