@@ -23,7 +23,7 @@ import torch
 from torch.autograd.profiler import EventList, record_function
 from torch.profiler import ProfilerAction
 
-from pytorch_lightning import LightningModule
+#from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.trainer.connectors.data_connector import warning_cache
 from pytorch_lightning.utilities import _HPU_AVAILABLE
@@ -45,7 +45,6 @@ class HPUProfiler(PyTorchProfiler):
         dirpath: Optional[Union[str, Path]] = None,
         filename: Optional[str] = None,
         group_by_input_shapes: bool = False,
-        emit_nvtx: bool = False,
         export_to_chrome: bool = True,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,

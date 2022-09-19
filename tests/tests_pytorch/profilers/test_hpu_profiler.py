@@ -22,7 +22,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.profiler import AdvancedProfiler, HPUProfiler, SimpleProfiler
+from pytorch_lightning.profilers import AdvancedProfiler, HPUProfiler, SimpleProfiler
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
@@ -134,7 +134,7 @@ class TestHPUProfiler:
         expected = {
             f"{stage}-profiler-{rank}.txt"
             for stage in ("fit", "validate", "test")
-            for rank in range(0, trainer.devices)
+            for rank in range(0, trainer.num_devices)
         }
         actual = set(os.listdir(profiler.dirpath))
         print(f"dirpath: {profiler.dirpath}; actual: {actual}; expected: {expected}")
@@ -164,7 +164,7 @@ class TestHPUProfiler:
         expected = {
             f"{stage}-profiler-{rank}.txt"
             for stage in ("fit", "validate", "test")
-            for rank in range(0, trainer.devices)
+            for rank in range(0, trainer.num_devices)
         }
         actual = set(os.listdir(profiler.dirpath))
         print(f"dirpath: {profiler.dirpath}; actual: {actual}; expected: {expected}")

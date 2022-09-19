@@ -85,7 +85,7 @@ Find bottlenecks in your code on HPU (advanced)
 **************************
 Profile HPU models
 **************************
-To understand the cost of each PyTorch operation, use the :class:`~pytorch_lightning.profilers.hpu.HPUProfiler` built on top of the `PyTorch profiler <https://pytorch.org/docs/master/profiler.html>`__.
+To understand the cost of each PyTorch operation, use the :class:`~pytorch_lightning.profilers.hpu.HPUProfiler` built on top of the `PyTorch profiler <https://pytorch.org/docs/1.12/profiler.html#torch-profiler>`__.
 
 .. code-block:: python
 
@@ -130,7 +130,7 @@ The profiler will generate an output like this:
     Self CPU time total: 1.681ms
 
 .. note::
-    Since HPUProfiler extends PyTorch Profiler, when using the HPUProfiler, wall clock time will not not be representative of the true wall clock time.
+    Since HPUProfiler extends PyTorch Profiler, when using the HPUProfiler, wall clock time will not be representative of the true wall clock time.
     This is due to forcing profiled operations to be measured synchronously, when many HPU ops happen asynchronously.
     It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use
     the ``SimpleProfiler``.
@@ -169,7 +169,7 @@ To visualize the profiled operations, enable **export_to_chrome** in the :class:
     profiler = HPUProfiler()
     trainer = Trainer(profiler=profiler)
 
-Then run the model. Once profiler is finished, load the trace either in tensorboard:
+Then run the model. Once profiler is finished, load the trace either in tensorboard or chrome browser:
 
 .. code-block::
 
@@ -189,4 +189,4 @@ Using Simple and Advanced Profilers
 ************************************
 
 Simple and advanced profilers are compatible with HPU. Please refer to `Find Bottlenecks in your code (Basic) <https://pytorch-lightning.readthedocs.io/en/stable/tuning/profiler_basic.html>`__ for more information on how to use them.
-Note that these profilers will not profile the HPU activity. For that, please use HPUProfiler.
+Note that these profilers will not profile the HPU activity. Please use HPUProfiler instead.
