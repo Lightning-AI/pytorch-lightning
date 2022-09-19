@@ -69,7 +69,7 @@ For Lightning and Lightning BYOC:
 
 * Python 3.8.x or later (3.8.x, 3.9.x, 3.10.x) for Lightning installation
 
-* An active AWS account with enough permissions to create AWS objects
+* An active AWS account with enough permissions to create AWS IAM roles
 
 (Optional) For Terraform only:
 
