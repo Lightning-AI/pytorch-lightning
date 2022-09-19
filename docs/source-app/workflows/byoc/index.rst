@@ -123,7 +123,7 @@ These are the settings you'll configure for the role:
 
     .. warning::
 
-        AWS does not treat the external ID as a secret. But Lightning AI uses the external ID to access AWS on your behalf. ***Do not share the external ID.*** To read more on what the AWS external ID is and why it's useful go `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html>`_.
+        AWS does not treat the external ID as a secret. But Lightning AI uses the external ID to access AWS on your behalf. **Do not share the external ID.** To read more on what the AWS external ID is and why it's useful go `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html>`_.
 
 * Copy-paste the `contents of this JSON file <https://github.com/Lightning-AI/terraform-aws-lightning-byoc/blob/main/iam_policy.json>`_ into the JSON workspace
   for the custom policy that the custom role uses.
