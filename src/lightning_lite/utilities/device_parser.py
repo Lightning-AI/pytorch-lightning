@@ -4,7 +4,6 @@ from lightning_lite.accelerators.cuda import _get_all_available_cuda_gpus
 from lightning_lite.accelerators.mps import _get_all_available_mps_gpus
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from lightning_lite.utilities.types import _DEVICE
 
 
@@ -210,84 +209,3 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     if tpu_cores in ("1", "8"):
         return int(tpu_cores)
     return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
-
-
-@lru_cache(1)
-def num_cuda_devices() -> int:
-    """Returns the number of available CUDA devices.
-
-    Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
-    if the platform allows it.
-    """
-    if _TORCH_GREATER_EQUAL_1_13:
-        return torch.cuda.device_count()
-
-    # Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879
-    # TODO: Remove once minimum supported PyTorch version is 1.13
-    nvml_count = _device_count_nvml()
-    return torch.cuda.device_count() if nvml_count < 0 else nvml_count
-
-
-def is_cuda_available() -> bool:
-    """Returns a bool indicating if CUDA is currently available.
-
-    Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
-    if the platform allows it.
-    """
-    return num_cuda_devices() > 0
-
-
-def _parse_visible_devices() -> Set[int]:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
-    var = os.getenv("CUDA_VISIBLE_DEVICES")
-    if var is None:
-        return {x for x in range(64)}
-
-    def _strtoul(s: str) -> int:
-        """Return -1 or integer sequence string starts with."""
-        if len(s) == 0:
-            return -1
-        for idx, c in enumerate(s):
-            if not c.isdigit():
-                break
-            if idx + 1 == len(s):
-                idx += 1
-        return int(s[:idx]) if idx > 0 else -1
-
-    # CUDA_VISIBLE_DEVICES uses something like strtoul
-    # which makes `1gpu2,2ampere` is equivalent to `1,2`
-    rc: Set[int] = set()
-    for elem in var.split(","):
-        rc.add(_strtoul(elem.strip()))
-    return rc
-
-
-def _raw_device_count_nvml() -> int:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
-    from ctypes import c_int, CDLL
-
-    nvml_h = CDLL("libnvidia-ml.so.1")
-    rc = nvml_h.nvmlInit()
-    if rc != 0:
-        warnings.warn("Can't initialize NVML")
-        return -1
-    dev_arr = (c_int * 1)(-1)
-    rc = nvml_h.nvmlDeviceGetCount_v2(dev_arr)
-    if rc != 0:
-        warnings.warn("Can't get nvml device count")
-        return -1
-    del nvml_h
-    return dev_arr[0]
-
-
-def _device_count_nvml() -> int:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
-    try:
-        raw_cnt = _raw_device_count_nvml()
-        if raw_cnt <= 0:
-            return raw_cnt
-        return len(set(range(raw_cnt)).intersection(_parse_visible_devices()))
-    except OSError:
-        return -1
-    except AttributeError:
-        return -1
