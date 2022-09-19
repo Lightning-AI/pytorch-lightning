@@ -1425,6 +1425,6 @@ def test_lightning_cli_with_args_given(args):
 
 def test_lightning_cli_args_and_sys_argv_exception():
     with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.raises(
-        MisconfigurationException, match="LightningCLI's args parameter "
+        ValueError, match="LightningCLI's args parameter "
     ):
         LightningCLI(TestModel, run=False, args=["--model.foo=789"])
