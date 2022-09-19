@@ -33,7 +33,6 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
 
     with caplog.at_level(logging.INFO):
         with mock.patch("lightning_app.LightningApp._run", _lightning_app_run_and_logging):
-
             runner = CliRunner()
             result = runner.invoke(
                 run_app,
@@ -70,6 +69,7 @@ def test_lightning_run_cluster_without_cloud(monkeypatch):
             open_ui=False,
             no_cache=True,
             env=("FOO=bar",),
+            secret=(),
         )
 
 
@@ -80,7 +80,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
     """This test validates the command has ran properly when --cloud argument is passed.
 
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
-    call to `dispatch` for the right arguments
+    call to `dispatch` for the right arguments.
     """
     monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
 
@@ -95,6 +95,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
             open_ui=open_ui,
             no_cache=True,
             env=("FOO=bar",),
+            secret=("BAR=my-secret",),
         )
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
@@ -108,5 +109,25 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         name="",
         no_cache=True,
         env_vars={"FOO": "bar"},
+        secrets={"BAR": "my-secret"},
         cluster_id="",
     )
+
+
+def test_lightning_run_app_secrets(monkeypatch):
+    """Validates that running apps only supports the `--secrets` argument if the `--cloud` argument is passed."""
+    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+
+    with pytest.raises(click.exceptions.ClickException):
+        _run_app(
+            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+            cloud=False,
+            cluster_id="test-cluster",
+            without_server=False,
+            name="",
+            blocking=False,
+            open_ui=False,
+            no_cache=True,
+            env=(),
+            secret=("FOO=my-secret"),
+        )

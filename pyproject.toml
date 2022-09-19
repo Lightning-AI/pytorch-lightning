@@ -53,8 +53,6 @@ warn_no_return = "False"
 module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
     "pytorch_lightning.trainer.trainer",
-    "pytorch_lightning.tuner.batch_size_scaling",
-    "pytorch_lightning.utilities.data",
-    "lightning_lite.utilities.data",
+    "pytorch_lightning.tuner.batch_size_scaling"
 ]
 ignore_errors = "True"

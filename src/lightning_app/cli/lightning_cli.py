@@ -23,7 +23,7 @@ from lightning_app.cli.commands.connection import (
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.core.constants import get_lightning_cloud_url
+from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_helpers import Logger
@@ -31,8 +31,9 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
+from lightning_app.utilities.exceptions import LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
-from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
+from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI, _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
@@ -118,7 +119,9 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     apps = {
         app.name: app
-        for app in client.lightningapp_instance_service_list_lightningapp_instances(project.project_id).lightningapps
+        for app in client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id
+        ).lightningapps
     }
 
     if not apps:
@@ -203,7 +206,7 @@ def cluster():
     help="The end timestamp / relative time increment to query logs for. This is ignored when following logs (with "
     "-f/--follow). The same format as --from option has.",
 )
-@click.option("--limit", default=1000, help="The max number of log lines returned.")
+@click.option("--limit", default=10000, help="The max number of log lines returned.")
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
     """Show cluster logs.
@@ -250,21 +253,26 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
             f" Please select one of the following: [{', '.join(clusters.keys())}]"
         )
 
-    log_reader = _cluster_logs_reader(
-        client=client,
-        cluster_id=clusters[cluster_name],
-        start=from_time.int_timestamp,
-        end=to_time.int_timestamp,
-        limit=limit,
-        follow=follow,
-    )
+    try:
+        log_reader = _cluster_logs_reader(
+            logs_api_client=_ClusterLogsSocketAPI(client.api_client),
+            cluster_id=clusters[cluster_name],
+            start=from_time.int_timestamp,
+            end=to_time.int_timestamp if not follow else None,
+            limit=limit,
+            follow=follow,
+        )
 
-    colors = {"error": "red", "warn": "yellow", "info": "green"}
+        colors = {"error": "red", "warn": "yellow", "info": "green"}
 
-    for log_event in log_reader:
-        date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-        color = colors.get(log_event.labels.level, "green")
-        rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
+        for log_event in log_reader:
+            date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+            color = colors.get(log_event.labels.level, "green")
+            rich.print(f"[{color}]{log_event.labels.level:5}[/{color}] {date} {log_event.message.rstrip()}")
+    except LogLinesLimitExceeded:
+        raise click.ClickException(f"Read {limit} log lines, but there may be more. Use --limit param to read more")
+    except Exception as error:
+        logger.error(f"⚡ Error while reading logs ({type(error)}), {error}", exc_info=DEBUG)
 
 
 @_main.command()
@@ -297,6 +305,7 @@ def _run_app(
     blocking: bool,
     open_ui: bool,
     env: tuple,
+    secret: tuple,
 ):
     file = _prepare_file(file)
 
@@ -312,9 +321,16 @@ def _run_app(
                 "Caching is a property of apps running in cloud. "
                 "Using the flag --no-cache in local execution is not supported."
             )
+        if secret:
+            raise click.ClickException(
+                "Secrets can only be used for apps running in cloud. "
+                "Using the option --secret in local execution is not supported."
+            )
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
+
+    secrets = _format_input_env_variables(secret)
 
     def on_before_run(*args, **kwargs):
         if open_ui and not without_server:
@@ -334,6 +350,7 @@ def _run_app(
         on_before_run=on_before_run,
         name=name,
         env_vars=env_vars,
+        secrets=secrets,
         cluster_id=cluster_id,
     )
     if runtime_type == RuntimeType.CLOUD:
@@ -369,7 +386,8 @@ def run():
     default=True,
     help="Decide whether to launch the app UI in a web browser",
 )
-@click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
+@click.option("--env", type=str, default=[], multiple=True, help="Environment variables to be set for the app.")
+@click.option("--secret", type=str, default=[], multiple=True, help="Secret variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
     file: str,
@@ -381,10 +399,11 @@ def run_app(
     blocking: bool,
     open_ui: bool,
     env: tuple,
-    app_args: List[str],
+    secret: tuple,
+    app_args: tuple,
 ):
     """Run an app from a file."""
-    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
 
 
 @_main.group(hidden=True)

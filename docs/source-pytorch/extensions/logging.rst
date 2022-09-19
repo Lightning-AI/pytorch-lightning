@@ -324,10 +324,10 @@ if you are using a logger. These defaults can be customized by overriding the
 
 .. code-block:: python
 
-    from pytorch_lightning.callbacks.progress import Tqdm
+    from pytorch_lightning.callbacks.progress import TQDMProgressBar
 
 
-    class CustomProgressBar(Tqdm):
+    class CustomProgressBar(TQDMProgressBar):
         def get_metrics(self, *args, **kwargs):
             # don't show the version number
             items = super().get_metrics()
