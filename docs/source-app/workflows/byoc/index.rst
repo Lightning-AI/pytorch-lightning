@@ -48,7 +48,7 @@ within your own cloud. So your data is protected and you save money.
 What are you going to do?
 *************************
 
-The goal of this document is to get you to run a Lightning App on your cloud/cluster. 
+The goal of this document is to get you to run a Lightning App on your cloud/cluster.
 There are other things you can do with Lightning BYOC, but running an App on your own
 cloud/cluster will show you that the Lightning cluster works.
 
@@ -85,7 +85,7 @@ For Lightning and Lightning BYOC:
 Step 1: Set up AWS
 ******************
 
-In this step, you are going to create a role with permissions that allow Lightning to make changes to your AWS resources on your behalf. 
+In this step, you are going to create a role with permissions that allow Lightning to make changes to your AWS resources on your behalf.
 You can do this directly in AWS or you can use Terraform. They both accomplish the same goal,
 so choose the method that works best for you.
 
@@ -97,9 +97,9 @@ Who should set up AWS?
 In companies that have an IT department or a department that oversees your cloud provider resources,
 they will be the ones to set up and assign/add this role to your AWS account.
 If you’re a one person army (you’re a researcher, data scientist, Lightning App creator, or more),
-you’re going to have to set up the role for your own account by yourself. 
+you’re going to have to set up the role for your own account by yourself.
 
-.. note:: 
+.. note::
 
     If you are an IT person setting this role up for someone else, assign the role to their account once the role is created.
 
@@ -108,7 +108,7 @@ you’re going to have to set up the role for your own account by yourself.
 Method 1: Use the AWS Console to set up AWS
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You're going to create a custom role in AWS using the AWS management console. 
+You're going to create a custom role in AWS using the AWS management console.
 
 These are the settings you'll configure for the role:
 
@@ -116,14 +116,14 @@ These are the settings you'll configure for the role:
 
 * **Another AWS account number:** **748115360335**
 
-    .. note:: 
+    .. note::
 
         This is Lightning AI's account number. It allows Lightning AI to make changes to your AWS resources
 		(like creating EC2 instances for your BYOC cluster) on your behalf.
 
-* **Require external ID:** 
+* **Require external ID:**
 
-    .. warning:: 
+    .. warning::
 
         AWS does not treat the external ID as a secret. But Lightning AI uses the external ID to access AWS on your behalf. ***Do not share the external ID.*** To read more on what the AWS external ID is and why it's useful go `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html>`_.
 
@@ -152,12 +152,12 @@ This process is intended for advanced users only. If you have not used Terraform
 #. Install `AWS CLI <https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html>`_.
 
 #. Using the AWS CLI log into your `AWS account <https://aws.amazon.com/free>`_ using `associated credentials <https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html>`_ that allow you to create resources. For example:
-    
+
     .. code:: bash
 
         aws configure sso
         aws sso login
-    
+
 #. Clone the `terraform-aws-lightning-byoc <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_ repo.
 
 #. Go to the quick-start directory inside the cloned repo.
@@ -256,7 +256,7 @@ Create a Lightning BYOC cluster using the following command from your local mach
 
      python -m lightning create cluster <cluster-name> --provider aws --role-arn <ARN-you-copied-earlier> --external-id <external-id-you-copied-earlier> --region <aws-region> <other-cloud-provider-parameters> --wait
 
-.. note:: 
+.. note::
 
     Most AWS regions should work, but we recommend using one of the following AWS regions when creating a cluster:
 
