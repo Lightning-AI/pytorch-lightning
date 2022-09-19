@@ -96,11 +96,11 @@ class AWSClusterManager:
 
         click.echo(f"{resp.id} cluster is in {resp.status.phase} state")
 
-    def get_clusters(self):
+    def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
         return ClusterList(resp.clusters)
 
-    def list(self):
+    def list(self) -> None:
         clusters = self.get_clusters()
         console = Console()
         console.print(clusters.as_table())

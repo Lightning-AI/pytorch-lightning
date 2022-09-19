@@ -39,7 +39,7 @@ from lightning_app.utilities.network import LightningClient
 logger = Logger(__name__)
 
 
-def get_app_url(runtime_type: RuntimeType, *args, need_credits: bool = False) -> str:
+def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = False) -> str:
     if runtime_type == RuntimeType.CLOUD:
         lightning_app: Externalv1LightningappInstance = args[0]
         action = "?action=add_credits" if need_credits else ""
@@ -77,7 +77,7 @@ def main() -> None:
 @click.group()
 @click.version_option(ver)
 def _main() -> None:
-    register_all_external_components()
+    pass
 
 
 @_main.group()
@@ -152,7 +152,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
     else:
 
-        def add_prefix(c: str):
+        def add_prefix(c: str) -> str:
             if c == "flow":
                 return c
             if not c.startswith("root."):
@@ -183,7 +183,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
 
 
 @show.group()
-def cluster():
+def cluster() -> None:
     """Groups cluster commands inside show."""
     pass
 
@@ -332,7 +332,7 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
-    def on_before_run(*args, **kwargs) -> None:
+    def on_before_run(*args: Any, **kwargs: Any) -> None:
         if open_ui and not without_server:
             click.launch(get_app_url(runtime_type, *args, **kwargs))
 
@@ -403,7 +403,7 @@ def run_app(
     app_args: tuple,
 ) -> None:
     """Run an app from a file."""
-    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env)
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
 
 
 @_main.group(hidden=True)
