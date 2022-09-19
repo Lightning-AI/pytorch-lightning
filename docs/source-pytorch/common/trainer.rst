@@ -1507,44 +1507,6 @@ Can specify as float or int.
     total_fit_batches = total_train_batches + total_val_batches
 
 
-weights_save_path
-^^^^^^^^^^^^^^^^^
-
-
-.. warning:: `weights_save_path` has been deprecated in v1.6 and will be removed in v1.8. Please pass
-   ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
-   callback.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_save_path.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_save_path.mp4"></video>
-
-|
-
-Directory of where to save weights if specified.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(weights_save_path=os.getcwd())
-
-    # save to your custom path
-    trainer = Trainer(weights_save_path="my/path")
-
-Example::
-
-    # if checkpoint callback used, then overrides the weights path
-    # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint = ModelCheckpoint(dirpath='some/path')
-    trainer = Trainer(
-        callbacks=[checkpoint],
-        weights_save_path='my/path'
-    )
-
-
 enable_model_summary
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -1634,6 +1596,16 @@ The number of epochs run.
 
     if trainer.current_epoch >= 10:
         ...
+
+
+datamodule
+**********
+
+The current datamodule, which is used by the trainer.
+
+.. code-block:: python
+
+    used_datamodule = trainer.datamodule
 
 is_last_batch
 *************
@@ -1732,6 +1704,17 @@ The metrics sent to the progress bar.
     assert progress_bar_metrics["a_val"] == 2
 
 
+predict_dataloaders
+*******************
+
+The current predict dataloaders of the trainer.
+Note that property returns a list of predict dataloaders.
+
+.. code-block:: python
+
+    used_predict_dataloaders = trainer.predict_dataloaders
+
+
 estimated_stepping_batches
 **************************
 
@@ -1811,3 +1794,37 @@ both conditions are met. If any of these arguments is not set, it won't be consi
     trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100)
     model = LitModel()
     trainer.fit(model)
+
+
+train_dataloader
+****************
+
+The current train dataloader of the trainer.
+
+.. code-block:: python
+
+    used_train_dataloader = trainer.train_dataloader
+
+
+test_dataloaders
+****************
+
+The current test dataloaders of the trainer.
+Note that property returns a list of test dataloaders.
+
+
+.. code-block:: python
+
+    used_test_dataloaders = trainer.test_dataloaders
+
+val_dataloaders
+***************
+
+
+The current val dataloaders of the trainer.
+Note that property returns a list of val dataloaders.
+
+
+.. code-block:: python
+
+    used_val_dataloaders = trainer.val_dataloaders

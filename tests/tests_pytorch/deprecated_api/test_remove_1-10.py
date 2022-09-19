@@ -20,6 +20,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
@@ -47,6 +48,7 @@ from pytorch_lightning.utilities.device_parser import (
     num_cuda_devices,
     parse_cpu_cores,
     parse_gpu_ids,
+    parse_hpus,
     parse_tpu_cores,
 )
 from pytorch_lightning.utilities.distributed import (
@@ -190,6 +192,9 @@ def test_v1_10_deprecated_device_parser_utilities():
     with pytest.deprecated_call(match="device_parser.num_cuda_devices` has been deprecated in v1.8.0"):
         num_cuda_devices()
 
+    with pytest.deprecated_call(match="device_parser.parse_hpus` has been deprecated in v1.8.0"):
+        parse_hpus(1)
+
     with pytest.deprecated_call(match="device_parser.parse_cpu_cores` has been deprecated in v1.8.0"):
         parse_cpu_cores(1)
 
@@ -250,3 +255,8 @@ def test_v1_10_deprecated_seed_utilities():
 
     with pytest.deprecated_call(match="seed.pl_worker_init_function` has been deprecated in v1.8.0"):
         pl_worker_init_function(0)
+
+
+def test_v1_10_deprecated_accelerator_setup_environment_method():
+    with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
+        CPUAccelerator().setup_environment(torch.device("cpu"))

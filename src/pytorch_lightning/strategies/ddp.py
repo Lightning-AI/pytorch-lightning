@@ -29,13 +29,8 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    distributed_available,
-    get_default_process_group_backend_for_device,
-)
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from lightning_lite.utilities.optimizer import optimizers_to_device
@@ -78,7 +73,7 @@ class DDPStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -213,11 +208,7 @@ class DDPStrategy(ParallelStrategy):
         init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:

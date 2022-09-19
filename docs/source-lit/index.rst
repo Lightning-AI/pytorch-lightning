@@ -49,7 +49,6 @@ Welcome to ⚡ Lightning Apps
    Develop a DAG <examples/dag/dag>
    Develop a File Server <examples/file_server/file_server>
    Develop a Github Repo Script Runner <examples/github_repo_runner/github_repo_runner>
-   Develop a HPO Sweeper <examples/hpo/hpo>
    Develop a Model Server <examples/model_server_app/model_server_app>
 
 ..
@@ -113,6 +112,7 @@ Welcome to ⚡ Lightning Apps
    DAG <glossary/dag>
    Event Loop <glossary/event_loop>
    Environment Variables <glossary/environment_variables>
+   Encrypted Secrets <glossary/secrets>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
    Sharing Components <glossary/sharing_components>
    Scheduling <glossary/scheduling.rst>

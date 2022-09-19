@@ -15,9 +15,11 @@
 import logging
 import os
 import re
+import signal
 from typing import Optional
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.utilities.imports import _IS_WINDOWS
 
 log = logging.getLogger(__name__)
 
@@ -28,11 +30,16 @@ class SLURMEnvironment(ClusterEnvironment):
     Args:
         auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
             rescheduled gets determined by the owner of this plugin.
+        requeue_signal: The signal that SLURM will send to indicate that the job should be requeued. Defaults to
+            SIGUSR1 on Unix.
     """
 
-    def __init__(self, auto_requeue: bool = True) -> None:
+    def __init__(self, auto_requeue: bool = True, requeue_signal: Optional[signal.Signals] = None) -> None:
         super().__init__()
         self.auto_requeue = auto_requeue
+        if requeue_signal is None and not _IS_WINDOWS:
+            requeue_signal = signal.SIGUSR1
+        self.requeue_signal = requeue_signal
 
     @property
     def creates_processes_externally(self) -> bool:
@@ -81,8 +88,14 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @staticmethod
     def detect() -> bool:
-        """Returns ``True`` if the current process was launched on a SLURM cluster."""
-        return "SLURM_NTASKS" in os.environ
+        """Returns ``True`` if the current process was launched on a SLURM cluster.
+
+        It is possible to use the SLURM scheduler to request resources and then launch processes manually using a
+        different environment. For this, the user can set the job name in SLURM to 'bash' (``SLURM_JOB_NAME=bash``).
+        This will then avoid the detection of ``SLURMEnvironment`` and another environment can be detected
+        automatically.
+        """
+        return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
 
     @staticmethod
     def job_name() -> Optional[str]:

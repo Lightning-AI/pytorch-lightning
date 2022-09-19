@@ -27,9 +27,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from lightning_lite.utilities.imports import (
     _APEX_AVAILABLE,
-    _FAIRSCALE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
@@ -44,13 +45,12 @@ def test_imports():
     else:
         assert _APEX_AVAILABLE
 
-    # TODO(lite): re-enable these once deepspeed strategy has moved
-    # try:
-    #     import deepspeed
-    # except ModuleNotFoundError:
-    #     assert not _DEEPSPEED_AVAILABLE
-    # else:
-    #     assert _DEEPSPEED_AVAILABLE
+    try:
+        import deepspeed  # noqa
+    except ModuleNotFoundError:
+        assert not _DEEPSPEED_AVAILABLE
+    else:
+        assert _DEEPSPEED_AVAILABLE
 
     try:
         import fairscale.nn  # noqa

@@ -22,7 +22,7 @@ import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.strategies.launchers.base import _Launcher
 
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")

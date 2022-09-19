@@ -43,4 +43,4 @@ class RootFlow(LightningFlow):
 
 
 if __name__ == "__main__":
-    app = LightningApp(RootFlow())
+    app = LightningApp(RootFlow(), debug=True)
