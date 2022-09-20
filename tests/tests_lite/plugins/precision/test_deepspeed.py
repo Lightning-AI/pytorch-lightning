@@ -17,6 +17,7 @@ from unittest.mock import Mock
 import pytest
 
 from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
+from tests_lite.helpers.runif import RunIf
 
 
 def test_invalid_precision_with_deepspeed_precision():
@@ -47,6 +48,7 @@ def test_deepspeed_precision_backward():
     model.backward.assert_called_once_with(tensor, "positional-arg", keyword="arg")
 
 
+@RunIf(deepspeed=True)
 def test_deepspeed_precision_optimizer_step():
     from deepspeed import DeepSpeedEngine
 
