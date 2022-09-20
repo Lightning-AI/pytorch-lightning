@@ -2,6 +2,8 @@
 import logging
 import os
 
+from lightning_utilities.core.imports import module_available
+
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
@@ -29,11 +31,10 @@ if not hasattr(__about__, "__version__"):
 from lightning_app.core.app import LightningApp  # noqa: E402
 from lightning_app.core.flow import LightningFlow  # noqa: E402
 from lightning_app.core.work import LightningWork  # noqa: E402
-from lightning_app.utilities.imports import _module_available  # noqa: E402
 from lightning_app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
 
-if _module_available("lightning_app.components.demo"):
+if module_available("lightning_app.components.demo"):
     from lightning_app.components import demo  # noqa: F401
 
 _PACKAGE_ROOT = os.path.dirname(__file__)

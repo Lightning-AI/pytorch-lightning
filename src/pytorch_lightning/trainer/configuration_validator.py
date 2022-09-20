@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import DataParallelStrategy
@@ -20,7 +21,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
@@ -70,16 +70,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         )
 
     # -----------------------------------
-    # verify model has a train dataloader
-    # -----------------------------------
-    has_train_dataloader = trainer._data_connector._train_dataloader_source.is_defined()
-    if not has_train_dataloader:
-        raise MisconfigurationException(
-            "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
-            " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
-        )
-
-    # -----------------------------------
     # verify model has optimizer
     # -----------------------------------
     has_optimizers = is_overridden("configure_optimizers", model)
@@ -119,18 +109,10 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
 
 
 def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule", stage: str) -> None:
-    loader_name = f"{stage}_dataloader"
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
     trainer_method = "validate" if stage == "val" else stage
 
-    has_loader = getattr(trainer._data_connector, f"_{stage}_dataloader_source").is_defined()
     has_step = is_overridden(step_name, model)
-
-    # -----------------------------------
-    # verify model has an eval_dataloader
-    # -----------------------------------
-    if not has_loader:
-        raise MisconfigurationException(f"No `{loader_name}()` method defined to run `Trainer.{trainer_method}`.")
 
     # predict_step is not required to be overridden
     if stage == "predict":

@@ -17,9 +17,10 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 
 import numpy as np
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import apply_to_collection
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
@@ -33,7 +34,6 @@ from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoader
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -490,7 +490,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.trainer.should_stop:
             return True
 
-        # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
+        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (self.batch_idx + 1) % self.trainer.limit_train_batches == 0

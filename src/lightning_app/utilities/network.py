@@ -1,4 +1,3 @@
-import logging
 import socket
 import time
 from functools import wraps
@@ -13,7 +12,9 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def find_free_network_port() -> int:

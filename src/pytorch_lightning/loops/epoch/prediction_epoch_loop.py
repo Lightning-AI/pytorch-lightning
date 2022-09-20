@@ -2,12 +2,12 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Tuple
 
 import torch
+from lightning_utilities.core.rank_zero import WarningCache
 
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 

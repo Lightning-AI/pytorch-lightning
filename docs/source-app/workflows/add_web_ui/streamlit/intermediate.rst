@@ -35,7 +35,7 @@ For example, here we increase the count variable of the Lightning Component ever
             self.count = 0
 
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.app.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
 
     class LitApp(L.LightningFlow):
@@ -81,7 +81,7 @@ In this example we update the value of the counter from the component:
             self.count += 1
 
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return L.app.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
 
     class LitApp(L.LightningFlow):
