@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
 
 from lightning_utilities.core.rank_zero import WarningCache
-from torch.nn import Module
+from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
@@ -45,7 +45,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = precision
 
-    def backward(self, model: "pl.LightningModule", *_: Any, **__: Any) -> None:
+    def backward(self, tensor: Tensor, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since IPUs handle"
@@ -54,13 +54,14 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
-        optimizer_idx: int,
-        closure: Callable[[], Any],
+        model: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
     ) -> Any:
         """IPUs handle the optimizer step internally."""
+        optimizer_idx = kwargs.pop("optimizer_idx")
+        closure = kwargs.pop("closure")
+
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -69,7 +70,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
+        if model.automatic_optimization and skipped_backward:
             # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."

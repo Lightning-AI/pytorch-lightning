@@ -16,7 +16,7 @@ from typing import Generator
 
 import torch
 
-from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.precision import Precision
 
 
 class DoublePrecision(Precision):
