@@ -76,6 +76,6 @@ class DeepSpeedPrecision(Precision):
     ) -> Any:
         from deepspeed import DeepSpeedEngine
 
-        assert isinstance(optimizer, DeepSpeedEngine)
+        assert isinstance(optimizer, DeepSpeedEngine)  # for safety, not required
         # DeepSpeed handles the optimizer step internally
         return optimizer.step(**kwargs)

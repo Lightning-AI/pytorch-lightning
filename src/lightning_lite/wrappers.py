@@ -57,13 +57,11 @@ class _LiteOptimizer:
 
     def step(self, closure: Optional[Callable] = None) -> Any:
         kwargs = dict(closure=closure) if closure is not None else {}
-
         if hasattr(self._strategy, "model") and isinstance(self._strategy.model, Steppable):
             # only DeepSpeed defines this
             optimizer = self._strategy.model
         else:
             optimizer = self.optimizer
-
         return self._strategy.optimizer_step(
             optimizer,
             **kwargs,
