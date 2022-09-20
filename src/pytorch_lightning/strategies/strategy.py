@@ -202,11 +202,11 @@ class Strategy(ABC):
         """
         self.pre_backward(closure_loss)
         assert self.lightning_module is not None
-        closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
+        closure_loss = self.precision_plugin.pre_backward(closure_loss, self.lightning_module)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
+        self.precision_plugin.backward(closure_loss, self.lightning_module, optimizer, optimizer_idx, *args, **kwargs)
 
-        closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
+        closure_loss = self.precision_plugin.post_backward(closure_loss, self.lightning_module)
         self.post_backward(closure_loss)
 
         return closure_loss
@@ -229,7 +229,7 @@ class Strategy(ABC):
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(optimizer, model, optimizer_idx=opt_idx, closure=closure, **kwargs)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
