@@ -121,13 +121,15 @@ def project_file_from_template(template_dir: Path, destination_dir: Path, templa
 def print_pretty_report(
     directory: pathlib.Path,
     ignore_patterns: Optional[List[str]] = None,
-    help_texts: Dict[str, str] = {},
+    help_texts: Optional[Dict[str, str]] = None,
 ) -> None:
     """Prints a report for the generated app."""
     tree = Tree(
         f":open_file_folder: [link file://{directory}]{directory}",
         guide_style="bold bright_blue",
     )
+
+    help_texts = {} if help_texts is None else help_texts
 
     paths = sorted(
         directory.glob("*"),
