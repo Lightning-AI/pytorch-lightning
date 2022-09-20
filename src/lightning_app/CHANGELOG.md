@@ -65,6 +65,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue where custom property setters were not being used `LightningWork` class. ([#14259](https://github.com/Lightning-AI/lightning/pull/14259))
 
+- Fixed an issue where some terminals would display broken icons in the PL app CLI. ([#14226](https://github.com/Lightning-AI/lightning/issues/14226))
+
 
 ## [0.6.0] - 2022-09-08
 
