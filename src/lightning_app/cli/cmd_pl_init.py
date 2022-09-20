@@ -2,6 +2,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import urllib.request
 from pathlib import Path
@@ -152,6 +153,8 @@ def print_pretty_report(
         text_pathname.append(f" {padding} {help_text}", "blue")
 
         icon = "📂 " if path.is_dir() else "📄 "
+        icon = icon if _can_encode_icon(icon) else ""
+
         tree.add(Text(icon) + text_pathname)
 
     print("\n")
@@ -159,3 +162,12 @@ def print_pretty_report(
     print(tree)
     print("\nRun it:\n")
     print(Panel(f"[red]lightning run app {directory.relative_to(Path.cwd()) / 'app.py'}"))
+
+
+def _can_encode_icon(icon: str) -> bool:
+    """Helper function to check whether an icon can be encoded."""
+    try:
+        icon.encode(sys.stdout.encoding)
+        return True
+    except UnicodeEncodeError:
+        return False
