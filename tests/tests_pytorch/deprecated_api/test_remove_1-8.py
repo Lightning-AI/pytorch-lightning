@@ -12,24 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
-import os
 import time
 from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
-import torch
 
 import pytorch_lightning
-from lightning_lite.utilities import device_parser
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
-from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
@@ -509,49 +505,6 @@ def test_v1_8_0_lightning_module_use_amp():
         model.use_amp = False
 
 
-@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
-def test_v1_8_0_torch_distributed_backend_env():
-    from lightning_lite.utilities.distributed import _get_process_group_backend_from_env
-
-    with pytest.deprecated_call(
-        match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
-        " was deprecated in v1.6 and will be removed in v1.8."
-    ):
-        _get_process_group_backend_from_env()
-
-
-def test_parallel_strategy_torch_distributed_backend():
-    class CustomParallel(ParallelStrategy):
-        @property
-        def root_device(self) -> torch.device:
-            return torch.device("cpu")
-
-        def model_to_device(self):
-            pass
-
-        @property
-        def is_global_zero(self):
-            return True
-
-        def broadcast(self, obj):
-            return obj
-
-        def reduce(self, tensor):
-            return tensor
-
-        def barrier(self):
-            return
-
-        def all_gather(self, tensor):
-            return tensor
-
-    strategy = CustomParallel()
-    with pytest.deprecated_call(
-        match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
-    ):
-        strategy.torch_distributed_backend
-
-
 def test_trainer_config_device_ids():
     trainer = Trainer(devices=2)
     with pytest.deprecated_call(
@@ -572,9 +525,7 @@ def test_trainer_config_device_ids():
         pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
     ],
 )
-def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
+def test_root_gpu_property(cuda_count_4, gpus, expected_root_gpu, strategy):
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -590,8 +541,7 @@ def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
         pytest.param(0, None, "ddp", id="None is None"),
     ],
 )
-def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strategy):
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 0)
+def test_root_gpu_property_0_passing(cuda_count_0, gpus, expected_root_gpu, strategy):
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -605,14 +555,12 @@ def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strat
         pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
         pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
         pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
-        pytest.param(-1, 16, "ddp", id="-1 - use all gpus"),
-        pytest.param("-1", 16, "ddp", id="'-1' - use all gpus"),
+        pytest.param(-1, 4, "ddp", id="-1 - use all gpus"),
+        pytest.param("-1", 4, "ddp", id="'-1' - use all gpus"),
         pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
     ],
 )
-def test_trainer_gpu_parse(monkeypatch, gpus, expected_num_gpus, strategy):
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
+def test_trainer_gpu_parse(cuda_count_4, gpus, expected_num_gpus, strategy):
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -627,8 +575,7 @@ def test_trainer_gpu_parse(monkeypatch, gpus, expected_num_gpus, strategy):
         pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
     ],
 )
-def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 0)
+def test_trainer_num_gpu_0(cuda_count_0, gpus, expected_num_gpus, strategy):
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -726,15 +673,16 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        {"accelerator": "gpu", "devices": 2},
-        {"accelerator": "gpu", "devices": [0, 2]},
-        {"accelerator": "gpu", "devices": "2"},
-        {"accelerator": "gpu", "devices": "0,"},
+        pytest.param({"accelerator": "gpu", "devices": 2}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": [0, 2]}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": "2"}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": "0,"}, marks=RunIf(mps=False)),
+        pytest.param({"accelerator": "gpu", "devices": 1}, marks=RunIf(mps=True)),
+        pytest.param({"accelerator": "gpu", "devices": [0]}, marks=RunIf(mps=True)),
+        pytest.param({"accelerator": "gpu", "devices": "0,"}, marks=RunIf(mps=True)),
     ],
 )
-def test_trainer_gpus(monkeypatch, trainer_kwargs):
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
+def test_trainer_gpus(cuda_count_4, trainer_kwargs):
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match=(

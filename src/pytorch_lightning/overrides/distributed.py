@@ -17,11 +17,11 @@ from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Union
 import torch
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
+from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.distributed import _DatasetSamplerWrapper
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
@@ -107,60 +107,6 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         assert len(indices) == self.num_samples
 
         return iter(indices)
-
-
-class _DatasetSamplerWrapper(Dataset):
-    """Dataset to create indexes from `Sampler` or `Iterable`"""
-
-    def __init__(self, sampler: Union[Sampler, Iterable]) -> None:
-        if not isinstance(sampler, Sized):
-            raise MisconfigurationException(
-                "You seem to have configured a sampler in your DataLoader which"
-                " does not provide `__len__` method. The sampler was about to be"
-                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
-                " is True and you are using distributed training. Either provide `__len__`"
-                " method in your sampler, remove it from DataLoader or set `replace_sampler_ddp=False`"
-                " if you want to handle distributed sampling yourself."
-            )
-        if len(sampler) == float("inf"):
-            raise MisconfigurationException(
-                "You seem to have configured a sampler in your DataLoader which"
-                " does not provide finite `__len__` method. The sampler was about to be"
-                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
-                " is True and you are using distributed training. Either provide `__len__`"
-                " method in your sampler which returns a finite number, remove it from DataLoader"
-                " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
-            )
-        self._sampler = sampler
-        # defer materializing an iterator until it is necessary
-        self._sampler_list: Optional[List[Any]] = None
-
-    def __getitem__(self, index: int) -> Any:
-        if self._sampler_list is None:
-            self._sampler_list = list(self._sampler)
-        return self._sampler_list[index]
-
-    def __len__(self) -> int:
-        return len(self._sampler)
-
-    def reset(self) -> None:
-        """Reset the sampler list in order to get new sampling."""
-        self._sampler_list = list(self._sampler)
-
-
-class DistributedSamplerWrapper(DistributedSampler):
-    """Wrapper over ``Sampler`` for distributed training.
-
-    Allows you to use any sampler in distributed mode. It will be automatically used by PyTorch Lightning in distributed
-    mode if `replace_sampler_ddp=True`
-    """
-
-    def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
-        super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
-
-    def __iter__(self) -> Iterator:
-        self.dataset.reset()
-        return (self.dataset[index] for index in super().__iter__())
 
 
 class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
