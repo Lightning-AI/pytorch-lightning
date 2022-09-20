@@ -48,9 +48,9 @@ def test_deepspeed_precision_backward():
 
 
 def test_deepspeed_precision_optimizer_step():
+    from deepspeed import DeepSpeedEngine
+
     precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
-    optimizer = Mock()
-    model = Mock()
-    precision_plugin.optimizer_step(optimizer, model=model, lr_kwargs=dict())
+    optimizer = model = Mock(spec=DeepSpeedEngine)
+    precision_plugin.optimizer_step(optimizer, lr_kwargs=dict())
     model.step.assert_called_once_with(lr_kwargs=dict())
-    optimizer.step.assert_not_called()
