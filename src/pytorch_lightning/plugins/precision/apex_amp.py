@@ -18,7 +18,6 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PARAMETERS
-
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
