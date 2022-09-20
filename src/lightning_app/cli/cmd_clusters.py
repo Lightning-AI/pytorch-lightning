@@ -29,6 +29,48 @@ CLUSTER_STATE_CHECKING_TIMEOUT = 60
 MAX_CLUSTER_WAIT_TIME = 5400
 
 
+class ClusterList(Formatable):
+    def __init__(self, clusters: List[Externalv1Cluster]):
+        self.clusters = clusters
+
+    def as_json(self) -> str:
+        return json.dumps(self.clusters)
+
+    def as_table(self) -> Table:
+        table = Table("id", "name", "type", "status", "created", show_header=True, header_style="bold green")
+        phases = {
+            V1ClusterState.QUEUED: Text("queued", style="bold yellow"),
+            V1ClusterState.PENDING: Text("pending", style="bold yellow"),
+            V1ClusterState.RUNNING: Text("running", style="bold green"),
+            V1ClusterState.FAILED: Text("failed", style="bold red"),
+            V1ClusterState.DELETED: Text("deleted", style="bold red"),
+        }
+
+        cluster_type_lookup = {
+            V1ClusterType.BYOC: Text("byoc", style="bold yellow"),
+            V1ClusterType.GLOBAL: Text("lightning-cloud", style="bold green"),
+        }
+        for cluster in self.clusters:
+            status = phases[cluster.status.phase]
+            if cluster.spec.desired_state == V1ClusterState.DELETED and cluster.status.phase != V1ClusterState.DELETED:
+                status = Text("terminating", style="bold red")
+
+            # this guard is necessary only until 0.3.93 releases which includes the `created_at`
+            # field to the external API
+            created_at = datetime.now()
+            if hasattr(cluster, "created_at"):
+                created_at = cluster.created_at
+
+            table.add_row(
+                cluster.id,
+                cluster.name,
+                cluster_type_lookup.get(cluster.spec.cluster_type, Text("unknown", style="red")),
+                status,
+                created_at.strftime("%Y-%m-%d") if created_at else "",
+            )
+        return table
+
+
 class AWSClusterManager:
     """AWSClusterManager implements API calls specific to Lightning AI BYOC compute clusters when the AWS provider
     is selected as the backend compute."""
@@ -121,48 +163,6 @@ class AWSClusterManager:
 
         if wait:
             _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
-
-
-class ClusterList(Formatable):
-    def __init__(self, clusters: List[Externalv1Cluster]):
-        self.clusters = clusters
-
-    def as_json(self) -> str:
-        return json.dumps(self.clusters)
-
-    def as_table(self) -> Table:
-        table = Table("id", "name", "type", "status", "created", show_header=True, header_style="bold green")
-        phases = {
-            V1ClusterState.QUEUED: Text("queued", style="bold yellow"),
-            V1ClusterState.PENDING: Text("pending", style="bold yellow"),
-            V1ClusterState.RUNNING: Text("running", style="bold green"),
-            V1ClusterState.FAILED: Text("failed", style="bold red"),
-            V1ClusterState.DELETED: Text("deleted", style="bold red"),
-        }
-
-        cluster_type_lookup = {
-            V1ClusterType.BYOC: Text("byoc", style="bold yellow"),
-            V1ClusterType.GLOBAL: Text("lightning-cloud", style="bold green"),
-        }
-        for cluster in self.clusters:
-            status = phases[cluster.status.phase]
-            if cluster.spec.desired_state == V1ClusterState.DELETED and cluster.status.phase != V1ClusterState.DELETED:
-                status = Text("terminating", style="bold red")
-
-            # this guard is necessary only until 0.3.93 releases which includes the `created_at`
-            # field to the external API
-            created_at = datetime.now()
-            if hasattr(cluster, "created_at"):
-                created_at = cluster.created_at
-
-            table.add_row(
-                cluster.id,
-                cluster.name,
-                cluster_type_lookup.get(cluster.spec.cluster_type, Text("unknown", style="red")),
-                status,
-                created_at.strftime("%Y-%m-%d") if created_at else "",
-            )
-        return table
 
 
 def _wait_for_cluster_state(
