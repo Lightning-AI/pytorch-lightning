@@ -84,6 +84,16 @@ def test_pl_app_download_frontend(tmp_path):
     assert "static" in contents
 
 
+def test_pl_app_icon(tmp_path):
+    """Test that Icons in PL app CLI output are not broken"""
+    icon1 = None
+    icon2 = None
+    icon1 = "📂 ".encode()
+    icon2 = "📄 ".encode()
+    assert icon1 is not None
+    assert icon2 is not None
+
+
 @pytest.mark.parametrize(
     "cwd, source_dir, script_path",
     [

@@ -2,6 +2,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import urllib.request
 from pathlib import Path
@@ -148,8 +149,17 @@ def print_pretty_report(
         text_pathname.stylize(f"link file://{path}")
         text_pathname.append(f" {padding} {help_text}", "blue")
 
-        icon = "📂 " if path.is_dir() else "📄 "
-        tree.add(Text(icon) + text_pathname)
+        icon = ""
+        try:
+            if path.is_dir():
+                icon = "📂 ".encode()
+            else:
+                 icon = "📄 ".encode()
+        except UnicodeEncodeError:
+            # Icon will be hidden. Two spaces to align pathnames.
+            icon = b"  "
+
+        tree.add(Text(icon.decode()) + text_pathname)
 
     print("\n")
     print("Done. The app is ready here:\n")
