@@ -645,12 +645,16 @@ class Trainer(
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self._call_callback_hooks("on_exception", exception)
+                for logger in self.loggers:
+                    logger.finalize("failed")
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
                 # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
             self._call_callback_hooks("on_exception", exception)
+            for logger in self.loggers:
+                logger.finalize("failed")
             self._teardown()
             # teardown might access the stage so we reset it after
             self.state.stage = None
