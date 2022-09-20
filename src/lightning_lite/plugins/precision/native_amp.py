@@ -19,7 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
-from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
 if _TORCH_GREATER_EQUAL_1_10:
