@@ -23,9 +23,9 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO
 from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from lightning_lite.utilities.types import _PATH
@@ -54,11 +54,11 @@ class Strategy(ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
-        self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
+        self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
         self._lightning_module: Optional[pl.LightningModule] = None
@@ -74,11 +74,11 @@ class Strategy(ABC):
         return self._launcher
 
     @property
-    def accelerator(self) -> Optional["pl.accelerators.accelerator.Accelerator"]:
+    def accelerator(self) -> Optional["pl.accelerators.Accelerator"]:
         return self._accelerator
 
     @accelerator.setter
-    def accelerator(self, accelerator: "pl.accelerators.accelerator.Accelerator") -> None:
+    def accelerator(self, accelerator: "pl.accelerators.Accelerator") -> None:
         self._accelerator = accelerator
 
     @property
