@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from lightning_lite import LightningLite
 
@@ -23,7 +23,6 @@ class RandomDataset(Dataset):
 
 
 class BoringLite(LightningLite):
-
     def get_model(self) -> Module:
         return nn.Linear(32, 2)
 

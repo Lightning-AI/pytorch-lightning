@@ -27,7 +27,7 @@ from lightning_lite.accelerators.cpu import CPUAccelerator
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DoublePrecision, Precision, NativeMixedPrecision
+from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -703,15 +703,19 @@ def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
         _Connector(devices=2, strategy=strategy)
 
 
-def test_precision_selection_raises(monkeypatch):
-    monkeypatch.setattr(lightning_lite.plugins.precision.native_amp, "_TORCH_GREATER_EQUAL_1_10", False)
+def test_precision_selection_16_on_cpu_warns():
     with pytest.warns(
         UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
-    ), pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+    ):
         _Connector(precision=16)
 
+
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", False)
+def test_precision_selection_16_raises_torch_version(monkeypatch):
     with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
-        _Connector(precision="bf16")
+        _Connector(accelerator="cpu", precision=16)
+    with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+        _Connector(accelerator="cpu", precision="bf16")
 
 
 class MyNativeAMP(NativeMixedPrecision):
@@ -721,7 +725,8 @@ class MyNativeAMP(NativeMixedPrecision):
 @RunIf(mps=False)
 @pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
-    "is_custom_plugin,plugin_cls",[(False, NativeMixedPrecision),(True, MyNativeAMP)],
+    "is_custom_plugin,plugin_cls",
+    [(False, NativeMixedPrecision), (True, MyNativeAMP)],
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None

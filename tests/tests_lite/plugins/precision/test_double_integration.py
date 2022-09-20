@@ -15,7 +15,6 @@
 
 import torch
 import torch.nn as nn
-
 from tests_lite.helpers.models import BoringLite
 
 
@@ -33,7 +32,6 @@ class BoringDoubleModule(nn.Module):
 
 
 class DoublePrecisionBoringLite(BoringLite):
-
     def get_model(self):
         return BoringDoubleModule()
 
