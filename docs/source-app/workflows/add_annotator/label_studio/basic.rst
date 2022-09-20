@@ -7,7 +7,7 @@ Add a Label Studio annotator (basic)
 .. warning::
 
     The Component in this article is not in the official Lightning AI Component Gallery. It is an Early Access version of the Component.
-	The repo for this Component is here: https://github.com/robert-s-lee/lit_label_studio. Refer to the Readme for more information.
+    The repo for this Component is here: https://github.com/robert-s-lee/lit_label_studio. Refer to the Readme for more information.
 
 ----
 
