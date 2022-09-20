@@ -84,7 +84,7 @@ def test_pl_app_download_frontend(tmp_path):
     assert "static" in contents
 
 
-def test_pl_app_icon(tmp_path):
+def test_pl_app_icon():
     """Test that Icons in PL app CLI output are not broken in encoding"""
     try:
         icon1 = "📂 ".encode()
