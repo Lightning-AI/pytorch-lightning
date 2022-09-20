@@ -15,11 +15,11 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from torch.optim import LBFGS, Optimizer
 
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.imports import _APEX_AVAILABLE
+from lightning_lite.utilities.types import Steppable
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
@@ -69,13 +69,13 @@ class DeepSpeedPrecision(Precision):
         """Performs back-propagation using DeepSpeed's engine."""
         model.backward(tensor, *args, **kwargs)
 
-    def optimizer_step(  # type: ignore[override]
+    def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: "deepspeed.DeepSpeedEngine",
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
-        if isinstance(optimizer, LBFGS):
-            raise TypeError("DeepSpeed and the LBFGS optimizer are not compatible.")
+        from deepspeed import DeepSpeedEngine
+
+        assert isinstance(optimizer, DeepSpeedEngine)
         # DeepSpeed handles the optimizer step internally
-        return model.step(**kwargs)
+        return optimizer.step(**kwargs)

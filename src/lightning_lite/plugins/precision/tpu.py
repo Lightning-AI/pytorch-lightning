@@ -13,9 +13,8 @@
 # limitations under the License.
 from typing import Any
 
-from torch.optim import Optimizer
-
 from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.utilities.types import Steppable
 
 
 class TPUPrecision(Precision):
@@ -23,7 +22,7 @@ class TPUPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
 

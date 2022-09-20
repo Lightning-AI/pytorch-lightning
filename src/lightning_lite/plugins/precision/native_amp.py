@@ -17,10 +17,11 @@ from typing import Any, Dict, Generator, Optional, Union
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import LBFGS, Optimizer
+from torch.optim import LBFGS
 
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from lightning_lite.utilities.types import Steppable
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
@@ -63,7 +64,7 @@ class NativeMixedPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:

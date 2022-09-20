@@ -30,7 +30,7 @@ from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizer_to_device
-from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH, Steppable
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -167,7 +167,7 @@ class Strategy(ABC):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
