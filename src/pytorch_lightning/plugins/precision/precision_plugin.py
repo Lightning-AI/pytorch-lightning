@@ -97,7 +97,6 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
-        optimizer = kwargs.pop("optimizer")
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
         if isinstance(model, pl.LightningModule):
