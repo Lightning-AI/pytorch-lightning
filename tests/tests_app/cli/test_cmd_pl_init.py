@@ -85,13 +85,12 @@ def test_pl_app_download_frontend(tmp_path):
 
 
 def test_pl_app_icon(tmp_path):
-    """Test that Icons in PL app CLI output are not broken"""
-    icon1 = None
-    icon2 = None
-    icon1 = "📂 ".encode()
-    icon2 = "📄 ".encode()
-    assert icon1 is not None
-    assert icon2 is not None
+    """Test that Icons in PL app CLI output are not broken in encoding"""
+    try:
+        icon1 = "📂 ".encode()
+        icon2 = "📄 ".encode()
+    except UnicodeEncodeError as exc:
+        pytest.fail(exc, pytrace=True)
 
 
 @pytest.mark.parametrize(
