@@ -2,6 +2,7 @@ import json
 import re
 import time
 from datetime import datetime
+from typing import Any, List
 
 import click
 from lightning_cloud.openapi import (
@@ -28,11 +29,53 @@ CLUSTER_STATE_CHECKING_TIMEOUT = 60
 MAX_CLUSTER_WAIT_TIME = 5400
 
 
+class ClusterList(Formatable):
+    def __init__(self, clusters: List[Externalv1Cluster]):
+        self.clusters = clusters
+
+    def as_json(self) -> str:
+        return json.dumps(self.clusters)
+
+    def as_table(self) -> Table:
+        table = Table("id", "name", "type", "status", "created", show_header=True, header_style="bold green")
+        phases = {
+            V1ClusterState.QUEUED: Text("queued", style="bold yellow"),
+            V1ClusterState.PENDING: Text("pending", style="bold yellow"),
+            V1ClusterState.RUNNING: Text("running", style="bold green"),
+            V1ClusterState.FAILED: Text("failed", style="bold red"),
+            V1ClusterState.DELETED: Text("deleted", style="bold red"),
+        }
+
+        cluster_type_lookup = {
+            V1ClusterType.BYOC: Text("byoc", style="bold yellow"),
+            V1ClusterType.GLOBAL: Text("lightning-cloud", style="bold green"),
+        }
+        for cluster in self.clusters:
+            status = phases[cluster.status.phase]
+            if cluster.spec.desired_state == V1ClusterState.DELETED and cluster.status.phase != V1ClusterState.DELETED:
+                status = Text("terminating", style="bold red")
+
+            # this guard is necessary only until 0.3.93 releases which includes the `created_at`
+            # field to the external API
+            created_at = datetime.now()
+            if hasattr(cluster, "created_at"):
+                created_at = cluster.created_at
+
+            table.add_row(
+                cluster.id,
+                cluster.name,
+                cluster_type_lookup.get(cluster.spec.cluster_type, Text("unknown", style="red")),
+                status,
+                created_at.strftime("%Y-%m-%d") if created_at else "",
+            )
+        return table
+
+
 class AWSClusterManager:
     """AWSClusterManager implements API calls specific to Lightning AI BYOC compute clusters when the AWS provider
     is selected as the backend compute."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_client = LightningClient()
 
     def create(
@@ -42,10 +85,10 @@ class AWSClusterManager:
         role_arn: str = None,
         region: str = "us-east-1",
         external_id: str = None,
-        instance_types: [str] = [],
+        instance_types: List[str] = [],
         edit_before_creation: bool = False,
         wait: bool = False,
-    ):
+    ) -> None:
         """request Lightning AI BYOC compute cluster creation.
 
         Args:
@@ -104,16 +147,16 @@ To view cluster logs use:
         """
         )
 
-    def get_clusters(self):
+    def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
         return ClusterList(resp.clusters)
 
-    def list(self):
+    def list(self) -> None:
         clusters = self.get_clusters()
         console = Console()
         console.print(clusters.as_table())
 
-    def delete(self, cluster_id: str = None, force: bool = False, wait: bool = False):
+    def delete(self, cluster_id: str, force: bool = False, wait: bool = False) -> None:
         if force:
             click.echo(
                 """
@@ -131,56 +174,13 @@ To view cluster logs use:
             _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
 
 
-class ClusterList(Formatable):
-    def __init__(self, clusters: [Externalv1Cluster]):
-        self.clusters = clusters
-
-    def as_json(self) -> str:
-        return json.dumps(self.clusters)
-
-    def as_table(self) -> Table:
-        table = Table("id", "name", "type", "status", "created", show_header=True, header_style="bold green")
-        phases = {
-            V1ClusterState.QUEUED: Text("queued", style="bold yellow"),
-            V1ClusterState.PENDING: Text("pending", style="bold yellow"),
-            V1ClusterState.RUNNING: Text("running", style="bold green"),
-            V1ClusterState.FAILED: Text("failed", style="bold red"),
-            V1ClusterState.DELETED: Text("deleted", style="bold red"),
-        }
-
-        cluster_type_lookup = {
-            V1ClusterType.BYOC: Text("byoc", style="bold yellow"),
-            V1ClusterType.GLOBAL: Text("lightning-cloud", style="bold green"),
-        }
-        for cluster in self.clusters:
-            cluster: Externalv1Cluster
-            status = phases[cluster.status.phase]
-            if cluster.spec.desired_state == V1ClusterState.DELETED and cluster.status.phase != V1ClusterState.DELETED:
-                status = Text("terminating", style="bold red")
-
-            # this guard is necessary only until 0.3.93 releases which includes the `created_at`
-            # field to the external API
-            created_at = datetime.now()
-            if hasattr(cluster, "created_at"):
-                created_at = cluster.created_at
-
-            table.add_row(
-                cluster.id,
-                cluster.name,
-                cluster_type_lookup.get(cluster.spec.cluster_type, Text("unknown", style="red")),
-                status,
-                created_at.strftime("%Y-%m-%d") if created_at else "",
-            )
-        return table
-
-
 def _wait_for_cluster_state(
     api_client: LightningClient,
     cluster_id: str,
     target_state: V1ClusterState,
     max_wait_time: int = MAX_CLUSTER_WAIT_TIME,
     check_timeout: int = CLUSTER_STATE_CHECKING_TIMEOUT,
-):
+) -> None:
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
     Args:
@@ -205,12 +205,12 @@ def _wait_for_cluster_state(
             elif new_cluster.status.phase == V1ClusterState.FAILED:
                 raise click.ClickException(f"Cluster {cluster_id} is in failed state.")
             time.sleep(check_timeout)
-        elapsed = time.time() - start
+        elapsed = int(time.time() - start)
     else:
         raise click.ClickException("Max wait time elapsed")
 
 
-def _check_cluster_name_is_valid(_ctx, _param, value):
+def _check_cluster_name_is_valid(_ctx: Any, _param: Any, value: str) -> str:
     pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
     if not re.match(pattern, value):
         raise click.ClickException(
