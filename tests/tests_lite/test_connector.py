@@ -701,3 +701,14 @@ def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
     """Test there is an error when forking is disabled via the environment variable and the user requests fork."""
     with pytest.raises(ValueError, match="Forking is disabled in this environment"):
         _Connector(devices=2, strategy=strategy)
+
+
+def test_precision_selection_raises(monkeypatch):
+    monkeypatch.setattr(lightning_lite.plugins.precision.native_amp, "_TORCH_GREATER_EQUAL_1_10", False)
+    with pytest.warns(
+        UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
+    ), pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+        _Connector(precision=16)
+
+    with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+        _Connector(precision="bf16")

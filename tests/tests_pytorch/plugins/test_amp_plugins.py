@@ -246,6 +246,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
+# lite: adopted
 @RunIf(min_torch="1.10")
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
@@ -258,6 +259,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
+# lite: adopted
 def test_precision_selection_raises(monkeypatch):
     with pytest.raises(
         MisconfigurationException, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"

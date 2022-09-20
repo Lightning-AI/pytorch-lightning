@@ -19,11 +19,13 @@ from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlug
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+# lite: adopted
 def test_invalid_precision_with_deepspeed_precision():
     with pytest.raises(ValueError, match="is not supported. `precision` must be one of"):
         DeepSpeedPrecisionPlugin(precision=64, amp_type="native")
 
 
+# lite: adopted
 def test_deepspeed_precision_apex_not_installed(monkeypatch):
     import pytorch_lightning.plugins.precision.deepspeed as deepspeed_apex
 
@@ -32,6 +34,7 @@ def test_deepspeed_precision_apex_not_installed(monkeypatch):
         DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
 
 
+# lite: adopted
 @mock.patch("pytorch_lightning.plugins.precision.deepspeed._APEX_AVAILABLE", return_value=True)
 def test_deepspeed_precision_apex_default_level(_):
     precision_plugin = DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
