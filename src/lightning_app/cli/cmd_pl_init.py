@@ -166,8 +166,8 @@ def print_pretty_report(
     print(Panel(f"[red]lightning run app {directory.relative_to(Path.cwd()) / 'app.py'}"))
 
 
-def _can_encode_icon(icon:str) -> bool:
-    """Helper function to check whether an icon can be encoded"""
+def _can_encode_icon(icon: str) -> bool:
+    """Helper function to check whether an icon can be encoded."""
     try:
         icon.encode(sys.stdout.encoding)
         return True

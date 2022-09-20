@@ -5,7 +5,7 @@ import pytest
 from click.testing import CliRunner
 
 from lightning_app.cli import lightning_cli
-from lightning_app.cli.cmd_pl_init import download_frontend, pl_app, _can_encode_icon
+from lightning_app.cli.cmd_pl_init import _can_encode_icon, download_frontend, pl_app
 
 
 def test_pl_app_input_paths_do_not_exist(tmp_path):
