@@ -206,7 +206,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with `TensorBoardLogger.finalize` creating a new experiment when none was created during the Trainer's execution ([#14762](https://github.com/Lightning-AI/lightning/pull/14762))
 
 
-- Fixed error on import when `torch.distributed` is not available ([#14454](https://github.com/Lightning-AI/lightning/pull/14454))
+- Fixed `TypeError` on import when `torch.distributed` is not available ([#14809](https://github.com/Lightning-AI/lightning/pull/14809))
 
 
 
