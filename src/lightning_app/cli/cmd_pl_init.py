@@ -149,13 +149,8 @@ def print_pretty_report(
         text_pathname.stylize(f"link file://{path}")
         text_pathname.append(f" {padding} {help_text}", "blue")
 
-        icon = ""
-        if path.is_dir():
-            if _can_encode_icon("📂 "):
-                icon = "📂 "
-        else:
-            if _can_encode_icon("📄 "):
-                icon = "📄 "
+        icon = "📂 " if path.is_dir() else "📄 "
+        icon = icon if _can_encode_icon(icon) else ""
 
         tree.add(Text(icon) + text_pathname)
 

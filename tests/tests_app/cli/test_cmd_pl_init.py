@@ -1,5 +1,7 @@
 import os
+import sys
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 from click.testing import CliRunner
@@ -84,9 +86,17 @@ def test_pl_app_download_frontend(tmp_path):
     assert "static" in contents
 
 
-def test_pl_app_encode_icon():
-    assert _can_encode_icon("📂") == True
-    assert _can_encode_icon("📄") == True
+def test_pl_app_encode_icon(monkeypatch):
+    stdout_mock = Mock(wraps=sys.stdout)
+    monkeypatch.setattr(sys, "stdout", stdout_mock)
+
+    stdout_mock.encoding = "utf-8"
+    assert _can_encode_icon("📂")
+    assert _can_encode_icon("📄")
+
+    stdout_mock.encoding = "ascii"
+    assert not _can_encode_icon("📂")
+    assert not _can_encode_icon("📄")
 
 
 @pytest.mark.parametrize(
