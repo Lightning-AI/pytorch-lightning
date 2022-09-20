@@ -62,7 +62,6 @@ class Precision:
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""

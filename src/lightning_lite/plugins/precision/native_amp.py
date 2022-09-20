@@ -64,12 +64,11 @@ class NativeMixedPrecision(Precision):
     def optimizer_step(
         self,
         optimizer: Optimizer,
-        model: Optional[Module] = None,
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(optimizer, model=model, **kwargs)
+            return super().optimizer_step(optimizer, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise TypeError("Native AMP and the LBFGS optimizer are not compatible.")
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found

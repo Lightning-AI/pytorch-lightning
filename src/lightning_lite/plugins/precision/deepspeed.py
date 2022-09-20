@@ -65,21 +65,17 @@ class DeepSpeedPrecision(Precision):
         self.amp_type = amp_type
         self.amp_level = amp_level
 
-    def backward(self, tensor: Tensor, model: Optional["deepspeed.DeepSpeedEngine"], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: "deepspeed.DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
         """Performs back-propagation using DeepSpeed's engine."""
-        if model is None:
-            raise ValueError("Please provide the model as input to `backward`.")
         model.backward(tensor, *args, **kwargs)
 
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizer,
-        model: Optional["deepspeed.DeepSpeedEngine"] = None,
+        model: "deepspeed.DeepSpeedEngine",
         **kwargs: Any,
     ) -> Any:
         if isinstance(optimizer, LBFGS):
             raise TypeError("DeepSpeed and the LBFGS optimizer are not compatible.")
-        if model is None:
-            raise TypeError("`optimizer_step()` requires a reference to the model.")
         # DeepSpeed handles the optimizer step internally
         return model.step(**kwargs)
