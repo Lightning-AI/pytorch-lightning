@@ -271,7 +271,10 @@ class TensorBoardLogger(Logger):
         if self._experiment is not None:
             self.experiment.flush()
             self.experiment.close()
-        self.save()
+
+        if status == "success":
+            # saving hparams happens independent of experiment manager
+            self.save()
 
     @property
     def name(self) -> str:
