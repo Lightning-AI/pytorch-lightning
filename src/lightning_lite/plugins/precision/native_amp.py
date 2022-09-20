@@ -19,8 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
-from lightning_lite.plugins.precision.mixed import MixedPrecision
-from lightning_lite.utilities.enums import AMPType
+from lightning_lite.plugins.precision import Precision
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
 if _TORCH_GREATER_EQUAL_1_10:
@@ -29,7 +28,7 @@ else:
     from torch.cuda.amp import autocast as old_autocast
 
 
-class NativeMixedPrecision(MixedPrecision):
+class NativeMixedPrecision(Precision):
     """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
@@ -37,8 +36,6 @@ class NativeMixedPrecision(MixedPrecision):
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
     """
-
-    backend = AMPType.NATIVE
 
     def __init__(
         self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
