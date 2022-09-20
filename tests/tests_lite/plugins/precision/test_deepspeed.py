@@ -15,9 +15,9 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
-from tests_lite.helpers.runif import RunIf
 
 
 def test_invalid_precision_with_deepspeed_precision():
