@@ -34,7 +34,7 @@ class Precision:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.
 
         Args:
@@ -51,7 +51,7 @@ class Precision:
         """
         tensor.backward(*args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs after precision plugin executes backward.
 
         Args:
