@@ -27,7 +27,7 @@ from lightning_lite.accelerators.cpu import CPUAccelerator
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DoublePrecision, Precision
+from lightning_lite.plugins import DoublePrecision, Precision, NativeMixedPrecision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -712,3 +712,26 @@ def test_precision_selection_raises(monkeypatch):
 
     with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
         _Connector(precision="bf16")
+
+
+class MyNativeAMP(NativeMixedPrecision):
+    pass
+
+
+@RunIf(mps=False)
+@pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize(
+    "is_custom_plugin,plugin_cls",[(False, NativeMixedPrecision),(True, MyNativeAMP)],
+)
+def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
+    plugin = None
+    if is_custom_plugin:
+        plugin = plugin_cls(16, "cpu")
+
+    trainer = _Connector(
+        precision=16,
+        devices=devices,
+        strategy=strategy,
+        plugins=plugin,
+    )
+    assert isinstance(trainer.precision_plugin, plugin_cls)
