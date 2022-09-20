@@ -150,19 +150,26 @@ def print_pretty_report(
         text_pathname.append(f" {padding} {help_text}", "blue")
 
         icon = ""
-        try:
-            if path.is_dir():
-                icon = "📂 ".encode()
-            else:
-                 icon = "📄 ".encode()
-        except UnicodeEncodeError:
-            # Icon will be hidden. Two spaces to align pathnames.
-            icon = b"  "
+        if path.is_dir():
+            if _can_encode_icon("📂 "):
+                icon = "📂 "
+        else:
+            if _can_encode_icon("📄 "):
+                icon = "📄 "
 
-        tree.add(Text(icon.decode()) + text_pathname)
+        tree.add(Text(icon) + text_pathname)
 
     print("\n")
     print("Done. The app is ready here:\n")
     print(tree)
     print("\nRun it:\n")
     print(Panel(f"[red]lightning run app {directory.relative_to(Path.cwd()) / 'app.py'}"))
+
+
+def _can_encode_icon(icon:str) -> bool:
+    """Helper function to check whether an icon can be encoded"""
+    try:
+        icon.encode(sys.stdout.encoding)
+        return True
+    except UnicodeEncodeError:
+        return False

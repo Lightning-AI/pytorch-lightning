@@ -5,7 +5,7 @@ import pytest
 from click.testing import CliRunner
 
 from lightning_app.cli import lightning_cli
-from lightning_app.cli.cmd_pl_init import download_frontend, pl_app
+from lightning_app.cli.cmd_pl_init import download_frontend, pl_app, _can_encode_icon
 
 
 def test_pl_app_input_paths_do_not_exist(tmp_path):
@@ -84,13 +84,9 @@ def test_pl_app_download_frontend(tmp_path):
     assert "static" in contents
 
 
-def test_pl_app_icon():
-    """Test that Icons in PL app CLI output are not broken in encoding"""
-    try:
-        icon1 = "📂 ".encode()
-        icon2 = "📄 ".encode()
-    except UnicodeEncodeError as exc:
-        pytest.fail(exc, pytrace=True)
+def test_pl_app_encode_icon():
+    assert _can_encode_icon("📂") == True
+    assert _can_encode_icon("📄") == True
 
 
 @pytest.mark.parametrize(
