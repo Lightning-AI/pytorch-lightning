@@ -154,7 +154,7 @@ def print_pretty_report(
             if path.is_dir():
                 icon = "📂 ".encode()
             else:
-                 icon = "📄 ".encode()
+                icon = "📄 ".encode()
         except UnicodeEncodeError:
             # Icon will be hidden. Two spaces to align pathnames.
             icon = b"  "
