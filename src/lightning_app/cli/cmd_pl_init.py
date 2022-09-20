@@ -107,7 +107,7 @@ def download_frontend(destination: Path) -> None:
         response = urllib.request.urlopen(url)
         file = tarfile.open(fileobj=response, mode="r|gz")
         file.extractall(path=download_dir)
-        shutil.move(Path(download_dir, build_dir_name), destination)
+        shutil.move(str(Path(download_dir, build_dir_name)), destination)
 
 
 def project_file_from_template(template_dir: Path, destination_dir: Path, template_name: str, **kwargs: Any) -> None:
@@ -129,14 +129,17 @@ def print_pretty_report(
         guide_style="bold bright_blue",
     )
 
+    help_texts = {} if help_texts is None else help_texts
+
     paths = sorted(
         directory.glob("*"),
         key=lambda p: (p.is_file(), p.name.lower()),
     )
     max_witdth = max(len(p.name) for p in paths)
 
+    patterns_to_ignore = [] if ignore_patterns is None else ignore_patterns
     for path in paths:
-        if any(re.match(pattern, path.name) for pattern in ignore_patterns):
+        if any(re.match(pattern, path.name) for pattern in patterns_to_ignore):
             # Only display relevant files
             continue
 
