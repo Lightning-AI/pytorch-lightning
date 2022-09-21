@@ -110,9 +110,7 @@ def test_setup_model_move_to_device(move_to_device, accelerator, initial_device,
     assert all(param.device == expected_device for param in model.parameters())
     assert all(param.device == expected_device for param in lite_model.parameters())
 
-    # Note: The wrapper's device attribute is initialized correctly ONLY if the model was on CPU before calling
-    # Lite.setup(). This is a limitation of the _DeviceDtypeModuleMixin
-    assert lite_model.device == expected_device if initial_device.type == "cpu" else torch.device("cpu")
+    assert lite_model.device == expected_device
     assert lite.device == target_device
 
 
