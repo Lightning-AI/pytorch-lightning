@@ -140,9 +140,6 @@ def test_dtype_conversions():
     assert module.weight.dtype is torch.float32
     assert module.dtype is torch.float32
     # now, test the rest
-    module.double()
-    assert module.weight.dtype is torch.float64
-    assert module.dtype is torch.float64
     module.float()
     assert module.weight.dtype is torch.float32
     assert module.dtype is torch.float32
