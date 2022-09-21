@@ -231,11 +231,8 @@ class NeptuneLogger(Logger):
         agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **neptune_run_kwargs: Any,
     ):
-        if neptune is None:
-            raise ModuleNotFoundError(
-                "You want to use the `Neptune` logger which is not installed yet, install it with"
-                " `pip install neptune-client`."
-            )
+        if not _NEPTUNE_AVAILABLE:
+            raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
@@ -430,6 +427,10 @@ class NeptuneLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        if not self._run_instance:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
         if status:
             self.run[self._construct_path_with_prefix("status")] = status
 
