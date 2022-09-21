@@ -222,49 +222,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
         if is_overridden(method_name="on_init_end", instance=callback):
             rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
 
-        if is_overridden(method_name="on_configure_sharded_model", instance=callback):
-            rank_zero_deprecation(
-                "The `on_configure_sharded_model` callback hook was deprecated in"
-                " v1.6 and will be removed in v1.8. Use `setup()` instead."
-            )
-        if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
-            rank_zero_deprecation(
-                "The `on_before_accelerator_backend_setup` callback hook was deprecated in"
-                " v1.6 and will be removed in v1.8. Use `setup()` instead."
-            )
-        if is_overridden(method_name="on_load_checkpoint", instance=callback):
-            rank_zero_deprecation(
-                f"`{callback.__class__.__name__}.on_load_checkpoint` will change its signature and behavior in v1.8."
-                " If you wish to load the state of the callback, use `load_state_dict` instead."
-                " In v1.8 `on_load_checkpoint(..., checkpoint)` will receive the entire loaded"
-                " checkpoint dictionary instead of callback state."
-            )
-
-        for hook, alternative_hook in (
-            ["on_batch_start", "on_train_batch_start"],
-            ["on_batch_end", "on_train_batch_end"],
-        ):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
-                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
-                )
-        for hook, alternative_hook in (
-            ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
-            ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
-        ):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
-                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
-                )
-        for hook in ("on_pretrain_routine_start", "on_pretrain_routine_end"):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook has been deprecated in v1.6 and"
-                    " will be removed in v1.8. Please use `Callback.on_fit_start` instead."
-                )
-
 
 def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     if is_overridden(method_name="on_save_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
