@@ -15,6 +15,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
 
@@ -47,10 +48,11 @@ def test_deepspeed_precision_backward():
     model.backward.assert_called_once_with(tensor, "positional-arg", keyword="arg")
 
 
+@RunIf(deepspeed=True)
 def test_deepspeed_precision_optimizer_step():
+    from deepspeed import DeepSpeedEngine
+
     precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
-    optimizer = Mock()
-    model = Mock()
-    precision_plugin.optimizer_step(optimizer, model=model, lr_kwargs=dict())
+    optimizer = model = Mock(spec=DeepSpeedEngine)
+    precision_plugin.optimizer_step(optimizer, lr_kwargs=dict())
     model.step.assert_called_once_with(lr_kwargs=dict())
-    optimizer.step.assert_not_called()

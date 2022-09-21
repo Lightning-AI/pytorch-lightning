@@ -77,3 +77,11 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
 
     def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None:
         ...
+
+
+@runtime_checkable
+class Steppable(Protocol):
+    """To structurally type ``optimizer.step()``"""
+
+    def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
+        ...
