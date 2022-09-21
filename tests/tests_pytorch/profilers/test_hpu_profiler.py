@@ -34,16 +34,10 @@ else:
 
 class TestHPUProfiler:
     def setup_method(self):
-        try:
-            shutil.rmtree("profiler_logs")
-        except:
-            pass
+        shutil.rmtree("profiler_logs", ignore_errors=True)
 
     def teardown_method(self):
-        try:
-            shutil.rmtree("profiler_logs")
-        except:
-            pass
+        shutil.rmtree("profiler_logs", ignore_errors=True)
 
     @pytest.fixture
     def get_device_count(self, pytestconfig):
@@ -51,7 +45,7 @@ class TestHPUProfiler:
         if not hpus:
             assert habana_frameworks.torch.hpu.device_count() >= 1
             return 1
-        assert (hpus <= habana_frameworks.torch.hpu.device_count(), "More hpu devices asked than present")
+        assert hpus <= habana_frameworks.torch.hpu.device_count(), "More hpu devices asked than present"
         assert hpus == 1 or hpus % 8 == 0
         return hpus
 
@@ -112,66 +106,6 @@ class TestHPUProfiler:
         assert actual == expected
         for file in list(os.listdir(profiler.dirpath)):
             assert os.path.getsize(os.path.join(profiler.dirpath, file)) > 0
-
-    @RunIf(hpu=True)
-    def test_simple_profiler_distributed_files(self, tmpdir, get_device_count):
-        """Ensure the proper files are saved in distributed."""
-        profiler = SimpleProfiler(dirpath="profiler_logs", filename="profiler")
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=2,
-            strategy="hpu_parallel",
-            accelerator="hpu",
-            devices=get_device_count,
-            profiler=profiler,
-            logger=False,
-        )
-        trainer.fit(model)
-        trainer.validate(model)
-        trainer.test(model)
-
-        expected = {
-            f"{stage}-profiler-{rank}.txt"
-            for stage in ("fit", "validate", "test")
-            for rank in range(0, trainer.num_devices)
-        }
-        actual = set(os.listdir(profiler.dirpath))
-        print(f"dirpath: {profiler.dirpath}; actual: {actual}; expected: {expected}")
-        assert actual == expected
-
-        for f in os.listdir(profiler.dirpath):
-            assert Path(os.path.join(os.getcwd(), profiler.dirpath, f)).read_text("utf-8")
-
-    @RunIf(hpu=True)
-    def test_advanced_profiler_distributed_files(self, tmpdir, get_device_count):
-        """Ensure the proper files are saved in distributed."""
-        profiler = AdvancedProfiler(dirpath="profiler_logs", filename="profiler")
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=2,
-            strategy="hpu_parallel",
-            accelerator="hpu",
-            devices=get_device_count,
-            profiler=profiler,
-            logger=False,
-        )
-        trainer.fit(model)
-        trainer.validate(model)
-        trainer.test(model)
-
-        expected = {
-            f"{stage}-profiler-{rank}.txt"
-            for stage in ("fit", "validate", "test")
-            for rank in range(0, trainer.num_devices)
-        }
-        actual = set(os.listdir(profiler.dirpath))
-        print(f"dirpath: {profiler.dirpath}; actual: {actual}; expected: {expected}")
-        assert actual == expected
-
-        for f in os.listdir(profiler.dirpath):
-            assert Path(os.path.join(os.getcwd(), profiler.dirpath, f)).read_text("utf-8")
 
     def test_hpu_pytorch_profiler_instances(tmpdir):
         model = BoringModel()
@@ -238,7 +172,6 @@ class TestHPUProfiler:
 
     def test_hpu_trace_event_cpu_op(tmpdir):
         # Run model and prep json
-        devices = habana_frameworks.torch.hpu.device_count()
         model = BoringModel()
 
         trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())

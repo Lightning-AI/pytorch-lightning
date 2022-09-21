@@ -16,17 +16,14 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
-from warnings import warn
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch.autograd.profiler import EventList, record_function
-from torch.profiler import ProfilerAction
 
-# from pytorch_lightning.core.module import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.trainer.connectors.data_connector import warning_cache
-from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
