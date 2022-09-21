@@ -35,6 +35,7 @@ from lightning_cloud.openapi import (
     V1PythonDependencyInfo,
     V1SourceType,
     V1UserRequestedComputeConfig,
+    V1UserRequestedFlowComputeConfig,
     V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
@@ -177,12 +178,18 @@ class CloudRuntime(Runtime):
             frontend_spec = V1Flowserver(name=flow_name)
             frontend_specs.append(frontend_spec)
 
+        flow_compute_config_name = "flow-lite"
+        if self.app.flow_compute_config is not None and self.app.flow_compute_config.name != "":
+            flow_compute_config_name = self.app.flow_compute_config.name
         app_spec = V1LightningappInstanceSpec(
             app_entrypoint_file=str(app_entrypoint_file),
             enable_app_server=self.start_server,
             flow_servers=frontend_specs,
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
+            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+                name=flow_compute_config_name,
+            ),
         )
         # if requirements file at the root of the repository is present,
         # we pass just the file name to the backend, so backend can find it in the relative path
@@ -218,6 +225,7 @@ class CloudRuntime(Runtime):
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
+                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)

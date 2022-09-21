@@ -35,6 +35,7 @@ from lightning_app.runners import backends, cloud
 from lightning_app.storage import Drive
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 
 class MyWork(LightningWork):
@@ -63,6 +64,43 @@ class WorkWithTwoDrives(LightningWork):
 
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
+
+    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    def test_run_with_custom_flow_compute_config(self, monkeypatch):
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+        )
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+        app = mock.MagicMock()
+        app.flows = []
+        app.frontend = {}
+        app.flow_compute_config = CloudCompute(name="t2.medium")
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
+
+        monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
+        monkeypatch.setattr(cloud, "Path", Path)
+        cloud_runtime.dispatch()
+        body = Body8(
+            app_entrypoint_file=mock.ANY,
+            enable_app_server=True,
+            flow_servers=[],
+            image_spec=None,
+            works=[],
+            local_source=True,
+            dependency_cache_key=mock.ANY,
+            user_requested_flow_compute_config=V1UserRequestedComputeConfig(name="t2.medium"),
+        )
+        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+            project_id="test-project-id", app_id=mock.ANY, body=body
+        )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_on_byoc_cluster(self, monkeypatch):
