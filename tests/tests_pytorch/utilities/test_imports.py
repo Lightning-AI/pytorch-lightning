@@ -111,14 +111,10 @@ def clean_import():
     """
     import sys
 
-    new_sys_modules, old_sys_modules = sys.modules.copy(), sys.modules  # copy modules to avoid modifying the original
-    pl_keys = [
-        key
-        for key in new_sys_modules.keys()
-        if key.startswith("pytorch_lightning") or key.startswith("lightning")  # remove all {pytorch_}lightning* modules
-    ]
-    for pl_key in pl_keys:
-        del new_sys_modules[pl_key]
+    # copy modules to avoid modifying the original
+    old_sys_modules = sys.modules.copy()
+    # remove all *lightning* modules
+    new_sys_modules = {key: value for key, value in sys.modules.items() if "lightning" not in key}
     sys.modules = new_sys_modules  # replace sys.modules with the new one
     yield
     sys.modules = old_sys_modules  # restore original modules
