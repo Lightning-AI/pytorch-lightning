@@ -56,7 +56,7 @@ class CloudCompute:
         self.name = self.name.lower()
 
         # All `default` CloudCompute are identified in the same way.
-        self._internal_id = "default" if self.name == "default" else str(uuid4()).split("-")[0]
+        self._internal_id = "default" if self.name == "default" else uuid4().hex
 
     def to_dict(self):
         return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self), "_internal_id": self._internal_id}
