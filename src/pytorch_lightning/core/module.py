@@ -602,7 +602,7 @@ class LightningModule(
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""
-        Same as :meth:`torch.nn.Module.forward()`.
+        Same as :meth:`torch.nn.Module.forward`.
 
         Args:
             *args: Whatever you decide to pass into the forward method.

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
 
 import torch
 
@@ -25,3 +26,7 @@ def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
             return tensor.bfloat16()
 
     return tensor
+
+
+def _convert_fp_tensor(tensor: torch.Tensor, dst_type: Union[str, torch.dtype]) -> torch.Tensor:
+    return tensor.to(dst_type) if torch.is_floating_point(tensor) else tensor

@@ -72,6 +72,15 @@ def test_cuda_device(device):
     assert device.index == torch.cuda.current_device()
 
 
+@RunIf(min_cuda_gpus=1)
+def test_cpu_device():
+    model = TopModule().cuda()
+    assert model.device.type == "cuda"
+    model.cpu()
+    assert model.device.type == "cpu"
+    assert model.device.index is None
+
+
 @RunIf(min_cuda_gpus=2)
 def test_cuda_current_device():
     """Test that calling .cuda() moves the model to the correct device and respects current cuda device setting."""
@@ -92,3 +101,50 @@ def test_cuda_current_device():
     model.cuda()  # model is already on device 1, and calling .cuda() without device index should not move model
     assert model.device == torch.device("cuda", 1)
     assert model.layer.weight.device == torch.device("cuda", 1)
+
+
+class ExampleModule(_DeviceDtypeModuleMixin):
+    def __init__(self, weight):
+        super().__init__()
+        self.register_buffer("weight", weight)
+
+
+def test_to_combinations():
+    module = ExampleModule(torch.rand(3, 4))
+    # sanity check
+    assert module.weight.shape == (3, 4)
+    assert module.weight.dtype is torch.float32
+    # positional dtype
+    module.to(torch.double)
+    assert module.weight.dtype is torch.float64
+    # positional device
+    cpu = torch.device("cpu")
+    module.to(cpu, dtype=torch.half, non_blocking=True)
+    assert module.weight.dtype is torch.float16
+    assert module.device == cpu
+    assert module.dtype is torch.float16
+
+
+def test_dtype_conversions():
+    module = ExampleModule(torch.tensor(1))
+    # different dtypes
+    assert module.weight.dtype is torch.int64
+    assert module.dtype is torch.float32
+    # `.double()` skips non floating points
+    module.double()
+    assert module.weight.dtype is torch.int64
+    assert module.dtype is torch.float64
+    # but `type` doesn't
+    module.type(torch.float)
+    assert module.weight.dtype is torch.float32
+    assert module.dtype is torch.float32
+    # now, test the rest
+    module.double()
+    assert module.weight.dtype is torch.float64
+    assert module.dtype is torch.float64
+    module.float()
+    assert module.weight.dtype is torch.float32
+    assert module.dtype is torch.float32
+    module.half()
+    assert module.weight.dtype is torch.float16
+    assert module.dtype is torch.float16
