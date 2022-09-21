@@ -395,7 +395,7 @@ class LightningLite(ABC):
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters()).device
-        if not all(param.device == initial_device for param in model.parameters()):
+        if any(param.device != initial_device for param in model.parameters()):
             rank_zero_warn(
                 "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`"
                 " all parameters will be moved to the new device. If this is not desired, set "
