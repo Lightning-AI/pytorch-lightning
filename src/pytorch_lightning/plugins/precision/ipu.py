@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
@@ -19,6 +19,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.enums import PrecisionType
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -45,22 +46,24 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = precision
 
-    def backward(self, tensor: Tensor, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(  # type: ignore[override]
+        self,
+        tensor: Tensor,
+        model: "pl.LightningModule",
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since IPUs handle"
                 " the backward logic internally."
             )
 
-    def optimizer_step(
-        self,
-        optimizer: Optimizer,
-        model: Optional["pl.LightningModule"] = None,
-        **kwargs: Any,
-    ) -> Any:
+    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
         """IPUs handle the optimizer step internally."""
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
+        model: pl.LightningModule = kwargs.pop("model")
 
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(

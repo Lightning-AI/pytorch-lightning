@@ -65,12 +65,18 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
         with self.forward_context():
             yield
 
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         module.trainer._call_callback_hooks("on_before_backward", tensor)
         module.trainer._call_lightning_module_hook("on_before_backward", tensor)
         return tensor
 
-    def backward(self, tensor: Tensor, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(  # type: ignore[override]
+        self,
+        tensor: Tensor,
+        model: "pl.LightningModule",
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         r"""Performs the actual backpropagation.
 
         Args:
@@ -83,22 +89,18 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
         optimizer, optimizer_idx, *args = args
         model.backward(tensor, optimizer, optimizer_idx, *args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         # once backward has been applied, release graph
         closure_loss = tensor.detach()
         module.trainer._call_callback_hooks("on_after_backward")
         module.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
 
-    def optimizer_step(
-        self,
-        optimizer: Steppable,
-        model: Optional["pl.LightningModule"] = None,
-        **kwargs: Any,
-    ) -> Any:
+    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
         """Hook to run the optimizer step."""
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
+        model: pl.LightningModule = kwargs.pop("model")
         closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         return optimizer.step(closure=closure, **kwargs)
 
@@ -147,7 +149,7 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
     def _clip_gradients(
         self,
         model: Union["pl.LightningModule", Module],
-        optimizer: Optimizer,
+        optimizer: Steppable,
         optimizer_idx: int,
         clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
@@ -179,9 +181,7 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
             trainer.lightning_module.log_grad_norm(grad_norm_dict)
             trainer.lightning_module._current_fx_name = prev_fx
 
-    def _after_closure(
-        self, model: Optional[Union["pl.LightningModule", Module]], optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
+    def _after_closure(self, model: "pl.LightningModule", optimizer: Steppable, optimizer_idx: int) -> None:
         """Utility to share some code after the closure has been run."""
         trainer = model.trainer
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)

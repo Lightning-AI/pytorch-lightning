@@ -20,6 +20,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -72,7 +73,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self.amp_type = amp_type
         self.amp_level = amp_level
 
-    def backward(self, tensor: Tensor, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(  # type: ignore[override]
+        self,
+        tensor: Tensor,
+        model: "pl.LightningModule",
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         r"""Performs back-propagation using DeepSpeed's engine.
 
         Args:
@@ -92,12 +99,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional["pl.LightningModule"] = None,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
+        model: pl.LightningModule = kwargs.pop("model")
 
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(

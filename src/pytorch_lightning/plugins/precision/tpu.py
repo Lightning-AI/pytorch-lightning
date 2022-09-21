@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Any, Optional
-
-from torch.optim import Optimizer
+from typing import Any
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -30,12 +29,12 @@ class TPUPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional["pl.LightningModule"] = None,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
+        model: pl.LightningModule = kwargs.pop("model")
         closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": closure, **kwargs})
         skipped_backward = closure_result is None
