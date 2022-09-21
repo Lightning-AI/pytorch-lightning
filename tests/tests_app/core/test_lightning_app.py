@@ -11,7 +11,7 @@ from deepdiff import Delta
 from pympler import asizeof
 from tests_app import _PROJECT_ROOT
 
-from lightning_app import LightningApp, LightningFlow, LightningWork  # F401
+from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
 from lightning_app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
@@ -255,7 +255,7 @@ def test_nested_component(runtime_cls):
     assert app.root.b.c.d.e.w_e.c == 1
 
 
-class WorkCC(LightningWork):
+class WorkCCC(LightningWork):
     def run(self):
         pass
 
@@ -263,7 +263,7 @@ class WorkCC(LightningWork):
 class CC(LightningFlow):
     def __init__(self):
         super().__init__()
-        self.work_cc = WorkCC()
+        self.work_cc = WorkCCC()
 
     def run(self):
         pass
@@ -719,7 +719,7 @@ class WorkDD(LightningWork):
             self.counter += 1
 
 
-class FlowCC(LightningFlow):
+class FlowCCTolerance(LightningFlow):
     def __init__(self):
         super().__init__()
         self.work = WorkDD()
@@ -744,7 +744,7 @@ class FaultToleranceLightningTestApp(LightningTestApp):
 # TODO (tchaton) Resolve this test with Resumable App.
 @RunIf(skip_windows=True)
 def test_fault_tolerance_work():
-    app = FaultToleranceLightningTestApp(FlowCC())
+    app = FaultToleranceLightningTestApp(FlowCCTolerance())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.counter == 2
 
@@ -952,8 +952,8 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 5904
-    assert app.root._state_sizes[20] <= 23736
+    assert app.root._state_sizes[0] <= 6952
+    assert app.root._state_sizes[20] <= 24896
 
 
 class FlowUpdated(LightningFlow):
@@ -1041,3 +1041,38 @@ class TestLightningHasUpdatedApp(LightningApp):
 def test_lightning_app_has_updated():
     app = TestLightningHasUpdatedApp(FlowPath())
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkCC(LightningWork):
+    def run(self):
+        pass
+
+
+class FlowCC(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.cloud_compute = CloudCompute(name="gpu")
+        self.work_a = WorkCC(cloud_compute=self.cloud_compute)
+        self.work_b = WorkCC(cloud_compute=self.cloud_compute)
+        self.work_c = WorkCC()
+        assert self.work_a.cloud_compute._internal_id == self.work_b.cloud_compute._internal_id
+
+
+def test_cloud_compute_binding():
+
+    flow = FlowCC()
+    assert "__cloud_compute__" == flow.state["vars"]["cloud_compute"]["type"]
+    assert "__cloud_compute__" == flow.work_a.state["vars"]["_cloud_compute"]["type"]
+    assert "__cloud_compute__" == flow.work_b.state["vars"]["_cloud_compute"]["type"]
+    assert "__cloud_compute__" == flow.work_c.state["vars"]["_cloud_compute"]["type"]
+    work_a_id = flow.work_a.state["vars"]["_cloud_compute"]["_internal_id"]
+    work_b_id = flow.work_b.state["vars"]["_cloud_compute"]["_internal_id"]
+    work_c_id = flow.work_c.state["vars"]["_cloud_compute"]["_internal_id"]
+    assert work_a_id == work_b_id
+    assert work_a_id != work_c_id
+    assert work_c_id == "default"
+
+    flow.set_state(flow.state)
+    assert isinstance(flow.cloud_compute, CloudCompute)
+    assert isinstance(flow.work_a.cloud_compute, CloudCompute)
+    assert isinstance(flow.work_c.cloud_compute, CloudCompute)

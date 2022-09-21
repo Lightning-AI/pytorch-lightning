@@ -1,5 +1,8 @@
 from dataclasses import asdict, dataclass
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
+from uuid import uuid4
+
+__CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
 
 
 @dataclass
@@ -52,9 +55,23 @@ class CloudCompute:
 
         self.name = self.name.lower()
 
+        # All `default` CloudCompute are identified in the same way.
+        self._internal_id = "default" if self.name == "default" else str(uuid4()).split("-")[0]
+
     def to_dict(self):
-        return {"__cloud_compute__": asdict(self)}
+        return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self), "_internal_id": self._internal_id}
 
     @classmethod
     def from_dict(cls, d):
-        return cls(**d["__cloud_compute__"])
+        assert d.pop("type") == __CLOUD_COMPUTE_IDENTIFIER__
+        internal_id = d.pop("_internal_id")
+        cloud_compute = cls(**d)
+        cloud_compute._internal_id = internal_id
+        return cloud_compute
+
+
+def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
+    if __CLOUD_COMPUTE_IDENTIFIER__ == state.get("type", None):
+        cloud_compute = CloudCompute.from_dict(state)
+        return cloud_compute
+    return state

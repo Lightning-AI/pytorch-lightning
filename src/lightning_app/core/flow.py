@@ -14,6 +14,7 @@ from lightning_app.utilities.app_helpers import _is_json_serializable, _Lightnin
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
+from lightning_app.utilities.packaging.cloud_compute import _maybe_create_cloud_compute, CloudCompute
 
 
 class LightningFlow:
@@ -177,6 +178,9 @@ class LightningFlow:
                 value.component_name = self.name
                 self._state.add(name)
 
+            elif isinstance(value, CloudCompute):
+                self._state.add(name)
+
             elif _is_json_serializable(value):
                 self._state.add(name)
 
@@ -220,7 +224,8 @@ class LightningFlow:
     def __getattr__(self, item):
         if item in self.__dict__.get("_paths", {}):
             return Path.from_dict(self._paths[item])
-        return self.__getattribute__(item)
+        value = self.__getattribute__(item)
+        return _maybe_create_cloud_compute(value)
 
     @property
     def changes(self):
@@ -320,6 +325,7 @@ class LightningFlow:
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
+                v = _maybe_create_cloud_compute(v)
             setattr(self, k, v)
         self._changes = provided_state["changes"]
         self._calls.update(provided_state["calls"])

@@ -24,7 +24,7 @@ from lightning_app.utilities.exceptions import LightningWorkException
 from lightning_app.utilities.introspection import _is_init_context
 from lightning_app.utilities.network import find_free_network_port
 from lightning_app.utilities.packaging.build_config import BuildConfig
-from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app.utilities.packaging.cloud_compute import _maybe_create_cloud_compute, CloudCompute
 from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
 
 
@@ -103,7 +103,7 @@ class LightningWork:
                 " in the next version. Use `cache_calls` instead."
             )
         self._cache_calls = run_once if run_once is not None else cache_calls
-        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting"}
+        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
         self._parallel = parallel
         self._host: str = host
         self._port: Optional[int] = port
@@ -488,6 +488,7 @@ class LightningWork:
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
+                v = _maybe_create_cloud_compute(v)
             setattr(self, k, v)
 
         self._changes = provided_state["changes"]
