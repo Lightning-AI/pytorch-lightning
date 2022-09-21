@@ -83,5 +83,6 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
 class Steppable(Protocol):
     """To structurally type ``optimizer.step()``"""
 
+    # Inferred from `torch.optim.optimizer.pyi`
     def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
         ...
