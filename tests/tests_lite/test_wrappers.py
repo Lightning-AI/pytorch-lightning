@@ -258,7 +258,7 @@ def test_lite_optimizer_steps():
     assert step_output == 123
     strategy.optimizer_step.assert_called_once_with(optimizer)
 
-    strategy.optimizer_step.reset_mock()
+    strategy.reset_mock()
 
     # with closure as input
     closure = Mock()
