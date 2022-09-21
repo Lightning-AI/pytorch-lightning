@@ -35,9 +35,6 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
 
     precision: Union[str, int] = 32
 
-    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        return self.get_main_params(optimizer)
-
     def connect(
         self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:

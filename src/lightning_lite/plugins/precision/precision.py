@@ -67,7 +67,7 @@ class Precision:
         """Hook to run the optimizer step."""
         return optimizer.step(**kwargs)
 
-    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
 
         Returns the plain model params here. Maybe different in other precision plugins.

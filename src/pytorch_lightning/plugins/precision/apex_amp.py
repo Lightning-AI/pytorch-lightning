@@ -42,7 +42,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         self._connected = False
         self._state_dict_loaded = False
 
-    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
