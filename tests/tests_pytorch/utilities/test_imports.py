@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
+import operator
+import sys
+from unittest import mock
+
+import pytest
+from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
+from torch.distributed import is_available
+
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
@@ -67,3 +76,62 @@ def test_imports():
         assert not _POPTORCH_AVAILABLE
     else:
         assert _POPTORCH_AVAILABLE
+
+
+def shortcut_patch(orig_fn, shortcut_case, attr_names=None):
+    def new_fn(*args, **kwargs):
+        if attr_names is not None:
+            self = args[0]
+            values = tuple(getattr(self, attr_name) for attr_name in attr_names)
+        else:
+            values = args
+        match = True
+        for value, case in zip(values, shortcut_case):
+            if value != case:
+                match = False
+                break
+        if match:
+            return False
+        return orig_fn(*args, **kwargs)
+
+    return new_fn
+
+
+@pytest.mark.parametrize(
+    ["patch_name", "new_fn", "to_import"],
+    [
+        ("torch.distributed.is_available", shortcut_patch(is_available, ()), "pytorch_lightning"),
+        (
+            "lightning_utilities.core.imports.RequirementCache.__bool__",
+            shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
+            "pytorch_lightning.loggers.neptune",
+        ),
+        (
+            "lightning_utilities.core.imports.RequirementCache.__bool__",
+            shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
+            "pytorch_lightning.cli",
+        ),
+        (
+            "lightning_utilities.core.imports.module_available",
+            shortcut_patch(module_available, ("fairscale.nn",)),
+            "pytorch_lightning.strategies",
+        ),
+        (
+            "lightning_utilities.core.imports.compare_version",
+            shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
+            "pytorch_lightning.strategies.fully_sharded_native",
+        ),
+    ],
+    ids=["ProcessGroup", "neptune", "cli", "fairscale", "fully_sharded_native"],
+)
+def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import):
+    pl_keys = list(
+        key for key in sys.modules.keys() if key.startswith("pytorch_lightning") or key.startswith("lightning")
+    )
+    for pl_key in pl_keys:
+        try:
+            del sys.modules[pl_key]
+        except KeyError:
+            pass  # module was already deleted
+    with mock.patch(patch_name, new=new_fn):
+        importlib.import_module(to_import)
