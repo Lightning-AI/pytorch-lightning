@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import Precision as _Precision
-from lightning_lite.utilities.types import _PARAMETERS, Steppable
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 
