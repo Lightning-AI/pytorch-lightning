@@ -13,7 +13,7 @@ def test_boring_app_example_cloud() -> None:
     with run_app_in_cloud(
         os.path.join(_PROJECT_ROOT, "examples/app_boring/"),
         app_name="app_dynamic.py",
-        debug=False,
+        debug=True,
     ) as (
         _,
         view_page,

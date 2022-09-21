@@ -20,7 +20,7 @@ from tests_lite.helpers.runif import RunIf
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 
 
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_auto_device_count(_):
     assert CUDAAccelerator.auto_device_count() == 2
 

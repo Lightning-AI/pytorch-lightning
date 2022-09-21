@@ -16,6 +16,7 @@ import torch
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.accelerators.mps import MPSAccelerator
+from lightning_lite.utilities.exceptions import MisconfigurationException
 
 _MAYBE_MPS = "mps" if MPSAccelerator.is_available() else "cpu"  # torch.device(mps) only works on torch>=1.12
 
@@ -39,11 +40,17 @@ def test_init_device_with_wrong_device_type():
     "devices,expected",
     [
         (1, [torch.device(_MAYBE_MPS, 0)]),
-        (2, [torch.device(_MAYBE_MPS, 0), torch.device(_MAYBE_MPS, 1)]),
         ([0], [torch.device(_MAYBE_MPS, 0)]),
-        # TODO(lite): This case passes with the implementation from PL, but looks like a bug
-        ([0, 2], [torch.device(_MAYBE_MPS, 0), torch.device(_MAYBE_MPS, 1)]),
+        ("1", [torch.device(_MAYBE_MPS, 0)]),
+        ("0,", [torch.device(_MAYBE_MPS, 0)]),
     ],
 )
 def test_get_parallel_devices(devices, expected):
     assert MPSAccelerator.get_parallel_devices(devices) == expected
+
+
+@RunIf(mps=True)
+@pytest.mark.parametrize("devices", [2, [0, 2], "2", "0,2"])
+def test_get_parallel_devices_invalid_request(devices):
+    with pytest.raises(MisconfigurationException, match="But your machine only has"):
+        MPSAccelerator.get_parallel_devices(devices)
