@@ -16,12 +16,14 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.autograd.profiler import EventList, record_function
 
-from pytorch_lightning.core.module import LightningModule
+if TYPE_CHECKING:
+    from pytorch_lightning.core.module import LightningModule
+
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.trainer.connectors.data_connector import warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
