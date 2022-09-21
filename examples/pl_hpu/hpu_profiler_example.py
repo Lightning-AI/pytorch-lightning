@@ -31,7 +31,6 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
 if _KINETO_AVAILABLE:

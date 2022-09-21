@@ -16,7 +16,6 @@ import glob
 import json
 import os
 import shutil
-from pathlib import Path
 
 import pytest
 
@@ -114,61 +113,6 @@ class TestHPUProfiler:
         assert isinstance(trainer.profiler, HPUProfiler)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    def test_hpu_trace_event_cpu_instant_event(tmpdir):
-        # Run model and prep json
-        model = BoringModel()
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(profile_memory=True))
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
-
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            event_time_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "cpu_instant_event":
-                        event_time_arr.append(event["ts"])
-                except KeyError:
-                    pass
-            if len(event_time_arr) == 0:
-                raise Exception("Could not find event cpu_instant_event in trace")
-            for event_time in event_time_arr:
-                assert event_time >= 0
-
-    def test_hpu_trace_event_python_function(tmpdir):
-        # Run model and prep json
-        model = BoringModel()
-
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(with_stack=True))
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
-
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            event_duration_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "python_function":
-                        event_duration_arr.append(event["dur"])
-                except KeyError:
-                    pass
-            if len(event_duration_arr) == 0:
-                raise Exception("Could not find event python_function in trace")
-            for event_duration in event_duration_arr:
-                assert event_duration >= 0
 
     def test_hpu_trace_event_cpu_op(tmpdir):
         # Run model and prep json
@@ -278,59 +222,3 @@ class TestHPUProfiler:
                 raise Exception("Could not find event kernel in trace")
             for event_duration in event_duration_arr:
                 assert event_duration >= 0
-
-    def test_hpu_trace_event_cpu_op_input_dim(tmpdir):
-        # Run model and prep json
-        model = BoringModel()
-
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(record_shapes=True))
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
-
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            input_dim_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "cpu_op":
-                        input_dim_arr.append(event["args"]["Input Dims"])
-                except KeyError:
-                    pass
-            if len(input_dim_arr) == 0:
-                raise Exception("Could not find event Input Dims in trace")
-            for input_dim in input_dim_arr:
-                assert input_dim is not None
-
-    def test_hpu_trace_event_call_stack(tmpdir):
-        # Run model and prep json
-        model = BoringModel()
-
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(with_stack=True))
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
-
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            call_stack_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "cpu_op":
-                        call_stack_arr.append(event["args"]["Call stack"])
-                except KeyError:
-                    pass
-            if len(call_stack_arr) == 0:
-                raise Exception("Could not find event cpu_op in trace")
-            for call_stack in call_stack_arr:
-                assert call_stack is not None
