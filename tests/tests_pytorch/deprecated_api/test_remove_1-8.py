@@ -603,11 +603,6 @@ def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
         trainer.ipus == expected_ipus
 
 
-def test_v1_8_0_deprecated_lightning_ipu_module():
-    with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
-        _ = LightningIPUModule(BoringModel(), 32)
-
-
 def test_deprecated_mc_save_checkpoint():
     mc = ModelCheckpoint()
     trainer = Trainer()
