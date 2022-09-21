@@ -142,7 +142,7 @@ class AWSClusterManager:
                 f"""\
             {resp.id} is now being created... This can take up to an hour.
 
-            To view your clusters status use:
+            To view the status of your clusters use:
                 `lightning list clusters`
 
             To view cluster logs use:
