@@ -83,5 +83,5 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
 class Steppable(Protocol):
     """To structurally type ``optimizer.step()``"""
 
-    def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
+    def step(self, closure: Optional[Callable[[], float]] = ..., **kwargs: Any) -> Optional[float]:
         ...
