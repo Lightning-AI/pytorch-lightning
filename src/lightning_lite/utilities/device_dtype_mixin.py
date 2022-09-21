@@ -50,7 +50,7 @@ class _DeviceDtypeModuleMixin(Module):
 
     def to(self, *args: Any, **kwargs: Any) -> Self:  # type: ignore[valid-type]
         """See :meth:`torch.nn.Module.to`."""
-        device, dtype, *rest = torch._C._nn._parse_to(*args, **kwargs)
+        device, dtype, *_ = torch._C._nn._parse_to(*args, **kwargs)
         self.__update_properties(device=device, dtype=dtype)
         return super().to(*args, **kwargs)
 
