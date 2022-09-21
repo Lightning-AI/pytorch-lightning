@@ -14,7 +14,7 @@
 import os
 import re
 from contextlib import contextmanager
-from typing import Type, Optional
+from typing import Optional, Type
 
 import numpy as np
 import pytest

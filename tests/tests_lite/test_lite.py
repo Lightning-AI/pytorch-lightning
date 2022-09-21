@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from copy import deepcopy
-from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
