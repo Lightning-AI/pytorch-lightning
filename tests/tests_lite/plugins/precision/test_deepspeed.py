@@ -62,8 +62,6 @@ def test_deepspeed_engine_is_steppable():
 
 
 def test_deepspeed_precision_optimizer_step():
-    from deepspeed import DeepSpeedEngine
-
     precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
     optimizer = model = Mock()
     precision_plugin.optimizer_step(optimizer, lr_kwargs=dict())
