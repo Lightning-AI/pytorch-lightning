@@ -191,6 +191,21 @@ def tmpdir_server(tmpdir):
 
 
 @pytest.fixture
+def clean_import():
+    import sys
+
+    new_sys_modules, old_sys_modules = sys.modules.copy(), sys.modules
+    pl_keys = list(
+        key for key in new_sys_modules.keys() if key.startswith("pytorch_lightning") or key.startswith("lightning")
+    )
+    for pl_key in pl_keys:
+        new_sys_modules.pop(pl_key, None)
+    sys.modules = new_sys_modules
+    yield
+    sys.modules = old_sys_modules
+
+
+@pytest.fixture
 def single_process_pg():
     """Initialize the default process group with only the current process for testing purposes.
 
