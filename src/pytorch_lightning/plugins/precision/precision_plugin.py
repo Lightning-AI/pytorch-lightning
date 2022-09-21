@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import Precision as _Precision
-from lightning_lite.utilities.types import _PARAMETERS
+from lightning_lite.utilities.types import _PARAMETERS, Steppable
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 
@@ -92,15 +92,14 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
+        optimizer: Steppable,
         model: Optional["pl.LightningModule"] = None,
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
-        if isinstance(model, pl.LightningModule):
-            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
+        closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         return optimizer.step(closure=closure, **kwargs)
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
