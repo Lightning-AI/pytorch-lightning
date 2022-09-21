@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import List
 
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
@@ -18,10 +19,10 @@ from lightning_app.utilities.network import LightningClient
 class _AppManager:
     """_AppManager implements API calls specific to Lightning AI BYOC apps."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_client = LightningClient()
 
-    def list(self, cluster_id: str = None, limit: int = 100):
+    def list(self, cluster_id: str = None, limit: int = 100) -> None:
         project = _get_project(self.api_client)
 
         kwargs = {
@@ -42,13 +43,13 @@ class _AppManager:
 
 
 class _AppList(Formatable):
-    def __init__(self, apps: [Externalv1LightningappInstance]):
+    def __init__(self, apps: List[Externalv1LightningappInstance]) -> None:
         self.apps = apps
 
     @staticmethod
     def _textualize_state_transitions(
         desired_state: V1LightningappInstanceState, current_state: V1LightningappInstanceStatus
-    ):
+    ) -> Text:
         phases = {
             V1LightningappInstanceState.IMAGE_BUILDING: Text("building image", style="bold yellow"),
             V1LightningappInstanceState.PENDING: Text("pending", style="bold yellow"),
@@ -87,7 +88,6 @@ class _AppList(Formatable):
         table = Table("id", "name", "status", "cluster", "created", show_header=True, header_style="bold green")
 
         for app in self.apps:
-            app: Externalv1LightningappInstance
             status = self._textualize_state_transitions(desired_state=app.spec.desired_state, current_state=app.status)
 
             # this guard is necessary only until 0.3.93 releases which includes the `created_at`

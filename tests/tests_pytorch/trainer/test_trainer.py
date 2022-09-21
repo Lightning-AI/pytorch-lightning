@@ -21,7 +21,7 @@ from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from re import escape
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
 import pytest
@@ -2191,3 +2191,20 @@ def test_trainer_save_checkpoint_no_model_attached():
     assert trainer.model is None
     with pytest.raises(AttributeError, match="Saving a checkpoint is only possible if a model is attached"):
         trainer.save_checkpoint("checkpoint.ckpt")
+
+
+def test_trainer_calls_logger_finalize_on_exception(tmpdir):
+    class CustomModel(BoringModel):
+        def on_fit_start(self):
+            super().on_fit_start()
+            raise Exception("logger-finalize")
+
+    model = CustomModel()
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.finalize = Mock()
+    trainer = Trainer(logger=logger)
+
+    with pytest.raises(Exception, match="logger-finalize"):
+        trainer.fit(model)
+
+    logger.finalize.assert_called_once_with("failed")

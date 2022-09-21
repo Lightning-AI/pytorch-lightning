@@ -25,6 +25,7 @@ from lightning_lite.plugins import Precision
 from lightning_lite.strategies import Strategy
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_lite.utilities.types import Steppable
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
@@ -56,9 +57,13 @@ class _LiteOptimizer:
 
     def step(self, closure: Optional[Callable] = None) -> Any:
         kwargs = dict(closure=closure) if closure is not None else {}
+        if hasattr(self._strategy, "model") and isinstance(self._strategy.model, Steppable):
+            # only DeepSpeed defines this
+            optimizer = self._strategy.model
+        else:
+            optimizer = self.optimizer
         return self._strategy.optimizer_step(
-            self.optimizer,
-            model=getattr(self._strategy, "model", None),
+            optimizer,
             **kwargs,
         )
 

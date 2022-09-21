@@ -264,19 +264,9 @@ def test_accelerator_cpu(*_):
 
     with pytest.raises(
         RuntimeError,
-        match="CUDAAccelerator can not run on your system since the accelerator is not available",
-    ):
-        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-            _Connector(gpus=1)
-
-    with pytest.raises(
-        RuntimeError,
         match="CUDAAccelerator can not run on your system since the accelerator is not available.",
     ):
-        _Connector(accelerator="cuda")
-
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-        _Connector(accelerator="cpu", gpus=1)
+        _Connector(accelerator="cuda", devices=1)
 
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
