@@ -419,7 +419,8 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
 
 
 def test_lr_finder_with_stochastic_weight_averaging(tmpdir):
-    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14755"""
+    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14755."""
+
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
