@@ -83,14 +83,17 @@ def test_setup_model(ddp_mock):
     assert lite_model.forward != model.forward
 
 
-@pytest.mark.parametrize("accelerator, initial_device, target_device", [
-    ("cpu", "cpu", "cpu"),
-    pytest.param("cpu", "cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("cpu", "mps:0", "cpu", marks=RunIf(mps=True)),
-    pytest.param("cuda", "cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("cuda", "cuda:1", "cuda:0", marks=RunIf(min_cuda_gpus=2)),
-    pytest.param("mps", "cpu", "mps:0", marks=RunIf(mps=True)),
-])
+@pytest.mark.parametrize(
+    "accelerator, initial_device, target_device",
+    [
+        ("cpu", "cpu", "cpu"),
+        pytest.param("cpu", "cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cpu", "mps:0", "cpu", marks=RunIf(mps=True)),
+        pytest.param("cuda", "cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", "cuda:1", "cuda:0", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("mps", "cpu", "mps:0", marks=RunIf(mps=True)),
+    ],
+)
 @pytest.mark.parametrize("move_to_device", [True, False])
 def test_setup_model_move_to_device(move_to_device, accelerator, initial_device, target_device):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
