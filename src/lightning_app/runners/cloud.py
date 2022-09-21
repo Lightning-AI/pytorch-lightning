@@ -125,6 +125,7 @@ class CloudRuntime(Runtime):
                     disk_size=work.cloud_compute.disk_size,
                     preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
+                    id="name",
                 )
 
                 drive_specs: List[V1LightningworkDrives] = []

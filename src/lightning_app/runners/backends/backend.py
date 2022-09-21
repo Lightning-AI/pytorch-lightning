@@ -92,6 +92,7 @@ class Backend(ABC):
         app.copy_response_queues = {}
         app.caller_queues = {}
         app.work_queues = {}
+        app.cloud_compute_queues = {}
 
     def _register_queues(self, app, work):
         kw = dict(queue_id=self.queue_id, work_name=work.name)

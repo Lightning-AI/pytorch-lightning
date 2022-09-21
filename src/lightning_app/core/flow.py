@@ -224,8 +224,7 @@ class LightningFlow:
     def __getattr__(self, item):
         if item in self.__dict__.get("_paths", {}):
             return Path.from_dict(self._paths[item])
-        value = self.__getattribute__(item)
-        return _maybe_create_cloud_compute(value)
+        return self.__getattribute__(item)
 
     @property
     def changes(self):

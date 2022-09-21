@@ -37,6 +37,7 @@ ORCHESTRATOR_COPY_REQUEST_CONSTANT = "ORCHESTRATOR_COPY_REQUEST"
 ORCHESTRATOR_COPY_RESPONSE_CONSTANT = "ORCHESTRATOR_COPY_RESPONSE"
 WORK_QUEUE_CONSTANT = "WORK_QUEUE"
 API_RESPONSE_QUEUE_CONSTANT = "API_RESPONSE_QUEUE"
+CLOUD_COMPUTE_QUEUE_CONSTANT = "CLOUD_COMPUTE_QUEUE"
 
 
 class QueuingSystem(Enum):
@@ -121,6 +122,14 @@ class QueuingSystem(Enum):
     def get_work_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
             f"{queue_id}_{WORK_QUEUE_CONSTANT}_{work_name}" if queue_id else f"{WORK_QUEUE_CONSTANT}_{work_name}"
+        )
+        return self._get_queue(queue_name)
+
+    def get_cloud_compute_queue(self, cloud_compute_id: str, queue_id: Optional[str] = None) -> "BaseQueue":
+        queue_name = (
+            f"{queue_id}_{CLOUD_COMPUTE_QUEUE_CONSTANT}_{cloud_compute_id}"
+            if queue_id
+            else f"{CLOUD_COMPUTE_QUEUE_CONSTANT}_{cloud_compute_id}"
         )
         return self._get_queue(queue_name)
 
