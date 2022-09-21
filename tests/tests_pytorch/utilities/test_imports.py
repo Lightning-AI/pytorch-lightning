@@ -118,7 +118,7 @@ def clean_import():
         if key.startswith("pytorch_lightning") or key.startswith("lightning")  # remove all {pytorch_}lightning* modules
     ]
     for pl_key in pl_keys:
-        new_sys_modules.pop(pl_key, None)
+        del new_sys_modules[pl_key]
     sys.modules = new_sys_modules  # replace sys.modules with the new one
     yield
     sys.modules = old_sys_modules  # restore original modules
