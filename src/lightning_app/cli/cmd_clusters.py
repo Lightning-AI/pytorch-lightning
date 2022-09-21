@@ -2,6 +2,7 @@ import json
 import re
 import time
 from datetime import datetime
+from textwrap import dedent
 from typing import Any, List
 
 import click
@@ -137,14 +138,17 @@ class AWSClusterManager:
             _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
         click.echo(
-            f"""{resp.id} is now being created... This can take up to an hour.
+            dedent(
+                f"""\
+            {resp.id} is now being created... This can take up to an hour.
 
-To view the status of your clusters use:
-    `lightning list clusters`
+            To view your clusters status use:
+                `lightning list clusters`
 
-To view cluster logs use:
-    `lightning show cluster logs {resp.id}`
-        """
+            To view cluster logs use:
+                `lightning show cluster logs {resp.id}`
+                    """
+            )
         )
 
     def get_clusters(self) -> ClusterList:
