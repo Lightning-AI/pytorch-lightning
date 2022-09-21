@@ -153,15 +153,6 @@ class LightningLite(ABC):
         self._validate_setup(model, optimizers)
         original_model = model
 
-        initial_device = next(model.parameters()).device
-        if not all(param.device == initial_device for param in model.parameters()) and move_to_device:
-            rank_zero_warn(
-                "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`"
-                " all parameters will be moved to the new device. If this is not desired, set "
-                " `Lite.setup(..., move_to_device=False)`.",
-                category=PossibleUserWarning,
-            )
-
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
@@ -170,7 +161,7 @@ class LightningLite(ABC):
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        model._device = self.device if move_to_device else initial_device
+        model._device = self.device if move_to_device else next(model.parameters()).device
 
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
@@ -403,6 +394,15 @@ class LightningLite(ABC):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
+        initial_device = next(model.parameters()).device
+        if not all(param.device == initial_device for param in model.parameters()):
+            rank_zero_warn(
+                "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`"
+                " all parameters will be moved to the new device. If this is not desired, set "
+                " `Lite.setup(..., move_to_device=False)`.",
+                category=PossibleUserWarning,
+            )
+
         if isinstance(self._strategy, XLAStrategy):
             # When the user creates the optimizer, they reference the parameters on the CPU.
             # However, when running with TPU the parameters get copied and the reference in the optimizer
