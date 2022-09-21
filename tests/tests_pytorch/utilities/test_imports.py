@@ -78,7 +78,7 @@ def test_imports():
         assert _POPTORCH_AVAILABLE
 
 
-def shortcut_patch(orig_fn, shortcut_case, attr_names=None):
+def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
     def new_fn(*args, **kwargs):
         if attr_names is not None:
             self = args[0]
@@ -100,25 +100,25 @@ def shortcut_patch(orig_fn, shortcut_case, attr_names=None):
 @pytest.mark.parametrize(
     ["patch_name", "new_fn", "to_import"],
     [
-        ("torch.distributed.is_available", shortcut_patch(is_available, ()), "pytorch_lightning"),
+        ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "pytorch_lightning"),
         (
             "lightning_utilities.core.imports.RequirementCache.__bool__",
-            shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
+            _shortcut_patch(RequirementCache.__bool__, ("neptune-client",), ("requirement",)),
             "pytorch_lightning.loggers.neptune",
         ),
         (
             "lightning_utilities.core.imports.RequirementCache.__bool__",
-            shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
+            _shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
             "pytorch_lightning.cli",
         ),
         (
             "lightning_utilities.core.imports.module_available",
-            shortcut_patch(module_available, ("fairscale.nn",)),
+            _shortcut_patch(module_available, ("fairscale.nn",)),
             "pytorch_lightning.strategies",
         ),
         (
             "lightning_utilities.core.imports.compare_version",
-            shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
+            _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
             "pytorch_lightning.strategies.fully_sharded_native",
         ),
     ],
