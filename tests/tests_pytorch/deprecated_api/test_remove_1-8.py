@@ -507,6 +507,29 @@ def test_deprecated_mc_save_checkpoint():
         mc.save_checkpoint(trainer)
 
 
+def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
+    class TestCallbackLoadHook(Callback):
+        def on_load_checkpoint(self, trainer, pl_module, callback_state):
+            print("overriding on_load_checkpoint")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallbackLoadHook()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="`TestCallbackLoadHook.on_load_checkpoint` will change its signature and behavior in v1.8."
+        " If you wish to load the state of the callback, use `load_state_dict` instead."
+        r" In v1.8 `on_load_checkpoint\(..., checkpoint\)` will receive the entire loaded"
+        " checkpoint dictionary instead of callback state."
+    ):
+        trainer.fit(model)
+
+
 def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
     class TestCallbackSaveHookReturn(Callback):
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):

@@ -222,6 +222,14 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
         if is_overridden(method_name="on_init_end", instance=callback):
             rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
 
+        if is_overridden(method_name="on_load_checkpoint", instance=callback):
+            rank_zero_deprecation(
+                f"`{callback.__class__.__name__}.on_load_checkpoint` will change its signature and behavior in v1.8."
+                " If you wish to load the state of the callback, use `load_state_dict` instead."
+                " In v1.8 `on_load_checkpoint(..., checkpoint)` will receive the entire loaded"
+                " checkpoint dictionary instead of callback state."
+            )
+
 
 def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     if is_overridden(method_name="on_save_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
