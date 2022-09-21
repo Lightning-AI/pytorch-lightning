@@ -18,6 +18,7 @@ import pytest
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
+from lightning_lite.utilities.types import Steppable
 
 
 def test_invalid_precision_with_deepspeed_precision():
@@ -49,10 +50,21 @@ def test_deepspeed_precision_backward():
 
 
 @RunIf(deepspeed=True)
+def test_deepspeed_engine_is_steppable():
+    """Test that the ``DeepSpeedEngine`` conforms to the Steppable API.
+
+    If this fails, then optimization will be broken for DeepSpeed.
+    """
+    from deepspeed import DeepSpeedEngine
+
+    engine = DeepSpeedEngine(Mock(), Mock())
+    assert isinstance(engine, Steppable)
+
+
 def test_deepspeed_precision_optimizer_step():
     from deepspeed import DeepSpeedEngine
 
     precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
-    optimizer = model = Mock(spec=DeepSpeedEngine)
+    optimizer = model = Mock()
     precision_plugin.optimizer_step(optimizer, lr_kwargs=dict())
     model.step.assert_called_once_with(lr_kwargs=dict())
