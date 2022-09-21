@@ -20,9 +20,9 @@ from lightning_lite.utilities.enums import PrecisionType
 
 def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
     if precision == PrecisionType.HALF:
-        return _convert_fp_tensor(tensor, torch.double)
-    if precision == PrecisionType.BFLOAT:
         return _convert_fp_tensor(tensor, torch.half)
+    if precision == PrecisionType.BFLOAT:
+        return _convert_fp_tensor(tensor, torch.bfloat16)
     return tensor
 
 
