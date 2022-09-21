@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add support to upload files to the Drive through an asynchronous `upload_file` endpoint ([#14703](https://github.com/Lightning-AI/lightning/pull/14703))
 
 
+- Add an internal ID to CloudCompute and make it serializable in the state ([#14819](https://github.com/Lightning-AI/lightning/pull/14819))
+
 ### Changed
 
 - Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
