@@ -23,7 +23,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import HPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.profilers import AdvancedProfiler, HPUProfiler, SimpleProfiler
-from pytorch_lightning.utilities import _HPU_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
