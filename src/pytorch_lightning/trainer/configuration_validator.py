@@ -48,12 +48,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
     __verify_batch_transfer_support(trainer)
     _check_deprecated_callback_hooks(trainer)
-    # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
-    _check_on_epoch_start_end(model)
     # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
     _check_precision_plugin_checkpoint_hooks(trainer)
-    # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
-    _check_on_pretrain_routine(model)
     # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
     _check_datamodule_checkpoint_hooks(trainer)
 
@@ -185,31 +181,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
             raise MisconfigurationException(
                 "The model taking a `dataloader_iter` argument in your `training_step` "
                 "is incompatible with `truncated_bptt_steps > 0`."
-            )
-
-
-# TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
-def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
-    hooks = (
-        ("on_epoch_start", "on_<train/validation/test>_epoch_start"),
-        ("on_epoch_end", "on_<train/validation/test>_epoch_end"),
-    )
-
-    for hook, alternative_hook in hooks:
-        if is_overridden(hook, model):
-            rank_zero_deprecation(
-                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
-                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
-            )
-
-
-def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
-    hooks = (("on_pretrain_routine_start", "on_fit_start"), ("on_pretrain_routine_end", "on_fit_start"))
-    for hook, alternative_hook in hooks:
-        if is_overridden(hook, model):
-            rank_zero_deprecation(
-                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
-                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
             )
 
 

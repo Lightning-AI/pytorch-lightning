@@ -198,7 +198,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated way to set the distributed backend via the environment variable `PL_TORCH_DISTRIBUTED_BACKEND`, in favor of setting the `process_group_backend` in the strategy constructor ([#14693](https://github.com/Lightning-AI/lightning/pull/14693))
 
 
-- Removed deprecated callback hooks Remove deprecated callback hooks ([#14834](https://github.com/Lightning-AI/lightning/pull/14834))
+- Removed deprecated callback hooks ([#14834](https://github.com/Lightning-AI/lightning/pull/14834))
   * `Callback.on_configure_sharded_model` in favor of `Callback.setup`
   * `Callback.on_before_accelerator_backend_setup` in favor of `Callback.setup`
   * `Callback.on_batch_start` in favor of `Callback.on_train_batch_start`

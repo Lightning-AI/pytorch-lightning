@@ -201,9 +201,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_output = []
         else:
             # hook
-            self.trainer._call_callback_hooks("on_batch_start")
-
-            # hook
             self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx)
             response = self.trainer._call_lightning_module_hook("on_train_batch_start", batch, batch_idx)
             self.trainer._call_strategy_hook("on_train_batch_start", batch, batch_idx)
@@ -232,7 +229,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
         self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
-        self.trainer._call_callback_hooks("on_batch_end")
         self.trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()

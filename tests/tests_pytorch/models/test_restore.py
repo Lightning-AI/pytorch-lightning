@@ -321,7 +321,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
-    def on_pretrain_routine_end(self, trainer, pl_module):
+    def on_fit_start(self, trainer, pl_module):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
@@ -347,15 +347,13 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     # initial training
     trainer = Trainer(**get_trainer_args())
-    with pytest.deprecated_call(match="`Callback.on_pretrain_routine_end` hook has been deprecated in v1.6"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
 
     callbacks_before_resume = deepcopy(trainer.callbacks)
 
     # resumed training
     trainer = Trainer(**get_trainer_args())
-    with pytest.deprecated_call(match="`Callback.on_pretrain_routine_end` hook has been deprecated in v1.6"):
-        trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
+    trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
     assert len(callbacks_before_resume) == len(callback_capture.callbacks)
 

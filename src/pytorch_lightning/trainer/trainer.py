@@ -1101,7 +1101,6 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
         self.__setup_profiler()
@@ -1261,15 +1260,6 @@ class Trainer(
 
         # register signals
         self._signal_connector.register_signal_handlers()
-
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        self._call_callback_hooks("on_pretrain_routine_start")
-        self._call_lightning_module_hook("on_pretrain_routine_start")
-
-        self._call_callback_hooks("on_pretrain_routine_end")
-        self._call_lightning_module_hook("on_pretrain_routine_end")
 
     def _run_train(self) -> None:
         self._pre_training_routine()
@@ -1463,7 +1453,6 @@ class Trainer(
                 materialize_module(self.lightning_module)
 
             self._call_lightning_module_hook("configure_sharded_model")
-            self._call_callback_hooks("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
         fn = self.state.fn._setup_fn

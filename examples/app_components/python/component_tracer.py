@@ -27,6 +27,7 @@ class PLTracerPythonScript(TracerPythonScript):
                 print("Even the Lightning Work is available and state transfer works !")
                 print(self.lightning_work)
 
+            # FIXME
             def on_batch_end(self, trainer, *_) -> None:
                 # On every batch end, collects some information.
                 # This is communicated automatically to the rest of the app,
