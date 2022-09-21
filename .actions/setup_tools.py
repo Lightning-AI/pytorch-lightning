@@ -515,10 +515,6 @@ def _relax_require_versions(
             continue
         if req.name not in strict_pkgs:
             ver = ".".join(ver.split(".")[:2] + ["*"])
-        else:
-            inds = [ver.lower().index(k) for k in ("rc", "dev") if k in ver.lower()]
-            if inds:
-                ver = ver[: min(inds)]
         reqs[i] = f"{req}, =={ver}"
 
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
