@@ -18,8 +18,6 @@ import torch
 from torch.nn import Module
 from typing_extensions import Self
 
-from lightning_lite.utilities.types import _DEVICE
-
 
 class _DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ["device", "dtype"]
@@ -50,7 +48,8 @@ class _DeviceDtypeModuleMixin(Module):
 
     def to(self, *args: Any, **kwargs: Any) -> Self:  # type: ignore[valid-type]
         """See :meth:`torch.nn.Module.to`."""
-        device, dtype, *_ = torch._C._nn._parse_to(*args, **kwargs)
+        # this converts `str` device to `torch.device`
+        device, dtype = torch._C._nn._parse_to(*args, **kwargs)[:2]
         self.__update_properties(device=device, dtype=dtype)
         return super().to(*args, **kwargs)
 
@@ -99,7 +98,7 @@ class _DeviceDtypeModuleMixin(Module):
         return super().half()
 
     def __update_properties(
-        self, device: Optional[_DEVICE] = None, dtype: Optional[Union[str, torch.dtype]] = None
+        self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
         def apply_fn(module: Union[_DeviceDtypeModuleMixin, Module]) -> None:
             if not isinstance(module, _DeviceDtypeModuleMixin):

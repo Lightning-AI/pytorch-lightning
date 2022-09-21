@@ -23,7 +23,7 @@ class TopModule(_DeviceDtypeModuleMixin):
 
 
 @pytest.mark.parametrize(
-    "dst_device_str,dst_dtype",
+    "dst_device_str,dst_type",
     [
         ("cpu", torch.half),
         ("cpu", torch.float),
@@ -35,21 +35,19 @@ class TopModule(_DeviceDtypeModuleMixin):
     ],
 )
 @RunIf(min_cuda_gpus=1)
-def test_submodules_device_and_dtype(dst_device_str, dst_dtype):
+def test_submodules_device_and_dtype(dst_device_str, dst_type):
     """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and
     the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule)."""
-
     dst_device = torch.device(dst_device_str)
-
     model = TopModule()
     assert model.device == torch.device("cpu")
-    model = model.to(device=dst_device, dtype=dst_dtype)
+    model = model.to(device=dst_device, dtype=dst_type)
     # nn.Module does not have these attributes
     assert not hasattr(model.module, "_device")
     assert not hasattr(model.module, "_dtype")
     # device and dtype change should propagate down into all children
     assert model.device == model.module.module.device == dst_device
-    assert model.dtype == model.module.module.dtype == dst_dtype
+    assert model.dtype == model.module.module.dtype == dst_type
 
 
 @pytest.mark.parametrize(
@@ -119,10 +117,9 @@ def test_to_combinations():
     module.to(torch.double)
     assert module.weight.dtype is torch.float64
     # positional device
-    cpu = torch.device("cpu")
-    module.to(cpu, dtype=torch.half, non_blocking=True)
+    module.to("cpu", dtype=torch.half, non_blocking=True)
     assert module.weight.dtype is torch.float16
-    assert module.device == cpu
+    assert module.device == torch.device("cpu")
     assert module.dtype is torch.float16
 
 

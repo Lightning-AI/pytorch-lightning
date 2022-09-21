@@ -106,14 +106,14 @@ class _LiteModule(_DeviceDtypeModuleMixin):
         }
         # TODO: let the precision plugin handle the conversion
         args, kwargs = apply_to_collection(
-            [args, kwargs], dtype=Tensor, function=_convert_fp_tensor, dst_dtype=precision_to_type[precision]
+            [args, kwargs], dtype=Tensor, function=_convert_fp_tensor, dst_type=precision_to_type[precision]
         )
 
         with self._precision_plugin.forward_context():
             output = self._forward_module(*args, **kwargs)
 
         output = apply_to_collection(
-            output, dtype=Tensor, function=_convert_fp_tensor, dst_dtype=torch.get_default_dtype()
+            output, dtype=Tensor, function=_convert_fp_tensor, dst_type=torch.get_default_dtype()
         )
         return output
 

@@ -36,7 +36,7 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
 
     @staticmethod
     def _move_float_tensors_to_double(collection: Any) -> Any:
-        return apply_to_collection(collection, Tensor, function=_convert_fp_tensor, dst_dtype=torch.double)
+        return apply_to_collection(collection, Tensor, function=_convert_fp_tensor, dst_type=torch.double)
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
         return self.module.training_step(
