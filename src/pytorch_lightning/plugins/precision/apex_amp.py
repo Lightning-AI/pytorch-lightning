@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import _PARAMETERS
+from lightning_lite.utilities.types import _PARAMETERS, Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -42,7 +42,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         self._connected = False
         self._state_dict_loaded = False
 
-    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
@@ -54,7 +54,13 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
             self._connected = True
         return super().dispatch(trainer)
 
-    def backward(self, tensor: Tensor, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(  # type: ignore[override]
+        self,
+        tensor: Tensor,
+        model: "pl.LightningModule",
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """Run before precision plugin executes backward.
 
         Args:
@@ -66,14 +72,10 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         with amp.scale_loss(tensor, opt) as tensor:
             super().backward(tensor, model, optimizer, optimizer_idx, *args, **kwargs)
 
-    def optimizer_step(
-        self,
-        optimizer: Optimizer,
-        model: Optional["pl.LightningModule"] = None,
-        **kwargs: Any,
-    ) -> Any:
+    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
+        model: pl.LightningModule = kwargs.pop("model")
         if self._state_dict_loaded:
             raise RuntimeError(
                 "Resuming training with APEX is currently not supported. Set `amp_backend=None` for example or use a"

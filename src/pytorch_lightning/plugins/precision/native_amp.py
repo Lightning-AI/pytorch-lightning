@@ -16,9 +16,10 @@ from typing import Any, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.optim import LBFGS, Optimizer
+from torch.optim import LBFGS
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -56,22 +57,20 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
         self.device = device
         self.scaler = scaler
 
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
 
-    def optimizer_step(
-        self,
-        optimizer: Optimizer,
-        model: Optional["pl.LightningModule"] = None,
-        **kwargs: Any,
-    ) -> Any:
+    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
         optimizer_idx = kwargs.pop("optimizer_idx")
         closure = kwargs.pop("closure")
+        model: pl.LightningModule = kwargs.pop("model")
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(optimizer, model, optimizer_idx=optimizer_idx, closure=closure, **kwargs)
+            return super().optimizer_step(
+                optimizer, model=model, optimizer_idx=optimizer_idx, closure=closure, **kwargs
+            )
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."

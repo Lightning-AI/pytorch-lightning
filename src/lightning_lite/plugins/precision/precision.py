@@ -18,7 +18,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning_lite.utilities.types import _PARAMETERS
+from lightning_lite.utilities.types import _PARAMETERS, Steppable
 
 
 class Precision:
@@ -61,14 +61,13 @@ class Precision:
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional[Module] = None,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
         return optimizer.step(**kwargs)
 
-    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
 
         Returns the plain model params here. Maybe different in other precision plugins.

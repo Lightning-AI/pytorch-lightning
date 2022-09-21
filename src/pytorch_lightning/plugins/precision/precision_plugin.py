@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import Precision as _Precision
-from lightning_lite.utilities.types import _PARAMETERS
+from lightning_lite.utilities.types import _PARAMETERS, Steppable
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 
@@ -41,36 +41,18 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 
-    @contextlib.contextmanager
-    def train_step_context(self) -> Generator[None, None, None]:
-        """A contextmanager for the training step."""
-        with self.forward_context():
-            yield
-
-    @contextlib.contextmanager
-    def val_step_context(self) -> Generator[None, None, None]:
-        """A contextmanager for the validation step."""
-        with self.forward_context():
-            yield
-
-    @contextlib.contextmanager
-    def test_step_context(self) -> Generator[None, None, None]:
-        """A contextmanager for the test step."""
-        with self.forward_context():
-            yield
-
-    @contextlib.contextmanager
-    def predict_step_context(self) -> Generator[None, None, None]:
-        """A contextmanager for the predict step."""
-        with self.forward_context():
-            yield
-
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         module.trainer._call_callback_hooks("on_before_backward", tensor)
         module.trainer._call_lightning_module_hook("on_before_backward", tensor)
         return tensor
 
-    def backward(self, tensor: Tensor, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(  # type: ignore[override]
+        self,
+        tensor: Tensor,
+        model: "pl.LightningModule",
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         r"""Performs the actual backpropagation.
 
         Args:
@@ -83,106 +65,14 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
         optimizer, optimizer_idx, *args = args
         model.backward(tensor, optimizer, optimizer_idx, *args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         # once backward has been applied, release graph
         closure_loss = tensor.detach()
         module.trainer._call_callback_hooks("on_after_backward")
         module.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
 
-    def optimizer_step(
-        self,
-        optimizer: Optimizer,
-        model: Optional["pl.LightningModule"] = None,
-        **kwargs: Any,
-    ) -> Any:
-        """Hook to run the optimizer step."""
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        if isinstance(model, pl.LightningModule):
-            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
-        return optimizer.step(closure=closure, **kwargs)
-
-    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        return self.get_main_params(optimizer)
-
-    def clip_gradients(
-        self,
-        optimizer: Optimizer,
-        clip_val: Union[int, float] = 0.0,
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-    ) -> None:
-        """Clips the gradients."""
-        if clip_val <= 0:
-            return
-        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            self.clip_grad_by_value(optimizer, clip_val)
-        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
-            self.clip_grad_by_norm(optimizer, clip_val)
-
-    def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
-        """Clip gradients by value."""
-        parameters = self.main_params(optimizer)
-        torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
-
-    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
-        """Clip gradients by norm."""
-        parameters = self.main_params(optimizer)
-        torch.nn.utils.clip_grad_norm_(parameters, clip_val)
-
-    def dispatch(self, trainer: "pl.Trainer") -> None:
-        """Hook to do something when ``Strategy.dispatch()`` gets called."""
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_save_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``state_dict`` instead.
-        """
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_load_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``load_state_dict`` instead.
-        """
-
-    def _clip_gradients(
-        self,
-        model: Union["pl.LightningModule", Module],
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        clip_val: Optional[Union[int, float]] = None,
-        gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
-    ) -> None:
-        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
-            # the configuration validator disallows clipping on manual
-            return
-
-        model.trainer._call_lightning_module_hook(
-            "configure_gradient_clipping",
-            optimizer,
-            optimizer_idx,
-            gradient_clip_val=clip_val,
-            gradient_clip_algorithm=gradient_clip_algorithm,
-        )
-
-    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
-        if trainer.track_grad_norm == -1:
-            return
-
-        kwargs = {}
-        if len(trainer.loggers) == 1:
-            kwargs["group_separator"] = trainer.loggers[0].group_separator
-
-        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, **kwargs)
-        if grad_norm_dict:
-            prev_fx = trainer.lightning_module._current_fx_name
-            trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
-            trainer.lightning_module.log_grad_norm(grad_norm_dict)
-            trainer.lightning_module._current_fx_name = prev_fx
-
-    def _after_closure(
-        self, model: Optional[Union["pl.LightningModule", Module]], optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
+    def _after_closure(self, model: "pl.LightningModule", optimizer: Steppable, optimizer_idx: int) -> None:
         """Utility to share some code after the closure has been run."""
         trainer = model.trainer
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
@@ -214,3 +104,109 @@ class PrecisionPlugin(_Precision, CheckpointHooks):
         closure_result = closure()
         self._after_closure(model, optimizer, optimizer_idx)
         return closure_result
+
+    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
+        """Hook to run the optimizer step."""
+        optimizer_idx = kwargs.pop("optimizer_idx")
+        closure = kwargs.pop("closure")
+        model: pl.LightningModule = kwargs.pop("model")
+        closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
+        return optimizer.step(closure=closure, **kwargs)
+
+    def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
+        if trainer.track_grad_norm == -1:
+            return
+
+        kwargs = {}
+        if len(trainer.loggers) == 1:
+            kwargs["group_separator"] = trainer.loggers[0].group_separator
+
+        grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, **kwargs)
+        if grad_norm_dict:
+            prev_fx = trainer.lightning_module._current_fx_name
+            trainer.lightning_module._current_fx_name = "on_before_optimizer_step"
+            trainer.lightning_module.log_grad_norm(grad_norm_dict)
+            trainer.lightning_module._current_fx_name = prev_fx
+
+    def _clip_gradients(
+        self,
+        model: Union["pl.LightningModule", Module],
+        optimizer: Steppable,
+        optimizer_idx: int,
+        clip_val: Optional[Union[int, float]] = None,
+        gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
+    ) -> None:
+        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
+            # the configuration validator disallows clipping on manual
+            return
+
+        model.trainer._call_lightning_module_hook(
+            "configure_gradient_clipping",
+            optimizer,
+            optimizer_idx,
+            gradient_clip_val=clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+        )
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float] = 0.0,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        """Clips the gradients."""
+        if clip_val <= 0:
+            return
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            self.clip_grad_by_value(optimizer, clip_val)
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            self.clip_grad_by_norm(optimizer, clip_val)
+
+    def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+        """Clip gradients by value."""
+        parameters = self.main_params(optimizer)
+        torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
+
+    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+        """Clip gradients by norm."""
+        parameters = self.main_params(optimizer)
+        torch.nn.utils.clip_grad_norm_(parameters, clip_val)
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something when ``Strategy.dispatch()`` gets called."""
+
+    @contextlib.contextmanager
+    def train_step_context(self) -> Generator[None, None, None]:
+        """A contextmanager for the training step."""
+        with self.forward_context():
+            yield
+
+    @contextlib.contextmanager
+    def val_step_context(self) -> Generator[None, None, None]:
+        """A contextmanager for the validation step."""
+        with self.forward_context():
+            yield
+
+    @contextlib.contextmanager
+    def test_step_context(self) -> Generator[None, None, None]:
+        """A contextmanager for the test step."""
+        with self.forward_context():
+            yield
+
+    @contextlib.contextmanager
+    def predict_step_context(self) -> Generator[None, None, None]:
+        """A contextmanager for the predict step."""
+        with self.forward_context():
+            yield
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """``PrecisionPlugin.on_save_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
+
+        Use ``state_dict`` instead.
+        """
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """``PrecisionPlugin.on_load_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
+
+        Use ``load_state_dict`` instead.
+        """
