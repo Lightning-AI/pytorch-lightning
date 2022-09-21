@@ -125,6 +125,7 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
     ids=["ProcessGroup", "neptune", "cli", "fairscale", "fully_sharded_native"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import):
+    old_sys_modules = sys.modules.copy()
     pl_keys = list(
         key for key in sys.modules.keys() if key.startswith("pytorch_lightning") or key.startswith("lightning")
     )
@@ -132,3 +133,5 @@ def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import):
         sys.modules.pop(pl_key, None)
     with mock.patch(patch_name, new=new_fn):
         importlib.import_module(to_import)
+
+    sys.modules = old_sys_modules
