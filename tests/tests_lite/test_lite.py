@@ -95,8 +95,8 @@ def test_setup_model(ddp_mock):
 )
 @pytest.mark.parametrize("move_to_device", [True, False])
 def test_setup_model_move_to_device(move_to_device, accelerator, initial_device, target_device):
-    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device attributes
-    on the wrapper are updated."""
+    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device
+    attributes on the wrapper are updated."""
     initial_device = torch.device(initial_device)
     target_device = torch.device(target_device)
     expected_device = target_device if move_to_device else initial_device
@@ -117,7 +117,8 @@ def test_setup_model_move_to_device(move_to_device, accelerator, initial_device,
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("move_to_device", [True, False])
 def test_setup_model_parameters_on_different_devices(move_to_device):
-    """Test that a warning is emitted when model parameters are on a different device prior to calling `setup()`."""
+    """Test that a warning is emitted when model parameters are on a different device prior to calling
+    `setup()`."""
     device0 = torch.device("cpu")
     device1 = torch.device("cuda", 0)
 
