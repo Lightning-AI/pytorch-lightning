@@ -129,9 +129,6 @@ def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import):
         key for key in sys.modules.keys() if key.startswith("pytorch_lightning") or key.startswith("lightning")
     )
     for pl_key in pl_keys:
-        try:
-            del sys.modules[pl_key]
-        except KeyError:
-            pass  # module was already deleted
+        sys.modules.pop(pl_key, None)
     with mock.patch(patch_name, new=new_fn):
         importlib.import_module(to_import)
