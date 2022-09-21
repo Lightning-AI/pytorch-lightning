@@ -397,7 +397,7 @@ class LightningLite(ABC):
         initial_device = next(model.parameters()).device
         if any(param.device != initial_device for param in model.parameters()):
             rank_zero_warn(
-                "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`"
+                "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`,"
                 " all parameters will be moved to the new device. If this is not desired, set "
                 " `Lite.setup(..., move_to_device=False)`.",
                 category=PossibleUserWarning,
