@@ -20,15 +20,11 @@ import shutil
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import HPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.profilers import AdvancedProfiler, HPUProfiler, SimpleProfiler
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
-
-if _HPU_AVAILABLE:
-    import habana_frameworks
-else:
-    raise RuntimeError("Expected device type HPU for running HPU Profiling ...")
 
 
 class TestHPUProfiler:
@@ -42,9 +38,9 @@ class TestHPUProfiler:
     def get_device_count(self, pytestconfig):
         hpus = int(pytestconfig.getoption("hpus"))
         if not hpus:
-            assert habana_frameworks.torch.hpu.device_count() >= 1
+            assert HPUAccelerator.auto_device_count() >= 1
             return 1
-        assert hpus <= habana_frameworks.torch.hpu.device_count(), "More hpu devices asked than present"
+        assert hpus <= HPUAccelerator.auto_device_count(), "More hpu devices asked than present"
         assert hpus == 1 or hpus % 8 == 0
         return hpus
 
@@ -106,6 +102,7 @@ class TestHPUProfiler:
         for file in list(os.listdir(profiler.dirpath)):
             assert os.path.getsize(os.path.join(profiler.dirpath, file)) > 0
 
+    @RunIf(hpu=True)
     def test_hpu_pytorch_profiler_instances(tmpdir):
         model = BoringModel()
 
@@ -114,6 +111,7 @@ class TestHPUProfiler:
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
+    @RunIf(hpu=True)
     def test_hpu_trace_event_cpu_op(tmpdir):
         # Run model and prep json
         model = BoringModel()
@@ -142,6 +140,7 @@ class TestHPUProfiler:
             for event_duration in event_duration_arr:
                 assert event_duration >= 0
 
+    @RunIf(hpu=True)
     def test_hpu_trace_event_hpu_op(tmpdir):
         # Run model and prep json
         model = BoringModel()
@@ -169,6 +168,7 @@ class TestHPUProfiler:
             for event_duration in event_duration_arr:
                 assert event_duration >= 0
 
+    @RunIf(hpu=True)
     def test_hpu_trace_event_hpu_meta_op(tmpdir):
         # Run model and prep json
         model = BoringModel()
@@ -197,6 +197,7 @@ class TestHPUProfiler:
             for event_duration in event_duration_arr:
                 assert event_duration >= 0
 
+    @RunIf(hpu=True)
     def test_hpu_trace_event_kernel(tmpdir):
         # Run model and prep json
         model = BoringModel()
