@@ -105,7 +105,7 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
 @pytest.fixture
 def clean_import():
     """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the
-    current state of the imported modules.Afterwards, it restores the original state of the modules."""
+    current state of the imported modules. Afterwards, it restores the original state of the modules."""
     import sys
 
     new_sys_modules, old_sys_modules = sys.modules.copy(), sys.modules  # copy modules to avoid modifying the original
