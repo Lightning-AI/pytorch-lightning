@@ -112,7 +112,7 @@ def clean_import():
     import sys
 
     # copy modules to avoid modifying the original
-    old_sys_modules = sys.modules.copy()
+    old_sys_modules = sys.modules
     # remove all *lightning* modules
     new_sys_modules = {key: value for key, value in sys.modules.items() if "lightning" not in key}
     sys.modules = new_sys_modules  # replace sys.modules with the new one
