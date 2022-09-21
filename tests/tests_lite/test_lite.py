@@ -21,6 +21,7 @@ import torch
 import torch.distributed
 import torch.nn.functional
 from tests_lite.helpers.runif import RunIf
+from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
@@ -30,6 +31,7 @@ from lightning_lite.strategies import DeepSpeedStrategy, Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
@@ -78,6 +80,65 @@ def test_setup_model(ddp_mock):
     assert lite_model.module == model
     assert lite_model.weight is model.weight
     assert lite_model.forward != model.forward
+
+
+@pytest.mark.parametrize(
+    "accelerator, initial_device, target_device",
+    [
+        ("cpu", "cpu", "cpu"),
+        pytest.param("cpu", "cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cpu", "mps:0", "cpu", marks=RunIf(mps=True)),
+        pytest.param("cuda", "cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", "cuda:1", "cuda:0", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("mps", "cpu", "mps:0", marks=RunIf(mps=True)),
+    ],
+)
+@pytest.mark.parametrize("move_to_device", [True, False])
+def test_setup_model_move_to_device(move_to_device, accelerator, initial_device, target_device):
+    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device
+    attributes on the wrapper are updated."""
+    initial_device = torch.device(initial_device)
+    target_device = torch.device(target_device)
+    expected_device = target_device if move_to_device else initial_device
+
+    lite = EmptyLite(accelerator=accelerator, devices=1)
+    model = nn.Linear(1, 2)
+    model.to(initial_device)
+    lite_model = lite.setup(model, move_to_device=move_to_device)
+
+    # all parameters on the expected device
+    assert all(param.device == expected_device for param in model.parameters())
+    assert all(param.device == expected_device for param in lite_model.parameters())
+
+    assert lite_model.device == expected_device
+    assert lite.device == target_device
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize("move_to_device", [True, False])
+def test_setup_model_parameters_on_different_devices(move_to_device):
+    """Test that a warning is emitted when model parameters are on a different device prior to calling
+    `setup()`."""
+    device0 = torch.device("cpu")
+    device1 = torch.device("cuda", 0)
+
+    lite = EmptyLite(accelerator="cuda", devices=1)
+
+    module0 = nn.Linear(1, 2).to(device0)
+    module1 = nn.Linear(1, 2).to(device1)
+    model = nn.Sequential(module0, module1)
+
+    if move_to_device:
+        with pytest.warns(PossibleUserWarning, match="has parameters on different devices"):
+            lite_model = lite.setup(model, move_to_device=move_to_device)
+
+        # both have the same device now
+        assert lite_model.device == device1
+        assert module0.weight.device == module0.bias.device == device1
+        assert module1.weight.device == module1.bias.device == device1
+    else:
+        with no_warning_call(expected_warning=PossibleUserWarning, match="has parameters on different devices"):
+            lite.setup(model, move_to_device=move_to_device)
 
 
 def test_setup_optimizers():
