@@ -80,6 +80,36 @@ def test_setup_model(ddp_mock):
     assert lite_model.forward != model.forward
 
 
+@pytest.mark.parametrize("accelerator, initial_device, target_device", [
+    ("cpu", "cpu", "cpu"),
+    pytest.param("cpu", "cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("cpu", "mps:0", "cpu", marks=RunIf(mps=True)),
+    pytest.param("cuda", "cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("cuda", "cuda:1", "cuda:0", marks=RunIf(min_cuda_gpus=2)),
+    pytest.param("mps", "cpu", "mps:0", marks=RunIf(mps=True)),
+])
+@pytest.mark.parametrize("move_to_device", [True, False])
+def test_setup_model_move_to_device(move_to_device, accelerator, initial_device, target_device):
+    """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
+    initial_device = torch.device(initial_device)
+    target_device = torch.device(target_device)
+    expected_device = target_device if move_to_device else initial_device
+
+    lite = EmptyLite(accelerator=accelerator, devices=1)
+    model = nn.Linear(1, 2)
+    model.to(initial_device)
+    lite_model = lite.setup(model, move_to_device=move_to_device)
+
+    # all parameters on the expected device
+    assert all(param.device == expected_device for param in model.parameters())
+    assert all(param.device == expected_device for param in lite_model.parameters())
+
+    # Note: The wrapper's device attribute is initialized correctly ONLY if the model was on CPU before calling
+    # Lite.setup(). This is a limitation of the _DeviceDtypeModuleMixin
+    assert lite_model.device == expected_device if initial_device.type == "cpu" else torch.device("cpu")
+    assert lite.device == target_device
+
+
 def test_setup_optimizers():
     """Test that setup_optimizers can handle no optimizers, one optimizer, or multiple optimizers."""
     lite = EmptyLite()

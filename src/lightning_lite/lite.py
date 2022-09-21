@@ -157,6 +157,11 @@ class LightningLite(ABC):
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
+        if move_to_device:
+            # Update the _DeviceDtypeModuleMixin's device parameter
+            # Note: The wrapper's device attribute is initialized correctly ONLY if the model was on CPU before calling
+            # Lite.setup(). This is a limitation of the _DeviceDtypeModuleMixin
+            model._device = self.device
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
