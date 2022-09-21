@@ -74,8 +74,9 @@ def test_cuda_device(device):
 
 @RunIf(min_cuda_gpus=1)
 def test_cpu_device():
-    model = TopModule().cuda()
+    model = SubSubModule().cuda()
     assert model.device.type == "cuda"
+    assert model.device.index == 0
     model.cpu()
     assert model.device.type == "cpu"
     assert model.device.index is None
