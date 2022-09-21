@@ -54,7 +54,6 @@ class XLAStrategy(DDPSpawnStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[Precision] = None,
-        **_: Any,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
