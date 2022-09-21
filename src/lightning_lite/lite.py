@@ -21,6 +21,7 @@ from typing import Any, Callable, cast, Dict, Generator, List, Optional, overloa
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
@@ -40,6 +41,7 @@ from lightning_lite.utilities.data import (
 )
 from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
@@ -151,17 +153,25 @@ class LightningLite(ABC):
         self._validate_setup(model, optimizers)
         original_model = model
 
+        initial_device = next(model.parameters()).device
+        if not all(param.device == initial_device for param in model.parameters()) and move_to_device:
+            rank_zero_warn(
+                "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`"
+                " all parameters will be moved to the new device. If this is not desired, set "
+                " `Lite.setup(..., move_to_device=False)`.",
+                category=PossibleUserWarning,
+            )
+
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
-        if move_to_device:
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            # Note: The wrapper's device attribute is initialized correctly ONLY if the model was on CPU before calling
-            # Lite.setup(). This is a limitation of the _DeviceDtypeModuleMixin
-            model._device = self.device
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        model._device = self.device if move_to_device else initial_device
+
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:

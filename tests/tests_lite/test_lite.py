@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -21,6 +22,7 @@ import torch
 import torch.distributed
 import torch.nn.functional
 from tests_lite.helpers.runif import RunIf
+from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
@@ -30,6 +32,7 @@ from lightning_lite.strategies import DeepSpeedStrategy, Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
@@ -108,6 +111,31 @@ def test_setup_model_move_to_device(move_to_device, accelerator, initial_device,
     # Lite.setup(). This is a limitation of the _DeviceDtypeModuleMixin
     assert lite_model.device == expected_device if initial_device.type == "cpu" else torch.device("cpu")
     assert lite.device == target_device
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize("move_to_device", [True, False])
+def test_setup_model_parameters_on_different_devices(move_to_device):
+    device0 = torch.device("cpu")
+    device1 = torch.device("cuda", 0)
+
+    lite = EmptyLite(accelerator="cuda", devices=1)
+
+    module0 = nn.Linear(1, 2).to(device0)
+    module1 = nn.Linear(1, 2).to(device1)
+    model = nn.Sequential(module0, module1)
+
+    if move_to_device:
+        with pytest.warns(PossibleUserWarning, match="has parameters on different devices"):
+            lite_model = lite.setup(model, move_to_device=move_to_device)
+
+        # both have the same device now
+        assert lite_model.device == device1
+        assert module0.weight.device == module0.bias.device == device1
+        assert module1.weight.device == module1.bias.device == device1
+    else:
+        with no_warning_call(expected_warning=PossibleUserWarning, match="has parameters on different devices"):
+            lite.setup(model, move_to_device=move_to_device)
 
 
 def test_setup_optimizers():
