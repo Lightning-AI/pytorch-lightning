@@ -161,7 +161,7 @@ class LightningLite(ABC):
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        model._device = self.device if move_to_device else next(model.parameters()).device
+        model.to(self.device if move_to_device else next(model.parameters()).device)
 
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
