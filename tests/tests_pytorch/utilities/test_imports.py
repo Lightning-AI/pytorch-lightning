@@ -78,22 +78,47 @@ def test_imports():
 
 
 def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
+    """Patch a function to return False value in the shortcut case, otherwise return original value."""
+
     def new_fn(*args, **kwargs):
         if attr_names is not None:
+            # We assume that the first argument is the object to check and therefore values are stored in attributes.
             self = args[0]
             values = tuple(getattr(self, attr_name) for attr_name in attr_names)
         else:
             values = args
         match = True
         for value, case in zip(values, shortcut_case):
+            # Go through values passed to the original function and compare them to the shortcut case.
+            # We are iterating in case the `shortcut_case` and `args` lengths are different.
             if value != case:
                 match = False
                 break
-        if match:
+        if match:  # If all values match the shortcut case, return False to simulate the module not being available.
             return False
+        # otherwise return the original value
         return orig_fn(*args, **kwargs)
 
     return new_fn
+
+
+@pytest.fixture
+def clean_import():
+    """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the
+    current state of the imported modules.Afterwards, it restores the original state of the modules."""
+    import sys
+
+    new_sys_modules, old_sys_modules = sys.modules.copy(), sys.modules  # copy modules to avoid modifying the original
+    pl_keys = [
+        key
+        for key in new_sys_modules.keys()
+        if key.startswith("pytorch_lightning") or key.startswith("lightning")  # remove all {pytorch_}lightning* modules
+    ]
+    for pl_key in pl_keys:
+        new_sys_modules.pop(pl_key, None)
+    sys.modules = new_sys_modules  # replace sys.modules with the new one
+    yield
+    sys.modules = old_sys_modules  # restore original modules
 
 
 @pytest.mark.parametrize(
@@ -124,5 +149,12 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
     ids=["ProcessGroup", "neptune", "cli", "fairscale", "fully_sharded_native"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
+    """This tests simulates unavailability of certain modules by patching the functions that check for their
+    availability.
+
+    When the patch is applied and the module is imported, it should not raise any errors. The list of cases to check was
+    compiled by finding else branches of top-level if statements checking for the availability of the module and
+    performing imports.
+    """
     with mock.patch(patch_name, new=new_fn):
         importlib.import_module(to_import)
