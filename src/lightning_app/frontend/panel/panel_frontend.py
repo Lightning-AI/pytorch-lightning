@@ -31,18 +31,14 @@ class PanelFrontend(Frontend):
 
     Reference: https://lightning.ai/lightning-docs/workflows/add_web_ui/panel/
 
-    Parameters
-    ----------
-    entry_point : The path to a .py or .ipynb file, or a pure function.
-        The file or function must contain your Panel code.
-        The function can optionally accept an `AppStateWatcher` argument.
+    Args:
+        entry_point: The path to a .py or .ipynb file, or a pure function. The file or function must contain your Panel code.
+            The function can optionally accept an `AppStateWatcher` argument.
 
-    Raises
-    ------
-    TypeError : Raised if the `entry_point`provided is a class method
+    Raises:
+        TypeError: Raised if the `entry_point`provided is a class method
 
-    Example
-    -------
+    Example:
 
     To use the `PanelFrontend`, you must first install the `panel` package:
 
