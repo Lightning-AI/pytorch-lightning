@@ -10,10 +10,12 @@ from pytorch_lightning.strategies.launchers.subprocess_script import _HYDRA_AVAI
 from tests_pytorch.helpers.runif import RunIf
 
 _HYDRA_WITH_RERUN = RequirementCache("hydra-core>=1.2")
+_HYDRA_WITH_RUN_PROCESS = RequirementCache("hydra-core>=1.0.7")
 
 if _HYDRA_AVAILABLE:
-    from hydra.test_utils.test_utils import run_process
     from omegaconf import OmegaConf
+if _HYDRA_WITH_RUN_PROCESS:
+    from hydra.test_utils.test_utils import run_process
 
 
 # fixture to run hydra jobs in a clean temporary directory
@@ -61,7 +63,7 @@ if __name__ == "__main__":
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason=str(_HYDRA_AVAILABLE))
+@pytest.mark.skipif(not _HYDRA_WITH_RUN_PROCESS, reason=str(_HYDRA_WITH_RUN_PROCESS))
 @pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
 def test_ddp_with_hydra_runjob(cleandir, subdir):
     # Save script locally
@@ -90,7 +92,7 @@ def test_ddp_with_hydra_runjob(cleandir, subdir):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason=str(_HYDRA_AVAILABLE))
+@pytest.mark.skipif(not _HYDRA_WITH_RUN_PROCESS, reason=str(_HYDRA_WITH_RUN_PROCESS))
 @pytest.mark.parametrize("num_jobs", [1, 2])
 def test_ddp_with_hydra_multirunjob(cleandir, num_jobs):
     # Save script locally
