@@ -21,13 +21,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import Precision as _Precision
-from lightning_lite.utilities.types import _PARAMETERS, Steppable
+from lightning_lite.plugins import Precision as LitePrecision
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 
 
-class PrecisionPlugin(_Precision, CheckpointHooks):
+class PrecisionPlugin(LitePrecision, CheckpointHooks):
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.

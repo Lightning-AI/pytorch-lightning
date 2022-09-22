@@ -694,15 +694,6 @@ def test_ddp_fork_on_unsupported_platform(_, strategy):
         _Connector(strategy=strategy)
 
 
-@RunIf(skip_windows=True)
-@pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
-@mock.patch.dict(os.environ, {"PL_DISABLE_FORK": "1"}, clear=True)
-def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
-    """Test there is an error when forking is disabled via the environment variable and the user requests fork."""
-    with pytest.raises(ValueError, match="Forking is disabled in this environment"):
-        _Connector(devices=2, strategy=strategy)
-
-
 def test_precision_selection_16_on_cpu_warns():
     with pytest.warns(
         UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
