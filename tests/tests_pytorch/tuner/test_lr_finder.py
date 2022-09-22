@@ -19,7 +19,6 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -416,16 +415,3 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
     lr_finder = trainer.tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
     assert lr_finder.suggestion() is None
     assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
-
-
-def test_lr_finder_with_stochastic_weight_averaging(tmpdir):
-    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14755."""
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.learning_rate = 0.123
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[StochasticWeightAveraging(swa_lrs=0.01)], auto_lr_find=True)
-    trainer.tune(model)
