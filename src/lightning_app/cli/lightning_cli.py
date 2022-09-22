@@ -323,7 +323,7 @@ def _run_app(
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
 
-    def on_before_run(*args: Any):
+    def on_before_run(*args: Any) -> None:
         if open_ui and not without_server:
             click.launch(get_app_url(runtime_type, *args))
 
