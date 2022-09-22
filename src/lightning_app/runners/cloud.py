@@ -123,7 +123,6 @@ class CloudRuntime(Runtime):
                     name=work.cloud_compute.name,
                     count=1,
                     disk_size=work.cloud_compute.disk_size,
-                    preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
                 )
 

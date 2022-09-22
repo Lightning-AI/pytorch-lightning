@@ -243,7 +243,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
         monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work._cloud_compute, "preemptible", False)
         monkeypatch.setattr(work, "_port", 8080)
 
         flow.works = lambda recurse: [work]
@@ -355,7 +354,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
         monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work._cloud_compute, "preemptible", False)
         monkeypatch.setattr(work, "_port", 8080)
 
         flow.works = lambda recurse: [work]
@@ -494,7 +492,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
         monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work._cloud_compute, "preemptible", False)
         monkeypatch.setattr(work, "_port", 8080)
 
         flow.works = lambda recurse: [work]
