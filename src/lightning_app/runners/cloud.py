@@ -50,6 +50,7 @@ from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
+from lightning_app.utilities.secrets import _names_to_ids
 
 logger = Logger(__name__)
 
@@ -65,7 +66,7 @@ class CloudRuntime(Runtime):
         name: str = "",
         cluster_id: str = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
         # not user facing error ideally - this should never happen in normal user workflow
         if not self.entrypoint_file:
@@ -98,8 +99,16 @@ class CloudRuntime(Runtime):
 
         print(f"The name of the app is: {app_config.name}")
 
-        work_reqs: List[V1Work] = []
         v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in self.env_vars.items()]
+
+        if len(self.secrets.values()) > 0:
+            secret_names_to_ids = _names_to_ids(self.secrets.values())
+            env_vars_from_secrets = [
+                V1EnvVar(name=k, from_secret=secret_names_to_ids[v]) for k, v in self.secrets.items()
+            ]
+            v1_env_vars.extend(env_vars_from_secrets)
+
+        work_reqs: List[V1Work] = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
                 work_requirements = "\n".join(work.cloud_build_config.requirements)
@@ -342,7 +351,7 @@ class CloudRuntime(Runtime):
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
 
-            logger.warning(warning_msg)
+            logger.warn(warning_msg)
 
     def _project_has_sufficient_credits(self, project: V1Membership, app: Optional[LightningApp] = None):
         """check if user has enough credits to run the app with its hardware if app is not passed return True if

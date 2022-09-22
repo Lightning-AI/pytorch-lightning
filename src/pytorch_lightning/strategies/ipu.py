@@ -17,19 +17,17 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch import FloatTensor, Tensor
+from torch import Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
@@ -62,20 +60,8 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision == PrecisionType.HALF:
-            inputs = self._move_float_tensors_to_half(inputs)
-
+        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
         return super().forward(*inputs, **kwargs)
-
-    @staticmethod
-    def batch_to(data: Tensor) -> Tensor:
-        if torch.is_floating_point(data):
-            return data.half()
-        return data
-
-    def _move_float_tensors_to_half(self, batch: Any) -> Any:
-        batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
-        return batch
 
 
 class IPUStrategy(ParallelStrategy):
@@ -85,7 +71,7 @@ class IPUStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         device_iterations: int = 1,
         autoreport: bool = False,
         autoreport_dir: Optional[str] = None,

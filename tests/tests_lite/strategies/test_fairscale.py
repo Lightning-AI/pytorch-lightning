@@ -11,16 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Union
+from unittest import mock
 
-from lightning_lite.plugins.precision.precision import Precision
+from tests_lite.helpers.runif import RunIf
 
-if TYPE_CHECKING:
-    from lightning_lite.utilities import AMPType
+from lightning_lite.strategies import DDPShardedStrategy
+from lightning_lite.strategies.fairscale import ShardedDataParallel
 
 
-class MixedPrecision(Precision):
-    """Base Class for mixed precision."""
-
-    backend: "AMPType"
-    precision: Union[str, int] = "mixed"
+@RunIf(fairscale=True)
+def test_block_backward_sync():
+    strategy = DDPShardedStrategy()
+    model = mock.MagicMock(spec=ShardedDataParallel)
+    with strategy.block_backward_sync(model):
+        pass
+    model.no_sync.assert_called_once()
