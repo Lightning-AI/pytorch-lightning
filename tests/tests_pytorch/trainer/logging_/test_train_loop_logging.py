@@ -537,10 +537,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         enable_model_summary=False,
         callbacks=[LoggingCallback()],
     )
-
-    # TODO: Update this test in v1.8 (#11578)
-    with pytest.deprecated_call(match="`Callback.on_epoch_end` hook was deprecated in v1.6"):
-        trainer.fit(model)
+    trainer.fit(model)
 
     expected = {
         "on_train_start": 1,
