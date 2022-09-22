@@ -88,7 +88,7 @@ class PanelFrontend(Frontend):
     """
 
     @requires("panel")
-    def __init__(self, entry_point: Union[str, Callable]):
+    def __init__(self, entry_point: str | Callable):
         super().__init__()
 
         if inspect.ismethod(entry_point):
