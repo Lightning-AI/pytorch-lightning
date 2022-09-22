@@ -48,7 +48,7 @@ class Precision:
 
         This is a no-op for tensors that are not of floating-point type or already have the desired type.
         """
-        return data.to(torch.get_default_dtype()) if torch.is_floating_point(data) else data
+        return _convert_fp_tensor(data, torch.get_default_dtype())
 
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
         """Runs before precision plugin executes backward.
