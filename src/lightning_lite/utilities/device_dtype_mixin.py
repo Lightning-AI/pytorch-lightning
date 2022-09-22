@@ -47,67 +47,10 @@ class _DeviceDtypeModuleMixin(Module):
         return device
 
     def to(self, *args: Any, **kwargs: Any) -> Self:  # type: ignore[valid-type]
-        """Moves and/or casts the parameters and buffers.
-
-        This can be called as
-        .. function:: to(device=None, dtype=None, non_blocking=False)
-        .. function:: to(dtype, non_blocking=False)
-        .. function:: to(tensor, non_blocking=False)
-        Its signature is similar to :meth:`torch.Tensor.to`, but only accepts
-        floating point desired :attr:`dtype` s. In addition, this method will
-        only cast the floating point parameters and buffers to :attr:`dtype`
-        (if given). The integral parameters and buffers will be moved
-        :attr:`device`, if that is given, but with dtypes unchanged. When
-        :attr:`non_blocking` is set, it tries to convert/move asynchronously
-        with respect to the host if possible, e.g., moving CPU Tensors with
-        pinned memory to CUDA devices.
-        See below for examples.
-
-        Note:
-            This method modifies the module in-place.
-
-        Args:
-            device: the desired device of the parameters
-                and buffers in this module
-            dtype: the desired floating point type of
-                the floating point parameters and buffers in this module
-            tensor: Tensor whose dtype and device are the desired
-                dtype and device for all parameters and buffers in this module
-
-        Returns:
-            Module: self
-
-        Example::
-            >>> from torch import Tensor
-            >>> class ExampleModule(_DeviceDtypeModuleMixin):
-            ...     def __init__(self, weight: Tensor):
-            ...         super().__init__()
-            ...         self.register_buffer('weight', weight)
-            >>> _ = torch.manual_seed(0)
-            >>> module = ExampleModule(torch.rand(3, 4))
-            >>> module.weight #doctest: +ELLIPSIS
-            tensor([[...]])
-            >>> module.to(torch.double)
-            ExampleModule()
-            >>> module.weight #doctest: +ELLIPSIS
-            tensor([[...]], dtype=torch.float64)
-            >>> cpu = torch.device('cpu')
-            >>> module.to(cpu, dtype=torch.half, non_blocking=True)
-            ExampleModule()
-            >>> module.weight #doctest: +ELLIPSIS
-            tensor([[...]], dtype=torch.float16)
-            >>> module.to(cpu)
-            ExampleModule()
-            >>> module.weight #doctest: +ELLIPSIS
-            tensor([[...]], dtype=torch.float16)
-            >>> module.device
-            device(type='cpu')
-            >>> module.dtype
-            torch.float16
-        """
-        # there is diff nb vars in PT 1.5
-        out = torch._C._nn._parse_to(*args, **kwargs)
-        self.__update_properties(device=out[0], dtype=out[1])
+        """See :meth:`torch.nn.Module.to`."""
+        # this converts `str` device to `torch.device`
+        device, dtype = torch._C._nn._parse_to(*args, **kwargs)[:2]
+        self.__update_properties(device=device, dtype=dtype)
         return super().to(*args, **kwargs)
 
     def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:  # type: ignore[valid-type]
@@ -130,50 +73,27 @@ class _DeviceDtypeModuleMixin(Module):
         return super().cuda(device=device)
 
     def cpu(self) -> Self:  # type: ignore[valid-type]
-        """Moves all model parameters and buffers to the CPU.
-
-        Returns:
-            Module: self
-        """
+        """See :meth:`torch.nn.Module.cpu`."""
         self.__update_properties(device=torch.device("cpu"))
         return super().cpu()
 
     def type(self, dst_type: Union[str, torch.dtype]) -> Self:  # type: ignore[valid-type]
-        """Casts all parameters and buffers to :attr:`dst_type`.
-
-        Arguments:
-            dst_type (type or string): the desired type
-
-        Returns:
-            Module: self
-        """
+        """See :meth:`torch.nn.Module.type`."""
         self.__update_properties(dtype=dst_type)
         return super().type(dst_type=dst_type)
 
     def float(self) -> Self:  # type: ignore[valid-type]
-        """Casts all floating point parameters and buffers to ``float`` datatype.
-
-        Returns:
-            Module: self
-        """
+        """See :meth:`torch.nn.Module.float`."""
         self.__update_properties(dtype=torch.float)
         return super().float()
 
     def double(self) -> Self:  # type: ignore[valid-type]
-        """Casts all floating point parameters and buffers to ``double`` datatype.
-
-        Returns:
-            Module: self
-        """
+        """See :meth:`torch.nn.Module.double`."""
         self.__update_properties(dtype=torch.double)
         return super().double()
 
     def half(self) -> Self:  # type: ignore[valid-type]
-        """Casts all floating point parameters and buffers to ``half`` datatype.
-
-        Returns:
-            Module: self
-        """
+        """See :meth:`torch.nn.Module.half`."""
         self.__update_properties(dtype=torch.half)
         return super().half()
 
