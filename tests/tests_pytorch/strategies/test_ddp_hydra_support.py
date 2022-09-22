@@ -9,7 +9,7 @@ from lightning_utilities.core.imports import RequirementCache
 from pytorch_lightning.strategies.launchers.subprocess_script import _HYDRA_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
-_HYDRA_WITH_RERUN = RequirementCache("hydra-core >= 1.2")
+_HYDRA_WITH_RERUN = RequirementCache("hydra-core>=1.2")
 
 if _HYDRA_AVAILABLE:
     from hydra.test_utils.test_utils import run_process
@@ -35,8 +35,8 @@ import os
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
 
+from tests.tests_pytorch.helpers import BoringModel
 
 class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
@@ -65,15 +65,14 @@ if __name__ == "__main__":
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
-def test_ddp_with_hydra_runjob(tmpdir, subdir):
+def test_ddp_with_hydra_runjob(subdir):
     # Save script locally
-    path = tmpdir / "temp.py"
-    with open(path, "w") as fn:
+    with open("temp.py", "w") as fn:
         fn.write(script)
 
     # Run CLI
     devices = 2
-    cmd = [sys.executable, str(path), f"+devices={devices}", '+strategy="ddp"']
+    cmd = [sys.executable, "temp.py", f"+devices={devices}", '+strategy="ddp"']
     if subdir is not None:
         cmd += [f"hydra.output_subdir={subdir}"]
     run_process(cmd)
@@ -96,17 +95,16 @@ def test_ddp_with_hydra_runjob(tmpdir, subdir):
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("num_jobs", [1, 2])
-def test_ddp_with_hydra_multirunjob(tmpdir, num_jobs):
+def test_ddp_with_hydra_multirunjob(num_jobs):
     # Save script locally
-    path = tmpdir / "temp.py"
-    with open(path, "w") as fn:
+    with open("temp.py", "w") as fn:
         fn.write(script)
 
     # create fake multirun params based on `num_jobs`
     fake_param = "+foo=" + ",".join(str(i) for i in range(num_jobs))
 
     # Run CLI
-    run_process([sys.executable, str(path), "+devices=2", '+strategy="ddp"', fake_param, "--multirun"])
+    run_process([sys.executable, "temp.py", "+devices=2", '+strategy="ddp"', fake_param, "--multirun"])
 
     # Make sure config.yaml was created for each job
     configs = sorted(Path.cwd().glob("**/.pl_ddp_hydra_*/config.yaml"))
@@ -135,14 +133,12 @@ hydra:
 @pytest.mark.skipif(not _HYDRA_WITH_RERUN, reason="Hydra with `rerun` not Available")
 @pytest.mark.usefixtures("cleandir")
 @pytest.mark.parametrize("num_jobs", [1, 2])
-def test_ddp_with_hydra_multirunjob_rerun(tmpdir, num_jobs):
+def test_ddp_with_hydra_multirunjob_rerun(num_jobs):
     # Save script locally
-    path = tmpdir / "temp.py"
-    with open(path, "w") as fn:
+    with open("temp.py", "w") as fn:
         fn.write(script)
 
-    config_path = tmpdir / "config.yaml"
-    with open(config_path, "w") as fn:
+    with open("config.yaml", "w") as fn:
         fn.write(yaml_file)
 
     # create fake multirun params based on `num_jobs`
@@ -152,7 +148,7 @@ def test_ddp_with_hydra_multirunjob_rerun(tmpdir, num_jobs):
     run_process(
         [
             sys.executable,
-            str(path),
+            "temp.py",
             "-cp",
             ".",
             "-cn",
