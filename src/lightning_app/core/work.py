@@ -24,7 +24,12 @@ from lightning_app.utilities.exceptions import LightningWorkException
 from lightning_app.utilities.introspection import _is_init_context
 from lightning_app.utilities.network import find_free_network_port
 from lightning_app.utilities.packaging.build_config import BuildConfig
-from lightning_app.utilities.packaging.cloud_compute import _maybe_create_cloud_compute, CloudCompute
+from lightning_app.utilities.packaging.cloud_compute import (
+    _CLOUD_COMPUTE_STORE,
+    _CloudComputeStore,
+    _maybe_create_cloud_compute,
+    CloudCompute,
+)
 from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
 
 
@@ -226,8 +231,17 @@ class LightningWork:
         return self._cloud_compute
 
     @cloud_compute.setter
-    def cloud_compute(self, cloud_compute) -> None:
+    def cloud_compute(self, cloud_compute: CloudCompute) -> None:
         """Returns the cloud compute used to select the cloud hardware."""
+        # A new ID
+        current_id = self._cloud_compute.id
+        new_id = cloud_compute.id
+        if current_id != new_id:
+            compute_store: _CloudComputeStore = _CLOUD_COMPUTE_STORE[current_id]
+            if compute_store.frozen:
+                raise Exception("The current cloud compute has already been frozen and can't be changed anymore.")
+            else:
+                compute_store.remove(self.name)
         self._cloud_compute = cloud_compute
 
     @property
@@ -576,3 +590,10 @@ class LightningWork:
                 f"The work `{self.__class__.__name__}` is missing the `run()` method. This is required. Implement it"
                 " first and then call it in your Flow."
             )
+
+    def _register_cloud_compute(self):
+        internal_id = self.cloud_compute.id
+        assert internal_id
+        if internal_id not in _CLOUD_COMPUTE_STORE:
+            _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
+        _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)

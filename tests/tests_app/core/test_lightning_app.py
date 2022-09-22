@@ -27,6 +27,7 @@ from lightning_app.testing.helpers import RunIf
 from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.app_helpers import affiliation
 from lightning_app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
+from lightning_app.utilities.packaging import cloud_compute
 from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.warnings import LightningFlowWarning
 
@@ -1051,16 +1052,37 @@ class WorkCC(LightningWork):
 class FlowCC(LightningFlow):
     def __init__(self):
         super().__init__()
-        self.cloud_compute = CloudCompute(name="gpu")
+        self.cloud_compute = CloudCompute(name="gpu", _internal_id="a")
         self.work_a = WorkCC(cloud_compute=self.cloud_compute)
         self.work_b = WorkCC(cloud_compute=self.cloud_compute)
         self.work_c = WorkCC()
         assert self.work_a.cloud_compute._internal_id == self.work_b.cloud_compute._internal_id
 
 
+class FlowWrapper(LightningFlow):
+    def __init__(self, flow):
+        super().__init__()
+        self.w = flow
+
+
 def test_cloud_compute_binding():
 
+    cloud_compute.MULTI_WORKS_INTO_SINGLE_POD = True
+
     flow = FlowCC()
+    assert cloud_compute._CLOUD_COMPUTE_STORE
+    assert len(cloud_compute._CLOUD_COMPUTE_STORE) == 2
+    assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.work_c"]
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.work_a", "root.work_b"]
+
+    wrapper = FlowWrapper(flow)
+    assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.w.work_c"]
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.work_a", "root.w.work_b"]
+
+    _ = FlowWrapper(wrapper)
+    assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.w.w.work_c"]
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.w.work_a", "root.w.w.work_b"]
+
     assert "__cloud_compute__" == flow.state["vars"]["cloud_compute"]["type"]
     assert "__cloud_compute__" == flow.work_a.state["vars"]["_cloud_compute"]["type"]
     assert "__cloud_compute__" == flow.work_b.state["vars"]["_cloud_compute"]["type"]
@@ -1072,7 +1094,21 @@ def test_cloud_compute_binding():
     assert work_a_id != work_c_id
     assert work_c_id == "default"
 
+    flow.work_a.cloud_compute = CloudCompute(name="something_else")
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.w.work_b"]
+    cloud_compute._CLOUD_COMPUTE_STORE["a"].frozen = True
+
+    with pytest.raises(
+        Exception, match="The current cloud compute has already been frozen and can't be changed anymore."
+    ):
+        flow.work_b.cloud_compute = CloudCompute(name="something_else")
+
     flow.set_state(flow.state)
     assert isinstance(flow.cloud_compute, CloudCompute)
     assert isinstance(flow.work_a.cloud_compute, CloudCompute)
     assert isinstance(flow.work_c.cloud_compute, CloudCompute)
+
+    cloud_compute.MULTI_WORKS_INTO_SINGLE_POD = False
+
+    with pytest.raises(Exception, match="This Cloud Compute is already assigned to root.w.w.work_b"):
+        FlowCC()

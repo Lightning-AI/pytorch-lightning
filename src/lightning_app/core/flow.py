@@ -146,6 +146,8 @@ class LightningFlow:
                 # Attach the backend to the flow and its children work.
                 if self._backend:
                     LightningFlow._attach_backend(value, self._backend)
+                for work in value.works():
+                    work._register_cloud_compute()
 
             elif isinstance(value, LightningWork):
                 self._works.add(name)
@@ -154,6 +156,7 @@ class LightningFlow:
                     self._state.remove(name)
                 if self._backend:
                     self._backend._wrap_run_method(_LightningAppRef().get_current(), value)
+                value._register_cloud_compute()
 
             elif isinstance(value, (Dict, List)):
                 value._backend = self._backend

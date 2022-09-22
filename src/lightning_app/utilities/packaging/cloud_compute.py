@@ -2,7 +2,41 @@ from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Union
 from uuid import uuid4
 
+from lightning_app.core.constants import MULTI_WORKS_INTO_SINGLE_POD
+
 __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
+
+
+@dataclass
+class _CloudComputeStore:
+    id: str
+    component_names: List[str]
+    frozen: bool = False
+
+    def add_component_name(self, new_component_name: str) -> None:
+        found_index = None
+        for index, component_name in enumerate(self.component_names):
+            if new_component_name.endswith(component_name.replace("root.", "")):
+                found_index = index
+
+        if found_index is not None:
+            self.component_names[found_index] = new_component_name
+        else:
+            if len(self.component_names) == 1 and not MULTI_WORKS_INTO_SINGLE_POD and self.id != "default":
+                raise Exception(f"This Cloud Compute is already assigned to {self.component_names[0]}")
+            self.component_names.append(new_component_name)
+
+    def remove(self, new_component_name: str) -> None:
+        found_index = None
+        for index, component_name in enumerate(self.component_names):
+            if new_component_name == component_name:
+                found_index = index
+
+        if found_index is not None:
+            del self.component_names[found_index]
+
+
+_CLOUD_COMPUTE_STORE = {}
 
 
 @dataclass
@@ -46,6 +80,7 @@ class CloudCompute:
     wait_timeout: Optional[int] = None
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = 0
+    _internal_id: Optional[str] = None
 
     def __post_init__(self):
         if self.clusters:
@@ -56,21 +91,19 @@ class CloudCompute:
         self.name = self.name.lower()
 
         # All `default` CloudCompute are identified in the same way.
-        self._internal_id = "default" if self.name == "default" else uuid4().hex
+        if self._internal_id is None:
+            self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
 
     def to_dict(self):
-        return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self), "_internal_id": self._internal_id}
+        return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
 
     @classmethod
     def from_dict(cls, d):
         assert d.pop("type") == __CLOUD_COMPUTE_IDENTIFIER__
-        internal_id = d.pop("_internal_id")
-        cloud_compute = cls(**d)
-        cloud_compute._internal_id = internal_id
-        return cloud_compute
+        return cls(**d)
 
     @property
-    def id(self) -> str:
+    def id(self) -> Optional[str]:
         return self._internal_id
 
 
