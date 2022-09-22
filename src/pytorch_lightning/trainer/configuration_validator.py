@@ -14,7 +14,6 @@
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -48,8 +47,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
     __verify_batch_transfer_support(trainer)
     _check_deprecated_callback_hooks(trainer)
-    # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
-    _check_precision_plugin_checkpoint_hooks(trainer)
     # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
     _check_datamodule_checkpoint_hooks(trainer)
 
@@ -200,19 +197,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 " In v1.8 `on_load_checkpoint(..., checkpoint)` will receive the entire loaded"
                 " checkpoint dictionary instead of callback state."
             )
-
-
-def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
-    if is_overridden(method_name="on_save_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
-        rank_zero_deprecation(
-            "`PrecisionPlugin.on_save_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-        )
-    if is_overridden(method_name="on_load_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
-        rank_zero_deprecation(
-            "`PrecisionPlugin.on_load_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
-        )
 
 
 def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
