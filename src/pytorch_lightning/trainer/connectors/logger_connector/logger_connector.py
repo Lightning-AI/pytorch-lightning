@@ -22,8 +22,6 @@ from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
-from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class LoggerConnector:
