@@ -38,6 +38,12 @@ To use Encrypted Secrets:
 
     .. note:: Once you create a Secret, you can bind it to any of your Apps. You do not need to create a new Secret for each App if the Secret value is the same.
 
+    .. raw:: html
+
+        <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/encrypted_secrets_login.png" width="100%">
+        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/encrypted_secrets_login.mp4" type="video/mp4" width="100%">
+        </video>
+
 #. Prepare an environment variable to use with the Secret in your App.
 
 #. Use the following command to add the Secret to your App:
