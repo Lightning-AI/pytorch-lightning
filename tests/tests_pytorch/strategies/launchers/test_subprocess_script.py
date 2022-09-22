@@ -131,7 +131,7 @@ hydra:
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_WITH_RERUN, reason=str(_HYDRA_WITH_RERUN))
 @pytest.mark.parametrize("num_jobs", [1, 2])
-def test_ddp_with_hydra_multirunjob_rerun(num_jobs):
+def test_ddp_with_hydra_multirunjob_rerun(cleandir, num_jobs):
     # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
