@@ -30,9 +30,9 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.migration import pl_legacy_patch
-from pytorch_lightning.utilities.parsing import parse_class_init_keys
+from pytorch_lightning.utilities.parsing import AttributeDict, parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)

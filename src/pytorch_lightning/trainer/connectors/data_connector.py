@@ -156,8 +156,6 @@ class DataConnector:
 
     def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
         model.trainer = proxy(self.trainer)
-        # Remove setting use_amp in v1.8
-        model._use_amp = self.trainer.amp_backend is not None
         model.precision = self.trainer.precision
 
     def attach_dataloaders(

@@ -7,9 +7,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [unReleased] - 2022-MM-DD
 
 
-- Added an option to configure the signal SLURM sends when a job is preempted or requeued ([#14610](https://github.com/Lightning-AI/lightning/issues/14610))
-
-
 ### Added
 
 
@@ -37,7 +34,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   [#14620](https://github.com/Lightning-AI/lightning/issues/14620))
 
 
+- Added `args` parameter to `LightningCLI` to ease running from within Python ([#14596](https://github.com/PyTorchLightning/pytorch-lightning/pull/14596))
+
+
 - Added `WandbLogger.download_artifact` and `WandbLogger.use_artifact` for managing artifacts with Weights and Biases ([#14551](https://github.com/Lightning-AI/lightning/issues/14551))
+
+
+- Added an option to configure the signal SLURM sends when a job is preempted or requeued ([#14610](https://github.com/Lightning-AI/lightning/issues/14610))
+
+
+- Added a warning when the model passed to `LightningLite.setup()` does not have all parameters on the same device ([#14822](https://github.com/Lightning-AI/lightning/pull/14822))
+
 
 
 ### Changed
@@ -74,6 +81,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed fall-back to `LightningEnvironment` when number of SLURM tasks does not correspond to number of processes in Trainer ([#14300](https://github.com/Lightning-AI/lightning/pull/14300))
 
 
+- Trainer queries the CUDA devices through NVML if available to avoid initializing CUDA before forking, which eliminates the need for the `PL_DISABLE_FORK` environment variable introduced in v1.7.4 ([#14631](https://github.com/Lightning-AI/lightning/issues/14631))
+
+
+- The `MLFlowLogger.finalize()` now sets the status to `FAILED` when an exception occurred in `Trainer`, and sets the status to `FINISHED` on successful completion ([#12292](https://github.com/Lightning-AI/lightning/pull/12292))
+
+
 ### Deprecated
 
 - Deprecated `LightningDeepSpeedModule` ([#14000](https://github.com/Lightning-AI/lightning/pull/14000))
@@ -104,6 +117,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated the functions in `pytorch_lightning.utilities.apply_func` in favor of `lightning_utilities.core.apply_func` ([#14516](https://github.com/Lightning-AI/lightning/pull/14516), [#14537](https://github.com/Lightning-AI/lightning/pull/14537))
+
+
+- Deprecated all functions in `pytorch_lightning.utilities.device_parser` ([#14492](https://github.com/Lightning-AI/lightning/pull/14492), [#14753](https://github.com/Lightning-AI/lightning/pull/14753))
+  * Deprecated the `pytorch_lightning.utilities.device_parser.determine_root_gpu_device` in favor of `lightning_lite.utilities.device_parser.determine_root_gpu_device`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.parse_gpu_ids` in favor of `lightning_lite.utilities.device_parser.parse_gpu_ids`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.is_cuda_available` in favor of `lightning_lite.accelerators.cuda.is_cuda_available`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.num_cuda_devices` in favor of `lightning_lite.accelerators.cuda.num_cuda_devices`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.parse_cpu_cores` in favor of `lightning_lite.accelerators.cpu.parse_cpu_cores`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.parse_tpu_cores` in favor of `lightning_lite.accelerators.tpu.parse_tpu_cores`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.parse_hpus` in favor of `pytorch_lightning.accelerators.hpu.parse_hpus`
 
 
 ### Removed
@@ -177,6 +200,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated way to set the distributed backend via the environment variable `PL_TORCH_DISTRIBUTED_BACKEND`, in favor of setting the `process_group_backend` in the strategy constructor ([#14693](https://github.com/Lightning-AI/lightning/pull/14693))
 
 
+- Removed the deprecated `Trainer.use_amp` and `LightningModule.use_amp` attributes ([#14832](https://github.com/Lightning-AI/lightning/pull/14832))
+
+
 
 ### Fixed
 
@@ -184,6 +210,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed torchscript error with ensembles of LightningModules ([#14657](https://github.com/Lightning-AI/lightning/pull/14657), [#14724](https://github.com/Lightning-AI/lightning/pull/14724))
+
+
+- Fixed an issue with `TensorBoardLogger.finalize` creating a new experiment when none was created during the Trainer's execution ([#14762](https://github.com/Lightning-AI/lightning/pull/14762))
+
+
+- Fixed `TypeError` on import when `torch.distributed` is not available ([#14809](https://github.com/Lightning-AI/lightning/pull/14809))
+
+
+- Fixed an issue with `LightningLite.setup()` not setting the `.device` attribute correctly on the returned wrapper ([#14822](https://github.com/Lightning-AI/lightning/pull/14822))
+
+
+- Fixed an attribute error when running the tuner together with the `StochasticWeightAveraging` callback ([#14836](https://github.com/Lightning-AI/lightning/pull/14836))
+
 
 
 ## [1.7.6] - 2022-09-13

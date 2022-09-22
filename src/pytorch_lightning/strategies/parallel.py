@@ -19,8 +19,7 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -32,7 +31,7 @@ class ParallelStrategy(Strategy, ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,

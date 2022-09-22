@@ -346,6 +346,10 @@ class CometLogger(Logger):
         This happens automatically in the :meth:`~CometLogger.experiment` property, when
         ``self._experiment`` is set to ``None``, i.e. ``self.reset_experiment()``.
         """
+        if self._experiment is None:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
         self.experiment.end()
         self.reset_experiment()
 
