@@ -19,7 +19,6 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
@@ -29,7 +28,6 @@ from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests_pytorch.helpers.runif import RunIf
 
 
 def test_v1_8_0_on_init_start_end(tmpdir):
@@ -489,104 +487,6 @@ def test_v1_8_0_datamodule_checkpointhooks():
         _check_datamodule_checkpoint_hooks(trainer)
 
 
-def test_trainer_config_device_ids():
-    trainer = Trainer(devices=2)
-    with pytest.deprecated_call(
-        match="`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
-        " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
-    ):
-        trainer.devices == 2
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
-        pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
-        pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
-        pytest.param("-1", 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
-        pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
-    ],
-)
-def test_root_gpu_property(cuda_count_4, gpus, expected_root_gpu, strategy):
-    with pytest.deprecated_call(
-        match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
-        "Please use `Trainer.strategy.root_device.index` instead."
-    ):
-        assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, None, id="None is None"),
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="None is None"),
-    ],
-)
-def test_root_gpu_property_0_passing(cuda_count_0, gpus, expected_root_gpu, strategy):
-    with pytest.deprecated_call(
-        match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
-        "Please use `Trainer.strategy.root_device.index` instead."
-    ):
-        assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
-        pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
-        pytest.param(-1, 4, "ddp", id="-1 - use all gpus"),
-        pytest.param("-1", 4, "ddp", id="'-1' - use all gpus"),
-        pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
-    ],
-)
-def test_trainer_gpu_parse(cuda_count_4, gpus, expected_num_gpus, strategy):
-    with pytest.deprecated_call(
-        match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
-        " Please use `Trainer.num_devices` instead."
-    ):
-        assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
-    ],
-)
-def test_trainer_num_gpu_0(cuda_count_0, gpus, expected_num_gpus, strategy):
-    with pytest.deprecated_call(
-        match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
-        " Please use `Trainer.num_devices` instead."
-    ):
-        assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "expected_ipus"],
-    [
-        ({}, 0),
-        ({"devices": 1}, 0),
-        ({"accelerator": "ipu", "devices": 1}, 1),
-        ({"accelerator": "ipu", "devices": 8}, 8),
-    ],
-)
-def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
-    monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
-    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.deprecated_call(
-        match="`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
-        " Please use `Trainer.num_devices` instead."
-    ):
-        trainer.ipus == expected_ipus
-
-
 def test_deprecated_mc_save_checkpoint():
     mc = ModelCheckpoint()
     trainer = Trainer()
@@ -647,39 +547,3 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
 
     trainer.callbacks = [TestCallbackSaveHookOverride()]
     trainer.save_checkpoint(tmpdir + "/pathok.ckpt")
-
-
-@pytest.mark.parametrize(
-    "trainer_kwargs",
-    [
-        pytest.param({"accelerator": "gpu", "devices": 2}, marks=RunIf(mps=False)),
-        pytest.param({"accelerator": "gpu", "devices": [0, 2]}, marks=RunIf(mps=False)),
-        pytest.param({"accelerator": "gpu", "devices": "2"}, marks=RunIf(mps=False)),
-        pytest.param({"accelerator": "gpu", "devices": "0,"}, marks=RunIf(mps=False)),
-        pytest.param({"accelerator": "gpu", "devices": 1}, marks=RunIf(mps=True)),
-        pytest.param({"accelerator": "gpu", "devices": [0]}, marks=RunIf(mps=True)),
-        pytest.param({"accelerator": "gpu", "devices": "0,"}, marks=RunIf(mps=True)),
-    ],
-)
-def test_trainer_gpus(cuda_count_4, trainer_kwargs):
-    trainer = Trainer(**trainer_kwargs)
-    with pytest.deprecated_call(
-        match=(
-            "`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
-        )
-    ):
-        assert trainer.gpus == trainer_kwargs["devices"]
-
-
-@RunIf(skip_windows=True)
-def test_trainer_tpu_cores(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
-    trainer = Trainer(accelerator="tpu", devices=8)
-    with pytest.deprecated_call(
-        match=(
-            "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.num_devices` instead."
-        )
-    ):
-        assert trainer.tpu_cores == 8
