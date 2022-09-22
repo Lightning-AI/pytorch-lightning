@@ -37,13 +37,13 @@ import os
 import torch
 
 from pytorch_lightning import Trainer
-
-from tests.tests_pytorch.helpers import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
 
 class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device(f"cuda:{self.trainer.strategy.local_rank}")
+        self.start_cuda_memory = torch.cuda.memory_allocated()
 
 @hydra.main(config_path=None, version_base="1.1")
 def task_fn(cfg):
