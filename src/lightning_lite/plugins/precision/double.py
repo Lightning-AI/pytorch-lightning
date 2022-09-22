@@ -17,7 +17,7 @@ from typing import Generator
 import torch
 from torch import Tensor
 
-from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 
 

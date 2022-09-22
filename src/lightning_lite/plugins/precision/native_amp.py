@@ -20,7 +20,7 @@ from torch.nn import Module
 from torch.optim import LBFGS
 from typing_extensions import Literal
 
-from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from lightning_lite.utilities.types import Steppable
