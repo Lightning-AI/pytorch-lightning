@@ -18,6 +18,7 @@ import torch
 from torch import Tensor
 
 from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 
 
 class DoublePrecision(Precision):
@@ -37,4 +38,4 @@ class DoublePrecision(Precision):
         torch.set_default_dtype(default_dtype)
 
     def convert_input(self, data: Tensor) -> Tensor:
-        return data.to(torch.float64) if torch.is_floating_point(data) else data
+        return _convert_fp_tensor(data, torch.double)

@@ -19,6 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.types import _PARAMETERS, Steppable
 
 
@@ -40,7 +41,7 @@ class Precision:
 
         This is a no-op for tensors that are not of floating-point type or already have the desired type.
         """
-        return data.to(torch.float32) if torch.is_floating_point(data) else data
+        return _convert_fp_tensor(data, torch.float32)
 
     def convert_output(self, data: Tensor) -> Tensor:
         """Convert model outputs (forward) back to the default floating point precision type.

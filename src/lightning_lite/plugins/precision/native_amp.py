@@ -17,10 +17,11 @@ from typing import Any, Dict, Generator, Optional, Union
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import LBFGS, Optimizer
+from torch.optim import LBFGS
 from typing_extensions import Literal
 
 from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from lightning_lite.utilities.types import Steppable
 
@@ -60,8 +61,8 @@ class NativeMixedPrecision(Precision):
 
     def convert_input(self, data: Tensor) -> Tensor:
         precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16}
-        to_type = precision_to_type[self.precision]
-        return data.to(to_type) if torch.is_floating_point(data) else data
+        dst_type = precision_to_type[self.precision]
+        return _convert_fp_tensor(data, dst_type)
 
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:

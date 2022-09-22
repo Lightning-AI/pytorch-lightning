@@ -11,26 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+from typing import Union
 
 import torch
-from torch import Tensor
-
-from lightning_lite.plugins.precision import TPUPrecision
-from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 
 
-class TPUBf16Precision(TPUPrecision):
-    """Plugin that enables bfloats on TPUs."""
-
-    precision: str = "bf16"
-
-    def __init__(self) -> None:
-        super().__init__()
-        os.environ["XLA_USE_BF16"] = "1"
-
-    def convert_input(self, data: Tensor) -> Tensor:
-        return _convert_fp_tensor(data, torch.bfloat16)
-
-    def teardown(self) -> None:
-        os.environ.pop("XLA_USE_BF16", None)
+def _convert_fp_tensor(tensor: torch.Tensor, dst_type: Union[str, torch.dtype]) -> torch.Tensor:
+    return tensor.to(dst_type) if torch.is_floating_point(tensor) else tensor

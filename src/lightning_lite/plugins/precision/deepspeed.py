@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from torch.optim import LBFGS, Optimizer
 from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.precision import Precision
-from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
+from lightning_lite.utilities.enums import AMPType
 from lightning_lite.utilities.imports import _APEX_AVAILABLE
 from lightning_lite.utilities.types import Steppable
 
@@ -70,8 +70,8 @@ class DeepSpeedPrecision(Precision):
 
     def convert_input(self, data: Tensor) -> Tensor:
         precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16, 32: torch.float32}
-        to_type = precision_to_type[self.precision]
-        return data.to(to_type) if torch.is_floating_point(data) else data
+        dst_type = precision_to_type[self.precision]
+        return _convert_fp_tensor(data, dst_type)
 
     def backward(self, tensor: Tensor, model: "deepspeed.DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
         """Performs back-propagation using DeepSpeed's engine."""
