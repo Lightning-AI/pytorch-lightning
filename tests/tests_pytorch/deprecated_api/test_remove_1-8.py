@@ -488,21 +488,6 @@ def test_v1_8_0_datamodule_checkpointhooks():
         _check_datamodule_checkpoint_hooks(trainer)
 
 
-def test_v1_8_0_trainer_use_amp(tmpdir):
-    trainer = Trainer()
-
-    with pytest.deprecated_call(match="`Trainer.use_amp` is deprecated in v1.6.0"):
-        _ = trainer.use_amp
-
-
-def test_v1_8_0_lightning_module_use_amp():
-    model = BoringModel()
-    with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
-        _ = model.use_amp
-    with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
-        model.use_amp = False
-
-
 def test_v1_8_0_deprecated_lightning_ipu_module():
     with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
         _ = LightningIPUModule(BoringModel(), 32)
