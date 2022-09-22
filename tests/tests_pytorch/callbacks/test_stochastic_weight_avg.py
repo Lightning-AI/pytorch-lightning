@@ -32,6 +32,22 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
+def test_swa_callback_initial_state():
+    swa = StochasticWeightAveraging(
+        swa_lrs=0.01,
+        swa_epoch_start=0.1,
+        annealing_epochs=1,
+        annealing_strategy="linear",
+        avg_fn=sum,
+    )
+    assert swa._swa_lrs == 0.01
+    assert swa._swa_epoch_start == 0.1
+    assert swa._annealing_epochs == 1
+    assert swa._annealing_strategy == "linear"
+    assert swa._avg_fn == sum
+    assert swa._average_model is None
+
+
 class SwaTestModel(BoringModel):
     def __init__(
         self, batchnorm: bool = True, interval: str = "epoch", iterable_dataset: bool = False, crash_on_epoch=None

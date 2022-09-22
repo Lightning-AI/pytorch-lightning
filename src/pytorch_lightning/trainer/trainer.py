@@ -2053,46 +2053,6 @@ class Trainer(
         return len(self.device_ids)
 
     @property
-    def root_gpu(self) -> Optional[int]:
-        rank_zero_deprecation(
-            "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.strategy.root_device.index` instead."
-        )
-        return self.strategy.root_device.index if isinstance(self.accelerator, CUDAAccelerator) else None
-
-    @property
-    def tpu_cores(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.num_devices` instead."
-        )
-        return self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
-
-    @property
-    def ipus(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.num_devices` instead."
-        )
-        return self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
-
-    @property
-    def num_gpus(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.num_devices` instead."
-        )
-        return self.num_devices if isinstance(self.accelerator, CUDAAccelerator) else 0
-
-    @property
-    def devices(self) -> int:
-        rank_zero_deprecation(
-            "`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
-        )
-        return self.num_devices
-
-    @property
     def lightning_module(self) -> "pl.LightningModule":
         # TODO: this is actually an optional return
         return self.strategy.lightning_module
@@ -2141,14 +2101,6 @@ class Trainer(
         return getattr(self.precision_plugin, "scaler", None)
 
     @property
-    def gpus(self) -> Optional[Union[List[int], str, int]]:
-        rank_zero_deprecation(
-            "`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
-        )
-        return self._accelerator_connector._gpus
-
-    @property
     def model(self) -> torch.nn.Module:
         """The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
 
@@ -2184,14 +2136,6 @@ class Trainer(
 
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath
-
-    @property
-    def use_amp(self) -> bool:
-        rank_zero_deprecation(
-            "`Trainer.use_amp` is deprecated in v1.6.0 and will be removed in v1.8.0."
-            " Please use `Trainer.amp_backend` instead."
-        )
-        return self.precision == 16
 
     @property
     def is_global_zero(self) -> bool:
