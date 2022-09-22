@@ -286,6 +286,8 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
     ):
         trainer.fit(model)
 
+
+def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
     class TestCallback(Callback):
         def on_pretrain_routine_start(self, trainer, pl_module):
             print("on_pretrain_routine_start called.")
