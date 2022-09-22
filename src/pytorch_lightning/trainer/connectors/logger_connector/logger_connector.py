@@ -36,7 +36,6 @@ class LoggerConnector:
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
-        self._override_agg_and_log_metrics: bool = False
 
     def on_trainer_init(
         self,
@@ -47,15 +46,6 @@ class LoggerConnector:
         self.configure_logger(logger)
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
-        for logger in self.trainer.loggers:
-            if is_overridden("agg_and_log_metrics", logger, Logger):
-                self._override_agg_and_log_metrics = True
-                rank_zero_deprecation(
-                    "`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-                    " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
-                    " loggers should not implement `Logger.agg_and_log_metrics`."
-                )
-                break
 
     @property
     def should_update_logs(self) -> bool:
@@ -104,10 +94,7 @@ class LoggerConnector:
 
         # log actual metrics
         for logger in self.trainer.loggers:
-            if self._override_agg_and_log_metrics:
-                logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
-            else:
-                logger.log_metrics(metrics=scalar_metrics, step=step)
+            logger.log_metrics(metrics=scalar_metrics, step=step)
             logger.save()
 
     """

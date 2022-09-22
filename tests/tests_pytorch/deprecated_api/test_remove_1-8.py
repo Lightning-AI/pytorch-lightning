@@ -327,37 +327,6 @@ def test_v1_8_0_logger_agg_parameters():
         logger.update_agg_funcs()
 
 
-def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
-    class AggregationOverrideLogger(CSVLogger):
-        @rank_zero_only
-        def agg_and_log_metrics(self, metrics, step):
-            self.log_metrics(metrics=metrics, step=step)
-
-    logger = AggregationOverrideLogger(tmpdir)
-    logger2 = CSVLogger(tmpdir)
-    logger3 = CSVLogger(tmpdir)
-
-    # Test single loggers
-    with pytest.deprecated_call(
-        match="`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-        " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
-        " loggers should not implement `Logger.agg_and_log_metrics`."
-    ):
-        Trainer(logger=logger)
-    # Should have no deprecation warning
-    Trainer(logger=logger2)
-
-    # Test multiple loggers
-    with pytest.deprecated_call(
-        match="`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-        " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
-        " loggers should not implement `Logger.agg_and_log_metrics`."
-    ):
-        Trainer(logger=[logger, logger3])
-    # Should have no deprecation warning
-    Trainer(logger=[logger2, logger3])
-
-
 def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
     class TestCallback(Callback):
         def on_pretrain_routine_start(self, trainer, pl_module):

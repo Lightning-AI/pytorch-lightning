@@ -43,10 +43,6 @@ class LightningLoggerBase(logger.Logger):
         .. deprecated:: v1.6
             The parameters `agg_key_funcs` and `agg_default_func` are deprecated
             in v1.6 and will be removed in v1.8.
-
-    Note:
-        The `agg_key_funcs` and `agg_default_func` arguments are used only when
-        one logs metrics with the :meth:`~LightningLoggerBase.agg_and_log_metrics` method.
     """
 
     def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]

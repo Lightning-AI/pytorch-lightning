@@ -71,10 +71,6 @@ class Logger(ABC):
         .. deprecated:: v1.6
             The parameters `agg_key_funcs` and `agg_default_func` are deprecated
             in v1.6 and will be removed in v1.8.
-
-    Note:
-        The `agg_key_funcs` and `agg_default_func` arguments are used only when
-        one logs metrics with the :meth:`~Logger.agg_and_log_metrics` method.
     """
 
     def __init__(
@@ -132,27 +128,11 @@ class Logger(ABC):
             self._agg_default_func = agg_default_func
         rank_zero_deprecation("`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8.")
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
-        it aggregates them and logs only if metrics are ready to be logged.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use `Logger.log_metrics` instead.
-
-        Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded
-        """
-        self.log_metrics(metrics=metrics, step=step)
-
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """
         Records metrics.
-        This method logs metrics as as soon as it received them. If you want to aggregate
-        metrics for one specific `step`, use the
-        :meth:`~pytorch_lightning.loggers.base.Logger.agg_and_log_metrics` method.
+        This method logs metrics as as soon as it received them.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
