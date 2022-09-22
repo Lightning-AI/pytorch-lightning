@@ -59,7 +59,7 @@ from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
-_PRECISION_INPUT = Literal[16, 32, 64, 16, "bf16"]
+_PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
 
 class _Connector:
