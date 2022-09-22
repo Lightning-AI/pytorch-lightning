@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -50,6 +50,8 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
+        optimizer: Optional[Steppable],
+        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -58,11 +60,12 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
         Args:
             tensor: the loss value obtained from the closure
             model: the model to be optimized
+            optimizer: current optimizer being used. ``None`` if using manual optimization
+            optimizer_idx: the index of the current optimizer. ``None`` if using manual optimization
             \*args: Positional arguments intended for the actual function that performs the backward, like
                 :meth:`~torch.Tensor.backward`.
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
-        optimizer, optimizer_idx, *args = args
         model.backward(tensor, optimizer, optimizer_idx, *args, **kwargs)
 
     def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
@@ -105,11 +108,15 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
         self._after_closure(model, optimizer, optimizer_idx)
         return closure_result
 
-    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
+    def optimizer_step(  # type: ignore[override]
+        self,
+        optimizer: Steppable,
+        model: "pl.LightningModule",
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> Any:
         """Hook to run the optimizer step."""
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        model: pl.LightningModule = kwargs.pop("model")
         closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         return optimizer.step(closure=closure, **kwargs)
 

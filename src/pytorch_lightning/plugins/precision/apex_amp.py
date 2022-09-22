@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
@@ -58,6 +58,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
+        optimizer: Optional[Steppable],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -66,19 +67,23 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         Args:
             tensor: the loss value obtained from the closure
             model: the model to be optimized
+            optimizer: current optimizer being used. ``None`` if using manual optimization
             \*args: Positional arguments intended for the actual function that performs the backward, like
                 :meth:`~torch.Tensor.backward`.
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
-        optimizer, optimizer_idx, *args = args
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(tensor, opt) as tensor:
-            super().backward(tensor, model, optimizer, optimizer_idx, *args, **kwargs)
+            super().backward(tensor, model, optimizer, *args, **kwargs)
 
-    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        model: pl.LightningModule = kwargs.pop("model")
+    def optimizer_step(  # type: ignore[override]
+        self,
+        optimizer: Steppable,
+        model: "pl.LightningModule",
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> Any:
         if self._state_dict_loaded:
             raise RuntimeError(
                 "Resuming training with APEX is currently not supported. Set `amp_backend=None` for example or use a"

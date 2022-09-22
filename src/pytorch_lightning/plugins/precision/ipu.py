@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Union
+from typing import Any, Callable, Union
 
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
@@ -59,12 +59,15 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " the backward logic internally."
             )
 
-    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
+    def optimizer_step(  # type: ignore[override]
+        self,
+        optimizer: Steppable,
+        model: "pl.LightningModule",
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> Any:
         """IPUs handle the optimizer step internally."""
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        model: pl.LightningModule = kwargs.pop("model")
-
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
