@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import WarningCache
@@ -97,7 +97,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
                 " the backward logic internally."
             )
-        _, _, *args = args
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(tensor, *args, **kwargs)
 
@@ -109,10 +108,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        model: pl.LightningModule = kwargs.pop("model")
-
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."

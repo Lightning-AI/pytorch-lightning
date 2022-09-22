@@ -72,7 +72,6 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
                 :meth:`~torch.Tensor.backward`.
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
-        optimizer, optimizer_idx, *args = args
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(tensor, opt) as tensor:
             super().backward(tensor, model, optimizer, *args, **kwargs)

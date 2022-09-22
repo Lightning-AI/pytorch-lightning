@@ -68,10 +68,6 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         **kwargs: Any,
     ) -> Any:
         """IPUs handle the optimizer step internally."""
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        model: pl.LightningModule = kwargs.pop("model")
-
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
