@@ -15,12 +15,12 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from tests_lite.helpers.runif import RunIf
 from torch.utils.data.dataloader import DataLoader
 
+from lightning_lite.lite import LightningLite
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from tests_pytorch.helpers.runif import RunIf
+from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
 class EmptyLite(LightningLite):
@@ -251,18 +251,22 @@ def test_lite_optimizer_state_dict():
 def test_lite_optimizer_steps():
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
-    strategy = Mock()
+    strategy = Mock(spec=["optimizer_step"])
     strategy.optimizer_step.return_value = 123
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
     step_output = lite_optimizer.step()
     assert step_output == 123
-    strategy.optimizer_step.assert_called_once()
-    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model)
+    strategy.optimizer_step.assert_called_once_with(optimizer)
 
-    strategy.optimizer_step.reset_mock()
+    strategy.reset_mock()
 
     # with closure as input
     closure = Mock()
     lite_optimizer.step(closure=closure)
-    strategy.optimizer_step.assert_called_once()
-    strategy.optimizer_step.assert_called_with(optimizer, model=strategy.model, closure=closure)
+    strategy.optimizer_step.assert_called_once_with(optimizer, closure=closure)
+
+    # with model as optimizer
+    strategy = Mock(spec=["optimizer_step", "model"])
+    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
+    lite_optimizer.step()
+    strategy.optimizer_step.assert_called_once_with(strategy.model)
