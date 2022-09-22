@@ -15,31 +15,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add `--secret` option to CLI to allow binding Secrets to app environment variables when running in the cloud ([#14612](https://github.com/Lightning-AI/lightning/pull/14612))
 
 
-
 ### Changed
 
-
-- Improve Lightning App connect logic by disconnecting automatically ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
-
-
-- Improved the error messsage when the `LightningWork` is missing the `run` method ([#14759](https://github.com/Lightning-AI/lightning/pull/14759))
-
-
-- Improved the error messsage when the root `LightningFlow` passed to `LightningApp` is missing the `run` method ([#14760](https://github.com/Lightning-AI/lightning/pull/14760))
-
-
+-
 
 
 ### Fixed
 
-
-- Unification of app template: moved `app.py` to root dir for `lightning init app <app_name>` template ([#13853](https://github.com/Lightning-AI/lightning/pull/13853))
-
-
-- Fixed an issue where custom property setters were not being used `LightningWork` class. ([#14259](https://github.com/Lightning-AI/lightning/pull/14259))
+-
 
 
-- Fixed an issue where some terminals would display broken icons in the PL app CLI. ([#14226](https://github.com/Lightning-AI/lightning/issues/14226))
+## [0.6.2] - 2022-09-21
+
+### Changed
+
+- Improved Lightning App connect logic by disconnecting automatically ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
+- Improved the error message when the `LightningWork` is missing the `run` method ([#14759](https://github.com/Lightning-AI/lightning/pull/14759))
+- Improved the error message when the root `LightningFlow` passed to `LightningApp` is missing the `run` method ([#14760](https://github.com/Lightning-AI/lightning/pull/14760))
+
+### Fixed
+
+- Fixed a bug where the uploaded command file wasn't properly parsed ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
+- Fixed an issue where custom property setters were not being used `LightningWork` class ([#14259](https://github.com/Lightning-AI/lightning/pull/14259))
+- Fixed an issue where some terminals would display broken icons in the PL app CLI ([#14226](https://github.com/Lightning-AI/lightning/pull/14226))
 
 
 ## [0.6.1] - 2022-09-19
