@@ -42,28 +42,6 @@ else:
     poptorch = None
 
 
-class LightningIPUModule(_LightningModuleWrapperBase):
-    """
-    .. deprecated:: v1.7.0
-        ``LightningIPUModule`` has been deprecated in v1.7.0 and will be removed in v1.9.0.
-    """
-
-    def __init__(
-        self,
-        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-        precision: Union[str, int] = 32,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-    ) -> None:
-        rank_zero_deprecation("`LightningIPUModule` has been deprecated in v1.7.0 and will be removed in v1.8.0")
-        self._validate_init_arguments(pl_module, forward_module)
-        super().__init__(forward_module=(pl_module or forward_module))
-        self.precision = precision
-
-    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
-        return super().forward(*inputs, **kwargs)
-
-
 class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
 

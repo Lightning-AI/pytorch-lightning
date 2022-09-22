@@ -26,7 +26,6 @@ from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
-from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -586,11 +585,6 @@ def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
         " Please use `Trainer.num_devices` instead."
     ):
         trainer.ipus == expected_ipus
-
-
-def test_v1_8_0_deprecated_lightning_ipu_module():
-    with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
-        _ = LightningIPUModule(BoringModel(), 32)
 
 
 def test_deprecated_mc_save_checkpoint():
