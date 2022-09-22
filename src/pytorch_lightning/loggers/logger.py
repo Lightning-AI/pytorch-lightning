@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
@@ -28,7 +28,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -57,43 +57,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
 
 
 class Logger(ABC):
-    """Base class for experiment loggers.
-
-    Args:
-        agg_key_funcs:
-            Dictionary which maps a metric name to a function, which will
-            aggregate the metric values for the same steps.
-        agg_default_func:
-            Default function to aggregate metric values. If some metric name
-            is not presented in the `agg_key_funcs` dictionary, then the
-            `agg_default_func` will be used for aggregation.
-
-        .. deprecated:: v1.6
-            The parameters `agg_key_funcs` and `agg_default_func` are deprecated
-            in v1.6 and will be removed in v1.8.
-    """
-
-    def __init__(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-    ):
-        self._prev_step: int = -1
-        self._metrics_to_agg: List[Dict[str, float]] = []
-        if agg_key_funcs:
-            self._agg_key_funcs = agg_key_funcs
-            rank_zero_deprecation(
-                "The `agg_key_funcs` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-            )
-        else:
-            self._agg_key_funcs = {}
-        if agg_default_func:
-            self._agg_default_func = agg_default_func
-            rank_zero_deprecation(
-                "The `agg_default_func` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-            )
-        else:
-            self._agg_default_func = np.mean
+    """Base class for experiment loggers."""
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
@@ -103,34 +67,9 @@ class Logger(ABC):
         """
         pass
 
-    def update_agg_funcs(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ) -> None:
-        """Update aggregation methods.
-
-        .. deprecated:: v1.6
-            `update_agg_funcs` is deprecated in v1.6 and will be removed in v1.8.
-
-        Args:
-            agg_key_funcs:
-                Dictionary which maps a metric name to a function, which will
-                aggregate the metric values for the same steps.
-            agg_default_func:
-                Default function to aggregate metric values. If some metric name
-                is not presented in the `agg_key_funcs` dictionary, then the
-                `agg_default_func` will be used for aggregation.
-        """
-        if agg_key_funcs:
-            self._agg_key_funcs.update(agg_key_funcs)
-        if agg_default_func:
-            self._agg_default_func = agg_default_func
-        rank_zero_deprecation("`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8.")
-
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """Records metrics. This method logs metrics as as soon as it received them.
+        """Records metrics. This method logs metrics as soon as it received them.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -251,7 +190,8 @@ class DummyLogger(Logger):
         return method
 
 
-def merge_dicts(
+# TODO: this should have been deprecated
+def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
