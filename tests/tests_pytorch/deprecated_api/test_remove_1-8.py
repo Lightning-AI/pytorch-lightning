@@ -22,12 +22,10 @@ import pytest
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import CSVLogger, Logger
 from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 def test_v1_8_0_on_init_start_end(tmpdir):
@@ -287,72 +285,6 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         " and will be removed in v1.8"
     ):
         trainer.fit(model)
-
-
-def test_v1_8_0_logger_agg_parameters():
-    class CustomLogger(Logger):
-        @rank_zero_only
-        def log_hyperparams(self, params):
-            pass
-
-        @rank_zero_only
-        def log_metrics(self, metrics, step):
-            pass
-
-        @property
-        def name(self):
-            pass
-
-        @property
-        def version(self):
-            pass
-
-    with pytest.deprecated_call(
-        match="The `agg_key_funcs` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-    ):
-        CustomLogger(agg_key_funcs={"mean", np.mean})
-
-    with pytest.deprecated_call(
-        match="The `agg_default_func` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-    ):
-        CustomLogger(agg_default_func=np.mean)
-
-    # Should have no deprecation warning
-    logger = CustomLogger()
-
-    with pytest.deprecated_call(match="`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."):
-        logger.update_agg_funcs()
-
-
-def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
-    class AggregationOverrideLogger(CSVLogger):
-        @rank_zero_only
-        def agg_and_log_metrics(self, metrics, step):
-            self.log_metrics(metrics=metrics, step=step)
-
-    logger = AggregationOverrideLogger(tmpdir)
-    logger2 = CSVLogger(tmpdir)
-    logger3 = CSVLogger(tmpdir)
-
-    # Test single loggers
-    with pytest.deprecated_call(
-        match="`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-        " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
-        " loggers should not implement `Logger.agg_and_log_metrics`."
-    ):
-        Trainer(logger=logger)
-    # Should have no deprecation warning
-    Trainer(logger=logger2)
-
-    # Test multiple loggers
-    with pytest.deprecated_call(
-        match="`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-        " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
-        " loggers should not implement `Logger.agg_and_log_metrics`."
-    ):
-        Trainer(logger=[logger, logger3])
-    # Should have no deprecation warning
-    Trainer(logger=[logger2, logger3])
 
 
 def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):

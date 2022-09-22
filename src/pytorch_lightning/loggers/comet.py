@@ -19,7 +19,7 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from lightning_utilities.core.imports import module_available
 from torch import Tensor
@@ -219,15 +219,13 @@ class CometLogger(Logger):
         experiment_key: Optional[str] = None,
         offline: bool = False,
         prefix: str = "",
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs: Any,
     ):
         if comet_ml is None:
             raise ModuleNotFoundError(
                 "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
             )
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
         self._experiment = None
         self._save_dir: Optional[str]
         self.rest_api_key: Optional[str]
