@@ -264,19 +264,9 @@ def test_accelerator_cpu(*_):
 
     with pytest.raises(
         RuntimeError,
-        match="CUDAAccelerator can not run on your system since the accelerator is not available",
-    ):
-        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-            _Connector(gpus=1)
-
-    with pytest.raises(
-        RuntimeError,
         match="CUDAAccelerator can not run on your system since the accelerator is not available.",
     ):
-        _Connector(accelerator="cuda")
-
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-        _Connector(accelerator="cpu", gpus=1)
+        _Connector(accelerator="cuda", devices=1)
 
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -702,12 +692,3 @@ def test_gpu_accelerator_no_gpu_backend_found_error(*_):
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         _Connector(strategy=strategy)
-
-
-@RunIf(skip_windows=True)
-@pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
-@mock.patch.dict(os.environ, {"PL_DISABLE_FORK": "1"}, clear=True)
-def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
-    """Test there is an error when forking is disabled via the environment variable and the user requests fork."""
-    with pytest.raises(ValueError, match="Forking is disabled in this environment"):
-        _Connector(devices=2, strategy=strategy)

@@ -644,12 +644,16 @@ class Trainer(
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self._call_callback_hooks("on_exception", exception)
+                for logger in self.loggers:
+                    logger.finalize("failed")
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
                 # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
             self._call_callback_hooks("on_exception", exception)
+            for logger in self.loggers:
+                logger.finalize("failed")
             self._teardown()
             # teardown might access the stage so we reset it after
             self.state.stage = None
@@ -2180,14 +2184,6 @@ class Trainer(
 
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath
-
-    @property
-    def use_amp(self) -> bool:
-        rank_zero_deprecation(
-            "`Trainer.use_amp` is deprecated in v1.6.0 and will be removed in v1.8.0."
-            " Please use `Trainer.amp_backend` instead."
-        )
-        return self.precision == 16
 
     @property
     def is_global_zero(self) -> bool:

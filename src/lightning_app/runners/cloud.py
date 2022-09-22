@@ -66,7 +66,7 @@ class CloudRuntime(Runtime):
         name: str = "",
         cluster_id: str = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
         # not user facing error ideally - this should never happen in normal user workflow
         if not self.entrypoint_file:
