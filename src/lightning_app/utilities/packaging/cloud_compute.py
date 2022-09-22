@@ -106,6 +106,9 @@ class CloudCompute:
     def id(self) -> Optional[str]:
         return self._internal_id
 
+    def is_default(self) -> bool:
+        return self.name == "default"
+
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
     if __CLOUD_COMPUTE_IDENTIFIER__ == state.get("type", None):

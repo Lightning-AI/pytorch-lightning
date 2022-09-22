@@ -178,6 +178,12 @@ class CloudRuntime(Runtime):
             frontend_spec = V1Flowserver(name=flow_name)
             frontend_specs.append(frontend_spec)
 
+        # TODO: This is a hack until the Controlplane API are cleanup.
+        for work in self.app.works:
+            if work.cloud_compute.is_default():
+                frontend_spec = V1Flowserver(name=f"work:{work.name}")
+                frontend_specs.append(frontend_spec)
+
         app_spec = V1LightningappInstanceSpec(
             app_entrypoint_file=str(app_entrypoint_file),
             enable_app_server=self.start_server,
