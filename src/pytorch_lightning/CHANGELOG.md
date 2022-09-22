@@ -200,7 +200,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated `Trainer.use_amp` and `LightningModule.use_amp` attributes ([#14832](https://github.com/Lightning-AI/lightning/pull/14832))
 
-
+- Removed the depricated `Logger.agg_and_log_metrics` hook in favour of `Logger.log_metrics` ([#14840](https://github.com/Lightning-AI/lightning/pull/14840))
 
 ### Fixed
 
