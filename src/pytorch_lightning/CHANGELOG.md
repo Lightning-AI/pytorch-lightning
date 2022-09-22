@@ -83,7 +83,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Integrated the Lite Precision plugins into the PL Precision plugins - the base class in PL now extends the `lightning_lite.precision.Precision` base class ([#14798](https://github.com/Lightning-AI/lightning/pull/14798))
-  * The `PrecisionPlugin.backward` signature changed: The `closure_loss` argument was renamed to `tensor`, `optimizer` and `optimizer_idx` arguments now get captured under the generic `*args`
+  * The `PrecisionPlugin.backward` signature changed: The `closure_loss` argument was renamed to `tensor`
   * The `PrecisionPlugin.{pre_,post_}backward` signature changed: The `closure_loss` argument was renamed to `tensor` and moved as the first argument
   * The `PrecisionPlugin.optimizer_step` signature changed: The `model`, `optimizer_idx` and `closure` arguments need to be passed as keyword arguments now
 
