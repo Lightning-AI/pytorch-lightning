@@ -7,7 +7,7 @@ import os
 import pathlib
 import subprocess
 import sys
-from typing import Callable, TextIO
+from typing import Callable, TextIO, Union
 
 from lightning_app.frontend.frontend import Frontend
 from lightning_app.frontend.utils import _get_frontend_environment
