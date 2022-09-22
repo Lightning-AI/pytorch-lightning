@@ -130,9 +130,7 @@ class Logger(ABC):
 
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """
-        Records metrics.
-        This method logs metrics as as soon as it received them.
+        """Records metrics. This method logs metrics as as soon as it received them.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
