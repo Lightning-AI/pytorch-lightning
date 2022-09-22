@@ -198,15 +198,3 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
         """A contextmanager for the predict step."""
         with self.forward_context():
             yield
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_save_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``state_dict`` instead.
-        """
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_load_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``load_state_dict`` instead.
-        """
