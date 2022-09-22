@@ -22,6 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning_lite.plugins import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.strategies import Strategy
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -101,7 +102,9 @@ class _LiteModule(_DeviceDtypeModuleMixin):
         with self._precision_plugin.forward_context():
             output = self._forward_module(*args, **kwargs)
 
-        output = apply_to_collection(output, function=self._precision_plugin.convert_output, dtype=Tensor)
+        output = apply_to_collection(
+            output, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype()
+        )
         return output
 
     @overload

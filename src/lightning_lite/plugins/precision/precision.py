@@ -43,13 +43,6 @@ class Precision:
         """
         return _convert_fp_tensor(data, torch.float32)
 
-    def convert_output(self, data: Tensor) -> Tensor:
-        """Convert model outputs (forward) back to the default floating point precision type.
-
-        This is a no-op for tensors that are not of floating-point type or already have the desired type.
-        """
-        return _convert_fp_tensor(data, torch.get_default_dtype())
-
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.
 
