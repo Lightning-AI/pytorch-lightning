@@ -61,11 +61,14 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Run before precision plugin executes backward.
+        r"""Run before precision plugin executes backward.
 
         Args:
             tensor: the loss value obtained from the closure
             model: the model to be optimized
+            \*args: Positional arguments intended for the actual function that performs the backward, like
+                :meth:`~torch.Tensor.backward`.
+            \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
         optimizer, optimizer_idx, *args = args
         opt = optimizer or model.trainer.optimizers

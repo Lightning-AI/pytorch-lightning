@@ -219,14 +219,14 @@ class Strategy(ABC):
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
-        """Performs the actual optimizer step.
+        r"""Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
             opt_idx: index of the current optimizer
             closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
-            **kwargs: Any extra arguments to ``optimizer.step``
+            \**kwargs: Keyword arguments to to ``optimizer.step``
         """
         model = model or self.lightning_module
         return self.precision_plugin.optimizer_step(
