@@ -13,11 +13,6 @@ class CloudCompute:
         disk_size: The disk size in Gigabytes.
             The value you set here will be allocated to the /home folder.
 
-        preemptible: Whether to use a preemptible / spot instance.
-            If none are available at the moment, we will wait forever or up to the specified timeout
-            (see wait_timeout argument).
-            Default: False (on-demand instance)
-
         idle_timeout: The number of seconds to wait before pausing the compute when the work is running and idle.
             This timeout starts whenever your run() method succeeds (or fails).
             If the timeout is reached, the instance pauses until the next run() call happens.
@@ -28,7 +23,6 @@ class CloudCompute:
 
     name: str = "default"
     disk_size: int = 0
-    preemptible: bool = False
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = 0
 
