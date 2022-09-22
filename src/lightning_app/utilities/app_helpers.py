@@ -247,12 +247,17 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
     instance_attr = getattr(instance, method_name, None)
     if instance_attr is None:
         return False
+
     # `Mock(wraps=...)` support
     if isinstance(instance_attr, Mock):
         # access the wrapped function
         instance_attr = instance_attr._mock_wraps
+
     if instance_attr is None:
         return False
+
+    if hasattr(instance_attr, "__wrapped__"):
+        instance_attr = instance_attr.__wrapped__
 
     parent_attr = getattr(parent, method_name, None)
     if parent_attr is None:
