@@ -47,7 +47,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _METRIC_COLLECTION,
@@ -86,7 +86,6 @@ class LightningModule(
             "loggers",
             "automatic_optimization",
             "truncated_bptt_steps",
-            "use_amp",
             "trainer",
             "_running_torchscript",
         ]
@@ -103,8 +102,6 @@ class LightningModule(
 
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
-
-        self._use_amp: bool = False
 
         # the precision used
         self.precision: Union[int, str] = 32
@@ -602,7 +599,7 @@ class LightningModule(
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""
-        Same as :meth:`torch.nn.Module.forward()`.
+        Same as :meth:`torch.nn.Module.forward`.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
@@ -1922,36 +1919,6 @@ class LightningModule(
         self._running_torchscript = False
 
         return torchscript_module
-
-    @property
-    def use_amp(self) -> bool:
-        r"""
-        .. deprecated:: v1.6.
-
-            This property was deprecated in v1.6 and will be removed in v1.8.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-                " Please use `Trainer.amp_backend`.",
-                stacklevel=5,
-            )
-        return self._use_amp
-
-    @use_amp.setter
-    def use_amp(self, use_amp: bool) -> None:
-        r"""
-        .. deprecated:: v1.6.
-
-            This property was deprecated in v1.6 and will be removed in v1.8.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-                " Please use `Trainer.amp_backend`.",
-                stacklevel=5,
-            )
-        self._use_amp = use_amp
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:

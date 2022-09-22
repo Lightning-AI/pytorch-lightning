@@ -19,4 +19,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          job: check-group
           interval: 180  # seconds
