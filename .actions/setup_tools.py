@@ -25,7 +25,7 @@ from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain, groupby
 from types import ModuleType
-from typing import List
+from typing import List, Sequence
 
 from pkg_resources import parse_requirements
 
@@ -500,18 +500,22 @@ def _download_frontend(root: str = _PROJECT_ROOT):
         print("The Lightning UI downloading has failed!")
 
 
-def _relax_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
+def _relax_require_versions(
+    source_dir: str = "src", req_dir: str = "requirements", strict_pkgs: Sequence[str] = ("lightning_app",)
+) -> None:
     """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`.
 
     >>> _relax_require_versions("../src", "../requirements")
     """
+    strict_pkgs = strict_pkgs or tuple()
     reqs = load_requirements(req_dir, file_name="base.txt")
     for i, req in enumerate(parse_requirements(reqs)):
-        ver_ = parse_version_from_file(os.path.join(source_dir, req.name))
-        if not ver_:
+        ver = parse_version_from_file(os.path.join(source_dir, req.name))
+        if not ver:
             continue
-        ver2 = ".".join(ver_.split(".")[:2] + ["*"])
-        reqs[i] = f"{req}, =={ver2}"
+        if req.name not in strict_pkgs:
+            ver = ".".join(ver.split(".")[:2] + ["*"])
+        reqs[i] = f"{req}, =={ver}"
 
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in reqs])

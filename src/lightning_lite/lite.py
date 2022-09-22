@@ -21,6 +21,7 @@ from typing import Any, Callable, cast, Dict, Generator, List, Optional, overloa
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
@@ -40,6 +41,7 @@ from lightning_lite.utilities.data import (
 )
 from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
@@ -157,6 +159,10 @@ class LightningLite(ABC):
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        model.to(self.device if move_to_device else next(model.parameters()).device)
+
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
@@ -388,6 +394,15 @@ class LightningLite(ABC):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
+        initial_device = next(model.parameters()).device
+        if any(param.device != initial_device for param in model.parameters()):
+            rank_zero_warn(
+                "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`,"
+                " all parameters will be moved to the new device. If this is not desired, set "
+                " `Lite.setup(..., move_to_device=False)`.",
+                category=PossibleUserWarning,
+            )
+
         if isinstance(self._strategy, XLAStrategy):
             # When the user creates the optimizer, they reference the parameters on the CPU.
             # However, when running with TPU the parameters get copied and the reference in the optimizer
