@@ -16,6 +16,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
+from typing_extensions import Literal
 
 from lightning_lite.accelerators import ACCELERATOR_REGISTRY
 from lightning_lite.accelerators.accelerator import Accelerator
@@ -435,7 +436,7 @@ class _Connector:
                     )
                 return TPUBf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecision(self._precision_flag, amp_type="native", amp_level=None)  # type: ignore
+            return DeepSpeedPrecision(self._precision_flag, amp_type="native", amp_level=None)
 
         if self._precision_flag == "32":
             return Precision()

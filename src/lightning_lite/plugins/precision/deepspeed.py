@@ -15,6 +15,7 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.utilities.enums import AMPType, PrecisionType
