@@ -694,6 +694,7 @@ def test_ddp_fork_on_unsupported_platform(_, strategy):
         _Connector(strategy=strategy)
 
 
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
 def test_precision_selection_16_on_cpu_warns():
     with pytest.warns(
         UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
@@ -719,6 +720,7 @@ class MyNativeAMP(NativeMixedPrecision):
     "is_custom_plugin,plugin_cls",
     [(False, NativeMixedPrecision), (True, MyNativeAMP)],
 )
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None
     if is_custom_plugin:
