@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Any
+from typing import Any, Callable
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import Steppable
@@ -27,14 +27,14 @@ if _XLA_AVAILABLE:
 class TPUPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for TPU integration."""
 
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,
+        model: "pl.LightningModule",
+        optimizer_idx: int,
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        model: pl.LightningModule = kwargs.pop("model")
         closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": closure, **kwargs})
         skipped_backward = closure_result is None

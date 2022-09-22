@@ -62,10 +62,14 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
             tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
 
-    def optimizer_step(self, optimizer: Steppable, **kwargs: Any) -> Any:
-        optimizer_idx = kwargs.pop("optimizer_idx")
-        closure = kwargs.pop("closure")
-        model: pl.LightningModule = kwargs.pop("model")
+    def optimizer_step(  # type: ignore[override]
+        self,
+        optimizer: Steppable,
+        model: "pl.LightningModule",
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
             return super().optimizer_step(

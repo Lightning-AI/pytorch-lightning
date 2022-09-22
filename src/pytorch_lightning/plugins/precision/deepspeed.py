@@ -77,6 +77,8 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
+        optimizer: Optional[Steppable],
+        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -85,6 +87,8 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         Args:
             tensor: the loss tensor
             model: the model to be optimized
+            optimizer: ignored for DeepSpeed
+            optimizer_idx: ignored for DeepSpeed
             \*args: additional positional arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
             \**kwargs: additional keyword arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
         """
@@ -97,9 +101,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(tensor, *args, **kwargs)
 
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,
+        model: "pl.LightningModule",
+        optimizer_idx: int,
+        closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         optimizer_idx = kwargs.pop("optimizer_idx")
