@@ -33,7 +33,7 @@ def connect(app_name_or_id: str, yes: bool = False):
             else:
                 click.echo(
                     f"You are already connected to the cloud Lightning App: {app_name_or_id}."
-                    "Please run `lightning disconnect`"
+                    " Please run `lightning disconnect`"
                 )
         else:
             disconnect()
