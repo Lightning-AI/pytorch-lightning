@@ -42,7 +42,6 @@ class BoringModelGPU(BoringModel):
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
         assert self.device == torch.device(f"cuda:{self.trainer.strategy.local_rank}")
-        self.start_cuda_memory = torch.cuda.memory_allocated()
 
 @hydra.main(config_path=None, version_base="1.1")
 def task_fn(cfg):
@@ -62,10 +61,9 @@ if __name__ == "__main__":
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
-@pytest.mark.usefixtures("cleandir")
+@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason=str(_HYDRA_AVAILABLE))
 @pytest.mark.parametrize("subdir", [None, "dksa", ".hello"])
-def test_ddp_with_hydra_runjob(subdir):
+def test_ddp_with_hydra_runjob(cleandir, subdir):
     # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
@@ -92,10 +90,9 @@ def test_ddp_with_hydra_runjob(subdir):
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="Hydra not Available")
-@pytest.mark.usefixtures("cleandir")
+@pytest.mark.skipif(not _HYDRA_AVAILABLE, reason=str(_HYDRA_AVAILABLE))
 @pytest.mark.parametrize("num_jobs", [1, 2])
-def test_ddp_with_hydra_multirunjob(num_jobs):
+def test_ddp_with_hydra_multirunjob(cleandir, num_jobs):
     # Save script locally
     with open("temp.py", "w") as fn:
         fn.write(script)
@@ -130,8 +127,7 @@ hydra:
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.skipif(not _HYDRA_WITH_RERUN, reason="Hydra with `rerun` not Available")
-@pytest.mark.usefixtures("cleandir")
+@pytest.mark.skipif(not _HYDRA_WITH_RERUN, reason=str(_HYDRA_WITH_RERUN))
 @pytest.mark.parametrize("num_jobs", [1, 2])
 def test_ddp_with_hydra_multirunjob_rerun(num_jobs):
     # Save script locally
