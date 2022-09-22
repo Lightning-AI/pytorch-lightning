@@ -23,6 +23,7 @@ import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
 from lightning_utilities.core.apply_func import apply_to_collection
+from tests_lite.helpers.models import RandomDataset
 from tests_lite.helpers.runif import RunIf
 from torch import nn
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -34,7 +35,6 @@ from lightning_lite.plugins.environments.lightning_environment import find_free_
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.cloud_io import atomic_save
-from pytorch_lightning.demos.boring_classes import RandomDataset
 
 
 class BoringModel(nn.Module):

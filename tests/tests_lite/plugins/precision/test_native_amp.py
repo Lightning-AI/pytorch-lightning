@@ -42,12 +42,8 @@ def test_native_amp_precision_bf16_min_torch():
 
 
 @RunIf(min_torch="1.10")
-def est_native_amp_precision_context_manager(tmpdir):
-    """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
-
-
-@RunIf(min_torch="1.10")
 def test_native_amp_precision_forward_context():
+    """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
     precision_plugin = NativeMixedPrecision(precision=16, device="cuda")
     assert precision_plugin.device == "cuda"
     assert isinstance(precision_plugin.scaler, torch.cuda.amp.GradScaler)

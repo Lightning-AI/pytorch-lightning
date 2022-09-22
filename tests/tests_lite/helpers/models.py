@@ -1,11 +1,11 @@
-from typing import Any
+from typing import Any, Iterator
 
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from lightning_lite import LightningLite
 
@@ -20,6 +20,16 @@ class RandomDataset(Dataset):
 
     def __len__(self) -> int:
         return self.len
+
+
+class RandomIterableDataset(IterableDataset):
+    def __init__(self, size: int, count: int) -> None:
+        self.count = count
+        self.size = size
+
+    def __iter__(self) -> Iterator[Tensor]:
+        for _ in range(self.count):
+            yield torch.randn(self.size)
 
 
 class BoringLite(LightningLite):
