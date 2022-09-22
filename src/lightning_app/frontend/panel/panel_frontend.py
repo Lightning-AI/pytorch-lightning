@@ -33,10 +33,10 @@ class PanelFrontend(Frontend):
 
     Args:
         entry_point: The path to a .py or .ipynb file, or a pure function. The file or function must contain your Panel code.
-            The function can optionally accept an `AppStateWatcher` argument.
+            The function can optionally accept an ``AppStateWatcher`` argument.
 
     Raises:
-        TypeError: Raised if the `entry_point`provided is a class method
+        TypeError: Raised if the ``entry_point`` provided is a class method
 
     Example:
 
@@ -82,13 +82,13 @@ class PanelFrontend(Frontend):
 
     Start the Lightning server with `lightning run app app_basic.py`.
 
-    For development you can get Panel autoreload by setting the `PANEL_AUTORELOAD`
+    For development you can get Panel autoreload by setting the ``PANEL_AUTORELOAD``
     environment variable to 'yes', i.e. run
-    `PANEL_AUTORELOAD=yes lightning run app app_basic.py`
+    ``PANEL_AUTORELOAD=yes lightning run app app_basic.py``
     """
 
     @requires("panel")
-    def __init__(self, entry_point: str | Callable):
+    def __init__(self, entry_point: Union[str, Callable]):
         super().__init__()
 
         if inspect.ismethod(entry_point):
