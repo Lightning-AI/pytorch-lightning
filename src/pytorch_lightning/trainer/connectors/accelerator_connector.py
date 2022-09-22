@@ -90,6 +90,7 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 _LITERAL_WARN = Literal["warn"]
+_PRECISION_INPUT = Literal["16", 16, "32", 32, "64", 64, "bf16"]
 
 
 class AcceleratorConnector:
@@ -100,8 +101,8 @@ class AcceleratorConnector:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        precision: Union[int, str] = 32,
         amp_type: Optional[str] = None,
+        precision: _PRECISION_INPUT = 32,
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -169,7 +170,7 @@ class AcceleratorConnector:
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[Union[int, str]] = None
+        self._precision_flag: Optional[str] = None
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -236,7 +237,7 @@ class AcceleratorConnector:
         self,
         strategy: Optional[Union[str, Strategy]],
         accelerator: Optional[Union[str, Accelerator]],
-        precision: Union[int, str],
+        precision: _PRECISION_INPUT,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         amp_type: Optional[str],
         amp_level: Optional[str],
@@ -290,7 +291,7 @@ class AcceleratorConnector:
                 raise MisconfigurationException(
                     f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
-            self._precision_flag = precision
+            self._precision_flag = str(precision)
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -697,10 +698,10 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, HPUAccelerator):
             return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == 32:
+            if self._precision_flag == "32":
                 return TPUPrecisionPlugin()
-            elif self._precision_flag in (16, "bf16"):
-                if self._precision_flag == 16:
+            elif self._precision_flag in ("16", "bf16"):
+                if self._precision_flag == "16":
                     rank_zero_warn(
                         "You passed `Trainer(accelerator='tpu', precision=16)` but AMP"
                         " is not supported with TPUs. Using `precision='bf16'` instead."
@@ -712,22 +713,22 @@ class AcceleratorConnector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
-        if self._precision_flag == 32:
+        if self._precision_flag == "32":
             return PrecisionPlugin()
-        if self._precision_flag == 64:
+        if self._precision_flag == "64":
             return DoublePrecisionPlugin()
 
-        if self._precision_flag == 16 and self._accelerator_flag == "cpu":
+        if self._precision_flag == "16" and self._accelerator_flag == "cpu":
             rank_zero_warn(
                 "You passed `Trainer(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_flag = "bf16"
 
-        if self._precision_flag in (16, "bf16"):
+        if self._precision_flag in ("16", "bf16"):
             rank_zero_info(
                 f"Using 16bit {self._amp_type_flag} Automatic Mixed Precision (AMP)"
-                if self._precision_flag == 16
+                if self._precision_flag == "16"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
 
@@ -751,7 +752,7 @@ class AcceleratorConnector:
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == 64:
+            if self._precision_flag == "64":
                 raise MisconfigurationException(
                     "`Trainer(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
@@ -765,12 +766,12 @@ class AcceleratorConnector:
                     f" found: {self._precision_plugin_flag}."
                 )
         if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in (16, "bf16", 32):
+            if self._precision_flag not in ("16", "bf16", "32"):
                 raise MisconfigurationException(
                     f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
                 )
         if (
-            self._precision_flag == 16
+            self._precision_flag == "16"
             and isinstance(self.accelerator, CPUAccelerator)
             and self._amp_type_flag == "apex"
         ):
@@ -778,7 +779,7 @@ class AcceleratorConnector:
                 "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
                 " but apex AMP not supported on CPU."
             )
-        if self._precision_flag in (16, "bf16") and self._amp_type_flag == "apex":
+        if self._precision_flag in ("16", "bf16") and self._amp_type_flag == "apex":
             if self._precision_flag == "bf16":
                 raise MisconfigurationException(
                     "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."

@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Generator, Optional, Union
 import torch
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
@@ -37,10 +38,11 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal[16, "16", "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
-        if scaler is None and precision == 16:
+        precision = str(precision)
+        if scaler is None and precision == "16":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
                 scaler = torch.cuda.amp.GradScaler()
