@@ -200,6 +200,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated `Trainer.use_amp` and `LightningModule.use_amp` attributes ([#14832](https://github.com/Lightning-AI/lightning/pull/14832))
 
+- Removed the depricated `LightningIPUModule` ([#14839](https://github.com/Lightning-AI/lightning/pull/14839))
+
 
 
 ### Fixed
@@ -781,7 +783,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated passing only the callback state to `Callback.on_load_checkpoint(callback_state)` in favor of passing the callback state to `Callback.load_state_dict` and in 1.8, passing the entire checkpoint dictionary to `Callback.on_load_checkpoint(checkpoint)` ([#11887](https://github.com/Lightning-AI/lightning/pull/11887))
 - Deprecated `Trainer.gpus` in favor of `Trainer.device_ids` or `Trainer.num_devices` ([#12436](https://github.com/Lightning-AI/lightning/pull/12436))
 - Deprecated `Trainer.tpu_cores` in favor of `Trainer.num_devices` ([#12437](https://github.com/Lightning-AI/lightning/pull/12437))
-
+- Deprecated ``
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/Lightning-AI/lightning/pull/10507))
