@@ -84,7 +84,7 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.setup import _init_debugging_flags
+from pytorch_lightning.trainer import setup
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -533,7 +533,7 @@ class Trainer(
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
-        self._init_debugging_flags(
+        setup._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
