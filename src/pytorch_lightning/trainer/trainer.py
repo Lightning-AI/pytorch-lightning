@@ -1401,45 +1401,6 @@ class Trainer(
         # summarize profile results
         self.profiler.describe()
 
-    def call_hook(
-        self, hook_name: str, *args: Any, pl_module: Optional["pl.LightningModule"] = None, **kwargs: Any
-    ) -> Any:
-        r"""
-        .. deprecated:: v1.6
-            The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.
-        """
-        rank_zero_deprecation("The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.")
-        pl_module = self.lightning_module or pl_module
-        if pl_module:
-            prev_fx_name = pl_module._current_fx_name
-            pl_module._current_fx_name = hook_name
-
-        # always profile hooks
-        with self.profiler.profile(hook_name):
-
-            # first call trainer hook
-            callback_fx = getattr(self, hook_name, None)
-            if callable(callback_fx):
-                callback_fx(*args, **kwargs)
-
-            # next call hook in lightningModule
-            output = None
-            model_fx = getattr(pl_module, hook_name, None)
-            if callable(model_fx):
-                output = model_fx(*args, **kwargs)
-
-            # call the strategy hook
-            if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(self.strategy, hook_name):
-                strategy_hook = getattr(self.strategy, hook_name)
-                strategy_output = strategy_hook(*args, **kwargs)
-                output = strategy_output if output is None else output
-
-        if pl_module:
-            # restore current_fx when nested context
-            pl_module._current_fx_name = prev_fx_name
-
-        return output
-
     def _call_lightning_module_hook(
         self,
         hook_name: str,

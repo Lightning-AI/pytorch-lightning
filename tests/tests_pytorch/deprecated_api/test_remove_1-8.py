@@ -56,18 +56,6 @@ def test_v1_8_0_on_init_start_end(tmpdir):
         trainer.validate(model)
 
 
-def test_v1_8_0_deprecated_call_hook():
-    trainer = Trainer(
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-        enable_progress_bar=False,
-        logger=False,
-    )
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
-        trainer.call_hook("test_hook")
-
-
 def test_v1_8_0_deprecated_run_stage():
     trainer = Trainer()
     trainer._run_stage = Mock()

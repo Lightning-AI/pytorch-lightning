@@ -140,8 +140,7 @@ For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
 
 A full list with all built-in loops and subloops can be found :ref:`here <loop-structure-extensions>`.
 
-To add your own modifications to a loop, simply subclass an existing loop class and override what you need.
-Here is a simple example how to add a new hook:
+To add your own modifications to a loop, simply subclass an existing loop class and override what you need:
 
 .. code-block:: python
 
@@ -150,12 +149,7 @@ Here is a simple example how to add a new hook:
 
     class CustomFitLoop(FitLoop):
         def advance(self):
-            # ... whatever code before
-
-            # pass anything you want to the hook
-            self.trainer.call_hook("my_new_hook", *args, **kwargs)
-
-            # ... whatever code after
+            # ... code
 
 Now simply attach the correct loop in the trainer directly:
 

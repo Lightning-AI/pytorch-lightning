@@ -221,6 +221,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated `Trainer.use_amp` and `LightningModule.use_amp` attributes ([#14832](https://github.com/Lightning-AI/lightning/pull/14832))
 
+- Removed the deprecated `Trainer.call_hook` in favor of `Trainer._call_callback_hooks`, `Trainer._call_lightning_module_hook`, `Trainer._call_ttp_hook`, and `Trainer._call_accelerator_hook`
+
 
 ### Fixed
 
