@@ -173,7 +173,10 @@ class CheckpointConnector:
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
                 return None
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+            ckpt_path = max(
+                candidates_ts.keys(),
+                key=partial(operator.getitem, candidates_ts),  # type: ignore[arg-type]
+            )
 
         if not ckpt_path:
             raise MisconfigurationException(

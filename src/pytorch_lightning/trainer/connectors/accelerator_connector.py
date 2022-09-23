@@ -774,8 +774,7 @@ class AcceleratorConnector:
         """Lazily set missing attributes on the previously instantiated strategy."""
         self.strategy.accelerator = self.accelerator
         if self.precision_plugin:
-            # TODO(lite): remove ignore after merging lite and PL precisions
-            self.strategy.precision_plugin = self.precision_plugin  # type: ignore[assignment]
+            self.strategy.precision_plugin = self.precision_plugin
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
