@@ -96,12 +96,12 @@ class CheckpointConnector:
             )
         return loaded_checkpoint
 
-    def _set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+    def _set_ckpt_path(self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
         # fault-tolerance takes precedence
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-        fn = self.trainer.state.fn.value
+        fn = state_fn.value
 
         if ckpt_path is None and ft_checkpoints and self.trainer.state.fn == TrainerFn.FITTING:
             ckpt_path = "last"
@@ -115,7 +115,7 @@ class CheckpointConnector:
 
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
-            return
+            return None
 
         if model_connected and ckpt_path is None:
             ckpt_path = "best"
@@ -170,7 +170,7 @@ class CheckpointConnector:
                     f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
-                return
+                return None
             ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
 
         if not ckpt_path:
