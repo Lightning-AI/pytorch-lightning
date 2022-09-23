@@ -30,7 +30,18 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PATH
 
+
+def restore_modules_and_callbacks(trainer, checkpoint_path: Optional[_PATH] = None) -> None:
+    # restore modules after setup
+    trainer._checkpoint_connector.resume_start(checkpoint_path)
+    trainer._checkpoint_connector._restore_quantization_callbacks()
+    trainer._checkpoint_connector.restore_model()
+    trainer._checkpoint_connector.restore_datamodule()
+    if trainer.state.fn == TrainerFn.FITTING:
+        # restore callback states
+        trainer._checkpoint_connector.restore_callbacks()
 
 def setup_profiler(trainer) -> None:
     local_rank = trainer.local_rank if trainer.world_size > 1 else None

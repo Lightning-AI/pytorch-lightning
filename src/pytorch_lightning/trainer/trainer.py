@@ -988,16 +988,6 @@ class Trainer(
 
         return result
 
-    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
-        # restore modules after setup
-        self._checkpoint_connector.resume_start(checkpoint_path)
-        self._checkpoint_connector._restore_quantization_callbacks()
-        self._checkpoint_connector.restore_model()
-        self._checkpoint_connector.restore_datamodule()
-        if self.state.fn == TrainerFn.FITTING:
-            # restore callback states
-            self._checkpoint_connector.restore_callbacks()
-
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
@@ -1037,7 +1027,7 @@ class Trainer(
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
             log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._restore_modules_and_callbacks(ckpt_path)
+            run_utils.restore_modules_and_callbacks(self, ckpt_path)
 
         log.detail(f"{self.__class__.__name__}: configuring sharded model")
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1085,7 +1075,7 @@ class Trainer(
 
         if self.strategy.restore_checkpoint_after_setup:
             log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._restore_modules_and_callbacks(ckpt_path)
+            run_utils.restore_modules_and_callbacks(self, ckpt_path)
 
         # restore optimizers, etc.
         log.detail(f"{self.__class__.__name__}: restoring training state")
