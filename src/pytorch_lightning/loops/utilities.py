@@ -228,7 +228,11 @@ def _set_sampler_epoch(dataloader: Union[DataLoader, CombinedLoader], epoch: int
     :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
     of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
     """
-    for sampler_name in ("sampler", "batch_sampler"):
-        sampler = getattr(dataloader, sampler_name, None)
-        if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
-            sampler.set_epoch(epoch)
+    if isinstance(dataloader, CombinedLoader):
+        for loader in dataloader.loaders:
+            _set_sampler_epoch(loader, epoch)
+    else:
+        for sampler_name in ("sampler", "batch_sampler"):
+            sampler = getattr(dataloader, sampler_name, None)
+            if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
+                sampler.set_epoch(epoch)
