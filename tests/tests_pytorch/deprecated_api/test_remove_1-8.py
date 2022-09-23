@@ -321,6 +321,7 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
     ):
         trainer.fit(model)
 
+
 def test_v1_8_0_datamodule_checkpointhooks():
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
