@@ -724,7 +724,9 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
         final_path = "foobar"
 
     with ctxt:
-        ckpt_path = trainer._checkpoint_connector._set_ckpt_path(fn, ckpt_path, model_provided=fn == "fit", model_connected=True)
+        ckpt_path = trainer._checkpoint_connector._set_ckpt_path(
+            fn, ckpt_path, model_provided=fn == "fit", model_connected=True
+        )
     assert ckpt_path == final_path
 
 
