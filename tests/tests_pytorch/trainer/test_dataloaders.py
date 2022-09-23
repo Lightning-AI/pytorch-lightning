@@ -32,12 +32,12 @@ from pytorch_lightning.demos.boring_classes import (
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
+from pytorch_lightning.trainer import run_utils
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
-from pytorch_lightning.trainer import run_utils
 
 
 class MultiValDataLoaderBoringModel(BoringModel):

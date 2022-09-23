@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Any
+from typing import Any, Optional
 from weakref import proxy
 
 from lightning_utilities.core.apply_func import apply_to_collection

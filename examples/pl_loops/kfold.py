@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from cProfile import run
 import os.path as osp
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from cProfile import run
 from dataclasses import dataclass
 from os import path
 from typing import Any, Dict, List, Optional, Type
@@ -34,8 +34,8 @@ from pytorch_lightning.demos.boring_classes import Net
 from pytorch_lightning.demos.mnist_datamodule import MNIST
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.loop import Loop
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer import run_utils
+from pytorch_lightning.trainer.states import TrainerFn
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
