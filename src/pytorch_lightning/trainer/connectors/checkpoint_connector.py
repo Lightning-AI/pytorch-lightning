@@ -19,8 +19,6 @@ import re
 from copy import deepcopy
 from functools import partial
 from typing import Any, Dict, Optional
-import operator
-from functools import partial
 
 import torch
 from torch import Tensor
