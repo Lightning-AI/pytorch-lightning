@@ -19,7 +19,7 @@ from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
-def call_and_handle_interrupt(trainer, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
+def call_and_handle_interrupt(trainer: Any, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
     r"""
     Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
     as all errors should funnel through them
