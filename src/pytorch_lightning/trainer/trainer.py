@@ -15,7 +15,6 @@
 import inspect
 import logging
 import math
-import operator
 import os
 import traceback
 import warnings
@@ -724,7 +723,7 @@ class Trainer(
 
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        self._ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
             ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
@@ -808,7 +807,7 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self._checkpoint_connector.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
@@ -898,7 +897,7 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self._checkpoint_connector.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
@@ -988,7 +987,7 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self.__set_ckpt_path(
+        self._ckpt_path = self._checkpoint_connector.__set_ckpt_path(
             ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
@@ -1359,88 +1358,6 @@ class Trainer(
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
-    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
-        # fault-tolerance takes precedence
-        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
-
-        ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-        fn = self.state.fn.value
-
-        if ckpt_path is None and ft_checkpoints and self.state.fn == TrainerFn.FITTING:
-            ckpt_path = "last"
-            rank_zero_warn(
-                f"`.{fn}(ckpt_path=None)` was called without a model."
-                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
-                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
-                f" `{fn}(ckpt_path='last')` to use the last model."
-                " If you pass a value, this warning will be silenced."
-            )
-
-        if model_provided and ckpt_path is None:
-            # use passed model to function without loading weights
-            return
-
-        if model_connected and ckpt_path is None:
-            ckpt_path = "best"
-            ft_tip = (
-                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
-                if ft_checkpoints
-                else ""
-            )
-            rank_zero_warn(
-                f"`.{fn}(ckpt_path=None)` was called without a model."
-                " The best model of the previous `fit` call will be used."
-                + ft_tip
-                + f" You can pass `.{fn}(ckpt_path='best')` to use the best model or"
-                f" `.{fn}(ckpt_path='last')` to use the last model."
-                " If you pass a value, this warning will be silenced."
-            )
-
-        if ckpt_path == "best":
-            if len(self.checkpoint_callbacks) > 1:
-                rank_zero_warn(
-                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple `ModelCheckpoint`'
-                    " callbacks. It will use the best checkpoint path from first checkpoint callback."
-                )
-
-            if not self.checkpoint_callback:
-                raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
-                )
-
-            if hasattr(self.checkpoint_callback, "best_model_path") and not self.checkpoint_callback.best_model_path:
-                if self.fast_dev_run:
-                    raise MisconfigurationException(
-                        f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
-                        f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
-                    )
-                raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
-                )
-            # load best weights
-            ckpt_path = getattr(self.checkpoint_callback, "best_model_path", None)
-
-        if ckpt_path == "last":
-            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
-                getattr(cb, "last_model_path", None) for cb in self.checkpoint_callbacks
-            ]
-            candidates_fs = {path: get_filesystem(path) for path in candidates if path}
-            candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
-            if not candidates_ts:
-                # not an error so it can be set and forget before the first `fit` run
-                rank_zero_warn(
-                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
-                    " or last checkpoint available. No checkpoint will be loaded."
-                )
-                return
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
-
-        if not ckpt_path:
-            raise MisconfigurationException(
-                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
-                f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
-            )
-        return ckpt_path
 
     def _call_setup_hook(self) -> None:
         fn = self.state.fn._setup_fn
