@@ -79,7 +79,7 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer import setup
+from pytorch_lightning.trainer import setup, run_utils
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -1095,7 +1095,7 @@ class Trainer(
             self._call_callback_hooks("on_fit_start")
             self._call_lightning_module_hook("on_fit_start")
 
-        self._log_hyperparams()
+        run_utils.log_hyperparams()
 
         if self.strategy.restore_checkpoint_after_setup:
             log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
@@ -1127,45 +1127,6 @@ class Trainer(
         self.state.stage = None
 
         return results
-
-    def _log_hyperparams(self) -> None:
-        if not self.loggers:
-            return
-        # log hyper-parameters
-        hparams_initial = None
-
-        # save exp to get started (this is where the first experiment logs are written)
-        datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
-
-        if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
-            datamodule_hparams = self.datamodule.hparams_initial
-            lightning_hparams = self.lightning_module.hparams_initial
-            inconsistent_keys = []
-            for key in lightning_hparams.keys() & datamodule_hparams.keys():
-                lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-                if type(lm_val) != type(dm_val):
-                    inconsistent_keys.append(key)
-                elif isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val):
-                    inconsistent_keys.append(key)
-                elif lm_val != dm_val:
-                    inconsistent_keys.append(key)
-            if inconsistent_keys:
-                raise MisconfigurationException(
-                    f"Error while merging hparams: the keys {inconsistent_keys} are present "
-                    "in both the LightningModule's and LightningDataModule's hparams "
-                    "but have different values."
-                )
-            hparams_initial = {**lightning_hparams, **datamodule_hparams}
-        elif self.lightning_module._log_hyperparams:
-            hparams_initial = self.lightning_module.hparams_initial
-        elif datamodule_log_hyperparams:
-            hparams_initial = self.datamodule.hparams_initial
-
-        for logger in self.loggers:
-            if hparams_initial is not None:
-                logger.log_hyperparams(hparams_initial)
-            logger.log_graph(self.lightning_module)
-            logger.save()
 
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
