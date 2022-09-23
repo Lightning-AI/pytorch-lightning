@@ -31,15 +31,10 @@ from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 
-
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
-from pytorch_lightning.accelerators import (
-    Accelerator,
-    HPUAccelerator,
-    TPUAccelerator,
-)
+from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -56,10 +51,9 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
 )
-from pytorch_lightning.profilers import (
-    Profiler,
-)
+from pytorch_lightning.profilers import Profiler
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.trainer import run_utils, setup, teardown
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -69,15 +63,10 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer import setup, run_utils, teardown
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
-from pytorch_lightning.utilities import (
-    AMPType,
-    GradClipAlgorithmType,
-    parsing,
-)
+from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType, parsing
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,

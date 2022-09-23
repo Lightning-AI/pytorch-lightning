@@ -20,14 +20,19 @@
 # DO NOT REMOVE THIS NOTICE
 # - WILLIAM FALCON
 
-"""
-Houses the methods used to set up the Trainer.
-"""
+"""Houses the methods used to set up the Trainer."""
 
 from typing import Optional, Union
+
+from lightning_lite.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.accelerators import (
+    CUDAAccelerator,
+    HPUAccelerator,
+    IPUAccelerator,
+    MPSAccelerator,
+    TPUAccelerator,
+)
 from pytorch_lightning.loggers.logger import DummyLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
@@ -36,20 +41,9 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from lightning_lite.utilities.warnings import PossibleUserWarning
-
-from pytorch_lightning.accelerators import (
-    CUDAAccelerator,
-    HPUAccelerator,
-    IPUAccelerator,
-    MPSAccelerator,
-    TPUAccelerator,
-)
-from pytorch_lightning.utilities import (
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TPU_AVAILABLE,
-)
+from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
 def init_debugging_flags(

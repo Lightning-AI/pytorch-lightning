@@ -13,9 +13,10 @@
 # limitations under the License.
 import traceback
 from typing import Any, Callable
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.trainer.states import TrainerStatus
+
 from lightning_lite.utilities.distributed import distributed_available
+from pytorch_lightning.trainer.states import TrainerStatus
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 def call_and_handle_interrupt(trainer, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:

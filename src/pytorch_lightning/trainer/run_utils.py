@@ -12,25 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
 from weakref import proxy
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
+from lightning_lite.utilities.data import _auto_add_worker_init_fn
+from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import Optional
-from pytorch_lightning.trainer.supporters import CombinedLoader
-from torch.utils.data import DataLoader
-from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_lite.utilities.warnings import PossibleUserWarning
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
-import pytorch_lightning as pl
-from lightning_lite.utilities.types import _PATH
 
 
 def restore_modules_and_callbacks(trainer, checkpoint_path: Optional[_PATH] = None) -> None:
@@ -96,8 +96,7 @@ Data loading methods
 
 
 def reset_train_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
-    """Resets the train dataloader and initialises required variables (number of batches, when to validate,
-    etc.).
+    """Resets the train dataloader and initialises required variables (number of batches, when to validate, etc.).
 
     Args:
         model: The ``LightningModule`` if calling this outside of the trainer scope.
