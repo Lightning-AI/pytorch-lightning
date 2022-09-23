@@ -30,6 +30,7 @@ from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.trainer import run_utils
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
     DataFetcher,
@@ -228,7 +229,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Reloads dataloaders if necessary."""
         dataloaders = None
         if self.trainer.testing:
-            self.trainer.reset_test_dataloader()
+            run_utils.reset_test_dataloader(self.trainer)
             dataloaders = self.trainer.test_dataloaders
         elif self.trainer.val_dataloaders is None or self.trainer._data_connector._should_reload_val_dl:
             self.trainer.reset_val_dataloader()

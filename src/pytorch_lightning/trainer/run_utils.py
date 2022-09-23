@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Optional, Any
 from weakref import proxy
 
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -95,7 +95,7 @@ Data loading methods
 """
 
 
-def reset_train_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
+def reset_train_dataloader(trainer: Any, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets the train dataloader and initialises required variables (number of batches, when to validate, etc.).
 
     Args:
@@ -210,7 +210,7 @@ def reset_train_dataloader(trainer, model: Optional["pl.LightningModule"] = None
         )
 
 
-def reset_val_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
+def reset_val_dataloader(trainer: Any, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets the validation dataloader and determines the number of batches.
 
     Args:
@@ -250,7 +250,7 @@ def reset_test_dataloader(trainer, model: Optional["pl.LightningModule"] = None)
         )
 
 
-def reset_predict_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
+def reset_predict_dataloader(trainer: Any, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets the predict dataloader and determines the number of batches.
 
     Args:
@@ -283,6 +283,6 @@ def reset_train_val_dataloaders(trainer, model: Optional["pl.LightningModule"] =
         " Use `Trainer.reset_{train,val}_dataloader` instead"
     )
     if trainer.train_dataloader is None:
-        trainer.reset_train_dataloader(model=model)
+        trainer.reset_train_dataloader(trainer, model=model)
     if trainer.val_dataloaders is None:
-        trainer.reset_val_dataloader(model=model)
+        trainer.reset_val_dataloader(trainer, model=model)

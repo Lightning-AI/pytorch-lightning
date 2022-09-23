@@ -34,6 +34,7 @@ from pytorch_lightning.demos.mnist_datamodule import MNIST
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.trainer import run_utils
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
@@ -231,7 +232,7 @@ class KFoldLoop(Loop):
         self.trainer.training = True
 
     def _reset_testing(self) -> None:
-        self.trainer.reset_test_dataloader()
+        run_utils.reset_test_dataloader(self.trainer)
         self.trainer.state.fn = TrainerFn.TESTING
         self.trainer.testing = True
 

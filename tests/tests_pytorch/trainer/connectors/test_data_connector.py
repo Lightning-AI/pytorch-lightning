@@ -29,6 +29,7 @@ from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.trainer import run_utils
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -540,7 +541,7 @@ def test_eval_distributed_sampler_warning(devices, warn_context):
 
     trainer.state.fn = TrainerFn.TESTING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
-        trainer.reset_test_dataloader(model)
+        run_utils.reset_test_dataloader(trainer, model)
 
 
 @pytest.mark.parametrize("shuffle", [True, False])

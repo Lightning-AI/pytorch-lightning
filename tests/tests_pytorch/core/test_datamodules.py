@@ -236,7 +236,7 @@ def test_dm_checkpoint_save_and_load(tmpdir):
 
     for trainer_fn in TrainerFn:
         trainer.state.fn = trainer_fn
-        trainer._restore_modules_and_callbacks(checkpoint_path)
+        trainer._restore_modules_and_callbacks(trainer, checkpoint_path)
         assert dm.checkpoint_state == {"my": "state_dict", "on_save": "update"}
         assert dm.my_state_dict == {"my": "state_dict"}
 

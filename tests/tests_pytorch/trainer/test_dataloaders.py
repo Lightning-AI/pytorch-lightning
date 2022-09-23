@@ -37,6 +37,7 @@ from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
+from pytorch_lightning.trainer import run_utils
 
 
 class MultiValDataLoaderBoringModel(BoringModel):
@@ -1142,21 +1143,21 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=0.3, limit_val_batches=0.3, max_epochs=3)
 
-    trainer.reset_train_dataloader = Mock(wraps=trainer.reset_train_dataloader)
-    trainer.reset_val_dataloader = Mock(wraps=trainer.reset_val_dataloader)
-    trainer.reset_test_dataloader = Mock(wraps=trainer.reset_test_dataloader)
+    run_utils.reset_train_dataloader = Mock(wraps=run_utils.reset_train_dataloader)
+    run_utils.reset_val_dataloader = Mock(wraps=run_utils.reset_val_dataloader)
+    run_utils.reset_test_dataloader = Mock(wraps=run_utils.reset_test_dataloader)
 
     tracker = Mock()
-    tracker.attach_mock(trainer.reset_train_dataloader, "reset_train_dataloader")
-    tracker.attach_mock(trainer.reset_val_dataloader, "reset_val_dataloader")
-    tracker.attach_mock(trainer.reset_test_dataloader, "reset_test_dataloader")
+    tracker.attach_mock(run_utils.reset_train_dataloader, "reset_train_dataloader")
+    tracker.attach_mock(run_utils.reset_val_dataloader, "reset_val_dataloader")
+    tracker.attach_mock(run_utils.reset_test_dataloader, "reset_test_dataloader")
 
     trainer.fit(model, train_dataloader, val_dataloader)
     trainer.test(model, dataloaders=test_dataloader)
 
-    trainer.reset_train_dataloader.assert_called_once()
-    trainer.reset_val_dataloader.assert_called_once()
-    trainer.reset_test_dataloader.assert_called_once()
+    run_utils.reset_train_dataloader.assert_called_once()
+    run_utils.reset_val_dataloader.assert_called_once()
+    run_utils.reset_test_dataloader.assert_called_once()
 
     assert tracker.mock_calls == [
         call.reset_val_dataloader(),

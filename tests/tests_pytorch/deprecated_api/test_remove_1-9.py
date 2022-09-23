@@ -34,6 +34,7 @@ from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
+from pytorch_lightning.trainer import run_utils
 
 
 def test_lightning_logger_base_deprecation_warning():
@@ -145,7 +146,7 @@ def test_old_callback_path():
 def test_deprecated_dataloader_reset():
     trainer = Trainer()
     with pytest.deprecated_call(match="reset_train_val_dataloaders` has been deprecated in v1.7"):
-        trainer.reset_train_val_dataloaders()
+        run_utils.reset_train_val_dataloaders(trainer)
 
 
 def test_lightningCLI_registries_register():

@@ -973,7 +973,7 @@ class Trainer(
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
-        run_utils.setup_profiler()
+        run_utils.setup_profiler(self)
 
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
@@ -1024,7 +1024,7 @@ class Trainer(
             self._call_callback_hooks("on_fit_start")
             self._call_lightning_module_hook("on_fit_start")
 
-        run_utils.log_hyperparams()
+        run_utils.log_hyperparams(self)
 
         if self.strategy.restore_checkpoint_after_setup:
             log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
@@ -1138,7 +1138,7 @@ class Trainer(
         return eval_loop_results
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        self.reset_predict_dataloader(self.lightning_module)
+        self.reset_predict_dataloader(self, self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
         with _evaluation_context(self.accelerator):
@@ -2107,7 +2107,7 @@ class Trainer(
 
         if self.train_dataloader is None:
             rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
-            self.reset_train_dataloader()
+            self.reset_train_dataloader(self)
 
         total_batches = self.num_training_batches
 
