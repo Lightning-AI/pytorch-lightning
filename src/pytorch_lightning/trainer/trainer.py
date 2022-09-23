@@ -480,9 +480,6 @@ class Trainer(
             accumulate_grad_batches,
         )
 
-        # hook
-        self._call_callback_hooks("on_init_start")
-
         # init data flags
         self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
@@ -542,9 +539,6 @@ class Trainer(
             val_check_interval,
             num_sanity_val_steps,
         )
-
-        # Callback system
-        self._call_callback_hooks("on_init_end")
 
     def _init_debugging_flags(
         self,
@@ -1488,15 +1482,6 @@ class Trainer(
         **kwargs: Any,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
-        # TODO: remove if block in v1.8
-        if hook_name in ("on_init_start", "on_init_end"):
-            # these `Callback` hooks are the only ones that do not take a lightning module.
-            # we also don't profile bc profiler hasn't been set yet
-            for callback in self.callbacks:
-                fn = getattr(callback, hook_name)
-                if callable(fn):
-                    fn(self, *args, **kwargs)
-            return
 
         pl_module = self.lightning_module
         if pl_module:

@@ -170,8 +170,6 @@ class LightningCallbackVisitor(LightningVisitor):
     methods: Set[str] = {
         "setup",
         "teardown",
-        "on_init_start",
-        "on_init_end",
         "on_fit_start",
         "on_fit_end",
         "on_sanity_check_start",
