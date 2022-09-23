@@ -20,9 +20,17 @@ from typing import Optional, Union
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.profilers import (
+    AdvancedProfiler,
+    PassThroughProfiler,
+    Profiler,
+    PyTorchProfiler,
+    SimpleProfiler,
+    XLAProfiler,
+)
 
 
-def _init_debugging_flags(
+def init_debugging_flags(
     trainer,
     limit_train_batches: Optional[Union[int, float]],
     limit_val_batches: Optional[Union[int, float]],
@@ -111,3 +119,21 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
     raise MisconfigurationException(
         f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
     )
+
+def init_profiler(trainer, profiler: Optional[Union[Profiler, str]]) -> None:
+    if isinstance(profiler, str):
+        PROFILERS = {
+            "simple": SimpleProfiler,
+            "advanced": AdvancedProfiler,
+            "pytorch": PyTorchProfiler,
+            "xla": XLAProfiler,
+        }
+        profiler = profiler.lower()
+        if profiler not in PROFILERS:
+            raise MisconfigurationException(
+                "When passing string value for the `profiler` parameter of `Trainer`,"
+                f" it can only be one of {list(PROFILERS.keys())}"
+            )
+        profiler_class = PROFILERS[profiler]
+        profiler = profiler_class()
+    trainer.profiler: Profiler = profiler or PassThroughProfiler()

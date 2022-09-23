@@ -67,12 +67,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
 )
 from pytorch_lightning.profilers import (
-    AdvancedProfiler,
-    PassThroughProfiler,
     Profiler,
-    PyTorchProfiler,
-    SimpleProfiler,
-    XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
@@ -525,7 +520,7 @@ class Trainer(
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
-        self.__init_profiler(profiler)
+        setup.init_profiler(self, profiler)
 
         # init logger flags
         self._loggers: List[Logger]
@@ -533,7 +528,8 @@ class Trainer(
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
-        setup._init_debugging_flags(
+        setup.init_debugging_flags(
+            self,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
@@ -1570,24 +1566,6 @@ class Trainer(
     @staticmethod
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
-
-    def __init_profiler(self, profiler: Optional[Union[Profiler, str]]) -> None:
-        if isinstance(profiler, str):
-            PROFILERS = {
-                "simple": SimpleProfiler,
-                "advanced": AdvancedProfiler,
-                "pytorch": PyTorchProfiler,
-                "xla": XLAProfiler,
-            }
-            profiler = profiler.lower()
-            if profiler not in PROFILERS:
-                raise MisconfigurationException(
-                    "When passing string value for the `profiler` parameter of `Trainer`,"
-                    f" it can only be one of {list(PROFILERS.keys())}"
-                )
-            profiler_class = PROFILERS[profiler]
-            profiler = profiler_class()
-        self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
