@@ -14,7 +14,7 @@
 
 """Houses the methods used to set up the Trainer."""
 
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
