@@ -222,6 +222,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `Trainer.use_amp` and `LightningModule.use_amp` attributes ([#14832](https://github.com/Lightning-AI/lightning/pull/14832))
 
 
+- Removed the deprecated `SimpleProfiler.profile_iterable` and `AdvancedProfiler.profile_iterable` attributes ([#14864](https://github.com/Lightning-AI/lightning/pull/14864))
+
+
 ### Fixed
 
 - Fixed an issue with `LightningLite.setup()` not setting the `.device` attribute correctly on the returned wrapper ([#14822](https://github.com/Lightning-AI/lightning/pull/14822))
