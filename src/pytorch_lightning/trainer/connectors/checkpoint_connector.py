@@ -145,7 +145,8 @@ class CheckpointConnector:
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
 
-            if hasattr(self.trainer.checkpoint_callback, "best_model_path") and not self.trainer.checkpoint_callback.best_model_path:
+            has_best_model_path = self.trainer.checkpoint_callback.best_model_path
+            if hasattr(self.trainer.checkpoint_callback, "best_model_path") and not has_best_model_path:
                 if self.trainer.fast_dev_run:
                     raise MisconfigurationException(
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'

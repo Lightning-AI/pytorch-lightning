@@ -22,7 +22,6 @@ from argparse import ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
@@ -1357,7 +1356,6 @@ class Trainer(
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
-
 
     def _call_setup_hook(self) -> None:
         fn = self.state.fn._setup_fn
