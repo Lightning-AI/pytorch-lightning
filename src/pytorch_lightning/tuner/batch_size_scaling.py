@@ -25,6 +25,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.trainer import run_utils
+
 
 log = logging.getLogger(__name__)
 
@@ -145,8 +147,8 @@ def _run_power_scaling(
                 break
 
             # Force the train dataloader to reset as the batch size has changed
-            trainer.reset_train_dataloader(model)
-            trainer.reset_val_dataloader(model)
+            run_utils.reset_train_dataloader(trainer, model)
+            run_utils.reset_val_dataloader(trainer, model)
             any_success = True
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
@@ -155,8 +157,8 @@ def _run_power_scaling(
                 garbage_collection_cuda()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
                 # Force the train dataloader to reset as the batch size has changed
-                trainer.reset_train_dataloader(model)
-                trainer.reset_val_dataloader(model)
+                run_utils.reset_train_dataloader(trainer, model)
+                run_utils.reset_val_dataloader(trainer, model)
                 if any_success:
                     break
             else:
@@ -202,8 +204,8 @@ def _run_binsearch_scaling(
                 break
 
             # Force the train dataloader to reset as the batch size has changed
-            trainer.reset_train_dataloader(model)
-            trainer.reset_val_dataloader(model)
+            run_utils.reset_train_dataloader(trainer, model)
+            run_utils.reset_val_dataloader(trainer, model)
 
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
@@ -215,8 +217,8 @@ def _run_binsearch_scaling(
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
 
                 # Force the train dataloader to reset as the batch size has changed
-                trainer.reset_train_dataloader(model)
-                trainer.reset_val_dataloader(model)
+                run_utils.reset_train_dataloader(trainer, model)
+                run_utils.reset_val_dataloader(trainer, model)
 
                 if high - low <= 1:
                     break

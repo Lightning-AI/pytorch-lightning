@@ -232,7 +232,7 @@ class EvaluationLoop(DataLoaderLoop):
             run_utils.reset_test_dataloader(self.trainer)
             dataloaders = self.trainer.test_dataloaders
         elif self.trainer.val_dataloaders is None or self.trainer._data_connector._should_reload_val_dl:
-            self.trainer.reset_val_dataloader()
+            run_utils.reset_val_dataloader(self.trainer)
             dataloaders = self.trainer.val_dataloaders
         if dataloaders is not None:
             self.epoch_loop._reset_dl_batch_idx(len(dataloaders))

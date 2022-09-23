@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cProfile import run
 import os.path as osp
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -226,8 +227,8 @@ class KFoldLoop(Loop):
         self.current_fold = state_dict["current_fold"]
 
     def _reset_fitting(self) -> None:
-        self.trainer.reset_train_dataloader()
-        self.trainer.reset_val_dataloader()
+        run_utils.reset_train_dataloader(self.trainer)
+        run_utils.reset_val_dataloader(self.trainer)
         self.trainer.state.fn = TrainerFn.FITTING
         self.trainer.training = True
 

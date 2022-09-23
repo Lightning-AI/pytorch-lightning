@@ -283,6 +283,6 @@ def reset_train_val_dataloaders(trainer, model: Optional["pl.LightningModule"] =
         " Use `Trainer.reset_{train,val}_dataloader` instead"
     )
     if trainer.train_dataloader is None:
-        trainer.reset_train_dataloader(trainer, model=model)
+        reset_train_dataloader(trainer, model=model)
     if trainer.val_dataloaders is None:
-        trainer.reset_val_dataloader(trainer, model=model)
+        reset_val_dataloader(trainer, model=model)
