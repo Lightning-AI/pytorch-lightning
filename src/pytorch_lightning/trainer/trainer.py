@@ -51,7 +51,6 @@ from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, Pro
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.trainer import teardown
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
@@ -74,6 +73,7 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.trainer import teardown
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
