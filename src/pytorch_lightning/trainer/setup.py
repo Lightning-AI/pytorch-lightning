@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+# THIS FILE MUST READ EASILY AND NOT OBSCURE THE TRAINING LOOP
+# THIS IS A HARD REQUIREMENT TO CONTRIBUTING TO LIGHTNING
+# WE FAVOR READABILITY OVER ENGINEERING-CONSTRUCTS BY DESIGN
+# DO NOT REMOVE THIS NOTICE
+# - WILLIAM FALCON
+
 """
 Houses the methods used to set up the Trainer.
 """
