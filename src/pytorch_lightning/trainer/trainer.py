@@ -84,6 +84,7 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
+from pytorch_lightning.trainer.setup import _init_debugging_flags
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -546,61 +547,6 @@ class Trainer(
         # Callback system
         self._call_callback_hooks("on_init_end")
 
-    def _init_debugging_flags(
-        self,
-        limit_train_batches: Optional[Union[int, float]],
-        limit_val_batches: Optional[Union[int, float]],
-        limit_test_batches: Optional[Union[int, float]],
-        limit_predict_batches: Optional[Union[int, float]],
-        fast_dev_run: Union[int, bool],
-        overfit_batches: Union[int, float],
-        val_check_interval: Optional[Union[int, float]],
-        num_sanity_val_steps: int,
-    ):
-        # init debugging flags
-        if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
-            raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run!r} is not a valid configuration. It should be >= 0."
-            )
-        self.fast_dev_run = fast_dev_run
-
-        # set fast_dev_run=True when it is 1, used while logging
-        if fast_dev_run == 1:
-            self.fast_dev_run = True
-
-        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        overfit_batches_enabled = overfit_batches > 0
-
-        if fast_dev_run:
-            num_batches = int(fast_dev_run)
-            if not overfit_batches_enabled:
-                self.limit_train_batches = num_batches
-                self.limit_val_batches = num_batches
-
-            self.limit_test_batches = num_batches
-            self.limit_predict_batches = num_batches
-            self.fit_loop.max_steps = num_batches
-            self.num_sanity_val_steps = 0
-            self.fit_loop.max_epochs = 1
-            self.val_check_interval = 1.0
-            self.check_val_every_n_epoch = 1
-            self.loggers = [DummyLogger()] if self.loggers else []
-            rank_zero_info(
-                f"Running in `fast_dev_run` mode: will run the requested loop using {num_batches} batch(es). "
-                "Logging and checkpointing is suppressed."
-            )
-        else:
-            if not overfit_batches_enabled:
-                self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
-                self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
-            self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
-            self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
-            self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
-            self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
-
-        if overfit_batches_enabled:
-            self.limit_train_batches = overfit_batches
-            self.limit_val_batches = overfit_batches
 
     def _setup_on_init(self) -> None:
         self._log_device_info()
@@ -2576,36 +2522,3 @@ def _evaluation_context(accelerator: Accelerator) -> Generator:
     )
     with context_manager_class():
         yield
-
-
-def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
-    if batches is None:
-        # batches is optional to know if the user passed a value so that we can show the above info messages only to the
-        # users that set a value explicitly
-        return 1.0
-
-    # differentiating based on the type can be error-prone for users. show a message describing the chosen behaviour
-    if isinstance(batches, int) and batches == 1:
-        if name == "limit_train_batches":
-            message = "1 batch per epoch will be used."
-        elif name == "val_check_interval":
-            message = "validation will run after every batch."
-        else:
-            message = "1 batch will be used."
-        rank_zero_info(f"`Trainer({name}=1)` was configured so {message}")
-    elif isinstance(batches, float) and batches == 1.0:
-        if name == "limit_train_batches":
-            message = "100% of the batches per epoch will be used."
-        elif name == "val_check_interval":
-            message = "validation will run at the end of the training epoch."
-        else:
-            message = "100% of the batches will be used."
-        rank_zero_info(f"`Trainer({name}=1.0)` was configured so {message}.")
-
-    if 0 <= batches <= 1:
-        return batches
-    if batches > 1 and batches % 1.0 == 0:
-        return int(batches)
-    raise MisconfigurationException(
-        f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
-    )
