@@ -547,7 +547,6 @@ class Trainer(
         # Callback system
         self._call_callback_hooks("on_init_end")
 
-
     def _setup_on_init(self) -> None:
         setup.log_device_info(self)
 
@@ -1542,7 +1541,6 @@ class Trainer(
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
-
 
     """
     Data loading methods

@@ -14,7 +14,7 @@
 
 """Houses the methods used to set up the Trainer."""
 
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
@@ -39,7 +39,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
 def init_debugging_flags(
-    trainer,
+    trainer: Any,
     limit_train_batches: Optional[Union[int, float]],
     limit_val_batches: Optional[Union[int, float]],
     limit_test_batches: Optional[Union[int, float]],
@@ -48,7 +48,7 @@ def init_debugging_flags(
     overfit_batches: Union[int, float],
     val_check_interval: Optional[Union[int, float]],
     num_sanity_val_steps: int,
-):
+) -> None:
     # init debugging flags
     if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
         raise MisconfigurationException(
@@ -128,7 +128,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
     )
 
 
-def init_profiler(trainer, profiler: Optional[Union[Profiler, str]]) -> None:
+def init_profiler(trainer: Any, profiler: Optional[Union[Profiler, str]]) -> None:
     if isinstance(profiler, str):
         PROFILERS = {
             "simple": SimpleProfiler,
@@ -144,10 +144,10 @@ def init_profiler(trainer, profiler: Optional[Union[Profiler, str]]) -> None:
             )
         profiler_class = PROFILERS[profiler]
         profiler = profiler_class()
-    trainer.profiler: Profiler = profiler or PassThroughProfiler()
+    trainer.profiler = profiler or PassThroughProfiler()
 
 
-def log_device_info(trainer) -> None:
+def log_device_info(trainer: Any) -> None:
 
     if CUDAAccelerator.is_available():
         gpu_available = True
