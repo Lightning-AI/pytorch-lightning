@@ -11,6 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# THIS FILE MUST READ EASILY, FOR UNDERSTANDING AND DEBUGGING PURPOSES.
+# DO NOT OBSCURE THE TRAINING LOOP
+# THIS IS A HARD REQUIREMENT TO CONTRIBUTING TO LIGHTNING
+# WE FAVOR READABILITY OVER ENGINEERING-CONSTRUCTS BY DESIGN
+# DO NOT REMOVE THIS NOTICE
+# - WILLIAM FALCON
+
 """Trainer to automate the training."""
 import inspect
 import logging
@@ -73,7 +81,7 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer import teardown
+from pytorch_lightning.trainer import setup, teardown
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
