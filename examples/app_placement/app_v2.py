@@ -3,11 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run
 
 from lightning import CloudCompute, LightningApp, LightningFlow, LightningWork
-
-
-def healthz():
-    """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
-    return {"status": "ok"}
+from lightning_app.frontend import StreamlitFrontend
 
 
 class Work(LightningWork):
@@ -24,15 +20,27 @@ class Work(LightningWork):
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        # trailing / is required for urljoin to properly join the path. In case of
-        # multiple trailing /, urljoin removes them
-        fastapi_service.get("/healthz", status_code=200)(healthz)
+
+        @fastapi_service.get(f"/{self.name}")
+        def get_root_name():
+            return {"Hello Word!"}
 
         @fastapi_service.get("/")
         def get_root():
             return {"Hello Word!"}
 
         run(fastapi_service, host=self.host, port=self.port)
+
+
+class NestedFlow(LightningFlow):
+    def configure_layout(self):
+        return StreamlitFrontend(render_fn=render_fn)
+
+
+def render_fn(state):
+    import streamlit as st
+
+    st.write("Hello World !")
 
 
 class Flow(LightningFlow):
@@ -42,6 +50,7 @@ class Flow(LightningFlow):
         self.work_a = Work()
         self.work_b = Work()
         self.work_c = Work(cloud_compute=self.cloud_compute)
+        self.flow = NestedFlow()
 
     def run(self):
         for work in self.works():
@@ -51,7 +60,9 @@ class Flow(LightningFlow):
             self._exit("Application End !")
 
     def configure_layout(self):
-        return [{"name": w.name, "content": w} for w in self.works()]
+        return [{"name": "flow", "content": self.flow}] + [
+            {"name": "w_" + str(i), "content": w} for i, w in enumerate(self.works())
+        ]
 
 
 app = LightningApp(Flow(), debug=True)
