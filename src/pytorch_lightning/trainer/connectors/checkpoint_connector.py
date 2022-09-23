@@ -96,7 +96,9 @@ class CheckpointConnector:
             )
         return loaded_checkpoint
 
-    def _set_ckpt_path(self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+    def _set_ckpt_path(
+        self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool
+    ) -> Optional[str]:
         # fault-tolerance takes precedence
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
