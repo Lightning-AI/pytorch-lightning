@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright Lightning AI.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ import inspect
 import logging
 import math
 import os
-import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
 from contextlib import contextmanager
