@@ -19,6 +19,8 @@ import re
 from copy import deepcopy
 from functools import partial
 from typing import Any, Dict, Optional
+import operator
+from functools import partial
 
 import torch
 from torch import Tensor
@@ -35,6 +37,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
