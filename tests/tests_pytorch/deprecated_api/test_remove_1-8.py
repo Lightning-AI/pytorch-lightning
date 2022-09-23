@@ -68,13 +68,6 @@ def test_v1_8_0_deprecated_call_hook():
         trainer.call_hook("test_hook")
 
 
-def test_v1_8_0_deprecated_run_stage():
-    trainer = Trainer()
-    trainer._run_stage = Mock()
-    with pytest.deprecated_call(match="`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8."):
-        trainer.run_stage()
-
-
 def test_v1_8_0_trainer_verbose_evaluate():
     trainer = Trainer()
     with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):

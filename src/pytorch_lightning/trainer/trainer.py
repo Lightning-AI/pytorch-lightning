@@ -1236,13 +1236,6 @@ class Trainer(
         self._logger_connector.teardown()
         self._signal_connector.teardown()
 
-    def run_stage(self) -> None:
-        rank_zero_deprecation(
-            "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
-            " `Trainer.{fit,validate,test,predict}` instead."
-        )
-        return self._run_stage()
-
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
