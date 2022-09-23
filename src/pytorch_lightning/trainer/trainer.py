@@ -728,7 +728,9 @@ class Trainer(
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return teardown.call_and_handle_interrupt(self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+        return teardown.call_and_handle_interrupt(
+            self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
+        )
 
     def _validate_impl(
         self,
@@ -818,7 +820,9 @@ class Trainer(
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return teardown.call_and_handle_interrupt(self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+        return teardown.call_and_handle_interrupt(
+            self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
+        )
 
     def _test_impl(
         self,
