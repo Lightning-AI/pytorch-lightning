@@ -12,8 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from weakref import proxy
+
 from torch import Tensor
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+def setup_profiler(self) -> None:
+    local_rank = self.local_rank if self.world_size > 1 else None
+    self.profiler._lightning_module = proxy(self.lightning_module)
+    self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
 
 def log_hyperparams(trainer) -> None:

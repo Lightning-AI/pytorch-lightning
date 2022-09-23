@@ -24,7 +24,6 @@ from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
-from weakref import proxy
 
 import torch
 import torch.distributed as dist
@@ -1044,7 +1043,7 @@ class Trainer(
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
-        self.__setup_profiler()
+        run_utils.setup_profiler()
 
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
 
@@ -1527,11 +1526,6 @@ class Trainer(
     @staticmethod
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
-
-    def __setup_profiler(self) -> None:
-        local_rank = self.local_rank if self.world_size > 1 else None
-        self.profiler._lightning_module = proxy(self.lightning_module)
-        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
 
