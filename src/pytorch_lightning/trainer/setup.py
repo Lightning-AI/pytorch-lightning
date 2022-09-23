@@ -27,7 +27,6 @@ Houses the methods used to set up the Trainer.
 from typing import Optional, Union
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
@@ -40,7 +39,6 @@ from pytorch_lightning.profilers import (
 from lightning_lite.utilities.warnings import PossibleUserWarning
 
 from pytorch_lightning.accelerators import (
-    Accelerator,
     CUDAAccelerator,
     HPUAccelerator,
     IPUAccelerator,
@@ -52,6 +50,7 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
 )
+
 
 def init_debugging_flags(
     trainer,
@@ -110,7 +109,6 @@ def init_debugging_flags(
         trainer.limit_val_batches = overfit_batches
 
 
-
 def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
     if batches is None:
         # batches is optional to know if the user passed a value so that we can show the above info messages only to the
@@ -142,6 +140,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
     raise MisconfigurationException(
         f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
     )
+
 
 def init_profiler(trainer, profiler: Optional[Union[Profiler, str]]) -> None:
     if isinstance(profiler, str):

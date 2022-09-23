@@ -54,4 +54,3 @@ def call_and_handle_interrupt(trainer, trainer_fn: Callable, *args: Any, **kwarg
         # teardown might access the stage so we reset it after
         trainer.state.stage = None
         raise
-

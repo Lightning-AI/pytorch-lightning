@@ -43,6 +43,7 @@ def restore_modules_and_callbacks(trainer, checkpoint_path: Optional[_PATH] = No
         # restore callback states
         trainer._checkpoint_connector.restore_callbacks()
 
+
 def setup_profiler(trainer) -> None:
     local_rank = trainer.local_rank if trainer.world_size > 1 else None
     trainer.profiler._lightning_module = proxy(trainer.lightning_module)
@@ -88,9 +89,11 @@ def log_hyperparams(trainer) -> None:
         logger.log_graph(trainer.lightning_module)
         logger.save()
 
+
 """
 Data loading methods
 """
+
 
 def reset_train_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets the train dataloader and initialises required variables (number of batches, when to validate,
@@ -207,6 +210,7 @@ def reset_train_dataloader(trainer, model: Optional["pl.LightningModule"] = None
             f" `limit_train_batches={min_percentage}`"
         )
 
+
 def reset_val_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets the validation dataloader and determines the number of batches.
 
@@ -230,6 +234,7 @@ def reset_val_dataloader(trainer, model: Optional["pl.LightningModule"] = None) 
             RunningStage.VALIDATING, model=pl_module
         )
 
+
 def reset_test_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets the test dataloader and determines the number of batches.
 
@@ -245,6 +250,7 @@ def reset_test_dataloader(trainer, model: Optional["pl.LightningModule"] = None)
             RunningStage.TESTING, model=pl_module
         )
 
+
 def reset_predict_dataloader(trainer, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets the predict dataloader and determines the number of batches.
 
@@ -258,6 +264,7 @@ def reset_predict_dataloader(trainer, model: Optional["pl.LightningModule"] = No
         trainer.num_predict_batches, trainer.predict_dataloaders = trainer._data_connector._reset_eval_dataloader(
             RunningStage.PREDICTING, model=pl_module
         )
+
 
 def reset_train_val_dataloaders(trainer, model: Optional["pl.LightningModule"] = None) -> None:
     """Resets train and val dataloaders if none are attached to the trainer.
