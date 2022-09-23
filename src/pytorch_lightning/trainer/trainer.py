@@ -64,14 +64,7 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
 )
-from pytorch_lightning.profilers import (
-    AdvancedProfiler,
-    PassThroughProfiler,
-    Profiler,
-    PyTorchProfiler,
-    SimpleProfiler,
-    XLAProfiler,
-)
+from pytorch_lightning.profilers import Profiler
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer import setup, teardown
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
