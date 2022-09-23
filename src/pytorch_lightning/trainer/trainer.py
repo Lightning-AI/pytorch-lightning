@@ -15,17 +15,14 @@
 import inspect
 import logging
 import math
-import operator
 import os
-import traceback
 import warnings
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -40,7 +37,6 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.distributed import distributed_available
 from lightning_lite.utilities.types import _PATH
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
@@ -77,6 +73,7 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.trainer import teardown
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -629,43 +626,6 @@ class Trainer(
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
-    def _call_and_handle_interrupt(self, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
-        r"""
-        Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
-        as all errors should funnel through them
-
-        Args:
-            trainer_fn: one of (fit, validate, test, predict)
-            *args: positional arguments to be passed to the `trainer_fn`
-            **kwargs: keyword arguments to be passed to `trainer_fn`
-        """
-        try:
-            if self.strategy.launcher is not None:
-                return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
-            else:
-                return trainer_fn(*args, **kwargs)
-        # TODO: Unify both exceptions below, where `KeyboardError` doesn't re-raise
-        except KeyboardInterrupt as exception:
-            rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
-            # user could press Ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.state.status = TrainerStatus.INTERRUPTED
-                self._call_callback_hooks("on_exception", exception)
-                for logger in self.loggers:
-                    logger.finalize("failed")
-        except BaseException as exception:
-            self.state.status = TrainerStatus.INTERRUPTED
-            if distributed_available() and self.world_size > 1:
-                # try syncing remaining processes, kill otherwise
-                self.strategy.reconciliate_processes(traceback.format_exc())
-            self._call_callback_hooks("on_exception", exception)
-            for logger in self.loggers:
-                logger.finalize("failed")
-            self._teardown()
-            # teardown might access the stage so we reset it after
-            self.state.stage = None
-            raise
-
     def fit(
         self,
         model: "pl.LightningModule",
@@ -695,8 +655,8 @@ class Trainer(
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model
-        self._call_and_handle_interrupt(
-            self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
+        teardown.call_and_handle_interrupt(
+            self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
 
     def _fit_impl(
@@ -731,8 +691,8 @@ class Trainer(
 
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
-        self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None  # type: ignore[arg-type]
+        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+            self.state.fn, ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
 
@@ -775,7 +735,9 @@ class Trainer(
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+        return teardown.call_and_handle_interrupt(
+            self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
+        )
 
     def _validate_impl(
         self,
@@ -815,8 +777,8 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+            self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
         self._validated_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
@@ -865,7 +827,9 @@ class Trainer(
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
+        return teardown.call_and_handle_interrupt(
+            self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
+        )
 
     def _test_impl(
         self,
@@ -905,8 +869,8 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+            self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
         self._tested_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
@@ -954,8 +918,8 @@ class Trainer(
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return self._call_and_handle_interrupt(
-            self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
+        return teardown.call_and_handle_interrupt(
+            self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
 
     def _predict_impl(
@@ -995,8 +959,8 @@ class Trainer(
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
+        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+            self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
 
         self._predicted_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
@@ -1366,93 +1330,6 @@ class Trainer(
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
-
-    def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
-        # fault-tolerance takes precedence
-        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
-
-        assert self.state.fn
-        ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-        fn = self.state.fn.value
-
-        if ckpt_path is None and ft_checkpoints and self.state.fn == TrainerFn.FITTING:
-            ckpt_path = "last"
-            rank_zero_warn(
-                f"`.{fn}(ckpt_path=None)` was called without a model."
-                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
-                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
-                f" `{fn}(ckpt_path='last')` to use the last model."
-                " If you pass a value, this warning will be silenced."
-            )
-
-        if model_provided and ckpt_path is None:
-            # use passed model to function without loading weights
-            return None
-
-        if model_connected and ckpt_path is None:
-            ckpt_path = "best"
-            ft_tip = (
-                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
-                if ft_checkpoints
-                else ""
-            )
-            rank_zero_warn(
-                f"`.{fn}(ckpt_path=None)` was called without a model."
-                " The best model of the previous `fit` call will be used."
-                + ft_tip
-                + f" You can pass `.{fn}(ckpt_path='best')` to use the best model or"
-                f" `.{fn}(ckpt_path='last')` to use the last model."
-                " If you pass a value, this warning will be silenced."
-            )
-
-        if ckpt_path == "best":
-            if len(self.checkpoint_callbacks) > 1:
-                rank_zero_warn(
-                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple `ModelCheckpoint`'
-                    " callbacks. It will use the best checkpoint path from first checkpoint callback."
-                )
-
-            if not self.checkpoint_callback:
-                raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
-                )
-
-            if hasattr(self.checkpoint_callback, "best_model_path") and not self.checkpoint_callback.best_model_path:
-                if self.fast_dev_run:
-                    raise MisconfigurationException(
-                        f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
-                        f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
-                    )
-                raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
-                )
-            # load best weights
-            ckpt_path = getattr(self.checkpoint_callback, "best_model_path", None)
-
-        if ckpt_path == "last":
-            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
-                getattr(cb, "last_model_path", None) for cb in self.checkpoint_callbacks
-            ]
-            candidates_fs = {path: get_filesystem(path) for path in candidates if path}
-            candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
-            if not candidates_ts:
-                # not an error so it can be set and forget before the first `fit` run
-                rank_zero_warn(
-                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
-                    " or last checkpoint available. No checkpoint will be loaded."
-                )
-                return None
-            ckpt_path = max(
-                candidates_ts.keys(),
-                key=partial(operator.getitem, candidates_ts),  # type: ignore[arg-type]
-            )
-
-        if not ckpt_path:
-            raise MisconfigurationException(
-                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
-                f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
-            )
-        return ckpt_path
 
     def _call_setup_hook(self) -> None:
         assert self.state.fn is not None
