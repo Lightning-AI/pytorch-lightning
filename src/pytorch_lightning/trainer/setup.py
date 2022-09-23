@@ -20,6 +20,7 @@ from typing import Optional, Union
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
@@ -28,7 +29,21 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
+from lightning_lite.utilities.warnings import PossibleUserWarning
 
+from pytorch_lightning.accelerators import (
+    Accelerator,
+    CUDAAccelerator,
+    HPUAccelerator,
+    IPUAccelerator,
+    MPSAccelerator,
+    TPUAccelerator,
+)
+from pytorch_lightning.utilities import (
+    _HPU_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TPU_AVAILABLE,
+)
 
 def init_debugging_flags(
     trainer,
@@ -137,3 +152,60 @@ def init_profiler(trainer, profiler: Optional[Union[Profiler, str]]) -> None:
         profiler_class = PROFILERS[profiler]
         profiler = profiler_class()
     trainer.profiler: Profiler = profiler or PassThroughProfiler()
+
+
+def log_device_info(trainer) -> None:
+
+    if CUDAAccelerator.is_available():
+        gpu_available = True
+        gpu_type = " (cuda)"
+    elif MPSAccelerator.is_available():
+        gpu_available = True
+        gpu_type = " (mps)"
+    else:
+        gpu_available = False
+        gpu_type = ""
+
+    gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator))
+    rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
+
+    num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, TPUAccelerator) else 0
+    rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
+
+    num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
+    rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+
+    num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
+    rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
+
+    # TODO: Integrate MPS Accelerator here, once gpu maps to both
+    if CUDAAccelerator.is_available() and not isinstance(trainer.accelerator, CUDAAccelerator):
+        rank_zero_warn(
+            "GPU available but not used. Set `accelerator` and `devices` using"
+            f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
+            category=PossibleUserWarning,
+        )
+
+    if _TPU_AVAILABLE and not isinstance(trainer.accelerator, TPUAccelerator):
+        rank_zero_warn(
+            "TPU available but not used. Set `accelerator` and `devices` using"
+            f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
+        )
+
+    if _IPU_AVAILABLE and not isinstance(trainer.accelerator, IPUAccelerator):
+        rank_zero_warn(
+            "IPU available but not used. Set `accelerator` and `devices` using"
+            f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
+        )
+
+    if _HPU_AVAILABLE and not isinstance(trainer.accelerator, HPUAccelerator):
+        rank_zero_warn(
+            "HPU available but not used. Set `accelerator` and `devices` using"
+            f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
+        )
+
+    if MPSAccelerator.is_available() and not isinstance(trainer.accelerator, MPSAccelerator):
+        rank_zero_warn(
+            "MPS available but not used. Set `accelerator` and `devices` using"
+            f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
+        )
