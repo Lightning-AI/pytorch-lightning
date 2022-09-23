@@ -618,10 +618,10 @@ class Trainer(
 
         self.train_dataloader: Optional[Union[CombinedLoader, TRAIN_DATALOADERS]] = None
 
-        self.num_sanity_val_batches: List[int] = []
-        self.num_test_batches: List[int] = []
-        self.num_val_batches: List[int] = []
-        self.num_predict_batches: List[int] = []
+        self.num_sanity_val_batches: List[Union[int, float]] = []
+        self.num_test_batches: List[Union[int, float]] = []
+        self.num_val_batches: List[Union[int, float]] = []
+        self.num_predict_batches: List[Union[int, float]] = []
 
         self.test_dataloaders: Optional[List[DataLoader]] = None
         self.val_dataloaders: Optional[List[DataLoader]] = None
@@ -2009,7 +2009,8 @@ class Trainer(
 
     @property
     def strategy(self) -> Strategy:
-        return self._accelerator_connector.strategy
+        # TODO(lite): remove ignore after merging lite and PL strategies
+        return self._accelerator_connector.strategy  # type: ignore[return-value]
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -2119,7 +2120,7 @@ class Trainer(
         return getattr(self.precision_plugin, "scaler", None)
 
     @property
-    def model(self) -> torch.nn.Module:
+    def model(self) -> Optional[torch.nn.Module]:
         """The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
 
         To access the pure LightningModule, use

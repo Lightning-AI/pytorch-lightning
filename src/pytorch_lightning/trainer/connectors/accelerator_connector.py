@@ -663,7 +663,8 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
-            self.strategy = self._strategy_flag
+            # TODO(lite): remove ignore after merging lite and PL strategies
+            self.strategy = self._strategy_flag  # type: ignore[assignment]
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
@@ -687,9 +688,7 @@ class AcceleratorConnector:
                     )
                 return TPUBf16PrecisionPlugin()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(
-                self._precision_flag, self._amp_type_flag, self._amp_level_flag  # type: ignore
-            )
+            return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
         if self._precision_flag == 32:
             return PrecisionPlugin()
@@ -775,7 +774,8 @@ class AcceleratorConnector:
         """Lazily set missing attributes on the previously instantiated strategy."""
         self.strategy.accelerator = self.accelerator
         if self.precision_plugin:
-            self.strategy.precision_plugin = self.precision_plugin
+            # TODO(lite): remove ignore after merging lite and PL precisions
+            self.strategy.precision_plugin = self.precision_plugin  # type: ignore[assignment]
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):

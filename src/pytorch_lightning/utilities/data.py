@@ -104,7 +104,7 @@ def has_len_all_ranks(
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
-        local_length = len(dataloader)
+        local_length = len(dataloader)  # type: ignore [arg-type] # we are checking with duck-typing
         total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
 
         if total_length == 0:
@@ -130,7 +130,8 @@ def has_len_all_ranks(
     except (TypeError, NotImplementedError):
         has_len = False
 
-    if has_len and new_has_iterable_dataset(dataloader):
+    # we are checking using lightning_lite, which doesn't know CombinedLoader
+    if has_len and new_has_iterable_dataset(dataloader):  # type: ignore [arg-type]
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
