@@ -22,7 +22,6 @@ import pytest
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
@@ -321,7 +320,6 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
-
 
 def test_v1_8_0_datamodule_checkpointhooks():
     class CustomBoringDataModuleSave(BoringDataModule):
