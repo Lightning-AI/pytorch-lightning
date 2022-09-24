@@ -4,7 +4,7 @@ from lightning_app.cli.cmd_clusters import AWSClusterManager
 
 
 @click.group("delete")
-def delete():
+def delete() -> None:
     """Delete Lightning AI self-managed resources (clusters, etc…)"""
     pass
 
@@ -32,7 +32,7 @@ def delete():
     is_flag=True,
     help="Enabling this flag makes the CLI wait until the cluster is deleted.",
 )
-def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
+def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> None:
     """Delete a Lightning AI BYOC compute cluster and all associated cloud provider resources.
 
     Deleting a run also deletes all Runs and Experiments that were started on the cluster.

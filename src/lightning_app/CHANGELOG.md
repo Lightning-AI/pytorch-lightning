@@ -12,26 +12,54 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add `load_state_dict` and `state_dict` ([#14100](https://github.com/Lightning-AI/lightning/pull/14100))
 
 
+- Add `--secret` option to CLI to allow binding Secrets to app environment variables when running in the cloud ([#14612](https://github.com/Lightning-AI/lightning/pull/14612))
+
+
 ### Changed
 
-- Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
-
-
-### Deprecated
-
 -
+
 
 ### Fixed
 
-- Resolved a bug where the state change detection using DeepDiff won't worked with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
-
-### Removed
-
 -
+
+
+## [0.6.2] - 2022-09-21
+
+### Changed
+
+- Improved Lightning App connect logic by disconnecting automatically ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
+- Improved the error message when the `LightningWork` is missing the `run` method ([#14759](https://github.com/Lightning-AI/lightning/pull/14759))
+- Improved the error message when the root `LightningFlow` passed to `LightningApp` is missing the `run` method ([#14760](https://github.com/Lightning-AI/lightning/pull/14760))
 
 ### Fixed
 
-- Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
+- Fixed a bug where the uploaded command file wasn't properly parsed ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
+- Fixed an issue where custom property setters were not being used `LightningWork` class ([#14259](https://github.com/Lightning-AI/lightning/pull/14259))
+- Fixed an issue where some terminals would display broken icons in the PL app CLI ([#14226](https://github.com/Lightning-AI/lightning/pull/14226))
+
+
+## [0.6.1] - 2022-09-19
+
+### Added
+
+- Add support to upload files to the Drive through an asynchronous `upload_file` endpoint ([#14703](https://github.com/Lightning-AI/lightning/pull/14703))
+
+### Changed
+
+- Application storage prefix moved from `app_id` to `project_id/app_id` (#14583)
+- LightningCloud client calls to use keyword arguments instead of positional arguments (#14685)
+
+### Fixed
+
+- Making `threadpool` non-default from LightningCloud client  (#14757)
+- Resolved a bug where the state change detection using DeepDiff won't work with Path, Drive objects (#14465)
+- Resolved a bug where the wrong client was passed to collect cloud logs (#14684)
+- Resolved the memory leak issue with the Lightning Cloud package and bumped the requirements to use the latest version (#14697)
+- Fixing 5000 log line limitation for Lightning AI BYOC cluster logs (#14458)
+- Fixed a bug where the uploaded command file wasn't properly parsed (#14532)
+- Resolved `LightningApp(..., debug=True)` (#14464)
 
 
 ## [0.6.0] - 2022-09-08

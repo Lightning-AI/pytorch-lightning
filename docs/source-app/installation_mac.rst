@@ -19,4 +19,4 @@ Install the ``lightning`` package
         export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
         export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
 
-        pip install lightning
+        python -m pip install -U lightning

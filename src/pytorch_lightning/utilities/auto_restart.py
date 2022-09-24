@@ -62,7 +62,7 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(self, sampler: Iterator, attr_name: Optional[str] = None) -> None:
+    def __init__(self, sampler: Union[Sampler, Iterable], attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False

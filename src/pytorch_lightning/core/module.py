@@ -37,6 +37,7 @@ from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_lite.utilities.distributed import distributed_available, sync_ddp
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -47,7 +48,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _METRIC_COLLECTION,
@@ -86,7 +87,6 @@ class LightningModule(
             "loggers",
             "automatic_optimization",
             "truncated_bptt_steps",
-            "use_amp",
             "trainer",
             "_running_torchscript",
         ]
@@ -103,8 +103,6 @@ class LightningModule(
 
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
-
-        self._use_amp: bool = False
 
         # the precision used
         self.precision: Union[int, str] = 32
@@ -281,7 +279,7 @@ class LightningModule(
     def _running_torchscript(self, value: bool) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
-                v._running_torchscript_internal = value
+                v._running_torchscript = value
         self._running_torchscript_internal = value
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
@@ -549,7 +547,11 @@ class LightningModule(
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
     def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
-        value = torch.tensor(value, device=self.device)
+        value = (
+            value.clone().detach().to(self.device)
+            if isinstance(value, torch.Tensor)
+            else torch.tensor(value, device=self.device)
+        )
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
@@ -598,7 +600,7 @@ class LightningModule(
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""
-        Same as :meth:`torch.nn.Module.forward()`.
+        Same as :meth:`torch.nn.Module.forward`.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
@@ -1397,7 +1399,7 @@ class LightningModule(
         self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
     def backward(
-        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
+        self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
     ) -> None:
         """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your
         own implementation if you need to.
@@ -1918,36 +1920,6 @@ class LightningModule(
         self._running_torchscript = False
 
         return torchscript_module
-
-    @property
-    def use_amp(self) -> bool:
-        r"""
-        .. deprecated:: v1.6.
-
-            This property was deprecated in v1.6 and will be removed in v1.8.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-                " Please use `Trainer.amp_backend`.",
-                stacklevel=5,
-            )
-        return self._use_amp
-
-    @use_amp.setter
-    def use_amp(self, use_amp: bool) -> None:
-        r"""
-        .. deprecated:: v1.6.
-
-            This property was deprecated in v1.6 and will be removed in v1.8.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-                " Please use `Trainer.amp_backend`.",
-                stacklevel=5,
-            )
-        self._use_amp = use_amp
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
