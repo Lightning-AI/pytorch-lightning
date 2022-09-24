@@ -65,15 +65,6 @@ def test_v1_8_0_deprecated_call_hook():
         trainer.call_hook("test_hook")
 
 
-def test_v1_8_0_trainer_verbose_evaluate():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
-        assert trainer.verbose_evaluate
-
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
-        trainer.verbose_evaluate = False
-
-
 @pytest.mark.parametrize("fn_prefix", ["validated", "tested", "predicted"])
 def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
     test_attr = f"{fn_prefix}_ckpt_path"
