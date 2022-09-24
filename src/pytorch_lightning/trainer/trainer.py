@@ -1133,13 +1133,6 @@ class Trainer(
         self._logger_connector.teardown()
         self._signal_connector.teardown()
 
-    def run_stage(self) -> None:
-        rank_zero_deprecation(
-            "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
-            " `Trainer.{fit,validate,test,predict}` instead."
-        )
-        return self._run_stage()
-
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
@@ -1754,16 +1747,6 @@ class Trainer(
     def world_size(self) -> int:
         # some strategies define a world size
         return getattr(self.strategy, "world_size", 1)
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        rank_zero_deprecation(
-            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
-        )
-        strategy = self.strategy
-        return (
-            isinstance(strategy, pl.strategies.TPUSpawnStrategy) and strategy.local_rank == 0 or strategy.is_global_zero
-        )
 
     @property
     def num_nodes(self) -> int:
