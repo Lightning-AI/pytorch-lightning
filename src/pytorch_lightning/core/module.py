@@ -21,7 +21,7 @@ import tempfile
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union, TypeVar
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, TypeVar, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
