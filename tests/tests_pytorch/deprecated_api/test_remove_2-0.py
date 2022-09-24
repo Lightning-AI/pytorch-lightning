@@ -33,6 +33,12 @@ def test_v2_0_0_deprecated_gpus(cuda_count_4):
         _ = Trainer(gpus=0)
 
 
+def test_v2_0_0_deprecated_log_dir():
+    with pytest.deprecated_call(match=r"is deprecated in v1.8 and will be removed in v2.0."):
+        trainer = Trainer()
+        _ = trainer.log_dir
+
+
 @RunIf(skip_windows=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)

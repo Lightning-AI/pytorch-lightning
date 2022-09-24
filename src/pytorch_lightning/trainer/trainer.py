@@ -1878,7 +1878,7 @@ class Trainer(
     @property
     def log_dir(self) -> str:
         rank_zero_deprecation(
-            "`trainer.experiment_dir` is deprecated in v1.8.0 and will be removed in v2.0."
+            "`trainer.experiment_dir` is deprecated in v1.8 and will be removed in v2.0."
             " Please use `Trainer.experiment_dir` instead."
         )
         return self.experiment_dir
