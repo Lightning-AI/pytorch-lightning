@@ -59,7 +59,7 @@ class ModelIO:
         checkpoint_path: Union[str, IO],
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[str] = None,
-        strict: bool = True,
+        strict: Optional[bool] = None,
         **kwargs: Any,
     ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         r"""
@@ -229,7 +229,15 @@ def _load_state(
         return obj
 
     # load the state_dict on the model automatically
-    assert strict is not None
+    if strict is not None and obj.strict_loading is not None and strict != obj.strict_loading:
+        # TODO: maybe raise even earlier?
+        raise RuntimeError(
+            f"You set `.load_from_checkpoint(..., strict={strict!r})` but"
+            f" `{cls.__name__}.strict_loading={obj.strict_loading!r}. Please set the same value for both of them."
+        )
+
+    strict_loading = True if obj.strict_loading is None else obj.strict_loading
+    strict = strict if strict is not None else strict_loading
     keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:

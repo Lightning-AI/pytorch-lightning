@@ -94,6 +94,10 @@ class LightningModule(
         + HyperparametersMixin.__jit_unused_properties__
     )
 
+    # Determines how Lightning loads this model using
+    # `torch.load_state_dict(..., strict=model.strict_loading)`
+    strict_loading: Optional[bool] = None
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
