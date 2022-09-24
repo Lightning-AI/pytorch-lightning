@@ -240,6 +240,8 @@ class RunIf:
         if bagua:
             conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
+            conditions.append(torch.cuda.get_device_capability()[0] >= 8)
+            reasons.append("Bagua does not support this architecture")
 
         if psutil:
             conditions.append(not _PSUTIL_AVAILABLE)
