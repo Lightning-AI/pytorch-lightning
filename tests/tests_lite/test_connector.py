@@ -89,7 +89,7 @@ def _test_strategy_choice_ddp_and_cpu(ddp_strategy_class):
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=0)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_custom_cluster_environment_in_slurm_environment(_):
     """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
@@ -124,7 +124,7 @@ def test_custom_cluster_environment_in_slurm_environment(_):
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=0)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_custom_accelerator(*_):
     class Accel(Accelerator):
         def setup_device(self, device: torch.device) -> None:
@@ -191,7 +191,7 @@ def test_custom_accelerator(*_):
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=0)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_dist_backend_accelerator_mapping(*_):
     connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
@@ -199,9 +199,9 @@ def test_dist_backend_accelerator_mapping(*_):
     assert connector.strategy.local_rank == 0
 
 
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
-def test_ipython_incompatible_backend_error(_, __, monkeypatch):
+@RunIf(mps=False)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+def test_ipython_incompatible_backend_error(_, monkeypatch):
     monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         _Connector(strategy="ddp", accelerator="gpu", devices=2)
@@ -217,7 +217,7 @@ def test_ipython_incompatible_backend_error(_, __, monkeypatch):
         _Connector(strategy="dp")
 
 
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
     monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
     connector = _Connector(strategy="dp", accelerator="gpu")
@@ -239,6 +239,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
     assert connector.strategy.launcher.is_interactive_compatible
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
@@ -250,40 +251,27 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
     ],
 )
 @pytest.mark.parametrize("devices", [1, 2])
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
-def test_accelerator_choice_multi_node_gpu(_, __, ___, strategy, strategy_class, devices):
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+def test_accelerator_choice_multi_node_gpu(_, strategy, strategy_class, devices):
     connector = _Connector(num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(connector.strategy, strategy_class)
 
 
-@mock.patch("lightning_lite.accelerators.cuda.device_parser.num_cuda_devices", return_value=0)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_accelerator_cpu(*_):
     connector = _Connector(accelerator="cpu")
     assert isinstance(connector.accelerator, CPUAccelerator)
 
     with pytest.raises(
         RuntimeError,
-        match="CUDAAccelerator can not run on your system since the accelerator is not available",
-    ):
-        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-            _Connector(gpus=1)
-
-    with pytest.raises(
-        RuntimeError,
         match="CUDAAccelerator can not run on your system since the accelerator is not available.",
     ):
-        _Connector(accelerator="cuda")
-
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-        _Connector(accelerator="cpu", gpus=1)
+        _Connector(accelerator="cuda", devices=1)
 
 
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
-def test_accelererator_invalid_type_devices(_, __, device_count):
+def test_accelererator_invalid_type_devices(_, device_count):
     with pytest.raises(
         MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
     ):
@@ -439,8 +427,7 @@ def test_strategy_choice_ddp_fork_cpu():
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp(*_):
     connector = _Connector(strategy="ddp", accelerator="gpu", devices=1)
@@ -450,8 +437,7 @@ def test_strategy_choice_ddp(*_):
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_spawn(*_):
     connector = _Connector(strategy="ddp_spawn", accelerator="gpu", devices=1)
@@ -460,28 +446,28 @@ def test_strategy_choice_ddp_spawn(*_):
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
 
 
-@RunIf(min_cuda_gpus=2)
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "SLURM_PROCID": "1",
-        "SLURM_LOCALID": "1",
-    },
-)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
-def test_strategy_choice_ddp_slurm(_, strategy):
-    connector = _Connector(strategy=strategy, accelerator="gpu", devices=2)
-    assert connector._is_slurm_managing_tasks()
-    assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPStrategy)
-    assert isinstance(connector.strategy.cluster_environment, SLURMEnvironment)
-    assert connector.strategy.cluster_environment.local_rank() == 1
-    assert connector.strategy.local_rank == 1
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+@pytest.mark.parametrize("job_name,expected_env", [("some_name", SLURMEnvironment), ("bash", LightningEnvironment)])
+@pytest.mark.parametrize("strategy", ["ddp", DDPStrategy])
+def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
+    if not isinstance(strategy, str):
+        strategy = strategy()
+
+    with mock.patch.dict(
+        os.environ,
+        {
+            "CUDA_VISIBLE_DEVICES": "0,1",
+            "SLURM_NTASKS": "2",
+            "SLURM_JOB_NAME": job_name,
+            "SLURM_NODEID": "0",
+            "SLURM_PROCID": "1",
+            "SLURM_LOCALID": "1",
+        },
+    ):
+        trainer = _Connector(strategy=strategy, accelerator="cuda", devices=2)
+        assert isinstance(trainer.accelerator, CUDAAccelerator)
+        assert isinstance(trainer.strategy, DDPStrategy)
+        assert isinstance(trainer.strategy.cluster_environment, expected_env)
 
 
 @mock.patch.dict(
@@ -496,8 +482,7 @@ def test_strategy_choice_ddp_slurm(_, strategy):
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_te(*_):
     connector = _Connector(strategy="ddp", accelerator="gpu", devices=2)
@@ -539,8 +524,7 @@ def test_strategy_choice_ddp_cpu_te():
         "RANK": "1",
     },
 )
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_choice_ddp_kubeflow(*_):
     connector = _Connector(strategy="ddp", accelerator="gpu", devices=1)
@@ -614,8 +598,7 @@ def test_devices_auto_choice_cpu(*_):
 
 
 @RunIf(mps=False)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_devices_auto_choice_gpu(*_):
     connector = _Connector(accelerator="auto", devices="auto")
     assert isinstance(connector.accelerator, CUDAAccelerator)
@@ -678,7 +661,7 @@ def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_acce
 
 
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_gpu_accelerator_backend_choice_cuda(*_):
     connector = _Connector(accelerator="gpu")
     assert connector._accelerator_flag == "cuda"
@@ -686,7 +669,7 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
 
 
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=True)
-@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0])
+@mock.patch("lightning_lite.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
 def test_gpu_accelerator_backend_choice_mps(*_):
     connector = _Connector(accelerator="gpu")
@@ -709,12 +692,3 @@ def test_gpu_accelerator_no_gpu_backend_found_error(*_):
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         _Connector(strategy=strategy)
-
-
-@RunIf(skip_windows=True)
-@pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
-@mock.patch.dict(os.environ, {"PL_DISABLE_FORK": "1"}, clear=True)
-def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
-    """Test there is an error when forking is disabled via the environment variable and the user requests fork."""
-    with pytest.raises(ValueError, match="Forking is disabled in this environment"):
-        _Connector(devices=2, strategy=strategy)

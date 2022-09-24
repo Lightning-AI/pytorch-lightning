@@ -21,7 +21,7 @@ import torch.multiprocessing as mp
 from torch.multiprocessing import ProcessContext
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.strategies.launchers.multiprocessing import (
     _FakeQueue,
     _GlobalStateSnapshot,

@@ -21,16 +21,14 @@ from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.plugins import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
+from lightning_lite.strategies import Strategy
+from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from pytorch_lightning.plugins import PrecisionPlugin
-from pytorch_lightning.strategies import Strategy
+from lightning_lite.utilities.types import Steppable
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
-
-
-def _do_nothing_closure() -> None:
-    return None
 
 
 class _LiteOptimizer:
@@ -56,21 +54,24 @@ class _LiteOptimizer:
         return self._optimizer
 
     def state_dict(self) -> Dict[str, Tensor]:
-        return self._strategy.optimizer_state(self.optimizer)
+        return self._strategy.get_optimizer_state(self.optimizer)
 
     def step(self, closure: Optional[Callable] = None) -> Any:
-        closure = closure or _do_nothing_closure
+        kwargs = dict(closure=closure) if closure is not None else {}
+        if hasattr(self._strategy, "model") and isinstance(self._strategy.model, Steppable):
+            # only DeepSpeed defines this
+            optimizer = self._strategy.model
+        else:
+            optimizer = self.optimizer
         return self._strategy.optimizer_step(
-            self.optimizer,
-            opt_idx=0,
-            closure=closure,
-            model=self._strategy.model,
+            optimizer,
+            **kwargs,
         )
 
 
 class _LiteModule(_DeviceDtypeModuleMixin):
     def __init__(
-        self, forward_module: nn.Module, precision_plugin: PrecisionPlugin, original_module: Optional[nn.Module] = None
+        self, forward_module: nn.Module, precision_plugin: Precision, original_module: Optional[nn.Module] = None
     ) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -104,18 +105,16 @@ class _LiteModule(_DeviceDtypeModuleMixin):
             64: torch.float64,
         }
         # TODO: let the precision plugin handle the conversion
-        to_type = precision_to_type[precision]
-
-        def _convert_float_tensor(t: Tensor) -> Tensor:
-            return t.to(to_type) if torch.is_floating_point(t) else t
-
-        args, kwargs = apply_to_collection([args, kwargs], function=_convert_float_tensor, dtype=Tensor)
+        args, kwargs = apply_to_collection(
+            [args, kwargs], dtype=Tensor, function=_convert_fp_tensor, dst_type=precision_to_type[precision]
+        )
 
         with self._precision_plugin.forward_context():
             output = self._forward_module(*args, **kwargs)
 
-        to_type = torch.get_default_dtype()
-        output = apply_to_collection(output, function=_convert_float_tensor, dtype=Tensor)
+        output = apply_to_collection(
+            output, dtype=Tensor, function=_convert_fp_tensor, dst_type=torch.get_default_dtype()
+        )
         return output
 
     @overload

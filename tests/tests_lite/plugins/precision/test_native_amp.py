@@ -64,9 +64,8 @@ def test_native_amp_precision_optimizer_step_with_scaler():
     precision_plugin = NativeMixedPrecision(precision="mixed", device="cuda")
     precision_plugin.scaler = Mock()
     optimizer = Mock()
-    model = Mock()
 
-    precision_plugin.optimizer_step(optimizer, model=model, keyword="arg")
+    precision_plugin.optimizer_step(optimizer, keyword="arg")
     precision_plugin.scaler.step.assert_called_once_with(optimizer, keyword="arg")
     precision_plugin.scaler.update.assert_called_once()
 
@@ -76,7 +75,6 @@ def test_native_amp_precision_optimizer_step_without_scaler():
     precision_plugin = NativeMixedPrecision(precision="bf16", device="cuda")
     assert precision_plugin.scaler is None
     optimizer = Mock()
-    model = Mock()
 
-    precision_plugin.optimizer_step(optimizer, model=model, keyword="arg")
+    precision_plugin.optimizer_step(optimizer, keyword="arg")
     optimizer.step.assert_called_once_with(keyword="arg")
