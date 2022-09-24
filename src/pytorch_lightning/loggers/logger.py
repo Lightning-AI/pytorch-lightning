@@ -152,29 +152,6 @@ class Logger(ABC):
     def version(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
 
-    def _log_checkpoints(
-        self,
-        checkpoint_callback: "ReferenceType[Checkpoint]",
-        checkpoints: List[Checkpoint],
-    ) -> None:
-        """Log the given checkpoints.
-
-        Args:
-            checkpoint_callback: Checkpoint callback reference.
-            checkpoints: list of checkpoints.
-        """
-
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
-        """Get and log the checkpoints to be logged.
-
-        Args:
-            checkpoint_callback: Checkpoint callback reference.
-        """
-        # Get the checkpoints
-        checkpoints = scan_checkpoints(checkpoint_callback, self._logged_model_time)
-        # Log the checkpoints
-        self._log_checkpoints(checkpoint_callback, checkpoints)
-
 
 class DummyExperiment:
     """Dummy experiment."""

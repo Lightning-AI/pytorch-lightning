@@ -25,7 +25,7 @@ import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment, scan_checkpoints
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -557,7 +557,10 @@ class WandbLogger(Logger):
         if self._checkpoint_callback and self._experiment is not None:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
-    def _log_checkpoints(self, checkpoint_callback: "ReferenceType[Checkpoint]", checkpoints: List[Checkpoint]) -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+        # get checkpoints to be saved with associated score
+        checkpoints = scan_checkpoints(checkpoint_callback, self._logged_model_time)
+
         # log iteratively all new checkpoints
         for t, p, s, tag in checkpoints:
             metadata = (
@@ -574,7 +577,7 @@ class WandbLogger(Logger):
                             "save_weights_only",
                             "_every_n_train_steps",
                         ]
-                        # ensure it does not break if `Checkpoint` args change
+                        # ensure it does not break if `ModelCheckpoint` args change
                         if hasattr(checkpoint_callback, k)
                     },
                 }
