@@ -309,7 +309,13 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
     max_trials = 5
-    scale_batch_size_kwargs = {"max_trials": max_trials, "steps_per_trial": 2, "init_val": 4, "mode": scale_method}
+    init_batch_size = 4
+    scale_batch_size_kwargs = {
+        "max_trials": max_trials,
+        "steps_per_trial": 2,
+        "init_val": init_batch_size,
+        "mode": scale_method,
+    }
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
     with patch.object(model, "on_train_epoch_end") as advance_mocked:
@@ -317,7 +323,7 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
         assert advance_mocked.call_count == max_trials
 
     assert trainer.train_dataloader.loaders.batch_size == new_batch_size
-    assert trainer.val_dataloaders[0].batch_size == new_batch_size
+    assert trainer.val_dataloaders[0].batch_size == init_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
