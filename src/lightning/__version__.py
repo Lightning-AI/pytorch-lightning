@@ -1,1 +1,0 @@
-version = "YYYY.-M.-D"

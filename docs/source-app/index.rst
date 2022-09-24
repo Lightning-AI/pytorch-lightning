@@ -223,6 +223,7 @@ Keep Learning
    Develop a Lightning App <workflows/build_lightning_app/index>
    Develop a Lightning Component <workflows/build_lightning_component/index>
    Develop a REST API <workflows/build_rest_api/index>
+   Encrypt your credentials <workflows/encrypted_secrets/encrypt_secrets>
    Cache Work run calls  <workflows/run_work_once>
    Customize your cloud compute <core_api/lightning_work/compute>
    Extend an existing app <workflows/extend_app>
@@ -269,7 +270,7 @@ Keep Learning
    DAG <glossary/dag>
    Event Loop <glossary/event_loop>
    Environment Variables <glossary/environment_variables>
-   Encrypted Secrets <glossary/secrets>
+   Encrypted Secrets <workflows/encrypted_secrets/secrets>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
    Apple and Android mobile devices with Lighting Apps <glossary/ios_and_android>
    REST API <glossary/restful_api/restful_api>

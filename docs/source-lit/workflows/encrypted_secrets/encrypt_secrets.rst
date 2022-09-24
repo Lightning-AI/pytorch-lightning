@@ -1,0 +1,1 @@
+../../../source-app/workflows/encrypted_secrets/encrypt_secrets.rst
