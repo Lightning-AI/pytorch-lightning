@@ -46,7 +46,7 @@ jobs:
       - name: DocTests actions
         working-directory: .actions/
         run: |
-          pip install -q pytest
+          pip install -q "pytest==6.*"
           python -m pytest setup_tools.py -v --doctest-modules --color=yes
 
       - uses: actions/download-artifact@v3
