@@ -21,13 +21,14 @@ import tempfile
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union, TypeVar
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
+from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 from typing_extensions import Literal
@@ -62,6 +63,7 @@ warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
+T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
 
 class LightningModule(
@@ -1924,6 +1926,17 @@ class LightningModule(
         self._running_torchscript = False
 
         return torchscript_module
+
+    def load_state_dict(self, state_dict: Mapping[str, Any], strict: Optional[bool] = None) -> _IncompatibleKeys:
+        if strict is not None and self.strict_loading is not None and strict != self.strict_loading:
+            raise ValueError(
+                f"You set `.load_state_dict(..., strict={strict!r})` but"
+                f" `{self.__class__.__name__}.strict_loading={self.strict_loading!r}."
+                " Please set the same value for both of them."
+            )
+        strict_loading = True if self.strict_loading is None else self.strict_loading
+        strict = strict if strict is not None else strict_loading
+        return super().load_state_dict(state_dict=state_dict, strict=strict)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:

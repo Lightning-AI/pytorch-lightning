@@ -228,16 +228,14 @@ def _load_state(
     if isinstance(obj, pl.LightningDataModule):
         return obj
 
-    # load the state_dict on the model automatically
     if strict is not None and obj.strict_loading is not None and strict != obj.strict_loading:
         # TODO: maybe raise even earlier?
-        raise RuntimeError(
+        raise ValueError(
             f"You set `.load_from_checkpoint(..., strict={strict!r})` but"
             f" `{cls.__name__}.strict_loading={obj.strict_loading!r}. Please set the same value for both of them."
         )
 
-    strict_loading = True if obj.strict_loading is None else obj.strict_loading
-    strict = strict if strict is not None else strict_loading
+    # load the state_dict on the model automatically
     keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:
