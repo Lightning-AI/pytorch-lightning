@@ -302,7 +302,6 @@ def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.T
 def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
     if trainer.state.fn == "fit":
         trainer.reset_train_dataloader(pl_module)
-        trainer.reset_val_dataloader(pl_module)
     else:
         stage = trainer.state.stage
         assert stage is not None
