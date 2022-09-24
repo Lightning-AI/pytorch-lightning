@@ -68,7 +68,7 @@ The simple profiler measures all the standard methods used in the training loop 
 **************************************
 Profile the time within every function
 **************************************
-To profile the time within every function, use the :class:`~pytorch_lightning.profiler.advanced.AdvancedProfiler` built on top of Python's `cProfiler <https://docs.python.org/3/library/profile.html#module-cProfile>`_.
+To profile the time within every function, use the :class:`~pytorch_lightning.profilers.advanced.AdvancedProfiler` built on top of Python's `cProfiler <https://docs.python.org/3/library/profile.html#module-cProfile>`_.
 
 
 .. code-block:: python
@@ -101,7 +101,7 @@ If the profiler report becomes too long, you can stream the report to a file:
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler import AdvancedProfiler
+    from pytorch_lightning.profilers import AdvancedProfiler
 
     profiler = AdvancedProfiler(dirpath=".", filename="perf_logs")
     trainer = Trainer(profiler=profiler)

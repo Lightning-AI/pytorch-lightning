@@ -249,8 +249,8 @@ Example::
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -312,27 +312,6 @@ Use PyTorch AMP ('native'), or NVIDIA apex ('apex').
 
     # using NVIDIA Apex
     trainer = Trainer(amp_backend="apex")
-
-amp_level
-^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_level.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_level.mp4"></video>
-
-|
-
-The optimization level to use (O1, O2, etc...)
-for 16-bit GPU precision (using NVIDIA apex under the hood).
-
-Check `NVIDIA apex docs <https://nvidia.github.io/apex/amp.html#opt-levels>`_ for level
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(amp_level='O2')
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
@@ -489,7 +468,7 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`. Callbacks run sequentially in the order defined here
+Add a list of :class:`~pytorch_lightning.callbacks.callback.Callback`. Callbacks run sequentially in the order defined here
 with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
 after all others to ensure all states are saved to the checkpoints.
 
@@ -603,8 +582,8 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -954,7 +933,7 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 .. testcode::
 
     # Default (disabled)
-    trainer = Trainer(max_steps=None)
+    trainer = Trainer(max_steps=-1)
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
@@ -1188,13 +1167,18 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
     1. `Install apex. <https://github.com/NVIDIA/apex#quick-start>`__
 
-    2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
+    2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the ``amp_level`` flag
+       in the precision plugin.
 
     .. testcode::
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
+        from pytorch_lightning.plugins.apex_amp import ApexMixedPrecisionPlugin
+
+
+        apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, accelerator="gpu", devices=1)
+        trainer = Trainer(accelerator="gpu", devices=1, precision=16, plugins=[apex_plugin])
 
 profiler
 ^^^^^^^^
@@ -1213,7 +1197,7 @@ See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
 
 .. testcode::
 
-    from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler
+    from pytorch_lightning.profilers import SimpleProfiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)
@@ -1248,12 +1232,15 @@ reload_dataloaders_every_n_epochs
 
 |
 
-Set to a positive integer to reload dataloaders every n epochs.
+Set to a positive integer to reload dataloaders every n epochs from your currently used data source.
+DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
+
 
 .. code-block:: python
 
     # if 0 (default)
     train_loader = model.train_dataloader()
+    # or if using data module: datamodule.train_dataloader()
     for epoch in epochs:
         for batch in train_loader:
             ...
@@ -1262,8 +1249,11 @@ Set to a positive integer to reload dataloaders every n epochs.
     for epoch in epochs:
         if not epoch % reload_dataloaders_every_n_epochs:
             train_loader = model.train_dataloader()
+            # or if using data module: datamodule.train_dataloader()
         for batch in train_loader:
             ...
+
+The pseudocode applies also to the ``val_dataloader``.
 
 .. _replace-sampler-ddp:
 
@@ -1281,6 +1271,7 @@ replace_sampler_ddp
 Enables auto adding of :class:`~torch.utils.data.distributed.DistributedSampler`. In PyTorch, you must use it in
 distributed settings such as TPUs or multi-node. The sampler makes sure each GPU sees the appropriate part of your data.
 By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
+If you already use a custom sampler, Lightning will wrap it in a way that it samples from your sampler in a distributed manner.
 If you want to customize it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
 Lightning will not replace the existing one.
@@ -1478,7 +1469,8 @@ How often within one training epoch to check the validation set.
 Can specify as float or int.
 
 - pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
-- pass an ``int`` to check after a fixed number of training batches.
+- pass an ``int`` to check after a fixed number of training batches. An ``int`` value can only be higher than the number of training
+  batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across epochs or iteration-based training.
 
 .. testcode::
 
@@ -1488,10 +1480,13 @@ Can specify as float or int.
     # check validation set 4 times during a training epoch
     trainer = Trainer(val_check_interval=0.25)
 
-    # check validation set every 1000 training batches
+    # check validation set every 1000 training batches in the current epoch
+    trainer = Trainer(val_check_interval=1000)
+
+    # check validation set every 1000 training batches across complete epochs or during iteration-based training
     # use this when using iterableDataset and your dataset has no length
     # (ie: production cases with streaming data)
-    trainer = Trainer(val_check_interval=1000)
+    trainer = Trainer(val_check_interval=1000, check_val_every_n_epoch=None)
 
 
 .. code-block:: python
@@ -1510,44 +1505,6 @@ Can specify as float or int.
 
     # Total number of batches run
     total_fit_batches = total_train_batches + total_val_batches
-
-
-weights_save_path
-^^^^^^^^^^^^^^^^^
-
-
-.. warning:: `weights_save_path` has been deprecated in v1.6 and will be removed in v1.8. Please pass
-   ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
-   callback.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_save_path.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_save_path.mp4"></video>
-
-|
-
-Directory of where to save weights if specified.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(weights_save_path=os.getcwd())
-
-    # save to your custom path
-    trainer = Trainer(weights_save_path="my/path")
-
-Example::
-
-    # if checkpoint callback used, then overrides the weights path
-    # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint = ModelCheckpoint(dirpath='some/path')
-    trainer = Trainer(
-        callbacks=[checkpoint],
-        weights_save_path='my/path'
-    )
 
 
 enable_model_summary
@@ -1640,6 +1597,26 @@ The number of epochs run.
     if trainer.current_epoch >= 10:
         ...
 
+
+datamodule
+**********
+
+The current datamodule, which is used by the trainer.
+
+.. code-block:: python
+
+    used_datamodule = trainer.datamodule
+
+is_last_batch
+*************
+
+Whether trainer is executing last batch in the current epoch.
+
+.. code-block:: python
+
+    if trainer.is_last_batch:
+        ...
+
 global_step
 ***********
 
@@ -1727,6 +1704,17 @@ The metrics sent to the progress bar.
     assert progress_bar_metrics["a_val"] == 2
 
 
+predict_dataloaders
+*******************
+
+The current predict dataloaders of the trainer.
+Note that property returns a list of predict dataloaders.
+
+.. code-block:: python
+
+    used_predict_dataloaders = trainer.predict_dataloaders
+
+
 estimated_stepping_batches
 **************************
 
@@ -1746,3 +1734,97 @@ execution within that function, and the status of the Trainer.
     trainer.state.status
     # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
     trainer.state.stage
+
+should_stop
+***********
+
+If you want to terminate the training during ``.fit``, you can set ``trainer.should_stop=True`` to terminate the training
+as soon as possible. Note that, it will respect the arguments ``min_steps`` and ``min_epochs`` to check whether to stop. If these
+arguments are set and the ``current_epoch`` or ``global_step`` don't meet these minimum conditions, training will continue until
+both conditions are met. If any of these arguments is not set, it won't be considered for the final decision.
+
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` at any point of training will terminate it
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            self.trainer.should_stop = True
+
+
+    trainer = Trainer()
+    model = LitModel()
+    trainer.fit(model)
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` will stop training only after at least 5 epochs have run
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.current_epoch == 2:
+                self.trainer.should_stop = True
+
+
+    trainer = Trainer(min_epochs=5, max_epochs=100)
+    model = LitModel()
+    trainer.fit(model)
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` will stop training only after at least 5 steps have run
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.global_step == 2:
+                self.trainer.should_stop = True
+
+
+    trainer = Trainer(min_steps=5, max_epochs=100)
+    model = LitModel()
+    trainer.fit(model)
+
+.. code-block:: python
+
+    # setting `trainer.should_stop` at any until both min_steps and min_epochs are satisfied
+    class LitModel(LightningModule):
+        def training_step(self, *args, **kwargs):
+            if self.global_step == 7:
+                self.trainer.should_stop = True
+
+
+    trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100)
+    model = LitModel()
+    trainer.fit(model)
+
+
+train_dataloader
+****************
+
+The current train dataloader of the trainer.
+
+.. code-block:: python
+
+    used_train_dataloader = trainer.train_dataloader
+
+
+test_dataloaders
+****************
+
+The current test dataloaders of the trainer.
+Note that property returns a list of test dataloaders.
+
+
+.. code-block:: python
+
+    used_test_dataloaders = trainer.test_dataloaders
+
+val_dataloaders
+***************
+
+
+The current val dataloaders of the trainer.
+Note that property returns a list of val dataloaders.
+
+
+.. code-block:: python
+
+    used_val_dataloaders = trainer.val_dataloaders

@@ -3,7 +3,11 @@
 import logging
 from typing import Any
 
+from pytorch_lightning import __about__
 from pytorch_lightning.__about__ import *  # noqa: F401, F403
+
+if not hasattr(__about__, "__version__"):
+    from pytorch_lightning.__version__ import version as __version__  # noqa: F401
 
 _DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
 
@@ -27,10 +31,10 @@ if not _root_logger.hasHandlers():
     _logger.addHandler(logging.StreamHandler())
     _logger.propagate = False
 
+from lightning_lite.utilities.seed import seed_everything  # noqa: E402
 from pytorch_lightning.callbacks import Callback  # noqa: E402
 from pytorch_lightning.core import LightningDataModule, LightningModule  # noqa: E402
 from pytorch_lightning.trainer import Trainer  # noqa: E402
-from pytorch_lightning.utilities.seed import seed_everything  # noqa: E402
 
 __all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
 

@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import os
 import pathlib
 import shutil
@@ -14,6 +13,7 @@ from fsspec.implementations.local import LocalFileSystem
 import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
 from lightning_app.utilities.imports import _is_s3fs_available
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 num_workers = 8
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 class Path(PathlibPath):
@@ -385,6 +385,12 @@ def shared_storage_path() -> pathlib.Path:
     ``SHARED_MOUNT_DIRECTORY`` environment variable. In the cloud, the shared path will point to a S3 bucket. All Works
     have access to this shared dropbox.
     """
+    storage_path = os.getenv("LIGHTNING_STORAGE_PATH", "")
+    if storage_path != "":
+        return pathlib.Path(storage_path)
+
+    # TODO[dmitsf]: this logic is still needed for compatibility reasons.
+    # We should remove it after some time.
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
 
@@ -408,8 +414,12 @@ def filesystem() -> AbstractFileSystem:
     endpoint_url = os.getenv("LIGHTNING_BUCKET_ENDPOINT_URL", "")
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     if endpoint_url != "" and bucket_name != "":
-        key = os.getenv("AWS_ACCESS_KEY_ID", "")
-        secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+        key = os.getenv("LIGHTNING_AWS_ACCESS_KEY_ID", "")
+        secret = os.getenv("LIGHTNING_AWS_SECRET_ACCESS_KEY", "")
+        # TODO: Remove when updated on the platform side.
+        if key == "" or secret == "":
+            key = os.getenv("AWS_ACCESS_KEY_ID", "")
+            secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
         if key == "" or secret == "":
             raise RuntimeError("missing S3 bucket credentials")
 

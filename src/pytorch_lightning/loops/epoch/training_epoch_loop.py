@@ -13,27 +13,27 @@
 # limitations under the License.
 import math
 from collections import defaultdict, OrderedDict
-from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
+from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _v1_8_output_format
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -48,13 +48,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def __init__(self, min_steps: Optional[int] = None, max_steps: int = -1) -> None:
         super().__init__()
-        if max_steps is None:
-            rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
-                " Use `max_steps = -1` instead."
-            )
-            max_steps = -1
-        elif max_steps < -1:
+        if max_steps < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
             )
@@ -108,7 +102,21 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
-        return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
+        if self._is_training_done and self._is_validation_done:
+            return True
+
+        if self.trainer.should_stop:
+            # early stopping
+            min_epochs = self.trainer.fit_loop.min_epochs
+            should_stop_early = self.trainer.fit_loop._should_stop_early
+            if not should_stop_early:
+                self._warning_cache.info(
+                    f"Trainer was signaled to stop but the required `min_epochs={min_epochs!r}` or"
+                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
+                )
+            return should_stop_early
+
+        return False
 
     def connect(  # type: ignore[override]
         self,
@@ -169,7 +177,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         Raises:
             StopIteration: When the epoch is canceled by the user returning -1
         """
-        if self.restarting and self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch):
+        if self.restarting and self._should_check_val_fx():
             # skip training and run validation in `on_advance_end`
             return
         # we are going to train first so the val loop does not need to restart
@@ -241,7 +249,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # -----------------------------------------
         # VALIDATE IF NEEDED
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx(self.batch_idx, self.batch_progress.is_last_batch)
+        should_check_val = self._should_check_val_fx()
         if should_check_val:
             self.trainer.validating = True
             self._run_validation()
@@ -273,16 +281,18 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
+        state_dict["_batches_that_stepped"] = self._batches_that_stepped
 
+        trainer = self._trainer
         if (
-            self.trainer is not None
-            and self.trainer.state._fault_tolerant_mode.is_enabled
-            and self.trainer.train_dataloader is not None
+            trainer is not None
+            and trainer.state._fault_tolerant_mode.is_enabled
+            and trainer.train_dataloader is not None
             and not self._num_completed_batches_reached()  # did not finish
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             and self.batch_progress.current.ready  # did start
         ):
-            loader: CombinedLoader = self.trainer.train_dataloader
+            loader: CombinedLoader = trainer.train_dataloader
             state = loader.state_dict(has_completed=self._has_completed())
             if state:
                 state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
@@ -291,7 +301,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
+        self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
+        # restore global step instead to make sure logging works correctly if checkpoints <v1.6.5 used to resume
+        self._batches_that_stepped = state_dict.get("_batches_that_stepped", self.global_step)
 
     def _run_validation(self) -> None:
         # reload dataloaders
@@ -335,7 +347,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
         if not batch_output:
-            return []
+            return []  # type: ignore[return-value]
 
         # convert optimizer dicts to list
         if lightning_module.automatic_optimization:
@@ -344,24 +356,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
 
         array = np.array(batch_output, dtype=object)
-        # TODO: remove in v1.8
-        if (
-            num_optimizers > 1
-            and lightning_module.truncated_bptt_steps > 0
-            and is_overridden("on_train_batch_end", lightning_module)
-            and not _v1_8_output_format(lightning_module.on_train_batch_end)
-        ):
-            rank_zero_deprecation(
-                "You are training with multiple optimizers AND truncated backpropagation through time enabled."
-                " The current format of the `on_train_batch_end(outputs, ...)` is a 2d list with sizes"
-                " (n_optimizers, tbptt_steps), however, this has been deprecated and will change in version v1.8 to"
-                " (tbptt_steps, n_optimizers). You can update your code by adding the following parameter to your"
-                " hook signature: `on_train_batch_end(outputs, ..., new_format=True)`."
-            )
-            # (tbptt_steps, n_opt) -> (n_opt, tbptt_steps)
-            if array.ndim == 1:
-                array = np.expand_dims(array, 1)
-            array = array.transpose((1, 0))
         # squeeze all single-element dimensions
         array = array.squeeze()
         array = array.tolist()
@@ -377,7 +371,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
         # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
         if not batch_outputs:
-            return []
+            return []  # type: ignore[return-value]
 
         # convert optimizer dicts to list
         if lightning_module.automatic_optimization:
@@ -386,23 +380,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
 
         array = _recursive_pad(batch_outputs)
-        # TODO: remove in v1.8
-        if (
-            num_optimizers > 1
-            and lightning_module.truncated_bptt_steps > 0
-            and not _v1_8_output_format(lightning_module.on_train_epoch_end)
-        ):
-            rank_zero_deprecation(
-                "You are training with multiple optimizers AND truncated backpropagation through time enabled."
-                " The current format of the `training_epoch_end(outputs)` is a 3d list with sizes"
-                " (n_optimizers, n_batches, tbptt_steps), however, this has been deprecated and will change in version"
-                " v1.8 to (n_batches, tbptt_steps, n_optimizers). You can update your code by adding the following"
-                " parameter to your hook signature: `training_epoch_end(outputs, new_format=True)`."
-            )
-            # (n_batches, tbptt_steps, n_opt) -> (n_opt, n_batches, tbptt_steps)
-            if array.ndim == 2:
-                array = np.expand_dims(array, 2)
-            array = array.transpose((2, 0, 1))
         # squeeze all single-element dimensions
         array = array.squeeze()
         array = array.tolist()
@@ -459,8 +436,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             if config.interval == interval and current_idx % config.frequency == 0:
                 monitor_val = None
                 if config.reduce_on_plateau:
-                    # If instance of ReduceLROnPlateau, we need a monitor
                     monitor_key = config.monitor
+                    assert monitor_key is not None
                     monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
                         if config.strict:
@@ -489,39 +466,38 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 )
                 self.scheduler_progress.increment_completed()
 
-    def _get_monitor_value(self, key: str) -> Any:
+    def _get_monitor_value(self, key: str) -> Optional[Any]:
         # this is a separate method to aid in testing
         return self.trainer.callback_metrics.get(key)
 
-    def _should_check_val_epoch(self):
+    def _should_check_val_epoch(self) -> bool:
         return self.trainer.enable_validation and (
             self.trainer.check_val_every_n_epoch is None
             or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         )
 
-    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
+    def _should_check_val_fx(self) -> bool:
         """Decide if we should run validation."""
         if not self._should_check_val_epoch():
             return False
 
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
+        is_last_batch = self.batch_progress.is_last_batch
         if is_last_batch and is_infinite_dataset:
             return True
 
         if self.trainer.should_stop:
             return True
 
-        # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
+        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
-            is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
+            is_val_check_batch = (self.batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
             # if `check_val_every_n_epoch is `None`, run a validation loop every n training batches
             # else condition it based on the batch_idx of the current epoch
-            current_iteration = (
-                self._batches_that_stepped if self.trainer.check_val_every_n_epoch is None else batch_idx
-            )
+            current_iteration = self.total_batch_idx if self.trainer.check_val_every_n_epoch is None else self.batch_idx
             is_val_check_batch = (current_iteration + 1) % self.trainer.val_check_batch == 0
 
         return is_val_check_batch
@@ -535,7 +511,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
         if self._dataloader_state_dict:
             data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
-            self._dataloader_state_dict = None
+            self._dataloader_state_dict = {}
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper method to build the arguments for the current step.
@@ -568,12 +544,12 @@ def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) ->
 
 
 @overload
-def _recursive_unpad(nested: Any, value: Optional[Any] = None) -> Any:
+def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:
     ...
 
 
 @overload
-def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:
+def _recursive_unpad(nested: Any, value: Optional[Any] = None) -> Any:
     ...
 
 
@@ -591,7 +567,7 @@ def _recursive_unpad(nested: Union[Any, List[Any]], value: Optional[Any] = None)
     return [_recursive_unpad(item, value) for item in nested if item != value]
 
 
-def _recursive_pad(nested: List[Any], fill_value: Optional[Any] = None) -> np.array:
+def _recursive_pad(nested: List[Any], fill_value: Optional[Any] = None) -> np.ndarray:
     """Pads a jagged nested list of lists with the given value such that a proper multi-dimensional array can be
     formed with rectangular shape. The padding appends to the incomplete lists.
 
@@ -622,7 +598,7 @@ def _get_max_shape(array: List[Any]) -> List[int]:
         >>> _get_max_shape([[], [[1], [2]], []])
         [3, 2, 1]
     """
-    dimensions = defaultdict(int)
+    dimensions: DefaultDict[int, int] = defaultdict(int)
     for level, length in _get_dimensions(array):
         dimensions[level] = max(dimensions[level], length)
     return [value for _, value in sorted(dimensions.items())]

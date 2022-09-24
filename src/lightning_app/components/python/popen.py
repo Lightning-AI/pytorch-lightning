@@ -1,4 +1,3 @@
-import logging
 import os
 import signal
 import subprocess
@@ -7,10 +6,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from lightning_app import LightningWork
-from lightning_app.utilities.app_helpers import _collect_child_process_pids
+from lightning_app.utilities.app_helpers import _collect_child_process_pids, Logger
 from lightning_app.utilities.tracer import Tracer
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class PopenPythonScript(LightningWork):
@@ -31,7 +30,7 @@ class PopenPythonScript(LightningWork):
         env: Optional[Dict] = None,
         **kwargs,
     ):
-        """The PopenPythonScript Class enables to easily run a Python Script.
+        """The PopenPythonScript component enables to easily run a python script within a subprocess.
 
         Arguments:
             script_path: Path of the python script to run.
@@ -56,7 +55,7 @@ class PopenPythonScript(LightningWork):
 
         In this example, the script will be launch with the :class:`~subprocess.Popen`.
 
-        .. literalinclude:: ../../../../examples/components/python/component_popen.py
+        .. literalinclude:: ../../../examples/app_components/python/component_popen.py
             :language: python
         """
         super().__init__(**kwargs)

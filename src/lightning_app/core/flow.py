@@ -25,10 +25,10 @@ class LightningFlow:
     }
 
     def __init__(self):
-        """The LightningFlow is a building block to coordinate and manage long running-tasks contained within
-        :class:`~lightning_app.core.work.LightningWork` or nested LightningFlow.
+        """The LightningFlow is used by the :class:`~lightning_app.core.app.LightningApp` to coordinate and manage
+        long- running jobs contained, the :class:`~lightning_app.core.work.LightningWork`.
 
-        At a minimum, a LightningFlow is characterized by:
+        A LightningFlow is characterized by:
 
         * A set of state variables.
         * Long-running jobs (:class:`~lightning_app.core.work.LightningWork`).
@@ -40,11 +40,6 @@ class LightningFlow:
         json-serializable (e.g., int, float, bool, list, dict, ...).
 
         They also may not reach into global variables unless they are constant.
-
-        .. note ::
-            The limitation to primitive types will be lifted in time for
-            certain aggregate types, and will be made extensible so that component
-            developers will be able to add custom state-compatible types.
 
         The attributes need to be all defined in `__init__` method,
         and eventually assigned to different values throughout the lifetime of the object.
@@ -83,7 +78,7 @@ class LightningFlow:
 
         .. doctest::
 
-            >>> from lightning_app import LightningFlow
+            >>> from lightning import LightningFlow
             >>> class RootFlow(LightningFlow):
             ...     def __init__(self):
             ...         super().__init__()
@@ -214,6 +209,7 @@ class LightningFlow:
                 LightningFlow._attach_backend(flow, backend)
             for work in structure.works:
                 backend._wrap_run_method(_LightningAppRef().get_current(), work)
+                work._backend = backend
 
         for name in flow._structures:
             getattr(flow, name)._backend = backend
@@ -313,15 +309,24 @@ class LightningFlow:
         self.get_all_children_(children)
         return children
 
-    def set_state(self, provided_state: Dict) -> None:
+    def set_state(self, provided_state: Dict, recurse: bool = True) -> None:
         """Method to set the state to this LightningFlow, its children and
-        :class:`~lightning_app.core.work.LightningWork`."""
+        :class:`~lightning_app.core.work.LightningWork`.
+
+        Arguments:
+            provided_state: The state to be reloaded
+            recurse: Whether to apply the state down children.
+        """
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
             setattr(self, k, v)
         self._changes = provided_state["changes"]
         self._calls.update(provided_state["calls"])
+
+        if not recurse:
+            return
+
         for child, state in provided_state["flows"].items():
             getattr(self, child).set_state(state)
         for work, state in provided_state["works"].items():
@@ -345,6 +350,7 @@ class LightningFlow:
         return name in LightningFlow._INTERNAL_STATE_VARS or not name.startswith("_")
 
     def run(self, *args, **kwargs) -> None:
+        """Override with your own logic."""
         pass
 
     def schedule(
@@ -352,15 +358,15 @@ class LightningFlow:
     ) -> bool:
         """The schedule method is used to run a part of the flow logic on timely manner.
 
-        .. code-block::
+        .. code-block:: python
 
             from lightning_app import LightningFlow
 
-            class Flow(LightningFlow):
 
+            class Flow(LightningFlow):
                 def run(self):
                     if self.schedule("hourly"):
-                        # run some code once every hour.
+                        print("run some code every hour")
 
         Arguments:
             cron_pattern: The cron pattern to provide. Learn more at https://crontab.guru/.
@@ -370,7 +376,7 @@ class LightningFlow:
         A best practice is to avoid running a dynamic flow or work under the self.schedule method.
         Instead, instantiate them within the condition, but run them outside.
 
-         .. code-block:: python
+        .. code-block:: python
 
             from lightning_app import LightningFlow
             from lightning_app.structures import List
@@ -382,11 +388,40 @@ class LightningFlow:
                     self.dags = List()
 
                 def run(self):
-                    if self.schedule("@hourly"):
+                    if self.schedule("hourly"):
                         self.dags.append(DAG(...))
 
                     for dag in self.dags:
                         payload = dag.run()
+
+        **Learn more about Scheduling**
+
+        .. raw:: html
+
+            <div class="display-card-container">
+                <div class="row">
+
+        .. displayitem::
+            :header: Schedule your components
+            :description: Learn more scheduling.
+            :col_css: col-md-4
+            :button_link: ../../../glossary/scheduling.html
+            :height: 180
+            :tag: Basic
+
+        .. displayitem::
+            :header: Build your own DAG
+            :description: Learn more DAG scheduling with examples.
+            :col_css: col-md-4
+            :button_link: ../../../examples/app_dag/dag.html
+            :height: 180
+            :tag: Basic
+
+        .. raw:: html
+
+                </div>
+            </div>
+            <br />
         """
         if not user_key:
             frame = cast(FrameType, inspect.currentframe()).f_back
@@ -454,41 +489,45 @@ class LightningFlow:
 
         **Example:** Serve a static directory (with at least a file index.html inside).
 
-        .. code-block::
+        .. code-block:: python
 
             from lightning_app.frontend import StaticWebFrontend
 
+
             class Flow(LightningFlow):
                 ...
+
                 def configure_layout(self):
                     return StaticWebFrontend("path/to/folder/to/serve")
 
         **Example:** Serve a streamlit UI (needs the streamlit package to be installed).
 
-        .. code-block::
+        .. code-block:: python
 
             from lightning_app.frontend import StaticWebFrontend
 
+
             class Flow(LightningFlow):
                 ...
+
                 def configure_layout(self):
                     return StreamlitFrontend(render_fn=my_streamlit_ui)
 
+
             def my_streamlit_ui(state):
                 # add your streamlit code here!
+                import streamlit as st
+
 
         **Example:** Arrange the UI of my children in tabs (default UI by Lightning).
 
-        .. code-block::
+        .. code-block:: python
 
             class Flow(LightningFlow):
-                ...
                 def configure_layout(self):
                     return [
                         dict(name="First Tab", content=self.child0),
                         dict(name="Second Tab", content=self.child1),
-                        ...
-                        # You can include direct URLs too
                         dict(name="Lightning", content="https://lightning.ai"),
                     ]
 
@@ -500,6 +539,27 @@ class LightningFlow:
             returned layout configuration can depend on the state. The only exception are the flows that return a
             :class:`~lightning_app.frontend.frontend.Frontend`. These need to be provided at the time of app creation
             in order for the runtime to start the server.
+
+        **Learn more about adding UI**
+
+        .. raw:: html
+
+            <div class="display-card-container">
+                <div class="row">
+
+        .. displayitem::
+            :header: Add a web user interface (UI)
+            :description: Learn more how to integrate several UIs.
+            :col_css: col-md-4
+            :button_link: ../../../workflows/add_web_ui/index.html
+            :height: 180
+            :tag: Basic
+
+        .. raw:: html
+
+                </div>
+            </div>
+            <br />
         """
         return [dict(name=name, content=component) for (name, component) in self.flows.items()]
 
@@ -553,3 +613,144 @@ class LightningFlow:
             yield value
 
         self._calls[call_hash].update({"has_finished": True})
+
+    def configure_commands(self):
+        """Configure the commands of this LightningFlow.
+
+        Returns a list of dictionaries mapping a command name to a flow method.
+
+        .. code-block:: python
+
+            class Flow(LightningFlow):
+                def __init__(self):
+                    super().__init__()
+                    self.names = []
+
+                def configure_commands(self):
+                    return {"my_command_name": self.my_remote_method}
+
+                def my_remote_method(self, name):
+                    self.names.append(name)
+
+        Once the app is running with the following command:
+
+        .. code-block:: bash
+
+            lightning run app app.py
+
+        .. code-block:: bash
+
+            lightning my_command_name --args name=my_own_name
+        """
+        raise NotImplementedError
+
+    def configure_api(self):
+        """Configure the API routes of the LightningFlow.
+
+        Returns a list of HttpMethod such as Post or Get.
+
+        .. code-block:: python
+
+            from lightning_app import LightningFlow
+            from lightning_app.api import Post
+
+            from pydantic import BaseModel
+
+
+            class HandlerModel(BaseModel):
+                name: str
+
+
+            class Flow(L.LightningFlow):
+                def __init__(self):
+                    super().__init__()
+                    self.names = []
+
+                def handler(self, config: HandlerModel) -> None:
+                    self.names.append(config.name)
+
+                def configure_api(self):
+                    return [Post("/v1/api/request", self.handler)]
+
+        Once the app is running, you can access the Swagger UI of the app
+        under the ``/docs`` route.
+        """
+        raise NotImplementedError
+
+    def state_dict(self):
+        """Returns the current flow state but not its children."""
+        return {
+            "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
+            "calls": self._calls.copy(),
+            "changes": {},
+            "flows": {},
+            "works": {},
+            "structures": {},
+        }
+
+    def load_state_dict(
+        self,
+        flow_state: Dict[str, Any],
+        children_states: Dict[str, Any],
+        strict: bool = True,
+    ) -> None:
+        """Reloads the state of this flow and its children.
+
+        .. code-block:: python
+
+            import lightning as L
+
+
+            class Work(L.LightningWork):
+                def __init__(self):
+                    super().__init__()
+                    self.counter = 0
+
+                def run(self):
+                    self.counter += 1
+
+
+            class Flow(L.LightningFlow):
+                def run(self):
+                    # dynamically create a work.
+                    if not getattr(self, "w", None):
+                        self.w = WorkReload()
+
+                    self.w.run()
+
+                def load_state_dict(self, flow_state, children_states, strict) -> None:
+                    # 1: Re-instantiate the dynamic work
+                    self.w = Work()
+
+                    # 2: Make any states modification / migration.
+                    ...
+
+                    # 3: Call the parent ``load_state_dict`` to
+                    # recursively reload the states.
+                    super().load_state_dict(
+                        flow_state,
+                        children_states,
+                        strict,
+                    )
+
+        Arguments:
+            flow_state: The state of the current flow.
+            children_states: The state of the dynamic children of this flow.
+            strict: Whether to raise an exception if a dynamic
+                children hasn't been re-created.
+        """
+        self.set_state(flow_state, recurse=False)
+        direct_children_states = {k: v for k, v in children_states.items() if "." not in k}
+        for child_name, state in direct_children_states.items():
+            child = getattr(self, child_name, None)
+            if isinstance(child, LightningFlow):
+                lower_children_states = {
+                    k.replace(child_name + ".", ""): v
+                    for k, v in children_states.items()
+                    if k.startswith(child_name) and k != child_name
+                }
+                child.load_state_dict(state, lower_children_states, strict=strict)
+            elif isinstance(child, LightningWork):
+                child.set_state(state)
+            elif strict:
+                raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")

@@ -1,10 +1,10 @@
 from typing import Any, List, Optional, Sequence
 
-from deprecate.utils import void
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
+from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
@@ -34,10 +34,11 @@ class PredictionLoop(DataLoaderLoop):
         if return_predictions and is_ddp_spawn:
             raise MisconfigurationException(
                 "`return_predictions` should be set to `False` when using the `DDPSpawnStrategy` or children class. "
-                f"Found {return_predictions} with training_type_plugin {type(self.trainer.strategy)}."
+                f"Found {return_predictions} with strategy {type(self.trainer.strategy)}."
             )
         # For non `DDPSpawnStrategy` plugin, the `return_predictions` is True by default unless user decide otherwise.
         self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
+        self.epoch_loop.return_predictions = self._return_predictions
 
     @property
     def num_dataloaders(self) -> int:
@@ -58,7 +59,8 @@ class PredictionLoop(DataLoaderLoop):
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
         """Returns all prediction dataloaders."""
-        return self.trainer.predict_dataloaders
+        dataloaders = self.trainer.predict_dataloaders
+        return [] if dataloaders is None else dataloaders
 
     @property
     def skip(self) -> bool:
@@ -88,21 +90,15 @@ class PredictionLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
-        void(*args, **kwargs)
         dataloader = self.current_dataloader
-        if (
-            dataloader is not None
-            and getattr(dataloader, "sampler", None)
-            and callable(getattr(dataloader.sampler, "set_epoch", None))
-        ):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
+        if dataloader is not None:
+            _set_sampler_epoch(dataloader, self.trainer.fit_loop.epoch_progress.current.processed)
         dataloader = self.trainer.strategy.process_dataloader(dataloader)
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self.max_batches[self.current_dataloader_idx]
 
         dl_predictions, dl_batch_indices = self.epoch_loop.run(
-            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders, self.return_predictions
+            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
         )
         self.predictions.append(dl_predictions)
         self.epoch_batch_indices.append(dl_batch_indices)

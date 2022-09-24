@@ -17,16 +17,16 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import GPUAccelerator
-from pytorch_lightning.accelerators.gpu import get_nvidia_gpu_stats
+from pytorch_lightning.accelerators import CUDAAccelerator
+from pytorch_lightning.accelerators.cuda import get_nvidia_gpu_stats
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=1)
-def test_get_torch_gpu_stats(tmpdir):
+def test_get_torch_gpu_stats():
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
-    gpu_stats = GPUAccelerator().get_device_stats(current_device)
+    gpu_stats = CUDAAccelerator().get_device_stats(current_device)
     fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
 
     for f in fields:
@@ -34,7 +34,7 @@ def test_get_torch_gpu_stats(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_get_nvidia_gpu_stats(tmpdir):
+def test_get_nvidia_gpu_stats():
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     gpu_stats = get_nvidia_gpu_stats(current_device)
     fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
@@ -62,7 +62,7 @@ def test_set_cuda_device(set_device_mock, tmpdir):
 
 @RunIf(min_cuda_gpus=1)
 def test_gpu_availability():
-    assert GPUAccelerator.is_available()
+    assert CUDAAccelerator.is_available()
 
 
 @RunIf(min_cuda_gpus=1)

@@ -5,6 +5,12 @@ can be found in our sister library [Lightning Bolts](https://pytorch-lightning.r
 
 ______________________________________________________________________
 
+*Note that some examples may rely on new features that are only available in the development branch and may be incompatible with any releases.*
+*If you see any errors, you might want to consider switching to a version tag you would like to run examples with.*
+*For example, if you're using `pytorch-lightning==1.6.4` in your environment and seeing issues, run examples of the tag [1.6.4](https://github.com/Lightning-AI/lightning/tree/1.6.4/pl_examples).*
+
+______________________________________________________________________
+
 ## MNIST Examples
 
 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.

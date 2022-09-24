@@ -32,8 +32,8 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 log = logging.getLogger(__name__)
 
 
-def multiplicative(epoch):
-    return 2
+def multiplicative(epoch: int) -> float:
+    return 2.0
 
 
 class BaseFinetuning(Callback):
@@ -79,7 +79,7 @@ class BaseFinetuning(Callback):
         ...             )
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
         self._restarting = False
 
@@ -94,7 +94,7 @@ class BaseFinetuning(Callback):
             self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
         else:
             # compatibility to load from old checkpoints before PR #11887
-            self._internal_optimizer_metadata = state_dict
+            self._internal_optimizer_metadata = state_dict  # type: ignore[assignment]
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
@@ -122,10 +122,11 @@ class BaseFinetuning(Callback):
             modules = modules.values()
 
         if isinstance(modules, Iterable):
-            _modules = []
+            _flatten_modules = []
             for m in modules:
-                _modules.extend(BaseFinetuning.flatten_modules(m))
+                _flatten_modules.extend(BaseFinetuning.flatten_modules(m))
 
+            _modules = iter(_flatten_modules)
         else:
             _modules = modules.modules()
 
@@ -140,7 +141,7 @@ class BaseFinetuning(Callback):
 
         Args:
             modules: A given module or an iterable of modules
-            train_bn: Whether to train BatchNorm module
+            train_bn: Whether not to train the BatchNorm module
             requires_grad: Whether to create a generator for trainable or non-trainable parameters.
         Returns:
             Generator
@@ -243,7 +244,7 @@ class BaseFinetuning(Callback):
         if params:
             optimizer.add_param_group({"params": params, "lr": params_lr / denom_lr})
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.freeze_before_training(pl_module)
 
     @staticmethod

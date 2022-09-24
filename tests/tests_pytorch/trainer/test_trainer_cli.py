@@ -17,7 +17,6 @@ from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
-import torch
 
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
@@ -164,12 +163,8 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
     ["cli_args", "expected_parsed"],
     [("", None), ("--accelerator gpu --devices 1", "1"), ("--accelerator gpu --devices 0,", "0,")],
 )
-def test_argparse_args_parsing_devices(cli_args, expected_parsed, monkeypatch):
+def test_argparse_args_parsing_devices(cli_args, expected_parsed, cuda_count_1):
     """Test multi type argument with bool."""
-
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
-
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)

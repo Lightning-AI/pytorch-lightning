@@ -9,7 +9,7 @@ setup(
     author="",
     author_email="",
     # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
-    url="https://github.com/PyTorchLightning/lightning-app-template",
+    url="https://github.com/Lightning-AI/lightning-app-template",
     install_requires=[],
     packages=find_packages(),
 )

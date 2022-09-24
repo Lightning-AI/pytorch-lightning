@@ -43,7 +43,6 @@ Run these commands
 
 ```bash
 git submodule update --init --recursive
-pip install -e . -r requirements/pytorch/docs.txt
 make docs
 ```
 
@@ -52,11 +51,12 @@ and open `docs/build/html/index.html` in your browser.
 When you send a PR the continuous integration will run tests and build the docs. You can access a preview of the html pages in the
 _Artifacts_ tab in CircleCI when you click on the task named _build-Docs_ of _ci-tests_ at the bottom of the PR page.
 
-Notes (Optional):
+Notes:
 
-- You need to have LaTeX installed for rendering math equations. You can for example install TeXLive by doing one of the following:
-  - on Ubuntu (Linux) run `apt-get install texlive` or otherwise follow the instructions on the TeXLive website
+- You need to have LaTeX installed for rendering math equations. You can for example install TeXLive with the necessary extras by doing one of the following:
+  - on Ubuntu (Linux) run `sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures`
   - use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
+- You need to have pandoc installed for rendering Jupyter Notebooks. On Ubuntu (Linux), you can run: `sudo apt-get install pandoc`
 
 ## Developing docs
 

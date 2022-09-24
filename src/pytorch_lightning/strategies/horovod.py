@@ -20,13 +20,14 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO
+from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.distributed import group as dist_group
+from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.distributed import group as dist_group
-from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -42,7 +43,7 @@ class HorovodStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -70,11 +71,12 @@ class HorovodStrategy(ParallelStrategy):
         return hvd.size()
 
     @property
-    def root_device(self):
+    def root_device(self) -> torch.device:
+        assert isinstance(self.parallel_devices, list)
         return self.parallel_devices[self.local_rank]
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -95,7 +97,7 @@ class HorovodStrategy(ParallelStrategy):
             # no need to setup optimizers
             return
 
-        def _unpack_lightning_optimizer(opt):
+        def _unpack_lightning_optimizer(opt: Optimizer) -> Optimizer:
             return opt._optimizer if isinstance(opt, LightningOptimizer) else opt
 
         optimizers = self.optimizers
@@ -111,8 +113,10 @@ class HorovodStrategy(ParallelStrategy):
         lr_scheduler_configs = self.lr_scheduler_configs
         for config in lr_scheduler_configs:
             scheduler = config.scheduler
-            scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
+            if hasattr(scheduler, "base_lrs"):
+                scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]  # type: ignore[union-attr]
 
+        assert self.lightning_module is not None
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
         hvd.broadcast_parameters(self.lightning_module.state_dict(), root_rank=0)
         for optimizer in optimizers:
@@ -129,27 +133,33 @@ class HorovodStrategy(ParallelStrategy):
             # Synchronization will be performed explicitly following backward()
             self._exit_stack.enter_context(optimizer.skip_synchronize())
 
-    def barrier(self, *args, **kwargs):
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         if distributed_available():
             self.join()
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         obj = hvd.broadcast_object(obj, src)
         return obj
 
-    def model_to_device(self):
+    def model_to_device(self) -> None:
         if self.root_device.type == "cuda":
             # this can potentially be removed after #8312. Not done due to lack of horovod testing
             torch.cuda.set_device(self.root_device)
+        assert self.model is not None
         self.model.to(self.root_device)
 
-    def join(self):
+    def join(self) -> None:
         if self.root_device.type == "cuda":
             hvd.join(self.local_rank)
         else:
             hvd.join()
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+    def reduce(
+        self,
+        tensor: Union[Any, Tensor],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[Any, Tensor]:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -196,6 +206,7 @@ class HorovodStrategy(ParallelStrategy):
         self, optimizers: List[Optimizer], accumulate_grad_batches: int
     ) -> List["hvd.DistributedOptimizer"]:
         """Wraps optimizers to perform gradient aggregation via allreduce."""
+        assert self.lightning_module is not None
         return [
             hvd.DistributedOptimizer(
                 opt,

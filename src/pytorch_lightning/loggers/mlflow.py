@@ -20,16 +20,17 @@ import os
 import re
 from argparse import Namespace
 from time import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
+
+from lightning_utilities.core.imports import module_available
 
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = _module_available("mlflow")
+_MLFLOW_AVAILABLE = module_available("mlflow")
 try:
     import mlflow
     from mlflow.tracking import context, MlflowClient
@@ -50,7 +51,17 @@ elif hasattr(context, "registry"):
     from mlflow.tracking.context.registry import resolve_tags
 else:
 
-    def resolve_tags(tags=None):
+    def resolve_tags(tags: Optional[Dict] = None) -> Optional[Dict]:
+        """
+        Args:
+            tags: A dictionary of tags to override. If specified, tags passed in this argument will
+                 override those inferred from the context.
+
+        Returns: A dictionary of resolved tags.
+
+        Note:
+            See ``mlflow.tracking.context.registry`` for more details.
+        """
         return tags
 
 
@@ -129,7 +140,7 @@ class MLFlowLogger(Logger):
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
 
         self._experiment_name = experiment_name
-        self._experiment_id = None
+        self._experiment_id: Optional[str] = None
         self._tracking_uri = tracking_uri
         self._run_name = run_name
         self._run_id = run_id
@@ -141,7 +152,7 @@ class MLFlowLogger(Logger):
 
         self._mlflow_client = MlflowClient(tracking_uri)
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def experiment(self) -> MlflowClient:
         r"""
@@ -187,7 +198,7 @@ class MLFlowLogger(Logger):
         return self._mlflow_client
 
     @property
-    def run_id(self) -> str:
+    def run_id(self) -> Optional[str]:
         """Create the experiment if it does not exist to get the run id.
 
         Returns:
@@ -197,7 +208,7 @@ class MLFlowLogger(Logger):
         return self._run_id
 
     @property
-    def experiment_id(self) -> str:
+    def experiment_id(self) -> Optional[str]:
         """Create the experiment if it does not exist to get the experiment id.
 
         Returns:
@@ -220,7 +231,7 @@ class MLFlowLogger(Logger):
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -243,9 +254,13 @@ class MLFlowLogger(Logger):
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
-    def finalize(self, status: str = "FINISHED") -> None:
-        super().finalize(status)
-        status = "FINISHED" if status == "success" else status
+    def finalize(self, status: str = "success") -> None:
+        if not self._initialized:
+            return
+        if status == "success":
+            status = "FINISHED"
+        elif status == "failed":
+            status = "FAILED"
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 
@@ -261,7 +276,7 @@ class MLFlowLogger(Logger):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
 
     @property
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Get the experiment id.
 
         Returns:
@@ -270,7 +285,7 @@ class MLFlowLogger(Logger):
         return self.experiment_id
 
     @property
-    def version(self) -> str:
+    def version(self) -> Optional[str]:
         """Get the run id.
 
         Returns:

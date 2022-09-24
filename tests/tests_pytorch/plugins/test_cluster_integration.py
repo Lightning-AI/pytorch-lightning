@@ -17,9 +17,9 @@ from unittest import mock
 import pytest
 import torch
 
+from lightning_lite.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from pytorch_lightning.strategies import DDP2Strategy, DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
+from pytorch_lightning.strategies import DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
@@ -57,17 +57,13 @@ def environment_combinations():
 
 @pytest.mark.parametrize(
     "strategy_cls",
-    [DDPStrategy, DDPShardedStrategy, DDP2Strategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
+    [DDPStrategy, DDPShardedStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
+@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
-
-        if strategy_cls == DDP2Strategy:
-            expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
-
         with mock.patch.dict(os.environ, variables):
             strategy = strategy_cls(
                 parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
@@ -85,22 +81,17 @@ def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strat
     [
         dict(strategy="ddp", accelerator="gpu", devices=[1, 2]),
         dict(strategy="ddp_sharded", accelerator="gpu", devices=[1, 2]),
-        dict(strategy="ddp2", accelerator="gpu", devices=[1, 2]),
         dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
         dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
     ],
 )
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=4)
-def test_ranks_available_automatic_strategy_selection(mock0, mock1, trainer_kwargs):
+@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=list(range(4)))
+def test_ranks_available_automatic_strategy_selection(_, cuda_count_4, trainer_kwargs):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
 
     for cluster, variables, expected in environment_combinations():
-
-        if trainer_kwargs["strategy"] == "ddp2":
-            expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
         if trainer_kwargs["strategy"] == "ddp_spawn":
             if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
                 # slurm and torchelastic do not work with spawn strategies

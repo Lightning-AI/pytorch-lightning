@@ -23,8 +23,15 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.strategies import Strategy
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
+
+if _TORCH_GREATER_EQUAL_1_12:
+    torch_test_assert_close = torch.testing.assert_close
+else:
+    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class ManualOptModel(BoringModel):
@@ -71,7 +78,7 @@ class ManualOptModel(BoringModel):
             {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_cuda_gpus=1)
         ),
         pytest.param(
-            {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
+            {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "apex"},
             marks=RunIf(min_cuda_gpus=1, amp_apex=True),
         ),
     ],
@@ -113,6 +120,8 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
     model.val_dataloader = None
 
     limit_train_batches = 2
+    plugins = [ApexMixedPrecisionPlugin(amp_level="O2")] if kwargs.get("amp_backend") == "apex" else []
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
@@ -120,6 +129,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        plugins=plugins,
         **kwargs,
     )
 
@@ -198,8 +208,9 @@ def test_multiple_optimizers_manual_log(tmpdir):
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
 
 
-@RunIf(min_cuda_gpus=1)
-def test_multiple_optimizers_manual_native_amp(tmpdir):
+# precision = 16 not yet working properly with mps backend
+@pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1))])
+def test_multiple_optimizers_manual_native_amp(tmpdir, accelerator):
     model = ManualOptModel()
     model.val_dataloader = None
 
@@ -212,7 +223,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         precision=16,
-        accelerator="gpu",
+        accelerator=accelerator,
         devices=1,
     )
 
@@ -450,7 +461,7 @@ def test_multiple_optimizers_step(tmpdir):
             grads = [p.grad for p in self.parameters()]
             assert len(grads) == len(self.original_grads)
             for actual, expected in zip(grads, self.original_grads):
-                torch.testing.assert_allclose(actual, expected)
+                torch_test_assert_close(actual, expected)
 
         def on_before_optimizer_step(self, optimizer, *_):
             self.check_grads_unscaled(optimizer)

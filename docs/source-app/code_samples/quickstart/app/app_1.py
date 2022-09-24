@@ -2,14 +2,14 @@ import flash
 from flash.core.data.utils import download_data
 from flash.image import ImageClassificationData, ImageClassifier
 
-from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork
+import lightning as L
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 # Step 1: Create a training LightningWork component that gets a backbone as input
 # and saves the best model and its score
-class ImageClassifierTrainWork(LightningWork):
-    def __init__(self, max_epochs: int, backbone: str, cloud_compute: CloudCompute):
+class ImageClassifierTrainWork(L.LightningWork):
+    def __init__(self, max_epochs: int, backbone: str, cloud_compute: L.CloudCompute):
         # parallel is set to True to run asynchronously
         super().__init__(parallel=True, cloud_compute=cloud_compute)
         # Number of epochs to run
@@ -44,7 +44,7 @@ class ImageClassifierTrainWork(LightningWork):
 
 
 # Step 2: Create a serving LightningWork component that gets a model input and serves it
-class ImageClassifierServeWork(LightningWork):
+class ImageClassifierServeWork(L.LightningWork):
     def run(self, best_model_path: str):
         # Load the model from the model path
         model = ImageClassifier.load_from_checkpoint(best_model_path)
@@ -53,7 +53,7 @@ class ImageClassifierServeWork(LightningWork):
 
 # Step 3: Create a root LightningFlow component that gets number of epochs and a path to
 # a dataset as inputs, initialize 2 training components and serves the best model
-class RootFlow(LightningFlow):
+class RootFlow(L.LightningFlow):
     def __init__(self, max_epochs: int, data_dir: str):
         super().__init__()
         self.data_dir = data_dir
@@ -88,5 +88,5 @@ class RootFlow(LightningFlow):
 # Step 4: download a dataset to your local directory under `/data`
 download_data("https://pl-flash-data.s3.amazonaws.com/hymenoptera_data.zip", "./data")
 
-# Initalize your Lightning app with 5 epochs
-app = LightningApp(RootFlow(5, "./data/hymenoptera_data"))
+# Initialize your Lightning app with 5 epochs
+app = L.LightningApp(RootFlow(5, "./data/hymenoptera_data"))

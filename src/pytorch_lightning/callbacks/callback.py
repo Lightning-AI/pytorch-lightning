@@ -72,10 +72,10 @@ class Callback:
         Called before accelerator is being setup.
         """
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Called when fit, validate, test, predict, or tune begins."""
 
-    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Called when fit, validate, test, predict, or tune ends."""
 
     def on_init_start(self, trainer: "pl.Trainer") -> None:
@@ -271,14 +271,6 @@ class Callback:
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when predict ends."""
-
-    def on_keyboard_interrupt(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        r"""
-        .. deprecated:: v1.5
-            This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
-
-        Called when any trainer execution is interrupted by KeyboardInterrupt.
-        """
 
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         """Called when any trainer execution is interrupted by an exception."""

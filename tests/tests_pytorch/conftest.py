@@ -17,11 +17,14 @@ import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
+from typing import List
 
 import pytest
 import torch.distributed
 
-from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+import lightning_lite
+import pytorch_lightning
+from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.imports import _IS_WINDOWS
 from tests_pytorch import _PATH_DATASETS
@@ -117,6 +120,47 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
+def mock_cuda_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(pytorch_lightning.tuner.auto_gpu_select, "num_cuda_devices", lambda: n)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_0(monkeypatch):
+    mock_cuda_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_1(monkeypatch):
+    mock_cuda_count(monkeypatch, 1)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_2(monkeypatch):
+    mock_cuda_count(monkeypatch, 2)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_4(monkeypatch):
+    mock_cuda_count(monkeypatch, 4)
+
+
+def mock_mps_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
+    monkeypatch.setattr(lightning_lite.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_0(monkeypatch):
+    mock_mps_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_1(monkeypatch):
+    mock_mps_count(monkeypatch, 1)
+
+
 @pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
@@ -169,32 +213,52 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items):
-    # filter out special tests
-    if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(standalone=True)`
-            if marker.name == "skipif" and marker.kwargs.get("standalone")
-        ]
-    elif os.getenv("PL_RUN_SLOW_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(slow=True)`
-            if marker.name == "skipif" and marker.kwargs.get("slow")
-        ]
-    elif os.getenv("PL_RUN_IPU_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(ipu=True)`
-            if marker.name == "skipif" and marker.kwargs.get("ipu")
-        ]
+def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
+    initial_size = len(items)
+    conditions = []
+    filtered, skipped = 0, 0
+
+    options = dict(
+        standalone="PL_RUN_STANDALONE_TESTS",
+        min_cuda_gpus="PL_RUN_CUDA_TESTS",
+        slow="PL_RUN_SLOW_TESTS",
+        ipu="PL_RUN_IPU_TESTS",
+        tpu="PL_RUN_TPU_TESTS",
+    )
+    if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
+        # special case: we don't have a CPU job for standalone tests, so we shouldn't run only cuda tests.
+        # by deleting the key, we avoid filtering out the CPU tests
+        del options["min_cuda_gpus"]
+
+    for kwarg, env_var in options.items():
+        # this will compute the intersection of all tests selected per environment variable
+        if os.getenv(env_var, "0") == "1":
+            conditions.append(env_var)
+            for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
+                already_skipped = any(marker.name == "skip" for marker in test.own_markers)
+                if already_skipped:
+                    # the test was going to be skipped anyway, filter it out
+                    items.pop(i)
+                    skipped += 1
+                    continue
+                has_runif_with_kwarg = any(
+                    marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
+                )
+                if not has_runif_with_kwarg:
+                    # the test has `@RunIf(kwarg=True)`, filter it out
+                    items.pop(i)
+                    filtered += 1
+
+    if config.option.verbose >= 0 and (filtered or skipped):
+        writer = config.get_terminal_writer()
+        writer.write(
+            f"\nThe number of tests has been filtered from {initial_size} to {initial_size - filtered} after the"
+            f" filters {conditions}.\n{skipped} tests are marked as unconditional skips.\nIn total, {len(items)} tests"
+            " will run.\n",
+            flush=True,
+            bold=True,
+            purple=True,  # oh yeah, branded pytest messages
+        )
 
 
 def pytest_addoption(parser):

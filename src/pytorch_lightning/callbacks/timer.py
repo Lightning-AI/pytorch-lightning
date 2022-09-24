@@ -51,6 +51,7 @@ class Timer(Callback):
             If ``interval`` is not one of the supported choices.
 
     Example::
+
         from pytorch_lightning import Trainer
         from pytorch_lightning.callbacks import Timer
 

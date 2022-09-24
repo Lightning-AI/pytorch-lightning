@@ -19,7 +19,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class TrainerOptimizersMixin(ABC):
@@ -37,9 +37,10 @@ class TrainerOptimizersMixin(ABC):
             "`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
         )
         pl_module = self.lightning_module or model
+        assert isinstance(pl_module, pl.LightningModule)
         return _init_optimizers_and_lr_schedulers(pl_module)
 
-    def convert_to_lightning_optimizers(self):
+    def convert_to_lightning_optimizers(self) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in v1.8.
@@ -59,6 +60,6 @@ class TrainerOptimizersMixin(ABC):
                     break
             return optimizer  # type: ignore [return-value]
 
-        self.strategy._cached_lightning_optimizers = {  # type: ignore [assignment]
+        self.strategy._cached_lightning_optimizers = {
             idx: _convert_to_lightning_optimizer(opt) for idx, opt in enumerate(self.optimizers)
         }

@@ -114,10 +114,9 @@ def test_qadam_configuration(tmpdir):
         trainer.strategy._configure_bagua_model(trainer)
 
 
-def test_bagua_not_available(monkeypatch):
+def test_bagua_not_available(cuda_count_1, monkeypatch):
     import pytorch_lightning.strategies.bagua as imports
 
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
-    with mock.patch("torch.cuda.device_count", return_value=1):
-        with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
-            Trainer(strategy="bagua", accelerator="gpu", devices=1)
+    with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
+        Trainer(strategy="bagua", accelerator="gpu", devices=1)

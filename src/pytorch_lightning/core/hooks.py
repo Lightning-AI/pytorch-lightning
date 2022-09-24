@@ -298,21 +298,6 @@ class ModelHooks:
                         )
         """
 
-    def on_post_move_to_device(self) -> None:
-        """Called in the ``parameter_validation`` decorator after
-        :meth:`~pytorch_lightning.core.LightningModule.to` is called. This is a good place to tie weights between
-        modules after moving them to a device. Can be used when training models with weight sharing properties on
-        TPU.
-
-        Addresses the handling of shared weights on TPU:
-        https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks
-
-        Example::
-
-            def on_post_move_to_device(self):
-                self.decoder.weight = self.encoder.weight
-        """
-
     def configure_sharded_model(self) -> None:
         """Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
         where we'd like to shard the model instantly, which is useful for extremely large models which can save
@@ -395,7 +380,7 @@ class DataHooks:
             model.predict_dataloader()
         """
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict. This is a good hook when
         you need to build models dynamically or adjust something about them. This hook is called on every process
         when using DDP.
@@ -421,7 +406,7 @@ class DataHooks:
                     self.l1 = nn.Linear(28, data.num_classes)
         """
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: str) -> None:
         """Called at the end of fit (train + validate), validate, test, or predict.
 
         Args:
@@ -639,7 +624,6 @@ class DataHooks:
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
-        - :class:`torchtext.data.batch.Batch`
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
@@ -680,6 +664,9 @@ class DataHooks:
             MisconfigurationException:
                 If using data-parallel, ``Trainer(strategy='dp')``.
 
+            MisconfigurationException:
+                If using IPUs, ``Trainer(accelerator='ipu')``.
+
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
@@ -710,10 +697,6 @@ class DataHooks:
             def on_before_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = transforms(batch['x'])
                 return batch
-
-        Raises:
-            MisconfigurationException:
-                If using data-parallel, ``Trainer(strategy='dp')``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -749,6 +732,9 @@ class DataHooks:
         Raises:
             MisconfigurationException:
                 If using data-parallel, ``Trainer(strategy='dp')``.
+
+            MisconfigurationException:
+                If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

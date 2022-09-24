@@ -14,6 +14,7 @@
 import os
 
 import torch
+import torch.distributed
 import torch.multiprocessing as mp
 
 import tests_pytorch.helpers.utils as tutils

@@ -36,7 +36,7 @@ The first step is to create an HTML file named **index.html**:
 ----
 
 ************************
-Create the html demo app
+Create the HTML demo app
 ************************
 
 ..
@@ -52,13 +52,13 @@ First **create a file named app.py** with the app content (in the same folder as
 .. code:: bash
 
     # app.py
-    import lightning_app as la
+    import lightning as L
 
-    class HelloComponent(lapp.LightningFlow):
+    class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.web.StaticWebFrontend(serve_dir='.')
+            return L.app.frontend.web.StaticWebFrontend(serve_dir='.')
 
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.hello_component = HelloComponent()
@@ -67,7 +67,7 @@ First **create a file named app.py** with the app content (in the same folder as
             tab1 = {"name": "home", "content": self.hello_component}
             return tab1
 
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 ----
 
@@ -76,13 +76,13 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: bash
+.. code:: python
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: bash
+.. code:: python
 
     lightning run app app.py --cloud
 
@@ -103,13 +103,13 @@ Give the component an HTML UI, by returning a ``StaticWebFrontend`` object from 
     :emphasize-lines: 5,6
 
     # app.py
-    import lightning_app as la
+    import lightning as L
 
-    class HelloComponent(lapp.LightningFlow):
+    class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.web.StaticWebFrontend(serve_dir='.')
+            return L.app.frontend.web.StaticWebFrontend(serve_dir='.')
 
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.hello_component = HelloComponent()
@@ -118,7 +118,7 @@ Give the component an HTML UI, by returning a ``StaticWebFrontend`` object from 
             tab1 = {"name": "home", "content": self.hello_component}
             return tab1
 
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 The folder path given in ``StaticWebFrontend(serve_dir=)`` must point to a folder with an ``index.html`` page.
 
@@ -133,13 +133,13 @@ In this case, we render the ``HelloComponent`` UI in the ``home`` tab of the app
     :emphasize-lines: 14, 15
 
     # app.py
-    import lightning_app as la
+    import lightning as L
 
-    class HelloComponent(lapp.LightningFlow):
+    class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.web.StaticWebFrontend(serve_dir='.')
+            return L.app.frontend.web.StaticWebFrontend(serve_dir='.')
 
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.hello_component = HelloComponent()
@@ -148,4 +148,4 @@ In this case, we render the ``HelloComponent`` UI in the ``home`` tab of the app
             tab1 = {"name": "home", "content": self.hello_component}
             return tab1
 
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())

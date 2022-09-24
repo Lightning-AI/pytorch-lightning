@@ -24,7 +24,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.profiler.simple import SimpleProfiler
+from pytorch_lightning.profilers.simple import SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -100,7 +100,7 @@ def test_can_prepare_data(local_rank, node_rank):
 
 def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
-    # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
+    # See https://github.com/Lightning-AI/lightning/issues/3652
     class DummyDM(LightningDataModule):
         def setup(self, *args, **kwargs):
             pass
@@ -117,7 +117,7 @@ def test_hooks_no_recursion_error():
 def test_helper_boringdatamodule():
     dm = BoringDataModule()
     dm.prepare_data()
-    dm.setup()
+    dm.setup("fit")
 
 
 def test_helper_boringdatamodule_with_verbose_setup():
@@ -140,7 +140,7 @@ def test_dm_init_from_argparse_args(tmpdir):
     args = parser.parse_args(["--data_dir", str(tmpdir)])
     dm = BoringDataModule.from_argparse_args(args)
     dm.prepare_data()
-    dm.setup()
+    dm.setup("fit")
     assert dm.data_dir == args.data_dir == str(tmpdir)
 
 
@@ -265,69 +265,6 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.6
 
 
-@RunIf(min_cuda_gpus=1)
-@mock.patch(
-    "pytorch_lightning.strategies.Strategy.lightning_module",
-    new_callable=PropertyMock,
-)
-def test_dm_apply_batch_transfer_handler(get_module_mock):
-    expected_device = torch.device("cuda", 0)
-
-    class CustomBatch:
-        def __init__(self, data):
-            self.samples = data[0]
-            self.targets = data[1]
-
-    class CurrentTestDM(LightningDataModule):
-        rank = 0
-        transfer_batch_to_device_hook_rank = None
-        on_before_batch_transfer_hook_rank = None
-        on_after_batch_transfer_hook_rank = None
-
-        def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx == 0
-            self.on_before_batch_transfer_hook_rank = self.rank
-            self.rank += 1
-            batch.samples += 1
-            return batch
-
-        def on_after_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx == 0
-            assert batch.samples.device == batch.targets.device == expected_device
-            self.on_after_batch_transfer_hook_rank = self.rank
-            self.rank += 1
-            batch.targets *= 2
-            return batch
-
-        def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            assert dataloader_idx == 0
-            self.transfer_batch_to_device_hook_rank = self.rank
-            self.rank += 1
-            batch.samples = batch.samples.to(device)
-            batch.targets = batch.targets.to(device)
-            return batch
-
-    dm = CurrentTestDM()
-    model = BoringModel()
-
-    batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
-
-    trainer = Trainer(accelerator="gpu", devices=1)
-    model.trainer = trainer
-    # running .fit() would require us to implement custom data loaders, we mock the model reference instead
-    get_module_mock.return_value = model
-
-    trainer._data_connector.attach_datamodule(model, datamodule=dm)
-    batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
-
-    assert dm.on_before_batch_transfer_hook_rank == 0
-    assert dm.transfer_batch_to_device_hook_rank == 1
-    assert dm.on_after_batch_transfer_hook_rank == 2
-    assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
-    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
-    assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
-
-
 def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     """Test datamodule, where trainer argument reload_dataloaders_every_n_epochs is set to a non negative
     integer."""
@@ -427,6 +364,54 @@ def test_dm_init_from_datasets_dataloaders(iterable):
                 call(predict_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
             ]
         )
+
+
+def test_dm_init_from_datasets_with_init_params():
+    """Test that extra kwargs can be passed down to the init via the ``LightningDataModule.from_datasets`` method.
+
+    The two special arguments batch_size and num_workers get passed down depending on whether the __init__ accepts them.
+    """
+    # No additional parameters
+    LightningDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+
+    class KnownExtraParametersDataModule(LightningDataModule):
+        def __init__(self, batch_size=1, num_workers=0):
+            super().__init__()
+            self.batch_size = batch_size
+            self.num_workers = num_workers
+
+    # batch_size and num_workers get special treatment - they are part of the `from_datasets` signature
+    dm = KnownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+    assert dm.batch_size == 4
+    assert dm.num_workers == 2
+
+    class UnknownExtraParametersDataModule(LightningDataModule):
+        def __init__(self, other, batch_size=1):
+            super().__init__()
+            self.other = other
+            self.batch_size = batch_size
+
+    # additional parameter `other` gets forwarded, alongside the special `batch_size` parameter
+    dm = UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2, other=5)
+    assert dm.batch_size == 4
+    assert dm.other == 5
+
+    # positional arguments raise an error as they would when instantiating the datamodule normally
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'other'"):
+        UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+
+    class KwargsParametersDataModule(LightningDataModule):
+        def __init__(self, num_workers, **kwargs):
+            super().__init__()
+            self.num_workers = num_workers
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    # everything gets forwarded, because there is `**kwargs` present
+    dm = KwargsParametersDataModule.from_datasets(DummyDS(), batch_size=10, num_workers=100, another=None)
+    assert dm.batch_size == 10
+    assert dm.num_workers == 100
+    assert dm.another is None
 
 
 # all args

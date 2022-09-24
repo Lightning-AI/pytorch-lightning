@@ -3,24 +3,23 @@ from dataclasses import dataclass
 import pytest
 import torch
 from torch import Tensor
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
+from lightning_lite.utilities.data import _replace_dunder_methods
 from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
-    _get_dataloader_init_kwargs,
-    _replace_dataloader_init_method,
+    _dataloader_init_kwargs_resolve_sampler,
+    _get_dataloader_init_args_and_kwargs,
     _update_dataloader,
     extract_batch_size,
     get_len,
-    has_iterable_dataset,
-    has_len,
     has_len_all_ranks,
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.utils import no_warning_call
 
 
@@ -92,28 +91,6 @@ def test_extract_batch_size():
     _check_error_raised(data)
 
 
-def test_has_iterable_dataset():
-    assert has_iterable_dataset(DataLoader(RandomIterableDataset(1, 1)))
-
-    assert not has_iterable_dataset(DataLoader(RandomDataset(1, 1)))
-
-    class MockDatasetWithoutIterableDataset(RandomDataset):
-        def __iter__(self):
-            yield 1
-            return self
-
-    assert not has_iterable_dataset(DataLoader(MockDatasetWithoutIterableDataset(1, 1)))
-
-
-def test_has_len():
-    assert has_len(DataLoader(RandomDataset(1, 1)))
-
-    with pytest.warns(UserWarning, match="`DataLoader` returned 0 length."):
-        assert has_len(DataLoader(RandomDataset(0, 0)))
-
-    assert not has_len(DataLoader(RandomIterableDataset(1, 1)))
-
-
 def test_get_len():
     assert get_len(DataLoader(RandomDataset(1, 1))) == 1
 
@@ -134,24 +111,29 @@ def test_has_len_all_rank():
 
 
 def test_update_dataloader_typerror_custom_exception():
-    class BadImpl(DataLoader):
+    class BadStandaloneGoodHookImpl(DataLoader):
         def __init__(self, foo, *args, **kwargs):
             self.foo = foo
             # positional conflict with `dataset`
             super().__init__(foo, *args, **kwargs)
 
-    dataloader = BadImpl([1, 2, 3])
-    with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`dataset`"):
+    dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
+    with pytest.raises(MisconfigurationException, match="implementation has an error.*`dataset`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
-    class BadImpl2(DataLoader):
+    with _replace_dunder_methods(DataLoader, "dataset"):
+        dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
+    new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
+
+    class BadImpl(DataLoader):
         def __init__(self, randomize, *args, **kwargs):
             self.randomize = randomize
             # keyword conflict with `shuffle`
             super().__init__(*args, shuffle=randomize, **kwargs)
 
-    dataloader = BadImpl2(False, [])
-    with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`shuffle`"):
+    dataloader = BadImpl(False, [])
+    with pytest.raises(MisconfigurationException, match="implementation has an error.*`shuffle`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
     class GoodImpl(DataLoader):
@@ -165,69 +147,126 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_replace_dataloader_init_method():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as attributes."""
+@pytest.mark.parametrize("predicting", [True, False])
+def test_custom_batch_sampler(predicting):
+    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to
+    properly reinstantiate the class, is invoked properly.
 
-    class DataLoaderSubclass1(DataLoader):
-        def __init__(self, attribute1, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute1 = attribute1
-            super().__init__(*args, **kwargs)
+    It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
+    not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
+    """
 
-    class DataLoaderSubclass2(DataLoaderSubclass1):
-        def __init__(self, attribute2, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute2 = attribute2
-            super().__init__(attribute2 + "-2", *args, **kwargs)
+    class MyBatchSampler(BatchSampler):
+        # Custom Batch sampler with extra argument and default value
+        def __init__(self, sampler, extra_arg, drop_last=True):
+            self.extra_arg = extra_arg
+            super().__init__(sampler, 10, drop_last)
 
-    with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
+    sampler = RandomSampler(range(10))
+    with _replace_dunder_methods(BatchSampler):
+        # instantiate within `_replace_dunder_method` context manager, simulating `*_dataloader` hooks
+        batch_sampler = MyBatchSampler(sampler, "random_str")
 
-    assert dataloader.attribute1 == "attribute1"
+    dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
-    with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
+    # assert that passed information got saved
+    assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
+    assert dataloader.batch_sampler.__pl_saved_kwargs == {}
+    assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
+    assert dataloader.batch_sampler.__pl_saved_default_kwargs == {"drop_last": True}
 
-    assert dataloader.attribute1 == "attribute2-2"
-    assert dataloader.attribute2 == "attribute2"
+    # updating dataloader, what happens on access of the dataloaders.
+    # This should not fail, and would fail before support for custom args.
+    dataloader = _update_dataloader(
+        dataloader, dataloader.sampler, mode=RunningStage.PREDICTING if predicting else None
+    )
 
-    # Failing test case from issue 12564
-    class MyBaseDataLoader(DataLoader):
-        pass
+    # Assert the `__init__` method is not replaced anymore and everything is instantiated to correct types
+    batch_sampler = dataloader.batch_sampler
 
-    class MyDataLoader(MyBaseDataLoader):
-        def __init__(self, data: torch.Tensor, *args, **kwargs):
-            self.data = data
-            super().__init__(range(data.size(0)), *args, **kwargs)
+    if predicting:
+        assert isinstance(batch_sampler, IndexBatchSamplerWrapper)
+        batch_sampler = batch_sampler._sampler
 
-    data = torch.randn((10, 20))
+    assert isinstance(batch_sampler, MyBatchSampler)
+    assert batch_sampler.drop_last == (not predicting)
 
-    with _replace_dataloader_init_method():
-        dataloader = MyDataLoader(data, batch_size=2)
+    assert batch_sampler.extra_arg == "random_str"
+    assert not hasattr(batch_sampler, "__pl_saved_kwargs")
+    assert not hasattr(batch_sampler, "__pl_saved_arg_names")
+    assert not hasattr(batch_sampler, "__pl_saved_args")
+    assert not hasattr(batch_sampler, "__pl_saved_default_kwargs")
 
-    assert dataloader.data is data
-    assert dataloader.dataset == range(10)
 
-    # `poptorch.DataLoader` uses this pattern, simulate it
-    class PoptorchDataLoader(DataLoader):
-        def __init__(self, options, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self._options = options
+def test_custom_batch_sampler_no_drop_last():
+    """Tests whether appropriate warning is raised when the custom `BatchSampler` does not support `drop_last` and
+    we want to reset it."""
 
-        @property
-        def options(self):
-            return self._options
+    class MyBatchSampler(BatchSampler):
+        # Custom batch sampler with extra argument, but without `drop_last`
+        def __init__(self, sampler, extra_arg):
+            self.extra_arg = extra_arg
+            super().__init__(sampler, 10, False)
 
-    # †his read-only property pattern is fine
-    dataloader = PoptorchDataLoader(123, [1])
-    assert dataloader.options == 123
+    sampler = RandomSampler(range(10))
+    with _replace_dunder_methods(BatchSampler):
+        # instantiate within `_replace_dunder_method` context manager, simulating `*_dataloader` hooks
+        batch_sampler = MyBatchSampler(sampler, "random_str")
 
-    # still works with the init replacement
-    with _replace_dataloader_init_method():
-        dataloader = PoptorchDataLoader(123, [1])
+    dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
-    assert dataloader.options == 123
+    # assert that passed information got saved
+    assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
+    assert dataloader.batch_sampler.__pl_saved_kwargs == {}
+    assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
+    assert dataloader.batch_sampler.__pl_saved_default_kwargs == {}
+
+    # Assert that warning is raised
+    with pytest.warns(UserWarning, match="drop_last=False"):
+        dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
+
+
+def test_custom_batch_sampler_no_sampler():
+    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler
+    argument."""
+
+    class MyBatchSampler(BatchSampler):
+        # Custom batch sampler, without sampler argument.
+        def __init__(self, extra_arg):
+            self.extra_arg = extra_arg
+            super().__init__(RandomSampler(range(10)), 10, False)
+
+    with _replace_dunder_methods(BatchSampler):
+        # instantiate within `_replace_dunder_method` context manager, simulating `*_dataloader` hooks
+        batch_sampler = MyBatchSampler("random_str")
+    dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
+
+    # assert that passed information got saved
+    assert dataloader.batch_sampler.__pl_saved_args == ("random_str",)
+    assert dataloader.batch_sampler.__pl_saved_kwargs == {}
+    assert dataloader.batch_sampler.__pl_saved_arg_names == ("extra_arg",)
+    assert dataloader.batch_sampler.__pl_saved_default_kwargs == {}
+
+    # Assert that error is raised
+    with pytest.raises(TypeError, match="sampler into the batch sampler"):
+        dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
+
+
+def test_dataloader_disallow_batch_sampler():
+    dataset = RandomDataset(5, 100)
+    dataloader = DataLoader(dataset, batch_size=10)
+
+    # This should not raise
+    _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
+
+    dataset = RandomDataset(5, 100)
+    sampler = SequentialSampler(dataset)
+    batch_sampler = BatchSampler(sampler, batch_size=10, drop_last=False)
+    dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
+
+    # this should raise - using batch sampler, that was not automatically instantiated by DataLoader
+    with pytest.raises(MisconfigurationException, match="when running on multiple IPU devices"):
+        _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
@@ -235,7 +274,7 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
     """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
     dataset = RandomIterableDataset(7, 100)
     dataloader = DataLoader(dataset, batch_size=32)
-    dl_kwargs = _get_dataloader_init_kwargs(dataloader, dataloader.sampler, mode=mode)
+    _, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler, mode=mode)
     assert dl_kwargs["sampler"] is None
     assert dl_kwargs["batch_sampler"] is None
     assert dl_kwargs["batch_size"] is dataloader.batch_size

@@ -11,20 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import DataParallel, Module
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO
+from lightning_lite.utilities.distributed import ReduceOp
+from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.strategies.strategy import TBroadcast, TReduce
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class DataParallelStrategy(ParallelStrategy):
@@ -35,7 +38,7 @@ class DataParallelStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -67,6 +70,7 @@ class DataParallelStrategy(ParallelStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(LightningParallelModule(self.model))
         super().setup(trainer)
 
@@ -87,14 +91,15 @@ class DataParallelStrategy(ParallelStrategy):
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
         return DataParallel(module=model, device_ids=self.parallel_devices)
 
-    def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
+    def reduce(
+        self, collection: TReduce, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> TReduce:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
 
         Args:
             collection: The collection of tensors to sync and reduce.
-            *args: ignored for DP
-            **kwargs: ignored for DP
-
+            group: ignored for DP
+            reduce_op: ignored for DP
         Return:
             Reduced tensor values or the same value if it was not or did not contain a tensor.
         """
@@ -106,38 +111,44 @@ class DataParallelStrategy(ParallelStrategy):
         return apply_to_collection(collection, Tensor, mean)
 
     @property
-    def root_device(self):
+    def root_device(self) -> torch.device:
+        assert self.parallel_devices is not None
         return self.parallel_devices[0]
 
     def model_to_device(self) -> None:
+        assert self.model is not None
         self.model.to(self.root_device)
 
-    def barrier(self, *args, **kwargs):
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
         return decision
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
+            assert self.model is not None
             return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
+            assert self.model is not None
             return self.model(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
+            assert self.model is not None
             return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
+            assert self.model is not None
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output):
+    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         if is_overridden("training_step_end", self.lightning_module):
             return output
 

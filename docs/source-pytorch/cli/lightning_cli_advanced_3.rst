@@ -15,7 +15,7 @@
             pass
 
 
-    class LightningCLI(pl.utilities.cli.LightningCLI):
+    class LightningCLI(pl.cli.LightningCLI):
         def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
             super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
@@ -88,7 +88,7 @@ Similar to the callbacks, any parameter in :class:`~pytorch_lightning.trainer.tr
 :class:`~pytorch_lightning.core.module.LightningModule` and
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class, can be
 configured the same way using :code:`class_path` and :code:`init_args`. If the package that defines a subclass is
-imported before the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class is run, the name can be used instead of
+imported before the :class:`~pytorch_lightning.cli.LightningCLI` class is run, the name can be used instead of
 the full import path.
 
 From command line the syntax is the following:
@@ -117,7 +117,7 @@ callback appended. Here is an example:
 
 .. note::
 
-    Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.utilities.cli.SaveConfigCallback`)
+    Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.cli.SaveConfigCallback`)
     always have the full ``class_path``'s, even when class name shorthand notation is used in command line or in input
     config files.
 
@@ -306,7 +306,7 @@ example can be when one wants to add support for multiple optimizers:
 
 .. code-block:: python
 
-    from pytorch_lightning.utilities.cli import instantiate_class
+    from pytorch_lightning.cli import instantiate_class
 
 
     class MyModel(LightningModule):
@@ -330,7 +330,7 @@ example can be when one wants to add support for multiple optimizers:
     cli = MyLightningCLI(MyModel)
 
 The value given to :code:`optimizer*_init` will always be a dictionary including :code:`class_path` and
-:code:`init_args` entries. The function :func:`~pytorch_lightning.utilities.cli.instantiate_class`
+:code:`init_args` entries. The function :func:`~pytorch_lightning.cli.instantiate_class`
 takes care of importing the class defined in :code:`class_path` and instantiating it using some positional arguments,
 in this case :code:`self.parameters()`, and the :code:`init_args`.
 Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
@@ -354,3 +354,61 @@ You can also pass the class path directly, for example, if the optimizer hasn't 
         --optimizer1.lr=0.01 \
         --optimizer2=torch.optim.AdamW \
         --optimizer2.lr=0.0001
+
+
+Run from Python
+^^^^^^^^^^^^^^^
+
+Even though the :class:`~pytorch_lightning.cli.LightningCLI` class is designed to help in the implementation of command
+line tools, for some use cases it is desired to run directly from Python. To allow this there is the ``args`` parameter.
+An example could be to first implement a normal CLI script, but adding an ``args`` parameter with default ``None`` to
+the main function as follows:
+
+.. code:: python
+
+    from pytorch_lightning.cli import ArgsType, LightningCLI
+
+
+    def cli_main(args: ArgsType = None):
+        cli = LightningCLI(MyModel, ..., args=args)
+        ...
+
+
+    if __name__ == "__main__":
+        cli_main()
+
+Then it is possible to import the ``cli_main`` function to run it. Executing in a shell ``my_cli.py
+--trainer.max_epochs=100", "--model.encoder_layers=24`` would be equivalent to:
+
+.. code:: python
+
+    from my_module.my_cli import cli_main
+
+    cli_main(["--trainer.max_epochs=100", "--model.encoder_layers=24"])
+
+All the features that are supported from the command line can be used when giving ``args`` as a list of strings. It is
+also possible to provide a ``dict`` or `jsonargparse.Namespace
+<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.Namespace>`__. For example in a jupyter notebook someone
+might do:
+
+.. code:: python
+
+    args = {
+        "trainer": {
+            "max_epochs": 100,
+        },
+        "model": {},
+    }
+
+    args["model"]["encoder_layers"] = 8
+    cli_main(args)
+    args["model"]["encoder_layers"] = 12
+    cli_main(args)
+    args["trainer"]["max_epochs"] = 200
+    cli_main(args)
+
+.. note::
+
+    The ``args`` parameter must be ``None`` when running from command line so that ``sys.argv`` is used as arguments.
+    Also, note that the purpose of ``trainer_defaults`` is different to ``args``. It is okay to use ``trainer_defaults``
+    in the ``cli_main`` function to modify the defaults of some trainer parameters.

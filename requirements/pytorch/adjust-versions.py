@@ -5,13 +5,14 @@ from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
-    dict(torch="1.12.0", torchvision="0.12.*", torchtext=""),  # nightly
-    dict(torch="1.11.0", torchvision="0.12.0", torchtext="0.12.0"),  # pre-release
-    dict(torch="1.10.2", torchvision="0.11.3", torchtext="0.11.2"),  # stable
-    dict(torch="1.10.1", torchvision="0.11.2", torchtext="0.11.1"),
-    dict(torch="1.10.0", torchvision="0.11.1", torchtext="0.11.0"),
-    dict(torch="1.9.1", torchvision="0.10.1", torchtext="0.10.1"),
-    dict(torch="1.9.0", torchvision="0.10.0", torchtext="0.10.0"),
+    dict(torch="1.12.1", torchvision="0.13.1"),  # stable
+    dict(torch="1.12.0", torchvision="0.13.0"),
+    dict(torch="1.11.0", torchvision="0.12.0"),
+    dict(torch="1.10.2", torchvision="0.11.3"),
+    dict(torch="1.10.1", torchvision="0.11.2"),
+    dict(torch="1.10.0", torchvision="0.11.1"),
+    dict(torch="1.9.1", torchvision="0.10.1"),
+    dict(torch="1.9.0", torchvision="0.10.0"),
 ]
 
 
@@ -48,7 +49,7 @@ def main(req: str, torch_version: Optional[str] = None) -> str:
     return req
 
 
-def test():
+def test_check():
     requirements = """
     torch>=1.2.*
     torch==1.2.3
@@ -74,7 +75,7 @@ def test():
 
 
 if __name__ == "__main__":
-    test()  # sanity check
+    test_check()  # sanity check
 
     if len(sys.argv) == 3:
         requirements_path, torch_version = sys.argv[1:]

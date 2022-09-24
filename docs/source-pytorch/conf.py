@@ -73,7 +73,10 @@ os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
     shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
-_transform_changelog(os.path.join(PATH_ROOT, "CHANGELOG.md"), os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"))
+_transform_changelog(
+    os.path.join(PATH_ROOT, "src", "pytorch_lightning", "CHANGELOG.md"),
+    os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
+)
 
 # -- Project information -----------------------------------------------------
 
@@ -185,7 +188,7 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
     "pytorch_project": "https://pytorchlightning.ai",
-    "canonical_url": pytorch_lightning.__docs_url__,
+    "canonical_url": pytorch_lightning.__about__.__docs_url__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -333,7 +336,6 @@ PACKAGE_MAPPING = {
     "comet-ml": "comet_ml",
     "neptune-client": "neptune",
     "hydra-core": "hydra",
-    "pyDeprecate": "deprecate",
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
@@ -389,14 +391,13 @@ from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
-    _module_available,
 )
-_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True

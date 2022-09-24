@@ -15,40 +15,42 @@ from typing import Any, Dict, List, Union
 
 import torch
 
+from lightning_lite.accelerators.cpu import parse_cpu_cores
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
-from pytorch_lightning.utilities.types import _DEVICE
 
 
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not CPU.
         """
-        super().setup_environment(root_device)
-        if root_device.type != "cpu":
-            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
+        if device.type != "cpu":
+            raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()
 
+    def teardown(self) -> None:
+        pass
+
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = device_parser.parse_cpu_cores(devices)
+        devices = parse_cpu_cores(devices)
         return devices
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        devices = device_parser.parse_cpu_cores(devices)
+        devices = parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod

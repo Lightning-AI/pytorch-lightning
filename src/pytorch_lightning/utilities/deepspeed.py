@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright 2020 The PyTorch Lightning team and Microsoft Corporation. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,8 +19,8 @@ import os
 
 import torch
 
-from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:
     from deepspeed.utils.zero_to_fp32 import (
@@ -99,7 +98,7 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     model_file = get_model_state_file(checkpoint_dir, zero_stage)
     client_state = torch.load(model_file, map_location=CPU_DEVICE)
     client_state = {key: value for key, value in client_state.items() if key not in deepspeed_states}
-    # State dict keys will include reference to wrapper LightningDeepSpeedModule
+    # State dict keys will include reference to wrapper _LightningModuleWrapperBase
     # Delete `module` prefix before saving.
     state_dict = {k.partition("module.")[2]: state_dict[k] for k in state_dict.keys()}
     client_state["state_dict"] = state_dict

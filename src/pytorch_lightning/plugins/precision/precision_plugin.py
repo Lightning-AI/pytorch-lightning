@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from functools import partial
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -21,12 +21,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import Precision as LitePrecision
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
-from pytorch_lightning.utilities.types import _PARAMETERS
 
 
-class PrecisionPlugin(CheckpointHooks):
+class PrecisionPlugin(LitePrecision, CheckpointHooks):
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
@@ -34,83 +35,49 @@ class PrecisionPlugin(CheckpointHooks):
 
     precision: Union[str, int] = 32
 
-    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
-        """The main params of the model.
-
-        Returns the plain model params here. Maybe different in other precision plugins.
-        """
-        for group in optimizer.param_groups:
-            yield from group["params"]
-
     def connect(
         self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 
-    def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
-        """Run before precision plugin executes backward.
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
+        module.trainer._call_callback_hooks("on_before_backward", tensor)
+        module.trainer._call_lightning_module_hook("on_before_backward", tensor)
+        return tensor
 
-        Args:
-            model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
-        """
-        assert model.trainer is not None
-        model.trainer._call_callback_hooks("on_before_backward", closure_loss)
-        model.trainer._call_lightning_module_hook("on_before_backward", closure_loss)
-        return closure_loss
-
-    def backward(
+    def backward(  # type: ignore[override]
         self,
+        tensor: Tensor,
         model: "pl.LightningModule",
-        closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
+        optimizer: Optional[Steppable],
+        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Performs the actual backpropagation.
+        r"""Performs the actual backpropagation.
 
         Args:
+            tensor: the loss value obtained from the closure
             model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
+            optimizer_idx: the index of the current optimizer. ``None`` if using manual optimization
+            \*args: Positional arguments intended for the actual function that performs the backward, like
+                :meth:`~torch.Tensor.backward`.
+            \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
-        # do backward pass
-        if model is not None and isinstance(model, pl.LightningModule):
-            model.backward(closure_loss, optimizer, *args, **kwargs)
-        else:
-            self._run_backward(closure_loss, *args, **kwargs)
+        model.backward(tensor, optimizer, optimizer_idx, *args, **kwargs)
 
-    def post_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
-        """Run after precision plugin executes backward.
-
-        Args:
-            model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
-        """
+    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         # once backward has been applied, release graph
-        closure_loss = closure_loss.detach()
-        assert model.trainer is not None
-        model.trainer._call_callback_hooks("on_after_backward")
-        model.trainer._call_lightning_module_hook("on_after_backward")
+        closure_loss = tensor.detach()
+        module.trainer._call_callback_hooks("on_after_backward")
+        module.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
 
-    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
-        """Lightning-independent backward logic.
-
-        Currently only used by Lightning Lite. Subject to further refactors.
-        """
-        tensor.backward(*args, **kwargs)
-
-    def _after_closure(
-        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
+    def _after_closure(self, model: "pl.LightningModule", optimizer: Steppable, optimizer_idx: int) -> None:
         """Utility to share some code after the closure has been run."""
-        if not isinstance(model, pl.LightningModule):
-            # none of this applies to Lite
-            return
         trainer = model.trainer
-        assert trainer is not None
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
         trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         # TODO: this is done for the entire model but should be changed to per-optimizer
@@ -141,17 +108,16 @@ class PrecisionPlugin(CheckpointHooks):
         self._after_closure(model, optimizer, optimizer_idx)
         return closure_result
 
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
-        model: Union["pl.LightningModule", Module],
-        optimizer: Optimizer,
+        optimizer: Steppable,
+        model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
-        if isinstance(model, pl.LightningModule):
-            closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
+        closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         return optimizer.step(closure=closure, **kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
@@ -172,7 +138,7 @@ class PrecisionPlugin(CheckpointHooks):
     def _clip_gradients(
         self,
         model: Union["pl.LightningModule", Module],
-        optimizer: Optimizer,
+        optimizer: Steppable,
         optimizer_idx: int,
         clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,
@@ -180,7 +146,9 @@ class PrecisionPlugin(CheckpointHooks):
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization:
             # the configuration validator disallows clipping on manual
             return
-        model.configure_gradient_clipping(
+
+        model.trainer._call_lightning_module_hook(
+            "configure_gradient_clipping",
             optimizer,
             optimizer_idx,
             gradient_clip_val=clip_val,
@@ -215,11 +183,6 @@ class PrecisionPlugin(CheckpointHooks):
         """Hook to do something when ``Strategy.dispatch()`` gets called."""
 
     @contextlib.contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
-        yield
-
-    @contextlib.contextmanager
     def train_step_context(self) -> Generator[None, None, None]:
         """A contextmanager for the training step."""
         with self.forward_context():
@@ -242,38 +205,3 @@ class PrecisionPlugin(CheckpointHooks):
         """A contextmanager for the predict step."""
         with self.forward_context():
             yield
-
-    def teardown(self) -> None:
-        """This method is called to teardown the training process.
-
-        It is the right place to release memory and free other resources.
-        """
-
-    def state_dict(self) -> Dict[str, Any]:
-        """Called when saving a checkpoint, implement to generate precision plugin state_dict.
-
-        Returns:
-            A dictionary containing precision plugin state.
-        """
-        return {}
-
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Called when loading a checkpoint, implement to reload precision plugin state given precision plugin
-        state_dict.
-
-        Args:
-            state_dict: the precision plugin state returned by ``state_dict``.
-        """
-        pass
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_save_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``state_dict`` instead.
-        """
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``PrecisionPlugin.on_load_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
-
-        Use ``load_state_dict`` instead.
-        """

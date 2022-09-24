@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO  # noqa: F401
-from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO  # noqa: F401
-from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO  # noqa: F401
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO  # noqa: F401
+from lightning_lite.plugins import CheckpointIO, TorchCheckpointIO, XLACheckpointIO
+from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
+from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
+
+__all__ = ["AsyncCheckpointIO", "CheckpointIO", "HPUCheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]

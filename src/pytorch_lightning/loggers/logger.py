@@ -13,21 +13,22 @@
 # limitations under the License.
 """Abstract base class used to build new loggers."""
 
-import argparse
+
 import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from collections import defaultdict
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
+from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 
@@ -35,9 +36,20 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self):
+    def experiment(self) -> Union[Any, DummyExperiment]:  # type: ignore[no-untyped-def]
+        """
+        Note:
+            ``self`` is a custom logger instance. The loggers typically wrap an ``experiment`` method
+            with a ``@rank_zero_experiment`` decorator. An exception is that ``loggers.neptune`` wraps
+            ``experiment`` and ``run`` with rank_zero_experiment.
+
+            ``Union[Any, DummyExperiment]`` is used because the wrapped hooks have several return
+            types that are specific to the custom logger. The return type here can be considered as
+            ``Union[return type of logger.experiment, DummyExperiment]``.
+        """
+
         @rank_zero_only
-        def get_experiment():
+        def get_experiment() -> Callable:
             return fn(self)
 
         return get_experiment() or DummyExperiment()
@@ -46,25 +58,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
 
 
 class Logger(ABC):
-    """Base class for experiment loggers.
-
-    Args:
-        agg_key_funcs:
-            Dictionary which maps a metric name to a function, which will
-            aggregate the metric values for the same steps.
-        agg_default_func:
-            Default function to aggregate metric values. If some metric name
-            is not presented in the `agg_key_funcs` dictionary, then the
-            `agg_default_func` will be used for aggregation.
-
-        .. deprecated:: v1.6
-            The parameters `agg_key_funcs` and `agg_default_func` are deprecated
-            in v1.6 and will be removed in v1.8.
-
-    Note:
-        The `agg_key_funcs` and `agg_default_func` arguments are used only when
-        one logs metrics with the :meth:`~Logger.agg_and_log_metrics` method.
-    """
+    """Base class for experiment loggers."""
 
     def __init__(
         self,
@@ -89,7 +83,7 @@ class Logger(ABC):
             self._agg_default_func = np.mean
         self._logged_model_time = {}
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -97,52 +91,9 @@ class Logger(ABC):
         """
         pass
 
-    def update_agg_funcs(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
-        """Update aggregation methods.
-
-        .. deprecated:: v1.6
-            `update_agg_funcs` is deprecated in v1.6 and will be removed in v1.8.
-
-        Args:
-            agg_key_funcs:
-                Dictionary which maps a metric name to a function, which will
-                aggregate the metric values for the same steps.
-            agg_default_func:
-                Default function to aggregate metric values. If some metric name
-                is not presented in the `agg_key_funcs` dictionary, then the
-                `agg_default_func` will be used for aggregation.
-        """
-        if agg_key_funcs:
-            self._agg_key_funcs.update(agg_key_funcs)
-        if agg_default_func:
-            self._agg_default_func = agg_default_func
-        rank_zero_deprecation("`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8.")
-
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
-        """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
-        it aggregates them and logs only if metrics are ready to be logged.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use `Logger.log_metrics` instead.
-
-        Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded
-        """
-        self.log_metrics(metrics=metrics, step=step)
-
     @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
-        """
-        Records metrics.
-        This method logs metrics as as soon as it received them. If you want to aggregate
-        metrics for one specific `step`, use the
-        :meth:`~pytorch_lightning.loggers.base.Logger.agg_and_log_metrics` method.
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        """Records metrics. This method logs metrics as soon as it received them.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -151,16 +102,16 @@ class Logger(ABC):
         pass
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         """Record hyperparameters.
 
         Args:
-            params: :class:`~argparse.Namespace` containing the hyperparameters
+            params: :class:`~argparse.Namespace` or `Dict` containing the hyperparameters
             args: Optional positional arguments, depends on the specific logger being used
             kwargs: Optional keyword arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
         """Record model graph.
 
         Args:
@@ -187,37 +138,37 @@ class Logger(ABC):
         return None
 
     @property
-    def group_separator(self):
+    def group_separator(self) -> str:
         """Return the default separator used by the logger to group the data into subfolders."""
         return "/"
 
     @property
     @abstractmethod
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Return the experiment name."""
 
     @property
     @abstractmethod
-    def version(self) -> Union[int, str]:
+    def version(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
 
     def _log_checkpoints(
         self,
-        checkpoint_callback: "ReferenceType[ModelCheckpoint]",
-        checkpoints: List[ModelCheckpoint],
+        checkpoint_callback: "ReferenceType[Checkpoint]",
+        checkpoints: List[Checkpoint],
     ) -> None:
         """Log the given checkpoints.
 
         Args:
-            checkpoint_callback: ModelCheckpoint callback reference.
+            checkpoint_callback: Checkpoint callback reference.
             checkpoints: list of checkpoints.
         """
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Get and log the checkpoints to be logged.
 
         Args:
-            checkpoint_callback: ModelCheckpoint callback reference.
+            checkpoint_callback: Checkpoint callback reference.
         """
         # Get the checkpoints
         checkpoints = scan_checkpoints(checkpoint_callback, self._logged_model_time)
@@ -225,111 +176,20 @@ class Logger(ABC):
         self._log_checkpoints(checkpoint_callback, checkpoints)
 
 
-class LoggerCollection(Logger):
-    """The :class:`LoggerCollection` class is used to iterate all logging actions over the given `logger_iterable`.
-
-    .. deprecated:: v1.6
-        `LoggerCollection` is deprecated in v1.6 and will be removed in v1.8.
-        Directly pass a list of loggers to the Trainer and access the list via the `trainer.loggers` attribute.
-
-    Args:
-        logger_iterable: An iterable collection of loggers
-    """
-
-    def __init__(self, logger_iterable: Iterable[Logger]):
-        super().__init__()
-        self._logger_iterable = logger_iterable
-        rank_zero_deprecation(
-            "`LoggerCollection` is deprecated in v1.6 and will be removed in v1.8. Directly pass a list of loggers"
-            " to the Trainer and access the list via the `trainer.loggers` attribute."
-        )
-
-    def __getitem__(self, index: int) -> Logger:
-        return list(self._logger_iterable)[index]
-
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
-        for logger in self._logger_iterable:
-            logger.after_save_checkpoint(checkpoint_callback)
-
-    def update_agg_funcs(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
-        for logger in self._logger_iterable:
-            logger.update_agg_funcs(agg_key_funcs, agg_default_func)
-
-    @property
-    def experiment(self) -> List[Any]:
-        """Returns a list of experiment objects for all the loggers in the logger collection."""
-        return [logger.experiment for logger in self._logger_iterable]
-
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
-        for logger in self._logger_iterable:
-            logger.agg_and_log_metrics(metrics=metrics, step=step)
-
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        for logger in self._logger_iterable:
-            logger.log_metrics(metrics=metrics, step=step)
-
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        for logger in self._logger_iterable:
-            logger.log_hyperparams(params)
-
-    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
-        for logger in self._logger_iterable:
-            logger.log_graph(model, input_array)
-
-    def log_text(self, *args, **kwargs) -> None:
-        for logger in self._logger_iterable:
-            logger.log_text(*args, **kwargs)
-
-    def log_image(self, *args, **kwargs) -> None:
-        for logger in self._logger_iterable:
-            logger.log_image(*args, **kwargs)
-
-    def save(self) -> None:
-        for logger in self._logger_iterable:
-            logger.save()
-
-    def finalize(self, status: str) -> None:
-        for logger in self._logger_iterable:
-            logger.finalize(status)
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """Returns ``None`` as checkpoints should be saved to default / chosen location when using multiple
-        loggers."""
-        # Checkpoints should be saved to default / chosen location when using multiple loggers
-        return None
-
-    @property
-    def name(self) -> str:
-        """Returns the unique experiment names for all the loggers in the logger collection joined by an
-        underscore."""
-        return "_".join(dict.fromkeys(str(logger.name) for logger in self._logger_iterable))
-
-    @property
-    def version(self) -> str:
-        """Returns the unique experiment versions for all the loggers in the logger collection joined by an
-        underscore."""
-        return "_".join(dict.fromkeys(str(logger.version) for logger in self._logger_iterable))
-
-
 class DummyExperiment:
     """Dummy experiment."""
 
-    def nop(self, *args, **kw):
+    def nop(self, *args: Any, **kw: Any) -> None:
         pass
 
-    def __getattr__(self, _):
+    def __getattr__(self, _: Any) -> Callable:
         return self.nop
 
-    def __getitem__(self, idx) -> "DummyExperiment":
+    def __getitem__(self, idx: int) -> "DummyExperiment":
         # enables self.logger.experiment[0].add_image(...)
         return self
 
-    def __setitem__(self, *args, **kwargs) -> None:
+    def __setitem__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
 
@@ -339,7 +199,7 @@ class DummyLogger(Logger):
     It is useful if we want to disable user's logger for a feature, but still ensure that user code can run
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._experiment = DummyExperiment()
 
@@ -348,10 +208,10 @@ class DummyLogger(Logger):
         """Return the experiment object associated with this logger."""
         return self._experiment
 
-    def log_metrics(self, *args, **kwargs) -> None:
+    def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def log_hyperparams(self, *args, **kwargs) -> None:
+    def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @property
@@ -364,18 +224,23 @@ class DummyLogger(Logger):
         """Return the experiment version."""
         return ""
 
-    def __getitem__(self, idx) -> "DummyLogger":
+    def __getitem__(self, idx: int) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
 
-    def __iter__(self):
-        # if DummyLogger is substituting a logger collection, pretend it is empty
-        yield from ()
+    def __getattr__(self, name: str) -> Callable:
+        """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""
+
+        def method(*args: Any, **kwargs: Any) -> None:
+            return None
+
+        return method
 
 
-def merge_dicts(
+# TODO: this should have been deprecated
+def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
-    agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+    agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
@@ -413,7 +278,7 @@ def merge_dicts(
     """
     agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
-    d_out = {}
+    d_out: Dict = defaultdict(dict)
     for k in keys:
         fn = agg_key_funcs.get(k)
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
@@ -423,24 +288,31 @@ def merge_dicts(
         else:
             d_out[k] = (fn or default_func)(values_to_agg)
 
-    return d_out
+    return dict(d_out)
 
 
-def scan_checkpoints(
-    checkpoint_callback: "ReferenceType[ModelCheckpoint]", logged_model_time: dict
-) -> List[ModelCheckpoint]:
+def scan_checkpoints(checkpoint_callback: "ReferenceType[Checkpoint]", logged_model_time: dict) -> List[Checkpoint]:
     """Return the checkpoints to be logged.
 
     Args:
-        checkpoint_callback: ModelCheckpoint callback reference.
+        checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
     """
 
-    checkpoints = {
-        checkpoint_callback.last_model_path: checkpoint_callback.current_score,
-        checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
-        **checkpoint_callback.best_k_models,
-    }
-    checkpoints = sorted((Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file())
+    # get checkpoints to be saved with associated score
+    checkpoints = dict()
+    if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):
+        checkpoints[checkpoint_callback.last_model_path] = (checkpoint_callback.current_score, "latest")
+
+    if hasattr(checkpoint_callback, "best_model_path") and hasattr(checkpoint_callback, "best_model_score"):
+        checkpoints[checkpoint_callback.best_model_path] = (checkpoint_callback.best_model_score, "best")
+
+    if hasattr(checkpoint_callback, "best_k_models"):
+        for key, value in checkpoint_callback.best_k_models.items():
+            checkpoints[key] = (value, "best_k")
+
+    checkpoints = sorted(
+        (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
+    )
     checkpoints = [c for c in checkpoints if c[1] not in logged_model_time.keys() or logged_model_time[c[1]] < c[0]]
     return checkpoints

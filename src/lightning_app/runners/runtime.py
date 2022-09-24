@@ -1,4 +1,3 @@
-import logging
 import multiprocessing
 import sys
 from dataclasses import dataclass, field
@@ -10,11 +9,12 @@ import lightning_app
 from lightning_app import LightningApp
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
-from lightning_app.utilities.enum import AppStage, make_status, WorkStageStatus
+from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
 from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def dispatch(
@@ -27,7 +27,9 @@ def dispatch(
     blocking: bool = True,
     on_before_run: Optional[Callable] = None,
     name: str = "",
-    env_vars: Dict[str, str] = {},
+    env_vars: Dict[str, str] = None,
+    secrets: Dict[str, str] = None,
+    cluster_id: str = None,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -42,6 +44,8 @@ def dispatch(
         on_before_run: Callable to be executed before run.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
+        secrets: Dict of secrets to be passed as environment variables to the app
+        cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
@@ -52,15 +56,24 @@ def dispatch(
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
     app = load_app_from_file(str(entrypoint_file))
 
+    env_vars = {} if env_vars is None else env_vars
+    secrets = {} if secrets is None else secrets
+
     if blocking:
         app.stage = AppStage.BLOCKING
 
     runtime = runtime_cls(
-        app=app, entrypoint_file=entrypoint_file, start_server=start_server, host=host, port=port, env_vars=env_vars
+        app=app,
+        entrypoint_file=entrypoint_file,
+        start_server=start_server,
+        host=host,
+        port=port,
+        env_vars=env_vars,
+        secrets=secrets,
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
-    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache)
+    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id)
 
 
 @dataclass
@@ -76,6 +89,7 @@ class Runtime:
     done: bool = False
     backend: Optional[Union[str, Backend]] = "multiprocessing"
     env_vars: Dict[str, str] = field(default_factory=dict)
+    secrets: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         if isinstance(self.backend, str):
@@ -90,11 +104,6 @@ class Runtime:
         has_messaged = False
         while not self.done:
             try:
-                for work in self.app.works:
-                    if not hasattr(work, "_has_called_on_exit"):
-                        work.on_exit()
-                        work._has_called_on_exit = True
-
                 if self.app.backend is not None:
                     self.app.backend.stop_all_works(self.app.works)
 
@@ -133,9 +142,10 @@ class Runtime:
         raise NotImplementedError
 
     def _add_stopped_status_to_work(self, work: "lightning_app.LightningWork") -> None:
+
         if work.status.stage == WorkStageStatus.STOPPED:
             return
-        latest_hash = work._calls["latest_call_hash"]
-        if latest_hash is None:
-            return
-        work._calls[latest_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+
+        latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
+        if latest_call_hash in work._calls:
+            work._calls[latest_call_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))

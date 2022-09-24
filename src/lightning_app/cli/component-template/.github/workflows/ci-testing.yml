@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macOS-10.15, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2019]
         python-version: [3.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
@@ -52,7 +52,7 @@ jobs:
     - name: Clone Template React UI Repo
       uses: actions/checkout@v3
       with:
-        repository: PyTorchLightning/lightning
+        repository: Lightning-AI/lightning
         token: ${{ secrets.PAT_GHOST }}
         ref: 'master'
         path: lightning

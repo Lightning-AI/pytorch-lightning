@@ -1,7 +1,8 @@
-##########################################
-Build a Lightning component (intermediate)
-##########################################
-**Audience:** Users who want to connect a UI to a Lightning component.
+############################################
+Develop a Lightning Component (intermediate)
+############################################
+
+**Audience:** Users who want to connect a UI to a Lightning Component (Component).
 
 ----
 
@@ -9,7 +10,8 @@ Build a Lightning component (intermediate)
 Add a web user interface (UI)
 *****************************
 Every lightning component can have its own user interface (UI). Lightning components support any kind
-of UI interface such as react.js, vue.js, streamlit, gradio, dash, web urls, etc...(`full list here <../add_web_ui/index.html>`_).
+of UI interface such as dash, gradio, panel, react.js, streamlit, vue.js, web urls,
+etc...(`full list here <../add_web_ui/index.html>`_).
 
 Let's say that we have a user interface defined in html:
 
@@ -24,34 +26,33 @@ Let's say that we have a user interface defined in html:
     </body>
     </html>
 
-To *connect* this user interface to the component, define the configure_layout method:
+To *connect* this user interface to the Component, define the configure_layout method:
 
 .. code:: python
     :emphasize-lines: 5, 6
 
-    import lightning_app as la
-    from lightning_app.frontend.web import StaticWebFrontend
+    import lightning as L
 
 
-    class LitHTMLComponent(lapp.LightningFlow):
+    class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.app.frontend.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
-Finally, route the component's UI through the root component's **configure_layout** method:
+Finally, route the Component's UI through the root Component's **configure_layout** method:
 
 .. code:: python
     :emphasize-lines: 14
 
     # app.py
-    import lightning_app as la
+    import lightning as L
 
 
-    class LitHTMLComponent(lapp.LightningFlow):
+    class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.app.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
 
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_html_component = LitHTMLComponent()
@@ -61,9 +62,9 @@ Finally, route the component's UI through the root component's **configure_layou
             return tab1
 
 
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
-Run your app and you'll see the UI on the Lightning App view:
+Run your App and you'll see the UI on the Lightning App view:
 
 .. code:: bash
 

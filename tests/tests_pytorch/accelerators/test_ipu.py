@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -97,9 +96,13 @@ class IPUClassificationModel(ClassificationModel):
         self.log("test_acc", torch.stack(outputs).mean())
 
 
+def test_auto_device_count():
+    assert IPUAccelerator.auto_device_count() == 4
+
+
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_fail_if_no_ipus(mock_ipu_acc_avail, tmpdir):
+def test_fail_if_no_ipus(_, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
         Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
 
@@ -118,7 +121,7 @@ def test_warning_if_ipus_not_used():
 
 
 @RunIf(ipu=True)
-def test_no_warning_plugin(tmpdir):
+def test_no_warning_strategy(tmpdir):
     with pytest.warns(None) as record:
         Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=IPUStrategy(training_opts=poptorch.Options()))
     assert len(record) == 0
@@ -185,9 +188,9 @@ def test_optimization(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_mixed_precision(tmpdir):
+def test_half_precision(tmpdir):
     class TestCallback(Callback):
-        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
             assert trainer.strategy.model.precision == 16
             raise SystemExit
 
@@ -205,7 +208,7 @@ def test_mixed_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.strategy.precision_plugin.precision == 16
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
@@ -220,12 +223,22 @@ def test_pure_half_precision(tmpdir):
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
 
+    changed_dtypes = [torch.float, torch.float64]
+    data = [torch.zeros((1), dtype=dtype) for dtype in changed_dtypes]
+    new_data = trainer.strategy.batch_to_device(data)
+    assert all(val.dtype is torch.half for val in new_data)
+
+    not_changed_dtypes = [torch.uint8, torch.int8, torch.int32, torch.int64]
+    data = [torch.zeros((1), dtype=dtype) for dtype in not_changed_dtypes]
+    new_data = trainer.strategy.batch_to_device(data)
+    assert all(val.dtype is dtype for val, dtype in zip(new_data, not_changed_dtypes))
+
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
 @RunIf(ipu=True)
-def test_device_iterations_ipu_plugin(tmpdir):
+def test_device_iterations_ipu_strategy(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert trainer.strategy.device_iterations == 2
@@ -432,10 +445,10 @@ def test_manual_poptorch_opts_custom(tmpdir):
     class TestCallback(Callback):
         def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
             # ensure dataloaders were correctly set up during training.
-            plugin = trainer.strategy
-            assert isinstance(plugin, IPUStrategy)
-            assert plugin.training_opts.replication_factor == 2
-            assert plugin.inference_opts.replication_factor == 1
+            strategy = trainer.strategy
+            assert isinstance(strategy, IPUStrategy)
+            assert strategy.training_opts.replication_factor == 2
+            assert strategy.inference_opts.replication_factor == 1
 
             val_dataloader = trainer.val_dataloaders[0]
             train_dataloader = trainer.train_dataloader
@@ -446,21 +459,21 @@ def test_manual_poptorch_opts_custom(tmpdir):
             assert train_dataloader.options.replication_factor == 2
             assert val_dataloader.options.replication_factor == 1
 
-    plugin = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
+    strategy = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
     # ensure we default to the training options replication factor
-    assert plugin.replication_factor == 2
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin, callbacks=TestCallback())
+    assert strategy.replication_factor == 2
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy, callbacks=TestCallback())
     trainer.fit(model)
 
-    plugin = trainer.strategy
-    assert isinstance(plugin, IPUStrategy)
+    strategy = trainer.strategy
+    assert isinstance(strategy, IPUStrategy)
 
-    training_opts = plugin.training_opts
+    training_opts = strategy.training_opts
     assert training_opts.device_iterations == 8
     assert training_opts.replication_factor == 2
     assert training_opts.Training.gradient_accumulation == 2
 
-    inference_opts = plugin.inference_opts
+    inference_opts = strategy.inference_opts
     assert inference_opts.device_iterations == 16
     assert inference_opts.replication_factor == 1
     assert inference_opts.Training.gradient_accumulation == 1
@@ -471,8 +484,8 @@ def test_replication_factor(tmpdir):
     """Ensure if the user passes manual poptorch Options with custom parameters set, we set them correctly in the
     dataloaders."""
 
-    plugin = IPUStrategy()
-    trainer = Trainer(accelerator="ipu", devices=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
+    strategy = IPUStrategy()
+    trainer = Trainer(accelerator="ipu", devices=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=strategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
     assert trainer.num_devices == 2
     assert trainer.strategy.replication_factor == 2
@@ -482,11 +495,11 @@ def test_replication_factor(tmpdir):
     inference_opts = poptorch.Options()
     training_opts.replicationFactor(8)
     inference_opts.replicationFactor(7)
-    plugin = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
+    strategy = IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
 
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, strategy=plugin)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, strategy=strategy)
     trainer.optimizers = model.configure_optimizers()[0]
-    plugin.model = model
+    strategy._lightning_module = model
     model.trainer = trainer
     trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.setup(trainer)
@@ -541,7 +554,7 @@ def test_multi_optimizers_fails(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_precision_plugin(tmpdir):
+def test_precision_plugin():
     """Ensure precision plugin value is set correctly."""
 
     plugin = IPUPrecisionPlugin(precision=16)
@@ -596,13 +609,13 @@ def test_set_devices_if_none_ipu():
 
 
 @RunIf(ipu=True)
-def test_strategy_choice_ipu_plugin(tmpdir):
+def test_strategy_choice_ipu_strategy():
     trainer = Trainer(strategy=IPUStrategy(), accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
 
 
 @RunIf(ipu=True)
-def test_device_type_when_training_plugin_ipu_passed(tmpdir):
+def test_device_type_when_ipu_strategy_passed():
     trainer = Trainer(strategy=IPUStrategy(), accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
@@ -610,16 +623,20 @@ def test_device_type_when_training_plugin_ipu_passed(tmpdir):
 
 @RunIf(ipu=True)
 def test_poptorch_models_at_different_stages(tmpdir):
-    plugin = IPUStrategy()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, accelerator="ipu", devices=8)
+    strategy = IPUStrategy()
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="ipu", devices=8)
     model = BoringModel()
     model.trainer = trainer
-    plugin.model = model
+    strategy._lightning_module = model
 
     trainer.optimizers = model.configure_optimizers()[0]
     trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.setup(trainer)
-    assert list(trainer.strategy.poptorch_models) == [RunningStage.TRAINING, RunningStage.VALIDATING]
+    assert list(trainer.strategy.poptorch_models) == [
+        RunningStage.TRAINING,
+        RunningStage.VALIDATING,
+        RunningStage.SANITY_CHECKING,
+    ]
 
     for fn, stage in (
         (TrainerFn.VALIDATING, RunningStage.VALIDATING),

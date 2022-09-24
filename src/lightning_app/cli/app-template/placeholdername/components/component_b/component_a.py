@@ -1,6 +1,6 @@
-import lightning_app as la
+import lightning as L
 
 
-class ComponentB(la.LightningFlow):
+class ComponentB(L.LightningFlow):
     def run(self):
         print("hello from component B")

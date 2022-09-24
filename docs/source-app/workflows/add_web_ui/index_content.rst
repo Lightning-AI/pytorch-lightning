@@ -1,21 +1,3 @@
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   dash/index
-   gradio/index
-   streamlit/index
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   integrate_any_javascript_framework
-   angular_js_intermediate
-   html/index
-   react/index
-   vue_js_intermediate
-
 *************************************
 Web UIs for non Javascript Developers
 *************************************
@@ -40,6 +22,14 @@ Web UIs for non Javascript Developers
    :description: Learn how to add a web UI built in Python with Gradio.
    :col_css: col-md-4
    :button_link: gradio/index.html
+   :height: 150
+   :tag: basic
+
+.. displayitem::
+   :header: Panel
+   :description: Learn how to add a web UI built in Python with Panel.
+   :col_css: col-md-4
+   :button_link: panel/index.html
    :height: 150
    :tag: basic
 

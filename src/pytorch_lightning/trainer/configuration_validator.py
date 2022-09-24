@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning_lite.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -26,8 +27,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     Checks that the model is configured correctly before the run is started.
 
     Args:
-        trainer: Lightning Trainer
-        model: The model to check the configuration.
+        trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
 
     """
     model = trainer.lightning_module
@@ -45,22 +45,14 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     elif trainer.state.fn == TrainerFn.PREDICTING:
         __verify_eval_loop_configuration(trainer, model, "predict")
 
-    __verify_dp_batch_transfer_support(trainer, model)
-    _check_add_get_queue(model)
-    # TODO: Delete _check_on_post_move_to_device in v1.7
-    _check_on_post_move_to_device(model)
+    __verify_batch_transfer_support(trainer)
     _check_deprecated_callback_hooks(trainer)
-    # TODO: Delete _check_on_hpc_hooks in v1.8
-    _check_on_hpc_hooks(model)
     # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
     _check_on_epoch_start_end(model)
-    # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
-    _check_precision_plugin_checkpoint_hooks(trainer)
     # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
     _check_on_pretrain_routine(model)
     # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
     _check_datamodule_checkpoint_hooks(trainer)
-    _check_setup_method(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -71,16 +63,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     if not has_training_step:
         raise MisconfigurationException(
             "No `training_step()` method defined. Lightning `Trainer` expects as minimum a"
-            " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
-        )
-
-    # -----------------------------------
-    # verify model has a train dataloader
-    # -----------------------------------
-    has_train_dataloader = trainer._data_connector._train_dataloader_source.is_defined()
-    if not has_train_dataloader:
-        raise MisconfigurationException(
-            "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
@@ -117,36 +99,17 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     if has_val_loader and not has_val_step:
         rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
     if has_val_step and not has_val_loader:
-        rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
-
-
-def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
-    r"""
-    Checks if `on_post_move_to_device` method is overridden and sends a deprecation warning.
-
-    Args:
-        model: The model to check the `on_post_move_to_device` method.
-    """
-    if is_overridden("on_post_move_to_device", model):
-        rank_zero_deprecation(
-            "Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7. "
-            "We perform automatic parameters tying without the need of implementing `on_post_move_to_device`."
+        rank_zero_warn(
+            "You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.",
+            category=PossibleUserWarning,
         )
 
 
 def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule", stage: str) -> None:
-    loader_name = f"{stage}_dataloader"
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
     trainer_method = "validate" if stage == "val" else stage
 
-    has_loader = getattr(trainer._data_connector, f"_{stage}_dataloader_source").is_defined()
     has_step = is_overridden(step_name, model)
-
-    # -----------------------------------
-    # verify model has an eval_dataloader
-    # -----------------------------------
-    if not has_loader:
-        raise MisconfigurationException(f"No `{loader_name}()` method defined to run `Trainer.{trainer_method}`.")
 
     # predict_step is not required to be overridden
     if stage == "predict":
@@ -162,16 +125,23 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
             raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
 
 
-def __verify_dp_batch_transfer_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
     """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
-    # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-    batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
+    assert datahook_selector is not None
+
     for hook in batch_transfer_hooks:
+        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
         if isinstance(trainer.strategy, DataParallelStrategy) and (
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
         ):
             raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
+
+        if isinstance(trainer.accelerator, IPUAccelerator) and (
+            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
+        ):
+            raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
 
 
 def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -215,38 +185,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
             )
 
 
-def _check_add_get_queue(model: "pl.LightningModule") -> None:
-    r"""
-    Checks if add_to_queue or get_from_queue is overridden and sends a deprecation warning.
-
-    Args:
-        model: The lightning module
-    """
-    if is_overridden("add_to_queue", model):
-        rank_zero_deprecation(
-            "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7."
-        )
-    if is_overridden("get_from_queue", model):
-        rank_zero_deprecation(
-            "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7."
-        )
-
-
-# TODO: Delete _check_on_hpc_hooks in v1.8
-def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
-    if is_overridden("on_hpc_save", model):
-        rank_zero_deprecation(
-            "Method `LightningModule.on_hpc_save` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `LightningModule.on_save_checkpoint` instead."
-        )
-
-    if is_overridden("on_hpc_load", model):
-        rank_zero_deprecation(
-            "Method `LightningModule.on_hpc_load` is deprecated in v1.6 and"
-            " will be removed in v1.8. Please use `LightningModule.on_load_checkpoint` instead."
-        )
-
-
 # TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
 def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     hooks = (
@@ -274,11 +212,6 @@ def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
-            rank_zero_deprecation(
-                "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `on_exception` callback hook instead."
-            )
         if is_overridden(method_name="on_init_start", instance=callback):
             rank_zero_deprecation(
                 "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
@@ -330,19 +263,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 )
 
 
-def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
-    if is_overridden(method_name="on_save_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
-        rank_zero_deprecation(
-            "`PrecisionPlugin.on_save_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-        )
-    if is_overridden(method_name="on_load_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
-        rank_zero_deprecation(
-            "`PrecisionPlugin.on_load_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
-        )
-
-
 def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     if is_overridden(method_name="on_save_checkpoint", instance=trainer.datamodule):
         rank_zero_deprecation(
@@ -354,9 +274,3 @@ def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
             "`LightningDataModule.on_load_checkpoint` was deprecated in"
             " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
         )
-
-
-def _check_setup_method(trainer: "pl.Trainer") -> None:
-    for obj in [trainer.lightning_module, trainer.datamodule] + trainer.callbacks:
-        if is_overridden("setup", obj) and not is_param_in_hook_signature(obj.setup, "stage"):
-            raise MisconfigurationException(f"`{obj.__class__.__name__}.setup` does not have a `stage` argument.")

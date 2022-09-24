@@ -13,26 +13,28 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch.distributed
+from torch.nn import Module
+from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.distributed import group as _group
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
-    import habana_frameworks.torch.core.hccl  # noqa: F401
+    import habana_frameworks.torch.distributed.hccl  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ class HPUParallelStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -64,7 +66,7 @@ class HPUParallelStrategy(DDPStrategy):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io or HPUCheckpointIO(),
+            checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
             ddp_comm_state=ddp_comm_state,
             ddp_comm_hook=ddp_comm_hook,
@@ -73,6 +75,19 @@ class HPUParallelStrategy(DDPStrategy):
             process_group_backend=process_group_backend,
             **kwargs,
         )
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = HPUCheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = HPUCheckpointIO()
+
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     def setup_environment(self) -> None:
 
@@ -123,10 +138,22 @@ class HPUParallelStrategy(DDPStrategy):
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        # Break lazy accumulation of graph after every step
+    def on_after_backward(self) -> None:
+        # Break lazy accumulation of graph after fwd+bwd
         htcore.mark_step()
-        return step_output
+
+    def optimizer_step(
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any,
+    ) -> Any:
+        optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
+        # Break lazy accumulation of graph after optimizer
+        htcore.mark_step()
+        return optimizer_output
 
     def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         # Break lazy accumulation of graph after every step
