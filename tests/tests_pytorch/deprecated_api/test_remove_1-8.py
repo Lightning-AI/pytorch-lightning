@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
-import time
 from unittest import mock
 from unittest.mock import Mock
 
-import numpy as np
 import pytest
 
 from pytorch_lightning import Callback, Trainer
