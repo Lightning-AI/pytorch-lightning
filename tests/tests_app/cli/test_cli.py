@@ -6,6 +6,7 @@ import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
 
+from lightning_app import __version__
 from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
 from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
@@ -57,6 +58,7 @@ def test_main_lightning_cli_help():
     assert "list    " in res
     assert "delete  " in res
     assert "create  " in res
+    assert "show    " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
@@ -66,6 +68,15 @@ def test_main_lightning_cli_help():
     assert "flow" not in res
     assert "work" not in res
     assert "frontend" not in res
+
+    # inspect show group
+    res = os.popen("python -m lightning show --help").read()
+    assert "logs " in res
+    assert "cluster " in res
+
+    # inspect show cluster group
+    res = os.popen("python -m lightning show cluster --help").read()
+    assert "logs " in res
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
@@ -159,3 +170,8 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
         unlink.assert_called_once_with()
     else:
         unlink.assert_not_called()
+
+
+def test_lightning_cli_version():
+    res = os.popen("python -m lightning --version").read()
+    assert __version__ in res

@@ -17,32 +17,30 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import group as _group
+from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.seed import reset_seed
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    distributed_available,
-    get_default_process_group_backend_for_device,
-)
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
-from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.types import ProcessGroup, STEP_OUTPUT
 
-if _TORCH_GREATER_EQUAL_1_12:
+_distributed_available = torch.distributed.is_available()
+_fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
+if _fsdp_available:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
         BackwardPrefetch,
         CPUOffload,
@@ -51,9 +49,13 @@ if _TORCH_GREATER_EQUAL_1_12:
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 else:
+    FullyShardedDataParallel = None  # type: ignore[misc,assignment]
     MixedPrecision = None  # type: ignore[misc,assignment]
     BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
+
+if _distributed_available:
+    from torch.distributed.distributed_c10d import _get_default_group
 
 log = logging.getLogger(__name__)
 
@@ -102,7 +104,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -182,11 +184,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
@@ -200,6 +198,28 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
+
+    def _setup_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
+        """Wraps the model into a
+        :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
+        assert self.lightning_module is not None
+        if (
+            any(isinstance(mod, FullyShardedDataParallel) for mod in self.lightning_module.modules())
+            and "auto_wrap_policy" in self.kwargs
+        ):
+            del self.kwargs["auto_wrap_policy"]
+
+        log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+        return FullyShardedDataParallel(
+            module=model,
+            process_group=self.process_group,
+            cpu_offload=self.cpu_offload,
+            backward_prefetch=self.backward_prefetch,
+            mixed_precision=self.mixed_precision_config,
+            device_id=self.root_device.index,
+            **self.kwargs,
+        )
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
@@ -215,9 +235,20 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
 
+        assert isinstance(self.model, pl.LightningModule)
+        self.model = _LightningModuleWrapperBase(self.model)
+        if is_overridden("configure_sharded_model", self.lightning_module):
+            rank_zero_info(
+                "You have overridden `LightningModule.configure_sharded_model` hook. It will assume that all the layers"
+                " are already wrapped for sharding and won't wrap the entire model using `FullyShardedDataParallel`."
+            )
+        else:
+            self.model = self._setup_model(self.model)
         self.barrier()
+
         self.setup_optimizers(trainer)
         optimizers_to_device(self.optimizers, self.root_device)
+
         self.setup_precision_plugin()
 
     def model_to_device(self) -> None:
@@ -238,7 +269,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             yield
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if not distributed_available():
+        if not _distributed_available:
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_device_ids())
@@ -273,6 +304,24 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        # we don't need precision context since casting is done by FSDP
+        # read `mixed_precision` docstring here: https://pytorch.org/docs/stable/fsdp.html
+        assert self.model is not None
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
+        return self.model(*args, **kwargs)
+
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        assert self.model is not None
+        return self.model(*args, **kwargs)
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        assert self.model is not None
+        return self.model(*args, **kwargs)
+
     def _determine_device_ids(self) -> List[int]:
         return [self.root_device.index]
 
@@ -303,7 +352,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        if _TORCH_GREATER_EQUAL_1_12:
+        if _fsdp_available:
             strategy_registry.register(
                 "fsdp_native",
                 cls,

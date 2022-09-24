@@ -76,7 +76,6 @@ core
     ~hooks.ModelHooks
     LightningDataModule
     LightningModule
-    ~mixins.DeviceDtypeModuleMixin
     ~mixins.HyperparametersMixin
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
@@ -190,7 +189,6 @@ precision
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin

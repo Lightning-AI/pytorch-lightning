@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import logging
+import operator
 import os
 import re
 from copy import deepcopy
+from functools import partial
 from typing import Any, Dict, Optional
 
 import torch
@@ -23,16 +25,15 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments import SLURMEnvironment
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
-from pytorch_lightning.utilities.types import _PATH
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
@@ -57,8 +58,7 @@ class CheckpointConnector:
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        # TODO: in v1.8 set this equal to self.trainer.default_root_dir
-        dir_path_hpc = self.trainer._weights_save_path_internal
+        dir_path_hpc = self.trainer.default_root_dir
         fs = get_filesystem(dir_path_hpc)
         if not fs.isdir(dir_path_hpc):
             return None
@@ -95,6 +95,92 @@ class CheckpointConnector:
                 " where `model.ckpt` is your checkpoint file."
             )
         return loaded_checkpoint
+
+    def _set_ckpt_path(
+        self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool
+    ) -> Optional[str]:
+        # fault-tolerance takes precedence
+        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+
+        ft_checkpoints = [cb for cb in self.trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+        fn = state_fn.value
+
+        if ckpt_path is None and ft_checkpoints and self.trainer.state.fn == TrainerFn.FITTING:
+            ckpt_path = "last"
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
+                f" `{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
+            )
+
+        if model_provided and ckpt_path is None:
+            # use passed model to function without loading weights
+            return None
+
+        if model_connected and ckpt_path is None:
+            ckpt_path = "best"
+            ft_tip = (
+                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
+                if ft_checkpoints
+                else ""
+            )
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " The best model of the previous `fit` call will be used."
+                + ft_tip
+                + f" You can pass `.{fn}(ckpt_path='best')` to use the best model or"
+                f" `.{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
+            )
+
+        if ckpt_path == "best":
+            if len(self.trainer.checkpoint_callbacks) > 1:
+                rank_zero_warn(
+                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple `ModelCheckpoint`'
+                    " callbacks. It will use the best checkpoint path from first checkpoint callback."
+                )
+
+            if not self.trainer.checkpoint_callback:
+                raise MisconfigurationException(
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
+                )
+
+            has_best_model_path = self.trainer.checkpoint_callback.best_model_path
+            if hasattr(self.trainer.checkpoint_callback, "best_model_path") and not has_best_model_path:
+                if self.trainer.fast_dev_run:
+                    raise MisconfigurationException(
+                        f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
+                        f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
+                    )
+                raise MisconfigurationException(
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
+                )
+            # load best weights
+            ckpt_path = getattr(self.trainer.checkpoint_callback, "best_model_path", None)
+
+        if ckpt_path == "last":
+            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
+                getattr(cb, "last_model_path", None) for cb in self.trainer.checkpoint_callbacks
+            ]
+            candidates_fs = {path: get_filesystem(path) for path in candidates if path}
+            candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
+            if not candidates_ts:
+                # not an error so it can be set and forget before the first `fit` run
+                rank_zero_warn(
+                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
+                    " or last checkpoint available. No checkpoint will be loaded."
+                )
+                return None
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+
+        if not ckpt_path:
+            raise MisconfigurationException(
+                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
+                f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
+            )
+        return ckpt_path
 
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be
@@ -168,15 +254,8 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        model = self.trainer.lightning_module
-
         # hook: give user access to checkpoint if needed.
         self.trainer._call_lightning_module_hook("on_load_checkpoint", self._loaded_checkpoint)
-
-        # TODO: remove this in v1.8.
-        # call hpc specific hook
-        if self._hpc_resume_path is not None:
-            model.on_hpc_load(self._loaded_checkpoint)
 
         # restore model state_dict
         self.trainer.strategy.load_model_state_dict(self._loaded_checkpoint)
@@ -437,11 +516,6 @@ class CheckpointConnector:
         self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
         if datamodule is not None:
             self.trainer._call_lightning_datamodule_hook("on_save_checkpoint", checkpoint)
-
-        # TODO: remove this in v1.8.
-        environment = self.trainer._accelerator_connector.cluster_environment
-        if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
-            model.on_hpc_save(checkpoint)
 
         return checkpoint
 

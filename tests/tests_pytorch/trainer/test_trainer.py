@@ -21,8 +21,7 @@ from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from re import escape
-from unittest import mock
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
 import pytest
@@ -33,10 +32,13 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
+import lightning_lite
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -59,11 +61,9 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.seed import seed_everything
+from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -622,7 +622,10 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
             self.log("loss", output["loss"])
             self.training_step_invoked += 1
-            assert not self.trainer.should_stop
+            if self.current_epoch < 2:
+                assert not self.trainer.should_stop
+            else:
+                assert self.trainer.should_stop
             return output
 
     model = TestModel()
@@ -641,7 +644,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
 
     message = f"min_epochs={min_epochs}` or `min_steps=None` has not been met. Training will continue"
     num_messages = sum(1 for record in caplog.records if message in record.message)
-    assert num_messages == min_epochs - 2
+    assert num_messages == 1
     assert model.training_step_invoked == min_epochs * 2
 
 
@@ -721,7 +724,9 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
         final_path = "foobar"
 
     with ctxt:
-        ckpt_path = trainer._Trainer__set_ckpt_path(ckpt_path, model_provided=fn == "fit", model_connected=True)
+        ckpt_path = trainer._checkpoint_connector._set_ckpt_path(
+            fn, ckpt_path, model_provided=fn == "fit", model_connected=True
+        )
     assert ckpt_path == final_path
 
 
@@ -898,7 +903,9 @@ def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     trainer.state.fn = TrainerFn.TESTING
 
     with pytest.warns(UserWarning, match="best checkpoint path from first checkpoint callback"):
-        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
+        trainer._checkpoint_connector._set_ckpt_path(
+            trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
+        )
 
 
 def test_disabled_training(tmpdir):
@@ -1255,9 +1262,7 @@ def test_trainer_subclassing():
     "trainer_params",
     [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
 )
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
-def test_trainer_omegaconf(_, __, trainer_params):
+def test_trainer_omegaconf(cuda_count_1, trainer_params):
     config = OmegaConf.create(trainer_params)
     Trainer(**config)
 
@@ -1677,7 +1682,9 @@ def test_exception_when_testing_or_validating_with_fast_dev_run():
     trainer = Trainer(fast_dev_run=True)
     trainer.state.fn = TrainerFn.TESTING
     with pytest.raises(MisconfigurationException, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
-        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
+        trainer._checkpoint_connector._set_ckpt_path(
+            trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
+        )
 
 
 class TrainerStagesModel(BoringModel):
@@ -1988,24 +1995,24 @@ def test_detect_anomaly_nan(tmpdir):
         ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
         ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
         (
-            {"strategy": None, "accelerator": "gpu", "devices": 1},
+            {"strategy": None, "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
             "single_device",
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": "dp", "accelerator": "gpu", "devices": 1}, DataParallelStrategy, "dp", CUDAAccelerator, 1),
-        ({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, DDPStrategy, "ddp", CUDAAccelerator, 1),
+        ({"strategy": "dp", "accelerator": "cuda", "devices": 1}, DataParallelStrategy, "dp", CUDAAccelerator, 1),
+        ({"strategy": "ddp", "accelerator": "cuda", "devices": 1}, DDPStrategy, "ddp", CUDAAccelerator, 1),
         (
-            {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 1},
+            {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 1},
             DDPSpawnStrategy,
             "ddp_spawn",
             CUDAAccelerator,
             1,
         ),
-        ({"strategy": None, "accelerator": "gpu", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", CUDAAccelerator, 2),
-        ({"strategy": "dp", "accelerator": "gpu", "devices": 2}, DataParallelStrategy, "dp", CUDAAccelerator, 2),
-        ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
+        ({"strategy": None, "accelerator": "cuda", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", CUDAAccelerator, 2),
+        ({"strategy": "dp", "accelerator": "cuda", "devices": 2}, DataParallelStrategy, "dp", CUDAAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
@@ -2022,7 +2029,7 @@ def test_detect_anomaly_nan(tmpdir):
             1,
         ),
         (
-            {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1},
+            {"strategy": "ddp_fully_sharded", "accelerator": "cuda", "devices": 1},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
             CUDAAccelerator,
@@ -2036,65 +2043,65 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         (
-            {"strategy": DDPSpawnStrategy(), "accelerator": "gpu", "devices": 2},
+            {"strategy": DDPSpawnStrategy(), "accelerator": "cuda", "devices": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
             CUDAAccelerator,
             2,
         ),
         ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"strategy": DDPStrategy(), "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
+        ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         (
-            {"strategy": DataParallelStrategy(), "accelerator": "gpu", "devices": 2},
+            {"strategy": DataParallelStrategy(), "accelerator": "cuda", "devices": 2},
             DataParallelStrategy,
             "dp",
             CUDAAccelerator,
             2,
         ),
         (
-            {"strategy": DDPFullyShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            {"strategy": DDPFullyShardedStrategy(), "accelerator": "cuda", "devices": 2},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
             CUDAAccelerator,
             2,
         ),
         (
-            {"strategy": DDPSpawnShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            {"strategy": DDPSpawnShardedStrategy(), "accelerator": "cuda", "devices": 2},
             DDPSpawnShardedStrategy,
             "ddp_sharded_spawn",
             CUDAAccelerator,
             2,
         ),
         (
-            {"strategy": DDPShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            {"strategy": DDPShardedStrategy(), "accelerator": "cuda", "devices": 2},
             DDPShardedStrategy,
             "ddp_sharded",
             CUDAAccelerator,
             2,
         ),
         (
-            {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
             CUDAAccelerator,
             2,
         ),
         (
-            {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1, "num_nodes": 2},
+            {"strategy": "ddp_fully_sharded", "accelerator": "cuda", "devices": 1, "num_nodes": 2},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
             CUDAAccelerator,
             1,
         ),
         (
-            {"strategy": "ddp_sharded", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            {"strategy": "ddp_sharded", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPShardedStrategy,
             "ddp_sharded",
             CUDAAccelerator,
             2,
         ),
         (
-            {"strategy": "ddp_sharded_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            {"strategy": "ddp_sharded_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPSpawnShardedStrategy,
             "ddp_sharded_spawn",
             CUDAAccelerator,
@@ -2103,9 +2110,8 @@ def test_detect_anomaly_nan(tmpdir):
     ],
 )
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
-    if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: trainer_kwargs["devices"])
+    if trainer_kwargs.get("accelerator") == "cuda":
+        mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
 
     trainer = Trainer(**trainer_kwargs)
 
@@ -2159,20 +2165,24 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"devices": "1"}, [0]),
         ({"devices": 2}, [0, 1]),
         ({"accelerator": "gpu", "devices": 1}, [0]),
-        ({"accelerator": "gpu", "devices": 2}, [0, 1]),
-        ({"accelerator": "gpu", "devices": "2"}, [0, 1]),
-        ({"accelerator": "gpu", "devices": [2]}, [2]),
-        ({"accelerator": "gpu", "devices": "2,"}, [2]),
-        ({"accelerator": "gpu", "devices": [0, 2]}, [0, 2]),
-        ({"accelerator": "gpu", "devices": "0, 2"}, [0, 2]),
+        ({"accelerator": "cuda", "devices": 1}, [0]),
+        ({"accelerator": "cuda", "devices": 2}, [0, 1]),
+        ({"accelerator": "cuda", "devices": "2"}, [0, 1]),
+        ({"accelerator": "cuda", "devices": [2]}, [2]),
+        ({"accelerator": "cuda", "devices": "2,"}, [2]),
+        ({"accelerator": "cuda", "devices": [0, 2]}, [0, 2]),
+        ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
         ({"accelerator": "ipu", "devices": 1}, [0]),
         ({"accelerator": "ipu", "devices": 2}, [0, 1]),
+        pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=RunIf(min_torch="1.12")),
     ],
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
-    if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
+    if trainer_kwargs.get("accelerator") in ("cuda", "gpu"):
+        mock_cuda_count(monkeypatch, 4)
+    elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
+        monkeypatch.setattr(lightning_lite.utilities.device_parser, "_get_all_available_mps_gpus", lambda: [0])
+        monkeypatch.setattr(MPSAccelerator, "is_available", lambda *_: True)
     elif trainer_kwargs.get("accelerator") == "ipu":
         monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
         monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
@@ -2187,3 +2197,20 @@ def test_trainer_save_checkpoint_no_model_attached():
     assert trainer.model is None
     with pytest.raises(AttributeError, match="Saving a checkpoint is only possible if a model is attached"):
         trainer.save_checkpoint("checkpoint.ckpt")
+
+
+def test_trainer_calls_logger_finalize_on_exception(tmpdir):
+    class CustomModel(BoringModel):
+        def on_fit_start(self):
+            super().on_fit_start()
+            raise Exception("logger-finalize")
+
+    model = CustomModel()
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.finalize = Mock()
+    trainer = Trainer(logger=logger)
+
+    with pytest.raises(Exception, match="logger-finalize"):
+        trainer.fit(model)
+
+    logger.finalize.assert_called_once_with("failed")
