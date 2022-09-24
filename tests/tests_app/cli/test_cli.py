@@ -50,7 +50,7 @@ def test_commands(command):
 
 
 def test_main_lightning_cli_no_arguments():
-    """Validate the Lightning CLI without args"""
+    """Validate the Lightning CLI without args."""
     res = os.popen("python -m lightning").read()
     assert "login   " in res
     assert "logout  " in res
@@ -59,6 +59,7 @@ def test_main_lightning_cli_no_arguments():
     assert "delete  " in res
     assert "create  " in res
     assert "show    " in res
+
 
 def test_main_lightning_cli_help():
     """Validate the Lightning CLI."""
