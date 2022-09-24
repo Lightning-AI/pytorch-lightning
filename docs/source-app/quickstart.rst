@@ -114,13 +114,6 @@ Simply add ``--cloud`` to run this application in the cloud 🤯
 
     lightning run app app.py --cloud
 
-And with just one line of code, run on cloud GPUs!
-
-.. code-block:: bash
-
-    USE_GPU=1
-    lightning run app app.py --cloud
-
 Congratulations! You've now run your first application with Lightning.
 
 ----
