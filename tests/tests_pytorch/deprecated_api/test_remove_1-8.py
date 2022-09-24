@@ -91,24 +91,6 @@ def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
         setattr(trainer, test_attr, "v")
 
 
-def test_v1_8_0_trainer_optimizers_mixin():
-    trainer = Trainer()
-    model = BoringModel()
-    trainer.strategy.connect(model)
-    trainer.lightning_module.trainer = trainer
-
-    with pytest.deprecated_call(
-        match=r"`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
-    ):
-        trainer.init_optimizers(model)
-
-    with pytest.deprecated_call(
-        match=r"`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
-        "v1.8."
-    ):
-        trainer.convert_to_lightning_optimizers()
-
-
 def test_v1_8_0_deprecate_trainer_data_loading_mixin():
     trainer = Trainer(max_epochs=1)
     model = BoringModel()
