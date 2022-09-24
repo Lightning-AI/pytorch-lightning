@@ -57,9 +57,8 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=2)
 @mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=list(range(2)))
-def test_torch_distributed_backend_invalid(_, __, tmpdir):
+def test_torch_distributed_backend_invalid(_, cuda_count_2, tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     model = BoringModel()
     trainer = Trainer(
@@ -76,12 +75,7 @@ def test_torch_distributed_backend_invalid(_, __, tmpdir):
 
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("pytorch_lightning.accelerators.gpu.CUDAAccelerator.is_available", return_value=True)
-def test_ddp_torch_dist_is_available_in_setup(
-    mock_gpu_is_available, mock_device_count, mock_cuda_available, mock_set_device, tmpdir
-):
+def test_ddp_torch_dist_is_available_in_setup(mock_set_device, cuda_count_1, tmpdir):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
