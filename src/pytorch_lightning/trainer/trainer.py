@@ -1756,16 +1756,6 @@ class Trainer(
         return getattr(self.strategy, "world_size", 1)
 
     @property
-    def should_rank_save_checkpoint(self) -> bool:
-        rank_zero_deprecation(
-            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
-        )
-        strategy = self.strategy
-        return (
-            isinstance(strategy, pl.strategies.TPUSpawnStrategy) and strategy.local_rank == 0 or strategy.is_global_zero
-        )
-
-    @property
     def num_nodes(self) -> int:
         return getattr(self.strategy, "num_nodes", 1)
 
