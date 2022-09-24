@@ -334,7 +334,9 @@ class EvaluationLoop(DataLoaderLoop):
 
         # fallback is useful for testing of printed output
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
-        max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
+        # encode as gbk, which treat Chinese characters as twice the width of alphabet characters.
+        matrics_encoded = [metric.encode("gbk") for metric in metrics_strs]
+        max_length = int(min(max(len(max(matrics_encoded, key=len)), len(max(headers, key=len)), 25), term_size / 2))
 
         rows: List[List[Any]] = [[] for _ in metrics_paths]
 
