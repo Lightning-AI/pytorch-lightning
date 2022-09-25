@@ -93,21 +93,6 @@ def test_v1_8_0_trainer_optimizers_mixin():
         trainer.convert_to_lightning_optimizers()
 
 
-def test_v1_8_0_deprecate_trainer_data_loading_mixin():
-    trainer = Trainer(max_epochs=1)
-    model = BoringModel()
-    dm = BoringDataModule()
-    trainer.fit(model, datamodule=dm)
-
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.prepare_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.prepare_dataloader(dataloader=model.train_dataloader, shuffle=False)
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.request_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.request_dataloader(stage=RunningStage.TRAINING)
-
 
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys

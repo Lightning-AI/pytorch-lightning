@@ -75,7 +75,6 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -112,7 +111,6 @@ warnings.filterwarnings(
 
 class Trainer(
     TrainerOptimizersMixin,  # TODO: Remove in v1.8
-    TrainerDataLoadingMixin,  # TODO: Remove in v1.8
 ):
     @_defaults_from_env_vars
     def __init__(
