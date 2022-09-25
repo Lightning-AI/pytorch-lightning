@@ -114,10 +114,3 @@ def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: 
     return {prefix + separator + k: v for k, v in metrics_dict.items()}
 
 
-def prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str) -> Dict[str, float]:
-    rank_zero_deprecation(
-        "`pytorch_lightning.callbacks.device_stats_monitor.prefix_metrics`"
-        " is deprecated in v1.6 and will be removed in v1.8."
-    )
-    sep = ""
-    return _prefix_metric_keys(metrics_dict, prefix, sep)

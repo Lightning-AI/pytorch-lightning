@@ -232,6 +232,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Remove the deprecated `Trainer.should_rank_save_checkpoint` ([#14885](https://github.com/Lightning-AI/lightning/pull/14885))
 
+- Removed the deprecated `device_stats_monitor_prefix_metric_keys` 
+
 
 ### Fixed
 
