@@ -93,7 +93,6 @@ def test_v1_8_0_trainer_optimizers_mixin():
         trainer.convert_to_lightning_optimizers()
 
 
-
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
 
