@@ -112,5 +112,3 @@ class DeviceStatsMonitor(Callback):
 
 def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
     return {prefix + separator + k: v for k, v in metrics_dict.items()}
-
-
