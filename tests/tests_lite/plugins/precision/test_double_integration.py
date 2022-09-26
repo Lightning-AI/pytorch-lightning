@@ -37,7 +37,7 @@ class DoublePrecisionBoringLite(BoringLite):
 
     def step(self, model, batch):
         model.double()  # TODO(lite): this needs to be done automatically in Lite.setup()
-        assert model.layer.weight.dtype == torch.float64
+        assert model.layer.weight.dtype == model.layer.bias.dtype == torch.float64
         assert model.complex_buffer.dtype == torch.complex64
 
         assert batch.dtype == torch.float32
