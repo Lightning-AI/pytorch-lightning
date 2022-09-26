@@ -189,7 +189,6 @@ precision
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
