@@ -51,7 +51,6 @@ from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, TPUAccel
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
@@ -75,8 +74,6 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
@@ -110,10 +107,7 @@ warnings.filterwarnings(
 )
 
 
-class Trainer(
-    TrainerOptimizersMixin,  # TODO: Remove in v1.8
-    TrainerDataLoadingMixin,  # TODO: Remove in v1.8
-):
+class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
@@ -1133,13 +1127,6 @@ class Trainer(
         self._logger_connector.teardown()
         self._signal_connector.teardown()
 
-    def run_stage(self) -> None:
-        rank_zero_deprecation(
-            "`Trainer.run_stage` is deprecated in v1.6 and will be removed in v1.8. Use"
-            " `Trainer.{fit,validate,test,predict}` instead."
-        )
-        return self._run_stage()
-
     def _run_stage(self):
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
@@ -1297,45 +1284,6 @@ class Trainer(
 
         # summarize profile results
         self.profiler.describe()
-
-    def call_hook(
-        self, hook_name: str, *args: Any, pl_module: Optional["pl.LightningModule"] = None, **kwargs: Any
-    ) -> Any:
-        r"""
-        .. deprecated:: v1.6
-            The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.
-        """
-        rank_zero_deprecation("The Trainer's `call_hook` method was deprecated in v1.6 and will be removed in v1.8.")
-        pl_module = self.lightning_module or pl_module
-        if pl_module:
-            prev_fx_name = pl_module._current_fx_name
-            pl_module._current_fx_name = hook_name
-
-        # always profile hooks
-        with self.profiler.profile(hook_name):
-
-            # first call trainer hook
-            callback_fx = getattr(self, hook_name, None)
-            if callable(callback_fx):
-                callback_fx(*args, **kwargs)
-
-            # next call hook in lightningModule
-            output = None
-            model_fx = getattr(pl_module, hook_name, None)
-            if callable(model_fx):
-                output = model_fx(*args, **kwargs)
-
-            # call the strategy hook
-            if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(self.strategy, hook_name):
-                strategy_hook = getattr(self.strategy, hook_name)
-                strategy_output = strategy_hook(*args, **kwargs)
-                output = strategy_output if output is None else output
-
-        if pl_module:
-            # restore current_fx when nested context
-            pl_module._current_fx_name = prev_fx_name
-
-        return output
 
     def _call_lightning_module_hook(
         self,
@@ -1756,16 +1704,6 @@ class Trainer(
         return getattr(self.strategy, "world_size", 1)
 
     @property
-    def should_rank_save_checkpoint(self) -> bool:
-        rank_zero_deprecation(
-            "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
-        )
-        strategy = self.strategy
-        return (
-            isinstance(strategy, pl.strategies.TPUSpawnStrategy) and strategy.local_rank == 0 or strategy.is_global_zero
-        )
-
-    @property
     def num_nodes(self) -> int:
         return getattr(self.strategy, "num_nodes", 1)
 
@@ -1802,13 +1740,6 @@ class Trainer(
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
         self.strategy.optimizers = new_optims
-
-    @property
-    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
-        rank_zero_deprecation(
-            "`Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8", stacklevel=5
-        )
-        return self.strategy._lightning_optimizers
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:
@@ -2244,26 +2175,6 @@ class Trainer(
         """
         loop.trainer = self
         self._predict_loop = loop
-
-    @property
-    def verbose_evaluate(self) -> bool:
-        rank_zero_deprecation(
-            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. The current value"
-            " returned is the union of the validate and test loop values. You can choose which one to access with"
-            " `trainer.{validate,test}_loop.verbose`.",
-            stacklevel=5,
-        )
-        return self.validate_loop.verbose or self.test_loop.verbose
-
-    @verbose_evaluate.setter
-    def verbose_evaluate(self, verbose: bool) -> None:
-        rank_zero_deprecation(
-            "The `Trainer.verbose_evaluate` property has been deprecated and will be removed in v1.8. This will set"
-            " the value for both trainer.{validate,test}_loop.verbose`.",
-            stacklevel=5,
-        )
-        self.validate_loop.verbose = verbose
-        self.test_loop.verbose = verbose
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:
