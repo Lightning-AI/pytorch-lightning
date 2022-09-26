@@ -33,11 +33,12 @@ clean:
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -e . -r requirements/pytorch/base.txt
-	pip install -e . -r requirements/app/base.txt
-	pip install -e . -r requirements/lite/base.txt
-	pip install -e . -r requirements/pytorch/test.txt
-	pip install -e . -r requirements/app/test.txt
+	pip install -e . \
+	-r requirements/pytorch/base.txt \
+	-r requirements/app/base.txt \
+	-r requirements/lite/base.txt \
+	-r requirements/pytorch/test.txt \
+	-r requirements/app/test.txt
 
 	# run tests with coverage
 	python -m coverage run --source src/pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch -v
