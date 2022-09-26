@@ -32,6 +32,7 @@ from pytorch_lightning.profilers import (
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
+    HPUProfiler,
 )
 from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -135,6 +136,7 @@ def init_profiler(trainer: Any, profiler: Optional[Union[Profiler, str]]) -> Non
             "advanced": AdvancedProfiler,
             "pytorch": PyTorchProfiler,
             "xla": XLAProfiler,
+            "hpu": HPUProfiler,
         }
         profiler = profiler.lower()
         if profiler not in PROFILERS:
