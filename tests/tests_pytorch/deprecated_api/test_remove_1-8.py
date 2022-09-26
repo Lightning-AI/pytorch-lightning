@@ -22,7 +22,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
-from pytorch_lightning.trainer.states import RunningStage
 
 
 def test_v1_8_0_on_init_start_end(tmpdir):
