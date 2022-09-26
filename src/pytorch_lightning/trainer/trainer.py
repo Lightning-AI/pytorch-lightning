@@ -1893,7 +1893,6 @@ class Trainer:
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. ``None`` otherwise."""
         return self._ckpt_path
 
-
     def save_checkpoint(
         self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
     ) -> None:
