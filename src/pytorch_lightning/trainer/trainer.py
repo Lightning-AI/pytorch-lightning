@@ -51,7 +51,6 @@ from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, TPUAccel
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
@@ -1744,13 +1743,6 @@ class Trainer(
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
         self.strategy.optimizers = new_optims
-
-    @property
-    def lightning_optimizers(self) -> Dict[int, LightningOptimizer]:
-        rank_zero_deprecation(
-            "`Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8", stacklevel=5
-        )
-        return self.strategy._lightning_optimizers
 
     @property
     def lr_scheduler_configs(self) -> List[LRSchedulerConfig]:

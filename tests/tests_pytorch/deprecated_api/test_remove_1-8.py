@@ -87,14 +87,6 @@ def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
         prefix_metric_keys({"foo": 1.0}, "bar")
 
 
-def test_v1_8_0_deprecated_lightning_optimizers():
-    trainer = Trainer()
-    with pytest.deprecated_call(
-        match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
-    ):
-        assert trainer.lightning_optimizers == {}
-
-
 def test_v1_8_0_remove_on_batch_start_end(tmpdir):
     class TestCallback(Callback):
         def on_batch_start(self, *args, **kwargs):
