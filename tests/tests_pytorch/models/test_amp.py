@@ -67,7 +67,6 @@ class AMPTestModel(BoringModel):
             assert torch.is_autocast_enabled()
 
 
-# lite: adopted
 @RunIf(min_torch="1.10")
 @pytest.mark.parametrize(
     "strategy",
@@ -98,7 +97,6 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
 
-# lite: adopted
 @RunIf(min_cuda_gpus=2, min_torch="1.10")
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
@@ -122,7 +120,6 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
 
-# lite: skipped
 @RunIf(min_cuda_gpus=2)
 @mock.patch.dict(
     os.environ,
@@ -170,7 +167,6 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert generated == "abc23"
 
 
-# lite: unimplemented
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
 def test_amp_without_apex(bwd_mock, tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
@@ -185,7 +181,6 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     assert not bwd_mock.called
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=1, amp_apex=True)
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
 def test_amp_with_apex(bwd_mock, tmpdir):
@@ -218,7 +213,6 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=1, amp_apex=True)
 def test_amp_with_apex_reload(tmpdir):
     model = BoringModel()

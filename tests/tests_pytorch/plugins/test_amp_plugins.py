@@ -40,7 +40,6 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
     pass
 
 
-# lite: adopted
 @RunIf(mps=False)
 @mock.patch.dict(
     os.environ,
@@ -86,7 +85,6 @@ class TestClippingOptimizer(torch.optim.SGD):
         return super().step(*args)
 
 
-# lite: unimplemented
 class TestPrecisionModel(BoringModel):
     # sister test: tests/trainer/optimization/test_manual_optimization.py::test_multiple_optimizers_step
     def on_after_backward(self) -> None:
@@ -169,7 +167,6 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
     trainer.fit(model)
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=1)
 def test_amp_skip_optimizer(tmpdir):
     """Test that optimizers can be skipped when using amp."""
@@ -204,7 +201,6 @@ def test_amp_skip_optimizer(tmpdir):
     trainer.fit(model)
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=2, amp_apex=True, standalone=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
@@ -232,7 +228,6 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
     trainer.test(model)
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
@@ -251,7 +246,6 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-# lite: adopted
 @RunIf(min_torch="1.10")
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
@@ -264,7 +258,6 @@ def test_cpu_amp_precision_context_manager(tmpdir):
     assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
-# lite: adopted
 def test_precision_selection_raises(monkeypatch):
     with pytest.raises(
         MisconfigurationException, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"

@@ -17,7 +17,6 @@ from unittest.mock import Mock
 from pytorch_lightning.plugins import TPUBf16PrecisionPlugin
 
 
-# lite: adopted
 def test_teardown():
     plugin = TPUBf16PrecisionPlugin()
     plugin.connect(Mock(), Mock(), Mock())

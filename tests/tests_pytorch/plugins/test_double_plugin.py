@@ -131,7 +131,6 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         assert self.complex_buffer.dtype == torch.complex64
 
 
-# lite: adopted
 @pytest.mark.parametrize(
     "boring_model",
     [
@@ -149,7 +148,6 @@ def test_double_precision(tmpdir, boring_model):
     trainer.predict(model)
 
 
-# lite: skipped
 @RunIf(min_cuda_gpus=2)
 def test_double_precision_ddp(tmpdir):
     model = DoublePrecisionBoringModel()
@@ -168,7 +166,6 @@ def test_double_precision_ddp(tmpdir):
     trainer.validate(model)
 
 
-# lite: skipped
 def test_double_precision_pickle(tmpdir):
     model = BoringModel()
     plugin = DoublePrecisionPlugin()

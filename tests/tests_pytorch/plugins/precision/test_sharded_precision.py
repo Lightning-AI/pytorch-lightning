@@ -24,7 +24,6 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.optim.grad_scaler import ShardedGradScaler
 
 
-# lite: unimplemented
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(
     "precision,scaler,expected",
