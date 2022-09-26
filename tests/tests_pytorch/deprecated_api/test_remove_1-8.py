@@ -22,7 +22,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
-from pytorch_lightning.trainer.states import RunningStage
 
 
 def test_v1_8_0_on_init_start_end(tmpdir):
@@ -53,27 +52,6 @@ def test_v1_8_0_on_init_start_end(tmpdir):
         trainer.validate(model)
 
 
-def test_v1_8_0_deprecated_call_hook():
-    trainer = Trainer(
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-        enable_progress_bar=False,
-        logger=False,
-    )
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
-        trainer.call_hook("test_hook")
-
-
-def test_v1_8_0_trainer_verbose_evaluate():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
-        assert trainer.verbose_evaluate
-
-    with pytest.deprecated_call(match="verbose_evaluate` property has been deprecated and will be removed in v1.8"):
-        trainer.verbose_evaluate = False
-
-
 @pytest.mark.parametrize("fn_prefix", ["validated", "tested", "predicted"])
 def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
     test_attr = f"{fn_prefix}_ckpt_path"
@@ -84,35 +62,11 @@ def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
         setattr(trainer, test_attr, "v")
 
 
-def test_v1_8_0_deprecate_trainer_data_loading_mixin():
-    trainer = Trainer(max_epochs=1)
-    model = BoringModel()
-    dm = BoringDataModule()
-    trainer.fit(model, datamodule=dm)
-
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.prepare_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.prepare_dataloader(dataloader=model.train_dataloader, shuffle=False)
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.request_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.request_dataloader(stage=RunningStage.TRAINING)
-
-
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
 
     with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
         prefix_metric_keys({"foo": 1.0}, "bar")
-
-
-def test_v1_8_0_deprecated_lightning_optimizers():
-    trainer = Trainer()
-    with pytest.deprecated_call(
-        match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
-    ):
-        assert trainer.lightning_optimizers == {}
 
 
 def test_v1_8_0_remove_on_batch_start_end(tmpdir):
