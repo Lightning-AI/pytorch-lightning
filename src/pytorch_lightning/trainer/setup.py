@@ -27,12 +27,12 @@ from pytorch_lightning.accelerators import (
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
+    HPUProfiler,
     PassThroughProfiler,
     Profiler,
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
-    HPUProfiler,
 )
 from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
