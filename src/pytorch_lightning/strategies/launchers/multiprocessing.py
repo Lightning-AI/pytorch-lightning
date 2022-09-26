@@ -27,8 +27,8 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.utilities import move_data_to_device
 from lightning_lite.strategies.launchers.multiprocessing import _check_bad_cuda_fork
+from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
