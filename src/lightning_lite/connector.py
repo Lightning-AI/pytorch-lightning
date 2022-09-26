@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from collections import Counter
 from typing import Dict, List, Optional, Union
 
@@ -53,10 +52,11 @@ from lightning_lite.strategies import (
     XLAStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from lightning_lite.utilities import _StrategyType, device_parser, rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
+from lightning_lite.utilities.device_parser import determine_root_gpu_device
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
 
-_PLUGIN = Union[Strategy, Precision, ClusterEnvironment, CheckpointIO]
+_PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
 
 
@@ -99,14 +99,12 @@ class _Connector:
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
-        tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
-        gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
     ) -> None:
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
         self._registered_accelerators = ACCELERATOR_REGISTRY.available_accelerators()
-        self._precision_types = ("16", "32", "64", "bf16", "mixed")
+        self._precision_types = ("16", "32", "64", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
@@ -125,9 +123,7 @@ class _Connector:
             precision=precision,
             plugins=plugins,
         )
-        self._check_device_config_and_set_final_flags(
-            devices=devices, num_nodes=num_nodes, gpus=gpus, tpu_cores=tpu_cores
-        )
+        self._check_device_config_and_set_final_flags(devices=devices, num_nodes=num_nodes)
 
         # 2. Instantiate Accelerator
         # handle `auto`, `None` and `gpu`
@@ -184,7 +180,8 @@ class _Connector:
         if strategy is not None and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
-                f" Available names are: {', '.join(self._registered_strategies)}."
+                " Example choices: ddp, ddp_spawn, deepspeed, dp, ..."
+                " Find a complete list of options in our documentation at https://lightning.ai"
             )
 
         if (
@@ -277,11 +274,7 @@ class _Connector:
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(
-        self,
-        devices: Optional[Union[List[int], str, int]],
-        num_nodes: int,
-        gpus: Optional[Union[List[int], str, int]],
-        tpu_cores: Optional[Union[List[int], str, int]],
+        self, devices: Optional[Union[List[int], str, int]], num_nodes: int
     ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
@@ -297,55 +290,11 @@ class _Connector:
                 f" using {accelerator_name} accelerator."
             )
 
-        # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
-        self._map_deprecated_devices_specific_info_to_accelerator_and_device_flag(devices, gpus, tpu_cores)
-
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise ValueError(
                 f"You passed `devices={devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'cpu'|'mps')` for the devices mapping."
             )
-
-    def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
-        self,
-        devices: Optional[Union[List[int], str, int]],
-        gpus: Optional[Union[List[int], str, int]],
-        tpu_cores: Optional[Union[List[int], str, int]],
-    ) -> None:
-        """Emit deprecation warnings for num_processes, gpus, ipus, tpu_cores and set the `devices_flag` and
-        `accelerator_flag`."""
-        if gpus is not None:
-            rank_zero_deprecation(
-                f"Setting `Lite(gpus={gpus!r})` is deprecated in v1.7 and will be removed"
-                f" in v2.0. Please use `Lite(accelerator='gpu', devices={gpus!r})` instead."
-            )
-        if tpu_cores is not None:
-            rank_zero_deprecation(
-                f"Setting `Lite(tpu_cores={tpu_cores!r})` is deprecated in v1.7 and will be removed"
-                f" in v2.0. Please use `Lite(accelerator='tpu', devices={tpu_cores!r})` instead."
-            )
-        self._gpus: Optional[Union[List[int], str, int]] = gpus
-        self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
-        deprecated_devices_specific_flag = gpus or tpu_cores
-        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
-            if devices:
-                # TODO: improve error message
-                rank_zero_warn(
-                    f"The flag `devices={devices}` will be ignored, "
-                    f"instead the device specific number {deprecated_devices_specific_flag} will be used"
-                )
-
-            if [(gpus is not None), (tpu_cores is not None)].count(True) > 1:
-                # TODO: improve error message
-                rank_zero_warn("more than one device specific flag has been set")
-            self._devices_flag = deprecated_devices_specific_flag
-
-            if self._accelerator_flag is None:
-                # set accelerator type based on num_processes, gpus, ipus, tpu_cores
-                if tpu_cores:
-                    self._accelerator_flag = "tpu"
-                if gpus:
-                    self._accelerator_flag = "cuda"
 
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
@@ -391,9 +340,6 @@ class _Connector:
 
         self._set_devices_flag_if_auto_passed()
 
-        self._gpus = self._devices_flag if not self._gpus else self._gpus
-        self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
-
         self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
         if not self._parallel_devices:
             self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
@@ -405,24 +351,15 @@ class _Connector:
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
             return self._cluster_environment_flag
-        if self._is_slurm_managing_tasks():
-            rank_zero_info("Multiprocessing is handled by SLURM.")
-            return SLURMEnvironment()
-        for env_type in (TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
+        for env_type in (
+            SLURMEnvironment,
+            TorchElasticEnvironment,
+            KubeflowEnvironment,
+            LSFEnvironment,
+        ):
             if env_type.detect():
-                # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
-                return env_type()  # type: ignore[abstract]
+                return env_type()
         return LightningEnvironment()
-
-    def _is_slurm_managing_tasks(self) -> bool:
-        """used by choosing cluster enviroment."""
-        # TODO(lite): Remove this, see: https://github.com/Lightning-AI/lightning/pull/14300
-        if not SLURMEnvironment.detect() or SLURMEnvironment.job_name() == "bash":
-            return False
-
-        total_requested_devices = len(self._parallel_devices) * self._num_nodes_flag
-        num_slurm_tasks = int(os.environ["SLURM_NTASKS"], 0)
-        return num_slurm_tasks == total_requested_devices
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "tpu":
@@ -438,7 +375,7 @@ class _Connector:
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
-                device = device_parser.determine_root_gpu_device(self._parallel_devices)
+                device = determine_root_gpu_device(self._parallel_devices)
             else:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
@@ -458,7 +395,7 @@ class _Connector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
-            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
+            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or SLURMEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":

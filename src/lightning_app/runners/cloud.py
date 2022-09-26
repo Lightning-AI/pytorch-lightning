@@ -66,7 +66,7 @@ class CloudRuntime(Runtime):
         name: str = "",
         cluster_id: str = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
         # not user facing error ideally - this should never happen in normal user workflow
         if not self.entrypoint_file:
@@ -351,7 +351,7 @@ class CloudRuntime(Runtime):
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
 
-            logger.warning(warning_msg)
+            logger.warn(warning_msg)
 
     def _project_has_sufficient_credits(self, project: V1Membership, app: Optional[LightningApp] = None):
         """check if user has enough credits to run the app with its hardware if app is not passed return True if

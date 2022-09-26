@@ -23,18 +23,18 @@ import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
 from lightning_utilities.core.apply_func import apply_to_collection
+from tests_lite.helpers.runif import RunIf
 from torch import nn
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
+from lightning_lite.lite import LightningLite
 from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
+from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.cloud_io import atomic_save
 from pytorch_lightning.demos.boring_classes import RandomDataset
-from pytorch_lightning.lite import LightningLite
-from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from tests_pytorch.helpers.runif import RunIf
 
 
 class BoringModel(nn.Module):
@@ -133,10 +133,12 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
 
     state_dict = apply_to_collection(state_dict, torch.Tensor, lite.to_device)
     for w_pure, w_lite in zip(state_dict.values(), lite_state_dict.values()):
-        assert not torch.equal(w_pure, w_lite)
+        # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+        assert not torch.allclose(w_pure, w_lite)
 
     for w_pure, w_lite in zip(pure_state_dict.values(), lite_state_dict.values()):
-        assert torch.equal(w_pure, w_lite)
+        # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
+        assert torch.allclose(w_pure, w_lite)
 
 
 def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir):
