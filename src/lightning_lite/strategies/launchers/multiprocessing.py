@@ -186,5 +186,5 @@ def _check_bad_cuda_fork() -> None:
         " other way? Please remove any such calls, or change the selected strategy."
     )
     if _IS_INTERACTIVE:
-        message += " You will have to restart the Python session; in a notebook, that means restart the kernel."
+        message += " You will have to restart the Python kernel."
     raise RuntimeError(message)
