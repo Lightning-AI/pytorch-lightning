@@ -26,8 +26,8 @@ class BoringDoubleModule(nn.Module):
 
     def forward(self, x):
         assert x.dtype == torch.float64
+        # the default dtype for new tensors is now float64
         assert torch.tensor([0.0]).dtype == torch.float64
-        assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         return self.layer(x)
 
 
