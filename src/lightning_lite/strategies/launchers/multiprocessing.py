@@ -182,7 +182,7 @@ def _check_bad_cuda_fork() -> None:
 
     message = (
         "Lightning can't create new processes if CUDA is already initialized. Did you manually call"
-        " `torch.cuda.*` functions, have moved the model to the device or allocated memory on the GPU any"
+        " `torch.cuda.*` functions, have moved the model to the device, or allocated memory on the GPU any"
         " other way? Please remove any such calls, or change the selected strategy."
     )
     if _IS_INTERACTIVE:
