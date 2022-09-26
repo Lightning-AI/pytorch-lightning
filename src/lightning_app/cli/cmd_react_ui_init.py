@@ -8,7 +8,7 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-def react_ui(dest_dir=None):
+def react_ui(dest_dir: str = None) -> None:
     # verify all the prereqs for install are met
     _check_react_prerequisites()
 
@@ -16,7 +16,7 @@ def react_ui(dest_dir=None):
     _copy_and_setup_react_ui(dest_dir)
 
 
-def _copy_and_setup_react_ui(dest_dir=None):
+def _copy_and_setup_react_ui(dest_dir: str = None) -> None:
     logger.info("⚡ setting up react-ui template")
     path = os.path.dirname(os.path.abspath(__file__))
     template_dir = os.path.join(path, "react-ui-template")
@@ -50,7 +50,7 @@ def _copy_and_setup_react_ui(dest_dir=None):
     logger.info(m)
 
 
-def _check_react_prerequisites():
+def _check_react_prerequisites() -> None:
     """Args are for test purposes only."""
     missing_msgs = []
     version_regex = r"\d{1,2}\.\d{1,2}\.\d{1,3}"
@@ -103,8 +103,8 @@ def _check_react_prerequisites():
 
     # exit or show success message
     if len(missing_msgs) > 0:
-        missing_msgs = "\n".join(missing_msgs)
-        raise SystemExit(missing_msgs)
+        missing_msg = "\n".join(missing_msgs)
+        raise SystemExit(missing_msg)
     else:
         m = f"""
         found npm  version: {npm_version}
