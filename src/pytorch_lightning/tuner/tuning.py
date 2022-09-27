@@ -207,7 +207,7 @@ class Tuner:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
-        method: str = "fit",
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
         min_lr: float = 1e-8,
         max_lr: float = 1,
         num_training: int = 100,
