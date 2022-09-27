@@ -159,7 +159,7 @@ class HPUProfiler(PyTorchProfiler):
                         )
                         profiler.export_stacks(path, metric=self._metric)
                 else:
-                    rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
+                    rank_zero_warn("The HPUProfiler failed to export trace as `dirpath` is None")
 
             if not self._has_on_trace_ready:
                 self.profiler.on_trace_ready = on_trace_ready
