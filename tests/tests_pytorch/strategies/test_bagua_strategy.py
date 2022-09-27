@@ -23,8 +23,6 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
-unsupported_cuda_arch = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
-
 
 class BoringModel4QAdam(BoringModel):
     def configure_optimizers(self):
@@ -47,7 +45,10 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
-@pytest.mark.skipif(unsupported_cuda_arch, reason="Async does not support this CUDA architecture")
+@pytest.mark.skipif(
+    torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8,
+    reason="Async does not support this CUDA architecture",
+)
 @RunIf(min_cuda_gpus=2, standalone=True, bagua=True)
 def test_async_algorithm(tmpdir):
     model = BoringModel()
