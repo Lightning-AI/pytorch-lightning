@@ -13,13 +13,12 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 
 
