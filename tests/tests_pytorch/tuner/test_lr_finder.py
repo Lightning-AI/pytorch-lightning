@@ -25,7 +25,7 @@ from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
-from tests_pytorch.helpers.utils import no_warning_call
+from tests_pytorch.helpers.utils import getattr_recursive, no_warning_call
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -89,13 +89,15 @@ def test_trainer_reset_correctly(tmpdir):
         "loggers",
         "global_step",
         "max_steps",
+        "fit_loop.max_steps",
+        "strategy.setup_optimizers",
     ]
-    expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
+    expected = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
 
     with no_warning_call(UserWarning, match="Please add the following callbacks"):
         trainer.tuner.lr_find(model, num_training=5)
 
-    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
+    actual = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
     assert actual == expected
     assert model.trainer == trainer
 

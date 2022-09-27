@@ -1,11 +1,13 @@
+from typing import Any
+
 import click
 
 from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager
 
 
 @click.group("create")
-def create():
-    """Create Lightning AI BYOC managed resources."""
+def create() -> None:
+    """Create Lightning AI self-managed resources (clusters, etc…)"""
     pass
 
 
@@ -33,14 +35,14 @@ def create():
     help="Instance types that you want to support, for computer jobs within the cluster.",
 )
 @click.option(
-    "--cost-savings",
-    "cost_savings",
+    "--enable-performance",
+    "enable_performance",
     type=bool,
     required=False,
     default=False,
     is_flag=True,
-    help=""""Use this flag to ensure that the cluster is created with a profile that is optimized for cost savings.
-        This makes runs cheaper but start-up times may increase.""",
+    help=""""Use this flag to ensure that the cluster is created with a profile that is optimized for performance.
+        This makes runs more expensive but start-up times decrease.""",
 )
 @click.option(
     "--edit-before-creation",
@@ -65,12 +67,12 @@ def create_cluster(
     provider: str,
     instance_types: str,
     edit_before_creation: bool,
-    cost_savings: bool,
+    enable_performance: bool,
     wait: bool,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """Create a Lightning AI BYOC compute cluster with your cloud provider credentials."""
-    if provider != "aws":
+    if provider.lower() != "aws":
         click.echo("Only AWS is supported for now. But support for more providers is coming soon.")
         return
     cluster_manager = AWSClusterManager()
@@ -79,8 +81,8 @@ def create_cluster(
         region=region,
         role_arn=role_arn,
         external_id=external_id,
-        instance_types=instance_types.split(",") if instance_types is not None else None,
+        instance_types=instance_types.split(",") if instance_types is not None else [],
         edit_before_creation=edit_before_creation,
-        cost_savings=cost_savings,
+        cost_savings=not enable_performance,
         wait=wait,
     )

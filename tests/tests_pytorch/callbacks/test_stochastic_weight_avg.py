@@ -26,11 +26,26 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
+
+
+def test_swa_callback_initial_state():
+    swa = StochasticWeightAveraging(
+        swa_lrs=0.01,
+        swa_epoch_start=0.1,
+        annealing_epochs=1,
+        annealing_strategy="linear",
+        avg_fn=sum,
+    )
+    assert swa._swa_lrs == 0.01
+    assert swa._swa_epoch_start == 0.1
+    assert swa._annealing_epochs == 1
+    assert swa._annealing_strategy == "linear"
+    assert swa._avg_fn == sum
+    assert swa._average_model is None
 
 
 class SwaTestModel(BoringModel):
@@ -347,8 +362,9 @@ def test_swa_resume_training_from_checkpoint_ddp(tmpdir):
 @pytest.mark.parametrize(
     "strategy",
     [
-        pytest.param("fsdp", marks=RunIf(fairscale_fully_sharded=True, min_cuda_gpus=1)),
+        pytest.param("fsdp", marks=RunIf(fairscale=True, min_cuda_gpus=1)),
         pytest.param("deepspeed", marks=RunIf(deepspeed=True, min_cuda_gpus=1)),
+        pytest.param("fsdp_native", marks=RunIf(min_cuda_gpus=1, skip_windows=True, min_torch="1.12")),
     ],
 )
 def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):

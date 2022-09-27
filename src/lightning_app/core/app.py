@@ -9,15 +9,24 @@ from copy import deepcopy
 from time import time
 
 from deepdiff import DeepDiff, Delta
+from lightning_utilities.core.apply_func import apply_to_collection
 
 import lightning_app
-from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_THRESHOLD, STATE_ACCUMULATE_WAIT
+from lightning_app import _console
+from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
+from lightning_app.core.constants import (
+    DEBUG_ENABLED,
+    FLOW_DURATION_SAMPLES,
+    FLOW_DURATION_THRESHOLD,
+    STATE_ACCUMULATE_WAIT,
+)
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
+from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import storage_root_dir
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
-from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_command_requests
-from lightning_app.utilities.component import _convert_paths_after_init
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
+from lightning_app.utilities.commands.base import _process_requests
+from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.layout import _collect_layout
@@ -29,7 +38,7 @@ from lightning_app.utilities.warnings import LightningFlowWarning
 if t.TYPE_CHECKING:
     from lightning_app.runners.backends.backend import Backend, WorkManager
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class LightningApp:
@@ -49,8 +58,8 @@ class LightningApp:
         the :class:`~lightning.app.core.flow.LightningFlow` provided.
 
         Arguments:
-            root: The root LightningFlow component, that defined all
-                the app's nested components, running infinitely.
+            root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
+                It must define a `run()` method that the app can call.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
 
@@ -68,14 +77,13 @@ class LightningApp:
             Hello World!
         """
 
+        _validate_root_flow(root)
         self._root = root
 
         # queues definition.
         self.delta_queue: t.Optional[BaseQueue] = None
         self.readiness_queue: t.Optional[BaseQueue] = None
-        self.commands_requests_queue: t.Optional[BaseQueue] = None
-        self.commands_responses_queue: t.Optional[BaseQueue] = None
-        self.commands_metadata_queue: t.Optional[BaseQueue] = None
+        self.api_response_queue: t.Optional[BaseQueue] = None
         self.api_publish_state_queue: t.Optional[BaseQueue] = None
         self.api_delta_queue: t.Optional[BaseQueue] = None
         self.error_queue: t.Optional[BaseQueue] = None
@@ -117,8 +125,13 @@ class LightningApp:
         # is only available after all Flows and Works have been instantiated.
         _convert_paths_after_init(self.root)
 
-        if debug:
-            logging.getLogger().setLevel(logging.DEBUG)
+        # Lazily enable debugging.
+        if debug or DEBUG_ENABLED:
+            if not DEBUG_ENABLED:
+                os.environ["LIGHTNING_DEBUG"] = "2"
+            _console.setLevel(logging.DEBUG)
+
+        logger.debug(f"ENV: {os.environ}")
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
@@ -253,7 +266,7 @@ class LightningApp:
         """Returns all the works defined within this application with their names."""
         return self.root.named_works(recurse=True)
 
-    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[Delta]:
+    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[t.Union[Delta, APIRequest, CommandRequest]]:
         # The aggregation would try to get as many deltas as possible
         # from both the `api_delta_queue` and `delta_queue`
         # during the `state_accumulate_wait` time.
@@ -267,8 +280,12 @@ class LightningApp:
         while (time() - t0) < self.state_accumulate_wait:
 
             if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: Delta = self.get_state_changed_from_queue(self.api_delta_queue)  # TODO: rename
+                delta_from_api: t.Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(
+                    self.api_delta_queue
+                )  # TODO: rename
                 if delta_from_api:
+                    if isinstance(delta_from_api, DeltaRequest):
+                        delta_from_api = delta_from_api.delta
                     deltas.append(delta_from_api)
                 else:
                     should_get_delta_from_api = False
@@ -277,9 +294,16 @@ class LightningApp:
                 component_output: t.Optional[ComponentDelta] = self.get_state_changed_from_queue(self.delta_queue)
                 if component_output:
                     logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
-                    work = self.get_component_by_name(component_output.id)
-                    new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
-                    deltas.append(new_work_delta)
+
+                    work = None
+                    try:
+                        work = self.get_component_by_name(component_output.id)
+                    except (KeyError, AttributeError) as e:
+                        logger.error(f"The component {component_output.id} couldn't be accessed. Exception: {e}")
+
+                    if work:
+                        new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
+                        deltas.append(new_work_delta)
                 else:
                     should_get_component_output = False
 
@@ -305,9 +329,12 @@ class LightningApp:
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
         if not deltas:
+            # Path and Drive aren't processed by DeepDiff, so we need to convert them to dict.
+            last_state = apply_to_collection(self.last_state, (Path, Drive), lambda x: x.to_dict())
+            state = apply_to_collection(self.state, (Path, Drive), lambda x: x.to_dict())
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
-            deep_diff = DeepDiff(self.last_state, self.state, verbose_level=2)
+            deep_diff = DeepDiff(last_state, state, verbose_level=2)
             if deep_diff:
                 # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
@@ -317,8 +344,19 @@ class LightningApp:
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
-        state = self.state
+        # 1: Process the API / Command Requests first as they might affect the state.
+        state_deltas = []
         for delta in deltas:
+            if isinstance(delta, (APIRequest, CommandRequest)):
+                _process_requests(self, delta)
+            else:
+                state_deltas.append(delta)
+
+        # 2: Collect the state
+        state = self.state
+
+        # 3: Apply the state delta
+        for delta in state_deltas:
             try:
                 state += delta
             except Exception as e:
@@ -350,8 +388,6 @@ class LightningApp:
 
         elif self.stage == AppStage.RESTARTING:
             return self._apply_restarting()
-
-        _process_command_requests(self)
 
         t0 = time()
 
@@ -411,8 +447,6 @@ class LightningApp:
 
         self._reset_run_time_monitor()
 
-        _populate_commands_endpoint(self)
-
         while not done:
             done = self.run_once()
 
@@ -422,6 +456,8 @@ class LightningApp:
                 self.api_publish_state_queue.put(self.state_vars)
 
             self._has_updated = False
+
+        self._on_run_end()
 
         return True
 
@@ -540,3 +576,8 @@ class LightningApp:
         # disable any flow schedules.
         for flow in self.flows:
             flow._disable_running_schedules()
+
+    def _on_run_end(self):
+        if os.getenv("LIGHTNING_DEBUG") == "2":
+            del os.environ["LIGHTNING_DEBUG"]
+            _console.setLevel(logging.INFO)

@@ -60,7 +60,7 @@ def scale_batch_size(
     elif mode == "binsearch":
         new_size = _run_binary_scaling(trainer, model, new_size, batch_arg_name, max_trials, params)
 
-    _collect_garbage(trainer)
+    garbage_collection_cuda()
 
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
@@ -83,6 +83,7 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     if trainer.state.fn == "fit":
         loop = trainer.fit_loop
         dumped_params["max_steps"] = trainer.max_steps
+        dumped_params["limit_train_batches"] = trainer.limit_train_batches
         dumped_params["limit_val_batches"] = trainer.limit_val_batches
     else:
         stage = trainer.state.stage
@@ -104,6 +105,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
     trainer.callbacks = []
 
     if trainer.state.fn == "fit":
+        trainer.limit_train_batches = 1.0
         trainer.limit_val_batches = steps_per_trial
         trainer.fit_loop.max_steps = steps_per_trial
     else:
@@ -124,6 +126,7 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
     if trainer.state.fn == "fit":
         loop = trainer.fit_loop
         loop.max_steps = params["max_steps"]
+        trainer.limit_train_batches = params["limit_train_batches"]
         trainer.limit_val_batches = params["limit_val_batches"]
     else:
         stage = trainer.state.stage
@@ -141,24 +144,34 @@ def _run_power_scaling(
     trainer: "pl.Trainer", pl_module: "pl.LightningModule", new_size: int, batch_arg_name: str, max_trials: int, params
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
+    # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
+    # if it was we exit, else we continue downscaling in case we haven't encountered a single optimal batch size
+    any_success = False
     for _ in range(max_trials):
-        _collect_garbage(trainer)
+        garbage_collection_cuda()
+
+        # reset after each try
+        _reset_progress(trainer)
 
         try:
             _try_loop_run(trainer, params)
             new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
 
-            if changed:
-                # Force the dataloaders to reset as the batch size has changed
-                _reset_dataloaders(trainer, pl_module)
-            else:
+            if not changed:
                 break
+
+            # Force the train dataloader to reset as the batch size has changed
+            _reset_dataloaders(trainer, pl_module)
+            any_success = True
         except RuntimeError as exception:
             if is_oom_error(exception):
-                _collect_garbage(trainer)
-
-                new_size, _ = _adjust_batch_size(trainer)
-                break
+                # If we fail in power mode, half the size and return
+                garbage_collection_cuda()
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
+                # Force the train dataloader to reset as the batch size has changed
+                _reset_dataloaders(trainer, pl_module)
+                if any_success:
+                    break
             else:
                 raise  # some other error not memory related
 
@@ -177,7 +190,10 @@ def _run_binary_scaling(
     high = None
     count = 0
     while True:
-        _collect_garbage(trainer)
+        garbage_collection_cuda()
+
+        # reset after each try
+        _reset_progress(trainer)
 
         try:
             # run loop
@@ -195,25 +211,24 @@ def _run_binary_scaling(
             else:
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
 
-            if changed:
-                # Force the dataloaders to reset as the batch size has changed
-                _reset_dataloaders(trainer, pl_module)
-            else:
+            if not changed:
                 break
+
+            # Force the train dataloader to reset as the batch size has changed
+            _reset_dataloaders(trainer, pl_module)
 
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
-                _collect_garbage(trainer)
+                garbage_collection_cuda()
 
                 high = new_size
                 midval = (high + low) // 2
-                new_size, changed = _adjust_batch_size(trainer, value=midval, desc="failed")
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="failed")
 
-                if changed:
-                    # Force the dataloaders to reset as the batch size has changed
-                    _reset_dataloaders(trainer, pl_module)
+                # Force the train dataloader to reset as the batch size has changed
+                _reset_dataloaders(trainer, pl_module)
 
                 if high - low <= 1:
                     break
@@ -251,12 +266,12 @@ def _adjust_batch_size(
     if desc:
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-    # TODO improve this for multi eval dataloaders
     if trainer.state.fn == "fit":
         if trainer.train_dataloader is None:
             trainer.reset_train_dataloader()
 
         assert trainer.train_dataloader is not None
+        # TODO: should we check val_dataloaders here too?
         if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
             new_size = min(new_size, len(trainer.train_dataloader.dataset))
     else:
@@ -264,10 +279,11 @@ def _adjust_batch_size(
         assert stage is not None
         dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
         if dataloaders is None:
-            getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")()
+            _reset_dataloaders(trainer, model)
 
         dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
         assert dataloaders is not None
+        # TODO: should we consider all the eval dataloaders here?
         if not _is_valid_batch_size(new_size, dataloaders[0], trainer):
             new_size = min(new_size, len(dataloaders[0].dataset))
 
@@ -283,24 +299,17 @@ def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.T
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
 
 
-def _collect_garbage(trainer: "pl.Trainer") -> None:
-    from pytorch_lightning.accelerators.gpu import GPUAccelerator
-
-    if isinstance(trainer.accelerator, GPUAccelerator):
-        garbage_collection_cuda()
-
-
 def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
     if trainer.state.fn == "fit":
         trainer.reset_train_dataloader(pl_module)
-        trainer.reset_val_dataloader(pl_module)
     else:
         stage = trainer.state.stage
         assert stage is not None
-        getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")(pl_module)
+        reset_fn = getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")
+        reset_fn(pl_module)
 
 
-def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params) -> None:
     if trainer.state.fn == "fit":
         loop = trainer.fit_loop
     else:
@@ -309,3 +318,12 @@ def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
     loop.run()
+
+
+def _reset_progress(trainer: "pl.Trainer") -> None:
+    if trainer.lightning_module.automatic_optimization:
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.reset()
+    else:
+        trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress.reset()
+
+    trainer.fit_loop.epoch_progress.reset()

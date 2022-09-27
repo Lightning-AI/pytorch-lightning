@@ -1345,18 +1345,6 @@ load_from_checkpoint
 .. automethod:: pytorch_lightning.core.module.LightningModule.load_from_checkpoint
     :noindex:
 
-on_hpc_save
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_save
-    :noindex:
-
-on_hpc_load
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_load
-    :noindex:
-
 on_train_start
 ~~~~~~~~~~~~~~
 

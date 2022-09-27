@@ -28,10 +28,11 @@ from torchmetrics import Accuracy
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomDictDataset
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test__training_step__log(tmpdir):
@@ -626,6 +627,21 @@ def test_log_none_raises(tmpdir, value):
         trainer.fit(model)
 
 
+def test_log_tensor_and_clone_no_torch_warning(tmpdir):
+    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14594."""
+
+    class TestModel(BoringModel):
+        def training_step(self, *args):
+            self.log("foo", torch.tensor(1))
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    model = TestModel()
+    match = r"recommended.*.clone\(\).detach\(\)"
+    with no_warning_call(UserWarning, match=match):
+        trainer.fit(model)
+
+
 def test_logging_raises(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -837,3 +853,13 @@ def test_log_on_train_start(mock_log_metrics, tmpdir):
 
     assert mock_log_metrics.mock_calls == [call(metrics={"foo": 123.0, "epoch": 0}, step=0)]
     assert trainer.max_epochs > 1
+
+
+def test_unsqueezed_tensor_logging():
+    model = BoringModel()
+    trainer = Trainer()
+    trainer.state.stage = RunningStage.TRAINING
+    model._current_fx_name = "training_step"
+    model.trainer = trainer
+    model.log("foo", torch.Tensor([1.2]))
+    assert trainer.callback_metrics["foo"].ndim == 0

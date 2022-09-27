@@ -22,14 +22,15 @@ from argparse import Namespace
 from time import time
 from typing import Any, Dict, Mapping, Optional, Union
 
+from lightning_utilities.core.imports import module_available
+
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = _module_available("mlflow")
+_MLFLOW_AVAILABLE = module_available("mlflow")
 try:
     import mlflow
     from mlflow.tracking import context, MlflowClient
@@ -253,9 +254,13 @@ class MLFlowLogger(Logger):
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
-    def finalize(self, status: str = "FINISHED") -> None:
-        super().finalize(status)
-        status = "FINISHED" if status == "success" else status
+    def finalize(self, status: str = "success") -> None:
+        if not self._initialized:
+            return
+        if status == "success":
+            status = "FINISHED"
+        elif status == "failed":
+            status = "FAILED"
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 

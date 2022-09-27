@@ -8,3 +8,5 @@ playwright==1.22.0
 httpx
 trio
 pympler
+psutil
+setuptools<=59.5.0

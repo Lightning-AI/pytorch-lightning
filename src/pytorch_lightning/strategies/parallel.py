@@ -19,19 +19,11 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import unwrap_lightning_module
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 from pytorch_lightning.plugins import LayerSync
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    all_gather_ddp_if_available,
-    get_default_process_group_backend_for_device,
-    ReduceOp,
-)
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class ParallelStrategy(Strategy, ABC):
@@ -39,7 +31,7 @@ class ParallelStrategy(Strategy, ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -54,10 +46,6 @@ class ParallelStrategy(Strategy, ABC):
     @abstractmethod
     def root_device(self) -> torch.device:
         """Return the root device."""
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        return unwrap_lightning_module(self.model) if self.model is not None else None
 
     @property
     def global_rank(self) -> int:
@@ -93,17 +81,6 @@ class ParallelStrategy(Strategy, ABC):
             num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
         )
         return distributed_sampler_kwargs
-
-    @property
-    def torch_distributed_backend(self) -> str:
-        """Deprecated property."""
-        rank_zero_deprecation(
-            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
-        )
-        pg_backend = _get_process_group_backend_from_env()
-        if pg_backend:
-            return pg_backend
-        return get_default_process_group_backend_for_device(self.root_device)
 
     def reconciliate_processes(self, trace: str) -> None:
         """Function to re-conciliate processes on failure."""

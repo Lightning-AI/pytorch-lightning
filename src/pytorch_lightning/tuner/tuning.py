@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Any, Dict, Optional, Union
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import Literal, NotRequired, TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
@@ -22,6 +22,9 @@ from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
+from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
+from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -50,7 +53,7 @@ class Tuner:
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        method: str = "fit",
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
     ) -> _TunerResult:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
@@ -77,6 +80,28 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
+            self.trainer.state.fn = TrainerFn.TUNING
+            self.trainer.state.status = TrainerStatus.RUNNING
+            self.tuning = True
+
+            # TODO: Remove this once LRFinder is converted to a Callback
+            # if a datamodule comes in as the second arg, then fix it for the user
+            if isinstance(train_dataloaders, LightningDataModule):
+                datamodule = train_dataloaders
+                train_dataloaders = None
+
+            # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+            if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
+                raise MisconfigurationException(
+                    "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune()`"
+                    " if datamodule is already passed."
+                )
+
+            # links da_a to the trainer
+            self.trainer._data_connector.attach_data(
+                model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
+            )
+
             lr_find_kwargs.setdefault("update_attr", True)
             result["lr_find"] = self.lr_find(
                 model, train_dataloaders, val_dataloaders, dataloaders, datamodule, method, **lr_find_kwargs
@@ -99,7 +124,7 @@ class Tuner:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
-        method: str = "fit",
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
         mode: str = "power",
         steps_per_trial: int = 3,
         init_val: int = 2,
@@ -132,12 +157,12 @@ class Tuner:
                     do a binary search between the last successful batch size and the batch size that failed.
 
             steps_per_trial: number of steps to run with a given batch size.
-                Ideally 1 should be enough to test if a OOM error occurs,
+                Ideally 1 should be enough to test if an OOM error occurs,
                 however in practise a few are needed
 
             init_val: initial batch size to start the search with
 
-            max_trials: max number of increase in batch size done before
+            max_trials: max number of increases in batch size done before
                algorithm is terminated
 
             batch_arg_name: name of the attribute that stores the batch size.
@@ -148,6 +173,7 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
+        # TODO: Remove TrainerFn.TUNING since we are now calling fit/validate/test/predict methods directly
         self.trainer.state.fn = TrainerFn.TUNING
         self.tuning = True
 
@@ -177,7 +203,6 @@ class Tuner:
         self.trainer.auto_scale_batch_size = False
         return batch_size_finder.optimal_batch_size
 
-    # TODO: update docs
     def lr_find(
         self,
         model: "pl.LightningModule",
@@ -204,6 +229,9 @@ class Tuner:
                 In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
+            
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
+                samples used for running tuner on validation/testing/prediction.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
@@ -262,11 +290,11 @@ def _check_tuner_configuration(
     train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
     val_dataloaders: Optional[EVAL_DATALOADERS] = None,
     dataloaders: Optional[EVAL_DATALOADERS] = None,
-    method: str = "fit",
+    method: Literal["fit", "validate", "test", "predict"] = "fit",
 ) -> None:
     supported_methods = ("fit", "validate", "test", "predict")
     if method not in supported_methods:
-        raise MisconfigurationException(f"method {method!r} is invalid. Should be one of {supported_methods}.")
+        raise ValueError(f"method {method!r} is invalid. Should be one of {supported_methods}.")
 
     if method == "fit":
         if dataloaders is not None:

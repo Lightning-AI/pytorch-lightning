@@ -6,6 +6,7 @@ import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
 
+from lightning_app import __version__
 from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
 from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
@@ -48,6 +49,18 @@ def test_commands(command):
     assert result.exit_code == 0
 
 
+def test_main_lightning_cli_no_arguments():
+    """Validate the Lightning CLI without args."""
+    res = os.popen("python -m lightning").read()
+    assert "login   " in res
+    assert "logout  " in res
+    assert "run     " in res
+    assert "list    " in res
+    assert "delete  " in res
+    assert "create  " in res
+    assert "show    " in res
+
+
 def test_main_lightning_cli_help():
     """Validate the Lightning CLI."""
     res = os.popen("python -m lightning --help").read()
@@ -57,6 +70,7 @@ def test_main_lightning_cli_help():
     assert "list    " in res
     assert "delete  " in res
     assert "create  " in res
+    assert "show    " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
@@ -67,18 +81,30 @@ def test_main_lightning_cli_help():
     assert "work" not in res
     assert "frontend" not in res
 
+    # inspect show group
+    res = os.popen("python -m lightning show --help").read()
+    assert "logs " in res
+    assert "cluster " in res
+
+    # inspect show cluster group
+    res = os.popen("python -m lightning show cluster --help").read()
+    assert "logs " in res
+
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
 @pytest.mark.parametrize(
-    "instance_types,expected_instance_types",
+    "extra_arguments,expected_instance_types,expected_cost_savings_mode",
     [
-        (["--instance-types", "t3.xlarge"], ["t3.xlarge"]),
-        (["--instance-types", "t3.xlarge,t3.2xlarge"], ["t3.xlarge", "t3.2xlarge"]),
-        ([], None),
+        (["--instance-types", "t3.xlarge"], ["t3.xlarge"], True),
+        (["--instance-types", "t3.xlarge,t3.2xlarge"], ["t3.xlarge", "t3.2xlarge"], True),
+        ([], [], True),
+        (["--enable-performance"], [], False),
     ],
 )
-def test_create_cluster(create_command: mock.MagicMock, instance_types, expected_instance_types):
+def test_create_cluster(
+    create_command: mock.MagicMock, extra_arguments, expected_instance_types, expected_cost_savings_mode
+):
     runner = CliRunner()
     runner.invoke(
         create_cluster,
@@ -91,7 +117,7 @@ def test_create_cluster(create_command: mock.MagicMock, instance_types, expected
             "--role-arn",
             "arn:aws:iam::1234567890:role/lai-byoc",
         ]
-        + instance_types,
+        + extra_arguments,
     )
 
     create_command.assert_called_once_with(
@@ -101,7 +127,7 @@ def test_create_cluster(create_command: mock.MagicMock, instance_types, expected
         external_id="dummy",
         instance_types=expected_instance_types,
         edit_before_creation=False,
-        cost_savings=False,
+        cost_savings=expected_cost_savings_mode,
         wait=False,
     )
 
@@ -156,3 +182,8 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
         unlink.assert_called_once_with()
     else:
         unlink.assert_not_called()
+
+
+def test_lightning_cli_version():
+    res = os.popen("python -m lightning --version").read()
+    assert __version__ in res

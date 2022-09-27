@@ -309,15 +309,24 @@ class LightningFlow:
         self.get_all_children_(children)
         return children
 
-    def set_state(self, provided_state: Dict) -> None:
+    def set_state(self, provided_state: Dict, recurse: bool = True) -> None:
         """Method to set the state to this LightningFlow, its children and
-        :class:`~lightning_app.core.work.LightningWork`."""
+        :class:`~lightning_app.core.work.LightningWork`.
+
+        Arguments:
+            provided_state: The state to be reloaded
+            recurse: Whether to apply the state down children.
+        """
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
             setattr(self, k, v)
         self._changes = provided_state["changes"]
         self._calls.update(provided_state["calls"])
+
+        if not recurse:
+            return
+
         for child, state in provided_state["flows"].items():
             getattr(self, child).set_state(state)
         for work, state in provided_state["works"].items():
@@ -634,3 +643,114 @@ class LightningFlow:
             lightning my_command_name --args name=my_own_name
         """
         raise NotImplementedError
+
+    def configure_api(self):
+        """Configure the API routes of the LightningFlow.
+
+        Returns a list of HttpMethod such as Post or Get.
+
+        .. code-block:: python
+
+            from lightning_app import LightningFlow
+            from lightning_app.api import Post
+
+            from pydantic import BaseModel
+
+
+            class HandlerModel(BaseModel):
+                name: str
+
+
+            class Flow(L.LightningFlow):
+                def __init__(self):
+                    super().__init__()
+                    self.names = []
+
+                def handler(self, config: HandlerModel) -> None:
+                    self.names.append(config.name)
+
+                def configure_api(self):
+                    return [Post("/v1/api/request", self.handler)]
+
+        Once the app is running, you can access the Swagger UI of the app
+        under the ``/docs`` route.
+        """
+        raise NotImplementedError
+
+    def state_dict(self):
+        """Returns the current flow state but not its children."""
+        return {
+            "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
+            "calls": self._calls.copy(),
+            "changes": {},
+            "flows": {},
+            "works": {},
+            "structures": {},
+        }
+
+    def load_state_dict(
+        self,
+        flow_state: Dict[str, Any],
+        children_states: Dict[str, Any],
+        strict: bool = True,
+    ) -> None:
+        """Reloads the state of this flow and its children.
+
+        .. code-block:: python
+
+            import lightning as L
+
+
+            class Work(L.LightningWork):
+                def __init__(self):
+                    super().__init__()
+                    self.counter = 0
+
+                def run(self):
+                    self.counter += 1
+
+
+            class Flow(L.LightningFlow):
+                def run(self):
+                    # dynamically create a work.
+                    if not getattr(self, "w", None):
+                        self.w = WorkReload()
+
+                    self.w.run()
+
+                def load_state_dict(self, flow_state, children_states, strict) -> None:
+                    # 1: Re-instantiate the dynamic work
+                    self.w = Work()
+
+                    # 2: Make any states modification / migration.
+                    ...
+
+                    # 3: Call the parent ``load_state_dict`` to
+                    # recursively reload the states.
+                    super().load_state_dict(
+                        flow_state,
+                        children_states,
+                        strict,
+                    )
+
+        Arguments:
+            flow_state: The state of the current flow.
+            children_states: The state of the dynamic children of this flow.
+            strict: Whether to raise an exception if a dynamic
+                children hasn't been re-created.
+        """
+        self.set_state(flow_state, recurse=False)
+        direct_children_states = {k: v for k, v in children_states.items() if "." not in k}
+        for child_name, state in direct_children_states.items():
+            child = getattr(self, child_name, None)
+            if isinstance(child, LightningFlow):
+                lower_children_states = {
+                    k.replace(child_name + ".", ""): v
+                    for k, v in children_states.items()
+                    if k.startswith(child_name) and k != child_name
+                }
+                child.load_state_dict(state, lower_children_states, strict=strict)
+            elif isinstance(child, LightningWork):
+                child.set_state(state)
+            elif strict:
+                raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")

@@ -22,11 +22,10 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomIterableDataset
 from pytorch_lightning.strategies.ipu import IPUStrategy
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomIterableDataset
+from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -95,9 +94,9 @@ def test_num_stepping_batches_infinite_training():
     assert trainer.estimated_stepping_batches == float("inf")
 
 
-def test_num_stepping_batches_with_max_steps():
+@pytest.mark.parametrize("max_steps", [2, 100])
+def test_num_stepping_batches_with_max_steps(max_steps):
     """Test stepping batches with `max_steps`."""
-    max_steps = 2
     trainer = Trainer(max_steps=max_steps)
     model = BoringModel()
     trainer.fit(model)
@@ -114,6 +113,7 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
     assert trainer.estimated_stepping_batches == expected_steps
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     ["trainer_kwargs", "estimated_steps"],
     [
@@ -126,9 +126,14 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
 )
 def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
     """Test stepping batches with GPU strategies."""
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 7)
-    trainer = Trainer(max_epochs=1, devices=7, accelerator="gpu", **trainer_kwargs)
+    num_devices_per_node = 7
+    mock_cuda_count(monkeypatch, num_devices_per_node)
+    trainer = Trainer(max_epochs=1, devices=num_devices_per_node, accelerator="gpu", **trainer_kwargs)
+
+    # set the `parallel_devices` to cpu to run the test on CPU and take `num_nodes`` into consideration
+    # because we can't run on multi-node in ci
+    trainer.strategy.parallel_devices = [torch.device("cpu", index=i) for i in range(num_devices_per_node)]
+
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)

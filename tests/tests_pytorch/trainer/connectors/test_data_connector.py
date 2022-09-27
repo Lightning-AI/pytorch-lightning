@@ -21,16 +21,16 @@ import pytest
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -445,7 +445,8 @@ def test_dataloader_source_direct_access():
 def test_dataloader_source_request_from_module():
     """Test requesting a dataloader from a module works."""
     module = BoringModel()
-    module.trainer = Trainer()
+    trainer = Trainer()
+    module.trainer = trainer
     module.foo = Mock(return_value=module.train_dataloader())
 
     source = _DataLoaderSource(module, "foo")
@@ -470,34 +471,34 @@ class TestDataHookSelector:
         model, _, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=None)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
     def test_with_datamodule_no_overridden(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
     def test_override_model_hook(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
     def test_override_datamodule_hook(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         setattr(dm, hook_name, self.overridden_func)
         with no_warning_call(match=f"have overridden `{hook_name}` in"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(dm, hook_name)
+        assert instance is dm
 
     def test_override_both_model_and_datamodule(self, hook_name):
         model, dm, trainer = self.reset_instances()
@@ -505,39 +506,40 @@ class TestDataHookSelector:
         setattr(model, hook_name, self.overridden_func)
         setattr(dm, hook_name, self.overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(dm, hook_name)
+        assert instance is dm
 
     def test_with_datamodule_override_model(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         setattr(model, hook_name, self.overridden_func)
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in `LightningModule`"):
-            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+            instance = trainer._data_connector._datahook_selector.get_instance(hook_name)
 
-        assert hook == getattr(model, hook_name)
+        assert instance is model
 
 
 def test_invalid_hook_passed_in_datahook_selector():
     dh_selector = _DataHookSelector(BoringModel(), None)
     with pytest.raises(ValueError, match="is not a shared hook"):
-        dh_selector.get_hook("setup")
+        dh_selector.get_instance("setup")
 
 
-def test_eval_distributed_sampler_warning(tmpdir):
+@pytest.mark.parametrize("devices, warn_context", [(1, no_warning_call), (2, pytest.warns)])
+def test_eval_distributed_sampler_warning(devices, warn_context):
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
 
     model = BoringModel()
-    trainer = Trainer(strategy="ddp", devices=2, accelerator="cpu", fast_dev_run=True)
+    trainer = Trainer(strategy="ddp", devices=devices, accelerator="cpu")
     trainer._data_connector.attach_data(model)
 
     trainer.state.fn = TrainerFn.VALIDATING
-    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+    with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_val_dataloader(model)
 
     trainer.state.fn = TrainerFn.TESTING
-    with pytest.warns(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
+    with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_test_dataloader(model)
 
 
@@ -568,3 +570,38 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
         match="Please increase the `limit_train_batches` argument. Try at least",
     ):
         trainer.reset_train_dataloader(model)
+
+
+@pytest.mark.parametrize(
+    "trainer_fn_name, dataloader_name",
+    [
+        ("fit", "train_dataloaders"),
+        ("validate", "dataloaders"),
+        ("test", "dataloaders"),
+        ("predict", "dataloaders"),
+    ],
+)
+def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
+    """Test that passing `Trainer.method(x_dataloader=None)` with no module-method implementations available raises
+    an error."""
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    trainer_fn = getattr(trainer, trainer_fn_name)
+
+    # Pretend that these methods are not implemented
+    model.train_dataloader = None
+    model.val_dataloader = None
+    model.test_dataloader = None
+    model.predict_dataloader = None
+
+    datamodule.train_dataloader = None
+    datamodule.val_dataloader = None
+    datamodule.test_dataloader = None
+    datamodule.predict_dataloader = None
+
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+        trainer_fn(model, **{dataloader_name: None}, datamodule=datamodule)
+
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+        trainer_fn(model, **{dataloader_name: None}, datamodule=None)
