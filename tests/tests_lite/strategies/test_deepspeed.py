@@ -90,6 +90,7 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     assert checkpoint_config["synchronize_checkpoint_boundary"]
 
 
+@RunIf(deepspeed=True)
 def test_deepspeed_config_zero_offload(deepspeed_zero_config):
     """Test the various ways optimizer-offloading can be configured."""
 
