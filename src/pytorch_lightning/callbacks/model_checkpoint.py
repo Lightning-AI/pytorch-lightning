@@ -611,7 +611,13 @@ class ModelCheckpoint(Checkpoint):
         # find all checkpoints in the folder
         self.__resolve_ckpt_dir(trainer, broadcast=False)
         if self._fs.exists(self.dirpath):
-            return [str(p) for p in self._fs.ls(self.dirpath) if self.CHECKPOINT_NAME_LAST in str(p)]
+            # fsspec returns a list of files joined with posixpath.separator, which breaks on windows
+            # That's why we are using `detail=True` and then casting the results to strings manually.
+            return [
+                str(p["name"])
+                for p in self._fs.ls(self.dirpath, detail=True)
+                if self.CHECKPOINT_NAME_LAST in str(p["name"])
+            ]
         return []
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
