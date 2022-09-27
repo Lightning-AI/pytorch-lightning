@@ -607,7 +607,9 @@ class ModelCheckpoint(Checkpoint):
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> List[str]:
         # find all checkpoints in the folder
         self.__resolve_ckpt_dir(trainer)
-        return [str(p) for p in self._fs.ls(self.dirpath) if self.CHECKPOINT_NAME_LAST in str(p)]
+        if self._fs.exists(self.dirpath):
+            return [str(p) for p in self._fs.ls(self.dirpath) if self.CHECKPOINT_NAME_LAST in str(p)]
+        return []
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
