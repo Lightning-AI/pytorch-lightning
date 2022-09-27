@@ -571,7 +571,7 @@ class ModelCheckpoint(Checkpoint):
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
+    def __resolve_ckpt_dir(self, trainer: "pl.Trainer", broadcast: bool = True) -> None:
         """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
         determine where to save checkpoints. The path for saving weights is set in this priority:
 
@@ -583,6 +583,8 @@ class ModelCheckpoint(Checkpoint):
         """
         if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint
+            if broadcast:
+                self.dirpath = trainer.strategy.broadcast(self.dirpath)
             return
 
         if len(trainer.loggers) > 0:
@@ -600,13 +602,14 @@ class ModelCheckpoint(Checkpoint):
             # if no loggers, use default_root_dir
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
-        ckpt_path = trainer.strategy.broadcast(ckpt_path)
+        if broadcast:
+            ckpt_path = trainer.strategy.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
 
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> List[str]:
         # find all checkpoints in the folder
-        self.__resolve_ckpt_dir(trainer)
+        self.__resolve_ckpt_dir(trainer, broadcast=False)
         if self._fs.exists(self.dirpath):
             return [str(p) for p in self._fs.ls(self.dirpath) if self.CHECKPOINT_NAME_LAST in str(p)]
         return []
