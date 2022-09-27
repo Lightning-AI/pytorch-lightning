@@ -611,12 +611,8 @@ class ModelCheckpoint(Checkpoint):
         # find all checkpoints in the folder
         self.__resolve_ckpt_dir(trainer, broadcast=False)
         if self._fs.exists(self.dirpath):
-            # fsspec returns a list of files joined with posixpath.separator, which breaks on windows
-            # That's why we are using `detail=True` and then casting the results to strings manually.
             return [
-                str(p["name"])
-                for p in self._fs.ls(self.dirpath, detail=True)
-                if self.CHECKPOINT_NAME_LAST in str(p["name"])
+                os.path.normpath(p) for p in self._fs.ls(self.dirpath, detail=False) if self.CHECKPOINT_NAME_LAST in p
             ]
         return []
 
