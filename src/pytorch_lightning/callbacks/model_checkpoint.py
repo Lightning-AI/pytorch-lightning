@@ -25,7 +25,7 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, Set
 from weakref import proxy
 
 import numpy as np
@@ -604,12 +604,12 @@ class ModelCheckpoint(Checkpoint):
 
         return ckpt_path
 
-    def _find_last_checkpoints(self, trainer: "pl.Trainer") -> List[str]:
+    def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder
         ckpt_path = self.__resolve_ckpt_dir(trainer)
         if self._fs.exists(ckpt_path):
-            return [os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if self.CHECKPOINT_NAME_LAST in p]
-        return []
+            return {os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if self.CHECKPOINT_NAME_LAST in p}
+        return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:

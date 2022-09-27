@@ -27,6 +27,7 @@ from torchmetrics import Metric
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
@@ -161,10 +162,10 @@ class CheckpointConnector:
             ckpt_path = getattr(self.trainer.checkpoint_callback, "best_model_path", None)
 
         if ckpt_path == "last":
-            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints]
+            candidates = {getattr(ft, "ckpt_path", None) for ft in ft_checkpoints}
             for callback in self.trainer.checkpoint_callbacks:
-                if hasattr(callback, "_find_last_checkpoints"):
-                    candidates += callback._find_last_checkpoints(self.trainer)
+                if isinstance(callback, ModelCheckpoint):
+                    candidates |= callback._find_last_checkpoints(self.trainer)
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
             if not candidates_ts:
