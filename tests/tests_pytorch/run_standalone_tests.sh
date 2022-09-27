@@ -12,18 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -ex
+set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_<package> DIRECTORY
 
 # Batch size for testing: Determines how many standalone test invocations run in parallel
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
-test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-1}"
+test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
 source="${PL_STANDALONE_TESTS_SOURCE}"
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults="-m pytest --no-header"
+defaults="-m coverage run --source $source --append -m pytest --no-header"
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
 grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
