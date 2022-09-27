@@ -179,10 +179,11 @@ class CloudRuntime(Runtime):
             frontend_specs.append(frontend_spec)
 
         # TODO: This is a hack until the Controlplane API are cleanup.
+        network_configs = []
         for work in self.app.works:
             if work.cloud_compute.is_default():
-                frontend_spec = V1Flowserver(name=work.name)
-                frontend_specs.append(frontend_spec)
+                random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+                network_configs.append(V1NetworkConfig(name=random_name, port=work.port))
 
         app_spec = V1LightningappInstanceSpec(
             app_entrypoint_file=str(app_entrypoint_file),
@@ -190,6 +191,7 @@ class CloudRuntime(Runtime):
             flow_servers=frontend_specs,
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
+            network_config=network_configs,
         )
         # if requirements file at the root of the repository is present,
         # we pass just the file name to the backend, so backend can find it in the relative path
@@ -220,6 +222,7 @@ class CloudRuntime(Runtime):
                 app_entrypoint_file=app_spec.app_entrypoint_file,
                 enable_app_server=app_spec.enable_app_server,
                 flow_servers=app_spec.flow_servers,
+                network_config=app_spec.network_config,
                 image_spec=app_spec.image_spec,
                 cluster_id=cluster_id,
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
