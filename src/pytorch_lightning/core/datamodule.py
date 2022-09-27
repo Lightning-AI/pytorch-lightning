@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PATH
-from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
+from pytorch_lightning.core.hooks import DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import _load_from_checkpoint
 from pytorch_lightning.utilities.argparse import (
