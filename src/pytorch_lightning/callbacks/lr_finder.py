@@ -35,7 +35,7 @@ class LearningRateFinder(Callback):
 
         max_lr: Maximum learning rate to investigate
 
-        num_training: Number of learning rates to test
+        num_training_steps: Number of learning rates to test
 
         mode: Search strategy to update learning rate after each batch:
 
@@ -60,7 +60,7 @@ class LearningRateFinder(Callback):
         self,
         min_lr: float = 1e-8,
         max_lr: float = 1,
-        num_training_batches: int = 100,
+        num_training_steps: int = 100,
         mode: str = "exponential",
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
@@ -71,7 +71,7 @@ class LearningRateFinder(Callback):
 
         self._min_lr = min_lr
         self._max_lr = max_lr
-        self._num_training = num_training
+        self._num_training_steps = num_training_steps
         self._mode = mode
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
@@ -86,7 +86,7 @@ class LearningRateFinder(Callback):
                 pl_module,
                 min_lr=self._min_lr,
                 max_lr=self._max_lr,
-                num_training=self._num_training,
+                num_training=self._num_training_steps,
                 mode=self._mode,
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,

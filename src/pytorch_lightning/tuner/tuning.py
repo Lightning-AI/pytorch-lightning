@@ -21,7 +21,7 @@ from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
-from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -265,7 +265,7 @@ class Tuner:
         lr_finder_callback: Callback = LearningRateFinder(
             min_lr=min_lr,
             max_lr=max_lr,
-            num_training=num_training,
+            num_training_steps=num_training,
             mode=mode,
             early_stop_threshold=early_stop_threshold,
             update_attr=update_attr,
