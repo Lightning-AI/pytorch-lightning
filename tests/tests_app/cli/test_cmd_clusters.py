@@ -4,16 +4,19 @@ from unittest.mock import MagicMock
 import click
 import pytest
 from lightning_cloud.openapi import (
+    Externalv1Cluster,
     V1AWSClusterDriverSpec,
     V1ClusterDriver,
     V1ClusterPerformanceProfile,
     V1ClusterSpec,
+    V1ClusterState,
+    V1ClusterStatus,
     V1ClusterType,
     V1CreateClusterRequest,
     V1InstanceSpec,
     V1KubernetesClusterDriver,
+    V1ListClustersResponse,
 )
-from lightning_cloud.openapi.models import Externalv1Cluster, V1ClusterState, V1ClusterStatus, V1ListClustersResponse
 
 from lightning_app.cli import cmd_clusters
 from lightning_app.cli.cmd_clusters import AWSClusterManager

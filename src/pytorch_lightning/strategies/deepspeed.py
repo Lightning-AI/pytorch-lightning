@@ -30,12 +30,8 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    get_default_process_group_backend_for_device,
-    log,
-)
+from lightning_lite.plugins import ClusterEnvironment
+from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
@@ -45,7 +41,6 @@ from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -53,6 +48,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
+log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
@@ -89,16 +85,8 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
+        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
         return super().forward(*inputs, **kwargs)
-
-    def _batch_to(self, batch: Tensor) -> Tensor:
-        if torch.is_floating_point(batch):
-            if self.precision == PrecisionType.HALF:
-                return batch.half()
-            elif self.precision == PrecisionType.BFLOAT:
-                return batch.bfloat16()
-        return batch
 
 
 class DeepSpeedStrategy(DDPStrategy):
@@ -107,7 +95,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -394,13 +382,6 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         self._process_group_backend = self._get_process_group_backend()
         deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
-
-    def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None

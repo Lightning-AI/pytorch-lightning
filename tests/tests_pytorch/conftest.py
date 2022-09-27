@@ -22,6 +22,8 @@ from typing import List
 import pytest
 import torch.distributed
 
+import lightning_lite
+import pytorch_lightning
 from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.imports import _IS_WINDOWS
@@ -116,6 +118,47 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
+
+
+def mock_cuda_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(pytorch_lightning.tuner.auto_gpu_select, "num_cuda_devices", lambda: n)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_0(monkeypatch):
+    mock_cuda_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_1(monkeypatch):
+    mock_cuda_count(monkeypatch, 1)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_2(monkeypatch):
+    mock_cuda_count(monkeypatch, 2)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_4(monkeypatch):
+    mock_cuda_count(monkeypatch, 4)
+
+
+def mock_mps_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
+    monkeypatch.setattr(lightning_lite.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_0(monkeypatch):
+    mock_mps_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_1(monkeypatch):
+    mock_mps_count(monkeypatch, 1)
 
 
 @pytest.fixture
@@ -216,6 +259,13 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
             bold=True,
             purple=True,  # oh yeah, branded pytest messages
         )
+
+    # error out on our deprecation warnings - ensures the code and tests are kept up-to-date
+    deprecation_error = pytest.mark.filterwarnings(
+        "error::lightning_lite.utilities.rank_zero.LightningDeprecationWarning",
+    )
+    for item in items:
+        item.add_marker(deprecation_error)
 
 
 def pytest_addoption(parser):
