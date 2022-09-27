@@ -255,7 +255,9 @@ class ModelCheckpoint(Checkpoint):
         )
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
-        self.__resolve_ckpt_dir(trainer)
+        dirpath = self.__resolve_ckpt_dir(trainer)
+        dirpath = trainer.strategy.broadcast(dirpath)
+        self.dirpath = dirpath
         assert self.dirpath is not None
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
@@ -571,7 +573,7 @@ class ModelCheckpoint(Checkpoint):
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer: "pl.Trainer", broadcast: bool = True) -> None:
+    def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> str:
         """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
         determine where to save checkpoints. The path for saving weights is set in this priority:
 
@@ -583,9 +585,7 @@ class ModelCheckpoint(Checkpoint):
         """
         if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint
-            if broadcast:
-                self.dirpath = trainer.strategy.broadcast(self.dirpath)
-            return
+            return self.dirpath
 
         if len(trainer.loggers) > 0:
             if trainer.loggers[0].save_dir is not None:
@@ -602,18 +602,13 @@ class ModelCheckpoint(Checkpoint):
             # if no loggers, use default_root_dir
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
-        if broadcast:
-            ckpt_path = trainer.strategy.broadcast(ckpt_path)
-
-        self.dirpath = ckpt_path
+        return ckpt_path
 
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> List[str]:
         # find all checkpoints in the folder
-        self.__resolve_ckpt_dir(trainer, broadcast=False)
-        if self._fs.exists(self.dirpath):
-            return [
-                os.path.normpath(p) for p in self._fs.ls(self.dirpath, detail=False) if self.CHECKPOINT_NAME_LAST in p
-            ]
+        ckpt_path = self.__resolve_ckpt_dir(trainer)
+        if self._fs.exists(ckpt_path):
+            return [os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if self.CHECKPOINT_NAME_LAST in p]
         return []
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
