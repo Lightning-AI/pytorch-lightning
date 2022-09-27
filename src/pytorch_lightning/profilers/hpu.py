@@ -138,7 +138,7 @@ class HPUProfiler(PyTorchProfiler):
             # otherwise, this will raise a `segmentation fault`.
             if self._should_override_schedule():
                 warning_cache.warn(
-                    "The PyTorch Profiler default schedule will be overridden as there is not enough "
+                    "The HPUProfiler default schedule will be overridden as there is not enough "
                     "steps to properly record traces."
                 )
                 self._schedule = None
