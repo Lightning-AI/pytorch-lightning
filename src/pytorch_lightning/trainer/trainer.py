@@ -41,6 +41,7 @@ from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
@@ -440,12 +441,6 @@ class Trainer:
 
         # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
         self._ckpt_path: Optional[str] = None
-
-        # .validate(), predict() and .test() set these when they load a checkpoint. They will be removed in favor of
-        #  the unified read-only `Trainer.ckpt_path` attribute in v1.8
-        self._validated_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
-        self._tested_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
-        self._predicted_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
 
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
@@ -895,9 +890,11 @@ class Trainer:
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
     ) -> _TunerResult:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -911,43 +908,33 @@ class Trainer:
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
+                samples used for running tuner on validation/testing/prediction.
+
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
             scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
 
             lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
+
+            method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
         """
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.tune()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
 
         Trainer._log_api_event("tune")
 
-        self.state.fn = TrainerFn.TUNING
-        self.state.status = TrainerStatus.RUNNING
-        self.tuning = True
-
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloaders, LightningDataModule):
-            datamodule = train_dataloaders
-            train_dataloaders = None
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
-            raise MisconfigurationException(
-                "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune(datamodule=...)`"
-            )
-
-        # links data to the trainer
-        self._data_connector.attach_data(
-            model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
-        )
-
         with isolate_rng():
             result = self.tuner._tune(
-                model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
+                model,
+                train_dataloaders,
+                val_dataloaders,
+                dataloaders,
+                datamodule,
+                scale_batch_size_kwargs=scale_batch_size_kwargs,
+                lr_find_kwargs=lr_find_kwargs,
+                method=method,
             )
-
-        assert self.state.stopped
-        self.tuning = False
 
         return result
 
@@ -1898,66 +1885,6 @@ class Trainer:
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`, or
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. ``None`` otherwise."""
         return self._ckpt_path
-
-    @property
-    def validated_ckpt_path(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
-            " `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        return self._validated_ckpt_path
-
-    @validated_ckpt_path.setter
-    def validated_ckpt_path(self, ckpt_path: Optional[str]) -> None:
-        rank_zero_deprecation(
-            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
-            " read-only `Trainer.ckpt_path`.",
-            stacklevel=5,
-        )
-        self._validated_ckpt_path = ckpt_path
-
-    @property
-    def tested_ckpt_path(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
-            " `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        return self._tested_ckpt_path
-
-    @tested_ckpt_path.setter
-    def tested_ckpt_path(self, ckpt_path: Optional[str]) -> None:
-        rank_zero_deprecation(
-            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
-            " read-only `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        self._tested_ckpt_path = ckpt_path
-
-    @property
-    def predicted_ckpt_path(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
-            " `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        return self._predicted_ckpt_path
-
-    @predicted_ckpt_path.setter
-    def predicted_ckpt_path(self, ckpt_path: Optional[str]) -> None:
-        rank_zero_deprecation(
-            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
-            " read-only `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        self._predicted_ckpt_path = ckpt_path
 
     def save_checkpoint(
         self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None

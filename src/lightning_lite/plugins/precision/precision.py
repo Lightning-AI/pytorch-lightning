@@ -31,6 +31,13 @@ class Precision:
 
     precision: Union[str, int] = 32
 
+    def convert_module(self, module: Module) -> Module:
+        """Convert the module parameters to the precision type this plugin handles.
+
+        This is optional and depends on the precision limitations during optimization.
+        """
+        return module
+
     @contextlib.contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""

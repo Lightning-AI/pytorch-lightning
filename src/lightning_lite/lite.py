@@ -153,6 +153,8 @@ class LightningLite(ABC):
         self._validate_setup(model, optimizers)
         original_model = model
 
+        model = self._precision_plugin.convert_module(model)
+
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 

@@ -52,16 +52,6 @@ def test_v1_8_0_on_init_start_end(tmpdir):
         trainer.validate(model)
 
 
-@pytest.mark.parametrize("fn_prefix", ["validated", "tested", "predicted"])
-def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
-    test_attr = f"{fn_prefix}_ckpt_path"
-    trainer = Trainer()
-    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
-        _ = getattr(trainer, test_attr)
-    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
-        setattr(trainer, test_attr, "v")
-
-
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
 
