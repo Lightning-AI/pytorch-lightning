@@ -50,7 +50,7 @@ class Flow(LightningFlow):
         self.work_a = Work()
         self.work_b = Work()
         self.work_c = Work(cloud_compute=self.cloud_compute)
-        self.flow = NestedFlow()
+        # self.flow = NestedFlow()
 
     def run(self):
         for work in self.works():
@@ -60,9 +60,10 @@ class Flow(LightningFlow):
             self._exit("Application End !")
 
     def configure_layout(self):
-        return [{"name": "flow", "content": self.flow}] + [
-            {"name": "w_" + str(i), "content": w} for i, w in enumerate(self.works())
-        ]
+        # return [{"name": "flow", "content": self.flow}] + [
+        #     {"name": "w_" + str(i), "content": w} for i, w in enumerate(self.works())
+        # ]
+        return [{"name": "w_" + str(i), "content": w} for i, w in enumerate(self.works())]
 
 
 app = LightningApp(Flow(), debug=True)
