@@ -295,12 +295,13 @@ def test_deepspeed_specific_gpu_device_index(tmpdir):
     lite.run()
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
 def test_deepspeed_with_bfloat16_precision(tmpdir):
     """Test that the DeepSpeed strategy works with bfloat16 precision."""
 
     class Lite(BoringLite):
         def step(self, model, batch):
+            assert self._strategy.config["bf16"]["enabled"]
             assert batch.dtype == torch.bfloat16
             assert model.layer.weight.dtype == torch.bfloat16
             return super().step(model, batch)
@@ -309,5 +310,4 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert isinstance(lite._strategy.precision_plugin, DeepSpeedPrecision)
     assert lite._strategy.precision_plugin.precision == "bf16"
     assert lite._strategy.config["zero_optimization"]["stage"] == 3
-    assert lite._strategy.config["bf16"]["enabled"]
     lite.run()
