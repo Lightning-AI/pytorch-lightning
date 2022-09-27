@@ -50,7 +50,8 @@ class HPUProfiler(PyTorchProfiler):
         record_module_names: bool = True,
         **profiler_kwargs: Any,
     ) -> None:
-        """This profiler subclasses the PyTorch Profiler and lets you inspect the cost of
+        """This profiler subclasses the PyTorch Profiler and lets you inspect the cost of.
+
         different operators inside your model - both on the CPU and HPU devices.
 
         Args:
