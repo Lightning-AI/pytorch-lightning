@@ -420,6 +420,7 @@ def run_app_in_cloud(
 
             context.close()
             browser.close()
+            Popen("lightning disconnect", shell=True).wait()
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
