@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.argparse import (
 from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
-class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
+class LightningDataModule(DataHooks, HyperparametersMixin):
     """A DataModule standardizes the training, val, test splits, data preparation and transforms. The main
     advantage is consistent data splits, data preparation and transforms across models.
 
