@@ -12,7 +12,7 @@ test:
 	# use this to run tests
 	rm -rf _ckpt_*
 	rm -rf ./lightning_logs
-	python -m coverage run --source src/lightning_utilities -m pytest src/lightning_utilities tests -v --flake8
+	python -m coverage run --source src/lightning_utilities -m pytest src/lightning_utilities tests -v
 	python -m coverage report
 
 	# specific file
