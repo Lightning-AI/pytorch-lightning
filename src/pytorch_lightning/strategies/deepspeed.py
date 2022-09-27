@@ -662,7 +662,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         batch_size = None
         try:
-            batch_size = _get_dataloader_batch_size(train_dl_source.dataloader())
+            batch_size = _get_dataloader_batch_size(train_dl_source.dataloader())  # type: ignore[arg-type]
         except Exception:
             # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
             # to have been called before
