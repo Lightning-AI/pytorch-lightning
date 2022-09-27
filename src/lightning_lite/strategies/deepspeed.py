@@ -26,8 +26,9 @@ from lightning_utilities.core.rank_zero import rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
-from lightning_lite.accelerators import Accelerator
+from lightning_lite.accelerators import Accelerator, CUDAAccelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.plugins.precision.utils import _fp_to_half
@@ -330,8 +331,22 @@ class DeepSpeedStrategy(DDPStrategy):
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
 
+    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
+        assert self.config is not None
+        if "train_micro_batch_size_per_gpu" not in self.config:
+            # train_micro_batch_size_per_gpu is used for throughput logging purposes
+            # by default we try to use the batch size of the loader
+            self.config["train_micro_batch_size_per_gpu"] = self._auto_select_batch_size(dataloader)
+        return dataloader
+
     @contextlib.contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
+        # Current limitation in Lite: The config needs to be fully determined at the time of calling the
+        # context manager, which happens at the start of `Lite.run()`. Later modificatoins through e.g. `Lite.setup()`
+        # won't have an effect here.
+        assert self.config is not None
+        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
+
         if self.zero_stage_3:
             assert self._config_initialized
 
@@ -429,6 +444,11 @@ class DeepSpeedStrategy(DDPStrategy):
         return deepspeed_engine, deepspeed_optimizer
 
     def _setup_distributed(self) -> None:
+        if not isinstance(self.accelerator, CUDAAccelerator):
+            raise RuntimeError(
+                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
+                " is used."
+            )
         reset_seed()
         self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
@@ -559,13 +579,14 @@ class DeepSpeedStrategy(DDPStrategy):
                     "max_in_cpu": max_in_cpu,
                     "pin_memory": pin_memory,
                 }
-            cfg = {
-                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
-                "zero_optimization": zero_config,
-                **cfg,
-            }
+            cfg.update(
+                {
+                    "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                    "zero_optimization": zero_config,
+                }
+            )
         if logging_batch_size_per_gpu != "auto":
-            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
+            cfg["train_micro_batch_size_per_gpu"] = logging_batch_size_per_gpu
         return cfg
 
     def _restore_zero_state(self, module: Module, ckpt: Mapping[str, Any]) -> None:
@@ -625,3 +646,24 @@ class DeepSpeedStrategy(DDPStrategy):
                 config = json.load(f)
         assert isinstance(config, dict) or config is None
         return config
+
+    def _auto_select_batch_size(self, dataloader: DataLoader) -> int:
+        batch_size = _get_dataloader_batch_size(dataloader)
+        print("auto batch size", batch_size)
+        if batch_size is not None:
+            return batch_size
+
+        if self.global_rank == 0:
+            print("warning")
+            deepspeed.utils.logging.logger.warning(
+                "Tried to infer the batch size for internal deepspeed logging from the dataloader."
+                " To ensure DeepSpeed logging remains correct, please manually pass batch size to the strategy: "
+                " `LightningLite(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=...))`"
+            )
+        return 1
+
+
+def _get_dataloader_batch_size(dataloader: DataLoader) -> Optional[int]:
+    if hasattr(dataloader, "batch_sampler") and hasattr(dataloader.batch_sampler, "batch_size"):
+        return dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
+    return None

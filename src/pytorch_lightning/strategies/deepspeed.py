@@ -32,6 +32,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.plugins.precision.utils import _fp_to_half
+from lightning_lite.strategies.deepspeed import _get_dataloader_batch_size
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
@@ -654,23 +655,30 @@ class DeepSpeedStrategy(DDPStrategy):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
-        batch_size = 1
+
         train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
-        if train_dl_source.is_defined():
-            try:
-                train_dataloader = train_dl_source.dataloader()
-                if hasattr(train_dataloader, "batch_sampler"):
-                    batch_size = train_dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
+        if not train_dl_source.is_defined():
+            return 1
+
+        batch_size = None
+        try:
+            batch_size = _get_dataloader_batch_size(train_dl_source.dataloader())
+        except Exception:
             # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
             # to have been called before
-            except Exception:
-                if self.global_rank == 0:
-                    deepspeed.utils.logging.logger.warning(
-                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
-                        "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
-                    )
-        return batch_size
+            pass
+
+        if batch_size is not None:
+            return batch_size
+
+        if self.global_rank == 0:
+            deepspeed.utils.logging.logger.warning(
+                "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
+            )
+
+        return 1
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)

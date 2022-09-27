@@ -240,6 +240,7 @@ class Strategy(ABC):
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
+        # TODO(lite): Integrate this into Lightning Lite
         return module.state_dict()
 
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
@@ -254,6 +255,7 @@ class Strategy(ABC):
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:
+        # TODO(lite): Integrate this into Lightning Lite
         module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(
