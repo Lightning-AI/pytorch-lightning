@@ -92,8 +92,7 @@ class LightningModule(
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
-    # workaround for https://github.com/pytorch/pytorch/issues/67146
-    _running_torchscript = False
+    _jit_is_scripting = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -175,7 +174,7 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        if not self._running_torchscript and self._trainer is None:
+        if not self._jit_is_scripting and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
         return self._trainer  # type: ignore[return-value]
 
@@ -1877,37 +1876,33 @@ class LightningModule(
         """
         mode = self.training
 
-        LightningModule._running_torchscript = True
-        try:
-            if method == "script":
+        if method == "script":
+            with _jit_is_scripting():
                 torchscript_module = torch.jit.script(self.eval(), **kwargs)
-            elif method == "trace":
-                # if no example inputs are provided, try to see if model has example_input_array set
-                if example_inputs is None:
-                    if self.example_input_array is None:
-                        raise ValueError(
-                            "Choosing method=`trace` requires either `example_inputs`"
-                            " or `model.example_input_array` to be defined."
-                        )
-                    example_inputs = self.example_input_array
+        elif method == "trace":
+            # if no example inputs are provided, try to see if model has example_input_array set
+            if example_inputs is None:
+                if self.example_input_array is None:
+                    raise ValueError(
+                        "Choosing method=`trace` requires either `example_inputs`"
+                        " or `model.example_input_array` to be defined."
+                    )
+                example_inputs = self.example_input_array
 
-                # automatically send example inputs to the right device and use trace
-                example_inputs = self._on_before_batch_transfer(example_inputs)
-                example_inputs = self._apply_batch_transfer_handler(example_inputs)
+            # automatically send example inputs to the right device and use trace
+            example_inputs = self._on_before_batch_transfer(example_inputs)
+            example_inputs = self._apply_batch_transfer_handler(example_inputs)
+            with _jit_is_scripting():
                 torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
-            else:
-                raise ValueError(
-                    f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}"
-                )
+        else:
+            raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
 
-            self.train(mode)
+        self.train(mode)
 
-            if file_path is not None:
-                fs = get_filesystem(file_path)
-                with fs.open(file_path, "wb") as f:
-                    torch.jit.save(torchscript_module, f)
-        finally:
-            LightningModule._running_torchscript = False
+        if file_path is not None:
+            fs = get_filesystem(file_path)
+            with fs.open(file_path, "wb") as f:
+                torch.jit.save(torchscript_module, f)
 
         return torchscript_module
 
@@ -1950,3 +1945,13 @@ class LightningModule(
             self.__class__._register_load_state_dict_pre_hook(
                 weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
             )
+
+
+@contextmanager
+def _jit_is_scripting() -> Generator:
+    """Workaround for https://github.com/pytorch/pytorch/issues/67146."""
+    LightningModule._jit_is_scripting = True
+    try:
+        yield
+    finally:
+        LightningModule._jit_is_scripting = False

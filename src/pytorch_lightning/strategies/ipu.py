@@ -299,11 +299,8 @@ class IPUStrategy(ParallelStrategy):
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         args = self._prepare_input(args)
         poptorch_model = self.poptorch_models[stage]
-        pl.LightningModule._running_torchscript = True
-        try:
+        with pl.core.module._jit_is_scripting():
             return poptorch_model(*args, **kwargs)
-        finally:
-            pl.LightningModule._running_torchscript = False
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():

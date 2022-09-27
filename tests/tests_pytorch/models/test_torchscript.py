@@ -199,7 +199,7 @@ def test_torchscript_script_recursively():
             return self.model(inputs)
 
     lm = Parent()
-    assert not lm._running_torchscript
+    assert not lm._jit_is_scripting
     script = lm.to_torchscript(method="script")
-    assert not lm._running_torchscript
+    assert not lm._jit_is_scripting
     assert isinstance(script, torch.jit.RecursiveScriptModule)
