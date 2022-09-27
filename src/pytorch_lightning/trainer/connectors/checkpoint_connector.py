@@ -25,6 +25,7 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
@@ -75,8 +76,7 @@ class CheckpointConnector:
         3. from `checkpoint_path` file if provided
         4. don't restore
         """
-        self.resume_checkpoint_path = self._hpc_resume_path or checkpoint_path
-        checkpoint_path = self.resume_checkpoint_path
+        self.resume_checkpoint_path = checkpoint_path
         if not checkpoint_path:
             log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
@@ -104,6 +104,9 @@ class CheckpointConnector:
 
         ft_checkpoints = [cb for cb in self.trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
         fn = state_fn.value
+
+        if ckpt_path is None and SLURMEnvironment.detect() and self._hpc_resume_path is not None:
+            ckpt_path = "hpc"
 
         if ckpt_path is None and ft_checkpoints and self.trainer.state.fn == TrainerFn.FITTING:
             ckpt_path = "last"
@@ -174,6 +177,9 @@ class CheckpointConnector:
                 )
                 return None
             ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+
+        if ckpt_path == "hpc":
+            ckpt_path = self._hpc_resume_path
 
         if not ckpt_path:
             raise MisconfigurationException(
