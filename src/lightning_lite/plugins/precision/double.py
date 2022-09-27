@@ -15,14 +15,18 @@ from contextlib import contextmanager
 from typing import Generator
 
 import torch
+from torch.nn import Module
 
-from lightning_lite.plugins.precision import Precision
+from lightning_lite.plugins.precision.precision import Precision
 
 
 class DoublePrecision(Precision):
     """Plugin for training with double (``torch.float64``) precision."""
 
     precision: int = 64
+
+    def convert_module(self, module: Module) -> Module:
+        return module.double()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
