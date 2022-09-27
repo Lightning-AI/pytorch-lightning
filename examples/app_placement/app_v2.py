@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run
 
 from lightning import CloudCompute, LightningApp, LightningFlow, LightningWork
-from lightning_app.frontend import StreamlitFrontend
 
 
 class Work(LightningWork):
@@ -32,17 +31,6 @@ class Work(LightningWork):
         run(fastapi_service, host=self.host, port=self.port)
 
 
-class NestedFlow(LightningFlow):
-    def configure_layout(self):
-        return StreamlitFrontend(render_fn=render_fn)
-
-
-def render_fn(state):
-    import streamlit as st
-
-    st.write("Hello World !")
-
-
 class Flow(LightningFlow):
     def __init__(self):
         super().__init__()
@@ -50,7 +38,6 @@ class Flow(LightningFlow):
         self.work_a = Work()
         self.work_b = Work()
         self.work_c = Work(cloud_compute=self.cloud_compute)
-        # self.flow = NestedFlow()
 
     def run(self):
         for work in self.works():
@@ -60,9 +47,6 @@ class Flow(LightningFlow):
             self._exit("Application End !")
 
     def configure_layout(self):
-        # return [{"name": "flow", "content": self.flow}] + [
-        #     {"name": "w_" + str(i), "content": w} for i, w in enumerate(self.works())
-        # ]
         return [{"name": "w_" + str(i), "content": w} for i, w in enumerate(self.works())]
 
 

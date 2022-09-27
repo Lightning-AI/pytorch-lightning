@@ -10,7 +10,8 @@ from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden, Logger
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
@@ -31,6 +32,8 @@ from lightning_app.utilities.packaging.cloud_compute import (
     CloudCompute,
 )
 from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
+
+logger = Logger(__name__)
 
 
 class LightningWork:
@@ -594,6 +597,16 @@ class LightningWork:
     def _register_cloud_compute(self):
         internal_id = self.cloud_compute.id
         assert internal_id
+
+        app = _LightningAppRef().get_current()
+        if app and self.cloud_compute.is_default():
+            msg = f"The work {self.name} is dynamically created and assigned to default cloud compute. "
+            msg += "HINT: Provide a custom CloudCompute as follows Work(cloud_compute=CloudCompute(name=...))."
+            if is_running_in_cloud():
+                raise RuntimeError(msg)
+            else:
+                logger.warn(msg)
+
         if internal_id not in _CLOUD_COMPUTE_STORE:
             _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
         _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)
