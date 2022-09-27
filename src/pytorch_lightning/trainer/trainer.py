@@ -441,12 +441,6 @@ class Trainer:
         # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
         self._ckpt_path: Optional[str] = None
 
-        # .validate(), predict() and .test() set these when they load a checkpoint. They will be removed in favor of
-        #  the unified read-only `Trainer.ckpt_path` attribute in v1.8
-        self._validated_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
-        self._tested_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
-        self._predicted_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
-
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
@@ -1898,66 +1892,6 @@ class Trainer:
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`, or
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. ``None`` otherwise."""
         return self._ckpt_path
-
-    @property
-    def validated_ckpt_path(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
-            " `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        return self._validated_ckpt_path
-
-    @validated_ckpt_path.setter
-    def validated_ckpt_path(self, ckpt_path: Optional[str]) -> None:
-        rank_zero_deprecation(
-            "The `Trainer.validated_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
-            " read-only `Trainer.ckpt_path`.",
-            stacklevel=5,
-        )
-        self._validated_ckpt_path = ckpt_path
-
-    @property
-    def tested_ckpt_path(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
-            " `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        return self._tested_ckpt_path
-
-    @tested_ckpt_path.setter
-    def tested_ckpt_path(self, ckpt_path: Optional[str]) -> None:
-        rank_zero_deprecation(
-            "The `Trainer.tested_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
-            " read-only `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        self._tested_ckpt_path = ckpt_path
-
-    @property
-    def predicted_ckpt_path(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via"
-            " `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        return self._predicted_ckpt_path
-
-    @predicted_ckpt_path.setter
-    def predicted_ckpt_path(self, ckpt_path: Optional[str]) -> None:
-        rank_zero_deprecation(
-            "The `Trainer.predicted_ckpt_path` attribute was deprecated in v1.6 and will be removed in v1.8. The"
-            " path of a checkpoint loaded via `Trainer.{fit,validate,test,predict}` should be accessed via the"
-            " read-only `Trainer.ckpt_path` instead.",
-            stacklevel=5,
-        )
-        self._predicted_ckpt_path = ckpt_path
 
     def save_checkpoint(
         self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
