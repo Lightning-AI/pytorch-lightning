@@ -21,7 +21,7 @@ from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from re import escape
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
 import pytest
@@ -724,7 +724,9 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
         final_path = "foobar"
 
     with ctxt:
-        ckpt_path = trainer._Trainer__set_ckpt_path(ckpt_path, model_provided=fn == "fit", model_connected=True)
+        ckpt_path = trainer._checkpoint_connector._set_ckpt_path(
+            fn, ckpt_path, model_provided=fn == "fit", model_connected=True
+        )
     assert ckpt_path == final_path
 
 
@@ -901,7 +903,9 @@ def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     trainer.state.fn = TrainerFn.TESTING
 
     with pytest.warns(UserWarning, match="best checkpoint path from first checkpoint callback"):
-        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
+        trainer._checkpoint_connector._set_ckpt_path(
+            trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
+        )
 
 
 def test_disabled_training(tmpdir):
@@ -1678,7 +1682,9 @@ def test_exception_when_testing_or_validating_with_fast_dev_run():
     trainer = Trainer(fast_dev_run=True)
     trainer.state.fn = TrainerFn.TESTING
     with pytest.raises(MisconfigurationException, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
-        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
+        trainer._checkpoint_connector._set_ckpt_path(
+            trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
+        )
 
 
 class TrainerStagesModel(BoringModel):
@@ -2191,3 +2197,20 @@ def test_trainer_save_checkpoint_no_model_attached():
     assert trainer.model is None
     with pytest.raises(AttributeError, match="Saving a checkpoint is only possible if a model is attached"):
         trainer.save_checkpoint("checkpoint.ckpt")
+
+
+def test_trainer_calls_logger_finalize_on_exception(tmpdir):
+    class CustomModel(BoringModel):
+        def on_fit_start(self):
+            super().on_fit_start()
+            raise Exception("logger-finalize")
+
+    model = CustomModel()
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.finalize = Mock()
+    trainer = Trainer(logger=logger)
+
+    with pytest.raises(Exception, match="logger-finalize"):
+        trainer.fit(model)
+
+    logger.finalize.assert_called_once_with("failed")

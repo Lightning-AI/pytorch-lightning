@@ -75,7 +75,6 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from pytorch_lightning.strategies.launchers.multiprocessing import _is_forking_disabled
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
@@ -165,7 +164,7 @@ class AcceleratorConnector:
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
         self._accelerator_types = AcceleratorRegistry.available_accelerators()
-        self._precision_types = ("16", "32", "64", "bf16", "mixed")
+        self._precision_types = ("16", "32", "64", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
@@ -630,10 +629,6 @@ class AcceleratorConnector:
             raise ValueError(
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
                 f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
-            )
-        if strategy_flag in _DDP_FORK_ALIASES and _is_forking_disabled():
-            raise ValueError(
-                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different strategy."
             )
         if strategy_flag:
             self._strategy_flag = strategy_flag
