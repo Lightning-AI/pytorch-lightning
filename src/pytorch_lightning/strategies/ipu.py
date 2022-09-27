@@ -298,11 +298,10 @@ class IPUStrategy(ParallelStrategy):
 
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         args = self._prepare_input(args)
-        assert self.lightning_module is not None
         poptorch_model = self.poptorch_models[stage]
-        self.lightning_module._running_torchscript = True
+        pl.LightningModule._running_torchscript = True
         out = poptorch_model(*args, **kwargs)
-        self.lightning_module._running_torchscript = False
+        pl.LightningModule._running_torchscript = False
         return out
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
