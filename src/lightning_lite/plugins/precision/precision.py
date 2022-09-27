@@ -29,12 +29,19 @@ class Precision:
 
     precision: Union[str, int] = 32
 
+    def convert_module(self, module: Module) -> Module:
+        """Convert the module parameters to the precision type this plugin handles.
+
+        This is optional and depends on the precision limitations during optimization.
+        """
+        return module
+
     @contextlib.contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.
 
         Args:
@@ -51,7 +58,7 @@ class Precision:
         """
         tensor.backward(*args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs after precision plugin executes backward.
 
         Args:
@@ -67,7 +74,7 @@ class Precision:
         """Hook to run the optimizer step."""
         return optimizer.step(**kwargs)
 
-    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
 
         Returns the plain model params here. Maybe different in other precision plugins.

@@ -27,7 +27,7 @@ from lightning_lite.accelerators.cpu import CPUAccelerator
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DoublePrecision, Precision
+from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -694,10 +694,42 @@ def test_ddp_fork_on_unsupported_platform(_, strategy):
         _Connector(strategy=strategy)
 
 
-@RunIf(skip_windows=True)
-@pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
-@mock.patch.dict(os.environ, {"PL_DISABLE_FORK": "1"}, clear=True)
-def test_strategy_choice_ddp_spawn_in_interactive_when_fork_disabled(strategy):
-    """Test there is an error when forking is disabled via the environment variable and the user requests fork."""
-    with pytest.raises(ValueError, match="Forking is disabled in this environment"):
-        _Connector(devices=2, strategy=strategy)
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
+def test_precision_selection_16_on_cpu_warns():
+    with pytest.warns(
+        UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
+    ):
+        _Connector(precision=16)
+
+
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", False)
+def test_precision_selection_16_raises_torch_version(monkeypatch):
+    with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+        _Connector(accelerator="cpu", precision=16)
+    with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+        _Connector(accelerator="cpu", precision="bf16")
+
+
+class MyNativeAMP(NativeMixedPrecision):
+    pass
+
+
+@RunIf(mps=False)
+@pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize(
+    "is_custom_plugin,plugin_cls",
+    [(False, NativeMixedPrecision), (True, MyNativeAMP)],
+)
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
+def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
+    plugin = None
+    if is_custom_plugin:
+        plugin = plugin_cls(16, "cpu")
+
+    trainer = _Connector(
+        precision=16,
+        devices=devices,
+        strategy=strategy,
+        plugins=plugin,
+    )
+    assert isinstance(trainer.precision_plugin, plugin_cls)
