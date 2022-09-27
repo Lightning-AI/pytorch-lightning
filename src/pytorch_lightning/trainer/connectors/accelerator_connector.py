@@ -166,7 +166,7 @@ class AcceleratorConnector:
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
         self._accelerator_types = AcceleratorRegistry.available_accelerators()
-        self._precision_types = ("16", "32", "64", "bf16", "mixed")
+        self._precision_types = ("16", "32", "64", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
