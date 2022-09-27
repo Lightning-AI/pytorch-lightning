@@ -26,7 +26,6 @@ from lightning_utilities.core.rank_zero import rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
 from lightning_lite.accelerators import Accelerator, CUDAAccelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
@@ -78,7 +77,7 @@ class DeepSpeedStrategy(DDPStrategy):
         allgather_bucket_size: int = 200_000_000,
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
-        logging_batch_size_per_gpu: Union[str, int] = "auto",
+        logging_batch_size_per_gpu: Optional[int] = None,
         config: Optional[Union[_PATH, Dict[str, Any]]] = None,
         logging_level: int = logging.WARN,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -187,8 +186,6 @@ class DeepSpeedStrategy(DDPStrategy):
 
             logging_batch_size_per_gpu: Config used in DeepSpeed to calculate verbose timing for logging
                 on a per sample per second basis (only displayed if logging=logging.INFO).
-                If set to "auto", the plugin tries to infer this from
-                the train DataLoader's BatchSampler, else defaults to 1.
                 To obtain accurate logs when using datasets that do not support batch samplers,
                 set this to the actual per gpu batch size.
 
@@ -322,30 +319,15 @@ class DeepSpeedStrategy(DDPStrategy):
                 f" Got {len(optimizers)} optimizers instead."
             )
 
-        # train_micro_batch_size_per_gpu is used for throughput logging purposes
-        # normally we set this to the batch size, but it is not available here unless the user provides it
-        # as part of the config
-        assert self.config is not None
-        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self._deepspeed_engine, optimizer = self._setup_module_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
-
-    def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
-        assert self.config is not None
-        if "train_micro_batch_size_per_gpu" not in self.config:
-            # train_micro_batch_size_per_gpu is used for throughput logging purposes
-            # by default we try to use the batch size of the loader
-            self.config["train_micro_batch_size_per_gpu"] = self._auto_select_batch_size(dataloader)
-        return dataloader
 
     @contextlib.contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Lite: The config needs to be fully determined at the time of calling the
         # context manager, which happens at the start of `Lite.run()`. Later modificatoins through e.g. `Lite.setup()`
         # won't have an effect here.
-        assert self.config is not None
-        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
 
         if self.zero_stage_3:
             assert self._config_initialized
@@ -496,6 +478,8 @@ class DeepSpeedStrategy(DDPStrategy):
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
                 " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
             )
+
+        self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self._format_precision_config()
 
     def _format_precision_config(self) -> None:
@@ -523,7 +507,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self,
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
-        logging_batch_size_per_gpu: Union[str, int],
+        logging_batch_size_per_gpu: Optional[int],
         partition_activations: bool,
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
@@ -585,7 +569,7 @@ class DeepSpeedStrategy(DDPStrategy):
                     "zero_optimization": zero_config,
                 }
             )
-        if logging_batch_size_per_gpu != "auto":
+        if logging_batch_size_per_gpu:
             cfg["train_micro_batch_size_per_gpu"] = logging_batch_size_per_gpu
         return cfg
 
@@ -646,24 +630,3 @@ class DeepSpeedStrategy(DDPStrategy):
                 config = json.load(f)
         assert isinstance(config, dict) or config is None
         return config
-
-    def _auto_select_batch_size(self, dataloader: DataLoader) -> int:
-        batch_size = _get_dataloader_batch_size(dataloader)
-        print("auto batch size", batch_size)
-        if batch_size is not None:
-            return batch_size
-
-        if self.global_rank == 0:
-            print("warning")
-            deepspeed.utils.logging.logger.warning(
-                "Tried to infer the batch size for internal deepspeed logging from the dataloader."
-                " To ensure DeepSpeed logging remains correct, please manually pass batch size to the strategy: "
-                " `LightningLite(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=...))`"
-            )
-        return 1
-
-
-def _get_dataloader_batch_size(dataloader: DataLoader) -> Optional[int]:
-    if hasattr(dataloader, "batch_sampler") and hasattr(dataloader.batch_sampler, "batch_size"):
-        return dataloader.batch_sampler.batch_size  # type: ignore[union-attr]
-    return None

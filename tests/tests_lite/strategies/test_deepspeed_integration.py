@@ -110,9 +110,9 @@ def test_deepspeed_multiple_models():
 @pytest.mark.parametrize(
     ["dataset_cls", "logging_batch_size_per_gpu", "expected_batch_size"],
     [
-        (RandomDataset, "auto", 1),
+        (RandomDataset, None, 1),
         (RandomDataset, 10, 10),
-        (RandomIterableDataset, "auto", 1),
+        (RandomIterableDataset, None, 1),
         (RandomIterableDataset, 10, 10),
     ],
 )
@@ -130,32 +130,6 @@ def test_deepspeed_auto_batch_size_config_select(dataset_cls, logging_batch_size
         accelerator="cuda",
         devices=1,
         strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=logging_batch_size_per_gpu, zero_optimization=False),
-    )
-    lite.run()
-
-
-@RunIf(min_cuda_gpus=1, deepspeed=True)
-@mock.patch("deepspeed.utils.logging.logger.warning", autospec=True)
-def test_deepspeed_auto_batch_size_warning(deepspeed_warning_mock):
-    """Test that DeepSpeedStrategy emits a warning when it is not able to infer the batch size."""
-
-    class CustomBatchSampler(BatchSampler):
-        def __init__(self, sampler) -> None:
-            # no self.batch_size attribute on purpose
-            self.sampler = sampler
-
-    class Lite(LightningLite):
-        def run(self):
-            dataset = RandomDataset(32, 64)
-            custom_dataloader = DataLoader(batch_sampler=CustomBatchSampler(RandomSampler(dataset)), dataset=dataset)
-            _ = self.setup_dataloaders(custom_dataloader)
-            assert any("Tried to infer the batch size" in str(arg) for arg in deepspeed_warning_mock.call_args_list)
-            assert self._strategy.config["train_micro_batch_size_per_gpu"] == 1
-
-    lite = Lite(
-        strategy=DeepSpeedStrategy(logging_level=logging.INFO),
-        accelerator="cuda",
-        devices=1,
     )
     lite.run()
 
