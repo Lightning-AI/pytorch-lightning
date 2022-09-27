@@ -1878,34 +1878,36 @@ class LightningModule(
         mode = self.training
 
         LightningModule._running_torchscript = True
+        try:
+            if method == "script":
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            elif method == "trace":
+                # if no example inputs are provided, try to see if model has example_input_array set
+                if example_inputs is None:
+                    if self.example_input_array is None:
+                        raise ValueError(
+                            "Choosing method=`trace` requires either `example_inputs`"
+                            " or `model.example_input_array` to be defined."
+                        )
+                    example_inputs = self.example_input_array
 
-        if method == "script":
-            torchscript_module = torch.jit.script(self.eval(), **kwargs)
-        elif method == "trace":
-            # if no example inputs are provided, try to see if model has example_input_array set
-            if example_inputs is None:
-                if self.example_input_array is None:
-                    raise ValueError(
-                        "Choosing method=`trace` requires either `example_inputs`"
-                        " or `model.example_input_array` to be defined."
-                    )
-                example_inputs = self.example_input_array
+                # automatically send example inputs to the right device and use trace
+                example_inputs = self._on_before_batch_transfer(example_inputs)
+                example_inputs = self._apply_batch_transfer_handler(example_inputs)
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+            else:
+                raise ValueError(
+                    f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}"
+                )
 
-            # automatically send example inputs to the right device and use trace
-            example_inputs = self._on_before_batch_transfer(example_inputs)
-            example_inputs = self._apply_batch_transfer_handler(example_inputs)
-            torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
-        else:
-            raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
+            self.train(mode)
 
-        self.train(mode)
-
-        if file_path is not None:
-            fs = get_filesystem(file_path)
-            with fs.open(file_path, "wb") as f:
-                torch.jit.save(torchscript_module, f)
-
-        LightningModule._running_torchscript = False
+            if file_path is not None:
+                fs = get_filesystem(file_path)
+                with fs.open(file_path, "wb") as f:
+                    torch.jit.save(torchscript_module, f)
+        finally:
+            LightningModule._running_torchscript = False
 
         return torchscript_module
 

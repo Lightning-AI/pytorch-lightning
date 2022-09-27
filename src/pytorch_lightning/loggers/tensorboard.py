@@ -243,8 +243,10 @@ class TensorBoardLogger(Logger):
                 input_array = model._on_before_batch_transfer(input_array)
                 input_array = model._apply_batch_transfer_handler(input_array)
                 pl.LightningModule._running_torchscript = True
-                self.experiment.add_graph(model, input_array)
-                pl.LightningModule._running_torchscript = False
+                try:
+                    self.experiment.add_graph(model, input_array)
+                finally:
+                    pl.LightningModule._running_torchscript = False
             else:
                 rank_zero_warn(
                     "Could not log computational graph since the"
