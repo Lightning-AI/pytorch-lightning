@@ -20,8 +20,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
@@ -29,7 +28,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -59,29 +58,6 @@ def rank_zero_experiment(fn: Callable) -> Callable:
 
 class Logger(ABC):
     """Base class for experiment loggers."""
-
-    def __init__(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-    ):
-        self._prev_step: int = -1
-        self._metrics_to_agg: List[Dict[str, float]] = []
-        if agg_key_funcs:
-            self._agg_key_funcs = agg_key_funcs
-            rank_zero_deprecation(
-                "The `agg_key_funcs` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-            )
-        else:
-            self._agg_key_funcs = {}
-        if agg_default_func:
-            self._agg_default_func = agg_default_func
-            rank_zero_deprecation(
-                "The `agg_default_func` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-            )
-        else:
-            self._agg_default_func = np.mean
-        self._logged_model_time = {}
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
@@ -266,30 +242,3 @@ def merge_dicts(  # pragma: no cover
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return dict(d_out)
-
-
-def scan_checkpoints(checkpoint_callback: "ReferenceType[Checkpoint]", logged_model_time: dict) -> List[Checkpoint]:
-    """Return the checkpoints to be logged.
-
-    Args:
-        checkpoint_callback: Checkpoint callback reference.
-        logged_model_time: dictionary containing the logged model times.
-    """
-
-    # get checkpoints to be saved with associated score
-    checkpoints = dict()
-    if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):
-        checkpoints[checkpoint_callback.last_model_path] = (checkpoint_callback.current_score, "latest")
-
-    if hasattr(checkpoint_callback, "best_model_path") and hasattr(checkpoint_callback, "best_model_score"):
-        checkpoints[checkpoint_callback.best_model_path] = (checkpoint_callback.best_model_score, "best")
-
-    if hasattr(checkpoint_callback, "best_k_models"):
-        for key, value in checkpoint_callback.best_k_models.items():
-            checkpoints[key] = (value, "best_k")
-
-    checkpoints = sorted(
-        (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
-    )
-    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time.keys() or logged_model_time[c[1]] < c[0]]
-    return checkpoints

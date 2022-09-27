@@ -25,9 +25,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
-from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger, scan_checkpoints
+from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
@@ -337,7 +337,7 @@ def test_scan_checkpoints(tmpdir, save_top_k: int):
         dirpath=tmpdir, filename="test_checkpoint", monitor="val_loss", mode="min", save_top_k=save_top_k
     )
 
-    # Test first condition of scan_checkpoints: if c[1] not in logged_model_time.keys()
+    # Test first condition of _scan_checkpoints: if c[1] not in logged_model_time.keys()
     # Test if the returned list of checkpoints has length save_top_k
     model = ExtendedBoringModel()
     model.validation_epoch_end = None
@@ -352,10 +352,10 @@ def test_scan_checkpoints(tmpdir, save_top_k: int):
     )
     trainer.fit(model)
     logged_model_time = {}
-    checkpoints = scan_checkpoints(checkpoint_callback, logged_model_time)
+    checkpoints = _scan_checkpoints(checkpoint_callback, logged_model_time)
     assert len(checkpoints) == save_top_k
 
-    # Test second condition of scan_checkpoints: or logged_model_time[c[1]] < c[0]]
+    # Test second condition of _scan_checkpoints: or logged_model_time[c[1]] < c[0]]
     # Test if the returned list of checkpoints has still size 0
     model = ExtendedBoringModel()
     model.validation_epoch_end = None
@@ -370,8 +370,8 @@ def test_scan_checkpoints(tmpdir, save_top_k: int):
     )
     trainer.fit(model)
     # Update logged_model_time with the times of the models just returned,
-    # increased by 1000 (needed to test the second condition in scan_checkpoints)
+    # increased by 1000 (needed to test the second condition in _scan_checkpoints)
     for c in checkpoints:
         logged_model_time[c[1]] = c[0] + 1000
-    checkpoints = scan_checkpoints(checkpoint_callback, logged_model_time)
+    checkpoints = _scan_checkpoints(checkpoint_callback, logged_model_time)
     assert len(checkpoints) == 0
