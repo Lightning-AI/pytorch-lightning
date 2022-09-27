@@ -217,7 +217,7 @@ The most likely reasons and how to fix it:
   Please have a look at the SLURM template script above which includes the `srun` at the botton of the script.
 
 - The number of nodes or number of devices per node is configured incorrectly:
-  There are two parametres in the SLURM submission script that determine how many processes will run your training, the `#SBATCH --nodes=X` setting and `#SBATCH --ntasks-per-node=Y` settings.
+  There are two parametres in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
   The numbers there need to match what is configured in your Trainer in the code: `Trainer(num_nodes=X, devices=Y)`.
   If you change the numbers, update them in BOTH places.
 
