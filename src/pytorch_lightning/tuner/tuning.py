@@ -21,9 +21,6 @@ from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
-from pytorch_lightning.tuner.lr_finder import _LRFinder
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -229,7 +226,7 @@ class Tuner:
                 In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
-            
+
             dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
                 samples used for running tuner on validation/testing/prediction.
 
