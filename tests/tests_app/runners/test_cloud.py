@@ -27,6 +27,7 @@ from lightning_cloud.openapi import (
     V1PythonDependencyInfo,
     V1SourceType,
     V1UserRequestedComputeConfig,
+    V1UserRequestedFlowComputeConfig,
     V1Work,
 )
 
@@ -96,7 +97,11 @@ class TestAppCreationClient:
             works=[],
             local_source=True,
             dependency_cache_key=mock.ANY,
-            user_requested_flow_compute_config=V1UserRequestedComputeConfig(name="t2.medium"),
+            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+                name="t2.medium",
+                preemptible=None,
+                shm_size=None,
+            ),
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
             project_id="test-project-id", app_id=mock.ANY, body=body
