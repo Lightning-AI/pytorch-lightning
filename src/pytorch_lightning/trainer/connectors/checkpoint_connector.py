@@ -161,9 +161,10 @@ class CheckpointConnector:
             ckpt_path = getattr(self.trainer.checkpoint_callback, "best_model_path", None)
 
         if ckpt_path == "last":
-            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
-                getattr(cb, "last_model_path", None) for cb in self.trainer.checkpoint_callbacks
-            ]
+            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints]
+            for callback in self.trainer.checkpoint_callbacks:
+                if hasattr(callback, "_find_last_checkpoints"):
+                    candidates += callback._find_last_checkpoints(self.trainer)
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
             if not candidates_ts:
