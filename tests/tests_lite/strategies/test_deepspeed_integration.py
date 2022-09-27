@@ -299,10 +299,22 @@ def test_deepspeed_specific_gpu_device_index(tmpdir):
 def test_deepspeed_with_bfloat16_precision(tmpdir):
     """Test that the DeepSpeed strategy works with bfloat16 precision."""
 
+    class Model(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(32, 2)
+
+        def forward(self, x):
+            assert x.dtype == torch.bfloat16
+            return self.layer(x)
+
     class Lite(BoringLite):
+        def get_model(self):
+            return Model()
+
         def step(self, model, batch):
             assert self._strategy.config["bf16"]["enabled"]
-            assert batch.dtype == torch.bfloat16
+            assert batch.dtype == torch.float32
             assert model.layer.weight.dtype == torch.bfloat16
             return super().step(model, batch)
 
