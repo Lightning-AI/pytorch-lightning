@@ -19,8 +19,8 @@ from torch import Tensor
 from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.enums import AMPType
 from lightning_lite.utilities.imports import _APEX_AVAILABLE
 from lightning_lite.utilities.types import Steppable
 
