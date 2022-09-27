@@ -148,7 +148,6 @@ def test_deepspeed_auto_batch_size_warning(deepspeed_warning_mock):
         def run(self):
             dataset = RandomDataset(32, 64)
             custom_dataloader = DataLoader(batch_sampler=CustomBatchSampler(RandomSampler(dataset)), dataset=dataset)
-            assert "train_micro_batch_size_per_gpu" not in self._strategy.config
             _ = self.setup_dataloaders(custom_dataloader)
             assert any("Tried to infer the batch size" in str(arg) for arg in deepspeed_warning_mock.call_args_list)
             assert self._strategy.config["train_micro_batch_size_per_gpu"] == 1
