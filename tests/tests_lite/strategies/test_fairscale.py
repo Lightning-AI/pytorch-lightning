@@ -42,7 +42,7 @@ def test_fairscale_custom_kwargs(_, cls):
     model = nn.Linear(3, 3)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
-    with mock.patch(f"lightning_lite.strategies.fairscale.ShardedDataParallel", autospec=True) as mock_sharded:
+    with mock.patch("lightning_lite.strategies.fairscale.ShardedDataParallel", autospec=True) as mock_sharded:
         strategy.setup_module_and_optimizers(model, [optimizer])
     args, kwargs = mock_sharded.call_args
     assert kwargs["reduce_fp16"] is True
