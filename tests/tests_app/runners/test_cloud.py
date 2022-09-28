@@ -30,8 +30,9 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import LightningApp, LightningWork
+from lightning_app import LightningApp, LightningWork, CloudCompute, BuildConfig, LightningFlow
 from lightning_app.runners import backends, cloud
+from lightning_app.runners.cloud import _validate_build_spec_and_compute
 from lightning_app.storage import Drive
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
@@ -702,3 +703,20 @@ def test_project_has_sufficient_credits():
     for balance, result in credits_and_test_value:
         project = V1Membership(name="test-project1", project_id="test-project-id1", balance=balance)
         assert cloud_runtime._project_has_sufficient_credits(project) is result
+
+
+def test_incompatible_cloud_compute_and_build_config():
+    """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is the
+    default. This combination is not supported by the platform."""
+
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.cloud_compute = CloudCompute(name="default")
+            self.cloud_build_config = BuildConfig(image="custom")
+
+        def run(self):
+            pass
+
+    with pytest.raises(ValueError, match="You requested a custom base image for the Work with name"):
+        _validate_build_spec_and_compute(Work())
