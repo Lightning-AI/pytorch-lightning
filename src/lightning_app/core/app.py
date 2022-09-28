@@ -48,7 +48,7 @@ class LightningApp:
     def __init__(
         self,
         root: "lightning_app.LightningFlow",
-        flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
+        default_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         debug: bool = False,
         info: frontend.AppInfo = None,
     ):

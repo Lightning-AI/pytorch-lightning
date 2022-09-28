@@ -178,9 +178,6 @@ class CloudRuntime(Runtime):
             frontend_spec = V1Flowserver(name=flow_name)
             frontend_specs.append(frontend_spec)
 
-        flow_compute_config_name = "flow-lite"
-        if self.app.flow_cloud_compute is not None and self.app.flow_cloud_compute.name != "":
-            flow_compute_config_name = self.app.flow_cloud_compute.name
         app_spec = V1LightningappInstanceSpec(
             app_entrypoint_file=str(app_entrypoint_file),
             enable_app_server=self.start_server,
