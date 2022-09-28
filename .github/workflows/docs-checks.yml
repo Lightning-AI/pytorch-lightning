@@ -106,7 +106,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
         shell: bash
 
@@ -115,7 +115,8 @@ jobs:
           FREEZE_REQUIREMENTS: 1
           PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          python setup.py develop
           pip list
         shell: bash
 
