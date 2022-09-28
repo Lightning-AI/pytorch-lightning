@@ -109,10 +109,10 @@ jobs:
       - checkout
       - go/install
       - *checkout_ml_testing
+      - gcp-gke/install
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $GKE_CLUSTER
           perform-login: true
-          install: true
       - *install_jsonnet
       - *update_jsonnet
       - *deploy_cluster
