@@ -20,9 +20,10 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
-      source ~/.bashrc
       set +x  # turn off tracing, spammy
       set -e  # exit on error
+
+      source ~/.bashrc
       conda activate lightning
 
       echo "--- Fetch the SHA's changes ---"
@@ -43,24 +44,25 @@ local tputests = base.BaseTest {
       echo "--- Sanity check TPU availability ---"
       python -c "from lightning_lite.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
       python -c "from pytorch_lightning.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
-
-      echo "--- Running PL tests ---"
-      export PL_RUN_TPU_TESTS=1
-      cd tests/tests_pytorch
-      coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
+      echo "Sanity check passed!"
 
       echo "--- Running Lite tests ---"
       export PL_RUN_TPU_TESTS=1
       cd tests/tests_lite
       coverage run --source=lightning_lite -m pytest -vv --durations=0 ./
 
-      echo "--- Running standalone PL tests ---"
-      export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
+      echo "--- Running standalone Lite tests ---"
+      export PL_STANDALONE_TESTS_SOURCE=lightning_lite
       export PL_STANDALONE_TESTS_BATCH_SIZE=1
       bash run_standalone_tests.sh
 
-      echo "--- Running standalone Lite tests ---"
-      export PL_STANDALONE_TESTS_SOURCE=lightning_lite
+      echo "--- Running PL tests ---"
+      export PL_RUN_TPU_TESTS=1
+      cd tests/tests_pytorch
+      coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
+
+      echo "--- Running standalone PL tests ---"
+      export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
       export PL_STANDALONE_TESTS_BATCH_SIZE=1
       bash run_standalone_tests.sh
 
