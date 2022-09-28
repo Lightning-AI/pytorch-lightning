@@ -82,7 +82,7 @@ class TestAppCreationClient:
         app = mock.MagicMock()
         app.flows = []
         app.frontend = {}
-        app.flow_compute_config = CloudCompute(name="t2.medium")
+        app.flow_cloud_compute = CloudCompute(name="t2.medium")
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
         cloud_runtime._check_uploaded_folder = mock.MagicMock()
 
@@ -141,6 +141,7 @@ class TestAppCreationClient:
             works=[],
             local_source=True,
             dependency_cache_key=mock.ANY,
+            user_requested_flow_compute_config=mock.ANY,
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
             project_id="default-project-id", app_id=mock.ANY, body=body
@@ -183,6 +184,7 @@ class TestAppCreationClient:
             works=[],
             local_source=True,
             dependency_cache_key=mock.ANY,
+            user_requested_flow_compute_config=mock.ANY,
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
             project_id="test-project-id", app_id=mock.ANY, body=body
@@ -306,6 +308,7 @@ class TestAppCreationClient:
                 enable_app_server=True,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
+                user_requested_flow_compute_config=mock.ANY,
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
@@ -418,6 +421,7 @@ class TestAppCreationClient:
                 enable_app_server=True,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
+                user_requested_flow_compute_config=mock.ANY,
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
@@ -589,6 +593,7 @@ class TestAppCreationClient:
                 enable_app_server=True,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
+                user_requested_flow_compute_config=mock.ANY,
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
@@ -622,6 +627,7 @@ class TestAppCreationClient:
                 enable_app_server=True,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
+                user_requested_flow_compute_config=mock.ANY,
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
