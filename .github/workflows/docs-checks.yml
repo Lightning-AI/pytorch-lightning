@@ -98,17 +98,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docs-make-pip-
 
+      - name: Install PL
+        env:
+          FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: pytorch
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
+          pip --version
+          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip list
+        shell: bash
+
       - name: Install dependencies
         env:
           FREEZE_REQUIREMENTS: 1
           PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc
-          pip --version
           pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
-          sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list
         shell: bash
 
