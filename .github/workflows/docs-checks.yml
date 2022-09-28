@@ -48,7 +48,8 @@ jobs:
           sudo apt-get install -y cmake pandoc
           pip --version
           # python -m pip install --upgrade --user pip
-          pip install -e . -r requirements/${{ matrix.pkg }}/docs.txt -r requirements/${{ matrix.pkg }}/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/${{ matrix.pkg }}/docs.txt -r requirements/${{ matrix.pkg }}/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e .
           pip list
         shell: bash
 
