@@ -54,7 +54,7 @@ from lightning_lite.strategies import (
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
+from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
@@ -299,7 +299,7 @@ class _Connector:
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if self._accelerator_flag == "auto":
-            if _TPU_AVAILABLE:
+            if TPUAccelerator.is_available():
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"

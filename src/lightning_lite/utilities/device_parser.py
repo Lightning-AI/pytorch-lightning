@@ -13,8 +13,6 @@
 # limitations under the License.
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
-from lightning_lite.accelerators.cuda import _get_all_available_cuda_gpus
-from lightning_lite.accelerators.mps import _get_all_available_mps_gpus
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
@@ -161,6 +159,9 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     Returns:
         A list of all available GPUs
     """
+    from lightning_lite.accelerators.cuda import _get_all_available_cuda_gpus
+    from lightning_lite.accelerators.mps import _get_all_available_mps_gpus
+
     cuda_gpus = _get_all_available_cuda_gpus() if include_cuda else []
     mps_gpus = _get_all_available_mps_gpus() if include_mps else []
     return cuda_gpus + mps_gpus
