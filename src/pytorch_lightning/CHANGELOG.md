@@ -255,7 +255,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated `Trainer.{validated,tested,predicted}_ckpt_path` ([#14897](https://github.com/Lightning-AI/lightning/pull/14897))
 
-- Removed the deprecated `LightningDataModule.on_save/load_checkpoint_hooks`([#14909](https://github.com/Lightning-AI/lightning/pull/14909))
+- Removed the deprecated `LightningDataModule.on_save/load_checkpoint` hooks ([#14909](https://github.com/Lightning-AI/lightning/pull/14909))
 
 ### Fixed
 
