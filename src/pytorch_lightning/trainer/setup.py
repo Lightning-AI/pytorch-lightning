@@ -72,7 +72,7 @@ def _init_debugging_flags(
         trainer.limit_test_batches = num_batches
         trainer.limit_predict_batches = num_batches
         trainer.fit_loop.max_steps = num_batches
-        trainer.num_sanity_val_steps: Union[float, int] = 0
+        trainer.num_sanity_val_steps = 0
         trainer.fit_loop.max_epochs = 1
         trainer.val_check_interval = 1.0
         trainer.check_val_every_n_epoch = 1
