@@ -15,6 +15,7 @@ class _CloudComputeStore:
 
     def add_component_name(self, new_component_name: str) -> None:
         found_index = None
+        # When the work is being named by the flow, pop its previous names
         for index, component_name in enumerate(self.component_names):
             if new_component_name.endswith(component_name.replace("root.", "")):
                 found_index = index
@@ -23,7 +24,9 @@ class _CloudComputeStore:
             self.component_names[found_index] = new_component_name
         else:
             if len(self.component_names) == 1 and not MULTI_WORKS_INTO_SINGLE_POD and self.id != "default":
-                raise Exception(f"This Cloud Compute is already assigned to {self.component_names[0]}")
+                raise Exception(
+                    f"A Cloud Compute can be assigned only to a single Work. Attached to {self.component_names[0]}"
+                )
             self.component_names.append(new_component_name)
 
     def remove(self, new_component_name: str) -> None:

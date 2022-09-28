@@ -1113,5 +1113,5 @@ def test_cloud_compute_binding():
 
     cloud_compute.MULTI_WORKS_INTO_SINGLE_POD = False
 
-    with pytest.raises(Exception, match="This Cloud Compute is already assigned to root.w.w.work_b"):
+    with pytest.raises(Exception, match="A Cloud Compute can be assigned only to a single Work"):
         FlowCC()
