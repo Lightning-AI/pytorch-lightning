@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import ANY, Mock
+from unittest.mock import Mock
 
 from tests_lite.helpers.runif import RunIf
 
@@ -18,20 +18,24 @@ def test_xla_launcher_interactive_compatible():
     assert launcher.is_interactive_compatible
 
 
-@RunIf(skip_windows=True, tpu=True)
-@mock.patch("torch_xla.distributed.xla_multiprocessing")
-def test_xla_launcher_xmp_spawn(xmp_mock):
+@RunIf(skip_windows=True)
+@mock.patch("lightning_lite.strategies.launchers.xla.xmp")
+@mock.patch("lightning_lite.strategies.launchers.xla.get_context")
+def test_xla_launcher_xmp_spawn(get_context_mock, xmp_mock):
     strategy = Mock()
     nprocs = 8
     strategy.parallel_devices = list(range(nprocs))
     launcher = _XLALauncher(strategy=strategy)
     function = Mock()
     launcher.launch(function, "positional-arg", keyword_arg=0)
+    queue = get_context_mock.return_value.SimpleQueue.return_value
+    get_context_mock.assert_called_with("fork")
     xmp_mock.spawn.assert_called_with(
-        ANY,
-        args=(function, ("positional-arg",), {"keyword_arg": 0}, ANY),
+        launcher._wrapping_function,
+        args=(function, ("positional-arg",), {"keyword_arg": 0}, queue),
         nprocs=nprocs,
         join=True,
         daemon=False,
         start_method="fork",
     )
+    queue.get.assert_called_once_with()

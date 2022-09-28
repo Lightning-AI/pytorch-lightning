@@ -15,7 +15,7 @@ import time
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
-import torch.multiprocessing as mp
+from torch.multiprocessing import get_context
 
 from lightning_lite.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning_lite.utilities import _TPU_AVAILABLE
@@ -64,13 +64,15 @@ class _XLALauncher(_MultiProcessingLauncher):
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = mp.get_context(self._start_method)
+        context = get_context(self._start_method)
         return_queue = context.SimpleQueue()
         xmp.spawn(
             self._wrapping_function,
             args=(function, args, kwargs, return_queue),
             nprocs=len(self._strategy.parallel_devices),
             start_method=self._start_method,
+            join=True,
+            daemon=False,
         )
         return return_queue.get()
 
