@@ -2,6 +2,9 @@
 
 ipython[notebook]
 ipython_genutils
+numpy>=1.17.2, <1.23.1
+torch>=1.9.*, <1.13.0
+torchmetrics>=0.7.0, <0.9.3  # needed for using fixed compare_version
 
 sphinx-autobuild
 https://storage.googleapis.com/grid-packages/lightning-ai-sphinx-theme/build-32.zip
