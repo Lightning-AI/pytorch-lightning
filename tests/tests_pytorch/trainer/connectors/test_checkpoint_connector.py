@@ -14,6 +14,7 @@
 import os
 from unittest import mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -75,6 +76,12 @@ def test_hpc_restore_attempt(_, tmpdir):
     for param in model.parameters():
         assert param.abs().sum() > 0
         torch.nn.init.constant_(param, 0)
+
+    # case 2: explicit resume path provided, restore hpc anyway
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+
+    with pytest.raises(FileNotFoundError, match="Checkpoint at not existing not found. Aborting training."):
+        trainer.fit(model, ckpt_path="not existing")
 
 
 def test_hpc_max_ckpt_version(tmpdir):
