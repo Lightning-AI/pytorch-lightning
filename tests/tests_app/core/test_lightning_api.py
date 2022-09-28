@@ -430,7 +430,7 @@ def target():
 
 
 def test_configure_api():
-
+    # Setup
     process = Process(target=target)
     process.start()
     time_left = 15
@@ -442,6 +442,13 @@ def test_configure_api():
             sleep(0.1)
             time_left -= 0.1
 
+    # Test Upload File
+    files = {"uploaded_file": open(__file__, "rb")}
+
+    response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
+    assert response.json() == "Successfully uploaded 'test' to the Drive"
+
+    # Test Custom Request
     response = requests.post(
         f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
     )
@@ -450,6 +457,8 @@ def test_configure_api():
         f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
     )
     assert response.json() == {"name": "hello", "counter": 2}
+
+    # Teardown
     time_left = 15
     while time_left > 0:
         if process.exitcode == 0:
