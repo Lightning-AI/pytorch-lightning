@@ -41,9 +41,18 @@ body:
 
   - type: textarea
     attributes:
-      label: Important info
-      description: >
-        Provide the following info about your environment
+      label: Environment
+      description: |
+        Please provide details about your enviornment by copying and pasting the output from our environment collection script:
+        https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
+        (For security purposes, please check the contents of the script before running it)
+        You can get the script and run it with:
+        ```bash
+        wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
+        python collect_env_details.py
+        ```
+        
+        You can also fill out the list below manually.
       value: |
         ```
 
