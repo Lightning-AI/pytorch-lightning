@@ -8,6 +8,7 @@ import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
@@ -17,6 +18,7 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 
 
+# lite: unimplemented
 @pytest.mark.parametrize("clip_val", [0, 10])
 @RunIf(min_cuda_gpus=1, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
@@ -38,6 +40,7 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
         mock_oss_clip_grad_norm.assert_not_called()
 
 
+# lite: adopted
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
@@ -48,6 +51,7 @@ def test_sharded_ddp_choice(strategy, expected):
     assert isinstance(trainer.strategy, expected)
 
 
+# lite: adopted
 @RunIf(min_cuda_gpus=1, fairscale=True)
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
@@ -56,8 +60,10 @@ def test_ddp_choice_sharded_amp(strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=1, precision=16, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
+    assert isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin)
 
 
+# lite: adopted
 @RunIf(fairscale=True)
 def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly."""
@@ -75,6 +81,7 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
+# lite: adopted
 @RunIf(min_cuda_gpus=2, fairscale=True)
 def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
@@ -92,6 +99,7 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
+# lite: unimplemented
 @RunIf(min_cuda_gpus=2, fairscale=True)
 def test_ddp_sharded_strategy_finetune(tmpdir):
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
@@ -107,6 +115,7 @@ def test_ddp_sharded_strategy_finetune(tmpdir):
     trainer.fit(saved_model)
 
 
+# lite: unimplemented
 @RunIf(fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
     """Test to ensure that resuming from checkpoint works."""
@@ -125,6 +134,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
+# lite: unimplemented
 @RunIf(min_cuda_gpus=1, fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
@@ -143,6 +153,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
+# lite: skipped
 @RunIf(standalone=True, fairscale=True)
 @pytest.mark.parametrize(
     "trainer_kwargs",
@@ -181,6 +192,7 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
+# lite: unimplemented
 @RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
 @pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
 def test_ddp_sharded_strategy_manual_optimization(tmpdir, strategy):
@@ -218,6 +230,7 @@ class BoringModelSharded(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
+# lite: adopted
 @RunIf(fairscale=True)
 def test_configure_ddp(tmpdir):
     """Tests with ddp sharded strategy."""

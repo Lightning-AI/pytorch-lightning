@@ -59,11 +59,10 @@ class DDPShardedStrategy(DDPStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
-            process_group_backen=process_group_backend,
+            process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
         )
-        super().__init__()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -131,11 +130,10 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
-            process_group_backen=process_group_backend,
+            process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
         )
-        super().__init__()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
