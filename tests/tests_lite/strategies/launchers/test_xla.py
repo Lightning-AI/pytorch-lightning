@@ -22,14 +22,15 @@ def test_xla_launcher_interactive_compatible():
 @mock.patch("torch_xla.distributed.xla_multiprocessing")
 def test_xla_launcher_xmp_spawn(xmp_mock):
     strategy = Mock()
-    strategy.parallel_devices = [0, 1, 2, 3]
+    nprocs = 8
+    strategy.parallel_devices = list(range(nprocs))
     launcher = _XLALauncher(strategy=strategy)
     function = Mock()
     launcher.launch(function, "positional-arg", keyword_arg=0)
     xmp_mock.spawn.assert_called_with(
         ANY,
         args=(function, ("positional-arg",), {"keyword_arg": 0}, ANY),
-        nprocs=4,
+        nprocs=nprocs,
         join=True,
         daemon=False,
         start_method="fork",
