@@ -281,7 +281,7 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0, id="name"
+                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                         ),
@@ -408,7 +408,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0, id="name"
+                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                         ),
@@ -564,7 +564,7 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_spec, s3_drive_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0, id="name"
+                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                         ),
@@ -597,7 +597,7 @@ class TestAppCreationClient:
                             ),
                             drives=[s3_drive_spec, lit_drive_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0, id="name"
+                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                         ),

@@ -505,6 +505,7 @@ class LightningWork:
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
+            if isinstance(v, Dict):
                 v = _maybe_create_cloud_compute(v)
             setattr(self, k, v)
 

@@ -111,7 +111,7 @@ class CloudCompute:
 
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
-    if __CLOUD_COMPUTE_IDENTIFIER__ == state.get("type", None):
+    if state and __CLOUD_COMPUTE_IDENTIFIER__ == state.get("type", None):
         cloud_compute = CloudCompute.from_dict(state)
         return cloud_compute
     return state
