@@ -14,12 +14,12 @@
 from unittest import mock
 
 import pytest
-import torch.optim
 import torch.nn as nn
+import torch.optim
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.strategies import DDPShardedStrategy
-from lightning_lite.strategies.fairscale import ShardedDataParallel, DDPSpawnShardedStrategy
+from lightning_lite.strategies.fairscale import DDPSpawnShardedStrategy, ShardedDataParallel
 
 
 @RunIf(fairscale=True)

@@ -383,7 +383,7 @@ def test_strategy_choice_gpu_str(strategy, strategy_class):
 @pytest.mark.parametrize(
     "precision,expected_precision", [(16, NativeMixedPrecision), (32, Precision), ("bf16", NativeMixedPrecision)]
 )
-def test_strategy_choice_sharded(strategy, expected_strategy, precision,expected_precision):
+def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
     connector = _Connector(strategy=strategy, devices=1, precision=precision)
     assert isinstance(connector.strategy, expected_strategy)
     assert isinstance(connector.precision_plugin, expected_precision)

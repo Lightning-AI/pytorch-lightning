@@ -12,20 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+
 import pytest
-
 import torch
-
-from tests_lite.helpers.runif import RunIf
 from tests_lite.helpers.models import BoringLite
+from tests_lite.helpers.runif import RunIf
 
 
 class ShardedSaveAndLoad(BoringLite):
-
     def get_optimizer(self, module):
         optimizer = super().get_optimizer(module)
         if self.with_fairscale_oss:
             from fairscale.optim import OSS
+
             optimizer = OSS(params=optimizer.param_groups, optim=type(optimizer), **optimizer.defaults)
         return optimizer
 
