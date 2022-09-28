@@ -209,8 +209,12 @@ class SaveConfigCallback(Callback):
         self.config_filename = config_filename
         self.overwrite = overwrite
         self.multifile = multifile
+        self.already_saved = False
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        if self.already_saved:
+            return
+
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
@@ -238,6 +242,7 @@ class SaveConfigCallback(Callback):
             self.parser.save(
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
+            self.already_saved = True
 
 
 class LightningCLI:
