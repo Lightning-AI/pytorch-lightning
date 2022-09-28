@@ -23,44 +23,48 @@ local tputests = base.BaseTest {
       source ~/.bashrc
       set -e
       conda activate lightning
-      mkdir -p /home/runner/work/lightning && cd /home/runner/work/lightning
+
+      echo "--- Fetch the SHA's changes ---"
+      mkdir -p /home/runner/work && cd /home/runner/work
       git clone https://github.com/Lightning-AI/lightning.git
       cd lightning
-      echo $PWD
-      git ls-remote --refs origin
-      git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
-      git checkout {SHA}
+      git fetch origin pull/{PR_NUMBER}/head:test/{PR_NUMBER}"
+      git -c advice.detachedHead=false checkout {SHA}
+
+      echo "--- Install PL ---"
       export PACKAGE_NAME=pytorch
       export FREEZE_REQUIREMENTS=1
       pip install -e .[test]
+      pip list
+
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
 
-      echo "\n||| Sanity check TPU availability |||\n"
+      echo "--- Sanity check TPU availability ---"
       python -c "from pytorch_lightning.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
       python -c "from lightning_lite.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
 
-      echo "\n||| Running PL tests |||\n"
+      echo "--- Running PL tests ---"
       export PL_RUN_TPU_TESTS=1
       cd tests/tests_pytorch
       coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
 
-      echo "\n||| Running Lite tests |||\n"
+      echo "--- Running Lite tests ---"
       export PL_RUN_TPU_TESTS=1
       cd tests/tests_lite
       coverage run --source=lightning_lite -m pytest -vv --durations=0 ./
 
-      echo "\n||| Running standalone PL tests |||\n"
+      echo "--- Running standalone PL tests ---"
       export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
       export PL_STANDALONE_TESTS_BATCH_SIZE=1
       bash run_standalone_tests.sh
 
-      echo "\n||| Running standalone Lite tests |||\n"
+      echo "--- Running standalone Lite tests ---"
       export PL_STANDALONE_TESTS_SOURCE=lightning_lite
       export PL_STANDALONE_TESTS_BATCH_SIZE=1
       bash run_standalone_tests.sh
 
-      echo "\n||| END PYTEST LOGS |||\n"
+      echo "--- Generating coverage ---"
       coverage xml
       cat coverage.xml | tr -d '\t'
     |||
