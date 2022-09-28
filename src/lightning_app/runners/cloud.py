@@ -39,6 +39,7 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
+from lightning_app import LightningWork
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
 from lightning_app.runners.backends.cloud import CloudBackend
@@ -112,6 +113,7 @@ class CloudRuntime(Runtime):
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
                 work_requirements = "\n".join(work.cloud_build_config.requirements)
+                _validate_build_spec_and_compute(work)
                 build_spec = V1BuildSpec(
                     commands=work.cloud_build_config.build_commands(),
                     python_dependencies=V1PythonDependencyInfo(
@@ -361,3 +363,12 @@ class CloudRuntime(Runtime):
             balance = 0  # value is missing in some tests
 
         return balance >= 1
+
+
+def _validate_build_spec_and_compute(work: LightningWork) -> None:
+    if work.cloud_build_config.image is not None and work.cloud_compute.name == "default":
+        raise ValueError(
+            f"You requested a custom base image for the Work with name '{work.name}', but custom images are currently"
+            " not supported on the default cloud compute instance. Please choose a different configuration, for example"
+            " `CloudCompute('cpu-medium')`."
+        )
