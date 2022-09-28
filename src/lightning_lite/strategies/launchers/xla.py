@@ -99,12 +99,12 @@ def _save_spawn(
 ) -> Optional[ProcessContext]:
     """Wraps the :func:`torch_xla.distributed.xla_multiprocessing.spawn` with added teardown logic for the worker
     processes."""
-    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 
     @wraps(fn)
     def wrapped(rank: int, *_args: Any) -> None:
         fn(rank, *_args)
+        import torch_xla.core.xla_model as xm
 
         # Make all processes wait for each other before joining
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542

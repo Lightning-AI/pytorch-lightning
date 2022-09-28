@@ -2181,7 +2181,7 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     if trainer_kwargs.get("accelerator") in ("cuda", "gpu"):
         mock_cuda_count(monkeypatch, 4)
     elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
-        monkeypatch.setattr(lightning_lite.utilities.device_parser, "_get_all_available_mps_gpus", lambda: [0])
+        monkeypatch.setattr(lightning_lite.accelerators.mps, "_get_all_available_mps_gpus", lambda: [0])
         monkeypatch.setattr(MPSAccelerator, "is_available", lambda *_: True)
     elif trainer_kwargs.get("accelerator") == "ipu":
         monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)

@@ -326,13 +326,16 @@ class _Connector:
         else:
             assert self._accelerator_flag is not None
             self.accelerator = ACCELERATOR_REGISTRY.get(self._accelerator_flag)
+        accelerator_cls = self.accelerator.__class__
 
-        if not self.accelerator.is_available():
+        if not accelerator_cls.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._registered_accelerators if ACCELERATOR_REGISTRY.get(acc_str).is_available()
+                acc_str
+                for acc_str in self._registered_accelerators
+                if ACCELERATOR_REGISTRY[acc_str]["accelerator"].is_available()
             ]
             raise RuntimeError(
-                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f"`{accelerator_cls.__qualname__}` can not run on your system"
                 " since the accelerator is not available. The following accelerator(s)"
                 " is available and can be passed into `accelerator` argument of"
                 f" `Lite`: {available_accelerator}."
@@ -340,9 +343,9 @@ class _Connector:
 
         self._set_devices_flag_if_auto_passed()
 
-        self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
+        self._devices_flag = accelerator_cls.parse_devices(self._devices_flag)
         if not self._parallel_devices:
-            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+            self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
