@@ -34,9 +34,13 @@ class ShardedSaveAndLoad(BoringLite):
         super().run()
 
         from fairscale.nn import ShardedDataParallel
+        from fairscale.optim import OSS
 
-        # the model is wrapped correctly
+        # the model and optimizer is wrapped correctly
         assert isinstance(self.model._forward_module, ShardedDataParallel)
+        assert isinstance(self.optimizer.optimizer, OSS)
+
+        self.model.cpu()
 
         checkpoint_path = os.path.join(tmpdir, "checkpoint.ckpt")
         checkpoint = {"model": self.model.state_dict(), "optimizer": self.optimizer.state_dict()}

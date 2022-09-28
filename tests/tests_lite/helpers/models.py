@@ -65,6 +65,8 @@ class BoringLite(LightningLite):
         self.optimizer = optimizer
         self.dataloader = dataloader
 
+        model.train()
+
         data_iter = iter(dataloader)
         batch = next(data_iter)
         loss = self.step(model, batch)

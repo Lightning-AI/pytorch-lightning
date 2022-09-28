@@ -40,6 +40,7 @@ from lightning_lite.utilities.data import (
     has_iterable_dataset,
 )
 from lightning_lite.utilities.distributed import DistributedSamplerWrapper
+from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
@@ -160,6 +161,7 @@ class LightningLite(ABC):
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
+        optimizers_to_device(optimizers, self.device)
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
 
         # Update the _DeviceDtypeModuleMixin's device parameter

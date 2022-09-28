@@ -178,15 +178,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             description=cls.__class__.__name__,
         )
 
-    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
-
 
 def _reinit_optimizers_with_oss(
     optimizers: List[Optimizer], precision_plugin: Precision, num_nodes: int
