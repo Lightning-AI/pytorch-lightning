@@ -46,7 +46,7 @@ class LightningApp:
     def __init__(
         self,
         root: "lightning_app.LightningFlow",
-        flow_compute_config: Optional["lightning_app.CloudCompute"] = None,
+        flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         debug: bool = False,
     ):
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
@@ -62,7 +62,7 @@ class LightningApp:
         Arguments:
             root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
                 It must define a `run()` method that the app can call.
-            flow_compute_config: The ComputeConfig used for LightningFlow components.
+            flow_cloud_compute: The ComputeConfig used for LightningFlow components.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
 
@@ -82,7 +82,7 @@ class LightningApp:
 
         _validate_root_flow(root)
         self._root = root
-        self.flow_compute_config = flow_compute_config
+        self.flow_cloud_compute = flow_cloud_compute
 
         # queues definition.
         self.delta_queue: t.Optional[BaseQueue] = None
