@@ -58,8 +58,8 @@ class ShardedSaveAndLoad(BoringLite):
 @pytest.mark.parametrize("strategy", (pytest.param("ddp_sharded", marks=RunIf(standalone=True)), "ddp_sharded_spawn"))
 @pytest.mark.parametrize("with_fairscale_oss", (True, False))
 def test_fairscale_multi_process_checkpoint_state_consolidation(with_fairscale_oss, strategy, accelerator, tmpdir):
-    """Test that the sharded optimizer states get consolidated when saving the checkpoint, and that the loaded weights
-    is identical to the saved one."""
+    """Test that the sharded optimizer states get consolidated when saving the checkpoint, and that the loaded
+    weights is identical to the saved one."""
     lite = ShardedSaveAndLoad(strategy=strategy, accelerator=accelerator, devices=2)
     lite.run(tmpdir, with_fairscale_oss=with_fairscale_oss)
 
