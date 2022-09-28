@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 _NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
     from neptune import new as neptune
-    from neptune.new.exceptions import NeptuneOfflineModeFetchException
     from neptune.new.run import Run
 else:
     # needed for test mocks, and function signatures
