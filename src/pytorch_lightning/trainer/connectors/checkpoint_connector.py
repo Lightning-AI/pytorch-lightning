@@ -146,18 +146,16 @@ class CheckpointConnector:
                 )
 
             if not self.trainer.checkpoint_callback:
-                raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
-                )
+                raise ValueError(f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.')
 
             has_best_model_path = self.trainer.checkpoint_callback.best_model_path
             if hasattr(self.trainer.checkpoint_callback, "best_model_path") and not has_best_model_path:
                 if self.trainer.fast_dev_run:
-                    raise MisconfigurationException(
+                    raise ValueError(
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
                         f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                     )
-                raise MisconfigurationException(
+                raise ValueError(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
@@ -179,10 +177,15 @@ class CheckpointConnector:
             ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
 
         elif ckpt_path == "hpc":
+            if not self._hpc_resume_path:
+                raise ValueError(
+                    f'`.{fn}(ckpt_path="hpc")` is set but no HPC checkpoint was found.'
+                    " Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
+                )
             ckpt_path = self._hpc_resume_path
 
         if not ckpt_path:
-            raise MisconfigurationException(
+            raise ValueError(
                 f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
                 f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
             )
