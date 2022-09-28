@@ -43,10 +43,24 @@ def test_native_amp_precision_bf16_min_torch():
 
 @RunIf(min_torch="1.10")
 def test_native_amp_precision_forward_context():
-    precision_plugin = NativeMixedPrecision(precision="mixed", device="cuda")
+    """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
+    precision_plugin = NativeMixedPrecision(precision=16, device="cuda")
+    assert precision_plugin.device == "cuda"
+    assert isinstance(precision_plugin.scaler, torch.cuda.amp.GradScaler)
     assert torch.get_default_dtype() == torch.float32
     with precision_plugin.forward_context():
         assert torch.get_autocast_gpu_dtype() == torch.float16
+
+    precision_plugin = NativeMixedPrecision(precision="bf16", device="cpu")
+    assert precision_plugin.device == "cpu"
+    assert precision_plugin.scaler is None
+    with precision_plugin.forward_context():
+        assert torch.get_autocast_cpu_dtype() == torch.bfloat16
+
+    context_manager = precision_plugin._autocast_context_manager()
+    assert isinstance(context_manager, torch.autocast)
+    # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
+    assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
 def test_native_amp_precision_backward():
