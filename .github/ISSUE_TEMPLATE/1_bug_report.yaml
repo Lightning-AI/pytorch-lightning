@@ -2,41 +2,17 @@ name: Report a bug
 description: Any errors that are not UI related.
 labels: ["needs triage", "bug"]
 body:
-  - type: markdown
-    attributes:
-      value: >
-        WAIT!
-
-        Before you go any further. Is this really a **🐛 bug**?
-
-        If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
-        or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
-
-        If it really is a **🐛 bug**, please fill out this form as completely as you can.
-
-  - type: checkboxes
-    id: checks
-    attributes:
-      label: First check
-      description: Please confirm and check all the following options.
-      options:
-        - label: I'm sure this is a bug.
-          required: true
-        - label: I've added a descriptive title to this bug.
-          required: true
-        - label: I've provided clear instructions on how to reproduce the bug.
-          required: true
-        - label: I've added a code sample.
-          required: true
-        - label: I've provided any other important info that is required.
-          required: true
-
   - type: textarea
     attributes:
       label: Bug description
-      description: A clear and concise description of the 🐛bug🐛.
+      description: A description of the 🐛bug🐛.
     validations:
       required: true
+ 
+  - type: markdown
+    attributes:
+      value: >
+        The rest of this form is optional, but filling it out may help us to provide better support.
 
   - type: textarea
     attributes:
@@ -46,7 +22,7 @@ body:
       placeholder: "# Insert code here"
       render: python
     validations:
-      required: true
+      required: false
 
   - type: textarea
     attributes:
@@ -67,7 +43,7 @@ body:
     attributes:
       label: Important info
       description: >
-        Provide all the following info
+        Provide the following info about your environment
       value: |
         ```
 
@@ -84,7 +60,7 @@ body:
 
         ```
     validations:
-      required: true
+      required: false
 
   - type: textarea
     attributes:
