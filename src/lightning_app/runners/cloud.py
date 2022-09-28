@@ -178,9 +178,6 @@ class CloudRuntime(Runtime):
             frontend_spec = V1Flowserver(name=flow_name)
             frontend_specs.append(frontend_spec)
 
-        flow_compute_config_name = "flow-lite"
-        if self.app.flow_cloud_compute is not None and self.app.flow_cloud_compute.name != "":
-            flow_compute_config_name = self.app.flow_cloud_compute.name
         app_spec = V1LightningappInstanceSpec(
             app_entrypoint_file=str(app_entrypoint_file),
             enable_app_server=self.start_server,
@@ -188,7 +185,9 @@ class CloudRuntime(Runtime):
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
             user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
-                name=flow_compute_config_name,
+                name=self.app.flow_cloud_compute.name,
+                shm_size=self.app.flow_cloud_compute.shm_size,
+                preemptible=False,
             ),
         )
         # if requirements file at the root of the repository is present,
