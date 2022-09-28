@@ -1,5 +1,4 @@
 -r ../docs.txt
--r ../pytorch/base.txt
 
 ipython[notebook]
 ipython_genutils
