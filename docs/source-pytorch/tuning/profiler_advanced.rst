@@ -149,12 +149,6 @@ To profile a distributed model, use the :class:`~pytorch_lightning.profilers.hpu
     profiler = HPUProfiler(filename="perf-logs")
     trainer = Trainer(profiler=profiler)
 
-.. note::
-    Since HPUProfiler extends PyTorch Profiler, when using the HPUProfiler, wall clock time will not not be representative of the true wall clock time.
-    This is due to forcing profiled operations to be measured synchronously, when many HPU ops happen asynchronously.
-    It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use
-    the ``SimpleProfiler``.
-
 ----
 
 *****************************
