@@ -20,9 +20,10 @@ local tputests = base.BaseTest {
 
   command: utils.scriptCommand(
     |||
-      source ~/.bashrc
       set +x  # turn off tracing, spammy
       set -e  # exit on error
+
+      source ~/.bashrc
       conda activate lightning
 
       echo "--- Fetch the SHA's changes ---"
