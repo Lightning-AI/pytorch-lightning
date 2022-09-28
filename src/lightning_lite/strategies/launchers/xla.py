@@ -22,10 +22,9 @@ from lightning_lite.utilities import _TPU_AVAILABLE
 from lightning_lite.utilities.apply_func import move_data_to_device
 
 if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 else:
-    xm, xmp = None, None
+    xmp = None
 
 if TYPE_CHECKING:
     from lightning_lite.strategies import Strategy
@@ -94,10 +93,11 @@ class _XLALauncher(_MultiProcessingLauncher):
 
 
 def _rank_teardown(rank: int) -> None:
+    import torch_xla.core.xla_model as xm
+
     # Make all processes wait for each other before joining
     # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
     xm.rendezvous("end-process")
-
     # Ensure that the rank 0 process is the one exiting last
     # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
     if rank == 0:

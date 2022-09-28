@@ -13,7 +13,6 @@
 # limitations under the License
 import collections
 import os
-import pickle
 from copy import deepcopy
 from unittest import mock
 from unittest.mock import patch
@@ -75,13 +74,6 @@ def test_if_test_works_after_train(tmpdir):
     # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
-
-    # is trainer pickle-able?
-    pickle.dumps(trainer)
-
-    # is strategy pickle-able?
-    pickle.dumps(trainer.strategy)
-
     trainer.fit(model)
     assert len(trainer.test(model)) == 1
 

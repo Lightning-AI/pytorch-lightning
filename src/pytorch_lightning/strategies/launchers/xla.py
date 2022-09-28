@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import time
 from functools import wraps
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Optional, Tuple, TYPE_CHECKING
@@ -36,7 +35,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 if _TPU_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
 else:
-    xm, xmp = None, None
+    xmp = None
 
 if TYPE_CHECKING:
     from pytorch_lightning.strategies import Strategy
@@ -143,6 +142,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
 
+# FIXME: keep this or remove?
 def _save_spawn(
     fn: Callable,
     args: Tuple = (),
@@ -157,14 +157,6 @@ def _save_spawn(
     @wraps(fn)
     def wrapped(rank: int, *_args: Any) -> None:
         fn(rank, *_args)
-
-        # Make all processes wait for each other before joining
-        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        xm.rendezvous("end-process")
-
-        # Ensure that the rank 0 process is the one exiting last
-        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if rank == 0:
-            time.sleep(1)
+        _rank_teardown(rank)
 
     return xmp.spawn(wrapped, args=args, nprocs=nprocs, join=join, daemon=daemon, start_method=start_method)
