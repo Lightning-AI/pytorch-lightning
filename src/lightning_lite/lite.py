@@ -161,7 +161,7 @@ class LightningLite(ABC):
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
-        optimizers_to_device(optimizers, self.device)
+        optimizers_to_device(optimizers, self.device)  # TODO: debugging, seems to make no difference
         model = _LiteModule(model, self._precision_plugin, original_module=original_model)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
