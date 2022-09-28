@@ -7,15 +7,15 @@ This is particularly useful for the ``PanelFrontend`` but can be used by other f
 """
 from __future__ import annotations
 
-import logging
 import os
 
 from lightning_app.frontend.panel.app_state_comm import watch_app_state
 from lightning_app.frontend.utils import _get_flow_state
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_param_available, requires
 from lightning_app.utilities.state import AppState
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 if _is_param_available():

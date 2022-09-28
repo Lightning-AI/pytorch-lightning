@@ -19,38 +19,33 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import torch
 import torch.distributed
 from torch import Tensor
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import group as _group
+from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    distributed_available,
-    get_default_process_group_backend_for_device,
-)
-from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    ReduceOp,
-    register_ddp_comm_hook,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
+
+if torch.distributed.is_available():
+    from torch.distributed.constants import default_pg_timeout
+else:
+    default_pg_timeout = timedelta(seconds=1800)
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +65,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -187,11 +182,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         )
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def pre_configure_ddp(self) -> None:
         # if unset, default `find_unused_parameters` `True`

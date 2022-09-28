@@ -4,7 +4,7 @@ import pathlib
 import pickle
 from re import escape
 from time import sleep
-from unittest import mock
+from unittest import mock, TestCase
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -490,7 +490,6 @@ def test_path_as_argument_to_run_method():
 
 def test_path_get_errors(tmpdir):
     with _context("work"):
-
         with pytest.raises(
             RuntimeError, match="Trying to get the file .* but the path is not attached to a LightningApp"
         ):
@@ -704,3 +703,20 @@ def test_filesystem(monkeypatch):
     assert fs._mock_new_parent._mock_mock_calls[0].kwargs["secret"] == "d"
     assert not fs._mock_new_parent._mock_mock_calls[0].kwargs["use_ssl"]
     assert fs._mock_new_parent._mock_mock_calls[0].kwargs["client_kwargs"] == {"endpoint_url": "a"}
+
+
+class TestSharedStoragePath(TestCase):
+    @mock.patch.dict(os.environ, {"LIGHTNING_STORAGE_PATH": "test-bucket/lightningapps/test-project/test-app"})
+    def test_shared_storage_path_storage_path_set(self):
+        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-project/test-app"), shared_storage_path())
+
+    @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "test-app", "LIGHTNING_BUCKET_NAME": "test-bucket"})
+    def test_shared_storage_path_bucket_and_app_id_set(self):
+        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-app"), shared_storage_path())
+
+    @mock.patch.dict(os.environ, {"SHARED_MOUNT_DIRECTORY": "test-app/.shared"})
+    def test_shared_storage_path_mount_directory_set(self):
+        self.assertTrue(shared_storage_path().match("*/test-app/.shared"))
+
+    def test_shared_storage_path_no_envvars_set(self):
+        self.assertTrue(shared_storage_path().match("*/.shared"))

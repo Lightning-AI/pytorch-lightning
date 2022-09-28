@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
 from torch import Tensor
@@ -27,9 +27,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
@@ -94,11 +94,9 @@ class TensorBoardLogger(Logger):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs: Any,
     ):
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
@@ -268,9 +266,13 @@ class TensorBoardLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        self.experiment.flush()
-        self.experiment.close()
-        self.save()
+        if self._experiment is not None:
+            self.experiment.flush()
+            self.experiment.close()
+
+        if status == "success":
+            # saving hparams happens independent of experiment manager
+            self.save()
 
     @property
     def name(self) -> str:

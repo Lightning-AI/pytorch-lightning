@@ -10,17 +10,13 @@ class CustomBuildConfig(BuildConfig):
 
 class WorkWithCustomDeps(LightningWork):
     def __init__(self, cloud_compute: CloudCompute = CloudCompute(), **kwargs):
-        build_config = CustomBuildConfig(requirements=["numpy", "pandas", "py"])
+        build_config = CustomBuildConfig(requirements=["py"])
         super().__init__(parallel=True, **kwargs, cloud_compute=cloud_compute, cloud_build_config=build_config)
 
     def run(self):
         # installed by the build commands and by requirements in the build config
         import lmdb
-        import numpy as np
-        import pandas as pd
 
-        print("installed numpy version:", np.__version__)
-        print("installed pandas version:", pd.__version__)
         print("installed lmdb version:", lmdb.__version__)
 
 
@@ -53,4 +49,4 @@ class CustomWorkBuildConfigChecker(LightningFlow):
             self._exit()
 
 
-app = LightningApp(CustomWorkBuildConfigChecker())
+app = LightningApp(CustomWorkBuildConfigChecker(), debug=True)
