@@ -8,7 +8,7 @@ body:
       description: A description of the 🐛bug🐛.
     validations:
       required: true
- 
+
   - type: markdown
     attributes:
       value: >
