@@ -160,7 +160,7 @@ To visualize the profiled operations, enable **export_to_chrome** in the :class:
 
     from pytorch_lightning.profilers import HPUProfiler
 
-    profiler = HPUProfiler()
+    profiler = HPUProfiler(export_to_chrome=True)
     trainer = Trainer(profiler=profiler)
 
 Then run the model. Once profiler is finished, load the trace either in tensorboard or chrome browser:

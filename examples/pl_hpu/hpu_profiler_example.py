@@ -48,8 +48,8 @@ class SimpleMNISTModel(LightningModule):
     def cross_entropy_loss(self, logits, labels):
         return F.nll_loss(logits, labels)
 
-    def training_step(self, train_batch, batch_idx):
-        x, y = train_batch
+    def training_step(self, batch, batch_idx):
+        x, y = batch
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
         return loss
@@ -62,7 +62,6 @@ class SimpleMNISTDataModule(LightningDataModule):
     def setup(self, stage):
         transform = transforms.Compose([transforms.ToTensor()])
         self.mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
-        self.mnist_test = MNIST(os.getcwd(), train=False, download=True, transform=transform)
 
     def train_dataloader(self):
         return DataLoader(self.mnist_train, batch_size=16, num_workers=1)
