@@ -36,6 +36,9 @@ class BoringLite(LightningLite):
     def get_model(self) -> Module:
         return nn.Linear(32, 2)
 
+    def get_optimizer(self, module: Module) -> Optimizer:
+        return torch.optim.SGD(module.parameters(), lr=0.1)
+
     def get_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
@@ -52,7 +55,7 @@ class BoringLite(LightningLite):
 
     def run(self) -> None:
         model = self.get_model()
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        optimizer = self.get_optimizer(model)
         dataloader = self.get_dataloader()
 
         model, optimizer = self.setup(model, optimizer)

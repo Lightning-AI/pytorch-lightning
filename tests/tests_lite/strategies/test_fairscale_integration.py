@@ -21,7 +21,17 @@ from tests_lite.helpers.models import BoringLite
 
 
 class ShardedSaveAndLoad(BoringLite):
-    def run(self, tmpdir):
+
+    def get_optimizer(self, module):
+        optimizer = super().get_optimizer(module)
+        if self.with_fairscale_oss:
+            from fairscale.optim import OSS
+            optimizer = OSS(params=optimizer.param_groups, optim=type(optimizer), **optimizer.defaults)
+        return optimizer
+
+    def run(self, tmpdir, with_fairscale_oss=False):
+        self.with_fairscale_oss = with_fairscale_oss
+
         super().run()
 
         from fairscale.nn import ShardedDataParallel
@@ -46,8 +56,25 @@ class ShardedSaveAndLoad(BoringLite):
 
 @RunIf(fairscale=True)
 @pytest.mark.parametrize("accelerator", ["cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=2))])
-def test_fairscale_multi_process_checkpoint_state_consolidation(accelerator, tmpdir):
+@pytest.mark.parametrize("strategy", (pytest.param("ddp_sharded", marks=RunIf(standalone=True)), "ddp_sharded_spawn"))
+@pytest.mark.parametrize("with_fairscale_oss", (True, False))
+def test_fairscale_multi_process_checkpoint_state_consolidation(with_fairscale_oss, strategy, accelerator, tmpdir):
     """Test that the sharded optimizer states get consolidated when saving the checkpoint, and that the loaded weights
     is identical to the saved one."""
-    lite = ShardedSaveAndLoad(strategy="ddp_sharded_spawn", accelerator=accelerator, devices=2)
-    lite.run(tmpdir)
+    lite = ShardedSaveAndLoad(strategy=strategy, accelerator=accelerator, devices=2)
+    lite.run(tmpdir, with_fairscale_oss=with_fairscale_oss)
+
+
+@pytest.mark.parametrize(
+    "strategy, expected_find_unused_parameters",
+    [
+        ("ddp_sharded", None),
+        ("ddp_sharded_find_unused_parameters_false", False),
+        ("ddp_sharded_spawn", None),
+        ("ddp_sharded_spawn_find_unused_parameters_false", False),
+    ],
+)
+def test_fairscale_find_unused_parameters_from_registry(strategy, expected_find_unused_parameters):
+    lite = BoringLite(strategy=strategy)
+    if expected_find_unused_parameters is not None:
+        assert lite._strategy._ddp_kwargs["find_unused_parameters"] is False
