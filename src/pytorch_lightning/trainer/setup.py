@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Houses the methods used to set up the Trainer."""
 
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
+import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
     CUDAAccelerator,
@@ -38,8 +38,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
-def init_debugging_flags(
-    trainer: Any,
+def _init_debugging_flags(
+    trainer: "pl.Trainer",
     limit_train_batches: Optional[Union[int, float]],
     limit_val_batches: Optional[Union[int, float]],
     limit_test_batches: Optional[Union[int, float]],
@@ -72,7 +72,7 @@ def init_debugging_flags(
         trainer.limit_test_batches = num_batches
         trainer.limit_predict_batches = num_batches
         trainer.fit_loop.max_steps = num_batches
-        trainer.num_sanity_val_steps = 0
+        trainer.num_sanity_val_steps: Union[float, int] = 0
         trainer.fit_loop.max_epochs = 1
         trainer.val_check_interval = 1.0
         trainer.check_val_every_n_epoch = 1
@@ -128,7 +128,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
     )
 
 
-def init_profiler(trainer: Any, profiler: Optional[Union[Profiler, str]]) -> None:
+def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str]]) -> None:
     if isinstance(profiler, str):
         PROFILERS = {
             "simple": SimpleProfiler,
@@ -147,8 +147,7 @@ def init_profiler(trainer: Any, profiler: Optional[Union[Profiler, str]]) -> Non
     trainer.profiler = profiler or PassThroughProfiler()
 
 
-def log_device_info(trainer: Any) -> None:
-
+def _log_device_info(trainer: "pl.Trainer") -> None:
     if CUDAAccelerator.is_available():
         gpu_available = True
         gpu_type = " (cuda)"
