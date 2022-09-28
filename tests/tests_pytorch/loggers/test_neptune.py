@@ -40,11 +40,24 @@ def create_neptune_mock():
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
     """
-    return MagicMock(init=MagicMock(return_value=MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths),exists=MagicMock(return_value=True))))
+    return MagicMock(
+        init=MagicMock(
+            return_value=MagicMock(
+                __getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True)
+            )
+        )
+    )
 
 
 def create_neptune_offline_mock():
-    return MagicMock(init=MagicMock(return_value=MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths),exists=MagicMock(return_value=False))))
+    return MagicMock(
+        init=MagicMock(
+            return_value=MagicMock(
+                __getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=False)
+            )
+        )
+    )
+
 
 class Run:
     _project_name = "test-project"
@@ -82,6 +95,7 @@ def tmpdir_unittest_fixture(request, tmpdir):
     """
     request.cls.tmpdir = tmpdir
 
+
 class TestNeptuneLogger(unittest.TestCase):
     def run(self, *args, **kwargs):
         with mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
@@ -93,6 +107,7 @@ class TestNeptuneLogger(unittest.TestCase):
         created_run_mock = logger.run
 
         self.assertEqual(logger._run_instance, created_run_mock)
+        created_run_mock.exists.assert_called_once_with("sys/id")
         self.assertEqual(logger.name, "Run test name")
         self.assertEqual(logger.version, "TEST-1")
         self.assertEqual(neptune.init.call_count, 1)
@@ -104,11 +119,12 @@ class TestNeptuneLogger(unittest.TestCase):
     @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_offline_mock)
     def test_neptune_offline(self, neptune):
         logger = NeptuneLogger(mode="offline")
+        created_run_mock = logger.run
         logger.experiment["foo"] = "bar"
 
-        assert logger._run_short_id == "OFFLINE"
-        assert logger._run_name == "offline-name"
-
+        created_run_mock.exists.assert_called_once_with("sys/id")
+        self.assertEqual(logger._run_short_id, "OFFLINE")
+        self.assertEqual(logger._run_name, "offline-name")
 
     @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
@@ -133,7 +149,6 @@ class TestNeptuneLogger(unittest.TestCase):
 
         neptune.init.assert_called_once_with(name="Test name", run="TEST-42")
         self.assertIsNotNone(unpickled.experiment)
-
 
     @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
@@ -170,7 +185,6 @@ class TestNeptuneLogger(unittest.TestCase):
         logger._run_instance.__getitem__.return_value = run_attr_mock
 
         return logger, run_instance_mock, run_attr_mock
-
 
     @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
     def test_neptune_additional_methods(self, neptune):
@@ -273,7 +287,6 @@ class TestNeptuneLogger(unittest.TestCase):
             run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
             run_attr_mock.log.assert_has_calls([call(42), call(555)])
 
-
     @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
     def test_log_model_summary(self, neptune):
         model = BoringModel()
@@ -295,7 +308,6 @@ class TestNeptuneLogger(unittest.TestCase):
             self.assertEqual(run_instance_mock.__setitem__.call_count, 1)
             self.assertEqual(run_instance_mock.__getitem__.call_count, 0)
             run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
-
 
     @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
     def test_after_save_checkpoint(self, neptune):
