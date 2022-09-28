@@ -1,13 +1,4 @@
-import pytest
-
 from lightning_app import CloudCompute
-
-
-def test_cloud_compute_unsupported_features():
-    with pytest.raises(ValueError, match="Clusters are't supported yet"):
-        CloudCompute("gpu", clusters="as")
-    with pytest.raises(ValueError, match="Setting a wait timeout isn't supported yet"):
-        CloudCompute("gpu", wait_timeout=1)
 
 
 def test_cloud_compute_names():
