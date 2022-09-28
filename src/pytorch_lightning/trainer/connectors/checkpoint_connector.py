@@ -71,7 +71,7 @@ class CheckpointConnector:
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
-        1. from HPC weights if found
+        1. from HPC weights if `checkpoint_path` is ``None`` and on SLURM or passed keyword `"hpc"`.
         2. from fault-tolerant auto-saved checkpoint if found
         3. from `checkpoint_path` file if provided
         4. don't restore
@@ -163,7 +163,7 @@ class CheckpointConnector:
             # load best weights
             ckpt_path = getattr(self.trainer.checkpoint_callback, "best_model_path", None)
 
-        if ckpt_path == "last":
+        elif ckpt_path == "last":
             candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
                 getattr(cb, "last_model_path", None) for cb in self.trainer.checkpoint_callbacks
             ]
@@ -178,7 +178,7 @@ class CheckpointConnector:
                 return None
             ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
 
-        if ckpt_path == "hpc":
+        elif ckpt_path == "hpc":
             ckpt_path = self._hpc_resume_path
 
         if not ckpt_path:
