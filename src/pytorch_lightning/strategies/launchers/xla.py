@@ -15,7 +15,7 @@ import os
 import time
 from functools import wraps
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional, TYPE_CHECKING, Tuple
+from typing import Any, Callable, Optional, Tuple, TYPE_CHECKING
 
 import torch.multiprocessing as mp
 from torch.multiprocessing import ProcessContext
