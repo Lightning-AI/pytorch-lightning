@@ -2,6 +2,7 @@
 
 ipython[notebook]
 ipython_genutils
+torch>=1.9.*, <1.13.0
 
 sphinx-autobuild
 https://storage.googleapis.com/grid-packages/lightning-ai-sphinx-theme/build-32.zip
