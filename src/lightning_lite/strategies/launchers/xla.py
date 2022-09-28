@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from functools import wraps
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import torch.multiprocessing as mp
-from torch.multiprocessing import ProcessContext
 
 from lightning_lite.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning_lite.utilities import _TPU_AVAILABLE
@@ -69,7 +67,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         """
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
-        _save_spawn(
+        xmp.spawn(
             self._wrapping_function,
             args=(function, args, kwargs, return_queue),
             nprocs=len(self._strategy.parallel_devices),
@@ -89,32 +87,18 @@ class _XLALauncher(_MultiProcessingLauncher):
         self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
+        _rank_teardown(process_idx)
 
-def _save_spawn(
-    fn: Callable,
-    args: Tuple = (),
-    nprocs: Optional[int] = None,
-    join: bool = True,
-    daemon: bool = False,
-    start_method: str = "spawn",
-) -> Optional[ProcessContext]:
-    """Wraps the :func:`torch_xla.distributed.xla_multiprocessing.spawn` with added teardown logic for the worker
-    processes."""
 
-    @wraps(fn)
-    def wrapped(rank: int, *_args: Any) -> None:
-        fn(rank, *_args)
+def _rank_teardown(rank: int) -> None:
+    # Make all processes wait for each other before joining
+    # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
+    xm.rendezvous("end-process")
 
-        # Make all processes wait for each other before joining
-        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        xm.rendezvous("end-process")
-
-        # Ensure that the rank 0 process is the one exiting last
-        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if rank == 0:
-            time.sleep(1)
-
-    return xmp.spawn(wrapped, args=args, nprocs=nprocs, join=join, daemon=daemon, start_method=start_method)
+    # Ensure that the rank 0 process is the one exiting last
+    # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+    if rank == 0:
+        time.sleep(1)
