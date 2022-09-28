@@ -21,13 +21,14 @@ local tputests = base.BaseTest {
   command: utils.scriptCommand(
     |||
       source ~/.bashrc
-      set -e
+      set +x  # turn off tracing, spammy
+      set -e  # exit on error
       conda activate lightning
 
       echo "--- Fetch the SHA's changes ---"
       git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git /home/runner/work/lightning
       cd home/runner/work/lightning
-      git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}"
+      git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}
       git -c advice.detachedHead=false checkout {SHA}
 
       echo "--- Install PL ---"

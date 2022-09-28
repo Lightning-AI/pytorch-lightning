@@ -65,7 +65,6 @@ references:
      name: Deploy the job on the kubernetes cluster
      command: |
        export PATH=$PATH:$HOME/go/bin
-       export USE_GKE_GCLOUD_AUTH_PLUGIN=True  # https://stackoverflow.com/a/72302509
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
