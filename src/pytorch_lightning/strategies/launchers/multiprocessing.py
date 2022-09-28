@@ -27,6 +27,7 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.strategies.launchers.multiprocessing import _check_bad_cuda_fork
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities.types import _PATH
@@ -90,6 +91,9 @@ class _MultiProcessingLauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
         self._check_torchdistx_support()
+        if self._start_method in ("fork", "forkserver"):
+            _check_bad_cuda_fork()
+
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
