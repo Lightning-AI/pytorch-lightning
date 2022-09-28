@@ -1,6 +1,6 @@
 name: Report a bug
 description: Any errors that are not UI related.
-labels: ["needs triage", "bug"]
+labels: ["needs triage"]
 body:
   - type: textarea
     attributes:
