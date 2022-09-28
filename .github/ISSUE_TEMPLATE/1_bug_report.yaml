@@ -51,7 +51,7 @@ body:
         wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
         python collect_env_details.py
         ```
-        
+
         You can also fill out the list below manually.
       value: |
         ```
