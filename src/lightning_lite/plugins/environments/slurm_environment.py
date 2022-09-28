@@ -138,14 +138,5 @@ class SLURMEnvironment(ClusterEnvironment):
         - a comma-separated list of host names, e.g., 'host0,host1,host3' yields 'host0' as the root
         - the range notation with brackets, e.g., 'host[5-9]' yields 'host5' as the root
         """
-        root_node = nodes.split(" ")[0].split(",")[0]
-        if "[" in root_node:
-            name, numbers = root_node.split("[", maxsplit=1)
-            number = numbers.split(",", maxsplit=1)[0]
-            if "-" in number:
-                number = number.split("-")[0]
-
-            number = re.sub("[^0-9]", "", number)
-            root_node = name + number
-
-        return root_node
+        nodes = re.sub("\[(.*?)[,-].*?\]", "\\1", nodes)  # Take the first node of every node range
+        return nodes.split(" ")[0].split(",")[0]
