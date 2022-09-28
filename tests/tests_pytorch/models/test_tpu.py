@@ -240,7 +240,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 @RunIf(tpu=True)
 @pytest.mark.parametrize("tpu_cores", [[1, 8], "9, ", [9], [0], 2, 10])
 def test_tpu_misconfiguration(tpu_cores):
-    with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
+    with pytest.raises(TypeError, match="`tpu_cores` can only be"):
         Trainer(accelerator="tpu", devices=tpu_cores)
 
 
