@@ -77,7 +77,7 @@ def test_hpc_restore_attempt(_, tmpdir):
         assert param.abs().sum() > 0
         torch.nn.init.constant_(param, 0)
 
-    # case 2: explicit resume path provided, restore hpc anyway
+    # case 2: explicit resume path provided, file not found
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
 
     with pytest.raises(FileNotFoundError, match="Checkpoint at not existing not found. Aborting training."):
