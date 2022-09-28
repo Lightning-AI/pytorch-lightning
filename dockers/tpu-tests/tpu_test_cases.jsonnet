@@ -47,24 +47,18 @@ local tputests = base.BaseTest {
       echo "Sanity check passed!"
 
       echo "--- Running Lite tests ---"
-      export PL_RUN_TPU_TESTS=1
       cd tests/tests_lite
-      coverage run --source=lightning_lite -m pytest -vv --durations=0 ./
+      PL_RUN_TPU_TESTS=1 coverage run --source=lightning_lite -m pytest -vv --durations=0 ./
 
       echo "--- Running standalone Lite tests ---"
-      export PL_STANDALONE_TESTS_SOURCE=lightning_lite
-      export PL_STANDALONE_TESTS_BATCH_SIZE=1
-      bash run_standalone_tests.sh
+      PL_STANDALONE_TESTS_SOURCE=lightning_lite PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
       echo "--- Running PL tests ---"
-      export PL_RUN_TPU_TESTS=1
-      cd tests/tests_pytorch
-      coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
+      cd ../tests_pytorch
+      PL_RUN_TPU_TESTS=1 coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
 
       echo "--- Running standalone PL tests ---"
-      export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
-      export PL_STANDALONE_TESTS_BATCH_SIZE=1
-      bash run_standalone_tests.sh
+      PL_STANDALONE_TESTS_SOURCE=pytorch_lightning PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
       echo "--- Generating coverage ---"
       coverage xml
