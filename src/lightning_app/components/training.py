@@ -42,7 +42,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         self.env = env
 
     def configure_tracer(self):
-        from pytorch_lightning import Trainer
+        from lightning import Trainer
 
         tracer = super().configure_tracer()
         tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
@@ -70,8 +70,8 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         return super().run(**kwargs)
 
     def on_after_run(self, script_globals):
-        from pytorch_lightning import Trainer
-        from pytorch_lightning.cli import LightningCLI
+        from lightning import Trainer
+        from lightning.pytorch.cli import LightningCLI
 
         for v in script_globals.values():
             if isinstance(v, LightningCLI):
@@ -97,7 +97,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         if self.node_rank != 0:
             return {}, args, kwargs
 
-        from pytorch_lightning.serve import ServableModuleValidator
+        from lightning.pytorch.serve import ServableModuleValidator
 
         callbacks = kwargs.get("callbacks", [])
         if self.sanity_serving:
