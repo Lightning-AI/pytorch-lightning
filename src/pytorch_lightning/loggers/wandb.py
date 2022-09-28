@@ -133,7 +133,7 @@ class WandbLogger(Logger):
 
     .. code-block:: python
 
-        wandb_logger.unwatch(model)
+        wandb_logger.experiment.unwatch(model)
 
     **Log model checkpoints**
 
