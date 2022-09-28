@@ -249,7 +249,6 @@ class NeptuneLogger(Logger):
             self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
-
         assert self._run_instance is not None
         self._run_instance.wait()
         if self._run_instance.exists("sys/id"):
