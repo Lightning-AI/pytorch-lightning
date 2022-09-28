@@ -99,15 +99,13 @@ class CheckpointConnector:
     def _set_ckpt_path(
         self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool
     ) -> Optional[str]:
-        # fault-tolerance takes precedence
+        if ckpt_path is None and SLURMEnvironment.detect() and self._hpc_resume_path is not None:
+            ckpt_path = "hpc"
+
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
         fn = state_fn.value
-
-        if ckpt_path is None and SLURMEnvironment.detect() and self._hpc_resume_path is not None:
-            ckpt_path = "hpc"
-
         if ckpt_path is None and ft_checkpoints and self.trainer.state.fn == TrainerFn.FITTING:
             ckpt_path = "last"
             rank_zero_warn(
