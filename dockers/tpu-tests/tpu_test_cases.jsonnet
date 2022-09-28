@@ -35,13 +35,31 @@ local tputests = base.BaseTest {
       pip install -e .[test]
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
+
+      echo "\n||| Sanity check TPU availability |||\n"
+      python -c "from pytorch_lightning.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
+      python -c "from lightning_lite.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
+
+      echo "\n||| Running PL tests |||\n"
       export PL_RUN_TPU_TESTS=1
       cd tests/tests_pytorch
       coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
-      echo "\n||| Running standalone tests |||\n"
+
+      echo "\n||| Running Lite tests |||\n"
+      export PL_RUN_TPU_TESTS=1
+      cd tests/tests_lite
+      coverage run --source=lightning_lite -m pytest -vv --durations=0 ./
+
+      echo "\n||| Running standalone PL tests |||\n"
       export PL_STANDALONE_TESTS_SOURCE=pytorch_lightning
       export PL_STANDALONE_TESTS_BATCH_SIZE=1
       bash run_standalone_tests.sh
+
+      echo "\n||| Running standalone Lite tests |||\n"
+      export PL_STANDALONE_TESTS_SOURCE=lightning_lite
+      export PL_STANDALONE_TESTS_BATCH_SIZE=1
+      bash run_standalone_tests.sh
+
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
       cat coverage.xml | tr -d '\t'
