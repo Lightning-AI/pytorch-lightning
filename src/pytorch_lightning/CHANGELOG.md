@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `BatchSizeFinder` callback ([#11089](https://github.com/PyTorchLightning/pytorch-lightning/pull/11089))
+
+
+- Tuner now supports a new `method` argument which will determine when to run the `BatchSizeFinder`: one of `fit`, `validate`, `test` or `predict` ([#11089](https://github.com/PyTorchLightning/pytorch-lightning/pull/11089))
+
 
 - Added prefix to log message in `seed_everything` with rank info ([#13290](https://github.com/Lightning-AI/lightning/issues/13290))
 
@@ -92,6 +97,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - The `MLFlowLogger.finalize()` now sets the status to `FAILED` when an exception occurred in `Trainer`, and sets the status to `FINISHED` on successful completion ([#12292](https://github.com/Lightning-AI/lightning/pull/12292))
+
+
+- It is no longer needed to call `model.double()` when using `precision=64` in Lightning Lite ([#14827](https://github.com/Lightning-AI/lightning/pull/14827))
 
 
 ### Deprecated
@@ -221,7 +229,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated `Trainer.use_amp` and `LightningModule.use_amp` attributes ([#14832](https://github.com/Lightning-AI/lightning/pull/14832))
 
-- Removed the deprecated `Trainer.run_stage` in favor of `Trainer.{fit,validate,test,predict}`
+
+- Removed the deprecated `Trainer.run_stage` in favor of `Trainer.{fit,validate,test,predict}` ([#14870](https://github.com/Lightning-AI/lightning/pull/14870))
 
 
 - Removed the deprecated `SimpleProfiler.profile_iterable` and `AdvancedProfiler.profile_iterable` attributes ([#14864](https://github.com/Lightning-AI/lightning/pull/14864))
@@ -230,7 +239,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `Trainer.verbose_evaluate` ([#14884](https://github.com/Lightning-AI/lightning/pull/14884))
 
 
-- Remove the deprecated `Trainer.should_rank_save_checkpoint` ([#14885](https://github.com/Lightning-AI/lightning/pull/14885))
+- Removed the deprecated `Trainer.should_rank_save_checkpoint` ([#14885](https://github.com/Lightning-AI/lightning/pull/14885))
+
+
+- Removed the deprecated `TrainerOptimizersMixin` ([#14887](https://github.com/Lightning-AI/lightning/pull/14887))
+
+
+- Removed the deprecated `Trainer.lightning_optimizers` ([#14889](https://github.com/Lightning-AI/lightning/pull/14889))
+
+
+- Removed the deprecated `TrainerDataLoadingMixin` ([#14888](https://github.com/Lightning-AI/lightning/pull/14888))
+
+
+- Removed the deprecated `Trainer.call_hook` in favor of `Trainer._call_callback_hooks`, `Trainer._call_lightning_module_hook`, `Trainer._call_ttp_hook`, and `Trainer._call_accelerator_hook` ([#14869](https://github.com/Lightning-AI/lightning/pull/14869))
+
+- Removed the deprecated `Trainer.{validated,tested,predicted}_ckpt_path` ([#14897](https://github.com/Lightning-AI/lightning/pull/14897))
 
 - Removed the deprecated `device_stats_monitor_prefix_metric_keys` ([#14890](https://github.com/Lightning-AI/lightning/pull/14890))
 

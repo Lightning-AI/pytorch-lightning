@@ -22,7 +22,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
-from pytorch_lightning.trainer.states import RunningStage
 
 
 def test_v1_8_0_on_init_start_end(tmpdir):
@@ -51,70 +50,6 @@ def test_v1_8_0_on_init_start_end(tmpdir):
         match="The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.validate(model)
-
-
-def test_v1_8_0_deprecated_call_hook():
-    trainer = Trainer(
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-        enable_progress_bar=False,
-        logger=False,
-    )
-    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8."):
-        trainer.call_hook("test_hook")
-
-
-@pytest.mark.parametrize("fn_prefix", ["validated", "tested", "predicted"])
-def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
-    test_attr = f"{fn_prefix}_ckpt_path"
-    trainer = Trainer()
-    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
-        _ = getattr(trainer, test_attr)
-    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
-        setattr(trainer, test_attr, "v")
-
-
-def test_v1_8_0_trainer_optimizers_mixin():
-    trainer = Trainer()
-    model = BoringModel()
-    trainer.strategy.connect(model)
-    trainer.lightning_module.trainer = trainer
-
-    with pytest.deprecated_call(
-        match=r"`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
-    ):
-        trainer.init_optimizers(model)
-
-    with pytest.deprecated_call(
-        match=r"`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
-        "v1.8."
-    ):
-        trainer.convert_to_lightning_optimizers()
-
-
-def test_v1_8_0_deprecate_trainer_data_loading_mixin():
-    trainer = Trainer(max_epochs=1)
-    model = BoringModel()
-    dm = BoringDataModule()
-    trainer.fit(model, datamodule=dm)
-
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.prepare_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.prepare_dataloader(dataloader=model.train_dataloader, shuffle=False)
-    with pytest.deprecated_call(
-        match=r"`TrainerDataLoadingMixin.request_dataloader` was deprecated in v1.6 and will be removed in v1.8.",
-    ):
-        trainer.request_dataloader(stage=RunningStage.TRAINING)
-
-
-def test_v1_8_0_deprecated_lightning_optimizers():
-    trainer = Trainer()
-    with pytest.deprecated_call(
-        match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
-    ):
-        assert trainer.lightning_optimizers == {}
 
 
 def test_v1_8_0_remove_on_batch_start_end(tmpdir):

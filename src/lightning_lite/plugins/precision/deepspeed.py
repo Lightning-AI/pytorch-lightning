@@ -30,7 +30,7 @@ class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Full precision (32), half precision (16) or bfloat16 precision (bf16).
         amp_type: The mixed precision backend to use ("native" or "apex").
         amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
             if ``amp_type`` is set to "apex".

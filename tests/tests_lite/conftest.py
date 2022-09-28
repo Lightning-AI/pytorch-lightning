@@ -144,3 +144,10 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
             bold=True,
             purple=True,  # oh yeah, branded pytest messages
         )
+
+    # error out on our deprecation warnings - ensures the code and tests are kept up-to-date
+    deprecation_error = pytest.mark.filterwarnings(
+        "error::lightning_lite.utilities.rank_zero.LightningDeprecationWarning",
+    )
+    for item in items:
+        item.add_marker(deprecation_error)
