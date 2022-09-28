@@ -46,7 +46,7 @@ body:
         https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
         (For security purposes, please check the contents of the script before running it)
         You can get the script and run it with:
-        ```bash
+        ```console
         wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
         python collect_env_details.py
         ```
