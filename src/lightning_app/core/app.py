@@ -62,7 +62,7 @@ class LightningApp:
         Arguments:
             root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
                 It must define a `run()` method that the app can call.
-            default_cloud_compute: The default ComputeConfig used for LightningFlow components.
+            default_cloud_compute: The default Compute Compute used for flow, Rest API and frontend's.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
 

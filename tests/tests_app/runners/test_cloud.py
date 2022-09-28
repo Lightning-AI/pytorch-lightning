@@ -99,8 +99,8 @@ class TestAppCreationClient:
             dependency_cache_key=mock.ANY,
             user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
                 name="t2.medium",
-                preemptible=None,
-                shm_size=None,
+                preemptible=False,
+                shm_size=0,
             ),
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
