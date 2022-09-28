@@ -25,7 +25,3 @@ class ExitGracefullyException(SystemExit):
     This signals Lightning to try to create a fault-tolerance checkpoint once the current batch or epoch is reached
     (assuming it can be done under 30 sec). After the checkpoint is saved, Lightning will exit.
     """
-
-
-class _TunerExitException(Exception):
-    """Exception used to exit early while tuning."""
