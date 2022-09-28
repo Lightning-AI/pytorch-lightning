@@ -161,6 +161,26 @@ def mps_count_1(monkeypatch):
     mock_mps_count(monkeypatch, 1)
 
 
+@pytest.fixture(scope="function")
+def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.tpu_spawn, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.single_tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.plugins.precision.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.io.xla_plugin, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+
+
+@pytest.fixture(scope="function")
+def tpu_available(xla_available, monkeypatch) -> None:
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+
+
 @pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.

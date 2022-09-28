@@ -15,9 +15,6 @@
 from multiprocessing import Queue
 from typing import Any, Callable
 
-from pytorch_lightning.accelerators.tpu import _inner_f as new_inner_f
-from pytorch_lightning.accelerators.tpu import _multi_process as new_pl_multi_process
-from pytorch_lightning.accelerators.tpu import _XLA_AVAILABLE
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
@@ -26,7 +23,9 @@ def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  #
         "`pytorch_lightning.utilities.xla_device.inner_f` has been deprecated in v1.8.0 and will be"
         " removed in v1.10.0. This class is internal but you can copy over its implementation."
     )
-    return new_inner_f(queue, func, *args, **kwargs)
+    from lightning_lite.accelerators.tpu import _inner_f
+
+    return _inner_f(queue, func, *args, **kwargs)
 
 
 def pl_multi_process(func: Callable) -> Callable:
@@ -34,14 +33,16 @@ def pl_multi_process(func: Callable) -> Callable:
         "`pytorch_lightning.utilities.xla_device.pl_multi_process` has been deprecated in v1.8.0 and will be"
         " removed in v1.10.0. This class is internal but you can copy over its implementation."
     )
-    return new_pl_multi_process(func)
+    from lightning_lite.accelerators.tpu import _multi_process
+
+    return _multi_process(func)
 
 
 class XLADeviceUtils:
     def __init__(self) -> None:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.xla_device.XLADeviceUtils` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. This class is internal but you can copy over its implementation."
+            " removed in v1.10.0. This class is internal."
         )
 
     @staticmethod
@@ -49,8 +50,9 @@ class XLADeviceUtils:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.xla_device.XLADeviceUtils.xla_available` has been deprecated in v1.8.0 and"
             " will be removed in v1.10.0. This method is internal."
-            " instead."
         )
+        from pytorch_lightning.accelerators.tpu import _XLA_AVAILABLE
+
         return bool(_XLA_AVAILABLE)
 
     @staticmethod

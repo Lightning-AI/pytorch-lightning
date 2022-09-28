@@ -76,8 +76,7 @@ def test_if_test_works_after_train(tmpdir):
     assert len(trainer.test(model)) == 1
 
 
-@RunIf(tpu=True)
-def test_accelerator_cpu_with_tpu_cores_flag():
+def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator="cpu", devices=8)
@@ -88,9 +87,8 @@ def test_accelerator_cpu_with_tpu_cores_flag():
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
-@RunIf(tpu=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
-def test_accelerator_tpu(accelerator, devices):
+def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
 
     trainer = Trainer(accelerator=accelerator, devices=devices)
@@ -99,10 +97,8 @@ def test_accelerator_tpu(accelerator, devices):
     assert trainer.num_devices == 8
 
 
-@RunIf(tpu=True)
-def test_accelerator_tpu_with_tpu_cores_priority():
+def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
     """Test for checking `tpu_cores` flag takes priority over `devices`."""
-
     tpu_cores = 8
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
@@ -111,8 +107,7 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     assert trainer.num_devices == tpu_cores
 
 
-@RunIf(tpu=True)
-def test_set_devices_if_none_tpu():
+def test_set_devices_if_none_tpu(tpu_available):
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         trainer = Trainer(accelerator="tpu", tpu_cores=8)
     assert isinstance(trainer.accelerator, TPUAccelerator)
@@ -193,20 +188,18 @@ def test_manual_optimization_tpus(tmpdir):
         assert not torch.equal(param.cpu().data, param_copy.data)
 
 
-@RunIf(tpu=True)
-def test_strategy_choice_tpu_str_ddp_spawn(tmpdir):
+def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
 
-@RunIf(tpu=True)
-def test_strategy_choice_tpu_str_tpu_spawn_debug(tmpdir):
+def test_strategy_choice_tpu_str_tpu_spawn_debug(tpu_available):
     trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(tpu=True)
-def test_strategy_choice_tpu_strategy(tmpdir):
+def test_strategy_choice_tpu_strategy():
     trainer = Trainer(strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
@@ -257,8 +250,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
 
 
-@RunIf(tpu=True)
-def test_tpu_invalid_raises():
+def test_tpu_invalid_raises(tpu_available):
     strategy = TPUSpawnStrategy(accelerator=TPUAccelerator(), precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecisionPlugin"):
         Trainer(strategy=strategy, devices=8)
@@ -268,8 +260,7 @@ def test_tpu_invalid_raises():
         Trainer(strategy=strategy, devices=8)
 
 
-@RunIf(tpu=True)
-def test_tpu_invalid_raises_set_precision_with_strategy():
+def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
     accelerator = TPUAccelerator()
     strategy = TPUSpawnStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
     with pytest.raises(ValueError, match="`TPUAccelerator` can only be used with a `TPUPrecisionPlugin`"):
@@ -283,13 +274,13 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
         Trainer(strategy=strategy, devices=8)
 
 
-@RunIf(tpu=True)
-def test_xla_checkpoint_plugin_being_default():
+def test_xla_checkpoint_plugin_being_default(tpu_available):
     trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 
-@patch("pytorch_lightning.strategies.tpu_spawn.MpDeviceLoader")
+@RunIf(tpu=True)
+@patch("torch_xla.distributed.parallel_loader.MpDeviceLoader")
 @patch("pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy.root_device")
 def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
     dataset = RandomDataset(32, 64)
@@ -299,8 +290,7 @@ def test_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
 
 
-@RunIf(tpu=True)
-def test_warning_if_tpus_not_used():
+def test_warning_if_tpus_not_used(tpu_available):
     with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
         Trainer()
 

@@ -210,7 +210,7 @@ def test_dist_backend_accelerator_mapping(cuda_count_0):
     assert trainer.strategy.local_rank == 0
 
 
-@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
+@mock.patch("lightning_lite.accelerators.mps._get_all_available_mps_gpus", return_value=[0, 1])
 def test_ipython_incompatible_backend_error(_, cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
@@ -234,8 +234,7 @@ def test_ipython_compatible_dp_strategy_gpu(cuda_count_2, monkeypatch):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_ipython_compatible_strategy_tpu(_, monkeypatch):
+def test_ipython_compatible_strategy_tpu(tpu_available, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
@@ -271,14 +270,14 @@ def test_accelerator_cpu(cuda_count_0):
 
     with pytest.raises(
         MisconfigurationException,
-        match="CUDAAccelerator can not run on your system since the accelerator is not available.",
+        match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
             Trainer(gpus=1)
 
     with pytest.raises(
         MisconfigurationException,
-        match="CUDAAccelerator can not run on your system since the accelerator is not available.",
+        match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         Trainer(accelerator="cuda")
 
@@ -605,20 +604,20 @@ def test_check_native_fsdp_strategy_and_fallback():
         Trainer(accelerator="cpu", strategy="fsdp_native")
 
 
-@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_unsupported_tpu_choice(mock_tpu_acc_avail):
-
+def test_unsupported_tpu_choice(tpu_available):
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
     # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
-        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16, strategy="ddp")
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
+        UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
+    ):
+        Trainer(accelerator="tpu", precision=16, strategy="ddp")
 
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
-        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"):
-            Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
+        UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"
+    ):
+        Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)

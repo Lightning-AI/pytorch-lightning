@@ -134,10 +134,10 @@ def test_v1_10_deprecated_xla_device_utilities():
     with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
         XLADeviceUtils()
 
-    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils.xla_available` has been deprecated in v1.8.0"):
         XLADeviceUtils.xla_available()
 
-    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils.tpu_device_exists` has been deprecated in v1.8.0"):
         XLADeviceUtils.tpu_device_exists()
 
     from pytorch_lightning.utilities.distributed import tpu_distributed
@@ -284,8 +284,7 @@ def test_lite_convert_deprecated_gpus_argument(cuda_count_2):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning_lite.accelerators.TPUAccelerator.is_available", return_value=True)
-def test_lite_convert_deprecated_tpus_argument(*_):
+def test_lite_convert_deprecated_tpus_argument(tpu_available):
     with pytest.deprecated_call(match=escape("Setting `Lite(tpu_cores=8)` is deprecated in v1.8.0")):
         lite = EmptyLite(tpu_cores=8)
     assert isinstance(lite._accelerator, LiteTPUAccelerator)
