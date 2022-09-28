@@ -4,7 +4,7 @@ import pickle
 from re import escape
 from time import sleep
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY
 
 import pytest
 from deepdiff import Delta
@@ -1110,11 +1110,6 @@ def test_cloud_compute_binding():
     assert isinstance(flow.cloud_compute, CloudCompute)
     assert isinstance(flow.work_a.cloud_compute, CloudCompute)
     assert isinstance(flow.work_c.cloud_compute, CloudCompute)
-
-    with patch("lightning_app.core.work.is_running_in_cloud", lambda: True):
-        with pytest.raises(RuntimeError, match="The work root.w.w.work_d is dynamically created"):
-            LightningApp(flow)
-            flow.run()
 
     cloud_compute.MULTI_WORKS_INTO_SINGLE_POD = False
 
