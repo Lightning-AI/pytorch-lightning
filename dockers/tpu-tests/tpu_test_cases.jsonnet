@@ -33,9 +33,7 @@ local tputests = base.BaseTest {
       git -c advice.detachedHead=false checkout {SHA}
 
       echo "--- Install PL ---"
-      export PACKAGE_NAME=pytorch
-      export FREEZE_REQUIREMENTS=1
-      pip install -e .[test]
+      PACKAGE_NAME=pytorch FREEZE_REQUIREMENTS=1 pip install -e .[test]
       pip list
 
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
