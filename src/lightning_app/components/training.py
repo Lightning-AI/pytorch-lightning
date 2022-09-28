@@ -97,7 +97,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         if self.node_rank != 0:
             return {}, args, kwargs
 
-        from lightning.pytorch.serve import ServableModuleValidator
+        from pytorch_lightning.serve import ServableModuleValidator
 
         callbacks = kwargs.get("callbacks", [])
         if self.sanity_serving:
