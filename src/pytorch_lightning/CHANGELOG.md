@@ -46,6 +46,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning when the model passed to `LightningLite.setup()` does not have all parameters on the same device ([#14822](https://github.com/Lightning-AI/lightning/pull/14822))
 
 
+- The `CometLogger` now flags the Comet Experiments as being created from Pytorch-Lightning for analytics purposes
+
+
 
 ### Changed
 
