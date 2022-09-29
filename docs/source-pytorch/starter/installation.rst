@@ -10,6 +10,22 @@ Installation
 
 ----
 
+*****************************
+Apple Silicon (M1/M2/M3) Macs
+*****************************
+While ML related python packages are updated to work with Apple Silicon, you'll need to set 2 environment variables on install.
+
+.. code-block:: bash
+
+    # needed for M1/M2/M3
+    export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
+    export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
+
+    python -m pip install -U lightning
+
+
+----
+
 ****************
 Install with pip
 ****************
@@ -18,9 +34,7 @@ Install lightning inside a virtual env or conda environment with pip
 
 .. code-block:: bash
 
-    pip install lightning
-
-Or read the `Apple Silicon Macs installation article <installation_mac.rst>`_.
+    python -m pip install lightning
 
 --------------
 

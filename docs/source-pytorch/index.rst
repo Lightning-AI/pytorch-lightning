@@ -18,8 +18,8 @@ Welcome to ⚡ Lightning
       .. image:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
          :alt: Animation showing how to convert a standard training loop to a Lightning loop
    :right:
-      Lightning (previously PyTorch Lightning) is the fastest & most flexible
-      way to train & build PyTorch models, research workflows (NEW) and production pipelines (NEW).
+      Lightning (previously PyTorch Lightning) is the fastest, most flexible
+      way to train PyTorch models, and build, monetize intelligent cloud applications.
 
 .. raw:: html
 
@@ -55,7 +55,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install lightning
+    python -m pip install lightning
 
 .. raw:: html
 
@@ -73,9 +73,9 @@ Conda users
       </div>
    </div>
 
-For custom installation use the `advanced install guide <starter/installation.html>`_.
+Mac M1/M2 users or for custom installation use the `advanced install guide <starter/installation.html>`_.
 
-.. note:: pip install pytorch-lightning has been deprecated and will stop being supported on June 2023.
+.. note:: **pip install pytorch-lightning** has been deprecated and will stop being supported on June 2023. Use **pip install lightning** instead.
 
 .. raw:: html
 
