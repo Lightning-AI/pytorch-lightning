@@ -44,11 +44,11 @@ from lightning_lite.strategies import (
     DeepSpeedStrategy,
     SingleDeviceStrategy,
 )
-from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning_lite.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
-def test_accelerator_choice_cpu(tmpdir):
+def test_accelerator_choice_cpu():
     connector = _Connector()
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
