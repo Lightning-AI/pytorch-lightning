@@ -12,3 +12,4 @@ sphinx-togglebutton>=0.2, <=0.3.2
 sphinx-copybutton>=0.3, <=0.5.0
 sphinx-multiproject
 jinja2>=3.0.0,<3.1.0
+pt-lightning-sphinx-theme @ https://github.com/Lightning-AI/lightning_sphinx_theme/archive/master.zip
