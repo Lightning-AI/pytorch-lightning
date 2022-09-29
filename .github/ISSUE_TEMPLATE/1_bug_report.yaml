@@ -6,6 +6,15 @@ body:
     attributes:
       label: Bug description
       description: A description of the 🐛bug🐛.
+      placeholder: |
+        A clear and concise description of what the bug is.
+      
+        Include steps to reproduce, the expected behaviour, and the actual behaviour.
+      
+        ```
+        The error message you got, with the full traceback if available.
+        ```
+
     validations:
       required: true
 
