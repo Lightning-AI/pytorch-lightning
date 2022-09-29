@@ -38,7 +38,6 @@ from lightning_lite.plugins.io import TorchCheckpointIO
 from lightning_lite.strategies import (
     DataParallelStrategy,
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
@@ -239,7 +238,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPStrategy),
         ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
+        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -360,7 +359,7 @@ def test_strategy_choice_cpu_instance():
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
+        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -371,7 +370,7 @@ def test_strategy_choice_gpu_str(strategy, strategy_class):
 
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(
-    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
+    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPShardedStrategy)]
 )
 @pytest.mark.parametrize(
     "precision,expected_precision", [(16, NativeMixedPrecision), (32, Precision), ("bf16", NativeMixedPrecision)]

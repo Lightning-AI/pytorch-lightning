@@ -18,8 +18,7 @@ import torch.nn as nn
 import torch.optim
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.strategies import DDPShardedStrategy
-from lightning_lite.strategies.fairscale import DDPSpawnShardedStrategy, ShardedDataParallel
+from lightning_lite.strategies.fairscale import DDPShardedStrategy, ShardedDataParallel
 
 
 @RunIf(fairscale=True)
@@ -33,10 +32,9 @@ def test_block_backward_sync():
 
 @RunIf(fairscale=True)
 @mock.patch("lightning_lite.strategies.fairscale._reinit_optimizers_with_oss", autospec=True)
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_fairscale_custom_kwargs(_, cls):
     """Test that if custom kwargs are passed, they are set correctly."""
-    strategy = cls(reduce_fp16=True)
+    strategy = DDPShardedStrategy(reduce_fp16=True)
     assert strategy._ddp_kwargs["reduce_fp16"] is True
 
     model = nn.Linear(3, 3)

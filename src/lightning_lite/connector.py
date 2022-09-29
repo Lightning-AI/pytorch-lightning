@@ -41,7 +41,6 @@ from lightning_lite.plugins.environments import (
 from lightning_lite.plugins.precision.double import DoublePrecision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
@@ -526,7 +525,6 @@ class _Connector:
             return self.strategy.is_distributed
         distributed_strategy = (
             DDPStrategy,
-            DDPSpawnShardedStrategy,
             DDPShardedStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
