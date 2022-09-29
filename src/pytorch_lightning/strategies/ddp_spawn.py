@@ -133,6 +133,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _configure_launcher(self) -> None:
         self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
+    def setup_environment(self) -> None:
+        self.setup_distributed()
+        super().setup_environment()
+
     def setup(self, trainer: "pl.Trainer") -> None:
 
         assert self.cluster_environment is not None
@@ -160,16 +164,9 @@ class DDPSpawnStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
-    def set_world_ranks(self, process_idx: int = 0) -> None:
-        self._local_rank = process_idx
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
-
-    def _worker_setup(self, process_idx: int) -> None:
-        self.set_world_ranks(process_idx)
+    def setup_distributed(self) -> None:
+        log.detail(f"{self.__class__.__name__}: setting up distributed...")
+        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
@@ -180,6 +177,13 @@ class DDPSpawnStrategy(ParallelStrategy):
             self.world_size,
             timeout=self._timeout,
         )
+
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
