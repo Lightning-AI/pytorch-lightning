@@ -45,7 +45,7 @@ def create_run_mock(mode="async", **kwargs):
 
 
 def create_neptune_mock():
-    """Mock with provides nice `logger.name` and `logger.version` values.
+    """Mock with provides nice `logger.name` and `logger.version` values. Additionally, it allows `mode` as an argument to test different Neptune modes.
 
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
