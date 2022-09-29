@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 class BatchSizeFinder(Callback):
     SUPPORTED_MODES = ("power", "binsearch")
 
-    optimal_batch_size: Optional[int] 
+    optimal_batch_size: Optional[int]
 
     def __init__(
         self,
