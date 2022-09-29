@@ -41,6 +41,7 @@ from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
@@ -558,9 +559,9 @@ class Trainer:
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
-            ckpt_path: Path/URL of the checkpoint from which training is resumed. If there is
-                no checkpoint file at the path, an exception is raised. If resuming from mid-epoch checkpoint,
-                training will start from the beginning of the next epoch.
+            ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
+                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
+                If resuming from mid-epoch checkpoint, training will start from the beginning of the next epoch.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
@@ -629,7 +630,7 @@ class Trainer:
             dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
 
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
@@ -721,7 +722,7 @@ class Trainer:
             dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
                 or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying test samples.
 
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
@@ -819,7 +820,7 @@ class Trainer:
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to predict.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to predict.
                 If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
@@ -889,9 +890,11 @@ class Trainer:
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
     ) -> _TunerResult:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -905,43 +908,33 @@ class Trainer:
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
+                samples used for running tuner on validation/testing/prediction.
+
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
             scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
 
             lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
+
+            method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
         """
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.tune()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
 
         Trainer._log_api_event("tune")
 
-        self.state.fn = TrainerFn.TUNING
-        self.state.status = TrainerStatus.RUNNING
-        self.tuning = True
-
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloaders, LightningDataModule):
-            datamodule = train_dataloaders
-            train_dataloaders = None
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
-            raise MisconfigurationException(
-                "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune(datamodule=...)`"
-            )
-
-        # links data to the trainer
-        self._data_connector.attach_data(
-            model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
-        )
-
         with isolate_rng():
             result = self.tuner._tune(
-                model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
+                model,
+                train_dataloaders,
+                val_dataloaders,
+                dataloaders,
+                datamodule,
+                scale_batch_size_kwargs=scale_batch_size_kwargs,
+                lr_find_kwargs=lr_find_kwargs,
+                method=method,
             )
-
-        assert self.state.stopped
-        self.tuning = False
 
         return result
 
