@@ -3,16 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ⚡ PyTorch Lightning
+Welcome to ⚡ Lightning
 ===============================
+
+.. raw:: html
+
+   <div 
+      style="width: 100%; background: #D7F5D5; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #050505; font-size: 16px">
+      <p style="margin-bottom: 5px">PyTorch Lightning has been renamed "Lightning" 🥳</p>
+   </div>
 
 .. twocolumns::
    :left:
-      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+      .. image:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
          :alt: Animation showing how to convert a standard training loop to a Lightning loop
    :right:
-      PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
-      Lightning evolves with you as your projects go from idea to paper/production.
+      Lightning (previously PyTorch Lightning) is the fastest & most flexible
+      way to train & build PyTorch models, research workflows (NEW) and production pipelines (NEW).
 
 .. raw:: html
 
@@ -39,7 +46,6 @@ Welcome to ⚡ PyTorch Lightning
 Install Lightning
 -----------------
 
-
 .. raw:: html
 
    <div class="row" style='font-size: 16px'>
@@ -49,7 +55,7 @@ Pip users
 
 .. code-block:: bash
 
-    pip install pytorch-lightning
+    pip install lightning
 
 .. raw:: html
 
@@ -60,14 +66,16 @@ Conda users
 
 .. code-block:: bash
 
-    conda install pytorch-lightning -c conda-forge
+    conda install lightning -c conda-forge
 
 .. raw:: html
 
       </div>
    </div>
 
-Or read the `advanced install guide <starter/installation.html>`_
+For custom installation use the `advanced install guide <starter/installation.html>`_.
+
+.. note:: pip install pytorch-lightning has been deprecated and will stop being supported on June 2023.
 
 .. raw:: html
 
@@ -78,20 +86,18 @@ Get Started
 
 .. raw:: html
 
-    <div class="tutorials-callout-container">
+    <div class="display-card-container">
         <div class="row">
 
 .. Add callout items below this line
 
-.. customcalloutitem::
-   :description: Learn the 7 key steps of a typical Lightning workflow.
+.. displayitem::
    :header: Lightning in 15 minutes
-   :button_link:  starter/introduction.html
-
-.. customcalloutitem::
-   :description: Learn how to benchmark PyTorch Lightning.
-   :header: Benchmarking
-   :button_link: benchmarking/benchmarks.html
+   :description: Train and deploy a model to understand the 7 key steps of working with Lightning.
+   :col_css: col-md-12
+   :button_link: starter/introduction.html
+   :height: 160
+   :tag: All users
 
 .. raw:: html
 
@@ -115,7 +121,7 @@ Current Lightning Users
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn Lightning in small bites at 4 levels of expertise: Introductory, intermediate, advanced and expert.
+   :description: Learn Lightning in small bites at 4 levels of expertise: basic, intermediate, advanced and expert.
    :header: Level Up!
    :button_link:  expertise_levels.html
 
@@ -134,12 +140,6 @@ Current Lightning Users
    :header: Common Workflows
    :button_link: common_usecases.html
 
-.. customcalloutitem::
-   :description: Convert your current code to Lightning
-   :header: Convert code to PyTorch Lightning
-   :button_link: starter/converting.html
-
-
 .. raw:: html
 
         </div>
@@ -149,15 +149,51 @@ Current Lightning Users
 
 .. raw:: html
 
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+Migrate To Lightning
+--------------------
+
+.. raw:: html
+
+    <div class="tutorials-callout-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. customcalloutitem::
+   :header: PyTorch
+   :description: Organize your PyTorch code into Lightning
+   :button_link:  expertise_levels.html
+
+.. customcalloutitem::
+   :description: Organize your workflows with Lightning
+   :header: DAG frameworks
+   :button_link: api_references.html
+
+.. raw:: html
+
+        </div>
+    </div>
+
+.. raw:: html
+
    <div style="display:none">
+
+.. toctree::
+   :maxdepth: 1
+   :name: home
+   :caption: Home
+
+   self
 
 .. toctree::
    :maxdepth: 1
    :name: start
    :caption: Get Started
 
-   starter/introduction
    starter/installation
+   starter/introduction
 
 
 .. toctree::
@@ -287,7 +323,6 @@ Current Lightning Users
    generated/CONTRIBUTING.md
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
-   versioning
    generated/CHANGELOG.md
 
 .. raw:: html
