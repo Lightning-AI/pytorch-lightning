@@ -32,7 +32,7 @@ def test_block_backward_sync():
 
 @RunIf(fairscale=True)
 @mock.patch("lightning_lite.strategies.fairscale._reinit_optimizers_with_oss", autospec=True)
-def test_fairscale_custom_kwargs(_, cls):
+def test_fairscale_custom_kwargs(_):
     """Test that if custom kwargs are passed, they are set correctly."""
     strategy = DDPShardedStrategy(reduce_fp16=True)
     assert strategy._ddp_kwargs["reduce_fp16"] is True

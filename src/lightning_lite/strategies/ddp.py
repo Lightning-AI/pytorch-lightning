@@ -189,7 +189,6 @@ class DDPStrategy(ParallelStrategy):
             )
 
     def _setup_distributed(self) -> None:
-        reset_seed()  # TODO: what to do with this
         self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
