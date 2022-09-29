@@ -120,7 +120,7 @@ class _MultiProcessingLauncher(_Launcher):
         self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
 

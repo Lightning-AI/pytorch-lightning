@@ -138,7 +138,7 @@ class _MultiProcessingLauncher(_Launcher):
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, worker_output: "_WorkerOutput", trainer: "pl.Trainer") -> None:
