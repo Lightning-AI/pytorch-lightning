@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from argparse import ArgumentParser
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -324,10 +325,18 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-def xla_launch(function):
+def wrap_launch_function(fn, strategy, *args, **kwargs):
+    # the launcher does not manage this automatically. explanation available in:
+    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    strategy.setup_environment()
+    return fn(*args, **kwargs)
+
+
+def xla_launch(fn):
     strategy = TPUSpawnStrategy(parallel_devices=list(range(8)))
     launcher = _XLALauncher(strategy=strategy)
-    return launcher.launch(function, strategy)
+    wrapped = partial(wrap_launch_function, fn, strategy)
+    return launcher.launch(wrapped, strategy)
 
 
 def tpu_sync_dist_fn(strategy):

@@ -1,3 +1,5 @@
+from functools import partial
+
 import pytest
 from tests_lite.helpers.runif import RunIf
 
@@ -6,10 +8,18 @@ from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.utilities.distributed import ReduceOp
 
 
-def xla_launch(function):
+def wrap_launch_function(fn, strategy, *args, **kwargs):
+    # the launcher does not manage this automatically. explanation available in:
+    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    strategy.setup_environment()
+    return fn(*args, **kwargs)
+
+
+def xla_launch(fn):
     strategy = XLAStrategy(parallel_devices=list(range(8)))
     launcher = _XLALauncher(strategy=strategy)
-    return launcher.launch(function, strategy)
+    wrapped = partial(wrap_launch_function, fn, strategy)
+    return launcher.launch(wrapped, strategy)
 
 
 def broadcast_on_tpu_fn(strategy):
