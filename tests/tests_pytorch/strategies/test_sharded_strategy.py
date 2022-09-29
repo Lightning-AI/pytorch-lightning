@@ -18,7 +18,6 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 
 
-# lite: unimplemented
 @pytest.mark.parametrize("clip_val", [0, 10])
 @RunIf(min_cuda_gpus=1, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
@@ -40,7 +39,6 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
         mock_oss_clip_grad_norm.assert_not_called()
 
 
-# lite: adopted
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
@@ -51,7 +49,6 @@ def test_sharded_ddp_choice(strategy, expected):
     assert isinstance(trainer.strategy, expected)
 
 
-# lite: adopted
 @RunIf(min_cuda_gpus=1, fairscale=True)
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
@@ -63,7 +60,6 @@ def test_ddp_choice_sharded_amp(strategy, expected):
     assert isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin)
 
 
-# lite: adopted
 @RunIf(fairscale=True)
 def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly."""
@@ -81,7 +77,6 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
-# lite: adopted
 @RunIf(min_cuda_gpus=2, fairscale=True)
 def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
@@ -99,7 +94,6 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
         assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=2, fairscale=True)
 def test_ddp_sharded_strategy_finetune(tmpdir):
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
@@ -115,7 +109,6 @@ def test_ddp_sharded_strategy_finetune(tmpdir):
     trainer.fit(saved_model)
 
 
-# lite: unimplemented
 @RunIf(fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
     """Test to ensure that resuming from checkpoint works."""
@@ -134,7 +127,6 @@ def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=1, fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
@@ -153,7 +145,6 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-# lite: skipped
 @RunIf(standalone=True, fairscale=True)
 @pytest.mark.parametrize(
     "trainer_kwargs",
@@ -192,7 +183,6 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-# lite: unimplemented
 @RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
 @pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
 def test_ddp_sharded_strategy_manual_optimization(tmpdir, strategy):
@@ -230,7 +220,6 @@ class BoringModelSharded(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
-# lite: adopted
 @RunIf(fairscale=True)
 def test_configure_ddp(tmpdir):
     """Tests with ddp sharded strategy."""
@@ -244,7 +233,6 @@ def test_configure_ddp(tmpdir):
     trainer.predict(model, dataloaders=model.predict_dataloader())
 
 
-# lite: adopted
 @RunIf(fairscale=True)
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
@@ -263,7 +251,6 @@ def test_custom_kwargs_sharded(_, cls):
     assert kwargs["reduce_fp16"]
 
 
-# lite: adopted
 @RunIf(fairscale=True)
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
 @pytest.mark.parametrize(["params", "expected_buffer_size"], [(dict(), 0), (dict(reduce_buffer_size=128), 128)])
@@ -288,7 +275,6 @@ def test_custom_kwargs_sharded_reduce_buffer_size(_, params, expected_buffer_siz
         assert kwargs["reduce_buffer_size"] == expected_buffer_size
 
 
-# lite: adopted
 @RunIf(fairscale=True)
 def test_block_backward_sync():
     strategy = DDPShardedStrategy()
@@ -299,7 +285,6 @@ def test_block_backward_sync():
     model.no_sync.assert_called_once()
 
 
-# lite: adopted
 @pytest.mark.parametrize(
     "strategy_name,expected_ddp_kwargs",
     [
@@ -320,7 +305,6 @@ class BoringFairScaleOptimizerModel(BoringModel):
         return OSS(params=base_optimizer.param_groups, optim=type(base_optimizer), **base_optimizer.defaults)
 
 
-# lite: adopted
 @RunIf(min_cuda_gpus=2, fairscale=True)
 @pytest.mark.parametrize("strategy", (pytest.param("ddp_sharded", marks=RunIf(standalone=True)), "ddp_sharded_spawn"))
 def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
