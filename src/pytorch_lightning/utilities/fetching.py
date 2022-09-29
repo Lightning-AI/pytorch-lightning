@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
+from diskcache import barrier
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
@@ -284,7 +285,8 @@ class DataFetcher(AbstractDataFetcher):
                 dataloader = self.dataloader
                 assert isinstance(dataloader, Sized)  # `_has_len` is True
                 self.done = self.fetched >= len(dataloader)
-        except Exception as e:
+            self.on_fetch_end(batch, start_output)
+        except StopIteration as e:
             self._stop_profiler()
             raise e
 
