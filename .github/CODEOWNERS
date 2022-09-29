@@ -43,7 +43,8 @@
 /src/pytorch_lightning/profilers/pytorch.py @nbcsm @guotuofeng @carmocca
 /src/pytorch_lightning/strategies           @awaelchli @carmocca @justusschock @kaushikb11
 /src/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/trainer/connectors   @williamfalcon @borda @tchaton @awaelchli @carmocca @justusschock
+/src/pytorch_lightning/trainer/connectors   @awaelchli @carmocca @justusschock @otaj
+/src/pytorch_lightning/trainer/conectors/logger_connector @awaelchli @carmocca @rohitgr7
 /src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli @rohitgr7
 /src/pytorch_lightning/utilities            @borda @awaelchli @carmocca
 /tests/tests_pytorch                        @awaelchli @carmocca @rohitgr7 @otaj @justusschock
