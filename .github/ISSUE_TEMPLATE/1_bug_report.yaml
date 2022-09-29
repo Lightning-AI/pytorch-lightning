@@ -27,7 +27,10 @@ body:
       label: How to reproduce the bug
       description: >
         Provide steps and example code here.
-      placeholder: "# Insert code here"
+      placeholder: |
+        ```python
+        # Sample code to reproduce the problem
+        ```
       render: python
     validations:
       required: false
