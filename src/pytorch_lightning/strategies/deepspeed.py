@@ -30,7 +30,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.optimizer import optimizers_to_device
@@ -85,16 +85,8 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
+        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
         return super().forward(*inputs, **kwargs)
-
-    def _batch_to(self, batch: Tensor) -> Tensor:
-        if torch.is_floating_point(batch):
-            if self.precision == PrecisionType.HALF:
-                return batch.half()
-            elif self.precision == PrecisionType.BFLOAT:
-                return batch.bfloat16()
-        return batch
 
 
 class DeepSpeedStrategy(DDPStrategy):
@@ -103,7 +95,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
