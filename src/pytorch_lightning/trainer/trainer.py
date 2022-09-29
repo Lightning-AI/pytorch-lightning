@@ -66,7 +66,7 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.profilers import Profiler
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
-from pytorch_lightning.trainer import setup, teardown
+from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -393,7 +393,6 @@ class Trainer:
         Trainer._log_api_event("init")
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
-        self.num_sanity_val_steps: int
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
@@ -498,7 +497,7 @@ class Trainer:
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
-        setup.init_profiler(self, profiler)
+        setup._init_profiler(self, profiler)
 
         # init logger flags
         self._loggers: List[Logger]
@@ -506,7 +505,8 @@ class Trainer:
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
-        setup.init_debugging_flags(
+        self.num_sanity_val_steps: Union[float, int]
+        setup._init_debugging_flags(
             self,
             limit_train_batches,
             limit_val_batches,
@@ -522,7 +522,7 @@ class Trainer:
         self._call_callback_hooks("on_init_end")
 
     def _setup_on_init(self) -> None:
-        setup.log_device_info(self)
+        setup._log_device_info(self)
 
         self.should_stop = False
         self.state = TrainerState()
@@ -568,7 +568,7 @@ class Trainer:
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model
-        teardown.call_and_handle_interrupt(
+        call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
 
@@ -648,7 +648,7 @@ class Trainer:
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return teardown.call_and_handle_interrupt(
+        return call._call_and_handle_interrupt(
             self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
 
@@ -740,7 +740,7 @@ class Trainer:
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return teardown.call_and_handle_interrupt(
+        return call._call_and_handle_interrupt(
             self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
 
@@ -831,7 +831,7 @@ class Trainer:
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
-        return teardown.call_and_handle_interrupt(
+        return call._call_and_handle_interrupt(
             self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
 
