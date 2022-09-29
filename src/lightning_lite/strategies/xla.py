@@ -44,7 +44,7 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class XLAStrategy(DDPStrategy):
+class XLAStrategy(DDPStrategy):  # TODO(lite)
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
