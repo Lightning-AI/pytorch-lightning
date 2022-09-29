@@ -18,7 +18,6 @@ from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -276,6 +275,8 @@ def _adjust_batch_size(
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
     if trainer.state.fn == "fit":
+        from pytorch_lightning.trainer.supporters import CombinedLoader
+
         if trainer.train_dataloader is None:
             trainer.reset_train_dataloader()
 
@@ -304,7 +305,9 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(batch_size: int, dataloader: CombinedLoader, trainer: "pl.Trainer") -> bool:
+def _is_valid_batch_size(
+    batch_size: int, dataloader: "pl.trainer.supporters.CombinedLoader", trainer: "pl.Trainer"
+) -> bool:
     from pytorch_lightning.utilities.data import has_len_all_ranks
 
     module = trainer.lightning_module or trainer.datamodule
