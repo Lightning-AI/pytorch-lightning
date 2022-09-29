@@ -25,7 +25,6 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
-
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
 
