@@ -27,7 +27,6 @@ from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
-
 class _SubprocessScriptLauncher(_Launcher):
     r"""
     A process laucher that invokes the current script as many times as desired in a single node.
