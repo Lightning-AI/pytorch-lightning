@@ -70,18 +70,14 @@ def test_resume_training_on_cpu(tmpdir):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_if_test_works_after_train(tmpdir, capsys):
+@pytest.mark.xfail(raises=ProcessExitedException, reason="https://github.com/pytorch/xla/issues/1666")
+def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
     model = BoringModel()
     trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
-    # https://github.com/pytorch/xla/issues/1666
-    with pytest.raises(ProcessExitedException):
-        trainer.fit(model)
-        out = trainer.test(model)
-        assert len(out) == 1
-    # the exception is not propagated properly to use `raises(match=...)`. manually chekc stderr instead
-    captured = capsys.readouterr()
-    assert "OSError: libmkl_intel_lp64" in captured.err
+    trainer.fit(model)
+    out = trainer.test(model)
+    assert len(out) == 1
 
 
 @RunIf(tpu=True)
