@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import logging
-import operator
 import os
 import re
 from copy import deepcopy
-from functools import partial
 from typing import Any, Dict, Optional
 
 import torch
@@ -172,7 +170,7 @@ class CheckpointConnector:
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
                 return None
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+            ckpt_path = max(candidates_ts, key=candidates_ts.get)  # type: ignore[arg-type]
 
         elif ckpt_path == "hpc":
             if not self._hpc_resume_path:
