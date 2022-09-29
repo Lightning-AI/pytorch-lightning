@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Union, Literal
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -34,7 +34,6 @@ from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
-
 
 _DDP_FORK_ALIASES = (
     "ddp_fork",

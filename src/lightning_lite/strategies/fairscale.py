@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Tuple, Literal
+from typing import Any, Dict, Generator, List, Literal, Optional, Tuple
 
 import torch
 from lightning_utilities.core.imports import module_available
@@ -115,14 +115,9 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
-            start_method="spawn"
+            start_method="spawn",
         )
-        strategy_registry.register(
-            "ddp_sharded_spawn",
-            cls,
-            description=cls.__class__.__name__,
-            start_method="spawn"
-        )
+        strategy_registry.register("ddp_sharded_spawn", cls, description=cls.__class__.__name__, start_method="spawn")
 
 
 class DDPSpawnShardedStrategy(DDPStrategy):
@@ -151,7 +146,7 @@ class DDPSpawnShardedStrategy(DDPStrategy):
             process_group_backend=process_group_backend,
             timeout=timeout,
             start_method=start_method,
-            **kwargs
+            **kwargs,
         )
 
 

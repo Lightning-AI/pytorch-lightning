@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta
-from typing import Optional, List, Literal, Any
+from typing import Any, List, Literal, Optional
 
 import torch
 from torch.distributed.constants import default_pg_timeout
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins import ClusterEnvironment, CheckpointIO, Precision
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning_lite.strategies import DDPStrategy
 
 
@@ -47,5 +47,5 @@ class DDPSpawnStrategy(DDPStrategy):
             process_group_backend=process_group_backend,
             timeout=timeout,
             start_method=start_method,
-            **kwargs
+            **kwargs,
         )
