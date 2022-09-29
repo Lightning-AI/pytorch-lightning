@@ -119,7 +119,7 @@ class HPUProfiler(PyTorchProfiler):
                     "steps to properly record traces."
                 )
                 self._schedule = None
-                if _KINETO_AVAILABLE:
+                if _KINETO_AVAILABLE or not self._emit_nvtx:
                     self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
 
             def on_trace_ready(profiler: _PROFILER) -> None:
@@ -139,7 +139,7 @@ class HPUProfiler(PyTorchProfiler):
                 else:
                     rank_zero_warn("The HPUProfiler failed to export trace as `dirpath` is None")
 
-            if _KINETO_AVAILABLE:
+            if _KINETO_AVAILABLE or not self._emit_nvtx:
                 if not self._has_on_trace_ready:
                     self.profiler.on_trace_ready = on_trace_ready
 
