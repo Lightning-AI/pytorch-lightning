@@ -13,34 +13,27 @@
 # limitations under the License.
 import torch
 import torch.distributed as dist
-import torch.multiprocessing as mp
 
-import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.distributed import sync_ddp_if_available
+from lightning_lite.plugins.environments import LightningEnvironment
+from pytorch_lightning.strategies import DDPSpawnStrategy
+from pytorch_lightning.strategies.launchers import _MultiProcessingLauncher
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from tests_pytorch.helpers.runif import RunIf
 
 
-def _setup_ddp(rank, worldsize):
-    import os
-
-    os.environ["MASTER_ADDR"] = "localhost"
-
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=worldsize)
+def spawn_launch(fn, parallel_devices):
+    strategy = DDPSpawnStrategy(parallel_devices=parallel_devices, cluster_environment=LightningEnvironment())
+    launcher = _MultiProcessingLauncher(strategy=strategy)
+    return launcher.launch(fn, strategy)
 
 
-def _ddp_test_fn(rank, worldsize):
-    _setup_ddp(rank, worldsize)
+def result_reduce_ddp_fn(strategy):
     tensor = torch.tensor([1.0])
-    sync = _Sync(sync_ddp_if_available, _should=True, _op="SUM")
+    sync = _Sync(strategy.reduce, _should=True, _op="SUM")
     actual = sync(tensor)
     assert actual.item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
-    """Make sure result logging works with DDP."""
-    tutils.set_random_main_port()
-    worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    spawn_launch(result_reduce_ddp_fn, [torch.device("cpu")] * 2)
