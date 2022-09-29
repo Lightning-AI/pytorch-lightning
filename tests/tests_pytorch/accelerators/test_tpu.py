@@ -20,7 +20,7 @@ from unittest.mock import patch
 import pytest
 import torch
 from torch import nn
-from torch.multiprocessing import ProcessRaisedException
+from torch.multiprocessing import ProcessExitedException
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
@@ -75,7 +75,7 @@ def test_if_test_works_after_train(tmpdir, capsys):
     model = BoringModel()
     trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
     # https://github.com/pytorch/xla/issues/1666
-    with pytest.raises(ProcessRaisedException):
+    with pytest.raises(ProcessExitedException):
         trainer.fit(model)
         out = trainer.test(model)
         assert len(out) == 1
