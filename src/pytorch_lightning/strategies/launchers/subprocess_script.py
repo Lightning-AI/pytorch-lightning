@@ -121,7 +121,7 @@ class _SubprocessScriptLauncher(_Launcher):
             if hydra_in_use:
                 command = _hydra_subprocess_cmd(local_rank)
             else:
-                command = _basic_subprocess_cmd(local_rank)
+                command = _basic_subprocess_cmd()
 
             subprocess.Popen(command, env=env_copy)
 

@@ -124,7 +124,7 @@ class _SubprocessScriptLauncher(_Launcher):
             if hydra_in_use:
                 command = _hydra_subprocess_cmd(local_rank=local_rank)
             else:
-                command = _basic_subprocess_cmd(local_rank=local_rank)
+                command = _basic_subprocess_cmd()
             subprocess.Popen(command, env=env_copy)
 
             # starting all processes at once can cause issues
@@ -141,7 +141,7 @@ class _SubprocessScriptLauncher(_Launcher):
             )
 
 
-def _basic_subprocess_cmd(local_rank: int) -> Sequence[str]:
+def _basic_subprocess_cmd() -> Sequence[str]:
     if __main__.__spec__ is None:  # pragma: no-cover
         return [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:]
     else:
