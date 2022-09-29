@@ -30,7 +30,7 @@ def test_commands_and_api_example_cloud() -> None:
             project_id=project.project_id
         )
 
-        app_url = next(filter(lambda app: app.id == app_id, list_lightningapps)).status.url
+        app_url = next(filter(lambda app: app.id == app_id, list_lightningapps.lightningapps)).status.url
 
         while True:
             sleep(10)
