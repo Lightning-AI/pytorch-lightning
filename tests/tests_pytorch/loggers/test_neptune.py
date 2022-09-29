@@ -33,28 +33,22 @@ def fetchable_paths(value):
         return MagicMock(fetch=MagicMock(return_value="Run test name"))
     return MagicMock()
 
+
 def create_run_mock(mode="async", **kwargs):
     if mode == "offline":
-        return MagicMock(
-                    __getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=False)
-                )
+        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=False))
     else:
-        return MagicMock(
-                    __getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True)
-                )
+        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True))
 
 
 def create_neptune_mock():
-    """Mock with provides nice `logger.name` and `logger.version` values. Additionally, it allows `mode` as an argument to test different Neptune modes.
+    """Mock with provides nice `logger.name` and `logger.version` values. Additionally, it allows `mode` as an
+    argument to test different Neptune modes.
 
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
     """
-    return MagicMock(
-        init=MagicMock(
-            side_effect=create_run_mock
-        )
-    )
+    return MagicMock(init=MagicMock(side_effect=create_run_mock))
 
 
 class Run:
@@ -343,7 +337,6 @@ class TestNeptuneLogger(unittest.TestCase):
                     call(os.path.join(models_root_dir, "best_model")),
                 ]
             )
-
 
     def test_save_dir(self, neptune):
         # given
