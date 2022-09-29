@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 from time import sleep
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Optional
 
 import __main__
 import numpy as np
@@ -24,6 +24,7 @@ from lightning_utilities.core.imports import RequirementCache
 import pytorch_lightning as pl
 from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
 
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
 
@@ -66,15 +67,17 @@ class _SubprocessScriptLauncher(_Launcher):
         num_nodes: The total number of nodes that participate in this process group.
     """
 
-    @property
-    def is_interactive_compatible(self) -> bool:
-        return False
+
 
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
+    
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return False
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Creates new processes, then calls the given function.
@@ -136,44 +139,3 @@ class _SubprocessScriptLauncher(_Launcher):
                 " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
                 " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
             )
-
-
-def _basic_subprocess_cmd(local_rank: int) -> Sequence[str]:
-    if __main__.__spec__ is None:  # pragma: no-cover
-        return [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:]
-    else:
-        return [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
-
-
-def _hydra_subprocess_cmd(local_rank: int) -> Sequence[str]:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import to_absolute_path
-
-    # when user is using hydra find the absolute path
-    if __main__.__spec__ is None:  # pragma: no-cover
-        command = [sys.executable, to_absolute_path(sys.argv[0])]
-    else:
-        command = [sys.executable, "-m", __main__.__spec__.name]
-
-    # extract the hydra configuration
-    hydra_cfg = HydraConfig.get()
-
-    # the location of the hydra configuration files saved for the current job
-    hydra_output = hydra_cfg.runtime.output_dir
-    if hydra_cfg.output_subdir is not None:
-        hydra_output = os.path.join(hydra_output, hydra_cfg.output_subdir)
-
-    # check if experimental re-run capability exists
-    # otherwise use existing config.yaml which may have issues
-    pickled_config = os.path.join(hydra_output, "config.pickle")
-    if os.path.exists(pickled_config):
-        command += ["--experimental-rerun", pickled_config]
-
-    else:
-        command += ["-cp", hydra_output, "-cn", "config.yaml"]
-        command += [
-            f"hydra.output_subdir=.pl_ddp_hydra_{local_rank}",
-            f"hydra.run.dir={hydra_cfg.runtime.output_dir}",
-        ]
-
-    return command
