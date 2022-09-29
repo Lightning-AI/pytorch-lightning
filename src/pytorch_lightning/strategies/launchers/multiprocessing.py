@@ -132,7 +132,10 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+
+        self._strategy.setup_environment()
         self._strategy._worker_setup(process_idx)
+
         results = function(*args, **kwargs)
 
         if trainer is not None:

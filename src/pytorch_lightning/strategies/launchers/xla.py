@@ -97,7 +97,9 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
+        self._strategy.setup_environment()
         self._strategy._worker_setup(process_idx)
+
         results = function(*args, **kwargs)
 
         if trainer is not None:

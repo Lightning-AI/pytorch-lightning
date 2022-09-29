@@ -119,7 +119,10 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
+
         self._strategy._local_rank = process_idx
+        self._strategy.setup_environment()
+
         results = function(*args, **kwargs)
 
         if process_idx == 0:
