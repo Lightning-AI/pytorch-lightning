@@ -15,10 +15,11 @@
 import logging
 import os
 import re
-import torch
-
 from pathlib import Path
 from typing import Any, List, Optional, Union
+
+import torch
+
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler
 from pytorch_lightning.trainer.connectors.data_connector import warning_cache
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE

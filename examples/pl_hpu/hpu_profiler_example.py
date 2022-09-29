@@ -86,9 +86,11 @@ if __name__ == "__main__":
     else:
         _profiler = PyTorchProfiler()
         _accelerator = "cpu"
-        warnings.warn(f"""_KINETO_AVAILABLE is {_KINETO_AVAILABLE}. Continuing with
+        warnings.warn(
+            f"""_KINETO_AVAILABLE is {_KINETO_AVAILABLE}. Continuing with
                       profiler="PyTorchProfiler"
-                      accelerator="{_accelerator}" """)
+                      accelerator="{_accelerator}" """
+        )
 
     trainer = Trainer(
         profiler=_profiler,
