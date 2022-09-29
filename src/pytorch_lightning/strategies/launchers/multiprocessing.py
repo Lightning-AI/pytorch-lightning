@@ -97,6 +97,7 @@ class _MultiProcessingLauncher(_Launcher):
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
+        assert self._strategy.cluster_environment is not None
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
 
         context = mp.get_context(self._start_method)

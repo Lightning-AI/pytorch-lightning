@@ -326,10 +326,9 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
-    # FIXME: i think this requires https://github.com/Lightning-AI/lightning/pull/11073
     # the launcher does not manage this automatically. explanation available in:
     # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
-    # strategy.setup_environment()
+    strategy.setup_environment()
     return fn(*args, **kwargs)
 
 
