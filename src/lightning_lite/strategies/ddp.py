@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Literal
 
 import torch
 import torch.distributed
@@ -25,6 +25,7 @@ from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision import Precision
+from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
@@ -33,6 +34,14 @@ from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
+
+
+_DDP_FORK_ALIASES = (
+    "ddp_fork",
+    "ddp_fork_find_unused_parameters_false",
+    "ddp_notebook",
+    "ddp_notebook_find_unused_parameters_false",
+)
 
 
 class DDPStrategy(ParallelStrategy):
@@ -47,6 +56,7 @@ class DDPStrategy(ParallelStrategy):
         precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        start_method: Literal["popen", "spawn", "fork", "forkserver"] = "popen",
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -59,6 +69,7 @@ class DDPStrategy(ParallelStrategy):
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
+        self._start_method = start_method
         self._ddp_kwargs = kwargs
 
     @property
@@ -94,8 +105,11 @@ class DDPStrategy(ParallelStrategy):
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
-        if not self.cluster_environment.creates_processes_externally:
+        if self._start_method == "popen":
+            # if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+        else:
+            self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
     def setup_environment(self) -> None:
         self._setup_distributed()
@@ -103,8 +117,7 @@ class DDPStrategy(ParallelStrategy):
 
     def setup_module(self, module: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
-        device_ids = self._determine_ddp_device_ids()
-        return DistributedDataParallel(module=module, device_ids=device_ids, **self._ddp_kwargs)
+        return DistributedDataParallel(module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
@@ -136,6 +149,8 @@ class DDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not distributed_available():
+            return obj
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore[list-item]
@@ -144,20 +159,37 @@ class DDPStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_find_unused_parameters_false",
-            cls,
-            description="DDP Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
+        entries = (
+            ("ddp", "popen"),
+            ("ddp_spawn", "spawn"),
+            ("ddp_fork", "fork"),
+            ("ddp_notebook", "fork"),
         )
-        strategy_registry.register(
-            "ddp",
-            cls,
-            description=cls.__class__.__name__,
+        for name, start_method in entries:
+            strategy_registry.register(
+                name,
+                cls,
+                description=f"DDP strategy with `start_method` '{start_method}'",
+                start_method=start_method,
+            )
+
+        entries = (
+            ("ddp_find_unused_parameters_false", "popen"),
+            ("ddp_spawn_find_unused_parameters_false", "spawn"),
+            ("ddp_fork_find_unused_parameters_false", "fork"),
+            ("ddp_notebook_find_unused_parameters_false", "fork"),
         )
+        for name, start_method in entries:
+            strategy_registry.register(
+                name,
+                cls,
+                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
+                find_unused_parameters=False,
+                start_method=start_method,
+            )
 
     def _setup_distributed(self) -> None:
-        reset_seed()
+        reset_seed()  # TODO: what to do with this
         self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()

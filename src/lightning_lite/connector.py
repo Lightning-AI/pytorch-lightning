@@ -51,7 +51,7 @@ from lightning_lite.strategies import (
     STRATEGY_REGISTRY,
     XLAStrategy,
 )
-from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning_lite.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
