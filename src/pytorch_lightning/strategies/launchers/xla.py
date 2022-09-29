@@ -77,7 +77,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            nprocs=len(self._strategy.parallel_devices),
+            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
         )
         worker_output = return_queue.get()

@@ -21,6 +21,7 @@ import torch.backends.cudnn
 import torch.multiprocessing as mp
 from typing_extensions import Literal
 
+from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
@@ -90,7 +91,9 @@ class _MultiProcessingLauncher(_Launcher):
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
-        os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
+        cluster_environment = self._strategy.cluster_environment or LightningEnvironment()
+        os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
+
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
 
