@@ -29,16 +29,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: ["ubuntu-20.04", "macos-11", "windows-2022"]
-        # python-version: ["3.7", "3.8", "3.9", "3.10"]
-        # pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
-        # include:
-        #   - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-        #   - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-        #   - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-        # exclude:
-        #   - {python-version: "3.10", pytorch-version: "1.9"}  # No distribution with Python 3.10
-        #   - {python-version: "3.10", pytorch-version: "1.10"}  # No distribution with Python 3.10
         include:
           - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.12"}
@@ -164,7 +154,7 @@ jobs:
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml --report-log=log-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.json
+      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest log file
       if: always()
@@ -172,13 +162,6 @@ jobs:
       with:
         name: pytest-logs-pl
         path: tests/tests_pytorch/log-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.json
-
-    - name: Upload pytest results
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Run Examples
       working-directory: ./examples
@@ -202,30 +185,3 @@ jobs:
         flags: cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false
-
-  report-results:
-    runs-on: ubuntu-latest
-    needs: pl-cpu
-    steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: pytest-logs-pl
-        path: pytest_logs
-
-    - name: Check files
-      run: |
-        ls -al
-        ls -al pytest_logs/
-
-    - name: Show tests that are skipped by any configurations
-      working-directory: pytest_logs
-      run: |
-        # TODO: Simplify commands
-        jq 'select(."$report_type" == "TestReport") | select(.outcome == "skipped") | [.nodeid, .outcome] | join(" ")' *.json | sort | uniq -c | sort -r | sed 's/^[ ]*//'
-
-    - name: Show tests that are skipped by all configurations
-      working-directory: pytest_logs
-      run: |
-        # TODO: Simplify commands
-        jq 'select(."$report_type" == "TestReport") | select(.outcome == "skipped") | [.nodeid, .outcome] | join(" ")' *.json | sort | uniq -c | sort -r | sed 's/^[ ]*//' | grep ^$(ls *.json | wc -l | sed "s/^[ ]*//")
