@@ -6,6 +6,7 @@ from tests_lite.helpers.runif import RunIf
 from lightning_lite.strategies import XLAStrategy
 from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.utilities.distributed import ReduceOp
+from pytorch_lightning.accelerators import TPUAccelerator
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
@@ -16,7 +17,9 @@ def wrap_launch_function(fn, strategy, *args, **kwargs):
 
 
 def xla_launch(fn):
-    strategy = XLAStrategy(parallel_devices=list(range(8)))
+    # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
+    accelerator = TPUAccelerator()
+    strategy = XLAStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
     launcher = _XLALauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy)

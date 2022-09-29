@@ -22,6 +22,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 def spawn_launch(fn, parallel_devices):
+    # TODO: the cluster_environment should be optional to just launch processes, but this requires lazy initialization
     strategy = DDPSpawnStrategy(parallel_devices=parallel_devices, cluster_environment=LightningEnvironment())
     launcher = _MultiProcessingLauncher(strategy=strategy)
     return launcher.launch(fn, strategy)
