@@ -71,8 +71,6 @@ class _XLALauncher(_MultiProcessingLauncher):
             args=(function, args, kwargs, return_queue),
             nprocs=len(self._strategy.parallel_devices),
             start_method=self._start_method,
-            join=True,
-            daemon=False,
         )
         return return_queue.get()
 

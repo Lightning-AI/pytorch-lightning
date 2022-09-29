@@ -34,8 +34,6 @@ def test_xla_launcher_xmp_spawn(get_context_mock, xmp_mock):
         launcher._wrapping_function,
         args=(function, ("positional-arg",), {"keyword_arg": 0}, queue),
         nprocs=nprocs,
-        join=True,
-        daemon=False,
         start_method="fork",
     )
     queue.get.assert_called_once_with()
