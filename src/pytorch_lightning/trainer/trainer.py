@@ -951,9 +951,6 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-
-        self.strategy.setup_environment()
-
         if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
@@ -982,7 +979,7 @@ class Trainer:
         # ----------------------------
         self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
-
+        self.strategy.setup_environment()
         self.__setup_profiler()
 
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
