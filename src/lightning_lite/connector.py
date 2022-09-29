@@ -42,7 +42,6 @@ from lightning_lite.plugins.precision.double import DoublePrecision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
@@ -529,7 +528,6 @@ class _Connector:
             DDPStrategy,
             DDPSpawnShardedStrategy,
             DDPShardedStrategy,
-            DDPSpawnStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
         )

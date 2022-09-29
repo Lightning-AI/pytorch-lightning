@@ -23,7 +23,6 @@ from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
-from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _IS_WINDOWS
@@ -113,7 +112,7 @@ class DDPShardedStrategy(DDPStrategy):
         )
 
 
-class DDPSpawnShardedStrategy(DDPSpawnStrategy):
+class DDPSpawnShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale with Spawn."""
 
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M

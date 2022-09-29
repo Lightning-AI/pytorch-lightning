@@ -25,7 +25,7 @@ from lightning_lite.plugins.environments import XLAEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
 from lightning_lite.plugins.precision import Precision
-from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities import _TPU_AVAILABLE
@@ -44,7 +44,7 @@ else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 
-class XLAStrategy(DDPSpawnStrategy):
+class XLAStrategy(DDPStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 

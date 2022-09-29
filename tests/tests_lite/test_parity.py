@@ -32,7 +32,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
-from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.cloud_io import atomic_save
 
@@ -87,7 +87,7 @@ class LiteRunner(LightningLite):
                 self.backward(loss)
                 optimizer.step()
 
-        if isinstance(self._strategy, DDPSpawnStrategy) and tmpdir and self.global_rank == 0:
+        if isinstance(self._strategy, DDPStrategy) and tmpdir and self.global_rank == 0:
             checkpoint_path = os.path.join(tmpdir, "model.pt")
             atomic_save(model.state_dict(), checkpoint_path)
             return checkpoint_path

@@ -29,7 +29,6 @@ from lightning_lite.plugins import TPUPrecision as LiteTPUPrecision
 from lightning_lite.strategies import DataParallelStrategy as LiteDataParallelStrategy
 from lightning_lite.strategies import DDPShardedStrategy as LiteDDPShardedStrategy
 from lightning_lite.strategies import DDPSpawnShardedStrategy as LiteDDPSpawnShardedStrategy
-from lightning_lite.strategies import DDPSpawnStrategy as LiteDDPSpawnStrategy
 from lightning_lite.strategies import DDPStrategy as LiteDDPStrategy
 from lightning_lite.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
 from lightning_lite.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
@@ -192,7 +191,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
         )
 
     if type(strategy) is PLDDPSpawnStrategy:
-        return LiteDDPSpawnStrategy(
+        return LiteDDPStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
