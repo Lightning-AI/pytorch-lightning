@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, Literal
 
 import torch
 from lightning_utilities.core.imports import module_available
@@ -110,6 +110,19 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description=cls.__class__.__name__,
         )
+        strategy_registry.register(
+            "ddp_sharded_spawn_find_unused_parameters_false",
+            cls,
+            description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+            start_method="spawn"
+        )
+        strategy_registry.register(
+            "ddp_sharded_spawn",
+            cls,
+            description=cls.__class__.__name__,
+            start_method="spawn"
+        )
 
 
 class DDPSpawnShardedStrategy(DDPStrategy):
@@ -126,6 +139,7 @@ class DDPSpawnShardedStrategy(DDPStrategy):
         precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        start_method: Literal["popen", "spawn", "fork", "forkserver"] = "spawn",  # different default than in ddp
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -136,55 +150,8 @@ class DDPSpawnShardedStrategy(DDPStrategy):
             precision_plugin=precision_plugin,
             process_group_backend=process_group_backend,
             timeout=timeout,
-            **kwargs,
-        )
-        if "reduce_buffer_size" not in self._ddp_kwargs:
-            # For multi-node training, enabling bucketing will improve performance.
-            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
-
-    def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple[Module, List[Optimizer]]:
-        """Wraps the model and optimizers with fairscale components.
-
-        Return:
-            The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
-            and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
-        """
-        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
-        for optimizer in optimizers:
-            # This forces buckets to be rebuilt on the first forward pass
-            # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
-            # device than the params
-            optimizer._clear_cache()
-        model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
-        return model, optimizers
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks syncing gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(module, ShardedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
-            yield None
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_sharded_spawn_find_unused_parameters_false",
-            cls,
-            description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-        strategy_registry.register(
-            "ddp_sharded_spawn",
-            cls,
-            description=cls.__class__.__name__,
+            start_method=start_method,
+            **kwargs
         )
 
 

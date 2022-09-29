@@ -47,4 +47,5 @@ class DDPSpawnStrategy(DDPStrategy):
             process_group_backend=process_group_backend,
             timeout=timeout,
             start_method=start_method,
+            **kwargs
         )
