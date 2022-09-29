@@ -186,11 +186,7 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
 @contextmanager
 def run_cli(args) -> Generator:
     """This utility is used to automate end-to-end testing of the Lightning AI CLI."""
-    cmd = [
-        sys.executable,
-        "-m",
-        "lightning",
-    ] + args
+    cmd = ["lightning"] + args
 
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
@@ -256,8 +252,6 @@ def run_app_in_cloud(
         process = Popen(
             (
                 [
-                    sys.executable,
-                    "-m",
                     "lightning",
                     "run",
                     "app",

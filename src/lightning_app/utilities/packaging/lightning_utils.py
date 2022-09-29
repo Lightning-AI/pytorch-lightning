@@ -164,8 +164,6 @@ def enable_debugging(func: Callable) -> Callable:
 
 def _fetch_latest_version(package_name: str) -> str:
     args = [
-        sys.executable,
-        "-m",
         "pip",
         "install",
         f"{package_name}==1000",
