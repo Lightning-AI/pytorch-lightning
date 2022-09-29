@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import traceback
-from functools import partial
 from typing import Any, Callable
 
 from lightning_lite.utilities.distributed import distributed_available
-from pytorch_lightning.strategies import Strategy
 from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -33,12 +31,10 @@ def call_and_handle_interrupt(trainer: Any, trainer_fn: Callable, *args: Any, **
         **kwargs: keyword arguments to be passed to `trainer_fn`
     """
     try:
-        strategy = trainer.strategy
-        run_method = partial(_wrap_run_method, trainer_fn, strategy)
-        if strategy.launcher is not None:
-            return strategy.launcher.launch(run_method, *args, trainer=trainer, **kwargs)
+        if trainer.strategy.launcher is not None:
+            return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
         else:
-            return run_method(*args, **kwargs)
+            return trainer_fn(*args, **kwargs)
 
     except _TunerExitException:
         trainer._call_teardown_hook()
@@ -59,7 +55,7 @@ def call_and_handle_interrupt(trainer: Any, trainer_fn: Callable, *args: Any, **
         trainer.state.status = TrainerStatus.INTERRUPTED
         if distributed_available() and trainer.world_size > 1:
             # try syncing remaining processes, kill otherwise
-            strategy.reconciliate_processes(traceback.format_exc())
+            trainer.strategy.reconciliate_processes(traceback.format_exc())
         trainer._call_callback_hooks("on_exception", exception)
         for logger in trainer.loggers:
             logger.finalize("failed")
@@ -67,10 +63,3 @@ def call_and_handle_interrupt(trainer: Any, trainer_fn: Callable, *args: Any, **
         # teardown might access the stage so we reset it after
         trainer.state.stage = None
         raise
-
-
-def _wrap_run_method(run_method: Callable, strategy: Strategy, *args: Any, **kwargs: Any) -> Any:
-    if not hasattr(strategy.launcher, "_strategy"):
-        # the launcher (if set) should manage this if it has access to the strategy. call this otherwise
-        strategy.setup_environment()
-    return run_method(*args, **kwargs)

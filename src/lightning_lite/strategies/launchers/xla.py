@@ -84,8 +84,6 @@ class _XLALauncher(_MultiProcessingLauncher):
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
         self._strategy._local_rank = process_idx
-        self._strategy.setup_environment()
-
         results = function(*args, **kwargs)
 
         if process_idx == 0:

@@ -380,18 +380,16 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        run_method = partial(self._wrap_run_method, run_method)
+        # apply sharded context to prevent OOM
+        run_method = partial(self._run_with_strategy_setup, run_method)
+
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
-    def _wrap_run_method(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        if not hasattr(self._strategy.launcher, "_strategy"):
-            # the launcher (if set) should manage this if it has access to the strategy. call this otherwise
-            self._strategy.setup_environment()
-
-        # apply sharded context to prevent OOM
+    def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._strategy.setup_environment()
         with self._strategy.module_sharded_context(), _replace_dunder_methods(
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):

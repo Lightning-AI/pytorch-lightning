@@ -978,7 +978,8 @@ class Trainer:
         # SET UP TRAINING
         # ----------------------------
         self._call_callback_hooks("on_before_accelerator_backend_setup")
-
+        log.detail(f"{self.__class__.__name__}: setting up strategy environment")
+        self.strategy.setup_environment()
         self.__setup_profiler()
 
         self._call_setup_hook()  # allow user to setup lightning_module in accelerator environment
