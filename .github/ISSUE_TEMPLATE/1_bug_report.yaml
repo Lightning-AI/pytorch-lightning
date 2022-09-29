@@ -9,7 +9,7 @@ body:
 
         If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
         or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
-        
+
   - type: textarea
     attributes:
       label: Bug description
