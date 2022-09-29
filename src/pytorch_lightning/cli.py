@@ -244,6 +244,9 @@ class SaveConfigCallback(Callback):
             )
             self.already_saved = True
 
+        # broadcast so that all ranks are in sync on future calls to .setup()
+        self.already_saved = trainer.strategy.broadcast(self.already_saved)
+
 
 class LightningCLI:
     """Implementation of a configurable command line tool for pytorch-lightning."""
