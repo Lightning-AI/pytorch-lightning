@@ -19,11 +19,10 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.enums import PrecisionType
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -104,24 +103,8 @@ class DDPShardedStrategy(DDPStrategy):
         assert self.lightning_module is not None
         if self.model is not None and self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
-
-        return self._reinit_optimizers_with_oss(optimizers)
-
-    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if isinstance(optimizer, LightningOptimizer):
-                optimizer = optimizer._optimizer
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
-                # For multi-node training, compressing the model shards in fp16 before broadcasting
-                # improves performance. When using PyTorch AMP, it will not degrade
-                # the model performance.
-                zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
+        optimizers = [o._optimizer if isinstance(o, LightningOptimizer) else o for o in optimizers]
+        return _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         pass
