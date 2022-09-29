@@ -77,6 +77,11 @@ class DDPShardedStrategy(DDPStrategy):
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
         optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        for optimizer in optimizers:
+            # This forces buckets to be rebuilt on the first forward pass
+            # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
+            # device than the params
+            optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
@@ -148,6 +153,11 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
         optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        for optimizer in optimizers:
+            # This forces buckets to be rebuilt on the first forward pass
+            # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
+            # device than the params
+            optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
