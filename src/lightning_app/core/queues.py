@@ -1,10 +1,14 @@
 import multiprocessing
+import os
 import pickle
 import queue
+import time
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
+
+import requests
 
 from lightning_app.core.constants import (
     REDIS_HOST,
@@ -16,6 +20,8 @@ from lightning_app.core.constants import (
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
+from core.constants import QUEUE_DEBUG_ENABLED, LIGHTNING_DIR
+from utilities.network import HTTPClient
 
 if _is_redis_available():
     import redis
@@ -291,3 +297,97 @@ class RedisQueue(BaseQueue):
             return self.redis.ping()
         except redis.exceptions.ConnectionError:
             return False
+
+
+class HTTPQueue(BaseQueue):
+    def __init__(self, name: str, default_timeout: float, host: str = None, port: int = None):
+        """
+        Parameters
+        ----------
+        name:
+            The name of the list to use
+        default_timeout:
+            Default timeout for redis read
+        host:
+            The hostname of the redis server
+        port:
+            The port of the redis server
+        """
+        if name is None:
+            raise ValueError("You must specify a name for the queue")
+        host = host or REDIS_HOST
+        port = port or REDIS_PORT
+        self.app_id, self.name = self._split_app_id_and_queue_name(name)
+        self.default_timeout = default_timeout
+        self.host = host
+        self.port = port
+        self.client = HTTPClient(log_callback=debug_log_callback)
+
+    def get(self, timeout: int = None):
+        if timeout is None:
+            # it's a blocking call, we need to loop and call the backend to mimic this behavior
+            while True:
+                try:
+                    return self._get()
+                except queue.Empty:
+                    time.sleep(0.1)
+
+        if timeout == 0:
+            return self._get()
+
+        # timeout is some value - loop until the timeout is reached
+        start_time = time.time()
+        while (time.time() - start_time) < timeout:
+            try:
+                return self._get()
+            except queue.Empty:
+                time.sleep(0.1)
+
+    def _get(self):
+        # TODO - exception handling
+        resp = self.client.post(f"v1/{self.app_id}/{self.name}")
+        # TODO - this status code is not in the backend
+        if resp.status_code == 204:
+            raise queue.Empty
+
+    def put(self, item: Any) -> None:
+        value = pickle.dumps(item)
+        queue_len = self.length()
+        # TODO - variable name and warning message
+        if queue_len >= WARNING_QUEUE_SIZE:
+            warnings.warn(
+                f"The Redis Queue {self.name} length is larger than the "
+                f"recommended length of {WARNING_QUEUE_SIZE}. "
+                f"Found {queue_len}. This might cause your application to crash, "
+                "please investigate this."
+            )
+        try:
+            requests.post(f"http://{self.host}:{self.port}/rpush/{self.name}", data=value)
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError(
+                "Your app failed because it couldn't connect to Redis. "
+                "Please try running your app again. "
+                "If the issue persists, please contact")
+
+    def length(self):
+        try:
+            val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
+            if val.status_code != 200:
+                pass  # TODO - raise error
+            return int(val.text)
+        except requests.exceptions.ConnectionError:
+            # TODO
+            pass
+
+    @staticmethod
+    def _split_app_id_and_queue_name(queue_name):
+        """ This splits the app id and the queue name into two parts. This can be brittle, as if the queue name
+        creation logic changes, the response values from here wouldn't be accurate
+        """
+        app_id, queue_name = queue_name.split("_", 1)
+        return app_id, queue_name
+
+
+def debug_log_callback(message: str, *args: Any, **kwargs: Any) -> None:
+    if QUEUE_DEBUG_ENABLED or "QUEUE_DEBUG_ENABLED" in os.listdir(LIGHTNING_DIR):
+        logger.info(message, *args, **kwargs)

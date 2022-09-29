@@ -55,11 +55,14 @@ DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
 # Project under which the resources need to run in cloud. If this env is not set,
 # cloud runner will try to get the default project from the cloud
 LIGHTNING_CLOUD_PROJECT_ID = os.getenv("LIGHTNING_CLOUD_PROJECT_ID")
-LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path.home() / ".lightning" / "credentials.json"))
+LIGHTNING_DIR = os.getenv("LIGHTNING_DIR", str(Path.home() / ".lightning"))
+LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path(LIGHTNING_DIR) / "credentials.json"))
 DOT_IGNORE_FILENAME = ".lightningignore"
-DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
 LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 
 DEBUG: bool = lightning_cloud.env.DEBUG
+DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
+# different flag because queue debug can be very noisy, and almost always not useful unless debugging the queue itself.
+QUEUE_DEBUG_ENABLED = truthy(os.getenv("LIGHTNING_QUEUE_DEBUG_ENABLED", "false"))
