@@ -23,6 +23,7 @@ visualized in 2 ways:
 """
 
 import os
+import warnings
 
 import torch
 from torch.nn import functional as F
@@ -31,6 +32,8 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.profilers.hpu import HPUProfiler
+from pytorch_lightning.profilers.pytorch import PyTorchProfiler
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
 if _KINETO_AVAILABLE:
@@ -71,9 +74,25 @@ if __name__ == "__main__":
     data_module = SimpleMNISTDataModule()
     model = SimpleMNISTModel()
 
+    if _KINETO_AVAILABLE:
+        _profiler = HPUProfiler(
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+            with_flops=True,
+            with_modules=True,
+        )
+        _accelerator = "hpu"
+    else:
+        _profiler = PyTorchProfiler()
+        _accelerator = "cpu"
+        warnings.warn(f"""_KINETO_AVAILABLE is {_KINETO_AVAILABLE}. Continuing with
+                      profiler="PyTorchProfiler"
+                      accelerator="{_accelerator}" """)
+
     trainer = Trainer(
-        profiler=HPUProfiler(),
-        accelerator="hpu",
+        profiler=_profiler,
+        accelerator=_accelerator,
         devices=1,
         max_epochs=1,
         limit_train_batches=16,

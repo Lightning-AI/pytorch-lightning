@@ -15,18 +15,12 @@
 import logging
 import os
 import re
-from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
-
 import torch
-from torch.autograd.profiler import EventList, record_function
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core.module import LightningModule
-
-from pytorch_lightning.profilers.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
+from pathlib import Path
+from typing import Any, List, Optional, Union
+from pytorch_lightning.profilers.pytorch import PyTorchProfiler
 from pytorch_lightning.trainer.connectors.data_connector import warning_cache
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -93,28 +87,10 @@ class HPUProfiler(PyTorchProfiler):
             row_limit=row_limit,
             sort_by_key=sort_by_key or f"{'hpu' if profiler_kwargs.get('use_hpu', False) else 'cpu'}_time_total",
             record_module_names=record_module_names,
+            **profiler_kwargs,
         )
 
-        self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional["EventList"] = None
-        self._lightning_module: Optional["LightningModule"] = None  # set by ProfilerConnector
-        self._register: Optional[RegisterRecordFunction] = None
-        self._parent_profiler: Optional[_PROFILER] = None
-        self._recording_map: Dict[str, record_function] = {}
-        self._start_action_name: Optional[str] = None
-        self._schedule: Optional[ScheduleWrapper] = None
-        self._profiler_kwargs = profiler_kwargs
-
-        if _KINETO_AVAILABLE:
-            self._init_kineto(profiler_kwargs)
-
-        if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
-            raise MisconfigurationException(
-                f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
-            )
-
-        activities = profiler_kwargs.get("activities", None)
-        self._profiler_kwargs["activities"] = self.profile_hpu_activities(activities)
+        self._profiler_kwargs["activities"] = self.profile_hpu_activities(self._profiler_kwargs.get("activities", None))
 
     def profile_hpu_activities(self, activities) -> List["ProfilerActivity"]:  # type: ignore
         if not _KINETO_AVAILABLE:
