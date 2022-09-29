@@ -104,32 +104,6 @@ class _SubprocessScriptLauncher(_Launcher):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
-        # See https://docs.python.org/3/reference/import.html#main-spec
-        if __main__.__spec__ is None:  # pragma: no-cover
-            # Script called as `python a/b/c.py`
-            if _HYDRA_AVAILABLE:
-                # when user is using hydra find the absolute path
-                from hydra.utils import to_absolute_path
-
-                to_abs_path = to_absolute_path
-            else:
-                to_abs_path = os.path.abspath
-
-            # pull out the commands used to run the script and resolve the absolute file path
-            command = sys.argv
-            try:
-                full_path = to_abs_path(command[0])
-            except Exception:
-                full_path = os.path.abspath(command[0])
-
-            command[0] = full_path
-            # use the same python interpreter and actually running
-            command = [sys.executable] + command
-        else:  # Script called as `python -m a.b.c`
-            command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
-
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
         for local_rank in range(1, self.num_processes):
