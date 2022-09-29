@@ -91,6 +91,7 @@ class HPUProfiler(PyTorchProfiler):
             **profiler_kwargs,
         )
 
+        self.profiler: Optional[_PROFILER] = None
         self._profiler_kwargs["activities"] = self.profile_hpu_activities(self._profiler_kwargs.get("activities", None))
 
     def profile_hpu_activities(self, activities) -> List["ProfilerActivity"]:  # type: ignore
@@ -119,8 +120,7 @@ class HPUProfiler(PyTorchProfiler):
                     "steps to properly record traces."
                 )
                 self._schedule = None
-                if _KINETO_AVAILABLE or not self._emit_nvtx:
-                    self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
+                self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
 
             def on_trace_ready(profiler: _PROFILER) -> None:
                 if self.dirpath is not None:
@@ -139,14 +139,13 @@ class HPUProfiler(PyTorchProfiler):
                 else:
                     rank_zero_warn("The HPUProfiler failed to export trace as `dirpath` is None")
 
-            if _KINETO_AVAILABLE or not self._emit_nvtx:
-                if not self._has_on_trace_ready:
-                    self.profiler.on_trace_ready = on_trace_ready
+            if not self._has_on_trace_ready:
+                self.profiler.on_trace_ready = on_trace_ready
 
-                if self._schedule is not None:
-                    self.profiler.step_num = self._schedule.num_step
-                self.profiler.step()
-                self.profiler.add_metadata("Framework", "pytorch-lightning")
+            if self._schedule is not None:
+                self.profiler.step_num = self._schedule.num_step
+            self.profiler.step()
+            self.profiler.add_metadata("Framework", "pytorch-lightning")
 
     def summary(self) -> str:
         return "Summary not supported for HPU Profiler"
