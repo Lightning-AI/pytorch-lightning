@@ -103,7 +103,7 @@ jobs:
         pip list
       shell: bash
 
-    - name: DocTests
+    - name: DocTests PL
       working-directory: ./src
       run: pytest pytorch_lightning --cov=pytorch_lightning
 
