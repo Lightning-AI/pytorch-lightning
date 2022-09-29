@@ -34,6 +34,7 @@ local tputests = base.BaseTest {
 
       echo "--- Install PL ---"
       PACKAGE_NAME=pytorch FREEZE_REQUIREMENTS=1 pip install -e .[test]
+      pip install mkl -U
       pip list
 
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
