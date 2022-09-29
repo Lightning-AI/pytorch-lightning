@@ -38,7 +38,7 @@ LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 MULTI_WORKS_INTO_SINGLE_POD = bool(int(os.getenv("MULTI_WORKS_INTO_SINGLE_POD", "0")))
 DEBUG: bool = lightning_cloud.env.DEBUG
-DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "5"))
+DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "50"))
 
 
 def get_lightning_cloud_url() -> str:

@@ -20,10 +20,6 @@ class Work(LightningWork):
             allow_headers=["*"],
         )
 
-        @fastapi_service.get(f"/{self.name}")
-        def get_root_name():
-            return {"Hello Word!"}
-
         @fastapi_service.get("/")
         def get_root():
             return {"Hello Word!"}
@@ -50,7 +46,7 @@ class Flow(LightningFlow):
             self._exit("Application End !")
 
     def configure_layout(self):
-        return [{"name": "w_" + str(i), "content": w} for i, w in enumerate(self.works())]
+        return [{"name": w.name, "content": w} for i, w in enumerate(self.works())]
 
 
 app = LightningApp(Flow(), debug=True)
