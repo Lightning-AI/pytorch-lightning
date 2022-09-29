@@ -14,7 +14,7 @@
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 import torch
 import torch.backends.cudnn
@@ -22,10 +22,12 @@ import torch.multiprocessing as mp
 from typing_extensions import Literal
 
 from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.strategies.strategy import Strategy
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
+
+if TYPE_CHECKING:
+    from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -53,7 +55,7 @@ class _MultiProcessingLauncher(_Launcher):
 
     def __init__(
         self,
-        strategy: "Strategy",
+        strategy: "DDPSpawnStrategy",
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
     ) -> None:
         self._strategy = strategy

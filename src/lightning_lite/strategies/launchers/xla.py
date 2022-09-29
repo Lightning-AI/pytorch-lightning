@@ -27,7 +27,7 @@ else:
     xmp = None
 
 if TYPE_CHECKING:
-    from lightning_lite.strategies import Strategy
+    from lightning_lite.strategies import XLAStrategy
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -46,7 +46,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "Strategy") -> None:
+    def __init__(self, strategy: "XLAStrategy") -> None:
         super().__init__(strategy=strategy, start_method="fork")
 
     @property

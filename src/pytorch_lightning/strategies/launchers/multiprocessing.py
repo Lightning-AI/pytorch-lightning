@@ -60,7 +60,7 @@ class _MultiProcessingLauncher(_Launcher):
     """
 
     def __init__(
-        self, strategy: "pl.strategies.Strategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+        self, strategy: "pl.strategies.DDPSpawnStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
     ) -> None:
         self._strategy = strategy
         self._start_method = start_method

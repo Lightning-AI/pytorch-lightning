@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional
 
 import torch.multiprocessing as mp
 
@@ -35,9 +35,6 @@ if _TPU_AVAILABLE:
 else:
     xmp = None
 
-if TYPE_CHECKING:
-    from pytorch_lightning.strategies import Strategy
-
 
 class _XLALauncher(_MultiProcessingLauncher):
     r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
@@ -55,7 +52,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "Strategy") -> None:
+    def __init__(self, strategy: "pl.strategies.TPUSpawnStrategy") -> None:
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
