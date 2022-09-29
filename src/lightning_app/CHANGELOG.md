@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- CLI usage without arguments errors ([#14877](https://github.com/Lightning-AI/lightning/pull/14877))
 
 
 ## [0.6.2] - 2022-09-21
