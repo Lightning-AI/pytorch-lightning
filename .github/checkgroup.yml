@@ -29,7 +29,6 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/docs-*.yml"
     checks:
       # Note: updates here should be applied to the lightning_lite group
       - "pl-conda (3.8, 1.10)"
@@ -49,8 +48,7 @@ subprojects:
       - "make-html (pytorch)"
       - "mypy"
       - "pytorch-lightning (GPUs)"
-      # TODO: the HPU server is down
-      #- "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"

@@ -59,7 +59,6 @@ The full list of built-in precision plugins is listed below.
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
