@@ -119,6 +119,7 @@ class _SubprocessScriptLauncher(_Launcher):
             hydra_in_use = False
             if _HYDRA_AVAILABLE:
                 from hydra.core.hydra_config import HydraConfig
+
                 hydra_in_use = HydraConfig.initialized()
             if hydra_in_use:
                 command = _hydra_subprocess_cmd(local_rank=local_rank)
