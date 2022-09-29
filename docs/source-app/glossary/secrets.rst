@@ -15,7 +15,7 @@ Add a secret
 ************
 
 Add the secret to your profile on lightning.ai.
-Log in to your lightning.ai account > **Profile** > **secrets** tab > click the **+New** button.
+Log in to your lightning.ai account > **Profile** > **Secrets** tab > click the **+New** button.
 Provide a name and value to your secret, for example, name could be "github_api_token".
 
 .. note::
