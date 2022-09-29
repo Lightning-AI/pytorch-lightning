@@ -20,7 +20,6 @@ import pytest
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 
 
@@ -50,16 +49,6 @@ def test_v1_8_0_on_init_start_end(tmpdir):
         match="The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.validate(model)
-
-
-@pytest.mark.parametrize("fn_prefix", ["validated", "tested", "predicted"])
-def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
-    test_attr = f"{fn_prefix}_ckpt_path"
-    trainer = Trainer()
-    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
-        _ = getattr(trainer, test_attr)
-    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
-        setattr(trainer, test_attr, "v")
 
 
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
@@ -265,11 +254,6 @@ def test_v1_8_0_datamodule_checkpointhooks():
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
         _check_datamodule_checkpoint_hooks(trainer)
-
-
-def test_v1_8_0_deprecated_lightning_ipu_module():
-    with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
-        _ = LightningIPUModule(BoringModel(), 32)
 
 
 def test_deprecated_mc_save_checkpoint():
