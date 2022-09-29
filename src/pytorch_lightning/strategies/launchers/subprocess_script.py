@@ -25,7 +25,9 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.strategies.launchers.subprocess_script import _basic_subprocess_cmd, _hydra_subprocess_cmd
+
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
+
 
 class _SubprocessScriptLauncher(_Launcher):
     r"""
@@ -65,14 +67,12 @@ class _SubprocessScriptLauncher(_Launcher):
         num_nodes: The total number of nodes that participate in this process group.
     """
 
-
-
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-    
+
     @property
     def is_interactive_compatible(self) -> bool:
         return False
