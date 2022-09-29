@@ -155,7 +155,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
-def test_torchcript_invalid_method(tmpdir):
+def test_torchcript_invalid_method():
     """Test that an error is thrown with invalid torchscript method."""
     model = BoringModel()
     model.train(True)
@@ -164,7 +164,7 @@ def test_torchcript_invalid_method(tmpdir):
         model.to_torchscript(method="temp")
 
 
-def test_torchscript_with_no_input(tmpdir):
+def test_torchscript_with_no_input():
     """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
     model.example_input_array = None
@@ -185,7 +185,7 @@ def test_torchscript_script_recursively():
     class Child(LightningModule):
         def __init__(self):
             super().__init__()
-            self.model = GrandChild()
+            self.model = torch.nn.Sequential(GrandChild(), GrandChild())
 
         def forward(self, inputs):
             return self.model(inputs)
@@ -199,5 +199,7 @@ def test_torchscript_script_recursively():
             return self.model(inputs)
 
     lm = Parent()
+    assert not lm._jit_is_scripting
     script = lm.to_torchscript(method="script")
+    assert not lm._jit_is_scripting
     assert isinstance(script, torch.jit.RecursiveScriptModule)

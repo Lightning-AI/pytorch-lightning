@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import logging
-import operator
 import os
 import re
 from copy import deepcopy
-from functools import partial
 from typing import Any, Dict, Optional
 
 import torch
@@ -25,6 +23,7 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
@@ -70,13 +69,12 @@ class CheckpointConnector:
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
-        1. from HPC weights if found
+        1. from HPC weights if `checkpoint_path` is ``None`` and on SLURM or passed keyword `"hpc"`.
         2. from fault-tolerant auto-saved checkpoint if found
         3. from `checkpoint_path` file if provided
         4. don't restore
         """
-        self.resume_checkpoint_path = self._hpc_resume_path or checkpoint_path
-        checkpoint_path = self.resume_checkpoint_path
+        self.resume_checkpoint_path = checkpoint_path
         if not checkpoint_path:
             log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
@@ -99,12 +97,13 @@ class CheckpointConnector:
     def _set_ckpt_path(
         self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool
     ) -> Optional[str]:
-        # fault-tolerance takes precedence
+        if ckpt_path is None and SLURMEnvironment.detect() and self._hpc_resume_path is not None:
+            ckpt_path = "hpc"
+
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
         fn = state_fn.value
-
         if ckpt_path is None and ft_checkpoints and self.trainer.state.fn == TrainerFn.FITTING:
             ckpt_path = "last"
             rank_zero_warn(
@@ -143,24 +142,22 @@ class CheckpointConnector:
                 )
 
             if not self.trainer.checkpoint_callback:
-                raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
-                )
+                raise ValueError(f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.')
 
             has_best_model_path = self.trainer.checkpoint_callback.best_model_path
             if hasattr(self.trainer.checkpoint_callback, "best_model_path") and not has_best_model_path:
                 if self.trainer.fast_dev_run:
-                    raise MisconfigurationException(
+                    raise ValueError(
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
                         f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                     )
-                raise MisconfigurationException(
+                raise ValueError(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
             ckpt_path = getattr(self.trainer.checkpoint_callback, "best_model_path", None)
 
-        if ckpt_path == "last":
+        elif ckpt_path == "last":
             candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
                 getattr(cb, "last_model_path", None) for cb in self.trainer.checkpoint_callbacks
             ]
@@ -173,10 +170,18 @@ class CheckpointConnector:
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
                 return None
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+            ckpt_path = max(candidates_ts, key=candidates_ts.get)  # type: ignore[arg-type]
+
+        elif ckpt_path == "hpc":
+            if not self._hpc_resume_path:
+                raise ValueError(
+                    f'`.{fn}(ckpt_path="hpc")` is set but no HPC checkpoint was found.'
+                    " Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
+                )
+            ckpt_path = self._hpc_resume_path
 
         if not ckpt_path:
-            raise MisconfigurationException(
+            raise ValueError(
                 f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
                 f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
             )
