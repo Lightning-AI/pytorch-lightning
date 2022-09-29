@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 _NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
     from neptune import new as neptune
-    from neptune.new.exceptions import NeptuneOfflineModeFetchException
     from neptune.new.run import Run
 else:
     # needed for test mocks, and function signatures
@@ -250,12 +249,13 @@ class NeptuneLogger(Logger):
             self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
-        try:
-            assert self._run_instance is not None
-            self._run_instance.wait()
+        assert self._run_instance is not None
+        self._run_instance.wait()
+
+        if self._run_instance.exists("sys/id"):
             self._run_short_id = self._run_instance["sys/id"].fetch()
             self._run_name = self._run_instance["sys/name"].fetch()
-        except NeptuneOfflineModeFetchException:
+        else:
             self._run_short_id = "OFFLINE"
             self._run_name = "offline-name"
 
