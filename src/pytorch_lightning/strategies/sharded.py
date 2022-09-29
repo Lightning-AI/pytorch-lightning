@@ -20,7 +20,6 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
-from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
