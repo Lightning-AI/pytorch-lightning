@@ -254,9 +254,10 @@ class WandbLogger(Logger):
     Args:
         name: Display name for the run.
         save_dir: Path where data is saved.
+        version: Sets the version, mainly used to resume a previous run.
         offline: Run offline (data can be streamed later to wandb servers).
-        id: Sets the version, mainly used to resume a previous run.
-        version: Same as id.
+        dir: Same as save_dir.
+        id: Same as version.
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
         log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
@@ -286,10 +287,11 @@ class WandbLogger(Logger):
         self,
         name: Optional[str] = None,
         save_dir: str = ".",
+        version: Optional[str] = None,
         offline: bool = False,
+        dir: Optional[str] = None,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
-        version: Optional[str] = None,
         project: str = "lightning_logs",
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
@@ -327,8 +329,8 @@ class WandbLogger(Logger):
         self._wandb_init: Dict[str, Any] = dict(
             name=name,
             project=project,
+            dir=save_dir or dir,
             id=version or id,
-            dir=save_dir or kwargs.pop("dir"),
             resume="allow",
             anonymous=("allow" if anonymous else None),
         )
