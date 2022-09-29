@@ -236,10 +236,9 @@ def test_configure_launcher_create_processes_externally():
     assert ddp_strategy.launcher is None
 
 
-@RunIf(min_cuda_gpus=1)
 @mock.patch("torch.distributed.init_process_group")
 def test_ddp_strategy_set_timeout(mock_init_process_group):
-    """Tests with ddp strategy."""
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
     ddp_strategy = DDPStrategy(timeout=test_timedelta)
