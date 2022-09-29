@@ -32,7 +32,6 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.profilers.hpu import HPUProfiler
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
