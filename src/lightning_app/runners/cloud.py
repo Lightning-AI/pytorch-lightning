@@ -40,7 +40,7 @@ from lightning_cloud.openapi import (
 from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.core.app import LightningApp
-from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
+from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DEFAULT_NUMBER_OF_EXPOSED_PORTS, DISABLE_DEPENDENCY_CACHE
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
@@ -177,10 +177,23 @@ class CloudRuntime(Runtime):
             frontend_spec = V1Flowserver(name=flow_name)
             frontend_specs.append(frontend_spec)
 
+        network_configs: List[V1NetworkConfig] = []
+
+        initial_port = 8080 + 1 + len(frontend_specs)
+        for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
+            network_configs.append(
+                V1NetworkConfig(
+                    name="w" + str(initial_port),
+                    port=initial_port,
+                )
+            )
+            initial_port += 1
+
         app_spec = V1LightningappInstanceSpec(
             app_entrypoint_file=str(app_entrypoint_file),
             enable_app_server=self.start_server,
             flow_servers=frontend_specs,
+            network_config=network_configs,
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
         )
@@ -213,6 +226,7 @@ class CloudRuntime(Runtime):
                 app_entrypoint_file=app_spec.app_entrypoint_file,
                 enable_app_server=app_spec.enable_app_server,
                 flow_servers=app_spec.flow_servers,
+                network_config=app_spec.network_config,
                 image_spec=app_spec.image_spec,
                 cluster_id=cluster_id,
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],

@@ -40,6 +40,9 @@ class Flow(LightningFlow):
         self.work_c = Work(cloud_compute=self.cloud_compute)
 
     def run(self):
+        if not hasattr(self, "work_d"):
+            self.work_d = Work()
+
         for work in self.works():
             work.run()
 
