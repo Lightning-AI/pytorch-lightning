@@ -955,7 +955,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="val_dataloader"),
         dict(name="train_dataloader"),
         dict(name="state_dict"),
-        dict(name="on_save_checkpoint", args=(ANY,)),
         dict(name="teardown", kwargs=dict(stage="fit")),
     ]
     assert called == expected
@@ -1022,13 +1021,10 @@ def test_load_from_checkpoint_hook_calls(tmpdir):
     }
 
     assert lm_called == [dict(name="on_save_checkpoint", args=(saved_ckpt,))]
-    assert ldm_called == [dict(name="state_dict"), dict(name="on_save_checkpoint", args=(saved_ckpt,))]
+    assert ldm_called == [dict(name="state_dict")]
 
     lm_called, ldm_called = [], []
-    model = HookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
-    datamodule = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
+    _ = HookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
+    _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
     assert lm_called == [dict(name="on_load_checkpoint", args=({**saved_ckpt, "hyper_parameters": ANY},))]
-    assert ldm_called == [
-        dict(name="on_load_checkpoint", args=({**saved_ckpt, "datamodule_hyper_parameters": ANY},)),
-        dict(name="load_state_dict", args=(saved_ckpt[datamodule_state_dict_key],)),
-    ]
+    assert ldm_called == [dict(name="load_state_dict", args=(saved_ckpt[datamodule_state_dict_key],))]
