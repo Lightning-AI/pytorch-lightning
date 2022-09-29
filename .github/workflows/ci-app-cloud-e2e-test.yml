@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           pip --version
-          python -m pip install -r requirements/app/devel.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/app/devel.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
       - name: Cache Playwright dependencies
         id: playwright-cache
@@ -61,8 +61,8 @@ jobs:
       - name: Install Playwright system dependencies
         shell: bash
         run: |
-          python -m pip install playwright
-          python -m playwright install --with-deps
+          pip install playwright
+          playwright install --with-deps
 
       - name: Install lightning
         run: |
@@ -73,7 +73,7 @@ jobs:
       #  if: ${{ (matrix.app_name == 'quick_start') }}
       #  shell: bash
       #  run: |
-      #    python -m lightning install app lightning/quick-start -y
+      #    lightning install app lightning/quick-start -y
 
       - name: Clone Template React UI Repo
         if: ${{ (matrix.app_name == 'template_react_ui') }}

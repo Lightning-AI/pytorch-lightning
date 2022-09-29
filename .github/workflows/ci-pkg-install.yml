@@ -97,7 +97,7 @@ jobs:
           pip-flags: "-U --pre --find-links ../pypi/"
 
       - name: Run CLI
-        run: python -m lightning --version
+        run: lightning --version
 
   install-meta-pypi:
     runs-on: ${{ matrix.os }}
@@ -148,4 +148,4 @@ jobs:
           pip-flags: "-U --pre --find-links ../pypi/"
 
       - name: Run CLI
-        run: python -m lightning --version
+        run: lightning --version

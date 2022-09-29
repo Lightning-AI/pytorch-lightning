@@ -138,4 +138,4 @@ jobs:
 #        shell: bash
 #        if: matrix.os != 'windows-2022'  # because the install doesn't work on windows
 #        run: |
-#          python -m lightning install app lightning/quick-start -y
+#          lightning install app lightning/quick-start -y
