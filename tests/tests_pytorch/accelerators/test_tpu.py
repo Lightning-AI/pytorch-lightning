@@ -69,6 +69,7 @@ def test_resume_training_on_cpu(tmpdir):
 
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, {}, clear=True)
+@pytest.mark.xfail(raises=OSError)  # https://github.com/pytorch/xla/issues/1666
 def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
     # Train a model on TPU

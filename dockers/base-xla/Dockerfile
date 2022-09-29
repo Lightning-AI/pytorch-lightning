@@ -95,7 +95,7 @@ RUN \
     # Pin mkl version to avoid OSError on torch import
     # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
     # https://github.com/pytorch/xla/issues/1666
-    pip install mkl==2021.4.0 && \
+    pip install mkl && \
     # drop packages installed with XLA
     python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
     # drop unnecessary packages
