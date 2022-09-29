@@ -29,7 +29,6 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/docs-*.yml"
     checks:
       # Note: updates here should be applied to the lightning_lite group
       - "pl-cpu (ubuntu-20.04 3.7, 1.9, oldest)"

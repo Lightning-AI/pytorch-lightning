@@ -15,11 +15,11 @@ from typing import Any, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from torch.optim import LBFGS, Optimizer
 
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.imports import _APEX_AVAILABLE
+from lightning_lite.utilities.types import Steppable
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
@@ -30,7 +30,7 @@ class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Full precision (32), half precision (16) or bfloat16 precision (bf16).
         amp_type: The mixed precision backend to use ("native" or "apex").
         amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
             if ``amp_type`` is set to "apex".
@@ -65,21 +65,14 @@ class DeepSpeedPrecision(Precision):
         self.amp_type = amp_type
         self.amp_level = amp_level
 
-    def backward(self, tensor: Tensor, model: Optional["deepspeed.DeepSpeedEngine"], *args: Any, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, model: "deepspeed.DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
         """Performs back-propagation using DeepSpeed's engine."""
-        if model is None:
-            raise ValueError("Please provide the model as input to `backward`.")
         model.backward(tensor, *args, **kwargs)
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional["deepspeed.DeepSpeedEngine"] = None,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
-        if isinstance(optimizer, LBFGS):
-            raise TypeError("DeepSpeed and the LBFGS optimizer are not compatible.")
-        if model is None:
-            raise TypeError("`optimizer_step()` requires a reference to the model.")
         # DeepSpeed handles the optimizer step internally
-        return model.step(**kwargs)
+        return optimizer.step(**kwargs)

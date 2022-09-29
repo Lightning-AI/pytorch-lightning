@@ -6,6 +6,12 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    paths:
+      - ".github/workflows/ci-pytorch-test-conda.yml"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -34,10 +40,6 @@ jobs:
       run: git config --global --add safe.directory /__w/lightning/lightning
 
     - uses: actions/checkout@v3
-
-    - name: Get changed files
-      id: changed-files
-      uses: tj-actions/changed-files@v29.0.4
 
     - name: Update base dependencies
       env:

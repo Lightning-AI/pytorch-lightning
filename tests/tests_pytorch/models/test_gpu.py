@@ -22,7 +22,7 @@ import torch
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
 from lightning_lite.plugins.environments import TorchElasticEnvironment
-from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.device_parser import parse_gpu_ids
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -71,44 +71,23 @@ def test_single_gpu_model(tmpdir, devices):
     tpipes.run_model_test(trainer_options, model)
 
 
-@pytest.fixture
-def mocked_device_count(monkeypatch):
-    def device_count():
-        return PRETEND_N_OF_GPUS
-
-    def is_available():
-        return True
-
-    monkeypatch.setattr(device_parser, "is_cuda_available", is_available)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
-
-
-@pytest.fixture
-def mocked_device_count_0(monkeypatch):
-    def device_count():
-        return 0
-
-    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
-
-
 @pytest.mark.parametrize(
-    ["devices", "expected_root_gpu", "strategy"],
+    "devices",
     [
-        (1, None, "ddp"),
-        (3, None, "ddp"),
-        (3, None, "ddp"),
-        ([1, 2], None, "ddp"),
-        ([0, 1], None, "ddp"),
-        (-1, None, "ddp"),
-        ("-1", None, "ddp"),
+        1,
+        3,
+        3,
+        [1, 2],
+        [0, 1],
+        -1,
+        "-1",
     ],
 )
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-@mock.patch("lightning_lite.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
-def test_root_gpu_property_0_raising(_, __, devices, expected_root_gpu, strategy):
+def test_root_gpu_property_0_raising(_, devices):
     """Test that asking for a GPU when none are available will result in a MisconfigurationException."""
     with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
-        Trainer(accelerator="gpu", devices=devices, strategy=strategy)
+        Trainer(accelerator="gpu", devices=devices, strategy="ddp")
 
 
 @mock.patch.dict(
@@ -123,20 +102,18 @@ def test_root_gpu_property_0_raising(_, __, devices, expected_root_gpu, strategy
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("lightning_lite.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("lightning_lite.utilities.device_parser.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
-def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
+def test_torchelastic_gpu_parsing(cuda_count_1, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     # when use gpu
-    if device_parser.parse_gpu_ids(gpus, include_cuda=True) is not None:
+    if parse_gpu_ids(gpus, include_cuda=True) is not None:
         assert isinstance(trainer.accelerator, CUDAAccelerator)
         assert trainer.num_devices == len(gpus) if isinstance(gpus, list) else gpus
-        assert trainer.device_ids == device_parser.parse_gpu_ids(gpus, include_cuda=True)
+        assert trainer.device_ids == parse_gpu_ids(gpus, include_cuda=True)
     # fall back to cpu
     else:
         assert isinstance(trainer.accelerator, CPUAccelerator)

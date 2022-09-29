@@ -5,12 +5,13 @@ import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
+from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from typing import Dict, List, Mapping, Optional
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
-from fastapi import FastAPI, HTTPException, Request, Response, status, WebSocket
+from fastapi import FastAPI, File, HTTPException, Request, Response, status, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Header
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -23,6 +24,7 @@ from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
 from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
+from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
 from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
@@ -232,6 +234,29 @@ async def post_state(
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
         deep_diff = DeepDiff(last_state, state, verbose_level=2)
     api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
+
+
+@fastapi_service.put("/api/v1/upload_file/{filename}")
+async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
+    with TemporaryDirectory() as tmp:
+        drive = Drive(
+            "lit://uploaded_files",
+            component_name="file_server",
+            allow_duplicates=True,
+            root_folder=tmp,
+        )
+        tmp_file = os.path.join(tmp, filename)
+
+        with open(tmp_file, "wb") as f:
+            done = False
+            while not done:
+                # Note: The 8192 number doesn't have a strong reason.
+                content = await uploaded_file.read(8192)
+                f.write(content)
+                done = content == b""
+
+        drive.put(filename)
+    return f"Successfully uploaded '{filename}' to the Drive"
 
 
 @fastapi_service.get("/healthz", status_code=200)

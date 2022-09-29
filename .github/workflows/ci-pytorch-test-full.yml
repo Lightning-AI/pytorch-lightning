@@ -7,6 +7,15 @@ on:
   pull_request:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    paths:
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+      - ".github/workflows/ci-pytorch-test-full.yml"
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -147,7 +156,7 @@ jobs:
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
-      if: ${{ matrix.python-version != '3.7' }}
+      if: matrix.python-version != '3.7'
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py

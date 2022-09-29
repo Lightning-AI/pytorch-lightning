@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
-
-from torch.nn import Module
-from torch.optim import Optimizer
+from typing import Any
 
 from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.utilities.types import Steppable
 
 
 class TPUPrecision(Precision):
@@ -24,8 +22,7 @@ class TPUPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional[Module] = None,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
 
