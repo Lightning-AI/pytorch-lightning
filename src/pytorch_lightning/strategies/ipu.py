@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.cloud_io import get_filesystem
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
@@ -33,35 +33,12 @@ from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, ran
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
 else:
     poptorch = None
-
-
-class LightningIPUModule(_LightningModuleWrapperBase):
-    """
-    .. deprecated:: v1.7.0
-        ``LightningIPUModule`` has been deprecated in v1.7.0 and will be removed in v1.9.0.
-    """
-
-    def __init__(
-        self,
-        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-        precision: Union[str, int] = 32,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-    ) -> None:
-        rank_zero_deprecation("`LightningIPUModule` has been deprecated in v1.7.0 and will be removed in v1.8.0")
-        self._validate_init_arguments(pl_module, forward_module)
-        super().__init__(forward_module=(pl_module or forward_module))
-        self.precision = precision
-
-    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
-        return super().forward(*inputs, **kwargs)
 
 
 class IPUStrategy(ParallelStrategy):
