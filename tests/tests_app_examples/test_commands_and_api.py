@@ -7,6 +7,8 @@ import requests
 from tests_app import _PROJECT_ROOT
 
 from lightning_app.testing.testing import run_app_in_cloud
+from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.network import LightningClient
 
 
 @pytest.mark.timeout(300)
@@ -21,26 +23,41 @@ def test_commands_and_api_example_cloud() -> None:
         # 1: Collect the app_id
         app_id = admin_page.url.split("/")[-1]
 
-        # 2: Connect to the App
+        # 2: Wait for App API to be ready
+        client = LightningClient()
+        project = _get_project(client)
+        list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id
+        )
+
+        app_url = next(filter(lambda app: app.id == app_id, list_lightningapps)).status.url
+
+        while True:
+            sleep(10)
+            resp = requests.get(app_url + "/openapi.json")
+            if resp.status_code == 200:
+                break
+
+        # 3: Connect to the App
         Popen(f"python -m lightning connect {app_id} -y", shell=True).wait()
 
-        # 3: Send the first command with the client
+        # 4: Send the first command with the client
         cmd = "python -m lightning command with client --name=this"
         Popen(cmd, shell=True).wait()
 
-        # 4: Send the second command without a client
+        # 5: Send the second command without a client
         cmd = "python -m lightning command without client --name=is"
         Popen(cmd, shell=True).wait()
 
         # This prevents some flakyness in the CI. Couldn't reproduce it locally.
         sleep(5)
 
-        # 5: Send a request to the Rest API directly.
+        # 6: Send a request to the Rest API directly.
         base_url = view_page.url.replace("/view", "").replace("/child_flow", "")
         resp = requests.post(base_url + "/user/command_without_client?name=awesome")
         assert resp.status_code == 200, resp.json()
 
-        # 5: Validate the logs.
+        # 7: Validate the logs.
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
@@ -48,5 +65,5 @@ def test_commands_and_api_example_cloud() -> None:
                     has_logs = True
             sleep(1)
 
-        # 5: Disconnect from the App
+        # 8: Disconnect from the App
         Popen("lightning disconnect", shell=True).wait()
