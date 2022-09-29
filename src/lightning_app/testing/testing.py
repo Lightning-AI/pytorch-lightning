@@ -371,6 +371,7 @@ def run_app_in_cloud(
 
         assert len(lightning_apps) == 1
         app_id = lightning_apps[0].id
+        app_url = lightning_apps[0].status.url
 
         if debug:
             process = Process(target=print_logs, kwargs={"app_id": app_id})
@@ -385,6 +386,12 @@ def run_app_in_cloud(
                 break
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
+
+        while True:
+            sleep(1)
+            resp = requests.get(app_url + "/openapi.json")
+            if resp.status_code == 200:
+                break
 
         print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
