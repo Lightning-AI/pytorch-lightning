@@ -155,7 +155,7 @@ def _hydra_subprocess_cmd(local_rank: int) -> Sequence[str]:
     else:
         command = [sys.executable, "-m", __main__.__spec__.name]
 
-    # extract the hydra configu
+    # extract the hydra configuration
     hydra_cfg = HydraConfig.get()
 
     # the location of the hydra configuration files saved for the current job
