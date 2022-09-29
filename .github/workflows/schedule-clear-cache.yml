@@ -8,6 +8,6 @@ on:
 jobs:
   clear-cache:
     if: ${{ github.repository_owner == 'Lightning-AI' }}
-    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@ci/clear-cache # FIXME: specify tag before merge
+    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@main
     with:
       pattern: 'latest|docs'
