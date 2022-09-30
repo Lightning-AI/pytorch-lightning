@@ -43,7 +43,7 @@ jobs:
 
     - uses: actions/setup-python@v4
       with:
-        python-version: $PYTHON_VER
+        python-version: ${{ env.PYTHON_VER }}
 
     - name: Checkout ml-testing-accelerators
       run: |
@@ -126,6 +126,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml
-        flags: tpu,pytest,python$PYTHON_VER
+        flags: tpu,pytest,python${{ env.PYTHON_VER }}
         name: TPU-coverage
         fail_ci_if_error: false
