@@ -56,7 +56,6 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "pytorch_lightning.trainer.trainer",
     "lightning_app.api.http_methods",
     "lightning_app.api.request_types",
     "lightning_app.cli.app-template.app",
