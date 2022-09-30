@@ -243,12 +243,10 @@ class CheckpointConnector:
             return
 
         datamodule = self.trainer.datamodule
-        if datamodule is not None:
-            self.trainer._call_lightning_datamodule_hook("on_load_checkpoint", self._loaded_checkpoint)
-            if datamodule.__class__.__qualname__ in self._loaded_checkpoint:
-                self.trainer._call_lightning_datamodule_hook(
-                    "load_state_dict", self._loaded_checkpoint[datamodule.__class__.__qualname__]
-                )
+        if datamodule is not None and datamodule.__class__.__qualname__ in self._loaded_checkpoint:
+            self.trainer._call_lightning_datamodule_hook(
+                "load_state_dict", self._loaded_checkpoint[datamodule.__class__.__qualname__]
+            )
 
     def restore_model(self) -> None:
         """Restores a model's weights from a PyTorch Lightning checkpoint.
@@ -519,9 +517,6 @@ class CheckpointConnector:
             # will be removed in v1.8
             self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
         self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
-        if datamodule is not None:
-            self.trainer._call_lightning_datamodule_hook("on_save_checkpoint", checkpoint)
-
         return checkpoint
 
     def save_checkpoint(
