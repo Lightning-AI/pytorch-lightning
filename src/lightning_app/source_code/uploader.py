@@ -1,9 +1,25 @@
+import sys
+import threading
 import time
 
 import requests
 from requests.adapters import HTTPAdapter
 from rich.progress import BarColumn, Progress, TextColumn
 from urllib3.util.retry import Retry
+
+
+class UploadThread(threading.Thread):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.has_upload_exception = False
+
+    def run(self):
+        try:
+            super().run()
+        except Exception as e:
+            self.has_upload_exception = True
+            raise e
 
 
 class FileUploader:
@@ -39,7 +55,8 @@ class FileUploader:
         self.total_size = total_size
         self.name = name
 
-    def upload_data(self, url: str, data: bytes, retries: int, disconnect_retry_wait_seconds: int) -> str:
+    @staticmethod
+    def upload_data(url: str, data: bytes):
         """Send data to url.
 
         Parameters
@@ -48,34 +65,12 @@ class FileUploader:
             url string to send data to
         data: bytes
              Bytes of data to send to url
-        retries: int
-            Amount of retries
-        disconnect_retry_wait_seconds: int
-            Amount of seconds between disconnect retry
-
-        Returns
-        -------
-        str
-            ETag from response
         """
-        disconnect_retries = retries
-        while disconnect_retries > 0:
-            try:
-                retries = Retry(total=10)
-                with requests.Session() as s:
-                    s.mount("https://", HTTPAdapter(max_retries=retries))
-                    return self._upload_data(s, url, data)
-            except BrokenPipeError:
-                time.sleep(disconnect_retry_wait_seconds)
-                disconnect_retries -= 1
-
-        raise ValueError("Unable to upload file after multiple attempts")
-
-    def _upload_data(self, s: requests.Session, url: str, data: bytes):
-        resp = s.put(url, data=data)
+        resp = requests.put(url, data=data)
+        if resp.status_code != 200:
+            raise Exception(f"Error uploading data to {url}: {resp.text}")
         if "ETag" not in resp.headers:
             raise ValueError(f"Unexpected response from {url}, response: {resp.content}")
-        return resp.headers["ETag"]
 
     def upload(self) -> None:
         """Upload files from source dir into target path in S3."""
@@ -84,7 +79,17 @@ class FileUploader:
         try:
             with open(self.source_file, "rb") as f:
                 data = f.read()
-            self.upload_data(self.presigned_url, data, self.retries, self.disconnect_retry_wait_seconds)
+            thread = UploadThread(daemon=True, target=self.upload_data, args=(self.presigned_url, data))  # noqa
+            thread.start()
+            while True:
+                if not thread.is_alive():
+                    break
+                time.sleep(0.3)
+            if thread.has_upload_exception:
+                # if the thread had an exception, it's already redirected to stderr, we don't want to re-raise an
+                # exception here. But exiting with a non-zero exit code
+                sys.exit(1)
             self.progress.update(task_id, advance=len(data))
         finally:
             self.progress.stop()
+            pass
