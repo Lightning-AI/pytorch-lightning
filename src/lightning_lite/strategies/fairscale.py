@@ -87,15 +87,16 @@ class DDPShardedStrategy(DDPStrategy):
 
     @contextmanager
     def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks syncing gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
+        """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
+        wrapper.
         """
-        if isinstance(module, ShardedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
+        if not isinstance(module, ShardedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `ShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():
             yield None
 
     @classmethod
@@ -163,15 +164,16 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     @contextmanager
     def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks syncing gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
+        """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
+        wrapper.
         """
-        if isinstance(module, ShardedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
+        if not isinstance(module, ShardedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `ShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():
             yield None
 
     @classmethod

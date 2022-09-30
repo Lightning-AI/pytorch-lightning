@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Generator
 
 import torch
 import torch.distributed
@@ -27,7 +28,7 @@ from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
-from lightning_lite.strategies.strategy import TBroadcast
+from lightning_lite.strategies.strategy import TBroadcast, _BackwardSyncControl
 from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
@@ -35,7 +36,7 @@ from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 
 
-class DDPStrategy(ParallelStrategy):
+class DDPStrategy(ParallelStrategy, _BackwardSyncControl):
     """Strategy for multi-process single-device training on one or multiple nodes."""
 
     def __init__(
@@ -141,6 +142,20 @@ class DDPStrategy(ParallelStrategy):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    @contextmanager
+    def block_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
+        wrapper.
+        """
+        if not isinstance(module, DistributedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `DistributedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():
+            yield None
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

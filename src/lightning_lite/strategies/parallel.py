@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 
-import lightning_lite as lite
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
@@ -92,19 +89,6 @@ class ParallelStrategy(Strategy, ABC):
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks ddp sync gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(module, lite.utilities.types.DistributedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
-            yield None
 
     def teardown(self) -> None:
         assert self.cluster_environment is not None
