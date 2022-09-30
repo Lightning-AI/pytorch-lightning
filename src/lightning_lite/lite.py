@@ -30,7 +30,7 @@ from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
-from lightning_lite.strategies.strategy import TBroadcast, _BackwardSyncControl
+from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.data import (
