@@ -571,7 +571,7 @@ def _detect_light_colab_theme() -> bool:
     """Detect if it's light theme in Colab."""
     try:
         import get_ipython
-    except NameError:
+    except (NameError, ModuleNotFoundError):
         return False
     ipython = get_ipython()
     if "google.colab" in str(ipython.__class__):
