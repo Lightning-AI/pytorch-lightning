@@ -383,8 +383,9 @@ class RichProgressBar(ProgressBarBase):
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
             )
 
-    def _update(self, progress_bar_id: "TaskID", current: int, visible: bool = True) -> None:
+    def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
+            assert progress_bar_id is not None
             total = self.progress.tasks[progress_bar_id].total
             assert total is not None
             if not self._should_update(current, total):
@@ -444,7 +445,6 @@ class RichProgressBar(ProgressBarBase):
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
-        assert self.main_progress_bar_id is not None
         self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
         self._update_metrics(trainer, pl_module)
         self.refresh()
