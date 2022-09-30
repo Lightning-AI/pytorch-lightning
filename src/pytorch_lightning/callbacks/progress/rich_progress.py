@@ -20,6 +20,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 _RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
 
@@ -240,6 +241,12 @@ class RichProgressBar(ProgressBarBase):
         if not _RICH_AVAILABLE:
             raise ModuleNotFoundError(
                 "`RichProgressBar` requires `rich` >= 10.2.2. Install it by running `pip install -U rich`."
+            )
+
+        if _is_jupyter() and not RequirementCache("rich[jupyter]"):
+            rank_zero_warn(
+                "If you're using `RichProgressBar` in a Jupyter environment, you need to install extra"
+                " dependencies. Install them by running `pip install rich[jupyter]`."
             )
 
         super().__init__()
@@ -525,4 +532,20 @@ def _detect_light_colab_theme() -> bool:
             return output.eval_js('document.documentElement.matches("[theme=light]")')
         except ModuleNotFoundError:
             return False
+    return False
+
+
+def _is_jupyter() -> bool:
+    """Detect if it's in a Jupyter environment."""
+    try:
+        get_ipython  # type: ignore
+    except NameError:
+        return False
+
+    shell_name = get_ipython().__class__.__name__  # noqa: F821
+
+    # https://stackoverflow.com/questions/15411967/how-can-i-check-if-code-is-executed-in-the-ipython-notebook/
+    if shell_name == "ZMQInteractiveShell":
+        return True
+
     return False
