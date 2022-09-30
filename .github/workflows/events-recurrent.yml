@@ -15,7 +15,7 @@ env:
 jobs:
   tpu-cleanup:
     name: TPU cleaning
-    if: ${{ github.repository_owner == 'Lightning-AI' }}
+    if: ${{ github.repository == 'Lightning-AI/lightning' }}  # skip for forks
     runs-on: ubuntu-20.04
 
     steps:
