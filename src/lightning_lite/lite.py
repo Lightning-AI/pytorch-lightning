@@ -361,6 +361,11 @@ class LightningLite(ABC):
                 ...
 
         Not all strategies support it. Both the `.forward()` and the `.backward()` call need to run under this context.
+
+        Args:
+            module: The module for which to control the gradient synchronization.
+            enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
+                skip.
         """
 
         if not isinstance(module, _LiteModule):
