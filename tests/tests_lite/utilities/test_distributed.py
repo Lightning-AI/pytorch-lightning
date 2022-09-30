@@ -1,25 +1,15 @@
-import os
-
 import pytest
-import tests_lite.helpers.utils as tutils
 import torch
 from tests_lite.helpers.runif import RunIf
-from torch import multiprocessing as mp
 
 from lightning_lite.utilities.distributed import gather_all_tensors
+from tests_pytorch.core.test_results import spawn_launch
 
 
-def _test_all_gather_uneven_tensors(rank, world_size, backend):
-    os.environ["MASTER_ADDR"] = "localhost"
-
-    if backend == "nccl":
-        device = torch.device("cuda", rank)
-        torch.cuda.set_device(device)
-    else:
-        device = torch.device("cpu")
-
-    # initialize the process group
-    torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
+def _test_all_gather_uneven_tensors(strategy):
+    rank = strategy.local_rank
+    device = strategy.root_device
+    world_size = strategy.num_processes
 
     tensor = torch.ones(rank, device=device)
     result = gather_all_tensors(tensor)
@@ -29,17 +19,11 @@ def _test_all_gather_uneven_tensors(rank, world_size, backend):
         assert (result[idx] == torch.ones_like(result[idx])).all()
 
 
-def _test_all_gather_uneven_tensors_multidim(rank, world_size, backend):
-    os.environ["MASTER_ADDR"] = "localhost"
+def _test_all_gather_uneven_tensors_multidim(strategy):
+    rank = strategy.local_rank
+    device = strategy.root_device
+    world_size = strategy.num_processes
 
-    if backend == "nccl":
-        device = torch.device("cuda", rank)
-        torch.cuda.set_device(device)
-    else:
-        device = torch.device("cpu")
-
-    # initialize the process group
-    torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
     tensor = torch.ones(rank + 1, 2 - rank, device=device)
     result = gather_all_tensors(tensor)
     assert len(result) == world_size
@@ -57,7 +41,12 @@ def _test_all_gather_uneven_tensors_multidim(rank, world_size, backend):
         _test_all_gather_uneven_tensors,
     ],
 )
-@pytest.mark.parametrize("backend", [pytest.param("nccl", marks=RunIf(min_cuda_gpus=2)), "gloo"])
-def test_gather_all_tensors(backend, process):
-    tutils.set_random_main_port()
-    mp.spawn(process, args=(2, backend), nprocs=2)
+@pytest.mark.parametrize(
+    "devices",
+    [
+        pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
+        [torch.device("cpu")] * 2,
+    ],
+)
+def test_gather_all_tensors(devices, process):
+    spawn_launch(process, devices)
