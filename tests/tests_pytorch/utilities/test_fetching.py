@@ -100,7 +100,6 @@ def test_profiler_closing(use_combined_loader):
     fetcher._stop_profiler = lambda: profiler.stop("test")
     iter(fetcher)  # on epoch 0 start
     next(fetcher)  # raises StopIteration exception
-    iter(fetcher)  # on epoch 1 start
     assert not bool(profiler.current_actions)
 
 
