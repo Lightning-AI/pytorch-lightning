@@ -16,21 +16,19 @@ from functools import wraps
 from multiprocessing.queues import SimpleQueue
 from typing import Any, Callable, Optional, Tuple, TYPE_CHECKING
 
-import torch.multiprocessing as mp
-from torch.multiprocessing import ProcessContext
+from torch.multiprocessing import get_context, ProcessContext
 
 from lightning_lite.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning_lite.utilities import _TPU_AVAILABLE
 from lightning_lite.utilities.apply_func import move_data_to_device
 
 if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 else:
-    xm, xmp = None, None
+    xmp = None
 
 if TYPE_CHECKING:
-    from lightning_lite.strategies import Strategy
+    from lightning_lite.strategies import XLAStrategy
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -49,7 +47,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "Strategy") -> None:
+    def __init__(self, strategy: "XLAStrategy") -> None:
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
@@ -67,12 +65,12 @@ class _XLALauncher(_MultiProcessingLauncher):
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = mp.get_context(self._start_method)
+        context = get_context(self._start_method)
         return_queue = context.SimpleQueue()
         _save_spawn(
             self._wrapping_function,
             args=(function, args, kwargs, return_queue),
-            nprocs=len(self._strategy.parallel_devices),
+            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
         )
         return return_queue.get()
@@ -89,7 +87,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
 
@@ -108,10 +106,11 @@ def _save_spawn(
     def wrapped(rank: int, *_args: Any) -> None:
         fn(rank, *_args)
 
+        import torch_xla.core.xla_model as xm
+
         # Make all processes wait for each other before joining
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
         xm.rendezvous("end-process")
-
         # Ensure that the rank 0 process is the one exiting last
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
         if rank == 0:
