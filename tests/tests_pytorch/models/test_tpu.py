@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from argparse import ArgumentParser
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -21,13 +22,12 @@ from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla import _save_spawn
+from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -240,7 +240,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 @RunIf(tpu=True)
 @pytest.mark.parametrize("tpu_cores", [[1, 8], "9, ", [9], [0], 2, 10])
 def test_tpu_misconfiguration(tpu_cores):
-    with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
+    with pytest.raises(TypeError, match="`tpu_cores` can only be"):
         Trainer(accelerator="tpu", devices=tpu_cores)
 
 
@@ -257,22 +257,6 @@ def test_exception_when_no_tpu_found():
 def test_accelerator_set_when_using_tpu(tpu_cores):
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
     assert isinstance(Trainer(accelerator="tpu", devices=tpu_cores).accelerator, TPUAccelerator)
-
-
-@RunIf(tpu=True)
-def test_broadcast_on_tpu():
-    """Checks if an object from the main process is broadcasted to other processes correctly."""
-
-    def test_broadcast(rank):
-        trainer = Trainer(accelerator="tpu", devices=8)
-        assert isinstance(trainer.accelerator, TPUAccelerator)
-        assert isinstance(trainer.strategy, TPUSpawnStrategy)
-        trainer.strategy._launched = True
-        obj = ("ver_0.5", "logger_name", rank)
-        result = trainer.strategy.broadcast(obj)
-        assert result == ("ver_0.5", "logger_name", 0)
-
-    _save_spawn(test_broadcast, nprocs=8, start_method="fork")
 
 
 @pytest.mark.parametrize(
@@ -292,31 +276,6 @@ def test_tpu_cores_with_argparse(cli_args, expected):
         assert getattr(args, k) == v
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         assert Trainer.from_argparse_args(args)
-
-
-@RunIf(tpu=True)
-def test_tpu_reduce():
-    """Test tpu spawn reduce operation."""
-
-    def test_reduce(rank):
-        trainer = Trainer(accelerator="tpu", devices=8)
-        trainer.strategy._launched = True
-
-        with pytest.raises(ValueError, match="TPUSpawnStrategy only supports"):
-            trainer.strategy.reduce(1, reduce_op="undefined")
-
-        with pytest.raises(ValueError, match="TPUSpawnStrategy only supports"):
-            trainer.strategy.reduce(1, reduce_op=ReduceOp.MAX)
-
-        # it is faster to loop over here than to parameterize the test
-        for reduce_op in ("mean", "AVG", "sum", ReduceOp.SUM):
-            result = trainer.strategy.reduce(1, reduce_op=reduce_op)
-            if isinstance(reduce_op, str) and reduce_op.lower() in ("mean", "avg"):
-                assert result.item() == 1
-            else:
-                assert result.item() == 8
-
-    _save_spawn(test_reduce, nprocs=8, start_method="fork")
 
 
 @RunIf(tpu=True, standalone=True)
@@ -366,20 +325,33 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
+def wrap_launch_function(fn, strategy, *args, **kwargs):
+    # the launcher does not manage this automatically. explanation available in:
+    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    strategy.setup_environment()
+    return fn(*args, **kwargs)
+
+
+def xla_launch(fn):
+    # TODO: the accelerator should be optional to just launch processes, but this requires lazy initialization
+    accelerator = TPUAccelerator()
+    strategy = TPUSpawnStrategy(accelerator=accelerator, parallel_devices=list(range(8)))
+    launcher = _XLALauncher(strategy=strategy)
+    wrapped = partial(wrap_launch_function, fn, strategy)
+    return launcher.launch(wrapped, strategy)
+
+
+def tpu_sync_dist_fn(strategy):
+    sync = _Sync(strategy.reduce, _should=True, _op=torch.distributed.ReduceOp.SUM)
+    value = torch.tensor([1.0])
+    value = sync(value)
+    assert value.item() == 8
+
+
 @RunIf(tpu=True)
 def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
-
-    def test_sync_dist(rank):
-        trainer = Trainer(accelerator="tpu", devices=8)
-        trainer.strategy._launched = True
-
-        sync = _Sync(trainer.strategy.reduce, _should=True, _op=torch.distributed.ReduceOp.SUM)
-        value = torch.tensor([1.0])
-        value = sync(value)
-        assert value.item() == 8
-
-    _save_spawn(test_sync_dist, nprocs=8, start_method="fork")
+    xla_launch(tpu_sync_dist_fn)
 
 
 @RunIf(tpu=True)
