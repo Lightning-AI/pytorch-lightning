@@ -60,8 +60,8 @@ jobs:
     # https://github.com/actions/setup-go/issues/12#issuecomment-583361333
     - name: Set GOPATH
       run: |
-        echo "##[set-env name=GOPATH;]$(dirname $GITHUB_WORKSPACE)"
-        echo "##[add-path]$(dirname $GITHUB_WORKSPACE)/bin"
+        echo "GOPATH=$(dirname $GITHUB_WORKSPACE)" >> $GITHUB_ENV
+        echo "$(dirname $GITHUB_WORKSPACE)/bin" >> $GITHUB_PATH
       shell: bash
 
     - name: Install jsonnet
