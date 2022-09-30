@@ -783,7 +783,7 @@ def test_checkpoint_find_last(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=1,
-        limit_val_batches=1,
+        limit_val_batches=0,
         enable_model_summary=False,
         enable_progress_bar=False,
         logger=False,
@@ -798,7 +798,7 @@ def test_checkpoint_find_last(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=1,
-        limit_val_batches=1,
+        limit_val_batches=0,
         enable_model_summary=False,
         enable_progress_bar=False,
         logger=False,
