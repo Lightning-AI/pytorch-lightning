@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 
 import pytorch_lightning as pl
@@ -13,6 +14,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
@@ -174,12 +176,6 @@ class ColossalAIStrategy(DDPStrategy):
         return get_current_device()
 
     @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        if isinstance(self.model, ZeroDDP):
-            return self.model.module.lightning_module
-        return super().lightning_module
-
-    @property
     def handles_gradient_accumulation(self) -> bool:
         """Whether the plugin handles gradient accumulation internally."""
         return True
@@ -259,6 +255,13 @@ class ColossalAIStrategy(DDPStrategy):
             ]
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        if is_overridden("backward", trainer.lightning_module):
+            rank_zero_warn(
+                "You have overridden the `LightningModule.backward` hook"
+                " but it will be ignored since ColossalAI handles"
+                " the backward logic internally."
+            )
+
         if not isinstance(self.accelerator, CUDAAccelerator):
             raise MisconfigurationException(
                 "`ColossalAIStrategy` is only supported on `CUDAAccelerator`, "
@@ -372,7 +375,7 @@ class ColossalAIStrategy(DDPStrategy):
     ) -> Tensor:
         if not isinstance(tensor, Tensor):
             return tensor
-        
+
         if isinstance(reduce_op, str):
             if reduce_op.lower() in ("avg", "mean"):
                 reduce_op = ReduceOp.SUM

@@ -5,10 +5,10 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 
 warning_cache = WarningCache()
 
@@ -25,19 +25,14 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
 
     def backward(
         self,
+        tensor: Tensor,
         model: "pl.LightningModule",
-        closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
+        optimizer: Optional[Steppable],
+        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        if is_overridden("backward", model):
-            warning_cache.warn(
-                "You have overridden the `LightningModule.backward` hook"
-                " but it will be ignored since ColossalAI handles"
-                " the backward logic internally."
-            )
-        return optimizer.backward(closure_loss)
+        optimizer.backward(tensor)
 
     def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         optimizer.clip_grad_norm(None, clip_val)
