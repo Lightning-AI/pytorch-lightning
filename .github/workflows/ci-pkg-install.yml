@@ -43,6 +43,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: DocTests actions
+        working-directory: .actions/
+        run: |
+          grep 'pytest>' ../requirements/pytorch/test.txt | xargs -0 pip install
+          python -m pytest setup_tools.py -v --doctest-modules --color=yes
+
       - uses: actions/download-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
