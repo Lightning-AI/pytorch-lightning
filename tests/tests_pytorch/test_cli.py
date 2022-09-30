@@ -249,6 +249,22 @@ def test_lightning_cli_save_config_cases(tmpdir):
         LightningCLI(BoringModel)
 
 
+def test_lightning_cli_save_config_only_once(tmpdir):
+    config_path = tmpdir / "config.yaml"
+    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--trainer.logger=False", "--trainer.max_epochs=1"]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(BoringModel, run=False)
+
+    save_config_callback = next(c for c in cli.trainer.callbacks if isinstance(c, SaveConfigCallback))
+    assert not save_config_callback.overwrite
+    assert not save_config_callback.already_saved
+    cli.trainer.fit(cli.model)
+    assert os.path.isfile(config_path)
+    assert save_config_callback.already_saved
+    cli.trainer.test(cli.model)  # Should not fail because config already saved
+
+
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
     input_config = {
         "fit": {
