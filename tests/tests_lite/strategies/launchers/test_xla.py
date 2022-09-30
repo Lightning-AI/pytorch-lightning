@@ -19,21 +19,21 @@ def test_xla_launcher_interactive_compatible():
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning_lite.strategies.launchers.xla.mp")
-@mock.patch("lightning_lite.strategies.launchers.xla.xm")
 @mock.patch("lightning_lite.strategies.launchers.xla.xmp")
-def test_xla_launcher_xmp_spawn(xmp_mock, xm_mock, mp_mock):
+@mock.patch("lightning_lite.strategies.launchers.xla.get_context")
+def test_xla_launcher_xmp_spawn(get_context_mock, xmp_mock):
     strategy = Mock()
-    strategy.parallel_devices = [0, 1, 2, 3]
     launcher = _XLALauncher(strategy=strategy)
     function = Mock()
     launcher.launch(function, "positional-arg", keyword_arg=0)
-    # mp_mock.get_context.assert_called_with(start_method)
+    queue = get_context_mock.return_value.SimpleQueue.return_value
+    get_context_mock.assert_called_with("fork")
     xmp_mock.spawn.assert_called_with(
         ANY,
-        args=(function, ("positional-arg",), {"keyword_arg": 0}, ANY),
-        nprocs=4,
+        args=(function, ("positional-arg",), {"keyword_arg": 0}, queue),
+        nprocs=strategy.num_processes,
         join=True,
         daemon=False,
         start_method="fork",
     )
+    queue.get.assert_called_once_with()
