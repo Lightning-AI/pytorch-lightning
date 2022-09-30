@@ -570,7 +570,7 @@ class RichProgressBar(ProgressBarBase):
 def _detect_light_colab_theme() -> bool:
     """Detect if it's light theme in Colab."""
     try:
-        from IPython import get_ipython
+        import get_ipython
     except NameError:
         return False
     ipython = get_ipython()
