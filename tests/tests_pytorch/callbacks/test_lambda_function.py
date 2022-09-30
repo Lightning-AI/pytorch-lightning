@@ -49,7 +49,7 @@ def test_lambda_call(tmpdir):
         callbacks=[LambdaCallback(**hooks_args)],
     )
     with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
+        match="`LambdaCallback.on_load_checkpoint` will change its signature and behavior in v1.8"
     ):
         trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
@@ -65,15 +65,15 @@ def test_lambda_call(tmpdir):
         callbacks=[LambdaCallback(**hooks_args)],
     )
     with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
+        match="`LambdaCallback.on_load_checkpoint` will change its signature and behavior in v1.8"
     ):
         trainer.fit(model, ckpt_path=ckpt_path)
     with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
+        match="`LambdaCallback.on_load_checkpoint` will change its signature and behavior in v1.8"
     ):
         trainer.test(model)
     with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
+        match="`LambdaCallback.on_load_checkpoint` will change its signature and behavior in v1.8"
     ):
         trainer.predict(model)
 
