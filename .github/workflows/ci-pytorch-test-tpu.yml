@@ -34,7 +34,7 @@ jobs:
     # if: github.event.pull_request.draft == false
     env:
       PYTHON_VER: 3.7
-    timeout-minutes: 60
+    timeout-minutes: 100  # should match the timeout in `tpu_test_cases.jsonnet`
 
     steps:
     - uses: actions/checkout@v3
@@ -55,14 +55,6 @@ jobs:
     - uses: actions/setup-go@v3
       with:
         go-version: '1.19'
-
-    # fix for "can't load package ... ($GOPATH not set)"
-    # https://github.com/actions/setup-go/issues/12#issuecomment-583361333
-    #- name: Set GOPATH
-    #  run: |
-    #    echo "GOPATH=$(dirname $GITHUB_WORKSPACE)" >> $GITHUB_ENV
-    #    echo "$(dirname $GITHUB_WORKSPACE)/bin" >> $GITHUB_PATH
-    #  shell: bash
 
     - name: Install jsonnet
       run: go install github.com/google/go-jsonnet/cmd/jsonnet@latest
