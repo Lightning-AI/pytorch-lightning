@@ -298,6 +298,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `SaveConfigCallback` instances should only save the config once to allow having the `overwrite=False` safeguard when using `LightningCLI(..., run=False)` ([#14927](https://github.com/Lightning-AI/lightning/pull/14927))
 
 
+
+- Fixed an issue with terminating the trainer profiler when a StopIteration exception is raised while using an IterableDataset. ([#14940](https://github.com/Lightning-AI/lightning/pull/14945))
+
+
 ## [1.7.7] - 2022-09-22
 
 ### Fixed
