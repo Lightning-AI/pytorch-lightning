@@ -360,7 +360,8 @@ class LightningLite(ABC):
                 self.backward(loss)
                 ...
 
-        Not all strategies support it. Both the `.forward()` and the `.backward()` call need to run under this context.
+        Not all strategies support it. Both the model's `.forward()` and the `self.backward()` call need to run under
+        this context.
 
         Args:
             module: The module for which to control the gradient synchronization.
