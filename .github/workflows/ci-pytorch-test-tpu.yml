@@ -56,6 +56,14 @@ jobs:
       with:
         go-version: '1.7.1'
 
+    # fix for "can't load package ... ($GOPATH not set)"
+    # https://github.com/actions/setup-go/issues/12#issuecomment-583361333
+    - name: Set GOPATH
+      run: |
+        echo "##[set-env name=GOPATH;]$(dirname $GITHUB_WORKSPACE)"
+        echo "##[add-path]$(dirname $GITHUB_WORKSPACE)/bin"
+      shell: bash
+
     - name: Install jsonnet
       run: go install github.com/google/go-jsonnet/cmd/jsonnet@latest
 
