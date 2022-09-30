@@ -13,11 +13,9 @@
 # limitations under the License.
 import os
 import subprocess
-import sys
 from time import sleep
 from typing import Any, Callable, Optional
 
-import __main__
 import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 
