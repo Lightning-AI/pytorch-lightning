@@ -77,6 +77,13 @@ def teardown_process_group():
 
 
 @pytest.fixture
+def reset_deterministic_algorithm():
+    """Ensures that torch determinism settings are reset before the next test runs."""
+    yield
+    torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
@@ -137,3 +144,10 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
             bold=True,
             purple=True,  # oh yeah, branded pytest messages
         )
+
+    # error out on our deprecation warnings - ensures the code and tests are kept up-to-date
+    deprecation_error = pytest.mark.filterwarnings(
+        "error::lightning_lite.utilities.rank_zero.LightningDeprecationWarning",
+    )
+    for item in items:
+        item.add_marker(deprecation_error)

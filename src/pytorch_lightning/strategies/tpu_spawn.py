@@ -22,15 +22,14 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
+from lightning_lite.plugins.environments import XLAEnvironment
 from lightning_lite.utilities.data import has_len
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.environments import XLAEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _XLALauncher
@@ -60,7 +59,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -213,9 +212,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def _worker_setup(self, process_idx: int) -> None:
+    def setup_distributed(self) -> None:
         self._launched = True
-        self.set_world_ranks(process_idx)
+        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:

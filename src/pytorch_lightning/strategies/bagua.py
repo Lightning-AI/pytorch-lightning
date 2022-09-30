@@ -8,12 +8,11 @@ from torch import Tensor
 from torch.nn import Module
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
@@ -69,7 +68,7 @@ class BaguaStrategy(DDPStrategy):
         self,
         algorithm: str = "gradient_allreduce",
         flatten: bool = True,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,

@@ -20,9 +20,9 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
@@ -189,10 +189,10 @@ class RunIf:
 
         if mps is not None:
             if mps:
-                conditions.append(not _MPS_AVAILABLE)
+                conditions.append(not MPSAccelerator.is_available())
                 reasons.append("MPS")
             else:
-                conditions.append(_MPS_AVAILABLE)
+                conditions.append(MPSAccelerator.is_available())
                 reasons.append("not MPS")
 
         if horovod:

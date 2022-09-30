@@ -215,7 +215,7 @@ def lr_find(
 ) -> Optional[_LRFinder]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
-        rank_zero_warn("Skipping learning rate finder since fast_dev_run is enabled.")
+        rank_zero_warn("Skipping learning rate finder since `fast_dev_run` is enabled.")
         return None
 
     # Determine lr attr
@@ -356,7 +356,9 @@ class _LRCallback(Callback):
         if self.progress_bar:
             self.progress_bar.update()
 
-        current_loss = trainer.fit_loop.running_loss.last().item()
+        loss_tensor = trainer.fit_loop.running_loss.last()
+        assert loss_tensor is not None
+        current_loss = loss_tensor.item()
         current_step = trainer.global_step
 
         # Avg loss (loss with momentum) + smoothing
