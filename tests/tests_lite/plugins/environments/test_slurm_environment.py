@@ -81,7 +81,19 @@ def test_attributes_from_environment_variables(caplog):
 
 @pytest.mark.parametrize(
     "slurm_node_list,expected",
-    [("alpha,beta,gamma", "alpha"), ("alpha beta gamma", "alpha"), ("1.2.3.[100-110]", "1.2.3.100")],
+    [
+        ("127.0.0.1", "127.0.0.1"),
+        ("alpha", "alpha"),
+        ("alpha,beta,gamma", "alpha"),
+        ("alpha beta gamma", "alpha"),
+        ("1.2.3.[100-110]", "1.2.3.100"),
+        ("1.2.3.[089, 100-110]", "1.2.3.089"),
+        ("host[22]", "host22"),
+        ("host[1,5-9]", "host1"),
+        ("host[5-9,1]", "host5"),
+        ("alpha, host[5-9], gamma", "alpha"),
+        ("alpha[3,1], beta", "alpha3"),
+    ],
 )
 def test_main_address_from_slurm_node_list(slurm_node_list, expected):
     """Test extracting the main node from different formats for the SLURM_NODELIST."""
