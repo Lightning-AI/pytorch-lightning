@@ -94,7 +94,7 @@ class XLAStrategy(DDPSpawnStrategy):
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
-    def setup_environment(self) -> None:
+    def _setup_distributed(self) -> None:
         self._launched = True
         self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
