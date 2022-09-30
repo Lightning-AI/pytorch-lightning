@@ -86,8 +86,10 @@ def show() -> None:
     pass
 
 
-_main.command(connect)
-_main.command(disconnect)
+print("Adding connect")
+
+_main.command()(connect)
+_main.command()(disconnect)
 
 
 @show.command()
