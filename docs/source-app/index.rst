@@ -24,13 +24,14 @@ Welcome to ⚡ Lightning Apps
 *****************
 Install Lightning
 *****************
+Use Python 3.8.x or later. We also recommend you install in a virtual environment (`learn how <install_beginner.rst>`_).
 
 .. code-block:: bash
 
    python -m pip install -U lightning
 
 
-Or read the :ref:`advanced install <install>` guide.
+For Mac M1/M2/M3, windows or custom installs, read the :ref:`advanced install <install>` guide.
 
 ----
 
@@ -40,42 +41,26 @@ Get Started
 
 .. raw:: html
 
-   <br />
-   <div class="display-card-container">
-      <div class="row">
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
 
 .. displayitem::
-   :header: Discover what Lightning Apps can do in 5 min
-   :description: Browse through mind-blowing ML Systems
-   :col_css: col-md-6
-   :button_link: get_started/what_app_can_do.html
-   :height: 180
-
-.. displayitem::
-   :header: Build and Train a Model
-   :description: Discover PyTorch Lightning and train your first Model.
-   :col_css: col-md-6
-   :button_link: get_started/build_model.html
-   :height: 180
-
-.. displayitem::
-   :header: Evolve a Model into an ML System
-   :description: Develop an App to train a model in the cloud
-   :col_css: col-md-6
-   :button_link: get_started/training_with_apps.html
-   :height: 180
-
-.. displayitem::
-   :header: Start from an ML system template
-   :description: Learn about Apps, from a template.
-   :col_css: col-md-6
-   :button_link: get_started/go_beyond_training.html
-   :height: 180
+   :header: Lightning in 15 minutes
+   :description: Learn the key ideas of building with Lightning.
+   :col_css: col-md-12
+   :button_link: get_started/lightning_apps_intro.html
+   :height: 160
+   :tag: All users
 
 .. raw:: html
 
-      </div>
-   </div>
+        </div>
+    </div>
+
+.. End of callout item section
+
 
 ----
 

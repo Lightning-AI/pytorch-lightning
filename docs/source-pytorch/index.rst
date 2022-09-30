@@ -10,7 +10,7 @@ Welcome to ⚡ Lightning
 
    <div 
       style="width: 100%; background: #D7F5D5; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #050505; font-size: 16px">
-      <p style="margin-bottom: 5px">PyTorch Lightning has been renamed "Lightning" 🥳</p>
+      <p style="margin-bottom: 5px">PyTorch Lightning has been renamed "Lightning" 🥳 (learn why)</p>
    </div>
 
 .. twocolumns::

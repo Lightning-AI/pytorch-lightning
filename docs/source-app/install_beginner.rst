@@ -2,14 +2,9 @@
 
 .. _install_beginner:
 
-#######################
-Installation (Beginner)
-#######################
-
-To develop and run Lightning apps, we recommend to set up a virtual environment.
-
-**What is a virtual environment?**
-
+#############################
+What is a virtual environment
+#############################
 A virtual environment keeps the packages you install isolated from the rest of your system.
 This allows you to work on multiple projects that have different and potentially conflicting requirements, and it
 keeps your system Python installation clean.
