@@ -49,7 +49,9 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
-    from jsonargparse import lazy_instance
+    from jsonargparse import lazy_instance, Namespace
+else:
+    from argparse import Namespace
 
 
 @contextmanager
@@ -245,6 +247,22 @@ def test_lightning_cli_save_config_cases(tmpdir):
     # If run again on same directory exception should be raised since config file already exists
     with mock.patch("sys.argv", ["any.py"] + cli_args), pytest.raises(RuntimeError):
         LightningCLI(BoringModel)
+
+
+def test_lightning_cli_save_config_only_once(tmpdir):
+    config_path = tmpdir / "config.yaml"
+    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--trainer.logger=False", "--trainer.max_epochs=1"]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(BoringModel, run=False)
+
+    save_config_callback = next(c for c in cli.trainer.callbacks if isinstance(c, SaveConfigCallback))
+    assert not save_config_callback.overwrite
+    assert not save_config_callback.already_saved
+    cli.trainer.fit(cli.model)
+    assert os.path.isfile(config_path)
+    assert save_config_callback.already_saved
+    cli.trainer.test(cli.model)  # Should not fail because config already saved
 
 
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
@@ -1403,3 +1421,26 @@ def test_pytorch_profiler_init_args():
     init["record_shapes"] = unresolved.pop("record_shapes")  # Test move to init_args
     assert {k: cli.config.trainer.profiler.init_args[k] for k in init} == init
     assert cli.config.trainer.profiler.dict_kwargs == unresolved
+
+
+@pytest.mark.parametrize(
+    ["args"],
+    [
+        (["--trainer.logger=False", "--model.foo=456"],),
+        ({"trainer": {"logger": False}, "model": {"foo": 456}},),
+        (Namespace(trainer=Namespace(logger=False), model=Namespace(foo=456)),),
+    ],
+)
+def test_lightning_cli_with_args_given(args):
+    with mock.patch("sys.argv", [""]):
+        cli = LightningCLI(TestModel, run=False, args=args)
+    assert isinstance(cli.model, TestModel)
+    assert cli.config.trainer.logger is False
+    assert cli.model.foo == 456
+
+
+def test_lightning_cli_args_and_sys_argv_exception():
+    with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.raises(
+        ValueError, match="LightningCLI's args parameter "
+    ):
+        LightningCLI(TestModel, run=False, args=["--model.foo=789"])

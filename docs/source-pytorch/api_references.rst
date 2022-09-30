@@ -30,6 +30,7 @@ callbacks
     BackboneFinetuning
     BaseFinetuning
     BasePredictionWriter
+    BatchSizeFinder
     Callback
     DeviceStatsMonitor
     EarlyStopping
@@ -189,7 +190,6 @@ precision
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin

@@ -54,7 +54,6 @@ class XLAStrategy(DDPSpawnStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[Precision] = None,
-        **_: Any,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
@@ -95,7 +94,7 @@ class XLAStrategy(DDPSpawnStrategy):
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
-    def setup_environment(self) -> None:
+    def _setup_distributed(self) -> None:
         self._launched = True
         self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
