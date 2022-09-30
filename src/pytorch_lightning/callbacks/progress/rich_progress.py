@@ -440,7 +440,9 @@ class RichProgressBar(ProgressBarBase):
         )
         self.refresh()
 
-    def on_train_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
+    def on_train_batch_end(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
+    ) -> None:
         assert self.main_progress_bar_id is not None
         self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
         self._update_metrics(trainer, pl_module)
@@ -449,7 +451,15 @@ class RichProgressBar(ProgressBarBase):
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._update_metrics(trainer, pl_module)
 
-    def on_validation_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_validation_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: Optional[STEP_OUTPUT],
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         if trainer.sanity_checking:
             assert self.val_sanity_progress_bar_id is not None
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)
@@ -460,12 +470,28 @@ class RichProgressBar(ProgressBarBase):
             self._update(self.val_progress_bar_id, self.val_batch_idx)
         self.refresh()
 
-    def on_test_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_test_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: Optional[STEP_OUTPUT],
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         assert self.test_progress_bar_id is not None
         self._update(self.test_progress_bar_id, self.test_batch_idx)
         self.refresh()
 
-    def on_predict_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_predict_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: Any,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
+    ) -> None:
         assert self.predict_progress_bar_id is not None
         self._update(self.predict_progress_bar_id, self.predict_batch_idx)
         self.refresh()
@@ -547,7 +573,7 @@ def _detect_light_colab_theme() -> bool:
         from IPython import get_ipython
     except NameError:
         return False
-    ipython = get_ipython()  # noqa: F821
+    ipython = get_ipython()
     if "google.colab" in str(ipython.__class__):
         try:
             from google.colab import output
