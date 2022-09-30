@@ -195,4 +195,3 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 " In v1.8 `on_load_checkpoint(..., checkpoint)` will receive the entire loaded"
                 " checkpoint dictionary instead of callback state."
             )
-
