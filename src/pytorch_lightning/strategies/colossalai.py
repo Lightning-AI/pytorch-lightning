@@ -370,9 +370,16 @@ class ColossalAIStrategy(DDPStrategy):
     def reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = ReduceOp.SUM
     ) -> Tensor:
-        if isinstance(tensor, Tensor):
-            assert isinstance(reduce_op, ReduceOp)
-            tensor = reduce(tensor, dst=0, parallel_mode=ParallelMode.GLOBAL, op=reduce_op)
+        if not isinstance(tensor, Tensor):
+            return tensor
+        
+        if isinstance(reduce_op, str):
+            if reduce_op.lower() in ("avg", "mean"):
+                reduce_op = ReduceOp.SUM
+            else:
+                reduce_op = getattr(ReduceOp, reduce_op.upper())
+
+        tensor = reduce(tensor, dst=0, parallel_mode=ParallelMode.GLOBAL, op=reduce_op)
         return tensor
 
     def broadcast(self, obj: Tensor, src: int = 0) -> Tensor:
