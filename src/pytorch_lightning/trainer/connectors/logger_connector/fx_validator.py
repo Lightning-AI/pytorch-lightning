@@ -55,8 +55,6 @@ class _FxValidator:
         "optimizer_zero_grad": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
-        "on_init_start": None,
-        "on_init_end": None,
         "on_fit_start": None,
         "on_fit_end": None,
         "on_sanity_check_start": None,

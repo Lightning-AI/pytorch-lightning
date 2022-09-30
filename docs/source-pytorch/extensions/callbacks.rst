@@ -165,18 +165,6 @@ teardown
 .. automethod:: pytorch_lightning.callbacks.Callback.teardown
     :noindex:
 
-on_init_start
-^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_init_start
-    :noindex:
-
-on_init_end
-^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_init_end
-    :noindex:
-
 on_fit_start
 ^^^^^^^^^^^^
 

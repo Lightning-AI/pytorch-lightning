@@ -27,7 +27,7 @@ from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.connector import _Connector, _PLUGIN_INPUT
+from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
 from lightning_lite.strategies.strategy import TBroadcast
@@ -74,7 +74,7 @@ class LightningLite(ABC):
         strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
         self._connector = _Connector(

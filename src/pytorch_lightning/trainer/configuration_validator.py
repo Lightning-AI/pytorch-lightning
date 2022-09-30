@@ -181,13 +181,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_init_start", instance=callback):
-            rank_zero_deprecation(
-                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
-            )
-        if is_overridden(method_name="on_init_end", instance=callback):
-            rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
-
         if is_overridden(method_name="on_load_checkpoint", instance=callback):
             rank_zero_deprecation(
                 f"`{callback.__class__.__name__}.on_load_checkpoint` will change its signature and behavior in v1.8."

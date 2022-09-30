@@ -23,7 +23,7 @@ from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -48,7 +48,7 @@ class FitLoop(Loop[None]):
 
     def __init__(
         self,
-        min_epochs: int = 0,
+        min_epochs: Optional[int] = 0,
         max_epochs: Optional[int] = None,
     ) -> None:
         super().__init__()
@@ -232,6 +232,7 @@ class FitLoop(Loop[None]):
         self._outputs = []
 
         if self.trainer.train_dataloader is not None:
+            assert isinstance(self.trainer.train_dataloader, CombinedLoader)
             _set_sampler_epoch(self.trainer.train_dataloader, self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler

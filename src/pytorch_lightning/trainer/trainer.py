@@ -25,7 +25,7 @@ import logging
 import math
 import os
 import warnings
-from argparse import ArgumentParser, Namespace
+from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
@@ -73,7 +73,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -453,11 +453,8 @@ class Trainer:
             accumulate_grad_batches,
         )
 
-        # hook
-        self._call_callback_hooks("on_init_start")
-
         # init data flags
-        self.check_val_every_n_epoch: int
+        self.check_val_every_n_epoch: Optional[int]
         self._data_connector.on_trainer_init(
             val_check_interval,
             reload_dataloaders_every_n_epochs,
@@ -484,7 +481,7 @@ class Trainer:
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self.gradient_clip_val: Union[int, float] = gradient_clip_val
+        self.gradient_clip_val: Optional[Union[int, float]] = gradient_clip_val
         self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
@@ -504,8 +501,13 @@ class Trainer:
         self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
+        self.val_check_batch: Union[int, float]
         self.val_check_interval: Union[int, float]
-        self.num_sanity_val_steps: Union[float, int]
+        self.num_sanity_val_steps: Union[int, float]
+        self.limit_train_batches: Union[int, float]
+        self.limit_val_batches: Union[int, float]
+        self.limit_test_batches: Union[int, float]
+        self.limit_predict_batches: Union[int, float]
         setup._init_debugging_flags(
             self,
             limit_train_batches,
@@ -518,26 +520,25 @@ class Trainer:
             num_sanity_val_steps,
         )
 
-        # Callback system
-        self._call_callback_hooks("on_init_end")
-
     def _setup_on_init(self) -> None:
         setup._log_device_info(self)
 
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = float("inf")
-        self.train_dataloader = None
 
-        self.num_sanity_val_batches = []
-        self.num_test_batches = []
-        self.num_val_batches = []
-        self.num_predict_batches = []
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-        self.predict_dataloaders = None
-        self._last_train_dl_reload_epoch = None
-        self._last_val_dl_reload_epoch: Optional[int] = None
+        self.train_dataloader: Optional[Union[CombinedLoader, TRAIN_DATALOADERS]] = None
+
+        self.num_sanity_val_batches: List[Union[int, float]] = []
+        self.num_test_batches: List[Union[int, float]] = []
+        self.num_val_batches: List[Union[int, float]] = []
+        self.num_predict_batches: List[Union[int, float]] = []
+
+        self.test_dataloaders: Optional[List[DataLoader]] = None
+        self.val_dataloaders: Optional[List[DataLoader]] = None
+        self.predict_dataloaders: Optional[List[DataLoader]] = None
+        self._last_train_dl_reload_epoch = float("-inf")
+        self._last_val_dl_reload_epoch = float("-inf")
 
     def fit(
         self,
@@ -605,13 +606,16 @@ class Trainer:
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
-            self.state.fn, ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
+            self.state.fn,
+            ckpt_path,  # type: ignore[arg-type]
+            model_provided=True,
+            model_connected=self.lightning_module is not None,
         )
-        results = self._run(model, ckpt_path=self.ckpt_path)
+        self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.training = False
-        return results
+        return
 
     def validate(
         self,
@@ -659,7 +663,7 @@ class Trainer:
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> _EVALUATE_OUTPUT:
+    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -751,7 +755,7 @@ class Trainer:
         ckpt_path: Optional[str] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> _EVALUATE_OUTPUT:
+    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # --------------------
         # SETUP HOOK
         # --------------------
@@ -853,7 +857,7 @@ class Trainer:
         self.state.status = TrainerStatus.RUNNING
         self.predicting = True
 
-        self.predict_loop.return_predictions = return_predictions
+        self.predict_loop.return_predictions = return_predictions  # type: ignore[assignment]
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
@@ -1102,7 +1106,7 @@ class Trainer:
             logger.log_graph(self.lightning_module)
             logger.save()
 
-    def _teardown(self):
+    def _teardown(self) -> None:
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
         self.strategy.teardown()
@@ -1113,7 +1117,7 @@ class Trainer:
         self._logger_connector.teardown()
         self._signal_connector.teardown()
 
-    def _run_stage(self):
+    def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         self.strategy.barrier("run-stage")
         self.strategy.dispatch(self)
 
@@ -1121,9 +1125,9 @@ class Trainer:
             return self._run_evaluate()
         if self.predicting:
             return self._run_predict()
-        return self._run_train()
+        self._run_train()
 
-    def _pre_training_routine(self):
+    def _pre_training_routine(self) -> None:
         # wait for all to join if on distributed
         self.strategy.barrier("setup_training")
 
@@ -1137,6 +1141,7 @@ class Trainer:
             self._run_sanity_check()
 
         # enable train mode
+        assert self.model is not None
         self.model.train()
         torch.set_grad_enabled(True)
 
@@ -1219,6 +1224,7 @@ class Trainer:
             self.state.stage = stage
 
     def _call_setup_hook(self) -> None:
+        assert self.state.fn is not None
         fn = self.state.fn._setup_fn
 
         self.strategy.barrier("pre_setup")
@@ -1241,6 +1247,7 @@ class Trainer:
             self._call_lightning_module_hook("configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
+        assert self.state.fn is not None
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
@@ -1309,15 +1316,6 @@ class Trainer:
         **kwargs: Any,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
-        # TODO: remove if block in v1.8
-        if hook_name in ("on_init_start", "on_init_end"):
-            # these `Callback` hooks are the only ones that do not take a lightning module.
-            # we also don't profile bc profiler hasn't been set yet
-            for callback in self.callbacks:
-                fn = getattr(callback, hook_name)
-                if callable(fn):
-                    fn(self, *args, **kwargs)
-            return
 
         pl_module = self.lightning_module
         if pl_module:
@@ -1381,7 +1379,7 @@ class Trainer:
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = "on_load_checkpoint"
 
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+        callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -1409,7 +1407,7 @@ class Trainer:
 
     def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
-        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+        callback_states: Optional[Dict[Union[Type, str], Dict]] = checkpoint.get("callbacks")
 
         if callback_states is None:
             return
@@ -1447,6 +1445,7 @@ class Trainer:
         torch._C._log_api_usage_once("lightning.trainer." + event)
 
     def __setup_profiler(self) -> None:
+        assert self.state.fn is not None
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
@@ -1505,7 +1504,7 @@ class Trainer:
 
         module = model or self.lightning_module or self.datamodule
         orig_train_batches = self.num_training_batches = (
-            len(self.train_dataloader)
+            len(self.train_dataloader)  # type: ignore[arg-type]
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
@@ -1650,11 +1649,13 @@ class Trainer:
 
     @property
     def accelerator(self) -> Accelerator:
+        assert self.strategy.accelerator
         return self.strategy.accelerator
 
     @property
     def strategy(self) -> Strategy:
-        return self._accelerator_connector.strategy
+        # TODO(lite): remove ignore after merging lite and PL strategies
+        return self._accelerator_connector.strategy  # type: ignore[return-value]
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -1691,6 +1692,7 @@ class Trainer:
             if isinstance(self.strategy, ParallelStrategy)
             else [self.strategy.root_device]
         )
+        assert devices is not None
         device_ids = []
         for idx, device in enumerate(devices):
             if isinstance(device, torch.device):
@@ -1707,14 +1709,14 @@ class Trainer:
     @property
     def lightning_module(self) -> "pl.LightningModule":
         # TODO: this is actually an optional return
-        return self.strategy.lightning_module
+        return self.strategy.lightning_module  # type: ignore[return-value]
 
     @property
     def optimizers(self) -> List[Optimizer]:
         return self.strategy.optimizers
 
     @optimizers.setter
-    def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
+    def optimizers(self, new_optims: List[Optimizer]) -> None:
         self.strategy.optimizers = new_optims
 
     @property
@@ -1746,7 +1748,7 @@ class Trainer:
         return getattr(self.precision_plugin, "scaler", None)
 
     @property
-    def model(self) -> torch.nn.Module:
+    def model(self) -> Optional[torch.nn.Module]:
         """The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
 
         To access the pure LightningModule, use
@@ -1772,10 +1774,10 @@ class Trainer:
     @property
     def log_dir(self) -> Optional[str]:
         if len(self.loggers) > 0:
-            if isinstance(self.loggers[0], TensorBoardLogger):
-                dirpath = self.loggers[0].log_dir
-            else:
+            if not isinstance(self.loggers[0], TensorBoardLogger):
                 dirpath = self.loggers[0].save_dir
+            else:
+                dirpath = self.loggers[0].log_dir
         else:
             dirpath = self.default_root_dir
 
@@ -1904,7 +1906,7 @@ class Trainer:
         return {k: v.default for k, v in init_signature.parameters.items()}
 
     @classmethod
-    def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs) -> Any:
+    def from_argparse_args(cls: Any, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> Any:
         return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
@@ -1916,7 +1918,7 @@ class Trainer:
         return parse_env_variables(cls)
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> Union[_ArgumentGroup, ArgumentParser]:
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     """
@@ -1984,7 +1986,7 @@ class Trainer:
 
     @property
     def evaluating(self) -> bool:
-        return self.state.stage and self.state.stage.evaluating
+        return self.state.stage is not None and self.state.stage.evaluating
 
     @property
     def sanity_checking(self) -> bool:
@@ -2015,11 +2017,11 @@ class Trainer:
         return self.fit_loop.epoch_progress.current.completed
 
     @property
-    def max_epochs(self) -> int:
+    def max_epochs(self) -> Optional[int]:
         return self.fit_loop.max_epochs
 
     @property
-    def min_epochs(self) -> int:
+    def min_epochs(self) -> Optional[int]:
         return self.fit_loop.min_epochs
 
     @property
@@ -2040,7 +2042,7 @@ class Trainer:
         return self._fit_loop
 
     @fit_loop.setter
-    def fit_loop(self, loop: FitLoop):
+    def fit_loop(self, loop: FitLoop) -> None:
         """Attach a custom fit loop to this Trainer.
 
         It will run with
@@ -2054,7 +2056,7 @@ class Trainer:
         return self._validate_loop
 
     @validate_loop.setter
-    def validate_loop(self, loop: EvaluationLoop):
+    def validate_loop(self, loop: EvaluationLoop) -> None:
         """Attach a custom validation loop to this Trainer.
 
         It will run with
@@ -2069,7 +2071,7 @@ class Trainer:
         return self._test_loop
 
     @test_loop.setter
-    def test_loop(self, loop: EvaluationLoop):
+    def test_loop(self, loop: EvaluationLoop) -> None:
         """Attach a custom test loop to this Trainer.
 
         It will run with
@@ -2083,7 +2085,7 @@ class Trainer:
         return self._predict_loop
 
     @predict_loop.setter
-    def predict_loop(self, loop: PredictionLoop):
+    def predict_loop(self, loop: PredictionLoop) -> None:
         """Attach a custom prediction loop to this Trainer.
 
         It will run with
@@ -2135,17 +2137,17 @@ class Trainer:
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> Dict[str, Tensor]:
+    def callback_metrics(self) -> Dict:
         # TODO: the true typing return can include dictionaries as defined in
         # `pytorch_lightning.trainer.connectors.logger_connector.result._OUT_DICT`
         return self._logger_connector.callback_metrics
 
     @property
-    def logged_metrics(self) -> dict:
+    def logged_metrics(self) -> _OUT_DICT:
         return self._logger_connector.logged_metrics
 
     @property
-    def progress_bar_metrics(self) -> dict:
+    def progress_bar_metrics(self) -> _PBAR_DICT:
         return self._logger_connector.progress_bar_metrics
 
     @property
@@ -2161,7 +2163,7 @@ class Trainer:
 
     def _should_terminate_gracefully(self) -> bool:
         value = torch.tensor(int(self._terminate_gracefully), device=self.strategy.root_device)
-        return self.strategy.reduce(value, reduce_op="sum") > 0
+        return bool(self.strategy.reduce(value, reduce_op="sum") > 0)
 
     """
     Other
@@ -2205,6 +2207,7 @@ class Trainer:
         if total_batches == float("inf"):
             return self.max_steps
 
+        assert self.max_epochs is not None
         self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
         effective_batch_size = self.accumulate_grad_batches
         max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epochs, 1)

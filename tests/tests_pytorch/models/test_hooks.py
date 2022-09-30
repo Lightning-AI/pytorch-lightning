@@ -496,10 +496,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         track_grad_norm=1,
         **kwargs,
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
     trainer.fit(model)
     saved_ckpt = {
         "callbacks": ANY,
@@ -515,8 +511,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         # DeepSpeed needs the batch size to figure out throughput logging
@@ -603,10 +597,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         callbacks=[callback],
         track_grad_norm=1,
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
 
     # resume from checkpoint with HookedModel
     model = HookedModel(called)
@@ -623,8 +613,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
     }
     saved_ckpt = {**loaded_ckpt, "global_step": 4, "epoch": 1}
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
@@ -690,10 +678,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         callbacks=[callback],
         track_grad_norm=1,
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
 
     trainer.fit(model, ckpt_path=best_model_path)
     loaded_ckpt = {
@@ -708,8 +692,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
     }
     saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload}
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
@@ -761,10 +743,6 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         enable_model_summary=False,
         callbacks=[callback],
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
     fn = getattr(trainer, verb)
     fn(model, verbose=False)
     hooks = [
@@ -781,8 +759,6 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         dict(name=f"on_{noun}_model_train"),
     ]
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage=verb)),
@@ -803,14 +779,8 @@ def test_trainer_model_hook_system_predict(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir, limit_predict_batches=batches, enable_progress_bar=False, callbacks=[callback]
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
     trainer.predict(model)
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="predict")),
