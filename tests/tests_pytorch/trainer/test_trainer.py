@@ -776,6 +776,40 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
         assert trainer.ckpt_path == final_path
 
 
+def test_checkpoint_find_last(tmpdir):
+    """Test that the last checkpoint is found correctly."""
+    model = BoringModel()
+    mc = ModelCheckpoint(save_last=True)
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+    )
+    assert trainer.ckpt_path is None
+    trainer.fit(model)
+
+    model = BoringModel()
+    mc = ModelCheckpoint()
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+    )
+    assert trainer.ckpt_path is None
+    trainer.fit(model, ckpt_path="last")
+    assert trainer.ckpt_path == str(tmpdir / "checkpoints" / "last.ckpt")
+
+
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
