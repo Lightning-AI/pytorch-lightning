@@ -724,7 +724,9 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
         final_path = "foobar"
 
     with ctxt:
-        ckpt_path = trainer._Trainer__set_ckpt_path(ckpt_path, model_provided=fn == "fit", model_connected=True)
+        ckpt_path = trainer._checkpoint_connector._set_ckpt_path(
+            fn, ckpt_path, model_provided=fn == "fit", model_connected=True
+        )
     assert ckpt_path == final_path
 
 
@@ -808,9 +810,9 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
         if save_top_k == 0:
-            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+            with pytest.raises(ValueError, match=".*is not configured to save the best.*"):
                 trainer_fn(ckpt_path=ckpt_path)
-            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+            with pytest.raises(ValueError, match=".*is not configured to save the best.*"):
                 trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
@@ -883,9 +885,9 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
         trainer_fn(model, ckpt_path="best")
         assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     else:
-        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+        with pytest.raises(ValueError, match="`ModelCheckpoint` is not configured."):
             trainer_fn(ckpt_path="best")
-        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+        with pytest.raises(ValueError, match="`ModelCheckpoint` is not configured."):
             trainer_fn(model, ckpt_path="best")
 
 
@@ -901,7 +903,9 @@ def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     trainer.state.fn = TrainerFn.TESTING
 
     with pytest.warns(UserWarning, match="best checkpoint path from first checkpoint callback"):
-        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
+        trainer._checkpoint_connector._set_ckpt_path(
+            trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
+        )
 
 
 def test_disabled_training(tmpdir):
@@ -1677,8 +1681,10 @@ def test_check_val_every_n_epoch_exception(tmpdir):
 def test_exception_when_testing_or_validating_with_fast_dev_run():
     trainer = Trainer(fast_dev_run=True)
     trainer.state.fn = TrainerFn.TESTING
-    with pytest.raises(MisconfigurationException, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
-        trainer._Trainer__set_ckpt_path(ckpt_path="best", model_provided=False, model_connected=True)
+    with pytest.raises(ValueError, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
+        trainer._checkpoint_connector._set_ckpt_path(
+            trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
+        )
 
 
 class TrainerStagesModel(BoringModel):
