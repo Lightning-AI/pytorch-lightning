@@ -154,10 +154,9 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     assert not temp_file.exists()
 
 
-@RunIf(min_cuda_gpus=1)
 @mock.patch("torch.distributed.init_process_group")
 def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
-    """Tests with ddp strategy."""
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
     ddp_spawn_strategy = DDPSpawnStrategy(timeout=test_timedelta)
@@ -170,7 +169,6 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
-    trainer.strategy._worker_setup(0)
 
     process_group_backend = trainer.strategy._get_process_group_backend()
     global_rank = trainer.strategy.cluster_environment.global_rank()
