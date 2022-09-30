@@ -176,6 +176,7 @@ if _RICH_AVAILABLE:
 else:
     Task, Style = None, None  # type: ignore[assignment, misc]
 
+
 @dataclass
 class RichProgressBarTheme:
     """Styles to associate to different base components.
