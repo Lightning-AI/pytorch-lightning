@@ -13,7 +13,7 @@ from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 from urllib.parse import urljoin, urlencode
 
-from core.constants import get_lightning_cloud_url
+from core.constants import get_lightning_cloud_url, HTTP_QUEUE_URL
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
@@ -170,8 +170,8 @@ class _MethodsDebuLoggingWrapperMeta(type):
 
 class HTTPClient(metaclass=_MethodsDebuLoggingWrapperMeta):
 
-    def __init__(self, base_url: Optional[str] = get_lightning_cloud_url(), log_callback: Optional[Callable] = None) -> None:
-        self.base_url = base_url
+    def __init__(self, base_url: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
+        self.base_url = base_url or HTTP_QUEUE_URL
         retry_strategy = Retry(
             # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
             total=_CONNECTION_RETRY_TOTAL,

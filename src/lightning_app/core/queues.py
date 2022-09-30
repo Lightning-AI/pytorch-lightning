@@ -7,14 +7,12 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
 
-import requests
-
 from lightning_app.core.constants import (
     REDIS_HOST,
     REDIS_PASSWORD,
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
-    REDIS_WARNING_QUEUE_SIZE,
+    WARNING_QUEUE_SIZE,
     STATE_UPDATE_TIMEOUT,
 )
 from lightning_app.utilities.app_helpers import Logger
@@ -48,12 +46,15 @@ class QueuingSystem(Enum):
     SINGLEPROCESS = "singleprocess"
     MULTIPROCESS = "multiprocess"
     REDIS = "redis"
+    HTTP = "http"
 
     def _get_queue(self, queue_name: str) -> "BaseQueue":
         if self == QueuingSystem.MULTIPROCESS:
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         elif self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
+        elif self == QueuingSystem.HTTP:
+            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         else:
             return SingleProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
@@ -228,10 +229,10 @@ class RedisQueue(BaseQueue):
     def put(self, item: Any) -> None:
         value = pickle.dumps(item)
         queue_len = self.length()
-        if queue_len >= REDIS_WARNING_QUEUE_SIZE:
+        if queue_len >= WARNING_QUEUE_SIZE:
             warnings.warn(
                 f"The Redis Queue {self.name} length is larger than the "
-                f"recommended length of {REDIS_WARNING_QUEUE_SIZE}. "
+                f"recommended length of {WARNING_QUEUE_SIZE}. "
                 f"Found {queue_len}. This might cause your application to crash, "
                 "please investigate this."
             )
@@ -288,9 +289,11 @@ class RedisQueue(BaseQueue):
                 "If the issue persists, please contact support@lightning.ai"
             )
 
+# TODO - exception handling in general for HTTP and pickling
+
 
 class HTTPQueue(BaseQueue):
-    def __init__(self, name: str, default_timeout: float, host: str = None, port: int = None):
+    def __init__(self, name: str, default_timeout: float, base_url: Optional[str] = None):
         """
         Parameters
         ----------
@@ -298,29 +301,22 @@ class HTTPQueue(BaseQueue):
             The name of the list to use
         default_timeout:
             Default timeout for redis read
-        host:
-            The hostname of the redis server
-        port:
-            The port of the redis server
         """
         if name is None:
             raise ValueError("You must specify a name for the queue")
-        host = host or REDIS_HOST
-        port = port or REDIS_PORT
         self.app_id, self.name = self._split_app_id_and_queue_name(name)
         self.default_timeout = default_timeout
-        self.host = host
-        self.port = port
-        self.client = HTTPClient(log_callback=debug_log_callback)
+        self.client = HTTPClient(base_url=base_url, log_callback=debug_log_callback)
 
-    def get(self, timeout: int = None):
+    def get(self, timeout: int = None) -> Any:
         if timeout is None:
             # it's a blocking call, we need to loop and call the backend to mimic this behavior
             while True:
                 try:
                     return self._get()
                 except queue.Empty:
-                    time.sleep(0.1)
+                    # longer sleep because we are waiting forever
+                    time.sleep(1)
 
         if timeout == 0:
             return self._get()
@@ -331,43 +327,30 @@ class HTTPQueue(BaseQueue):
             try:
                 return self._get()
             except queue.Empty:
+                # shorter sleep because the wait is bounded
                 time.sleep(0.1)
 
     def _get(self):
-        # TODO - exception handling
         resp = self.client.post(f"v1/{self.app_id}/{self.name}")
-        # TODO - this status code is not in the backend
         if resp.status_code == 204:
             raise queue.Empty
+        return pickle.loads(resp.content)
 
     def put(self, item: Any) -> None:
         value = pickle.dumps(item)
         queue_len = self.length()
-        # TODO - variable name and warning message
-        if queue_len >= REDIS_WARNING_QUEUE_SIZE:
+        if queue_len >= WARNING_QUEUE_SIZE:
             warnings.warn(
-                f"The Redis Queue {self.name} length is larger than the "
-                f"recommended length of {REDIS_WARNING_QUEUE_SIZE}. "
-                f"Found {queue_len}. This might cause your application to crash, "
-                "please investigate this."
+                f"The Queue {self.name} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
+                f"Found {queue_len}. This might cause your application to crash, please investigate this."
             )
-        try:
-            requests.post(f"http://{self.host}:{self.port}/rpush/{self.name}", data=value)
-        except requests.exceptions.ConnectionError:
-            raise ConnectionError(
-                "Your app failed because it couldn't connect to Redis. "
-                "Please try running your app again. "
-                "If the issue persists, please contact")
+        self.client.post(f"v1/{self.app_id}/{self.name}?action=put", data=value)
 
     def length(self):
-        try:
-            val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
-            if val.status_code != 200:
-                pass  # TODO - raise error
-            return int(val.text)
-        except requests.exceptions.ConnectionError:
-            # TODO
+        val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
+        if val.status_code != 200:
             pass
+        return int(val.text)
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name):
