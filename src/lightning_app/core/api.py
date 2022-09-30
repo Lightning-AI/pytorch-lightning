@@ -5,12 +5,13 @@ import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
+from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from typing import Dict, List, Mapping, Optional
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
-from fastapi import FastAPI, HTTPException, Request, Response, status, WebSocket
+from fastapi import FastAPI, File, HTTPException, Request, Response, status, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Header
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -21,8 +22,9 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import FRONTEND_DIR
+from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
 from lightning_app.core.queues import RedisQueue
+from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
 from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
@@ -234,6 +236,29 @@ async def post_state(
     api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
 
 
+@fastapi_service.put("/api/v1/upload_file/{filename}")
+async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
+    with TemporaryDirectory() as tmp:
+        drive = Drive(
+            "lit://uploaded_files",
+            component_name="file_server",
+            allow_duplicates=True,
+            root_folder=tmp,
+        )
+        tmp_file = os.path.join(tmp, filename)
+
+        with open(tmp_file, "wb") as f:
+            done = False
+            while not done:
+                # Note: The 8192 number doesn't have a strong reason.
+                content = await uploaded_file.read(8192)
+                f.write(content)
+                done = content == b""
+
+        drive.put(filename)
+    return f"Successfully uploaded '{filename}' to the Drive"
+
+
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
     """Health check endpoint used in the cloud FastAPI servers to check the status periodically. This requires
@@ -261,6 +286,9 @@ async def healthz(response: Response):
 @fastapi_service.websocket("/api/v1/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    if not ENABLE_STATE_WEBSOCKET:
+        await websocket.close()
+        return
     try:
         counter = global_app_state_store.counter
         while True:

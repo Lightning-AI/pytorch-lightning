@@ -112,7 +112,7 @@ class FakeLightningClientCreate(FakeLightningClient):
         assert project_id == "test-project-id"
         return self.create_response
 
-    def lightningapp_v2_service_create_lightningapp_release_instance(self, project_id, app_id, release_id, body):
+    def lightningapp_v2_service_create_lightningapp_release_instance(self, project_id, app_id, id, body):
         assert project_id == "test-project-id"
         return self.create_response
 
