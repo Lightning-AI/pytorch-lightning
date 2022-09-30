@@ -30,7 +30,7 @@ from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
-from lightning_lite.strategies.strategy import TBroadcast
+from lightning_lite.strategies.strategy import TBroadcast, _BackwardSyncControl
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.data import (
@@ -344,6 +344,38 @@ class LightningLite(ABC):
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)
+
+    @contextmanager
+    def skip_backward_sync(self, module: _LiteModule, enabled: bool = True) -> Generator:
+        """Skip gradient synchrionization during backward to avoid redundant communication overhead.
+
+        Use this context manager when performing gradient accumulation to speed up training with multiple devices.
+
+        Example::
+
+            # Accumulate gradient 8 batches at a time
+            with self.skip_backward_sync(model, enabled=(batch_idx % 8 != 0)):
+                output = model(input)
+                loss = ...
+                self.backward(loss)
+                ...
+
+        Not all strategies support it. Both the `.forward()` and the `.backward()` call need to run under this context.
+        """
+
+        if not isinstance(module, _LiteModule):
+            raise TypeError(
+                "You need to set up the model first before you can call `self.block_backward_sync()`:"
+                " `self.setup(model, ...)`"
+            )
+        if not isinstance(self._strategy, _BackwardSyncControl):
+            raise TypeError(
+                f"The`{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
+                f" Remove `.skip_backward_sync()` from your code or choose a differnt strategy."
+            )
+        if enabled:
+            with self._strategy.block_backward_sync(module):
+                yield
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
         """Save checkpoint contents to a file.
