@@ -86,8 +86,6 @@ def show() -> None:
     pass
 
 
-print("Adding connect")
-
 _main.command()(connect)
 _main.command()(disconnect)
 
