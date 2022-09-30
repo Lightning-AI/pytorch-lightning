@@ -80,8 +80,7 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
 
 @pytest.mark.parametrize("use_combined_loader", [False, True])
 def test_profiler_closing(use_combined_loader):
-    """ Tests if the profiler terminates upon raising a StopIteration on an iterable dataset.
-    """
+    """Tests if the profiler terminates upon raising a StopIteration on an iterable dataset."""
 
     class TestDataset(IterableDataset):
         def __init__(self):
