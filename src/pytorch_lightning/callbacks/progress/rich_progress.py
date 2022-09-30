@@ -291,6 +291,10 @@ class RichProgressBar(ProgressBarBase):
         self._enabled = True
 
     def _init_progress(self, trainer: "pl.Trainer") -> None:
+        if not _RICH_AVAILABLE:
+            raise ModuleNotFoundError(
+                "`RichProgressBar` requires `rich` >= 10.2.2. Install it by running `pip install -U rich`."
+            )
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
             reconfigure(**self._console_kwargs)
