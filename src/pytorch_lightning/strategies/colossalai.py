@@ -1,15 +1,14 @@
-from typing import Any, Dict, List, Mapping, Optional
-from typing import Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch
-from torch import Tensor
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
@@ -18,9 +17,9 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
 if _COLOSSALAI_AVAILABLE:
+    from colossalai.communication.collective import all_gather, broadcast, reduce
     from colossalai.context import ParallelMode
     from colossalai.core import global_context as gpc
-    from colossalai.communication.collective import broadcast, reduce, all_gather
     from colossalai.gemini import ChunkManager, GeminiManager
     from colossalai.logging import disable_existing_loggers, get_dist_logger
     from colossalai.nn.optimizer import CPUAdam, HybridAdam
@@ -369,10 +368,11 @@ class ColossalAIStrategy(DDPStrategy):
         strategy_registry.register("colossalai", cls, description="Default ColossalAI Strategy")
 
     def reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = ReduceOp.SUM
     ) -> Tensor:
         if isinstance(tensor, Tensor):
-            tensor = reduce(tensor, group, reduce_op=reduce_op)
+            assert isinstance(reduce_op, ReduceOp)
+            tensor = reduce(tensor, dst=0, parallel_mode=ParallelMode.GLOBAL, op=reduce_op)
         return tensor
 
     def broadcast(self, obj: Tensor, src: int = 0) -> Tensor:
@@ -382,8 +382,9 @@ class ColossalAIStrategy(DDPStrategy):
             obj: the object to broadcast
             src: source rank
         """
-        return broadcast(obj, src, ParallelMode.GLOBAL)
+        return broadcast(obj, src=src, parallel_mode=ParallelMode.GLOBAL)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        return all_gather(tensor, group=group, sync_grads=sync_grads)
+        assert sync_grads is False
+        return all_gather(tensor, dim=0, parallel_mode=ParallelMode.GLOBAL)
