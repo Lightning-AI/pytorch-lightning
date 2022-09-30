@@ -82,9 +82,6 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         url=_about.__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
         license=_about.__license__,
-        dependency_links=[
-            "https://release.colossalai.org",
-        ],
         packages=find_packages(
             where="src",
             include=[
