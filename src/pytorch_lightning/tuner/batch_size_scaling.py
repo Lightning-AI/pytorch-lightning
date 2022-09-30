@@ -280,9 +280,6 @@ def _adjust_batch_size(
         if trainer.train_dataloader is None:
             trainer.reset_train_dataloader()
 
-        assert trainer.train_dataloader is not None
-        # TODO: should we check val_dataloaders here too?
-
         assert isinstance(trainer.train_dataloader, CombinedLoader)
         if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
             # at this moment, `train_dataloader` is already a CombinedLoader. len can return a size or infinity

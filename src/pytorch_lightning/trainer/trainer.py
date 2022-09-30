@@ -586,7 +586,7 @@ class Trainer:
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         ckpt_path: Optional[str] = None,
-    ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
+    ) -> None:
         Trainer._log_api_event("fit")
         log.detail(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -617,11 +617,11 @@ class Trainer:
             model_provided=True,
             model_connected=self.lightning_module is not None,
         )
-        results = self._run(model, ckpt_path=self.ckpt_path)
+        self._run(model, ckpt_path=self.ckpt_path)
 
         assert self.state.stopped
         self.training = False
-        return results
+        return
 
     def validate(
         self,
