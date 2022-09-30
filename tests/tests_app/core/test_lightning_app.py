@@ -1072,8 +1072,8 @@ def test_cloud_compute_binding():
 
     cloud_compute.MULTI_WORKS_INTO_SINGLE_POD = True
 
+    assert cloud_compute._CLOUD_COMPUTE_STORE == {}
     flow = FlowCC()
-    assert cloud_compute._CLOUD_COMPUTE_STORE
     assert len(cloud_compute._CLOUD_COMPUTE_STORE) == 2
     assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.work_c"]
     assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.work_a", "root.work_b"]

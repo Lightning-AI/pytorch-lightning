@@ -75,7 +75,7 @@ def clear_app_state_state_variables():
     lightning_app.utilities.state._STATE = None
     lightning_app.utilities.state._LAST_STATE = None
     AppState._MY_AFFILIATION = ()
-    cloud_compute._CLOUD_COMPUTE_STORE = {}
+    cloud_compute._CLOUD_COMPUTE_STORE.clear()
 
 
 @pytest.fixture
