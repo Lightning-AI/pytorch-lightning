@@ -14,7 +14,7 @@
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, cast, Dict, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -162,7 +162,7 @@ if _RICH_AVAILABLE:
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
                 if self._renderable_cache:
-                    assert type(self._current_task_id) is TaskID
+                    self._current_task_id = cast(TaskID, self._current_task_id)
                     self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
                 self._current_task_id = task.id
             if self._trainer.training and task.id != self._current_task_id:
