@@ -62,3 +62,7 @@ class LightningSigtermStateException(Exception):
 
 class LogLinesLimitExceeded(Exception):
     """Exception to inform the user that we've reached the maximum number of log lines."""
+
+
+class LightningSourceDirectorySizeException(Exception):
+    """Exception to inform the user that the source directory is too large."""

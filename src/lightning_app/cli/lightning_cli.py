@@ -31,7 +31,7 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
-from lightning_app.utilities.exceptions import LogLinesLimitExceeded
+from lightning_app.utilities.exceptions import LogLinesLimitExceeded, LightningSourceDirectorySizeException
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI, _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
@@ -341,18 +341,21 @@ def _run_app(
     # TODO: Fixme when Grid utilities are available.
     # And refactor test_lightning_run_app_cloud
     file_path = Path(file)
-    dispatch(
-        file_path,
-        runtime_type,
-        start_server=not without_server,
-        no_cache=no_cache,
-        blocking=blocking,
-        on_before_run=on_before_run,
-        name=name,
-        env_vars=env_vars,
-        secrets=secrets,
-        cluster_id=cluster_id,
-    )
+    try:
+        dispatch(
+            file_path,
+            runtime_type,
+            start_server=not without_server,
+            no_cache=no_cache,
+            blocking=blocking,
+            on_before_run=on_before_run,
+            name=name,
+            env_vars=env_vars,
+            secrets=secrets,
+            cluster_id=cluster_id,
+        )
+    except LightningSourceDirectorySizeException as e:
+        click.confirm(str(e) + " Do you want to continue?", abort=True)
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
 

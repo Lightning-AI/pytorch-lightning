@@ -30,6 +30,7 @@ def dispatch(
     env_vars: Dict[str, str] = None,
     secrets: Dict[str, str] = None,
     cluster_id: str = None,
+    force_upload: bool = False,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -46,6 +47,7 @@ def dispatch(
         env_vars: Dict of env variables to be set on the app
         secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
+        force_upload: Whether to force upload the source code, ignoring the size limit
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
@@ -73,7 +75,7 @@ def dispatch(
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
-    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id)
+    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id, force_upload=force_upload)
 
 
 @dataclass

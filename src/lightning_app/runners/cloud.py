@@ -40,7 +40,7 @@ from lightning_cloud.openapi import (
 from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.core.app import LightningApp
-from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
+from lightning_app.core.constants import CLOUD_UPLOAD_WARNING_SIZE, DISABLE_DEPENDENCY_CACHE, CLOUD_UPLOAD_FAIL_SIZE
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
@@ -51,6 +51,7 @@ from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
+from utilities.exceptions import LightningSourceDirectorySizeException
 
 logger = Logger(__name__)
 
@@ -85,7 +86,7 @@ class CloudRuntime(Runtime):
         root = config_file.parent if config_file else Path(self.entrypoint_file).absolute().parent
         cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
         repo = LocalSourceCodeDir(path=root)
-        self._check_uploaded_folder(root, repo)
+        self._check_uploaded_folder(root, repo, kwargs.get("force_upload", False))
         requirements_file = root / "requirements.txt"
         # The entry point file needs to be relative to the root of the uploaded source file directory,
         # because the backend will invoke the lightning commands relative said source directory
@@ -327,17 +328,25 @@ class CloudRuntime(Runtime):
         )
 
     @staticmethod
-    def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:
+    def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir, force_upload: bool) -> None:
         """This method is used to inform the users if their folder files are large and how to filter them."""
         lightning_tar = set(fnmatch.filter(repo.files, "*lightning-*.tar.gz"))
         app_folder_size = sum(Path(p).stat().st_size for p in repo.files if p not in lightning_tar)
         app_folder_size_in_mb = round(app_folder_size / (1000 * 1000), 5)
-        if app_folder_size_in_mb > CLOUD_UPLOAD_WARNING:
+        if not force_upload and (app_folder_size_in_mb > CLOUD_UPLOAD_FAIL_SIZE):
+            raise LightningSourceDirectorySizeException(
+                f"The size of the folder you are trying to run from is > {CLOUD_UPLOAD_FAIL_SIZE} MB"
+                f" ({app_folder_size_in_mb} MB). This usually means you have leftover artifacts or datasets"
+                f"in your folder. You can either remove them or add them to `.lightningignore` file. But if this"
+                f"is not by mistake, you can use `--force` flat to force the upload. However, this may take a long time"
+                f" and may even fail, depends on your connection speed and reliability."
+            )
+        if not force_upload and (app_folder_size_in_mb > CLOUD_UPLOAD_WARNING_SIZE):
             path_sizes = [(p, Path(p).stat().st_size / (1000 * 1000)) for p in repo.files]
             largest_paths = sorted((x for x in path_sizes if x[-1] > 0.01), key=lambda x: x[1], reverse=True)[:25]
             largest_paths_msg = "\n".join(f"{round(s, 5)} MB: {p}" for p, s in largest_paths)
             warning_msg = (
-                f"Your application folder {root} is more than {CLOUD_UPLOAD_WARNING} MB. "
+                f"Your application folder {root} is more than {CLOUD_UPLOAD_WARNING_SIZE} MB. "
                 f"Found {app_folder_size_in_mb} MB \n"
                 "Here are the largest files: \n"
                 f"{largest_paths_msg}"
