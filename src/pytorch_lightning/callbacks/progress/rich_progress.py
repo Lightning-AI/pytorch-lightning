@@ -31,8 +31,6 @@ if _RICH_AVAILABLE:
     from rich.progress_bar import ProgressBar
     from rich.style import Style
     from rich.text import Text
-else:
-    Task, Style = None, None  # type: ignore[assignment, misc]
 
     class CustomBarColumn(BarColumn):
         """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
@@ -175,6 +173,8 @@ else:
                 text += f"{k}: {round(v, 3) if isinstance(v, float) else v} "
             return Text(text, justify="left", style=self._style)
 
+else:
+    Task, Style = None, None  # type: ignore[assignment, misc]
 
 @dataclass
 class RichProgressBarTheme:
@@ -291,10 +291,6 @@ class RichProgressBar(ProgressBarBase):
         self._enabled = True
 
     def _init_progress(self, trainer: "pl.Trainer") -> None:
-        if not _RICH_AVAILABLE:
-            raise ModuleNotFoundError(
-                "`RichProgressBar` requires `rich` >= 10.2.2. Install it by running `pip install -U rich`."
-            )
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
             reconfigure(**self._console_kwargs)
