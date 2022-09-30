@@ -278,16 +278,16 @@ class DataFetcher(AbstractDataFetcher):
         start_output = self.on_fetch_start()
         try:
             batch = next(iterator)
-            self.fetched += 1
-            if not self.prefetch_batches and self._has_len:
-                # when we don't prefetch but the dataloader is sized, we use the length for `done`
-                dataloader = self.dataloader
-                assert isinstance(dataloader, Sized)  # `_has_len` is True
-                self.done = self.fetched >= len(dataloader)
-            self.on_fetch_end(batch, start_output)
         except StopIteration as e:
             self._stop_profiler()
             raise e
+        self.fetched += 1
+        if not self.prefetch_batches and self._has_len:
+            # when we don't prefetch but the dataloader is sized, we use the length for `done`
+            dataloader = self.dataloader
+            assert isinstance(dataloader, Sized)  # `_has_len` is True
+            self.done = self.fetched >= len(dataloader)
+        self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:
         if self.store_on_device:
