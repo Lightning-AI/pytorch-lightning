@@ -111,7 +111,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: Union[bool, _LITERAL_WARN] = False,
+        deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
         auto_select_gpus: bool = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
@@ -665,7 +665,8 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
-            self.strategy = self._strategy_flag
+            # TODO(lite): remove ignore after merging lite and PL strategies
+            self.strategy = self._strategy_flag  # type: ignore[assignment]
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
@@ -692,9 +693,7 @@ class AcceleratorConnector:
         if isinstance(self.strategy, ColossalAIStrategy):
             return ColossalAIPrecisionPlugin(self._precision_flag)
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(
-                self._precision_flag, self._amp_type_flag, self._amp_level_flag  # type: ignore
-            )
+            return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
         if self._precision_flag == 32:
             return PrecisionPlugin()
