@@ -88,8 +88,7 @@ class DDPShardedStrategy(DDPStrategy):
     @contextmanager
     def block_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
-        wrapper.
-        """
+        wrapper."""
         if not isinstance(module, ShardedDataParallel):
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
@@ -165,8 +164,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     @contextmanager
     def block_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
-        wrapper.
-        """
+        wrapper."""
         if not isinstance(module, ShardedDataParallel):
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
