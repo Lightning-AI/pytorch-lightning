@@ -255,11 +255,11 @@ class RichProgressBar(ProgressBarBase):
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
         self.progress: Optional[Progress] = None
-        self.val_sanity_progress_bar_id: Optional[TaskID] = None
-        self.main_progress_bar_id: Optional[TaskID]
-        self.val_progress_bar_id: Optional[TaskID]
-        self.test_progress_bar_id: Optional[TaskID]
-        self.predict_progress_bar_id: Optional[TaskID]
+        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
+        self.main_progress_bar_id: Optional["TaskID"]
+        self.val_progress_bar_id: Optional["TaskID"]
+        self.test_progress_bar_id: Optional["TaskID"]
+        self.predict_progress_bar_id: Optional["TaskID"]
         self._reset_progress_bar_ids()
         self._metric_component: Optional["MetricsTextColumn"] = None
         self._progress_stopped: bool = False
@@ -377,13 +377,13 @@ class RichProgressBar(ProgressBarBase):
 
         self.refresh()
 
-    def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> TaskID:
+    def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
         if self.progress is not None:
             return self.progress.add_task(
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
             )
 
-    def _update(self, progress_bar_id: TaskID, current: int, visible: bool = True) -> None:
+    def _update(self, progress_bar_id: "TaskID", current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
             total = self.progress.tasks[progress_bar_id].total
             assert total is not None
