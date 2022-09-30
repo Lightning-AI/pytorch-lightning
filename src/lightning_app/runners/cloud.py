@@ -240,7 +240,7 @@ class CloudRuntime(Runtime):
             )
 
             if ENABLE_HYBRID:
-                release_body.network_config = (app_spec.network_config,)
+                release_body.network_config = app_spec.network_config
 
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
