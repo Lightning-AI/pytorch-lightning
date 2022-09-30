@@ -113,6 +113,9 @@ class CloudRuntime(Runtime):
             ]
             v1_env_vars.extend(env_vars_from_secrets)
 
+        if ENABLE_HYBRID:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_HYBRID", value="1"))
+
         work_reqs: List[V1Work] = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
@@ -189,19 +192,6 @@ class CloudRuntime(Runtime):
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
         )
-        if ENABLE_HYBRID:
-            network_configs: List[V1NetworkConfig] = []
-
-            initial_port = 8080 + 1 + len(frontend_specs)
-            for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
-                network_configs.append(
-                    V1NetworkConfig(
-                        name="w" + str(initial_port),
-                        port=initial_port,
-                    )
-                )
-                initial_port += 1
-            app_spec.network_config = network_configs
 
         # if requirements file at the root of the repository is present,
         # we pass just the file name to the backend, so backend can find it in the relative path
@@ -240,7 +230,19 @@ class CloudRuntime(Runtime):
             )
 
             if ENABLE_HYBRID:
-                release_body.network_config = app_spec.network_config
+                network_configs: List[V1NetworkConfig] = []
+
+                initial_port = 8080 + 1 + len(frontend_specs)
+                for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
+                    network_configs.append(
+                        V1NetworkConfig(
+                            name="w" + str(initial_port),
+                            port=initial_port,
+                        )
+                    )
+                    initial_port += 1
+
+                release_body.network_config = network_configs
 
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
