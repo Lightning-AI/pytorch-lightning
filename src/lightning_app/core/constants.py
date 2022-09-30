@@ -36,10 +36,14 @@ DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
 LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
-MULTI_WORKS_INTO_SINGLE_POD = bool(int(os.getenv("MULTI_WORKS_INTO_SINGLE_POD", "0")))
 DEBUG: bool = lightning_cloud.env.DEBUG
 DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "50"))
-ENABLE_HYBRID = bool(int(os.getenv("ENABLE_HYBRID", "0")))  # Note: This is a disabled feature.
+
+# EXPERIMENTAL: ENV VARIABLE TO ENABLE MULTIPLE WORKS IN A SINGLE POD
+ENABLE_HYBRID = bool(int(os.getenv("ENABLE_HYBRID", "0")))  # Note: This is a disable the feature entirely.
+MULTI_WORKS_INTO_SINGLE_POD = bool(
+    int(os.getenv("MULTI_WORKS_INTO_SINGLE_POD", "0"))
+)  # This isn't used in the cloud yet.
 
 
 def get_lightning_cloud_url() -> str:
