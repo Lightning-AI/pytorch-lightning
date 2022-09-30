@@ -52,10 +52,11 @@ jobs:
        git fetch origin 5e88ac24f631c27045e62f0e8d5dfcf34e425e25:stable
        git checkout stable
 
-    - name: Install jsonnet
-      uses: actions/setup-go@v3
+    - uses: actions/setup-go@v3
       with:
         go-version: '1.7.1'
+
+    - name: Install jsonnet
       run: go install github.com/google/go-jsonnet/cmd/jsonnet@latest
 
     - name: Update jsonnet
