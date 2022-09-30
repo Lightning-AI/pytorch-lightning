@@ -35,10 +35,11 @@ from lightning_cloud.openapi import (
     V1PythonDependencyInfo,
     V1SourceType,
     V1UserRequestedComputeConfig,
-    V1Work,
+    V1Work, V1QueueServerType,
 )
 from lightning_cloud.openapi.rest import ApiException
 
+from core import constants
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
 from lightning_app.runners.backends.cloud import CloudBackend
@@ -218,6 +219,7 @@ class CloudRuntime(Runtime):
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
+                queue_server_type=V1QueueServerType.HTTP if constants.QUEUE_TYPE == "http" else V1QueueServerType.REDIS
             )
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)

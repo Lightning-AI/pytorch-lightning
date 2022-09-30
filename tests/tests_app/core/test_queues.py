@@ -120,7 +120,7 @@ def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch)
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@mock.patch("lightning_app.core.queues.REDIS_WARNING_QUEUE_SIZE", 2)
+@mock.patch("lightning_app.core.queues.WARNING_QUEUE_SIZE", 2)
 def test_redis_queue_warning():
     my_queue = QueuingSystem.REDIS.get_api_delta_queue(queue_id="test_redis_queue_warning")
     my_queue.clear()

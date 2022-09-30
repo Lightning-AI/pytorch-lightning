@@ -39,13 +39,14 @@ APP_SERVER_PORT = 7501
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 
 CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
+WARNING_QUEUE_SIZE = 1000
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
 REDIS_QUEUES_READ_DEFAULT_TIMEOUT = 0.005
 
-WARNING_QUEUE_SIZE = 1000
+HTTP_QUEUE_URL = os.getenv("LIGHTNING_HTTP_QUEUE_URL", "http://localhost:9801")
 
 USER_ID = os.getenv("USER_ID", "1234")
 FRONTEND_DIR = os.path.join(os.path.dirname(lightning_app.__file__), "ui")
@@ -66,3 +67,4 @@ DEBUG: bool = lightning_cloud.env.DEBUG
 DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 # different flag because queue debug can be very noisy, and almost always not useful unless debugging the queue itself.
 QUEUE_DEBUG_ENABLED = truthy(os.getenv("LIGHTNING_QUEUE_DEBUG_ENABLED", "false"))
+
