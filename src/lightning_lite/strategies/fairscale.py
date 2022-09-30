@@ -59,11 +59,10 @@ class DDPShardedStrategy(DDPStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
-            process_group_backen=process_group_backend,
+            process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
         )
-        super().__init__()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -78,6 +77,11 @@ class DDPShardedStrategy(DDPStrategy):
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
         optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        for optimizer in optimizers:
+            # This forces buckets to be rebuilt on the first forward pass
+            # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
+            # device than the params
+            optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
@@ -131,11 +135,10 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
-            process_group_backen=process_group_backend,
+            process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
         )
-        super().__init__()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -150,6 +153,11 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
         optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        for optimizer in optimizers:
+            # This forces buckets to be rebuilt on the first forward pass
+            # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
+            # device than the params
+            optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
@@ -179,15 +187,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             cls,
             description=cls.__class__.__name__,
         )
-
-    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
 
 
 def _reinit_optimizers_with_oss(

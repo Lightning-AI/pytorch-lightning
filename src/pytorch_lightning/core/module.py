@@ -88,11 +88,11 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
-            "_running_torchscript",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
+    _jit_is_scripting = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -115,8 +115,6 @@ class LightningModule(
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
-        self._running_torchscript_internal = False  # workaround for https://github.com/pytorch/pytorch/issues/67146
-
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
     @overload
@@ -176,7 +174,7 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        if not self._running_torchscript and self._trainer is None:
+        if not self._jit_is_scripting and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
         return self._trainer  # type: ignore[return-value]
 
@@ -270,17 +268,6 @@ class LightningModule(
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
-
-    @property
-    def _running_torchscript(self) -> bool:
-        return self._running_torchscript_internal
-
-    @_running_torchscript.setter
-    def _running_torchscript(self, value: bool) -> None:
-        for v in self.children():
-            if isinstance(v, LightningModule):
-                v._running_torchscript = value
-        self._running_torchscript_internal = value
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
@@ -1885,10 +1872,9 @@ class LightningModule(
         """
         mode = self.training
 
-        self._running_torchscript = True
-
         if method == "script":
-            torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            with _jit_is_scripting():
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
         elif method == "trace":
             # if no example inputs are provided, try to see if model has example_input_array set
             if example_inputs is None:
@@ -1902,7 +1888,8 @@ class LightningModule(
             # automatically send example inputs to the right device and use trace
             example_inputs = self._on_before_batch_transfer(example_inputs)
             example_inputs = self._apply_batch_transfer_handler(example_inputs)
-            torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+            with _jit_is_scripting():
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
             raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
 
@@ -1912,8 +1899,6 @@ class LightningModule(
             fs = get_filesystem(file_path)
             with fs.open(file_path, "wb") as f:
                 torch.jit.save(torchscript_module, f)
-
-        self._running_torchscript = False
 
         return torchscript_module
 
@@ -1956,3 +1941,13 @@ class LightningModule(
             self.__class__._register_load_state_dict_pre_hook(
                 weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
             )
+
+
+@contextmanager
+def _jit_is_scripting() -> Generator:
+    """Workaround for https://github.com/pytorch/pytorch/issues/67146."""
+    LightningModule._jit_is_scripting = True
+    try:
+        yield
+    finally:
+        LightningModule._jit_is_scripting = False
