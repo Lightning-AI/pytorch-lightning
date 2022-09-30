@@ -33,7 +33,6 @@ local tputests = base.BaseTest {
       git -c advice.detachedHead=false checkout {SHA}
 
       echo "--- Install PL ---"
-      pip install mkl==2022.0.3  # failed list: 2021.4.0, 2022.1.0, 2022.2.0
       PACKAGE_NAME=pytorch FREEZE_REQUIREMENTS=1 pip install -e .[test]
       pip list
 
