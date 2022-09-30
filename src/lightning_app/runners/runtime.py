@@ -27,7 +27,8 @@ def dispatch(
     blocking: bool = True,
     on_before_run: Optional[Callable] = None,
     name: str = "",
-    env_vars: Dict[str, str] = {},
+    env_vars: Dict[str, str] = None,
+    secrets: Dict[str, str] = None,
     cluster_id: str = None,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
@@ -43,6 +44,7 @@ def dispatch(
         on_before_run: Callable to be executed before run.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
+        secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
     """
     from lightning_app.runners.runtime_type import RuntimeType
@@ -54,11 +56,20 @@ def dispatch(
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
     app = load_app_from_file(str(entrypoint_file))
 
+    env_vars = {} if env_vars is None else env_vars
+    secrets = {} if secrets is None else secrets
+
     if blocking:
         app.stage = AppStage.BLOCKING
 
     runtime = runtime_cls(
-        app=app, entrypoint_file=entrypoint_file, start_server=start_server, host=host, port=port, env_vars=env_vars
+        app=app,
+        entrypoint_file=entrypoint_file,
+        start_server=start_server,
+        host=host,
+        port=port,
+        env_vars=env_vars,
+        secrets=secrets,
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
@@ -78,6 +89,7 @@ class Runtime:
     done: bool = False
     backend: Optional[Union[str, Backend]] = "multiprocessing"
     env_vars: Dict[str, str] = field(default_factory=dict)
+    secrets: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         if isinstance(self.backend, str):
@@ -92,11 +104,6 @@ class Runtime:
         has_messaged = False
         while not self.done:
             try:
-                for work in self.app.works:
-                    if not hasattr(work, "_has_called_on_exit"):
-                        work.on_exit()
-                        work._has_called_on_exit = True
-
                 if self.app.backend is not None:
                     self.app.backend.stop_all_works(self.app.works)
 

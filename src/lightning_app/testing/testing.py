@@ -232,6 +232,16 @@ def run_app_in_cloud(
 
     os.environ["LIGHTNING_APP_NAME"] = name
 
+    url = Config.url
+    if url.endswith("/"):
+        url = url[:-1]
+    payload = {"apiKey": Config.api_key, "username": Config.username}
+    res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
+    if "token" not in res.json():
+        raise Exception("You haven't properly setup your environment variables.")
+
+    token = res.json()["token"]
+
     # 3. Disconnect from the App if any.
     Popen("lightning disconnect", shell=True).wait()
 
@@ -273,7 +283,6 @@ def run_app_in_cloud(
     # 6. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
-        payload = {"apiKey": Config.api_key, "username": Config.username, "duration": "120000"}
         context = browser.new_context(
             # Eventually this will need to be deleted
             http_credentials=HttpCredentials(
@@ -283,11 +292,6 @@ def run_app_in_cloud(
             record_har_path=Config.har_location,
         )
         admin_page = context.new_page()
-        url = Config.url
-        if url.endswith("/"):
-            url = url[:-1]
-        res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
-        token = res.json()["token"]
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")
         print(f"The Lightning App user id is: {Config.id}")
@@ -310,6 +314,21 @@ def run_app_in_cloud(
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
         admin_page.goto(f"{Config.url}/{Config.username}/apps", timeout=60 * 1000)
+
+        # Closing the Complete your profile dialog
+        try:
+            dialog = admin_page.locator("text=Complete your profile")
+            dialog.wait_for(timeout=10 * 1000, state="visible")
+            print("'Complete your profile' dialog visible, closing it.")
+            admin_page.locator('input[name="firstName"]').fill("first")
+            admin_page.locator('input[name="lastName"]').fill("last")
+            admin_page.locator('input[name="email"]').fill("e2e.test.admin@lightning.ai")
+            admin_page.locator('input[name="organization"]').fill("Lightning AI")
+            button = admin_page.locator('button:has-text("Confirm")')
+            button.wait_for(timeout=3 * 1000)
+            button.click()
+        except playwright._impl._api_types.TimeoutError:
+            print("'Complete your profile' dialog not visible, skipping.")
 
         # Closing the Create Project dialog.
         try:
@@ -342,7 +361,7 @@ def run_app_in_cloud(
         lightning_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                project.project_id
+                project_id=project.project_id
             ).lightningapps
             if app.name == name
         ]
@@ -401,6 +420,7 @@ def run_app_in_cloud(
 
             context.close()
             browser.close()
+            Popen("lightning disconnect", shell=True).wait()
 
 
 def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
@@ -440,7 +460,7 @@ def delete_cloud_lightning_apps():
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
-    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
     print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
 

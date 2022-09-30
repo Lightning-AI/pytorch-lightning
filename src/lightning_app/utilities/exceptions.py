@@ -58,3 +58,7 @@ class LightningSigtermStateException(Exception):
 
     def __init__(self, exit_code):
         self.exit_code = exit_code
+
+
+class LogLinesLimitExceeded(Exception):
+    """Exception to inform the user that we've reached the maximum number of log lines."""

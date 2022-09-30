@@ -8,71 +8,74 @@
 * @williamfalcon @borda @tchaton @awaelchli @kaushikb11 @rohitgr7
 
 # CI/CD and configs
-/.github/       @borda @carmocca @akihironitta @tchaton
-/.azure/        @borda @carmocca @akihironitta @tchaton
-/dockers/       @borda @carmocca @akihironitta @tchaton
-*.yml           @borda @carmocca @akihironitta @tchaton
+/.github/       @borda @carmocca @akihironitta @otaj
+/.azure/        @borda @carmocca @akihironitta @otaj
+/dockers/       @borda @carmocca @akihironitta @otaj
+*.yml           @borda @carmocca @akihironitta @otaj
 
 # Docs
-/docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella @Felonious-Spellfire
+/docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella @rohitgr7
 /.github/*.md                               @edenlightning @williamfalcon @borda
-/.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton
+/.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon
 /docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
 /docs/source-pytorch/expertise_levels       @williamfalcon @RobertLaurella
-/docs/source-app/                           @williamfalcon @Felonious-Spellfire @RobertLaurella @tchaton @awaelchli
+/docs/source-app/                           @williamfalcon @RobertLaurella @tchaton @awaelchli
 /docs/source-app/conf.py                    @borda @awaelchli @carmocca
 /docs/source-app/index.rst                  @williamfalcon
-/docs/source-app/expertise_levels           @williamfalcon @Felonious-Spellfire @RobertLaurella
+/docs/source-app/expertise_levels           @williamfalcon @RobertLaurella
 
-# Packages
-/src/pytorch_lightning                      @borda @awaelchli @carmocca @justusschock @rohitgr7 @otaj
-/src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
-/src/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
-/src/pytorch_lightning/core                 @tchaton @borda @carmocca @justusschock @kaushikb11
-/src/pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
-/src/pytorch_lightning/lite                 @tchaton @awaelchli @carmocca
-/src/pytorch_lightning/loggers              @tchaton @awaelchli @borda
-/src/pytorch_lightning/loggers/wandb.py     @borisdayma @borda
+# PyTorch Lightning
+/src/pytorch_lightning                      @awaelchli @carmocca @rohitgr7 @otaj @justusschock
+/src/pytorch_lightning/accelerators         @awaelchli @carmocca @justusschock @kaushikb11
+/src/pytorch_lightning/callbacks            @borda @awaelchli @carmocca @justusschock
+/src/pytorch_lightning/core                 @borda @carmocca @justusschock
+/src/pytorch_lightning/distributed          @awaelchli @carmocca @justusschock
+/src/pytorch_lightning/lite                 @awaelchli @carmocca @justusschock  # remove in 1.10
+/src/pytorch_lightning/loggers              @borda @awaelchli @carmocca
+/src/pytorch_lightning/loggers/wandb.py     @borisdayma @awaelchli @otaj @rohitgr7
 /src/pytorch_lightning/loggers/neptune.py   @shnela @HubertJaworski @pkasprzyk @pitercl @Raalsky @aniezurawski @kamil-kaczmarek
-/src/pytorch_lightning/loops                @tchaton @awaelchli @justusschock @carmocca
-/src/pytorch_lightning/overrides            @tchaton @borda
-/src/pytorch_lightning/plugins              @tchaton @awaelchli @justusschock
-/src/pytorch_lightning/profilers            @williamfalcon @tchaton @borda @carmocca
-/src/pytorch_lightning/profilers/pytorch.py @nbcsm @guotuofeng
-/src/pytorch_lightning/strategies           @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
-/src/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @carmocca @awaelchli @justusschock @kaushikb11
-/src/pytorch_lightning/trainer/connectors   @tchaton @carmocca @borda
-/src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
-/src/pytorch_lightning/utilities            @borda @tchaton @carmocca
+/src/pytorch_lightning/loops                @awaelchli @justusschock @carmocca
+/src/pytorch_lightning/plugins              @awaelchli @carmocca @justusschock
+/src/pytorch_lightning/profilers            @tchaton @borda @carmocca
+/src/pytorch_lightning/profilers/pytorch.py @nbcsm @guotuofeng @carmocca
+/src/pytorch_lightning/strategies           @awaelchli @carmocca @justusschock @kaushikb11
+/src/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @awaelchli @carmocca @justusschock
+/src/pytorch_lightning/trainer/connectors   @awaelchli @carmocca @justusschock @otaj
+/src/pytorch_lightning/trainer/conectors/logger_connector @awaelchli @carmocca @rohitgr7
+/src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli @rohitgr7
+/src/pytorch_lightning/utilities            @borda @awaelchli @carmocca
+/tests/tests_pytorch                        @awaelchli @carmocca @rohitgr7 @otaj @justusschock
 
-/src/lightning_app                          @tchaton @manskx
-/src/lightning_app/cli/pl-app-template      @tchaton @awaelchli @Borda
+# Core APIs
+/src/pytorch_lightning/callbacks/callback.py @williamfalcon @awaelchli @carmocca
+/src/pytorch_lightning/core/datamodule.py    @williamFalcon @awaelchli @carmocca
+/src/pytorch_lightning/trainer/trainer.py    @williamfalcon @tchaton @awaelchli @carmocca
+/src/pytorch_lightning/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
+/src/pytorch_lightning/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
+
+# Lightning Lite
+/src/lightning_lite                         @awaelchli @carmocca @justusschock
+/tests/tests_lite                           @awaelchli @carmocca @justusschock
+
+# Lightning App
+/src/lightning_app                          @tchaton @manskx @lantiga
+/src/lightning_app/cli/pl-app-template      @tchaton @awaelchli @lantiga
 /src/lightning_app/core                     @tchaton @awaelchli @manskx
 /src/lightning_app/core/queues.py           @tchaton @hhsecond @manskx
-/src/lightning_app/runners/cloud.py         @tchaton @hhsecond
-/src/lightning_app/testing                  @tchaton @manskx
+/src/lightning_app/runners/cloud.py         @tchaton @hhsecond @lantiga
+/src/lightning_app/testing                  @tchaton @manskx @lantiga
 /src/lightning_app/__about__.py             @nohalon @edenlightning @lantiga
-
-# Examples
-/examples/app_*                             @tchaton @awaelchli @manskx @hhsecond
-# App tests
 /tests/tests_app                            @tchaton @awaelchli @manskx @hhsecond
 /tests/tests_app_examples                   @tchaton @awaelchli @manskx @hhsecond
-
-# Specifics
-/src/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
-/src/pytorch_lightning/trainer/progress.py                 @tchaton @awaelchli @carmocca
-# API
-/src/pytorch_lightning/callbacks/callback.py @williamfalcon @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/core/datamodule.py    @williamFalcon @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/trainer/trainer.py    @williamfalcon @tchaton @awaelchli
-/src/pytorch_lightning/core/hooks.py         @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/core/module.py        @williamfalcon @tchaton @awaelchli
+/examples/app_*                             @tchaton @awaelchli @manskx @hhsecond
 
 /.github/CODEOWNERS                  @williamfalcon
 /SECURITY.md                         @williamfalcon
 /README.md                           @williamfalcon @edenlightning @borda
 /setup.py                            @williamfalcon @borda @carmocca
 /src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
+/src/lightning_app/__about__.py      @williamfalcon @borda @manskx
+/src/lightning_lite/__about__.py     @williamfalcon @borda @awaelchli
+/src/*/__setup__.py                  @borda @manskx

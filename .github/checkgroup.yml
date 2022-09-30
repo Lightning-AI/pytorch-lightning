@@ -29,8 +29,8 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/docs-*.yml"
     checks:
+      # Note: updates here should be applied to the lightning_lite group
       - "pl-conda (3.8, 1.10)"
       - "pl-conda (3.8, 1.9)"
       - "pl-conda (3.9, 1.11)"
@@ -47,14 +47,14 @@ subprojects:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "mypy"
-      - "PR Gatekeeper (pytorch)"
       - "pytorch-lightning (GPUs)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
       - "pl-slow (windows-2022, 3.7, 1.11)"
-      - "test-on-tpus"
+      # TODO: since this job cannot run on forks, it cannot be required or it will block all PL PRs from forks
+      #- "test-on-tpus"
 
   - id: "pytorch_lightning: Conda"
     paths:
@@ -163,8 +163,25 @@ subprojects:
       - "lite-cpu (windows-2022, 3.10, latest, stable)"
       - "lite-cpu (windows-2022, 3.7, latest, stable)"
       - "lite-cpu (windows-2022, 3.7, oldest, stable)"
+      - "lightning-lite (GPUs)"
       - "mypy"
-      # TODO: lite should also require (some?) pl checks. this also requires that the path filters are modified
+      # Lite also requires PL checks as it depends on Lite
+      - "pl-cpu (macOS-11, 3.10, latest, stable)"
+      - "pl-cpu (macOS-11, 3.7, latest, stable)"
+      - "pl-cpu (macOS-11, 3.7, oldest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "pl-cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "pl-cpu (windows-2022, 3.10, latest, stable)"
+      - "pl-cpu (windows-2022, 3.7, latest, stable)"
+      - "pl-cpu (windows-2022, 3.7, oldest, stable)"
+      - "make-doctest (pytorch)"
+      - "make-html (pytorch)"
+      - "pytorch-lightning (GPUs)"
+      - "pl-slow (macOS-11, 3.7, 1.11)"
+      - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
+      - "pl-slow (windows-2022, 3.7, 1.11)"
+      #- "test-on-tpus"
 
   - id: "lightning_lite: Azure GPU"
     paths:

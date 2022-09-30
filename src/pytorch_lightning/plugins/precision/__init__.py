@@ -18,7 +18,6 @@ from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShar
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.hpu import HPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.ipu import IPUPrecisionPlugin
-from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
@@ -33,7 +32,6 @@ __all__ = [
     "FullyShardedNativeMixedPrecisionPlugin",
     "HPUPrecisionPlugin",
     "IPUPrecisionPlugin",
-    "MixedPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",

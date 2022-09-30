@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.10.0."""
+from re import escape
 from unittest import mock
 
 import numpy
@@ -19,17 +20,19 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
+from lightning_lite.accelerators import CUDAAccelerator as LiteCUDAAccelerator
+from lightning_lite.accelerators import TPUAccelerator as LiteTPUAccelerator
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
-from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
@@ -48,6 +51,7 @@ from pytorch_lightning.utilities.device_parser import (
     num_cuda_devices,
     parse_cpu_cores,
     parse_gpu_ids,
+    parse_hpus,
     parse_tpu_cores,
 )
 from pytorch_lightning.utilities.distributed import (
@@ -80,7 +84,6 @@ def test_deprecated_amp_level():
         LightningBaguaModule,
         LightningDeepSpeedModule,
         pytest.param(LightningShardedDataParallel, marks=RunIf(fairscale=True)),
-        LightningIPUModule,
     ],
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
@@ -191,6 +194,9 @@ def test_v1_10_deprecated_device_parser_utilities():
     with pytest.deprecated_call(match="device_parser.num_cuda_devices` has been deprecated in v1.8.0"):
         num_cuda_devices()
 
+    with pytest.deprecated_call(match="device_parser.parse_hpus` has been deprecated in v1.8.0"):
+        parse_hpus(1)
+
     with pytest.deprecated_call(match="device_parser.parse_cpu_cores` has been deprecated in v1.8.0"):
         parse_cpu_cores(1)
 
@@ -256,3 +262,24 @@ def test_v1_10_deprecated_seed_utilities():
 def test_v1_10_deprecated_accelerator_setup_environment_method():
     with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
         CPUAccelerator().setup_environment(torch.device("cpu"))
+
+
+class EmptyLite(LightningLite):
+    def run(self):
+        pass
+
+
+def test_lite_convert_deprecated_gpus_argument(cuda_count_2):
+    with pytest.deprecated_call(match=escape("Setting `Lite(gpus=2)` is deprecated in v1.8.0")):
+        lite = EmptyLite(gpus=2)
+    assert isinstance(lite._accelerator, LiteCUDAAccelerator)
+    assert lite._connector._parallel_devices == [torch.device("cuda", 0), torch.device("cuda", 1)]
+
+
+@RunIf(skip_windows=True)
+@mock.patch("lightning_lite.accelerators.TPUAccelerator.is_available", return_value=True)
+def test_lite_convert_deprecated_tpus_argument(*_):
+    with pytest.deprecated_call(match=escape("Setting `Lite(tpu_cores=8)` is deprecated in v1.8.0")):
+        lite = EmptyLite(tpu_cores=8)
+    assert isinstance(lite._accelerator, LiteTPUAccelerator)
+    assert lite._connector._parallel_devices == list(range(8))
