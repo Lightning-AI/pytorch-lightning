@@ -19,6 +19,7 @@ from weakref import proxy
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.rank_zero import WarningCache
+from pyrsistent import PTypeError
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -32,7 +33,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import _is_dataloader_shuffled, _update_dataloader, has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TypeError, _ValueError
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -74,12 +75,12 @@ class DataConnector:
         self.trainer.datamodule = None
 
         if check_val_every_n_epoch is not None and not isinstance(check_val_every_n_epoch, int):
-            raise MisconfigurationException(
+            raise _TypeError(
                 f"`check_val_every_n_epoch` should be an integer, found {check_val_every_n_epoch!r}."
             )
 
         if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
-            raise MisconfigurationException(
+            raise _TypeError(
                 "`val_check_interval` should be an integer when `check_val_every_n_epoch=None`,"
                 f" found {val_check_interval!r}."
             )
@@ -87,7 +88,7 @@ class DataConnector:
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
 
         if not isinstance(reload_dataloaders_every_n_epochs, int) or (reload_dataloaders_every_n_epochs < 0):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`reload_dataloaders_every_n_epochs` should be an int >= 0, got {reload_dataloaders_every_n_epochs}."
             )
 
@@ -407,7 +408,7 @@ class DataConnector:
                 elif isinstance(limit_eval_batches, float) and orig_num_batches != float("inf"):
                     num_batches = int(orig_num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
-                    raise MisconfigurationException(
+                    raise _ValueError(
                         f"When using an `IterableDataset`, `Trainer(limit_{mode.dataloader_prefix}_batches)` must be"
                         f" `1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
@@ -419,7 +420,7 @@ class DataConnector:
                     and orig_num_batches != float("inf")
                 ):
                     min_percentage = 1.0 / orig_num_batches
-                    raise MisconfigurationException(
+                    raise _ValueError(
                         f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` argument. Try at least"

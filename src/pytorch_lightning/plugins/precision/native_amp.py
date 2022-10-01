@@ -22,7 +22,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
@@ -46,13 +46,13 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
     ) -> None:
         super().__init__()
         if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
             )
         if scaler is None and precision == 16:
             scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
-            raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
+                raise _ValueError(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.precision = precision
         self.device = device
         self.scaler = scaler
@@ -76,7 +76,7 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
                 optimizer, model=model, optimizer_idx=optimizer_idx, closure=closure, **kwargs
             )
         if isinstance(optimizer, LBFGS):
-            raise MisconfigurationException(
+            raise _TypeError(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()

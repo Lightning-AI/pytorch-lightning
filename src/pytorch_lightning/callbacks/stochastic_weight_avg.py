@@ -27,7 +27,7 @@ from lightning_lite.utilities.types import _LRScheduler
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.strategies.fully_sharded_native import DDPFullyShardedNativeStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TypeError, _ValueError
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig
 
@@ -99,21 +99,21 @@ class StochasticWeightAveraging(Callback):
 
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."
         if isinstance(swa_epoch_start, int) and swa_epoch_start < 1:
-            raise MisconfigurationException(err_msg)
+            raise _ValueError(err_msg)
         if isinstance(swa_epoch_start, float) and not (0 <= swa_epoch_start <= 1):
-            raise MisconfigurationException(err_msg)
+            raise _ValueError(err_msg)
 
         wrong_type = not isinstance(swa_lrs, (float, list))
         wrong_float = isinstance(swa_lrs, float) and swa_lrs <= 0
         wrong_list = isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
         if wrong_type or wrong_float or wrong_list:
-            raise MisconfigurationException("The `swa_lrs` should a positive float, or a list of positive floats")
+            raise _ValueError("The `swa_lrs` should a positive float, or a list of positive floats")
 
         if avg_fn is not None and not callable(avg_fn):
-            raise MisconfigurationException("The `avg_fn` should be callable.")
+            raise _TypeError("The `avg_fn` should be callable.")
 
         if device is not None and not isinstance(device, (torch.device, str)):
-            raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
+            raise _TypeError(f"device is expected to be a torch.device or a str. Found {device}")
 
         self.n_averaged: Optional[torch.Tensor] = None
         self._swa_epoch_start = swa_epoch_start
@@ -147,7 +147,7 @@ class StochasticWeightAveraging(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         if isinstance(trainer.strategy, (DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy, DeepSpeedStrategy)):
-            raise MisconfigurationException("SWA does not currently support sharded models.")
+            raise _ValueError("SWA does not currently support sharded models.")
 
         # copy the model before moving it to accelerator device.
         with pl_module._prevent_trainer_and_dataloaders_deepcopy():
@@ -155,10 +155,10 @@ class StochasticWeightAveraging(Callback):
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if len(trainer.optimizers) != 1:
-            raise MisconfigurationException("SWA currently works with 1 `optimizer`.")
+            raise _ValueError("SWA currently works with 1 `optimizer`.")
 
         if len(trainer.lr_scheduler_configs) > 1:
-            raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
+            raise _ValueError("SWA currently not supported for more than 1 `lr_scheduler`.")
 
         assert trainer.max_epochs is not None
         if isinstance(self._swa_epoch_start, float):

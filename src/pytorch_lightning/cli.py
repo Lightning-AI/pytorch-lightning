@@ -25,7 +25,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TypeError, _ValueError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
@@ -127,7 +127,7 @@ class LightningArgumentParser(ArgumentParser):
                 instantiate=not issubclass(lightning_class, Trainer),
                 sub_configs=True,
             )
-        raise MisconfigurationException(
+        raise _TypeError(
             f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
             "Trainer, LightningModule, LightningDataModule, or Callback."
         )
@@ -601,7 +601,7 @@ class LightningCLI:
             return
 
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model` expects at most one optimizer "
                 f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}. In this case the user "
                 "is expected to link the argument groups and implement `configure_optimizers`, see "

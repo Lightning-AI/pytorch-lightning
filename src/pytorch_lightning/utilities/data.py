@@ -38,7 +38,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 # might be supported in later releases, see https://github.com/python/mypy/pull/13297
@@ -91,7 +91,7 @@ def extract_batch_size(batch: BType) -> int:
         raise RecursionError(error_msg)
 
     if batch_size is None:
-        raise MisconfigurationException(error_msg)
+        raise _RuntimeError(error_msg)
 
     return batch_size
 
@@ -120,7 +120,7 @@ def has_len_all_ranks(
                 )
                 has_len = False
             else:
-                raise MisconfigurationException(
+                raise _RuntimeError(
                     f"`{dataloader.__class__.__name__}` within local rank has zero length."
                     " Please make sure that it returns at least 1 batch."
                 )
@@ -232,7 +232,7 @@ def _get_dataloader_init_args_and_kwargs(
         sorted_required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
         missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in sorted_required_args)
-        raise MisconfigurationException(
+        raise _RuntimeError(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
             f"The missing attributes are {sorted_required_args}. If you instantiate your `{dataloader_cls_name}` "
@@ -246,7 +246,7 @@ def _get_dataloader_init_args_and_kwargs(
         if missing_kwargs:
             sorted_missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 f"Trying to inject parameters into the `{dataloader_cls_name}` instance. "
                 "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
                 f"The missing arguments are {sorted_missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` "
@@ -289,7 +289,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                 and batch_sampler.sampler == sampler
                 and dataloader.batch_size == batch_sampler.batch_size
             ):
-                raise MisconfigurationException(
+                raise _RuntimeError(
                     "It is not possible to have a batch sampler in your dataloader, "
                     "when running on multiple IPU devices."
                 )
@@ -340,8 +340,8 @@ def _dataloader_init_kwargs_resolve_sampler(
                         raise
 
                     # There could either be too few or too many arguments. Customizing the message based on this doesn't
-                    # make much sense since our MisconfigurationException is going to be raised from the original one.
-                    raise MisconfigurationException(
+                    # make much sense since our exception is going to be raised from the original one.
+                    raise _RuntimeError(
                         "We tried to re-instantiate your custom batch sampler and failed. "
                         "To mitigate this, either follow the API of `BatchSampler` or instantiate "
                         "your custom batch sampler inside `*_dataloader` hooks of your module."
@@ -396,7 +396,7 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
         else:
             avoid_message = " To avoid this, define `self.dataset = dataset` inside your DataLoader's `__init__`."
 
-        raise MisconfigurationException(
+        raise _RuntimeError(
             "You enabled automatic Fault Tolerant mode, but we were not able to replace your dataset"
             " with Fault Tolerant wrapper, because you have a custom DataLoader." + avoid_message
         )

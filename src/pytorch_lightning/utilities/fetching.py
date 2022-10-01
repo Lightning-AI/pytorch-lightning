@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
     patch_dataloader_iterator,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
@@ -73,7 +73,7 @@ class AbstractDataFetcher(ABC):
 
     def __init__(self, prefetch_batches: int = 0) -> None:
         if prefetch_batches < 0:
-            raise MisconfigurationException("`prefetch_batches` should at least be 0.")
+            raise _ValueError("`prefetch_batches` should at least be 0.")
         self.prefetch_batches = prefetch_batches
         self._dataloader: Optional[Iterable] = None
         self.dataloader_iter: Optional[Iterator] = None
@@ -91,7 +91,7 @@ class AbstractDataFetcher(ABC):
     @property
     def dataloader(self) -> Iterable:
         if self._dataloader is None:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 f"`{self.__class__.__name__}` should have been `setup` with a dataloader iterable."
             )
         return self._dataloader
@@ -151,7 +151,7 @@ class AbstractDataFetcher(ABC):
     @property
     def loader_iters(self) -> Any:
         if self.dataloader_iter is None:
-            raise MisconfigurationException("The `dataloader_iter` isn't available outside the __iter__ context.")
+            raise _RuntimeError("The `dataloader_iter` isn't available outside the __iter__ context.")
         if isinstance(self.dataloader, CombinedLoader):
             return self.dataloader_iter.loader_iters
         return self.dataloader_iter

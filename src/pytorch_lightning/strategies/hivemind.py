@@ -12,7 +12,7 @@ from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.types import _LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
 from pytorch_lightning.utilities.data import extract_batch_size
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _RuntimeError, _ValueError
 from pytorch_lightning.utilities.imports import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -109,7 +109,7 @@ class HivemindStrategy(Strategy):
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
         if not _HIVEMIND_AVAILABLE or platform.system() != "Linux":
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "To use the `HivemindStrategy`, you must have Hivemind installed and be running on Linux."
                 " Install it by running `pip install -U hivemind`."
             )
@@ -178,7 +178,7 @@ class HivemindStrategy(Strategy):
             return torch.device(f"cuda:{torch.cuda.current_device()}")
         elif isinstance(self.accelerator, CPUAccelerator):
             return torch.device("cpu")
-        raise MisconfigurationException(
+        raise _RuntimeError(
             f"Was unable to infer device type from the accelerator: {self.accelerator.__class__.__name__}."
         )
 
@@ -198,7 +198,7 @@ class HivemindStrategy(Strategy):
 
     def _initialize_hivemind(self) -> None:
         if len(self.optimizers) > 1:
-            raise MisconfigurationException("Hivemind only supports training with one optimizer.")
+            raise _ValueError("Hivemind only supports training with one optimizer.")
         optimizer = self.optimizers[0]
 
         if self._require_scheduler_fn and self._scheduler_fn is None:
@@ -267,8 +267,8 @@ class HivemindStrategy(Strategy):
                 try:
                     self._batch_size = extract_batch_size(batch)
                     log.info(f"Found per machine batch size automatically from the batch: {self._batch_size}")
-                except (MisconfigurationException, RecursionError) as e:
-                    raise MisconfigurationException(
+                except (RuntimeError, RecursionError) as e:
+                    raise _RuntimeError(
                         "We tried to infer the batch size from the first batch of data. "
                         "Please provide the batch size to the Strategy by "
                         "``Trainer(strategy=HivemindStrategy(batch_size=x))``. "

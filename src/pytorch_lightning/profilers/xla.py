@@ -16,7 +16,7 @@ from typing import Dict
 
 from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 
 if _TPU_AVAILABLE:
     import torch_xla.debug.profiler as xp
@@ -44,7 +44,7 @@ class XLAProfiler(Profiler):
                 raised if the provided port is invalid or busy.
         """
         if not _TPU_AVAILABLE:
-            raise MisconfigurationException("`XLAProfiler` is only supported on TPUs")
+            raise _RuntimeError("`XLAProfiler` is only supported on TPUs")
         super().__init__(dirpath=None, filename=None)
         self.port = port
         self._recording_map: Dict = {}

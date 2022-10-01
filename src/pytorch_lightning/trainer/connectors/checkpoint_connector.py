@@ -30,7 +30,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -386,7 +386,7 @@ class CheckpointConnector:
             and self.trainer.max_epochs is not None
             and self.trainer.current_epoch > self.trainer.max_epochs
         ):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"You restored a checkpoint with current_epoch={self.trainer.current_epoch},"
                 f" but you have set Trainer(max_epochs={self.trainer.max_epochs})."
             )

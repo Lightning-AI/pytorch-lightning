@@ -31,7 +31,7 @@ from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _OSError, _RuntimeError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -80,7 +80,7 @@ class IPUStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         if not _IPU_AVAILABLE:
-            raise MisconfigurationException(
+            raise _OSError(
                 "The IPU Accelerator requires IPU devices to run. "
                 "Learn more or get started with IPUs at https://www.graphcore.ai/getstarted"
             )
@@ -157,7 +157,7 @@ class IPUStrategy(ParallelStrategy):
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
+            raise _RuntimeError("IPUs currently only support one optimizer.")
 
     @property
     def replication_factor(self) -> int:
@@ -226,7 +226,7 @@ class IPUStrategy(ParallelStrategy):
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "IPUs currently does not support different `accumulate_grad_batches` at different epochs."
             )
 

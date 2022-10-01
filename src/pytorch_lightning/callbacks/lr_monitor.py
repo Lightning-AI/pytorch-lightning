@@ -27,7 +27,7 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig
 
@@ -89,7 +89,7 @@ class LearningRateMonitor(Callback):
 
     def __init__(self, logging_interval: Optional[str] = None, log_momentum: bool = False) -> None:
         if logging_interval not in (None, "step", "epoch"):
-            raise MisconfigurationException("logging_interval should be `step` or `epoch` or `None`.")
+            raise _ValueError("logging_interval should be `step` or `epoch` or `None`.")
 
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
@@ -104,7 +104,7 @@ class LearningRateMonitor(Callback):
                 If ``Trainer`` has no ``logger``.
         """
         if not trainer.loggers:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger."
             )
 
@@ -327,7 +327,7 @@ class LearningRateMonitor(Callback):
         param_groups = optimizer.param_groups
         duplicates = self._duplicate_param_group_names(param_groups)
         if duplicates:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "A single `Optimizer` cannot have multiple parameter groups with identical "
                 f"`name` values. {name} has duplicated parameter group names {duplicates}"
             )

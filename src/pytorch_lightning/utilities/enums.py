@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 
 from lightning_lite.utilities.enums import AMPType, LightningEnum, PrecisionType  # noqa: F401
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 class GradClipAlgorithmType(LightningEnum):
@@ -77,6 +77,6 @@ class _FaultTolerantMode(LightningEnum):
             return _FaultTolerantMode.AUTOMATIC
         elif env_value in ("2", "manual"):
             return _FaultTolerantMode.MANUAL
-        raise MisconfigurationException(
+        raise _ValueError(
             "The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either 'disabled', 'automatic', or 'manual'."
         )

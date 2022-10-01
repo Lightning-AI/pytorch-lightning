@@ -15,7 +15,7 @@ from typing import Optional, Union
 
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -29,7 +29,7 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
 
     def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:
         if not _FAIRSCALE_AVAILABLE:
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "You have asked for sharded AMP but you have not installed it."
                 " Install `fairscale` using this guide: https://https://github.com/facebookresearch/fairscale"
             )

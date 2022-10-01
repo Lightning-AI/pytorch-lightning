@@ -24,7 +24,7 @@ from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.utilities.device_parser import parse_gpu_ids
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 _log = logging.getLogger(__name__)
 
@@ -35,11 +35,11 @@ class CUDAAccelerator(Accelerator):
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If the selected device is not GPU.
         """
         if device.type != "cuda":
-            raise MisconfigurationException(f"Device should be GPU, got {device} instead")
+            raise _ValueError(f"Device should be GPU, got {device} instead")
         torch.cuda.set_device(device)
 
     def setup(self, trainer: "pl.Trainer") -> None:

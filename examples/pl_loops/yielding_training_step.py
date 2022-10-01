@@ -24,7 +24,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.mnist_datamodule import MNISTDataModule
 from pytorch_lightning.loops import OptimizerLoop
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
@@ -64,7 +64,7 @@ class YieldLoop(OptimizerLoop):
     def on_run_start(self, optimizers, kwargs):
         super().on_run_start(optimizers, kwargs)
         if not inspect.isgeneratorfunction(self.trainer.lightning_module.training_step):
-            raise MisconfigurationException("The `LightningModule` does not yield anything in the `training_step`.")
+            raise _RuntimeError("The `LightningModule` does not yield anything in the `training_step`.")
         assert self.trainer.lightning_module.automatic_optimization
 
         # We request the generator once and save it for later so we can call next() on it.

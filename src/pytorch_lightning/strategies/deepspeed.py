@@ -43,7 +43,7 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _RuntimeError, _ValueError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
@@ -271,7 +271,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 per worker.
         """
         if not _DEEPSPEED_AVAILABLE:
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed."
                 " Install it by running `pip install -U deepspeed`."
             )
@@ -338,7 +338,7 @@ class DeepSpeedStrategy(DDPStrategy):
             config = os.environ[self.DEEPSPEED_ENV_VAR]
         if isinstance(config, (str, Path)):
             if not os.path.isfile(config):
-                raise MisconfigurationException(
+                raise _ValueError(
                     f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
                 )
             with open(config) as f:
@@ -453,17 +453,17 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
+            raise _ValueError("DeepSpeed does not support clipping gradients by value.")
 
         if not isinstance(self.accelerator, CUDAAccelerator):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
             )
 
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
@@ -479,7 +479,7 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
         optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."
             )
         return (
@@ -622,7 +622,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_config(self) -> None:
         if self.config is None:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
                 " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
             )
@@ -636,7 +636,7 @@ class DeepSpeedStrategy(DDPStrategy):
             return
 
         if "gradient_accumulation_steps" in self.config:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
                 " as this will be set with the `accumulate_grad_batches` argument passed via the Lightning Trainer."
             )
@@ -819,7 +819,7 @@ class DeepSpeedStrategy(DDPStrategy):
             checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
         )
         if client_state is None:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
                 "or a single checkpoint file with `Trainer(strategy=DeepSpeedStrategy(load_full_weights=True))`."
             )

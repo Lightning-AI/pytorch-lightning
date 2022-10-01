@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _Result
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -49,7 +49,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def __init__(self, min_steps: Optional[int] = None, max_steps: int = -1) -> None:
         super().__init__()
         if max_steps < -1:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
             )
         self.min_steps = min_steps
@@ -443,7 +443,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                     if monitor_val is None:
                         if config.strict:
                             avail_metrics = list(self.trainer.callback_metrics)
-                            raise MisconfigurationException(
+                            raise _ValueError(
                                 f"ReduceLROnPlateau conditioned on metric {monitor_key}"
                                 f" which is not available. Available metrics are: {avail_metrics}."
                                 " Condition can be set using `monitor` key in lr scheduler dict"

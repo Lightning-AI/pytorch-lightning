@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _Stateful, ReduceLROnPlateau
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _KeyError, _RuntimeError, _TypeError, _ValueError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
@@ -163,7 +163,7 @@ class LightningOptimizer:
         if closure is None:
             closure = do_nothing_closure
         elif not callable(closure):
-            raise MisconfigurationException("When `optimizer.step(closure)` is called, the closure should be callable")
+            raise _TypeError("When `optimizer.step(closure)` is called, the closure should be callable")
 
         assert self._strategy is not None
         step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
@@ -248,7 +248,7 @@ def _configure_optimizers(
         optimizers = list(optim_conf)
     # unknown configuration
     else:
-        raise MisconfigurationException(
+        raise _TypeError(
             "Unknown configuration for model optimizers."
             " Output from `model.configure_optimizers()` should be one of:\n"
             " * `Optimizer`\n"
@@ -277,11 +277,11 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                 )
                 scheduler = {k: v for k, v in scheduler.items() if k in supported_keys}
             if "scheduler" not in scheduler:
-                raise MisconfigurationException(
+                raise _KeyError(
                     'The lr scheduler dict must have the key "scheduler" with its item being an lr scheduler'
                 )
             if "interval" in scheduler and scheduler["interval"] not in ("step", "epoch"):
-                raise MisconfigurationException(
+                raise _ValueError(
                     'The "interval" key in lr scheduler dict must be "step" or "epoch"'
                     f' but is "{scheduler["interval"]}"'
                 )
@@ -289,7 +289,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                 "reduce_on_plateau", isinstance(scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau)
             )
             if scheduler["reduce_on_plateau"] and scheduler.get("monitor", None) is None:
-                raise MisconfigurationException(
+                raise _KeyError(
                     "The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used."
                     ' For example: {"optimizer": optimizer, "lr_scheduler":'
                     ' {"scheduler": scheduler, "monitor": "your_loss"}}'
@@ -304,7 +304,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
             config = LRSchedulerConfig(**scheduler)
         elif isinstance(scheduler, ReduceLROnPlateau):
             if monitor is None:
-                raise MisconfigurationException(
+                raise _KeyError(
                     "`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
                     " scheduler is used. For example:"
                     ' {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "metric_to_track"}'
@@ -349,7 +349,7 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
             )
 
         if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model):
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow PyTorch's LRScheduler"
                 " API. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
                 " you are using a custom LR scheduler."
@@ -362,7 +362,7 @@ def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_scheduler_configs: Li
         for opt_idx, opt in enumerate(optimizers):
             if config.scheduler.optimizer is opt:
                 if config.opt_idx is not None and config.opt_idx != opt_idx:
-                    raise MisconfigurationException(
+                    raise _ValueError(
                         "`opt_idx` set inside scheduler config does not match with the index"
                         " of the respective optimizer returned from `configure_optimizers`."
                     )
@@ -370,7 +370,7 @@ def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_scheduler_configs: Li
                 config.opt_idx = opt_idx
                 break
         else:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
             )
 

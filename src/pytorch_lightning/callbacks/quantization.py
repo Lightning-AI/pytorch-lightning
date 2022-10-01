@@ -27,7 +27,7 @@ from torch.quantization import FakeQuantizeBase
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _TypeError, _ValueError
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.ao.quantization.qconfig import QConfig
@@ -173,13 +173,13 @@ class QuantizationAwareTraining(Callback):
     ) -> None:
         _valid_qconf_str = isinstance(qconfig, str) and qconfig in torch.backends.quantized.supported_engines
         if not isinstance(qconfig, QConfig) and not _valid_qconf_str:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Unsupported qconfig: f{qconfig}.\nTry one of defaults: {torch.backends.quantized.supported_engines}"
             )
         self._qconfig = qconfig
 
         if observer_type not in self.OBSERVER_TYPES:
-            raise MisconfigurationException(
+            raise _TypeError(
                 f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}.'
             )
         self._observer_type = observer_type
@@ -187,7 +187,7 @@ class QuantizationAwareTraining(Callback):
         if collect_quantization is not None and not (
             isinstance(collect_quantization, int) or callable(collect_quantization)
         ):
-            raise MisconfigurationException(
+            raise _TypeError(
                 f'Unsupported `collect_quantization` "{collect_quantization}", allowed are `int` or `Callable`.'
             )
         self._collect_quantization = collect_quantization
@@ -199,7 +199,7 @@ class QuantizationAwareTraining(Callback):
         observer_enabled_stages = set(observer_enabled_stages)
         unsupported_stages = observer_enabled_stages - set(self.OBSERVER_STAGES)
         if unsupported_stages:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f'Unsupported stages "{tuple(sorted(unsupported_stages))}", allowed are {self.OBSERVER_STAGES}.'
             )
         self._observer_disabled_stages = set(self.OBSERVER_STAGES) - observer_enabled_stages
@@ -214,7 +214,7 @@ class QuantizationAwareTraining(Callback):
             return False
         for group in self._modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
-                raise MisconfigurationException(
+                raise _AttributeError(
                     f"You have requested to fuse {group} but one or more of them is not your model attributes"
                 )
         return True

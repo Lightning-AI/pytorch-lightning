@@ -23,7 +23,7 @@ from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _RuntimeError, _TypeError
 from pytorch_lightning.utilities.imports import _APEX_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -54,7 +54,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
         if amp_type == AMPType.APEX:
             if not _APEX_AVAILABLE:
-                raise MisconfigurationException(
+                raise _ModuleNotFoundError(
                     "You have asked for Apex AMP but `apex` is not installed."
                     " Install `apex` using this guide: https://github.com/NVIDIA/apex"
                 )
@@ -109,7 +109,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         **kwargs: Any,
     ) -> Any:
         if isinstance(optimizer, LBFGS):
-            raise MisconfigurationException(
+            raise _TypeError(
                 f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()
@@ -117,7 +117,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally

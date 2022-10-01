@@ -25,7 +25,7 @@ from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _OSError
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _HPU_AVAILABLE:
@@ -46,7 +46,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
     ):
 
         if not _HPU_AVAILABLE:
-            raise MisconfigurationException("`SingleHPUStrategy` requires HPU devices to run")
+            raise _OSError("`SingleHPUStrategy` requires HPU devices to run")
 
         super().__init__(
             accelerator=accelerator,

@@ -24,7 +24,7 @@ from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sample
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _OSError, _RuntimeError, _ValueError
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
     DataFetcher,
@@ -54,7 +54,7 @@ class FitLoop(Loop[None]):
         super().__init__()
         if isinstance(max_epochs, int) and max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}."
             )
 
@@ -104,7 +104,7 @@ class FitLoop(Loop[None]):
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO: This setter is required by debugging connector (fast dev run), should be avoided
         if value < -1:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
             )
         self.epoch_loop.max_steps = value
@@ -286,7 +286,7 @@ class FitLoop(Loop[None]):
             # refresh the result for custom logging at the epoch level
             epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
             if epoch_end_outputs is not None:
-                raise MisconfigurationException(
+                raise _RuntimeError(
                     "`training_epoch_end` expects a return of None. "
                     "HINT: remove the return statement in `training_epoch_end`."
                 )
@@ -352,6 +352,6 @@ def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
         return DataLoaderIterDataFetcher
     elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
         if not isinstance(trainer.accelerator, CUDAAccelerator):
-            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+            raise _OSError("Inter batch parallelism is available only when using Nvidia GPUs.")
         return InterBatchParallelDataFetcher
     return DataFetcher

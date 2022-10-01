@@ -19,7 +19,7 @@ from typing import Any
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 def metrics_to_scalars(metrics: Any) -> Any:
@@ -32,7 +32,7 @@ def metrics_to_scalars(metrics: Any) -> Any:
 
     def to_item(value: Tensor) -> int | float | bool:
         if value.numel() != 1:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
             )
         return value.item()

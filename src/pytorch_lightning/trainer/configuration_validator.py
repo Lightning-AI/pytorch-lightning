@@ -16,7 +16,7 @@ from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _RuntimeError, _ValueError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -59,7 +59,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     # -----------------------------------
     has_training_step = is_overridden("training_step", model)
     if not has_training_step:
-        raise MisconfigurationException(
+        raise _NotImplementedError(
             "No `training_step()` method defined. Lightning `Trainer` expects as minimum a"
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
@@ -69,7 +69,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     # -----------------------------------
     has_optimizers = is_overridden("configure_optimizers", model)
     if not has_optimizers:
-        raise MisconfigurationException(
+        raise _NotImplementedError(
             "No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a"
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
@@ -112,19 +112,19 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
     # predict_step is not required to be overridden
     if stage == "predict":
         if model.predict_step is None:
-            raise MisconfigurationException("`predict_step` cannot be None to run `Trainer.predict`")
+            raise _NotImplementedError("`predict_step` cannot be None to run `Trainer.predict`")
         elif not has_step and not is_overridden("forward", model):
-            raise MisconfigurationException("`Trainer.predict` requires `forward` method to run.")
+            raise _NotImplementedError("`Trainer.predict` requires `forward` method to run.")
     else:
         # -----------------------------------
         # verify model has an eval_step
         # -----------------------------------
         if not has_step:
-            raise MisconfigurationException(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
+            raise _NotImplementedError(f"No `{step_name}()` method defined to run `Trainer.{trainer_method}`.")
 
 
 def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
-    """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
+    """Raise exception since these hooks are not supported in DP mode."""
     batch_transfer_hooks = ("transfer_batch_to_device", "on_after_batch_transfer")
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
@@ -134,25 +134,25 @@ def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
         if isinstance(trainer.strategy, DataParallelStrategy) and (
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
         ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
+            raise _RuntimeError(f"Overriding `{hook}` is not supported in DP mode.")
 
         if isinstance(trainer.accelerator, IPUAccelerator) and (
             is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
         ):
-            raise MisconfigurationException(f"Overriding `{hook}` is not supported with IPUs.")
+            raise _RuntimeError(f"Overriding `{hook}` is not supported with IPUs.")
 
 
 def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
     if model.automatic_optimization:
         return
     if trainer.gradient_clip_val is not None and trainer.gradient_clip_val > 0:
-        raise MisconfigurationException(
+        raise _ValueError(
             "Automatic gradient clipping is not supported for manual optimization."
             f" Remove `Trainer(gradient_clip_val={trainer.gradient_clip_val})`"
             " or switch to automatic optimization."
         )
     if trainer.accumulate_grad_batches != 1:
-        raise MisconfigurationException(
+        raise _ValueError(
             "Automatic gradient accumulation is not supported for manual optimization."
             f" Remove `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches})`"
             " or switch to automatic optimization."
@@ -165,19 +165,19 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
     if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
 
         if is_overridden("on_train_batch_start", model):
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "The model hook `on_train_batch_start` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
 
         if is_overridden("on_train_batch_end", model):
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "The model hook `on_train_batch_end` is not compatible with "
                 "taking a `dataloader_iter` argument in your `training_step`."
             )
 
         if model.truncated_bptt_steps > 0:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "The model taking a `dataloader_iter` argument in your `training_step` "
                 "is incompatible with `truncated_bptt_steps > 0`."
             )

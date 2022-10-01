@@ -17,7 +17,7 @@ import torch
 
 from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
@@ -33,7 +33,7 @@ class FullyShardedNativeNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
 
     def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "`FullyShardedNativeNativeMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards."
             )
         super().__init__(precision, device, scaler=ShardedGradScaler() if scaler is None and precision == 16 else None)
@@ -44,7 +44,7 @@ class FullyShardedNativeNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         # for FSDP module. To overcome this, needs to call sharded_module.clip_grad_norm(clip_val)
         # however we rely on LightningModule's configure_sharded_model to wrap FSDP, it would be hard to
         # trace back the root FSDP. Now we only support clip by value.
-        raise MisconfigurationException(
+        raise _ValueError(
             f"`gradient_clip_algorithm='norm'` is currently not supported for `{self.__class__.__name__}`"
         )
 
@@ -56,7 +56,7 @@ class FullyShardedNativeNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         elif self.precision == PrecisionType.BFLOAT:
             dtype = torch.bfloat16
         else:
-            raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
+            raise _ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
         return MixedPrecision(
             param_dtype=dtype,
             reduce_dtype=dtype,

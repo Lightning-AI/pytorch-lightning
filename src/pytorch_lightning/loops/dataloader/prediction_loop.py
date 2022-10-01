@@ -6,7 +6,7 @@ from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
 
@@ -32,7 +32,7 @@ class PredictionLoop(DataLoaderLoop):
         # `DDPSpawnStrategy` plugins and derivatives don't support return predictions.
         is_ddp_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
         if return_predictions and is_ddp_spawn:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "`return_predictions` should be set to `False` when using the `DDPSpawnStrategy` or children class. "
                 f"Found {return_predictions} with strategy {type(self.trainer.strategy)}."
             )

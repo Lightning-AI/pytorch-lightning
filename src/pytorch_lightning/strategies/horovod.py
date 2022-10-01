@@ -28,7 +28,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -124,7 +124,7 @@ class HorovodStrategy(ParallelStrategy):
 
         accumulation_scheduler = trainer.accumulation_scheduler
         if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "Horovod currently does not support different `accumulate_grad_batches` at different epochs."
             )
 

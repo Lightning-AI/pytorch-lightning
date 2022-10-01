@@ -26,7 +26,7 @@ from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_lite.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -123,7 +123,7 @@ class _Metadata:
 
     def __post_init__(self) -> None:
         if not self.on_step and not self.on_epoch:
-            raise MisconfigurationException("`self.log(on_step=False, on_epoch=False)` is not useful.")
+            raise _RuntimeError("`self.log(on_step=False, on_epoch=False)` is not useful.")
         self._parse_reduce_fx()
 
     def _parse_reduce_fx(self) -> None:
@@ -137,10 +137,10 @@ class _Metadata:
             if reduce_fx == "avg":
                 reduce_fx = "mean"
             if reduce_fx not in ("min", "max", "mean", "sum"):
-                raise MisconfigurationException(error)
+                raise _ValueError(error)
             self.reduce_fx = getattr(torch, reduce_fx)
         elif self.is_custom_reduction:
-            raise MisconfigurationException(error)
+            raise _RuntimeError(error)
 
     @property
     def sync(self) -> _Sync:
@@ -488,7 +488,7 @@ class _ResultCollection(dict):
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
 

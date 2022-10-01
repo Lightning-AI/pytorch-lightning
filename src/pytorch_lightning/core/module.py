@@ -46,7 +46,7 @@ from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _RuntimeError, _ValueError
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -380,13 +380,13 @@ class LightningModule(
             return
         results = self.trainer._results
         if results is None:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "You are trying to `self.log()` but the loop's result collection is not registered"
                 " yet. This is most likely because you are trying to log in a `predict` hook,"
                 " but it doesn't support logging"
             )
         if self._current_fx_name is None:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
             )
 
@@ -396,7 +396,7 @@ class LightningModule(
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"You called `self.log` with the key `{name}`"
                 " but it should not contain information about `dataloader_idx`"
             )
@@ -415,14 +415,14 @@ class LightningModule(
                     id(module): name for name, module in self.named_modules() if isinstance(module, Metric)
                 }
                 if not self._metric_attributes:
-                    raise MisconfigurationException(
+                    raise _AttributeError(
                         "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
                         " You can fix this by setting an attribute for the metric in your `LightningModule`."
                     )
             # try to find the passed metric in the LightningModule
             metric_attribute = self._metric_attributes.get(id(value), None)
             if metric_attribute is None:
-                raise MisconfigurationException(
+                raise _AttributeError(
                     "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
                     f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
                     f" of {list(self._metric_attributes.values())}"
@@ -433,7 +433,7 @@ class LightningModule(
             and is_param_in_hook_signature(self.training_step, "dataloader_iter", explicit=True)
             and batch_size is None
         ):
-            raise MisconfigurationException(
+            raise _ValueError(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
@@ -1468,7 +1468,7 @@ class LightningModule(
         if gradient_clip_val is None:
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
         elif self.trainer.gradient_clip_val is not None and self.trainer.gradient_clip_val != gradient_clip_val:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"You have set `Trainer(gradient_clip_val={self.trainer.gradient_clip_val!r})`"
                 f" and have passed `clip_gradients(gradient_clip_val={gradient_clip_val!r})`."
                 " Please use only one of them."
@@ -1482,7 +1482,7 @@ class LightningModule(
                 self.trainer.gradient_clip_algorithm is not None
                 and self.trainer.gradient_clip_algorithm != gradient_clip_algorithm
             ):
-                raise MisconfigurationException(
+                raise _ValueError(
                     f"You have set `Trainer(gradient_clip_algorithm={self.trainer.gradient_clip_algorithm.value!r})`"
                     f" and have passed `clip_gradients(gradient_clip_algorithm={gradient_clip_algorithm!r})"
                     " Please use only one of them."
@@ -1492,7 +1492,7 @@ class LightningModule(
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
 
         if not GradClipAlgorithmType.supported_type(gradient_clip_algorithm.lower()):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid."
                 f" Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
             )
@@ -1766,7 +1766,7 @@ class LightningModule(
 
     def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"to use {fn_name}, please disable automatic optimization:"
                 " set model property `automatic_optimization` as False"
             )

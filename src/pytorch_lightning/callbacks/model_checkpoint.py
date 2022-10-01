@@ -38,7 +38,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -378,7 +378,7 @@ class ModelCheckpoint(Checkpoint):
                     f" HINT: Did you call `log({self.monitor!r}, value)` in the `LightningModule`?"
                 )
                 if trainer.fit_loop.epoch_loop.val_loop._has_run:
-                    raise MisconfigurationException(m)
+                    raise _RuntimeError(m)
                 warning_cache.warn(m)
             self._save_monitor_checkpoint(trainer, monitor_candidates)
         else:
@@ -406,19 +406,19 @@ class ModelCheckpoint(Checkpoint):
 
     def __validate_init_configuration(self) -> None:
         if self.save_top_k < -1:
-            raise MisconfigurationException(f"Invalid value for save_top_k={self.save_top_k}. Must be >= -1")
+            raise _ValueError(f"Invalid value for save_top_k={self.save_top_k}. Must be >= -1")
         if self._every_n_train_steps < 0:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Invalid value for every_n_train_steps={self._every_n_train_steps}. Must be >= 0"
             )
         if self._every_n_epochs < 0:
-            raise MisconfigurationException(f"Invalid value for every_n_epochs={self._every_n_epochs}. Must be >= 0")
+            raise _ValueError(f"Invalid value for every_n_epochs={self._every_n_epochs}. Must be >= 0")
 
         every_n_train_steps_triggered = self._every_n_train_steps >= 1
         every_n_epochs_triggered = self._every_n_epochs >= 1
         train_time_interval_triggered = self._train_time_interval is not None
         if every_n_train_steps_triggered + every_n_epochs_triggered + train_time_interval_triggered > 1:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Combination of parameters every_n_train_steps={self._every_n_train_steps}, "
                 f"every_n_epochs={self._every_n_epochs} and train_time_interval={self._train_time_interval} "
                 "should be mutually exclusive."
@@ -427,7 +427,7 @@ class ModelCheckpoint(Checkpoint):
         if self.monitor is None:
             # -1: save all epochs, 0: nothing is saved, 1: save last epoch
             if self.save_top_k not in (-1, 0, 1):
-                raise MisconfigurationException(
+                raise _ValueError(
                     f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
                     " configuration. No quantity for top_k to track."
                 )
@@ -452,7 +452,7 @@ class ModelCheckpoint(Checkpoint):
         mode_dict = {"min": (torch_inf, "min"), "max": (-torch_inf, "max")}
 
         if mode not in mode_dict:
-            raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())} but got {mode}")
+            raise _ValueError(f"`mode` can be {', '.join(mode_dict.keys())} but got {mode}")
 
         self.kth_value, self.mode = mode_dict[mode]
 

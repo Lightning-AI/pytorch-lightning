@@ -31,7 +31,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TypeError, _ValueError
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
@@ -95,7 +95,7 @@ class CallbackConnector:
 
         if grad_accum_callbacks:
             if accumulate_grad_batches is not None:
-                raise MisconfigurationException(
+                raise _ValueError(
                     "You have set both `accumulate_grad_batches` and passed an instance of "
                     "`GradientAccumulationScheduler` inside callbacks. Either remove `accumulate_grad_batches` "
                     "from trainer or remove `GradientAccumulationScheduler` from callbacks list."
@@ -110,7 +110,7 @@ class CallbackConnector:
             elif isinstance(accumulate_grad_batches, int):
                 grad_accum_callback = GradientAccumulationScheduler({0: accumulate_grad_batches})
             else:
-                raise MisconfigurationException(
+                raise _TypeError(
                     f"`accumulate_grad_batches` should be an int or a dict. Got {accumulate_grad_batches}."
                 )
 
@@ -122,7 +122,7 @@ class CallbackConnector:
     def _configure_checkpoint_callbacks(self, enable_checkpointing: bool) -> None:
         if self.trainer.checkpoint_callbacks:
             if not enable_checkpointing:
-                raise MisconfigurationException(
+                raise _ValueError(
                     "Trainer was configured with `enable_checkpointing=False`"
                     " but found `ModelCheckpoint` in callbacks list."
                 )
@@ -154,7 +154,7 @@ class CallbackConnector:
     def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "You added multiple progress bar callbacks to the Trainer, but currently only one"
                 " progress bar is supported."
             )
@@ -167,7 +167,7 @@ class CallbackConnector:
             # otherwise the user specified a progress bar callback but also
             # elected to disable the progress bar with the trainer flag
             progress_bar_callback = progress_bars[0]
-            raise MisconfigurationException(
+            raise _ValueError(
                 "Trainer was configured with `enable_progress_bar=False`"
                 f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
             )

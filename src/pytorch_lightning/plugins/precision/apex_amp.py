@@ -20,7 +20,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PARAMETERS, Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _TypeError
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -33,7 +33,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
 
     def __init__(self, amp_level: str = "O2") -> None:
         if not _APEX_AVAILABLE:
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "You have asked for Apex AMP but `apex` is not installed."
                 " Install `apex` using this guide: https://github.com/NVIDIA/apex"
             )
@@ -90,7 +90,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
                 " different precision plugin."
             )
         if isinstance(optimizer, LBFGS):
-            raise MisconfigurationException(
+            raise _TypeError(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()

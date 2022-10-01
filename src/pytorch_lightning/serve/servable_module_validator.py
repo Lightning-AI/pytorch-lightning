@@ -12,7 +12,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.serve.servable_module import ServableModule
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPFullyShardedStrategy, DeepSpeedStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -127,7 +127,7 @@ class ServableModuleValidator(Callback):
                 raise Exception(f"The expected response {response} doesn't match the generated one {self.resp.json()}.")
 
         if self.exit_on_failure and not self.successful:
-            raise MisconfigurationException("The model isn't servable. Investigate the traceback and try again.")
+            raise _RuntimeError("The model isn't servable. Investigate the traceback and try again.")
 
         if self.successful:
             _logger.info(f"Your model is servable and the received payload was {self.resp.json()}.")

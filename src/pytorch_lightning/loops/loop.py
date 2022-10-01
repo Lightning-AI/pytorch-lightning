@@ -20,7 +20,7 @@ from torchmetrics import Metric
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 T = TypeVar("T")  # the output type of `run`
@@ -133,7 +133,7 @@ class Loop(ABC, Generic[T]):
                 old_parameters = inspect.signature(old_loop.__class__.__init__).parameters
                 current_parameters = inspect.signature(type_or_object.__init__).parameters
                 if old_parameters != current_parameters:
-                    raise MisconfigurationException(
+                    raise _RuntimeError(
                         f"`{self.__class__.__name__}.replace({type_or_object.__name__})` can only be used if the"
                         f" `__init__` signatures match but `{old_loop.__class__.__name__}` does not."
                     )

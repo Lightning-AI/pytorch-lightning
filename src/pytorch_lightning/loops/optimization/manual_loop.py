@@ -22,7 +22,7 @@ from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens
 from pytorch_lightning.trainer.progress import Progress, ReadyCompletedTracker
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -46,7 +46,7 @@ class ManualResult(OutputResult):
         elif isinstance(training_step_output, Tensor):
             extra = {"loss": training_step_output}
         elif training_step_output is not None:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "In manual optimization, `training_step` must either return a Tensor, "
                 "a dict with extras to pass to `training_epoch_end` or have no return."
             )

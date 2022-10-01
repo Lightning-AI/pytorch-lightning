@@ -21,7 +21,7 @@ from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _ValueError
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
@@ -60,7 +60,7 @@ class Tuner:
 
         is_tuning = self.trainer.auto_scale_batch_size or self.trainer.auto_lr_find
         if self.trainer._accelerator_connector.is_distributed and is_tuning:
-            raise MisconfigurationException(
+            raise _NotImplementedError(
                 "`trainer.tune()` is currently not supported with"
                 f" `Trainer(strategy={self.trainer.strategy.strategy_name!r})`."
             )
@@ -88,7 +88,7 @@ class Tuner:
 
             # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
             if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
-                raise MisconfigurationException(
+                raise _ValueError(
                     "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune()`"
                     " if datamodule is already passed."
                 )
@@ -242,7 +242,7 @@ class Tuner:
             update_attr: Whether to update the learning rate attribute or not.
 
         Raises:
-            MisconfigurationException:
+            _ValueError:
                 If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
                 or if you are using more than one optimizer.
         """
@@ -278,19 +278,19 @@ def _check_tuner_configuration(
 
     if method == "fit":
         if dataloaders is not None:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"In tuner with method={method!r}, `dataloaders` argument should be None,"
                 " please consider setting `train_dataloaders` and `val_dataloaders` instead."
             )
     else:
         if train_dataloaders is not None or val_dataloaders is not None:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"In tuner with `method`={method!r}, `train_dataloaders` and `val_dataloaders`"
                 " arguments should be None, please consider setting `dataloaders` instead."
             )
 
     if any(isinstance(cb, BatchSizeFinder) for cb in trainer.callbacks):
-        raise MisconfigurationException(
+        raise _ValueError(
             "Trainer is already configured with a `BatchSizeFinder` callback. Please remove it if you"
             " want to use tuner."
         )

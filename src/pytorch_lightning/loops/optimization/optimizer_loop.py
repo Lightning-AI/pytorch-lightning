@@ -31,7 +31,7 @@ from pytorch_lightning.loops.utilities import (
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _KeyError, _TypeError
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -69,14 +69,14 @@ class ClosureResult(OutputResult):
             # this should not modify the `training_step_output`, as the user could be using it after `training_step_end`
             closure_loss = training_step_output.get("loss")
             if closure_loss is None:
-                raise MisconfigurationException(
+                raise _KeyError(
                     "In automatic_optimization, when `training_step` returns a dict, the 'loss' key needs to be present"
                 )
             extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
         elif training_step_output is not None:
-            raise MisconfigurationException(
+            raise _TypeError(
                 "In automatic optimization, `training_step` must return a Tensor, "
                 "a dict, or None (where the step will be skipped)."
             )

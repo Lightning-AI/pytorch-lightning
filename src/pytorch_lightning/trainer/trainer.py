@@ -88,7 +88,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _TypeError, _ValueError, ExitGracefullyException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -468,7 +468,7 @@ class Trainer:
         if gradient_clip_algorithm is not None and not GradClipAlgorithmType.supported_type(
             gradient_clip_algorithm.lower()
         ):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`gradient_clip_algorithm` {gradient_clip_algorithm} is invalid. "
                 f"Allowed algorithms: {GradClipAlgorithmType.supported_types()}."
             )
@@ -477,7 +477,7 @@ class Trainer:
         if track_grad_norm != -1 and not (
             (isinstance(track_grad_norm, (int, float)) or track_grad_norm == "inf") and float(track_grad_norm) > 0
         ):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
@@ -594,7 +594,7 @@ class Trainer:
             train_dataloaders = None
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
-            raise MisconfigurationException(
+            raise _TypeError(
                 "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.fit(datamodule=...)`"
             )
 
@@ -680,12 +680,12 @@ class Trainer:
             dataloaders = None
         # If you supply a datamodule you can't supply val_dataloaders
         if dataloaders is not None and datamodule:
-            raise MisconfigurationException("You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`")
+            raise _ValueError("You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`")
 
         model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
             )
 
@@ -772,12 +772,12 @@ class Trainer:
             dataloaders = None
         # If you supply a datamodule you can't supply test_dataloaders
         if dataloaders is not None and datamodule:
-            raise MisconfigurationException("You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`")
+            raise _ValueError("You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`")
 
         model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
             )
 
@@ -864,12 +864,12 @@ class Trainer:
             datamodule = dataloaders
             dataloaders = None
         if dataloaders is not None and datamodule:
-            raise MisconfigurationException("You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`")
+            raise _ValueError("You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`")
 
         model_provided = model is not None
         model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "`model` must be provided to `trainer.predict()` when it hasn't been passed in a previous run"
             )
 
@@ -1090,7 +1090,7 @@ class Trainer:
                 elif lm_val != dm_val:
                     inconsistent_keys.append(key)
             if inconsistent_keys:
-                raise MisconfigurationException(
+                raise _RuntimeError(
                     f"Error while merging hparams: the keys {inconsistent_keys} are present "
                     "in both the LightningModule's and LightningDataModule's hparams "
                     "but have different values."
@@ -1530,7 +1530,7 @@ class Trainer:
         elif self.num_training_batches != float("inf"):
             self.num_training_batches = int(orig_train_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
                 "An int specifies `num_training_batches` to use."
             )
@@ -1549,7 +1549,7 @@ class Trainer:
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float("inf")
                 else:
-                    raise MisconfigurationException(
+                    raise _ValueError(
                         "When using an IterableDataset for `train_dataloader`,"
                         " `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies"
                         " checking validation every k training batches."
@@ -1573,7 +1573,7 @@ class Trainer:
             and orig_train_batches != float("inf")
         ):
             min_percentage = 1.0 / orig_train_batches
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"You requested to check {self.limit_train_batches} of the `train_dataloader` but"
                 f" {self.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
                 f" `limit_train_batches` argument. Try at least"
@@ -2199,7 +2199,7 @@ class Trainer:
         accumulation_scheduler = self.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "Estimated stepping batches cannot be computed with different"
                 " `accumulate_grad_batches` at different epochs."
             )

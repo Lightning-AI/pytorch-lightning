@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, Optional, TypeVar
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 
 T = TypeVar("T")
 
@@ -48,7 +48,7 @@ class AbstractClosure(ABC, Generic[T]):
         as necessary.
         """
         if self._result is None:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "The closure hasn't been executed."
                 " HINT: did you call `optimizer_closure()` in your `optimizer_step` hook? It could also happen because"
                 " the `optimizer.step(optimizer_closure)` call did not execute it internally."

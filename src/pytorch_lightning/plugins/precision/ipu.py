@@ -22,7 +22,7 @@ from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _TypeError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 warning_cache = WarningCache()
@@ -69,7 +69,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     ) -> Any:
         """IPUs handle the optimizer step internally."""
         if isinstance(optimizer, LBFGS):
-            raise MisconfigurationException(
+            raise _TypeError(
                 f"IPUs and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()
@@ -78,7 +78,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:
             # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
-            raise MisconfigurationException(
+            raise _NotImplementedError(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."
                 " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                 " requesting this feature."
@@ -93,4 +93,4 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     ) -> None:
         if clip_val <= 0:
             return
-        raise MisconfigurationException("IPUs currently do not support clipping gradients.")
+        raise _RuntimeError("IPUs currently do not support clipping gradients.")

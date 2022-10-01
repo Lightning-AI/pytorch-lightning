@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
     patch_dataloader_iterator,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
@@ -131,7 +131,7 @@ class SharedCycleIteratorState:
     @property
     def done(self) -> bool:
         if not self.has_reset:
-            raise MisconfigurationException("Please call reset once all dataloaders have been added.")
+            raise _RuntimeError("Please call reset once all dataloaders have been added.")
         if len(self.dataloaders) == 1:
             return False
         decision_fn = all if self.mode == "max_size_cycle" else any
@@ -235,7 +235,7 @@ class CombinedDataset:
         """
         self.datasets = datasets
         if mode not in self.COMPUTE_FUNCS.keys():
-            raise MisconfigurationException(
+            raise _ValueError(
                 f'You have selected unsupported mode "{mode}",'
                 f" please select one the: {list(self.COMPUTE_FUNCS.keys())}."
             )
@@ -262,7 +262,7 @@ class CombinedDataset:
             length: the length of `CombinedDataset`
         """
         if mode not in self.COMPUTE_FUNCS.keys():
-            raise MisconfigurationException(f"Invalid Mode: {mode}")
+            raise _ValueError(f"Invalid Mode: {mode}")
 
         # extract the lengths
         all_lengths = self._get_len_recursive(datasets)
@@ -338,7 +338,7 @@ class CombinedLoader:
                 'max_size_cycle' which stops if the longest loader is exhausted and cycles through the smaller ones.
         """
         if mode not in self.SUPPORTED_MODES:
-            raise MisconfigurationException(f"Invalid Mode: {mode}")
+            raise _ValueError(f"Invalid Mode: {mode}")
 
         self.loaders = loaders
 

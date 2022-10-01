@@ -26,7 +26,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -246,7 +246,7 @@ class CometLogger(Logger):
             self._save_dir = save_dir
         else:
             # If neither api_key nor save_dir are passed as arguments, raise an exception
-            raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
+            raise _ValueError("CometLogger requires either api_key or save_dir during initialization.")
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 

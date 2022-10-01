@@ -30,7 +30,7 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -56,12 +56,12 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
     """
     if not truncated_bptt_steps:
         if isinstance(training_step_output, dict) and "hiddens" in training_step_output:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 'You returned "hiddens" in your `training_step` but `truncated_bptt_steps` is disabled'
             )
         return None
     if not isinstance(training_step_output, dict) or "hiddens" not in training_step_output:
-        raise MisconfigurationException(
+        raise _RuntimeError(
             'You enabled `truncated_bptt_steps` but did not `return {..., "hiddens": ...}` in your `training_step`'
         )
     # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`

@@ -26,7 +26,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -156,7 +156,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         # Also make sure to update the tests
         if not is_overridden("configure_sharded_model", self.lightning_module) and len(list(model.parameters())) == 0:
             assert self.lightning_module is not None
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Using the same instance of model with `trainer.{self.lightning_module.trainer.state.fn}()` is not"
                 " supported with Fairscale FSDP auto-wrap. Please reinitialize your `LightningModule` and pass that."
             )
@@ -165,7 +165,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         if not self.root_device.type == "cuda":
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()

@@ -22,7 +22,7 @@ from typing import Any, Optional, Sequence
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities import LightningEnum
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 class WriteInterval(LightningEnum):
@@ -70,7 +70,7 @@ class BasePredictionWriter(Callback):
 
     def __init__(self, write_interval: str = "batch") -> None:
         if write_interval not in list(WriteInterval):
-            raise MisconfigurationException(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
+            raise _ValueError(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
         self.interval = WriteInterval(write_interval)
 
     def write_on_batch_end(

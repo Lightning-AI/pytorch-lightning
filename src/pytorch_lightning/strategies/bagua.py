@@ -17,7 +17,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _ValueError
 
 _BAGUA_AVAILABLE = package_available("bagua")
 
@@ -94,7 +94,7 @@ class BaguaStrategy(DDPStrategy):
                 `documentation <https://bagua.readthedocs.io/en/latest/autoapi/bagua/torch_api/algorithms/index.html>`_.
         """
         if not _BAGUA_AVAILABLE:
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "To use the `BaguaStrategy`, you must have `Bagua` installed. Use `pip install bagua` to install it."
             )
 
@@ -178,7 +178,7 @@ class BaguaStrategy(DDPStrategy):
         has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in self.optimizers])
 
         if not has_qadam_optimizer or len(self.optimizers) > 1 or len(self.lr_scheduler_configs) > 1:
-            raise MisconfigurationException("Bagua QAdam can only accept one QAdamOptimizer and one LR Scheduler.")
+            raise _ValueError("Bagua QAdam can only accept one QAdamOptimizer and one LR Scheduler.")
 
         self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
 

@@ -29,7 +29,7 @@ from typing_extensions import TypedDict
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _TypeError, _ValueError
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only
 
 log = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ class ModelPruning(Callback):
 
         for name in self._parameter_names:
             if name not in self.PARAMETER_NAMES:
-                raise MisconfigurationException(
+                raise _ValueError(
                     f"The provided `parameter_names` name: {name} isn't in {self.PARAMETER_NAMES}"
                 )
 
@@ -177,18 +177,18 @@ class ModelPruning(Callback):
             pruning_kwargs = {}
             pruning_fn = pruning_fn.lower()
             if pruning_fn not in _PYTORCH_PRUNING_FUNCTIONS:
-                raise MisconfigurationException(
+                raise _ValueError(
                     f"The provided `pruning_fn` {pruning_fn} isn't available in PyTorch's"
                     f" built-in functions: {list(_PYTORCH_PRUNING_FUNCTIONS.keys())} "
                 )
             if pruning_fn.endswith("_structured"):
                 if pruning_dim is None:
-                    raise MisconfigurationException(
+                    raise _ValueError(
                         "When requesting `structured` pruning, the `pruning_dim` should be provided."
                     )
                 if pruning_fn == "ln_structured":
                     if pruning_norm is None:
-                        raise MisconfigurationException(
+                        raise _ValueError(
                             "When requesting `ln_structured` pruning, the `pruning_norm` should be provided."
                         )
                     pruning_kwargs["n"] = pruning_norm
@@ -196,11 +196,11 @@ class ModelPruning(Callback):
             pruning_fn = self._create_pruning_fn(pruning_fn, **pruning_kwargs)
         elif self._is_pruning_method(pruning_fn):
             if not use_global_unstructured:
-                raise MisconfigurationException(
+                raise _NotImplementedError(
                     "PyTorch `BasePruningMethod` is currently only supported with `use_global_unstructured=True`."
                 )
         else:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"`pruning_fn` is expected to be a str in {list(_PYTORCH_PRUNING_FUNCTIONS.keys())}"
                 f" or a PyTorch `BasePruningMethod`. Found: {pruning_fn}."
                 " HINT: if passing a `BasePruningMethod`, pass the the class, not an instance"
@@ -208,7 +208,7 @@ class ModelPruning(Callback):
 
         # need to ignore typing here since pytorch base class does not define the PRUNING_TYPE attribute
         if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":  # type: ignore
-            raise MisconfigurationException(
+            raise _TypeError(
                 'Only the "unstructured" PRUNING_TYPE is supported with `use_global_unstructured=True`.'  # type: ignore
                 f" Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. "
             )
@@ -218,14 +218,14 @@ class ModelPruning(Callback):
         self._make_pruning_permanent = make_pruning_permanent
 
         if not (isinstance(amount, (int, float)) or callable(amount)):
-            raise MisconfigurationException(
+            raise _TypeError(
                 "`amount` should be provided and be either an int, a float or Callable function."
             )
 
         self.amount = amount
 
         if verbose not in (0, 1, 2):
-            raise MisconfigurationException("`verbose` must be any of (0, 1, 2)")
+            raise _ValueError("`verbose` must be any of (0, 1, 2)")
 
         self._verbose = verbose
 
@@ -466,12 +466,12 @@ class ModelPruning(Callback):
                     missing_parameters.append(name)
 
             if missing_modules or missing_parameters:
-                raise MisconfigurationException(
+                raise _ValueError(
                     "Some provided `parameters_to_prune` don't exist in the model."
                     f" Found missing modules: {missing_modules} and missing parameters: {missing_parameters}"
                 )
         else:
-            raise MisconfigurationException(
+            raise _TypeError(
                 "The provided `parameters_to_prune` should either be list of tuple"
                 " with 2 elements: (nn.Module, parameter_name_to_prune) or None"
             )

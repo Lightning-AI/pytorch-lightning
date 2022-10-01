@@ -24,7 +24,7 @@ from typing import Any, Dict
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 class GradientAccumulationScheduler(Callback):
@@ -70,12 +70,12 @@ class GradientAccumulationScheduler(Callback):
             raise TypeError("Empty dict cannot be interpreted correct")
 
         if any(not isinstance(key, int) or key < 0 for key in scheduling):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Epoch should be an int greater than or equal to 0. Got {list(scheduling.keys())}."
             )
 
         if any(not isinstance(value, int) or value < 1 for value in scheduling.values()):
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Accumulation factor should be an int greater than 0. Got {list(scheduling.values())}."
             )
 

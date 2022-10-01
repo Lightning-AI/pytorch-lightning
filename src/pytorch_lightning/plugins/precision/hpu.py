@@ -15,7 +15,7 @@ from typing import Optional, Union
 
 from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
 if _HPU_AVAILABLE:
@@ -42,7 +42,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
         verbose: bool = False,
     ) -> None:
         if not _HPU_AVAILABLE:
-            raise MisconfigurationException("HPU precision plugin requires HPU devices.")
+            raise _RuntimeError("HPU precision plugin requires HPU devices.")
         supported_precision_values = (16, 32, "bf16")
         if precision not in supported_precision_values:
             raise ValueError(

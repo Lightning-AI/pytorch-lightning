@@ -26,7 +26,7 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -371,7 +371,7 @@ class BackboneFinetuning(BaseFinetuning):
         """
         if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):
             return super().on_fit_start(trainer, pl_module)
-        raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
+        raise _AttributeError("The LightningModule should have a nn.Module `backbone` attribute")
 
     def freeze_before_training(self, pl_module: "pl.LightningModule") -> None:
         self.freeze(pl_module.backbone)

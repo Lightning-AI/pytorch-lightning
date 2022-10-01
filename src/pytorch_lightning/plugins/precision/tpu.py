@@ -18,7 +18,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -41,7 +41,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:
             # we lack coverage here so disable this - something to explore if there's demand
-            raise MisconfigurationException(
+            raise _NotImplementedError(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for TPUs."
                 " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                 " requesting this feature."

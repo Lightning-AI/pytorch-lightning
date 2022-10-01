@@ -28,7 +28,7 @@ from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _OSError
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -60,7 +60,7 @@ class HPUParallelStrategy(DDPStrategy):
     ) -> None:
 
         if not _HPU_AVAILABLE:
-            raise MisconfigurationException("`HPUParallelStrategy` requires HPU devices to run")
+            raise _OSError("`HPUParallelStrategy` requires HPU devices to run")
 
         super().__init__(
             accelerator=accelerator,

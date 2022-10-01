@@ -34,7 +34,7 @@ from pytorch_lightning.profilers import (
     XLAProfiler,
 )
 from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
@@ -51,7 +51,7 @@ def _init_debugging_flags(
 ) -> None:
     # init debugging flags
     if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
-        raise MisconfigurationException(
+        raise _ValueError(
             f"fast_dev_run={fast_dev_run!r} is not a valid configuration. It should be >= 0."
         )
     trainer.fast_dev_run = fast_dev_run
@@ -123,7 +123,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
         return batches
     if batches > 1 and batches % 1.0 == 0:
         return int(batches)
-    raise MisconfigurationException(
+    raise _ValueError(
         f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
     )
 
@@ -138,7 +138,7 @@ def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str
         }
         profiler = profiler.lower()
         if profiler not in PROFILERS:
-            raise MisconfigurationException(
+            raise _ValueError(
                 "When passing string value for the `profiler` parameter of `Trainer`,"
                 f" it can only be one of {list(PROFILERS.keys())}"
             )

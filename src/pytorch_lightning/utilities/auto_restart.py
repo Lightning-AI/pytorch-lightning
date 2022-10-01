@@ -32,7 +32,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.types import _Stateful
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _KeyError, _RuntimeError
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
 
 
@@ -341,7 +341,7 @@ class CaptureIterableDataset(IterableDataset):
 
         # wrap any generator associated to a Sampler into a `FastForwardSampler`.
         if isinstance(self.iter_data, Generator):
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "PyTorch Lightning Fault-Tolerant feature does not support `__iter__` returning a generator."
                 " Please use the `__next__` function to fetch the next batch and use a sampler for"
                 " doing your iterations."
@@ -376,7 +376,7 @@ def _cycle_to_next_worker_and_reset(dataloader: DataLoader, state_dict: Dict[str
     # as `state_dict` are workers dependent, Lightning doesn't support changing
     # the `num_workers` for Fault-tolerance
     if state_dict["num_workers"] != num_workers:
-        raise MisconfigurationException(
+        raise _RuntimeError(
             f"The provided `num_workers` {num_workers} doesn't match the one used "
             f"while generating the checkpoint: {state_dict['num_workers']}"
         )
@@ -424,7 +424,7 @@ def _capture_metadata_collate(
             metadata = state_dict_fn()
             if worker_id not in metadata:
                 if info and info.num_workers > 1:
-                    raise MisconfigurationException(
+                    raise _KeyError(
                         f"The state_dict returned by {dataset} needs to be indexed by `worker_id` integer keys."
                     )
                 metadata = {0: metadata}
@@ -568,7 +568,7 @@ def _reload_dataloader_state_dict_automatic(dataloader: DataLoader, state_dict: 
         _reload_dataloader_state_dict_automatic_iterable_dataset(dataset, state_dict)
 
     else:
-        raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
+        raise _RuntimeError("This shouldn't be happening. Please, open an issue.")
 
 
 def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dict[str, Any]) -> None:
@@ -583,7 +583,7 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
         for dataloader_attr_name in sampler_state:
             obj = getattr(dataloader, dataloader_attr_name)
             if not isinstance(obj, _Stateful):
-                raise MisconfigurationException(
+                raise _AttributeError(
                     f"The DataLoader attribute {dataloader_attr_name}:{obj} should have a `load_state_dict` method."
                 )
 
@@ -615,7 +615,7 @@ def _reload_dataloader_state_dict(dataloader: DataLoader, state_dict: Dict[str, 
         _reload_dataloader_state_dict_manual(dataloader, state_dict)
 
     else:
-        raise MisconfigurationException("This shouldn't be happening. Please, open an issue.")
+        raise _RuntimeError("This shouldn't be happening. Please, open an issue.")
 
 
 def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_workers: int) -> Dict[int, Any]:
@@ -624,9 +624,9 @@ def _rotate_worker_indices(state: Dict[int, Any], latest_worker_id: int, num_wor
     if num_workers == 0:
         return state
     if latest_worker_id > num_workers - 1:
-        raise MisconfigurationException("The `latest_worker_id` should be within [0, num_workers - 1].")
+        raise _RuntimeError("The `latest_worker_id` should be within [0, num_workers - 1].")
     if len(state) != num_workers:
-        raise MisconfigurationException("The `state` should contain `num_workers - 1` values.")
+        raise _RuntimeError("The `state` should contain `num_workers - 1` values.")
     next_worker_id = latest_worker_id + 1
     old_to_new_worker_id_map = [((next_worker_id + i) % num_workers, i) for i in range(num_workers)]
     return {new_id: state[old_id] for old_id, new_id in old_to_new_worker_id_map if old_id in state}
@@ -706,7 +706,7 @@ class _MultiProcessingDataLoaderIterStateful(_StatefulDataLoaderIter, _MultiProc
 
 def _get_iterator(self: DataLoader) -> "_BaseDataLoaderIter":
     if not hasattr(self, "_lightning_fetcher"):
-        raise MisconfigurationException(
+        raise _RuntimeError(
             "A stateful iterator should be used only when a DataFetcher has been attached to the DataLoader."
         )
     if self.num_workers == 0:

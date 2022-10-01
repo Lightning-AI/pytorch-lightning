@@ -23,7 +23,11 @@ from typing import Optional
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import (
+    _AttributeError,
+    _RuntimeError,
+    _TunerExitException,
+)
 from pytorch_lightning.utilities.parsing import lightning_hasattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -81,7 +85,7 @@ class BatchSizeFinder(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if trainer._accelerator_connector.is_distributed:
-            raise MisconfigurationException("The Batch size finder is not supported with distributed strategies.")
+            raise _RuntimeError("The Batch size finder is not supported with distributed strategies.")
 
         running_stage = trainer.state.stage
         assert running_stage is not None
@@ -89,7 +93,7 @@ class BatchSizeFinder(Callback):
 
         # TODO: check if this can be enabled (#4040)
         if not trainer._data_connector._train_dataloader_source.is_module():
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "The Batch size finder cannot be used with dataloaders passed directly to `.fit()`. Please disable"
                 " the feature or incorporate the dataloader into your LightningModule or LightningDataModule."
             )
@@ -98,14 +102,12 @@ class BatchSizeFinder(Callback):
         if stage != "fit":
             dataloaders = dl_source.dataloader()
             if isinstance(dataloaders, list) and len(dataloaders) > 1:
-                raise MisconfigurationException(
+                raise _RuntimeError(
                     f"The Batch size finder cannot be used with multiple {running_stage.dataloader_prefix} dataloaders."
                 )
 
         if not lightning_hasattr(pl_module, self._batch_arg_name):
-            raise MisconfigurationException(
-                f"Field {self._batch_arg_name} not found in both `model` and `model.hparams`"
-            )
+            raise _AttributeError(f"Field {self._batch_arg_name} not found in both `model` and `model.hparams`")
 
         if (
             hasattr(pl_module, self._batch_arg_name)

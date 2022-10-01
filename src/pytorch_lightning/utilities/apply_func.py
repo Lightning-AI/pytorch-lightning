@@ -24,7 +24,7 @@ from lightning_lite.utilities.apply_func import _from_numpy
 from lightning_lite.utilities.apply_func import convert_to_tensors as new_convert_to_tensors
 from lightning_lite.utilities.apply_func import TransferableDataType as NewTransferableDataType
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 def apply_to_collection(*args: Any, **kwargs: Any) -> Any:
@@ -36,7 +36,7 @@ def apply_to_collection(*args: Any, **kwargs: Any) -> Any:
         return new_apply_to_collection(*args, **kwargs)
     except ValueError as e:
         # upstream had to change the exception type
-        raise MisconfigurationException from e
+        raise _ValueError from e
 
 
 def apply_to_collections(*args: Any, **kwargs: Any) -> Any:
@@ -48,7 +48,7 @@ def apply_to_collections(*args: Any, **kwargs: Any) -> Any:
         return new_apply_to_collections(*args, **kwargs)
     except ValueError as e:
         # upstream had to change the exception type
-        raise MisconfigurationException from e
+        raise _ValueError from e
 
 
 def convert_to_tensors(*args: Any, **kwargs: Any) -> Any:

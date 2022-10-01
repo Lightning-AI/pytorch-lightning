@@ -29,7 +29,7 @@ from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _OSError
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
     DataFetcher,
@@ -409,6 +409,6 @@ def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher
         return DataLoaderIterDataFetcher
     elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
         if not isinstance(trainer.accelerator, CUDAAccelerator):
-            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+            raise _OSError("Inter batch parallelism is available only when using Nvidia GPUs.")
         return InterBatchParallelDataFetcher
     return DataFetcher

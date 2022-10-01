@@ -14,7 +14,7 @@
 from typing import Any
 
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
@@ -26,6 +26,6 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
         # for FSDP module. To overcome this, needs to call sharded_module.clip_grad_norm(clip_val)
         # however we rely on LightningModule's configure_sharded_model to wrap FSDP, it would be hard to
         # trace back the root FSDP. Now we only support clip by value.
-        raise MisconfigurationException(
+        raise _ValueError(
             f"`gradient_clip_algorithm='norm'` is currently not supported for `{self.__class__.__name__}`"
         )

@@ -15,7 +15,7 @@ from typing import Optional, Tuple, Union
 
 from typing_extensions import TypedDict
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 
 
 class _FxValidator:
@@ -190,7 +190,7 @@ class _FxValidator:
             )
 
         if cls.functions[fx_name] is None:
-            raise MisconfigurationException(f"You can't `self.log()` inside `{fx_name}`.")
+            raise _RuntimeError(f"You can't `self.log()` inside `{fx_name}`.")
 
     @classmethod
     def get_default_logging_levels(
@@ -211,11 +211,11 @@ class _FxValidator:
         m = "You can't `self.log({}={})` inside `{}`, must be one of {}."
         if on_step not in fx_config["allowed_on_step"]:
             msg = m.format("on_step", on_step, fx_name, fx_config["allowed_on_step"])
-            raise MisconfigurationException(msg)
+            raise _RuntimeError(msg)
 
         if on_epoch not in fx_config["allowed_on_epoch"]:
             msg = m.format("on_epoch", on_epoch, fx_name, fx_config["allowed_on_epoch"])
-            raise MisconfigurationException(msg)
+            raise _RuntimeError(msg)
 
     @classmethod
     def check_logging_and_get_default_levels(

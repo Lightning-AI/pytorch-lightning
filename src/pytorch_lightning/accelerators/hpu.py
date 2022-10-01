@@ -18,7 +18,7 @@ import torch
 
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError, _TypeError
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
@@ -32,11 +32,11 @@ class HPUAccelerator(Accelerator):
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If the selected device is not HPU.
         """
         if device.type != "hpu":
-            raise MisconfigurationException(f"Device should be HPU, got {device} instead.")
+            raise _ValueError(f"Device should be HPU, got {device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Returns a map of the following metrics with their values:
@@ -117,10 +117,10 @@ def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
         Either an integer or ``None`` if no devices were requested
 
     Raises:
-        MisconfigurationException:
+        TypeError:
             If devices aren't of type `int` or `str`
     """
     if devices is not None and not isinstance(devices, (int, str)):
-        raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
+        raise _TypeError("`devices` for `HPUAccelerator` must be int, string or None.")
 
     return int(devices) if isinstance(devices, str) else devices

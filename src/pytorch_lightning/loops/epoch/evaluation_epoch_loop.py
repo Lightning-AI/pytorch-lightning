@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -205,7 +205,7 @@ class EvaluationEpochLoop(Loop):
             return
         dataloader = data_fetcher.dataloader
         if isinstance(dataloader, CombinedLoader):
-            raise MisconfigurationException(
+            raise _NotImplementedError(
                 "Reloading support hasn't been implemented for `CombinedLoader`. You can request it by opening an issue"
                 " in `https://github.com/Lightning-AI/lightning/issues`."
             )

@@ -27,7 +27,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
 from pytorch_lightning.loggers.logger import DummyLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _ModuleNotFoundError, _RuntimeError
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
@@ -49,7 +49,7 @@ log = logging.getLogger(__name__)
 def _determine_lr_attr_name(trainer: "pl.Trainer", model: "pl.LightningModule") -> str:
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
-            raise MisconfigurationException(
+            raise _AttributeError(
                 f"`auto_lr_find` was set to {trainer.auto_lr_find}, however"
                 " could not find this as a field in `model` or `model.hparams`."
             )
@@ -60,7 +60,7 @@ def _determine_lr_attr_name(trainer: "pl.Trainer", model: "pl.LightningModule") 
         if lightning_hasattr(model, attr):
             return attr
 
-    raise MisconfigurationException(
+    raise _AttributeError(
         "When `auto_lr_find=True`, either `model` or `model.hparams` should"
         f" have one of these fields: {attr_options} overridden."
     )
@@ -114,7 +114,7 @@ class _LRFinder:
             optimizers, _, _ = _init_optimizers_and_lr_schedulers(trainer.lightning_module)
 
             if len(optimizers) != 1:
-                raise MisconfigurationException(
+                raise _RuntimeError(
                     f"`model.configure_optimizers()` returned {len(optimizers)}, but"
                     " learning rate finder only works with single optimizer"
                 )
@@ -145,7 +145,7 @@ class _LRFinder:
             show: if True, will show figure
         """
         if not _MATPLOTLIB_AVAILABLE:
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "To use the `plot` method, you must have Matplotlib installed."
                 " Install it by running `pip install -U matplotlib`."
             )

@@ -25,7 +25,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -42,7 +42,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     def connect(self, model: "pl.LightningModule") -> None:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "`DDPSpawnShardedStrategy` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
             )

@@ -15,6 +15,48 @@
 from lightning_lite.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
+class _ExceptionReprMixin:
+    """Mixin for custom Lightning Exceptions implementing `__repr__` method"""
+
+    def __repr__(self) -> str:
+        str_repr = super().__repr__()
+        if str_repr.startswith("_"):
+            str_repr = str_repr[1:]
+        return str_repr
+
+
+class _ValueError(ValueError, MisconfigurationException, _ExceptionReprMixin):
+    """Lightning ValueError"""
+
+
+class _RuntimeError(RuntimeError, MisconfigurationException, _ExceptionReprMixin):
+    """Lighting RuntimeError"""
+
+
+class _AttributeError(AttributeError, MisconfigurationException, _ExceptionReprMixin):
+    """Lightning AttributeError"""
+
+
+class _TypeError(TypeError, MisconfigurationException, _ExceptionReprMixin):
+    """Lightning TypeError"""
+
+
+class _NotImplementedError(NotImplementedError, MisconfigurationException, _ExceptionReprMixin):
+    """Lightning NotImplementedError"""
+
+
+class _KeyError(KeyError, MisconfigurationException, _ExceptionReprMixin):
+    """Lightning KeyError"""
+
+
+class _OSError(OSError, MisconfigurationException, _ExceptionReprMixin):
+    """Lightning OSError"""
+
+
+class _ModuleNotFoundError(ModuleNotFoundError, MisconfigurationException, _ExceptionReprMixin):
+    """Lightning ModuleNotFoundError"""
+
+
 class DeadlockDetectedException(Exception):
     """Exception used when a deadlock has been detected and processes are being killed."""
 

@@ -26,7 +26,7 @@ from torch.autograd.profiler import record_function
 
 from lightning_lite.accelerators.cuda import is_cuda_available
 from pytorch_lightning.profilers.profiler import Profiler
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TypeError, _ValueError
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -312,7 +312,7 @@ class PyTorchProfiler(Profiler):
             self._init_kineto(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
@@ -323,10 +323,10 @@ class PyTorchProfiler(Profiler):
         schedule = profiler_kwargs.get("schedule", None)
         if schedule is not None:
             if not callable(schedule):
-                raise MisconfigurationException(f"Schedule should be a callable. Found: {schedule}")
+                raise _TypeError(f"Schedule should be a callable. Found: {schedule}")
             action = schedule(0)
             if not isinstance(action, ProfilerAction):
-                raise MisconfigurationException(
+                raise _TypeError(
                     f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
                 )
         self._default_schedule()

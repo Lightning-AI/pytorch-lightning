@@ -26,7 +26,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -305,7 +305,7 @@ class WandbLogger(Logger):
             )
 
         if offline and log_model:
-            raise MisconfigurationException(
+            raise _ValueError(
                 f"Providing log_model={log_model} and offline={offline} is an invalid configuration"
                 " since model checkpoints cannot be uploaded in offline mode.\n"
                 "Hint: Set `offline=False` to log your model."

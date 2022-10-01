@@ -29,7 +29,7 @@ from torch import Tensor
 import pytorch_lightning as pl
 from lightning_lite.utilities.rank_zero import _get_rank
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ class EarlyStopping(Callback):
         self.log_rank_zero_only = log_rank_zero_only
 
         if self.mode not in self.mode_dict:
-            raise MisconfigurationException(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
+            raise _ValueError(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
 
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
         torch_inf = torch.tensor(np.Inf)

@@ -32,7 +32,7 @@ from pytorch_lightning.strategies.launchers.subprocess_script import _Subprocess
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
@@ -116,7 +116,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException(
+            raise _RuntimeError(
                 "`DDPFullyShardedNativeStrategy` is supported from PyTorch v1.12.0 onwards."
             )
 
