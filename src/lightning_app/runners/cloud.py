@@ -45,6 +45,7 @@ from lightning_app.core.constants import (
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
+    ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
@@ -115,6 +116,9 @@ class CloudRuntime(Runtime):
 
         if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
+
+        if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", value="1"))
 
         work_reqs: List[V1Work] = []
         for flow in self.app.flows:
