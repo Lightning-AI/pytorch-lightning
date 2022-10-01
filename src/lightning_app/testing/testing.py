@@ -402,6 +402,8 @@ def run_app_in_cloud(
             if resp.status_code == 200:
                 break
 
+        sleep(3)
+
         print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
         logs_api_client = _LightningLogsSocketAPI(client.api_client)
