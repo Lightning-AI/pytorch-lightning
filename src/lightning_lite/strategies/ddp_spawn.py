@@ -92,8 +92,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
-        return distributed_sampler_kwargs
+        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     @property
     def process_group_backend(self) -> Optional[str]:

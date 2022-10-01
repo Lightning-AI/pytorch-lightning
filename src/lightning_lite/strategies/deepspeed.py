@@ -292,8 +292,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
-        return distributed_sampler_kwargs
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     @property
     def model(self) -> "deepspeed.DeepSpeedEngine":
