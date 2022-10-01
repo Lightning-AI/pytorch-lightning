@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         FullyShardedDataParallel,
         MixedPrecision,
     )
-    from torch.distributed.fsdp.wrap import enable_wrap
+    from torch.distributed.fsdp.wrap import enable_wrap  # noqa: F401
 
 _FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload")
 
@@ -86,9 +86,9 @@ class FSDPStrategy(ParallelStrategy):
         precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
-        cpu_offload: Optional[CPUOffload] = None,
-        backward_prefetch: Optional[BackwardPrefetch] = None,
-        mixed_precision: Optional[MixedPrecision] = None,
+        cpu_offload: Optional["CPUOffload"] = None,
+        backward_prefetch: Optional["BackwardPrefetch"] = None,
+        mixed_precision: Optional["MixedPrecision"] = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -156,7 +156,7 @@ class FSDPStrategy(ParallelStrategy):
         self._setup_distributed()
         super().setup_environment()
 
-    def setup_module(self, module: Module) -> FullyShardedDataParallel:
+    def setup_module(self, module: Module) -> "FullyShardedDataParallel":
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel

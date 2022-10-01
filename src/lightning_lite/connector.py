@@ -414,7 +414,7 @@ class _Connector:
             strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise ValueError(
-                f"You selected the FSDP strategy but FSDP is only available on GPU. Set `Lite(accelerator='gpu', ...)`"
+                "You selected the FSDP strategy but FSDP is only available on GPU. Set `Lite(accelerator='gpu', ...)`"
                 " to continue or select a different strategy."
             )
         if strategy_flag:
