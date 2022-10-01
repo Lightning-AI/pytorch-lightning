@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, Generator, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -21,18 +21,17 @@ from torch.distributed import default_pg_timeout
 from torch.nn import Module
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning_lite.plugins.precision.fsdp import FSDPPrecision
-from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device, distributed_available
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.plugins import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
+from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import group as _group
+from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning_lite.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities.seed import reset_seed
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
@@ -43,11 +42,13 @@ if TYPE_CHECKING:
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 
+_FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload")
+
 
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning:: ``DDPFullyShardedNativeStrategy`` is in BETA and subject to change. The interface can
+    .. warning:: ``FSDPStrategy`` is in BETA and subject to change. The interface can
         bring breaking changes and new features with the next release of PyTorch.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
@@ -62,29 +63,19 @@ class FSDPStrategy(ParallelStrategy):
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload:
-            CPU offloading config. Currently, only parameter and gradient CPU
-            offload is supported. It can be enabled via passing in
-            ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
-            currently implicitly enables gradient offloading to CPU in order for
-            params and grads to be on same device to work with optimizer. This
-            API is subject to change. Default is ``None`` in which case there
+        cpu_offload: CPU offloading config. Currently, only parameter and gradient CPU offload is supported. It
+            can be enabled via passing in ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
+            implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
+            to work with the optimizer. This API is subject to change. Default is ``None`` in which case there
             will be no offloading.
-        backward_prefetch:
-            This is an experimental feature that is subject to change in the
-            the near future. It allows users to enable two different backward_prefetch
-            algorithms to help backward communication and computation overlapping.
-            The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-        mixed_precision:
-            Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16``
-            or BF16 if ``precision=bf16`` unless a config is passed in.
-            This is only available in PyTorch 1.12 and later.
-        \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
-
+        backward_prefetch: This is an experimental feature that is subject to change in the near future. It allows
+            users to enable two different backward prefetching algorithms to help backward communication and
+            computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
+        mixed_precision: Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`` or BF16
+            if ``precision=bf16`` unless a config is passed in. This is only available in PyTorch 1.12 and later.
+        \**kwargs: Optional keywoard arguments passed to the FSDP context manager which will configure the FSDP class
+            when wrapping modules.
     """
-
-    strategy_name = "fsdp_native"
-    _registered_strategies: List[str] = []
 
     def __init__(
         self,
@@ -169,6 +160,7 @@ class FSDPStrategy(ParallelStrategy):
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+
         if (
             any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules())
             and "auto_wrap_policy" in self._ddp_kwargs

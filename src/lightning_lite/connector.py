@@ -40,6 +40,7 @@ from lightning_lite.plugins.environments import (
     TorchElasticEnvironment,
 )
 from lightning_lite.plugins.precision.double import DoublePrecision
+from lightning_lite.plugins.precision.fsdp import FSDPPrecision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -53,7 +54,7 @@ from lightning_lite.strategies import (
     XLAStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from lightning_lite.strategies.fsdp import FSDPStrategy
+from lightning_lite.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
@@ -409,6 +410,13 @@ class _Connector:
                 f"You selected `Lite(strategy='{strategy_flag}')` but process forking is not supported on this"
                 f" platform. We recommed `Lite(strategy='ddp_spawn')` instead."
             )
+        if (
+            strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
+        ) and self._accelerator_flag not in ("cuda", "gpu"):
+            raise ValueError(
+                f"You selected the FSDP strategy but FSDP is only available on GPU. Set `Lite(accelerator='gpu', ...)`"
+                " to continue or select a different strategy."
+            )
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
@@ -457,9 +465,11 @@ class _Connector:
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-            return NativeMixedPrecision(self._precision_flag, device)
+
+            if isinstance(self.strategy, FSDPStrategy):
+                return FSDPPrecision(precision=self._precision_flag, device=device)
+            return NativeMixedPrecision(precision=self._precision_flag, device=device)
 
         raise RuntimeError("No precision set")
 

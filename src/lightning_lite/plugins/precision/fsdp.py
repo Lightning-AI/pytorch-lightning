@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, TYPE_CHECKING, Literal
+from typing import Literal, Optional, TYPE_CHECKING
 
 import torch
 
-from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.plugins.precision import NativeMixedPrecision
+from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if TYPE_CHECKING:
