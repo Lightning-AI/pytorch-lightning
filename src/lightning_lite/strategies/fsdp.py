@@ -11,39 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union, TYPE_CHECKING
 
 import torch
 from torch import Tensor
 from torch.distributed import default_pg_timeout
 from torch.nn import Module
 
-import pytorch_lightning as pl
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.plugins.precision.fsdp import FSDPPrecision
 from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device, distributed_available
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.plugins import Precision
-from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
-from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
-from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.types import ProcessGroup, STEP_OUTPUT
+from lightning_lite.strategies.strategy import TBroadcast
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_lite.utilities.rank_zero import rank_zero_only
 
-_distributed_available = torch.distributed.is_available()
-_fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
-if _fsdp_available:
+if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
         BackwardPrefetch,
         CPUOffload,
@@ -51,16 +42,6 @@ if _fsdp_available:
         MixedPrecision,
     )
     from torch.distributed.fsdp.wrap import enable_wrap
-else:
-    FullyShardedDataParallel = None  # type: ignore[misc,assignment]
-    MixedPrecision = None  # type: ignore[misc,assignment]
-    BackwardPrefetch = None  # type: ignore[misc,assignment]
-    CPUOffload = None  # type: ignore[misc,assignment]
-
-if _distributed_available:
-    from torch.distributed.distributed_c10d import _get_default_group
-
-log = logging.getLogger(__name__)
 
 
 class FSDPStrategy(ParallelStrategy):
@@ -120,9 +101,7 @@ class FSDPStrategy(ParallelStrategy):
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException(
-                "`FSDPStrategy` is supported from PyTorch v1.12.0 onwards."
-            )
+            raise RuntimeError("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
 
         super().__init__(
             accelerator=accelerator,
@@ -169,13 +148,13 @@ class FSDPStrategy(ParallelStrategy):
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
-    # @property
-    # def mixed_precision_config(self) -> Optional[MixedPrecision]:
-    #     if self.mixed_precision:
-    #         return self.mixed_precision
-    #     plugin = self.precision_plugin
-    #     if isinstance(plugin, FullyShardedNativeNativeMixedPrecisionPlugin):
-    #         return plugin.mixed_precision_config
+    @property
+    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+        if self.mixed_precision:
+            return self.mixed_precision
+        plugin = self.precision_plugin
+        if isinstance(plugin, FSDPPrecision):
+            return plugin.mixed_precision_config
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
@@ -189,6 +168,7 @@ class FSDPStrategy(ParallelStrategy):
     def setup_module(self, module: Module) -> FullyShardedDataParallel:
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
+        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         if (
             any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules())
             and "auto_wrap_policy" in self._ddp_kwargs
@@ -209,12 +189,14 @@ class FSDPStrategy(ParallelStrategy):
 
     @contextmanager
     def module_sharded_context(self) -> Generator:
+        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+        from torch.distributed.fsdp.wrap import enable_wrap
+
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
-            # process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
-            mixed_precision=self.precision_plugin.mixed_precision_config,
+            mixed_precision=self.mixed_precision_config,
             device_id=self.root_device.index,
             **self._ddp_kwargs,
         ):
@@ -244,6 +226,8 @@ class FSDPStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
+        from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
+
         strategy_registry.register(
             "fsdp",
             cls,

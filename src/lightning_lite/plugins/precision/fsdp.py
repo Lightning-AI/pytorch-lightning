@@ -11,29 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Optional, TYPE_CHECKING, Literal
 
 import torch
 
 from lightning_lite.utilities.enums import PrecisionType
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_lite.plugins.precision import NativeMixedPrecision
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
-if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
+if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
-else:
-    MixedPrecision = None  # type: ignore[misc,assignment]
-    ShardedGradScaler = None  # type: ignore[misc,assignment]
 
 
-class FSDPPrecision(NativeMixedPrecisionPlugin):
+class FSDPPrecision(NativeMixedPrecision):
     """AMP for Fully Sharded Data Parallel training."""
 
-    def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:
+    def __init__(self, precision: Literal[16, "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise RuntimeError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")
+
+        from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
+
         super().__init__(
             precision=precision,
             device=device,
@@ -41,7 +40,9 @@ class FSDPPrecision(NativeMixedPrecisionPlugin):
         )
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+    def mixed_precision_config(self) -> MixedPrecision:
+        from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
+
         if self.precision == PrecisionType.HALF:
             dtype = torch.float16
         elif self.precision == PrecisionType.BFLOAT:
