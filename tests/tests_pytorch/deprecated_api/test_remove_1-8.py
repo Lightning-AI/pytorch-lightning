@@ -21,34 +21,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-def test_v1_8_0_on_init_start_end(tmpdir):
-    class TestCallback(Callback):
-        def on_init_start(self, trainer):
-            print("Starting to init trainer!")
-
-        def on_init_end(self, trainer):
-            print("Trainer is init now")
-
-    model = BoringModel()
-
-    trainer = Trainer(
-        callbacks=[TestCallback()],
-        max_epochs=1,
-        fast_dev_run=True,
-        enable_progress_bar=False,
-        logger=False,
-        default_root_dir=tmpdir,
-    )
-    with pytest.deprecated_call(
-        match="The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.fit(model)
-    with pytest.deprecated_call(
-        match="The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.validate(model)
-
-
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
 

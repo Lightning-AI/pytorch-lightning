@@ -15,9 +15,11 @@ from contextlib import contextmanager
 from typing import Generator
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 
 from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 
 
 class DoublePrecision(Precision):
@@ -38,3 +40,6 @@ class DoublePrecision(Precision):
         torch.set_default_dtype(torch.float64)
         yield
         torch.set_default_dtype(default_dtype)
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        return _convert_fp_tensor(data, torch.double)
