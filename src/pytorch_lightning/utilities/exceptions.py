@@ -18,6 +18,9 @@ from lightning_lite.utilities.exceptions import MisconfigurationException  # noq
 class _ExceptionReprMixin:
     """Mixin for custom Lightning Exceptions implementing `__repr__` method"""
 
+    def __init_subclass__(cls) -> None:
+        cls.__repr__ = _ExceptionReprMixin.__repr__
+
     def __repr__(self) -> str:
         str_repr = super().__repr__()
         if str_repr.startswith("_"):
