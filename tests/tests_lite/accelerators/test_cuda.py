@@ -58,5 +58,6 @@ def test_set_cuda_device(set_device_mock):
 def test_num_cuda_devices_without_nvml(*_):
     """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for
     determining CUDA availability."""
+    num_cuda_devices.cache_clear()
     assert is_cuda_available()
     assert num_cuda_devices() == 100
