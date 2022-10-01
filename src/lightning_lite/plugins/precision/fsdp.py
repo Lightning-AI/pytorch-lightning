@@ -15,7 +15,7 @@ from typing import Literal, Optional, TYPE_CHECKING
 
 import torch
 
-from lightning_lite.plugins.precision import NativeMixedPrecision
+from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
@@ -42,7 +42,7 @@ class FSDPPrecision(NativeMixedPrecision):
         )
 
     @property
-    def mixed_precision_config(self) -> MixedPrecision:
+    def mixed_precision_config(self) -> "MixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
 
         if self.precision == PrecisionType.HALF:

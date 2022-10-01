@@ -140,7 +140,7 @@ class FSDPStrategy(ParallelStrategy):
         return self._process_group_backend
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+    def mixed_precision_config(self) -> Optional["MixedPrecision"]:
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
