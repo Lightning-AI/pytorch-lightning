@@ -65,4 +65,6 @@ def test_available_strategies_in_registry():
         "tpu_spawn",
         "xla",
         "dp",
+        "fsdp",
+        "fsdp_full_shard_offload",
     }
