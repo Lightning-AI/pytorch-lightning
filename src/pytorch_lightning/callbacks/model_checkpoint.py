@@ -408,9 +408,7 @@ class ModelCheckpoint(Checkpoint):
         if self.save_top_k < -1:
             raise _ValueError(f"Invalid value for save_top_k={self.save_top_k}. Must be >= -1")
         if self._every_n_train_steps < 0:
-            raise _ValueError(
-                f"Invalid value for every_n_train_steps={self._every_n_train_steps}. Must be >= 0"
-            )
+            raise _ValueError(f"Invalid value for every_n_train_steps={self._every_n_train_steps}. Must be >= 0")
         if self._every_n_epochs < 0:
             raise _ValueError(f"Invalid value for every_n_epochs={self._every_n_epochs}. Must be >= 0")
 

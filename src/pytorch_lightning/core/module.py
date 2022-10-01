@@ -386,9 +386,7 @@ class LightningModule(
                 " but it doesn't support logging"
             )
         if self._current_fx_name is None:
-            raise _RuntimeError(
-                "You are trying to `self.log()` but it is not managed by the `Trainer` control flow"
-            )
+            raise _RuntimeError("You are trying to `self.log()` but it is not managed by the `Trainer` control flow")
 
         on_step, on_epoch = _FxValidator.check_logging_and_get_default_levels(
             self._current_fx_name, on_step=on_step, on_epoch=on_epoch

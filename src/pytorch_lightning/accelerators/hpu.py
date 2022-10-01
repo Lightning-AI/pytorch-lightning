@@ -18,7 +18,7 @@ import torch
 
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import _ValueError, _TypeError
+from pytorch_lightning.utilities.exceptions import _TypeError, _ValueError
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 

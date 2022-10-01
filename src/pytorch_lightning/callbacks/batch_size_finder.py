@@ -23,11 +23,7 @@ from typing import Optional
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.utilities.exceptions import (
-    _AttributeError,
-    _RuntimeError,
-    _TunerExitException,
-)
+from pytorch_lightning.utilities.exceptions import _AttributeError, _RuntimeError, _TunerExitException
 from pytorch_lightning.utilities.parsing import lightning_hasattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 

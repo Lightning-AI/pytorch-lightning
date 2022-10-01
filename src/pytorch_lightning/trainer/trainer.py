@@ -594,9 +594,7 @@ class Trainer:
             train_dataloaders = None
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
-            raise _TypeError(
-                "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.fit(datamodule=...)`"
-            )
+            raise _TypeError("You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.fit(datamodule=...)`")
 
         # links data to the trainer
         self._data_connector.attach_data(

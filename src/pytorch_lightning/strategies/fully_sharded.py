@@ -165,9 +165,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         if not self.root_device.type == "cuda":
-            raise _RuntimeError(
-                "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
-            )
+            raise _RuntimeError("You selected strategy to be `ddp_fully_sharded`, but GPU is not available.")
         super().setup_distributed()
 
     def setup(self, trainer: "pl.Trainer") -> None:

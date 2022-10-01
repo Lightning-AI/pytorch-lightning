@@ -91,9 +91,7 @@ class AbstractDataFetcher(ABC):
     @property
     def dataloader(self) -> Iterable:
         if self._dataloader is None:
-            raise _RuntimeError(
-                f"`{self.__class__.__name__}` should have been `setup` with a dataloader iterable."
-            )
+            raise _RuntimeError(f"`{self.__class__.__name__}` should have been `setup` with a dataloader iterable.")
         return self._dataloader
 
     @staticmethod

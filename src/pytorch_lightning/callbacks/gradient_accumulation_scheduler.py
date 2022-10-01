@@ -70,14 +70,10 @@ class GradientAccumulationScheduler(Callback):
             raise TypeError("Empty dict cannot be interpreted correct")
 
         if any(not isinstance(key, int) or key < 0 for key in scheduling):
-            raise _ValueError(
-                f"Epoch should be an int greater than or equal to 0. Got {list(scheduling.keys())}."
-            )
+            raise _ValueError(f"Epoch should be an int greater than or equal to 0. Got {list(scheduling.keys())}.")
 
         if any(not isinstance(value, int) or value < 1 for value in scheduling.values()):
-            raise _ValueError(
-                f"Accumulation factor should be an int greater than 0. Got {list(scheduling.values())}."
-            )
+            raise _ValueError(f"Accumulation factor should be an int greater than 0. Got {list(scheduling.values())}.")
 
         minimal_epoch = min(scheduling.keys())
         if minimal_epoch < 0:

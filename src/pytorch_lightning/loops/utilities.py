@@ -56,9 +56,7 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
     """
     if not truncated_bptt_steps:
         if isinstance(training_step_output, dict) and "hiddens" in training_step_output:
-            raise _RuntimeError(
-                'You returned "hiddens" in your `training_step` but `truncated_bptt_steps` is disabled'
-            )
+            raise _RuntimeError('You returned "hiddens" in your `training_step` but `truncated_bptt_steps` is disabled')
         return None
     if not isinstance(training_step_output, dict) or "hiddens" not in training_step_output:
         raise _RuntimeError(

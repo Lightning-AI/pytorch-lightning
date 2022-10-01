@@ -16,6 +16,7 @@ from typing import Any, Type
 
 from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
+
 class _DeprecatedException(type):
     def __instancecheck__(cls: Type, instance: object) -> bool:
         # https://peps.python.org/pep-3119/
@@ -32,6 +33,7 @@ class _DeprecatedException(type):
                 stacklevel=stacklevel,
             )
         return cls in mro
+
 
 class MisconfigurationException(Exception, metaclass=_DeprecatedException):
     """Exception used to inform users of misuse with PyTorch Lightning."""

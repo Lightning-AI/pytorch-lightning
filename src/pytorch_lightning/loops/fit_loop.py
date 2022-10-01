@@ -54,9 +54,7 @@ class FitLoop(Loop[None]):
         super().__init__()
         if isinstance(max_epochs, int) and max_epochs < -1:
             # Allow max_epochs to be zero, since this will be handled by fit_loop.done
-            raise _ValueError(
-                f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}."
-            )
+            raise _ValueError(f"`max_epochs` must be a non-negative integer or -1. You passed in {max_epochs}.")
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs

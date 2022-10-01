@@ -179,9 +179,7 @@ class QuantizationAwareTraining(Callback):
         self._qconfig = qconfig
 
         if observer_type not in self.OBSERVER_TYPES:
-            raise _TypeError(
-                f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}.'
-            )
+            raise _TypeError(f'Unsupported observer type "{observer_type}", allowed are {self.OBSERVER_TYPES}.')
         self._observer_type = observer_type
 
         if collect_quantization is not None and not (

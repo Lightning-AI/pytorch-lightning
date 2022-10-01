@@ -610,9 +610,7 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
-        raise _NotImplementedError(
-            "`predict_dataloader` must be implemented to be used with the Lightning Trainer"
-        )
+        raise _NotImplementedError("`predict_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors wrapped in a custom

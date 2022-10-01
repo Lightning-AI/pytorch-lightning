@@ -51,9 +51,7 @@ def _init_debugging_flags(
 ) -> None:
     # init debugging flags
     if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
-        raise _ValueError(
-            f"fast_dev_run={fast_dev_run!r} is not a valid configuration. It should be >= 0."
-        )
+        raise _ValueError(f"fast_dev_run={fast_dev_run!r} is not a valid configuration. It should be >= 0.")
     trainer.fast_dev_run = fast_dev_run
 
     # set fast_dev_run=True when it is 1, used while logging
@@ -123,9 +121,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
         return batches
     if batches > 1 and batches % 1.0 == 0:
         return int(batches)
-    raise _ValueError(
-        f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int."
-    )
+    raise _ValueError(f"You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.")
 
 
 def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str]]) -> None:

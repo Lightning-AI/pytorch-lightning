@@ -1,11 +1,11 @@
-'''Testing `exceptions.py`'''
+"""Testing `exceptions.py`"""
 
 import pytest
 
-from pytorch_lightning.utilities.exceptions import _ValueError
 from lightning_lite.utilities.exceptions import MisconfigurationException
-
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.deprecated_api import no_deprecated_call
+
 
 def test_exception_deprecations():
     with no_deprecated_call():

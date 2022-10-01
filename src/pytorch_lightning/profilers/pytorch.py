@@ -312,9 +312,7 @@ class PyTorchProfiler(Profiler):
             self._init_kineto(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
-            raise _ValueError(
-                f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
-            )
+            raise _ValueError(f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. ")
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
         has_schedule = "schedule" in profiler_kwargs
@@ -326,9 +324,7 @@ class PyTorchProfiler(Profiler):
                 raise _TypeError(f"Schedule should be a callable. Found: {schedule}")
             action = schedule(0)
             if not isinstance(action, ProfilerAction):
-                raise _TypeError(
-                    f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
-                )
+                raise _TypeError(f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}")
         self._default_schedule()
         schedule = schedule if has_schedule else self._default_schedule()
         self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule

@@ -104,9 +104,7 @@ class LearningRateMonitor(Callback):
                 If ``Trainer`` has no ``logger``.
         """
         if not trainer.loggers:
-            raise _RuntimeError(
-                "Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger."
-            )
+            raise _RuntimeError("Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger.")
 
         if self.log_momentum:
 

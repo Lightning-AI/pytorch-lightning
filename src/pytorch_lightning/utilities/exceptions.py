@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_lite.utilities.exceptions import MisconfigurationException  # noqa: F401
+from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
 class _ExceptionReprMixin:
-    """Mixin for custom Lightning Exceptions implementing `__repr__` method"""
+    """Mixin for custom Lightning Exceptions implementing `__repr__` method."""
 
     def __init_subclass__(cls) -> None:
         cls.__repr__ = _ExceptionReprMixin.__repr__
@@ -29,35 +29,35 @@ class _ExceptionReprMixin:
 
 
 class _ValueError(ValueError, MisconfigurationException, _ExceptionReprMixin):
-    """Lightning ValueError"""
+    """Lightning ValueError."""
 
 
 class _RuntimeError(RuntimeError, MisconfigurationException, _ExceptionReprMixin):
-    """Lighting RuntimeError"""
+    """Lighting RuntimeError."""
 
 
 class _AttributeError(AttributeError, MisconfigurationException, _ExceptionReprMixin):
-    """Lightning AttributeError"""
+    """Lightning AttributeError."""
 
 
 class _TypeError(TypeError, MisconfigurationException, _ExceptionReprMixin):
-    """Lightning TypeError"""
+    """Lightning TypeError."""
 
 
 class _NotImplementedError(NotImplementedError, MisconfigurationException, _ExceptionReprMixin):
-    """Lightning NotImplementedError"""
+    """Lightning NotImplementedError."""
 
 
 class _KeyError(KeyError, MisconfigurationException, _ExceptionReprMixin):
-    """Lightning KeyError"""
+    """Lightning KeyError."""
 
 
 class _OSError(OSError, MisconfigurationException, _ExceptionReprMixin):
-    """Lightning OSError"""
+    """Lightning OSError."""
 
 
 class _ModuleNotFoundError(ModuleNotFoundError, MisconfigurationException, _ExceptionReprMixin):
-    """Lightning ModuleNotFoundError"""
+    """Lightning ModuleNotFoundError."""
 
 
 class DeadlockDetectedException(Exception):

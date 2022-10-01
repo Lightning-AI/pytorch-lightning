@@ -338,9 +338,7 @@ class DeepSpeedStrategy(DDPStrategy):
             config = os.environ[self.DEEPSPEED_ENV_VAR]
         if isinstance(config, (str, Path)):
             if not os.path.isfile(config):
-                raise _ValueError(
-                    f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
-                )
+                raise _ValueError(f"You passed in a path to a DeepSpeed config but the path does not exist: {config}")
             with open(config) as f:
                 config = json.load(f)
         assert isinstance(config, dict) or config is None
@@ -479,9 +477,7 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
         optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
-            raise _ValueError(
-                "DeepSpeed currently only supports single optimizer, single optional scheduler."
-            )
+            raise _ValueError("DeepSpeed currently only supports single optimizer, single optional scheduler.")
         return (
             optimizers[0],
             lr_schedulers[0] if lr_schedulers else None,

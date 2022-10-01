@@ -75,9 +75,7 @@ class DataConnector:
         self.trainer.datamodule = None
 
         if check_val_every_n_epoch is not None and not isinstance(check_val_every_n_epoch, int):
-            raise _TypeError(
-                f"`check_val_every_n_epoch` should be an integer, found {check_val_every_n_epoch!r}."
-            )
+            raise _TypeError(f"`check_val_every_n_epoch` should be an integer, found {check_val_every_n_epoch!r}.")
 
         if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
             raise _TypeError(

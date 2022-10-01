@@ -169,9 +169,7 @@ class ModelPruning(Callback):
 
         for name in self._parameter_names:
             if name not in self.PARAMETER_NAMES:
-                raise _ValueError(
-                    f"The provided `parameter_names` name: {name} isn't in {self.PARAMETER_NAMES}"
-                )
+                raise _ValueError(f"The provided `parameter_names` name: {name} isn't in {self.PARAMETER_NAMES}")
 
         if isinstance(pruning_fn, str):
             pruning_kwargs = {}
@@ -183,9 +181,7 @@ class ModelPruning(Callback):
                 )
             if pruning_fn.endswith("_structured"):
                 if pruning_dim is None:
-                    raise _ValueError(
-                        "When requesting `structured` pruning, the `pruning_dim` should be provided."
-                    )
+                    raise _ValueError("When requesting `structured` pruning, the `pruning_dim` should be provided.")
                 if pruning_fn == "ln_structured":
                     if pruning_norm is None:
                         raise _ValueError(
@@ -218,9 +214,7 @@ class ModelPruning(Callback):
         self._make_pruning_permanent = make_pruning_permanent
 
         if not (isinstance(amount, (int, float)) or callable(amount)):
-            raise _TypeError(
-                "`amount` should be provided and be either an int, a float or Callable function."
-            )
+            raise _TypeError("`amount` should be provided and be either an int, a float or Callable function.")
 
         self.amount = amount
 

@@ -90,9 +90,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
                 " different precision plugin."
             )
         if isinstance(optimizer, LBFGS):
-            raise _TypeError(
-                f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
-            )
+            raise _TypeError(f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx}).")
         closure_result = closure()
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
