@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Union
 from uuid import uuid4
 
-from lightning_app.core.constants import MULTI_WORKS_INTO_SINGLE_POD
+from lightning_app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
 
 __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
 
@@ -11,7 +11,6 @@ __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
 class _CloudComputeStore:
     id: str
     component_names: List[str]
-    frozen: bool = False
 
     def add_component_name(self, new_component_name: str) -> None:
         found_index = None
@@ -23,7 +22,11 @@ class _CloudComputeStore:
         if found_index is not None:
             self.component_names[found_index] = new_component_name
         else:
-            if len(self.component_names) == 1 and not MULTI_WORKS_INTO_SINGLE_POD and self.id != "default":
+            if (
+                len(self.component_names) == 1
+                and not ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
+                and self.id != "default"
+            ):
                 raise Exception(
                     f"A Cloud Compute can be assigned only to a single Work. Attached to {self.component_names[0]}"
                 )

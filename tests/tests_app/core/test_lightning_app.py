@@ -1070,7 +1070,7 @@ class FlowWrapper(LightningFlow):
 
 def test_cloud_compute_binding():
 
-    cloud_compute.MULTI_WORKS_INTO_SINGLE_POD = True
+    cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
     assert cloud_compute._CLOUD_COMPUTE_STORE == {}
     flow = FlowCC()
@@ -1099,19 +1099,13 @@ def test_cloud_compute_binding():
 
     flow.work_a.cloud_compute = CloudCompute(name="something_else")
     assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.w.work_b"]
-    cloud_compute._CLOUD_COMPUTE_STORE["a"].frozen = True
-
-    with pytest.raises(
-        Exception, match="The current cloud compute has already been frozen and can't be changed anymore."
-    ):
-        flow.work_b.cloud_compute = CloudCompute(name="something_else")
 
     flow.set_state(flow.state)
     assert isinstance(flow.cloud_compute, CloudCompute)
     assert isinstance(flow.work_a.cloud_compute, CloudCompute)
     assert isinstance(flow.work_c.cloud_compute, CloudCompute)
 
-    cloud_compute.MULTI_WORKS_INTO_SINGLE_POD = False
+    cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = False
 
     with pytest.raises(Exception, match="A Cloud Compute can be assigned only to a single Work"):
         FlowCC()

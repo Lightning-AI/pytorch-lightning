@@ -238,10 +238,7 @@ class LightningWork:
         new_id = cloud_compute.id
         if current_id != new_id:
             compute_store: _CloudComputeStore = _CLOUD_COMPUTE_STORE[current_id]
-            if compute_store.frozen:
-                raise Exception("The current cloud compute has already been frozen and can't be changed anymore.")
-            else:
-                compute_store.remove(self.name)
+            compute_store.remove(self.name)
         self._cloud_compute = cloud_compute
 
     @property

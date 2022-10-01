@@ -44,7 +44,7 @@ from lightning_app.core.constants import (
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
-    ENABLE_HYBRID,
+    ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
@@ -113,8 +113,8 @@ class CloudRuntime(Runtime):
             ]
             v1_env_vars.extend(env_vars_from_secrets)
 
-        if ENABLE_HYBRID:
-            v1_env_vars.append(V1EnvVar(name="ENABLE_HYBRID", value="1"))
+        if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
 
         work_reqs: List[V1Work] = []
         for flow in self.app.flows:
@@ -229,7 +229,7 @@ class CloudRuntime(Runtime):
                 dependency_cache_key=app_spec.dependency_cache_key,
             )
 
-            if ENABLE_HYBRID:
+            if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
                 network_configs: List[V1NetworkConfig] = []
 
                 initial_port = 8080 + 1 + len(frontend_specs)

@@ -30,10 +30,14 @@ class Work(LightningWork):
 class Flow(LightningFlow):
     def __init__(self):
         super().__init__()
-        self.cloud_compute = CloudCompute(name="cpu-small")
+        # In the Cloud: All the works defined without passing explicitly a CloudCompute object
+        # are running on the default machine.
+        # This would apply to `work_a`, `work_b` and the dynamically created `work_d`.
+
         self.work_a = Work()
         self.work_b = Work()
-        self.work_c = Work(cloud_compute=self.cloud_compute)
+
+        self.work_c = Work(cloud_compute=CloudCompute(name="cpu-small"))
 
     def run(self):
         if not hasattr(self, "work_d"):
@@ -41,9 +45,6 @@ class Flow(LightningFlow):
 
         for work in self.works():
             work.run()
-
-        if all(w.has_succeeded for w in self.works()):
-            self._exit("Application End !")
 
     def configure_layout(self):
         return [{"name": w.name, "content": w} for i, w in enumerate(self.works())]
