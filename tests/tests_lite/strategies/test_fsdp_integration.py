@@ -53,7 +53,7 @@ class FSDPLite(BoringLite):
             if self.manual_wrapping:
                 assert isinstance(original_module[layer_num], FullyShardedDataParallel)
             else:
-                assert isinstance(forward_module[layer_num], FullyShardedDataParallel)
+                assert isinstance(original_module[layer_num], FullyShardedDataParallel)
 
             assert original_module[layer_num].mixed_precision.param_dtype == precision
             assert original_module[layer_num].mixed_precision.reduce_dtype == precision
