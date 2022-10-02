@@ -75,7 +75,9 @@ def dispatch(
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
-    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id, force_upload=force_upload)
+    return runtime.dispatch(
+        on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id, force_upload=force_upload
+    )
 
 
 @dataclass

@@ -9,7 +9,6 @@ from urllib3.util.retry import Retry
 
 
 class UploadThread(threading.Thread):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.has_upload_exception = False
@@ -79,7 +78,7 @@ class FileUploader:
         try:
             with open(self.source_file, "rb") as f:
                 data = f.read()
-            thread = UploadThread(daemon=True, target=self.upload_data, args=(self.presigned_url, data))  # noqa
+            thread = UploadThread(daemon=True, target=self.upload_data, args=(self.presigned_url, data))
             thread.start()
             while True:
                 if not thread.is_alive():
