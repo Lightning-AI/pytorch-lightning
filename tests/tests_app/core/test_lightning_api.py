@@ -358,6 +358,7 @@ def test_start_server_started():
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
         port=1111,
+        base_path="",
     )
 
     server_proc = mp.Process(target=start_server, kwargs=kwargs)
@@ -384,6 +385,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
+        base_path="self.app.base_path",
     )
 
     monkeypatch.setattr(api, "logger", logging.getLogger())

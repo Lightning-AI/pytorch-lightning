@@ -82,6 +82,7 @@ class LightningApp:
             Hello World!
         """
 
+        self.base_path = ""  # when running behind a proxy
         _validate_root_flow(root)
         self._root = root
 

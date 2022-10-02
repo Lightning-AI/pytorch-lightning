@@ -20,6 +20,7 @@ class StaticWebFrontend(Frontend):
 
     Arguments:
         serve_dir: A local directory to serve files from. This directory should at least contain a file `index.html`.
+                base_path: A path prefix when routing traffic from behind a proxy at `<base_path>`
 
     Example:
 
@@ -31,12 +32,12 @@ class StaticWebFrontend(Frontend):
                 return StaticWebFrontend("path/to/folder/to/serve")
     """
 
-    def __init__(self, serve_dir: str) -> None:
+    def __init__(self, serve_dir: str, base_path: str = "") -> None:
         super().__init__()
         self.serve_dir = serve_dir
         self._process: Optional[mp.Process] = None
 
-    def start_server(self, host: str, port: int) -> None:
+    def start_server(self, host: str, port: int, base_path: str = "") -> None:
         log_file = str(get_frontend_logfile())
         self._process = mp.Process(
             target=start_server,
@@ -46,6 +47,7 @@ class StaticWebFrontend(Frontend):
                 serve_dir=self.serve_dir,
                 path=f"/{self.flow.name}",
                 log_file=log_file,
+                base_path=base_path,
             ),
         )
         self._process.start()
@@ -61,7 +63,9 @@ def healthz():
     return {"status": "ok"}
 
 
-def start_server(serve_dir: str, host: str = "localhost", port: int = -1, path: str = "/", log_file: str = "") -> None:
+def start_server(
+    serve_dir: str, host: str = "localhost", port: int = -1, path: str = "/", log_file: str = "", base_path: str = ""
+) -> None:
     if port == -1:
         port = find_free_network_port()
     fastapi_service = FastAPI()
@@ -80,7 +84,7 @@ def start_server(serve_dir: str, host: str = "localhost", port: int = -1, path: 
 
     log_config = _get_log_config(log_file) if log_file else uvicorn.config.LOGGING_CONFIG
 
-    uvicorn.run(app=fastapi_service, host=host, port=port, log_config=log_config)
+    uvicorn.run(app=fastapi_service, host=host, port=port, log_config=log_config, base_path=base_path)
 
 
 def _get_log_config(log_file: str) -> dict:
@@ -115,7 +119,8 @@ def _get_log_config(log_file: str) -> dict:
 if __name__ == "__main__":  # pragma: no-cover
     parser = ArgumentParser()
     parser.add_argument("serve_dir", type=str)
+    parser.add_argument("base_path", type=str, default="")
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int, default=-1)
     args = parser.parse_args()
-    start_server(serve_dir=args.serve_dir, host=args.host, port=args.port)
+    start_server(serve_dir=args.serve_dir, host=args.host, port=args.port, base_path=args.base_path)
