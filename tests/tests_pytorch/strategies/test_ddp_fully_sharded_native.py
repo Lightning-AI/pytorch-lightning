@@ -27,6 +27,7 @@ def custom_auto_wrap_policy(
     return unwrapped_params >= 2
 
 
+# lite: adopted
 @RunIf(min_torch="1.12")
 def test_invalid_on_cpu(tmpdir):
     """Test to ensure that we raise Misconfiguration for Native FSDP on CPU."""
@@ -40,6 +41,7 @@ def test_invalid_on_cpu(tmpdir):
         trainer.strategy.setup_environment()
 
 
+# lite: adopted
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
 @pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
 def test_precision_plugin_config(precision, expected):
@@ -50,6 +52,7 @@ def test_precision_plugin_config(precision, expected):
     assert config.reduce_dtype == expected
 
 
+# lite: adopted
 @RunIf(min_torch="1.12")
 def test_fsdp_custom_mixed_precision(tmpdir):
     """Test to ensure that passing a custom mixed precision config works."""
@@ -154,6 +157,7 @@ class TestFSDPModelAutoWrapped(BoringModel):
             assert self.layer[layer_num].mixed_precision.buffer_dtype == precision
 
 
+# lite: unimplemented
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using fsdp_native and GPU, and all stages can be run."""
