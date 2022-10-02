@@ -175,6 +175,7 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
+# lite: adopted
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
 def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
@@ -186,6 +187,7 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
+# lite: adopted
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize(
     "model, strategy",

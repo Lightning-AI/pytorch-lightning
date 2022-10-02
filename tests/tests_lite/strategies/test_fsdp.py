@@ -13,21 +13,16 @@
 # limitations under the License.
 
 
-import os
-from typing import Any, Dict, Optional
 from unittest import mock
 
 import pytest
-import torch
-import torch.nn as nn
-from lightning_lite.plugins.precision.fsdp import FSDPPrecision
-from lightning_lite.strategies import FSDPStrategy
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_lite.helpers.runif import RunIf
 
+from lightning_lite.strategies import FSDPStrategy
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
-    from torch.distributed.fsdp.wrap import wrap
+    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
 
 
 @mock.patch("lightning_lite.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
@@ -56,5 +51,3 @@ def custom_auto_wrap_policy(
     min_num_params: int = int(1e8),
 ) -> bool:
     return unwrapped_params >= 2
-
-

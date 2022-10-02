@@ -42,7 +42,7 @@ from lightning_lite.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
-    SingleDeviceStrategy, FSDPStrategy,
+    SingleDeviceStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
