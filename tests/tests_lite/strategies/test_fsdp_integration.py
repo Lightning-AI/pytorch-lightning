@@ -88,4 +88,3 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
     lite = FSDPLite(accelerator="cuda", strategy="fsdp", devices=2, precision=precision)
     lite.manual_wrapping = manual_wrapping
     lite.run()
-
