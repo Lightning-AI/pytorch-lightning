@@ -92,7 +92,7 @@ class FSDPStrategy(ParallelStrategy):
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise RuntimeError("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
+            raise NotImplementedError("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
 
         super().__init__(
             accelerator=accelerator,

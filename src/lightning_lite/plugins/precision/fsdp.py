@@ -31,7 +31,7 @@ class FSDPPrecision(NativeMixedPrecision):
         self, precision: Literal[16, "bf16"], device: str, scaler: Optional["ShardedGradScaler"] = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise RuntimeError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")
+            raise NotImplementedError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")
 
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 

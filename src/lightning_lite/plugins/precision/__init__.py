@@ -26,4 +26,5 @@ __all__ = [
     "Precision",
     "TPUPrecision",
     "TPUBf16Precision",
+    "FSDPPrecision",
 ]
