@@ -42,7 +42,7 @@ from lightning_lite.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
-    SingleDeviceStrategy,
+    SingleDeviceStrategy, FSDPStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
@@ -746,3 +746,10 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
         plugins=plugin,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_unsupported_on_cpu():
+    """Test that we raise an error if attempting to run FSDP without GPU."""
+    with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
+        _Connector(strategy="fsdp")
