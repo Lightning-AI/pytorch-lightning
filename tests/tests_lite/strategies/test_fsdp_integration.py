@@ -81,12 +81,7 @@ class FSDPLite(BoringLite):
             assert torch.equal(current_param.float().cpu(), loaded_param.cpu())
 
 
-def custom_auto_wrap_policy(
-    module,
-    recurse,
-    unwrapped_params: int,
-    min_num_params: int = int(1e8),
-) -> bool:
+def custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_params: int = int(1e8)) -> bool:
     return unwrapped_params >= 2
 
 
@@ -95,7 +90,7 @@ def custom_auto_wrap_policy(
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
-    strategy = FSDPStrategy(auto_wrap_policy=custom_auto_wrap_policy)
+    strategy = FSDPStrategy() if manual_wrapping else FSDPStrategy(auto_wrap_policy=custom_auto_wrap_policy)
     lite = FSDPLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
     lite.manual_wrapping = manual_wrapping
     lite.run()
