@@ -42,4 +42,3 @@ def test_fsdp_custom_mixed_precision(*_):
     #
     # wrapped_module = strategy.setup_module(nn.Linear(3, 3))
     # assert wrapped_module.mixed_precision == config
-
