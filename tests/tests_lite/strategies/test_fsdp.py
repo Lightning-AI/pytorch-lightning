@@ -43,11 +43,3 @@ def test_fsdp_custom_mixed_precision(*_):
     # wrapped_module = strategy.setup_module(nn.Linear(3, 3))
     # assert wrapped_module.mixed_precision == config
 
-
-def custom_auto_wrap_policy(
-    module,
-    recurse,
-    unwrapped_params: int,
-    min_num_params: int = int(1e8),
-) -> bool:
-    return unwrapped_params >= 2

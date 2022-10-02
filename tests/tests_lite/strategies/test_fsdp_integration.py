@@ -21,6 +21,7 @@ from torch.distributed.fsdp import FullyShardedDataParallel
 from torch.distributed.fsdp.wrap import wrap
 
 from lightning_lite.plugins import FSDPPrecision
+from lightning_lite.strategies import FSDPStrategy
 
 
 class FSDPLite(BoringLite):
@@ -80,12 +81,21 @@ class FSDPLite(BoringLite):
             assert torch.equal(current_param.float().cpu(), loaded_param.cpu())
 
 
+def custom_auto_wrap_policy(
+    module,
+    recurse,
+    unwrapped_params: int,
+    min_num_params: int = int(1e8),
+) -> bool:
+    return unwrapped_params >= 2
+
+
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
-    lite = FSDPLite(accelerator="cuda", strategy="fsdp", devices=2, precision=precision)
+    strategy = FSDPStrategy(auto_wrap_policy=custom_auto_wrap_policy)
+    lite = FSDPLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
     lite.manual_wrapping = manual_wrapping
     lite.run()
-
