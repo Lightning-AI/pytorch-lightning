@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
@@ -33,7 +33,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = precision
 
-    def backward(
+    def backward(  # type: ignore[override]
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
@@ -42,6 +42,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        assert optimizer is not None
         optimizer.backward(tensor)
 
     def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
@@ -50,7 +51,14 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         raise MisconfigurationException("`clip_grad_by_value` is not supported by `ColossalAI`")
 
-    def optimizer_step(self, model, optimizer, optimizer_idx: int, closure, **kwargs: Any) -> Any:
+    def optimizer_step(  # type: ignore[override]
+        self,
+        optimizer: Steppable,
+        model: "pl.LightningModule",
+        optimizer_idx: int,
+        closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> Any:
         closure_result = closure()
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None

@@ -1,9 +1,11 @@
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, OrderedDict, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
+from torch.nn import Module
+from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
@@ -13,6 +15,8 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _Light
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -185,7 +189,8 @@ class ColossalAIStrategy(DDPStrategy):
         """Override to delay restoring from checkpoint till after pre-dispatch."""
         return True
 
-    def setup_distributed(self):
+    def setup_distributed(self) -> None:
+        assert self.cluster_environment is not None
         self.set_world_ranks()
         if not gpc.is_initialized(ParallelMode.GLOBAL):
             disable_existing_loggers()
@@ -198,7 +203,7 @@ class ColossalAIStrategy(DDPStrategy):
             )
             gpc.set_device(self.local_rank)
 
-    def model_sharded_context(self):
+    def model_sharded_context(self) -> "ColoInitContext":
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
         initialization time.
@@ -207,17 +212,19 @@ class ColossalAIStrategy(DDPStrategy):
         """
 
         class ModelShardedContext(ColoInitContext):
-            def _post_init_method(self, module: torch.nn.Module, *args, **kwargs):
+            def _post_init_method(self, module: torch.nn.Module, *args: Any, **kwargs: Any) -> None:
                 if getattr(module, "_colossalai_module", False) is True:
                     return
                 super()._post_init_method(module, *args, **kwargs)
-                module._colossalai_module = True
+                module._colossalai_module = True  # type: ignore[assignment]
 
         return ModelShardedContext()
 
     def setup_precision_plugin(self) -> None:
         super().setup_precision_plugin()
+        assert self.lightning_module is not None
         is_training = self.lightning_module.trainer and self.lightning_module.trainer.training
+
         if is_training:
             if len(self.optimizers) > 1:
                 raise MisconfigurationException("`ColossalAIStrategy` only supports single Optimizer now.")
@@ -227,6 +234,7 @@ class ColossalAIStrategy(DDPStrategy):
                     "`ColossalAIStrategy` only supports `colossalai.nn.optimizer.CPUAdam` "
                     "and `colossalai.nn.optimizer.HybridAdam` as its optimizer."
                 )
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         pl_module = self.model
         process_group = ProcessGroup()
         if not hasattr(pl_module, "_colossalai_zero"):
@@ -243,41 +251,43 @@ class ColossalAIStrategy(DDPStrategy):
                 GeminiManager.get_default_device(self.placement_policy),
             )
             gemini_manager = GeminiManager(self.placement_policy, chunk_manager)
-            assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
             model = _LightningModuleWrapperBase(self.model)
             self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
-            pl_module._colossalai_zero = [self.model]
+            assert self.model is not None
+            pl_module._colossalai_zero = self.model
         else:
-            self.model = pl_module._colossalai_zero[0]
+            assert isinstance(pl_module._colossalai_zero, Module)
+            self.model = pl_module._colossalai_zero
         if is_training:
             self.optimizers = [
                 ZeroOptimizer(optimizer, self.model, gpu_margin_mem_ratio=self.gpu_margin_mem_ratio, **self.amp_kwargs)
             ]
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        if is_overridden("backward", trainer.lightning_module):
-            rank_zero_warn(
-                "You have overridden the `LightningModule.backward` hook"
-                " but it will be ignored since ColossalAI handles"
-                " the backward logic internally."
-            )
-
         if not isinstance(self.accelerator, CUDAAccelerator):
             raise MisconfigurationException(
                 "`ColossalAIStrategy` is only supported on `CUDAAccelerator`, "
                 f"but `{self.accelerator.__class__.__name__}` is used."
             )
 
-        if trainer.accumulate_grad_batches > 1:
-            raise MisconfigurationException(
-                "ColossalAI does not support gradient accumulation now. Please set `accumulate_grad_batches` to 1."
-            )
+        if trainer.state.fn == TrainerFn.FITTING:
+            if is_overridden("backward", trainer.lightning_module):
+                rank_zero_warn(
+                    "You have overridden the `LightningModule.backward` hook"
+                    " but it will be ignored since ColossalAI handles"
+                    " the backward logic internally."
+                )
 
-        accumulation_scheduler = trainer.accumulation_scheduler
-        if accumulation_scheduler.epochs != [0]:
-            raise MisconfigurationException(
-                "ColossalAI currently does not support different `accumulate_grad_batches` at different epochs."
-            )
+            if trainer.accumulate_grad_batches > 1:
+                raise MisconfigurationException(
+                    "ColossalAI does not support gradient accumulation now. Please set `accumulate_grad_batches` to 1."
+                )
+
+            accumulation_scheduler = trainer.accumulation_scheduler
+            if accumulation_scheduler.epochs != [0]:
+                raise MisconfigurationException(
+                    "ColossalAI currently does not support different `accumulate_grad_batches` at different epochs."
+                )
 
         if not isinstance(self.precision_plugin, ColossalAIPrecisionPlugin):
             raise MisconfigurationException("`ColossalAIStrategy` is only compatible with `ColossalAIPrecisionPlugin`.")
@@ -290,6 +300,7 @@ class ColossalAIStrategy(DDPStrategy):
         self.model_to_device()
 
     def model_to_device(self) -> None:
+        assert self.lightning_module is not None
         pl_module = self.lightning_module
         pl_module._device = self.root_device
         for child in pl_module.modules():
@@ -310,19 +321,31 @@ class ColossalAIStrategy(DDPStrategy):
         self.model = zero_model
         self._lightning_module = pl_module
 
-    def optimizer_step(self, optimizer, opt_idx: int, closure, model=None, **kwargs: Any) -> Any:
+    def optimizer_step(
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any,
+    ) -> Any:
         model = model or self.lightning_module
-        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        # TODO(lite): remove assertion once strategy's optimizer_step typing is fixed
+        assert isinstance(model, pl.LightningModule)
+        return self.precision_plugin.optimizer_step(
+            optimizer, model=model, optimizer_idx=opt_idx, closure=closure, **kwargs
+        )
 
-    def lightning_module_state_dict(self, only_rank_0: bool = False):
+    def lightning_module_state_dict(self, rank_zero_only: bool = False) -> Dict[str, Any]:
         """Returns a dictionary containing a whole state of the module. But all the tensors in the dictionary are
         detached from their parameters and located in cpu memory.
 
         Args:
-            only_rank_0: If True, only process rank 0 gets the correct dictionary.
+            rank_zero_only: If True, only process rank 0 gets the correct dictionary.
                 Otherwise, all processes get the same dictionary.
         """
-        org_dict = self.model.state_dict(only_rank_0=only_rank_0)
+        assert isinstance(self.model, ZeroDDP)
+        org_dict = self.model.state_dict(only_rank_0=rank_zero_only)
 
         children = list(self.model.named_children())
         assert len(children) == 1
@@ -339,6 +362,7 @@ class ColossalAIStrategy(DDPStrategy):
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         org_dict = checkpoint["state_dict"]
 
+        assert self.model is not None
         children = list(self.model.named_children())
         assert len(children) == 1
         prefix, child = children[0]
@@ -348,7 +372,8 @@ class ColossalAIStrategy(DDPStrategy):
         mapping_dict = dict()
         for key in org_dict.keys():
             mapping_dict[key] = prefix + key  # add "_forward_module." to the key
-        load_dict = {mapping_dict[key]: value for key, value in org_dict.items()}
+
+        load_dict = OrderedDict({mapping_dict[key]: value for key, value in org_dict.items()})
         self.model.load_state_dict(load_dict)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -388,7 +413,7 @@ class ColossalAIStrategy(DDPStrategy):
         tensor = reduce(tensor, dst=0, parallel_mode=ParallelMode.GLOBAL, op=reduce_op)
         return tensor
 
-    def broadcast(self, obj: Tensor, src: int = 0) -> Tensor:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         """Broadcasts an object to all processes.
 
         Args:
