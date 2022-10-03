@@ -46,8 +46,6 @@ def test_fx_validator():
         "on_fit_end",
         "on_configure_sharded_model",
         "on_fit_start",
-        "on_init_end",
-        "on_init_start",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",
@@ -90,8 +88,6 @@ def test_fx_validator():
         "on_fit_end",
         "on_fit_start",
         "on_configure_sharded_model",
-        "on_init_end",
-        "on_init_start",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",
@@ -164,10 +160,6 @@ class HookedCallback(Callback):
                 return
 
             lightning_module = trainer.lightning_module or model
-            if lightning_module is None:
-                # `on_init_{start,end}` do not have the `LightningModule` available
-                assert hook in ("on_init_start", "on_init_end")
-                return
 
             if hook in not_supported:
                 with pytest.raises(MisconfigurationException, match=not_supported[hook]):
