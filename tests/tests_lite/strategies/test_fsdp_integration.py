@@ -50,11 +50,7 @@ class FSDPLite(BoringLite):
         assert forward_module.mixed_precision.buffer_dtype == precision
 
         for layer_num in [0, 2]:
-            if self.manual_wrapping:
-                assert isinstance(original_module[layer_num], FullyShardedDataParallel)
-            else:
-                assert isinstance(original_module[layer_num], FullyShardedDataParallel)
-
+            assert isinstance(original_module[layer_num], FullyShardedDataParallel)
             assert original_module[layer_num].mixed_precision.param_dtype == precision
             assert original_module[layer_num].mixed_precision.reduce_dtype == precision
             assert original_module[layer_num].mixed_precision.buffer_dtype == precision
@@ -89,7 +85,7 @@ def custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_para
 @pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
-    """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
+    """Test FSDP training, saving and loading with different wrapping and precision settings."""
     strategy = FSDPStrategy() if manual_wrapping else FSDPStrategy(auto_wrap_policy=custom_auto_wrap_policy)
     lite = FSDPLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
     lite.manual_wrapping = manual_wrapping
