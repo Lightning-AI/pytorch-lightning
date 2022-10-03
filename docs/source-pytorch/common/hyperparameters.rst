@@ -1,11 +1,19 @@
+:orphan:
+
 .. testsetup:: *
 
     from argparse import ArgumentParser, Namespace
 
     sys.argv = ["foo"]
 
-Configure hyperparameters from the CLI
---------------------------------------
+Configure hyperparameters from the CLI (legacy)
+-----------------------------------------------
+
+.. warning::
+
+    This is the documentation for the use of Python's ``argparse`` to implement a CLI. This approach is no longer
+    recommended and people are encouraged to use instead the new `LightningCLI <cli/lightning_cli.html>`_ class.
+
 
 Lightning has utilities to interact seamlessly with the command line ``ArgumentParser``
 and plays well with the hyperparameter optimization framework of your choice.

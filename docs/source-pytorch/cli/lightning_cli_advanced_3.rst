@@ -6,7 +6,7 @@
     import torch
     from unittest import mock
     from typing import List
-    import pytorch_lightning as pl
+    import pytorch_lightning.cli as pl_cli
     from pytorch_lightning import LightningModule, LightningDataModule, Trainer, Callback
 
 
@@ -15,7 +15,7 @@
             pass
 
 
-    class LightningCLI(pl.cli.LightningCLI):
+    class LightningCLI(pl_cli.LightningCLI):
         def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
             super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
@@ -45,12 +45,16 @@
 
     mock_argv.stop()
 
+#################################################
+Configure hyperparameters from the CLI (Advanced)
+#################################################
+
 Instantiation only mode
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The CLI is designed to start fitting with minimal code changes. On class instantiation, the CLI will automatically
-call the trainer function associated to the subcommand provided so you don't have to do it.
-To avoid this, you can set the following argument:
+The CLI is designed to start fitting with minimal code changes. On class instantiation, the CLI will automatically call
+the trainer function associated to the subcommand provided so you don't have to do it. To avoid this, you can set the
+following argument:
 
 .. testcode::
 
@@ -58,20 +62,19 @@ To avoid this, you can set the following argument:
     # you'll have to call fit yourself:
     cli.trainer.fit(cli.model)
 
-In this mode, there are subcommands added to the parser.
-This can be useful to implement custom logic without having to subclass the CLI, but still using the CLI's instantiation
-and argument parsing capabilities.
+In this mode, subcommands are **not** added to the parser. This can be useful to implement custom logic without having
+to subclass the CLI, but still using the CLI's instantiation and argument parsing capabilities.
 
 
 Trainer Callbacks and arguments with class type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A very important argument of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class is the :code:`callbacks`. In
-contrast to other more simple arguments which just require numbers or strings, :code:`callbacks` expects a list of
-instances of subclasses of :class:`~pytorch_lightning.callbacks.Callback`. To specify this kind of argument in a config
-file, each callback must be given as a dictionary including a :code:`class_path` entry with an import path of the class,
-and optionally an :code:`init_args` entry with arguments required to instantiate it. Therefore, a simple configuration
-file example that defines a couple of callbacks is the following:
+A very important argument of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class is the ``callbacks``. In
+contrast to simpler arguments which take numbers or strings, ``callbacks`` expects a list of instances of subclasses of
+:class:`~pytorch_lightning.callbacks.Callback`. To specify this kind of argument in a config file, each callback must be
+given as a dictionary including a ``class_path`` entry with an import path of the class, and optionally an ``init_args``
+entry with arguments to use to instantiate. Therefore, a simple configuration file that defines two callbacks is the
+following:
 
 .. code-block:: yaml
 
@@ -87,9 +90,9 @@ file example that defines a couple of callbacks is the following:
 Similar to the callbacks, any parameter in :class:`~pytorch_lightning.trainer.trainer.Trainer` and user extended
 :class:`~pytorch_lightning.core.module.LightningModule` and
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class, can be
-configured the same way using :code:`class_path` and :code:`init_args`. If the package that defines a subclass is
-imported before the :class:`~pytorch_lightning.cli.LightningCLI` class is run, the name can be used instead of
-the full import path.
+configured the same way using ``class_path`` and ``init_args``. If the package that defines a subclass is imported
+before the :class:`~pytorch_lightning.cli.LightningCLI` class is run, the name can be used instead of the full import
+path.
 
 From command line the syntax is the following:
 
@@ -117,16 +120,15 @@ callback appended. Here is an example:
 
 .. note::
 
-    Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.cli.SaveConfigCallback`)
-    always have the full ``class_path``'s, even when class name shorthand notation is used in command line or in input
-    config files.
+    Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.cli.SaveConfigCallback`) always have
+    the full ``class_path``, even when class name shorthand notation is used in command line or in input config files.
 
 
 Multiple models and/or datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Additionally, the tool can be configured such that a model and/or a datamodule is
-specified by an import path and init arguments. For example, with a tool implemented as:
+A CLI can be written such that a model and/or a datamodule is specified by an import path and init arguments. For
+example, with a tool implemented as:
 
 .. code-block:: python
 
@@ -154,18 +156,17 @@ A possible config file could be as follows:
             patience: 5
         ...
 
-Only model classes that are a subclass of :code:`MyModelBaseClass` would be allowed, and similarly only subclasses of
-:code:`MyDataModuleBaseClass`. If as base classes :class:`~pytorch_lightning.core.module.LightningModule` and
-:class:`~pytorch_lightning.core.datamodule.LightningDataModule` are given, then the tool would allow any lightning
-module and data module.
+Only model classes that are a subclass of ``MyModelBaseClass`` would be allowed, and similarly only subclasses of
+``MyDataModuleBaseClass``. If as base classes :class:`~pytorch_lightning.core.module.LightningModule` and
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` are given, then the CLI would allow any lightning module
+and data module.
 
 .. tip::
 
-    Note that with the subclass modes the :code:`--help` option does not show information for a specific subclass. To
-    get help for a subclass the options :code:`--model.help` and :code:`--data.help` can be used, followed by the
-    desired class path. Similarly :code:`--print_config` does not include the settings for a particular subclass. To
-    include them the class path should be given before the :code:`--print_config` option. Examples for both help and
-    print config are:
+    Note that with the subclass modes the ``--help`` option does not show information for a specific subclass. To get
+    help for a subclass the options ``--model.help`` and ``--data.help`` can be used, followed by the desired class
+    path. Similarly ``--print_config`` does not include the settings for a particular subclass. To include them the
+    class path should be given before the ``--print_config`` option. Examples for both help and print config are:
 
     .. code-block:: bash
 
@@ -176,10 +177,13 @@ module and data module.
 Models with multiple submodules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many use cases require to have several modules each with its own configurable options. One possible way to handle this
-with LightningCLI is to implement a single module having as init parameters each of the submodules. Since the init
-parameters have as type a class, then in the configuration these would be specified with :code:`class_path` and
-:code:`init_args` entries. For instance a model could be implemented as:
+Many use cases require to have several modules, each with its own configurable options. One possible way to handle this
+with ``LightningCLI`` is to implement a single module having as init parameters each of the submodules. This is known as
+`dependency injection <https://en.wikipedia.org/wiki/Dependency_injection>`__ which is a good approach to improve
+decoupling in your code base.
+
+Since the init parameters of the model have as type hint a class, in the configuration these would be specified with
+``class_path`` and ``init_args`` entries. For instance a model could be implemented as:
 
 .. testcode::
 
@@ -195,7 +199,7 @@ parameters have as type a class, then in the configuration these would be specif
             self.encoder = encoder
             self.decoder = decoder
 
-If the CLI is implemented as :code:`LightningCLI(MyMainModel)` the configuration would be as follows:
+If the CLI is implemented as ``LightningCLI(MyMainModel)`` the configuration would be as follows:
 
 .. code-block:: yaml
 
@@ -209,69 +213,15 @@ If the CLI is implemented as :code:`LightningCLI(MyMainModel)` the configuration
         init_args:
           ...
 
-It is also possible to combine :code:`subclass_mode_model=True` and submodules, thereby having two levels of
-:code:`class_path`.
+It is also possible to combine ``subclass_mode_model=True`` and submodules, thereby having two levels of ``class_path``.
 
-
-Class type defaults
-^^^^^^^^^^^^^^^^^^^
-
-The support for classes as type hints allows to try many possibilities with the same CLI. This is a useful feature, but
-it can make it tempting to use an instance of a class as a default. For example:
-
-.. code-block::
-
-    class MyMainModel(LightningModule):
-        def __init__(
-            self,
-            backbone: torch.nn.Module = MyModel(encoder_layers=24),  # BAD PRACTICE!
-        ):
-            super().__init__()
-            self.backbone = backbone
-
-Normally classes are mutable as it is in this case. The instance of :code:`MyModel` would be created the moment that the
-module that defines :code:`MyMainModel` is first imported. This means that the default of :code:`backbone` will be
-initialized before the CLI class runs :code:`seed_everything` making it non-reproducible. Furthermore, if
-:code:`MyMainModel` is used more than once in the same Python process and the :code:`backbone` parameter is not
-overridden, the same instance would be used in multiple places which very likely is not what the developer intended.
-Having an instance as default also makes it impossible to generate the complete config file since for arbitrary classes
-it is not known which arguments were used to instantiate it.
-
-A good solution to these problems is to not have a default or set the default to a special value (e.g. a
-string) which would be checked in the init and instantiated accordingly. If a class parameter has no default and the CLI
-is subclassed then a default can be set as follows:
-
-.. testcode::
-
-    default_backbone = {
-        "class_path": "import.path.of.MyModel",
-        "init_args": {
-            "encoder_layers": 24,
-        },
-    }
-
-
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.set_defaults({"model.backbone": default_backbone})
-
-A more compact version that avoids writing a dictionary would be:
-
-.. testcode::
-
-    from jsonargparse import lazy_instance
-
-
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.set_defaults({"model.backbone": lazy_instance(MyModel, encoder_layers=24)})
 
 Optimizers
 ^^^^^^^^^^
 
-If you will not be changing the class, you can manually add the arguments for specific optimizers and/or
-learning rate schedulers by subclassing the CLI. This has the advantage of providing the proper help message for those
-classes. The following code snippet shows how to implement it:
+In some case it might be desired to fix the optimizer and/or learning scheduler scheduler instead of allowing multiple.
+For this you can manually add the arguments for specific classes by subclassing the CLI. The following code snippet
+shows how to implement it:
 
 .. testcode::
 
@@ -280,9 +230,8 @@ classes. The following code snippet shows how to implement it:
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
 
-With this, in the config the :code:`optimizer` and :code:`lr_scheduler` groups would accept all of the options for the
-given classes, in this example :code:`Adam` and :code:`ExponentialLR`.
-Therefore, the config file would be structured like:
+With this, in the config the ``optimizer`` and ``lr_scheduler`` groups would accept all of the options for the given
+classes, in this example ``Adam`` and ``ExponentialLR``. Therefore, the config file would be structured like:
 
 .. code-block:: yaml
 
@@ -295,14 +244,14 @@ Therefore, the config file would be structured like:
     trainer:
       ...
 
-Where the arguments can be passed directly through command line without specifying the class. For example:
+where the arguments can be passed directly through command line without specifying the class. For example:
 
 .. code-block:: bash
 
     $ python trainer.py fit --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
 
-The automatic implementation of :code:`configure_optimizers` can be disabled by linking the configuration group. An
-example can be when one wants to add support for multiple optimizers:
+The automatic implementation of ``configure_optimizers`` can be disabled by linking the configuration group. An example
+can be when someone wants to add support for multiple optimizers:
 
 .. code-block:: python
 
@@ -329,11 +278,10 @@ example can be when one wants to add support for multiple optimizers:
 
     cli = MyLightningCLI(MyModel)
 
-The value given to :code:`optimizer*_init` will always be a dictionary including :code:`class_path` and
-:code:`init_args` entries. The function :func:`~pytorch_lightning.cli.instantiate_class`
-takes care of importing the class defined in :code:`class_path` and instantiating it using some positional arguments,
-in this case :code:`self.parameters()`, and the :code:`init_args`.
-Any number of optimizers and learning rate schedulers can be added when using :code:`link_to`.
+The value given to ``optimizer*_init`` will always be a dictionary including ``class_path`` and ``init_args`` entries.
+The function :func:`~pytorch_lightning.cli.instantiate_class` takes care of importing the class defined in
+``class_path`` and instantiating it using some positional arguments, in this case ``self.parameters()``, and the
+``init_args``. Any number of optimizers and learning rate schedulers can be added when using ``link_to``.
 
 With shorthand notation:
 
@@ -378,7 +326,7 @@ the main function as follows:
         cli_main()
 
 Then it is possible to import the ``cli_main`` function to run it. Executing in a shell ``my_cli.py
---trainer.max_epochs=100", "--model.encoder_layers=24`` would be equivalent to:
+--trainer.max_epochs=100 --model.encoder_layers=24`` would be equivalent to:
 
 .. code:: python
 
