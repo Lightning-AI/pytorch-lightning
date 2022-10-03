@@ -153,7 +153,7 @@ class BaseQueue(ABC):
     def is_running(self) -> bool:
         """Returns True if the queue is running, False otherwise.
 
-        Child classes should override this property and implement custom logic as requires
+        Child classes should override this property and implement custom logic as required
         """
         return True
 
