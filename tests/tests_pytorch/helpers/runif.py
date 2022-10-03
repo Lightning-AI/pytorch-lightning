@@ -254,7 +254,7 @@ class RunIf:
         if min_cuda_gpus_no_init:
             # special condition to defer CUDA initialization if possible, supporting tests that will attempt forks after
             # NVML-based CUDA availbility checks
-            # local import to avoid potential issues this import could cause other tests
+            # local import to avoid potential issues this import could cause other tests (e.g. infinite recursion)
             from lightning_lite.accelerators.cuda import num_cuda_devices
 
             conditions.append(num_cuda_devices() < min_cuda_gpus)

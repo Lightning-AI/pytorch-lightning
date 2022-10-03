@@ -21,7 +21,7 @@ from tests_pytorch.helpers.test_models import AMPTestModel
 
 
 # needs to be standalone to avoid other processes initializing CUDA
-@RunIf(min_cuda_gpus_no_init=2, min_torch="1.12", standalone=True)
+@RunIf(min_cuda_gpus_no_init=2, skip_windows=True, min_torch="1.12", standalone=True)
 def test_amp_gpus_ddp_fork(tmpdir):
     """Make sure combinations of AMP and strategies work if supported."""
     tutils.reset_seed()
