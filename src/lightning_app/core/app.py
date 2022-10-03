@@ -48,7 +48,7 @@ class LightningApp:
     def __init__(
         self,
         root: "lightning_app.LightningFlow",
-        default_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
+        flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         debug: bool = False,
         info: frontend.AppInfo = None,
     ):
@@ -65,7 +65,7 @@ class LightningApp:
         Arguments:
             root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
                 It must define a `run()` method that the app can call.
-            default_cloud_compute: The default Cloud Compute used for flow, Rest API and frontend's.
+            flow_cloud_compute: The default Cloud Compute used for flow, Rest API and frontend's.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
@@ -87,9 +87,9 @@ class LightningApp:
 
         _validate_root_flow(root)
         self._root = root
-        self.default_cloud_compute = default_cloud_compute or lightning_app.CloudCompute()
+        self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()
 
-        if self.default_cloud_compute.preemptible:
+        if self.flow_cloud_compute.preemptible:
             raise Exception("The default Cloud Compute can't be preemptible.")
 
         # queues definition.
