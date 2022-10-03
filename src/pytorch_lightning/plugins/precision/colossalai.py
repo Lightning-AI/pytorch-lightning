@@ -21,11 +21,11 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
 
     Raises:
         MisconfigurationException:
-            If precison is not 16.
+            If precison is not 32 or 16.
     """
 
     def __init__(self, precision: Union[str, int] = 16) -> None:
-        if not (precision == PrecisionType.HALF):
+        if not (precision in (PrecisionType.FLOAT, PrecisionType.HALF)):
             raise MisconfigurationException(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."
