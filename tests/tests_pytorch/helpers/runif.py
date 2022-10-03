@@ -20,6 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
@@ -60,6 +61,9 @@ class RunIf:
     def test_wrapper(arg1):
         assert arg1 > 0.0
     """
+
+    # if possible, we defer CUDA initialization to support tests that will attempt forks
+    torch.cuda.is_available = num_cuda_devices
 
     def __new__(
         self,
@@ -124,7 +128,7 @@ class RunIf:
         reasons = []
 
         if min_cuda_gpus:
-            conditions.append(torch.cuda.device_count() < min_cuda_gpus)
+            conditions.append(torch.cuda.is_available() < min_cuda_gpus)
             reasons.append(f"GPUs>={min_cuda_gpus}")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["min_cuda_gpus"] = True

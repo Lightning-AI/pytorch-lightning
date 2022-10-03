@@ -15,7 +15,6 @@ import os
 from unittest import mock
 
 import pytest
-import torch
 from torch import optim
 from torch.utils.data import DataLoader
 
@@ -24,47 +23,7 @@ from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
-
-
-class AMPTestModel(BoringModel):
-    def _step(self, batch):
-        self._assert_autocast_enabled()
-        output = self(batch)
-        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
-        assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
-        loss = self.loss(batch, output)
-        return loss
-
-    def loss(self, batch, prediction):
-        # todo (sean): convert bfloat16 to float32 as mse loss for cpu amp is currently not supported
-        if self.trainer.precision_plugin.device == "cpu":
-            prediction = prediction.float()
-        return super().loss(batch, prediction)
-
-    def training_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"loss": output}
-
-    def validation_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"x": output}
-
-    def test_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"y": output}
-
-    def predict_step(self, batch, batch_idx, dataloader_idx=0):
-        self._assert_autocast_enabled()
-        output = self(batch)
-        is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
-        assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
-        return output
-
-    def _assert_autocast_enabled(self):
-        if self.trainer.precision_plugin.device == "cpu":
-            assert torch.is_autocast_cpu_enabled()
-        else:
-            assert torch.is_autocast_enabled()
+from tests_pytorch.helpers.test_models import AMPTestModel
 
 
 @RunIf(min_torch="1.10")

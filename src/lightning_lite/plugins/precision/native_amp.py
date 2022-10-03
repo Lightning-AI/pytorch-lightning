@@ -20,6 +20,7 @@ from torch.nn import Module
 from torch.optim import LBFGS
 from typing_extensions import Literal
 
+from lightning_lite.accelerators.cuda import is_cuda_available
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
@@ -47,6 +48,8 @@ class NativeMixedPrecision(Precision):
         if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
             raise ImportError("To use bfloat16 with native amp you must install torch greater or equal to 1.10.")
         if scaler is None and precision == 16:
+            # if possible, we defer CUDA initialization to support strategies that will attempt forks
+            torch.cuda.is_available = is_cuda_available
             scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
             raise ValueError(f"`precision='bf16'` does not use a scaler, found {scaler}.")
