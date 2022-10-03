@@ -307,9 +307,11 @@ class HTTPQueue(BaseQueue):
             raise ValueError("You must specify a name for the queue")
         self.app_id, self.name = self._split_app_id_and_queue_name(name)
         self.default_timeout = default_timeout
+        # TODO - do we raise if any other status code than 2xx
         self.client = HTTPClient(base_url=base_url, log_callback=debug_log_callback)
 
     def get(self, timeout: int = None) -> Any:
+        # TODO - check how many calls it is making in the boring app and use that as baseline for scaling up
         if timeout is None:
             # it's a blocking call, we need to loop and call the backend to mimic this behavior
             while True:
@@ -332,7 +334,7 @@ class HTTPQueue(BaseQueue):
                 time.sleep(0.1)
 
     def _get(self):
-        resp = self.client.post(f"v1/{self.app_id}/{self.name}")
+        resp = self.client.post(f"v1/{self.app_id}/{self.name}?action=pop")
         if resp.status_code == 204:
             raise queue.Empty
         return pickle.loads(resp.content)
@@ -345,7 +347,7 @@ class HTTPQueue(BaseQueue):
                 f"The Queue {self.name} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
                 f"Found {queue_len}. This might cause your application to crash, please investigate this."
             )
-        self.client.post(f"v1/{self.app_id}/{self.name}?action=put", data=value)
+        self.client.post(f"v1/{self.app_id}/{self.name}?action=push", data=value)
 
     def length(self):
         val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")

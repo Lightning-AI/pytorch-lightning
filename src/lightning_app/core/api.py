@@ -22,7 +22,7 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
+from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR, QUEUE_TYPE
 from lightning_app.core.queues import RedisQueue
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
@@ -263,15 +263,15 @@ async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
 async def healthz(response: Response):
     """Health check endpoint used in the cloud FastAPI servers to check the status periodically. This requires
     Redis to be installed for it to work.
-
-    # TODO - Once the state store abstraction is in, check that too
     """
-    if not _is_redis_available():
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return {"status": "failure", "reason": "Redis is not available"}
-    if not RedisQueue(name="ping", default_timeout=1).ping():
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return {"status": "failure", "reason": "Redis is not available"}
+    # TODO - should be checked with the abstraction
+    if QUEUE_TYPE == 'redis':
+        if not _is_redis_available():
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            return {"status": "failure", "reason": "Redis is not available"}
+        if not RedisQueue(name="ping", default_timeout=1).ping():
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            return {"status": "failure", "reason": "Redis is not available"}
     x_lightning_session_uuid = TEST_SESSION_UUID
     state = global_app_state_store.get_app_state(x_lightning_session_uuid)
     global_app_state_store.set_served_state(x_lightning_session_uuid, state)
