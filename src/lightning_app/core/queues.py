@@ -50,12 +50,15 @@ class QueuingSystem(Enum):
     SINGLEPROCESS = "singleprocess"
     MULTIPROCESS = "multiprocess"
     REDIS = "redis"
+    HTTP = "http"
 
     def get_queue(self, queue_name: str) -> "BaseQueue":
         if self == QueuingSystem.MULTIPROCESS:
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         elif self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
+        elif self == QueuingSystem.HTTP:
+            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         else:
             return SingleProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
@@ -376,6 +379,8 @@ class HTTPQueue(BaseQueue):
         This can be brittle, as if the queue name creation logic changes, the response values from here wouldn't be
         accurate
         """
+        if "_" not in queue_name:
+            return queue_name, queue_name
         app_id, queue_name = queue_name.split("_", 1)
         return app_id, queue_name
 
