@@ -14,6 +14,16 @@ warning_cache = WarningCache()
 
 
 class ColossalAIPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin for ColossalAI integration.
+
+    Args:
+        precision: Half precision (16).
+
+    Raises:
+        MisconfigurationException:
+            If precison is not 16.
+    """
+
     def __init__(self, precision: Union[str, int] = 16) -> None:
         if not (precision == PrecisionType.HALF):
             raise MisconfigurationException(
