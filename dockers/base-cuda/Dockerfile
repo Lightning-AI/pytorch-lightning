@@ -136,6 +136,13 @@ RUN \
     if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
     python -c "import bagua; print(bagua.__version__)"
 
+RUN \
+    # install ColossalAI
+    CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") && \
+    CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") && \
+    pip install "colossalai==0.1.10+torch1.12cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org && \
+    python -c "import colosaalai; print(colossalai.__version__)"
+
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
 
