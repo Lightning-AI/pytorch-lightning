@@ -33,7 +33,6 @@ from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, 
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
-from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
@@ -85,7 +84,6 @@ def test_deprecated_amp_level():
         LightningBaguaModule,
         LightningDeepSpeedModule,
         pytest.param(LightningShardedDataParallel, marks=RunIf(fairscale=True)),
-        LightningIPUModule,
     ],
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):

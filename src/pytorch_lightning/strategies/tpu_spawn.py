@@ -223,9 +223,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def _worker_setup(self, process_idx: int) -> None:
+    def setup_distributed(self) -> None:
         self._launched = True
-        self.set_world_ranks(process_idx)
+        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:

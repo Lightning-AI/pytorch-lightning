@@ -16,6 +16,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
+from typing_extensions import Literal
 
 from lightning_lite.accelerators import ACCELERATOR_REGISTRY
 from lightning_lite.accelerators.accelerator import Accelerator
@@ -58,6 +59,7 @@ from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
+_PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
 
 class _Connector:
@@ -97,7 +99,7 @@ class _Connector:
         strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
         # 1. Parsing flags
@@ -111,7 +113,7 @@ class _Connector:
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[Union[int, str]] = None
+        self._precision_flag: Optional[_PRECISION_INPUT] = None
         self._precision_plugin_flag: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -154,7 +156,7 @@ class _Connector:
         self,
         strategy: Optional[Union[str, Strategy]],
         accelerator: Optional[Union[str, Accelerator]],
-        precision: Union[int, str],
+        precision: _PRECISION_INPUT,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
     ) -> None:
         """This method checks:

@@ -13,43 +13,12 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.strategies.ipu import LightningIPUModule
-from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
-
-
-def test_v1_8_0_on_init_start_end(tmpdir):
-    class TestCallback(Callback):
-        def on_init_start(self, trainer):
-            print("Starting to init trainer!")
-
-        def on_init_end(self, trainer):
-            print("Trainer is init now")
-
-    model = BoringModel()
-
-    trainer = Trainer(
-        callbacks=[TestCallback()],
-        max_epochs=1,
-        fast_dev_run=True,
-        enable_progress_bar=False,
-        logger=False,
-        default_root_dir=tmpdir,
-    )
-    with pytest.deprecated_call(
-        match="The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.fit(model)
-    with pytest.deprecated_call(
-        match="The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.validate(model)
+from pytorch_lightning.demos.boring_classes import BoringModel
 
 
 def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
@@ -229,37 +198,6 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
-
-
-def test_v1_8_0_datamodule_checkpointhooks():
-    class CustomBoringDataModuleSave(BoringDataModule):
-        def on_save_checkpoint(self, checkpoint):
-            print("override on_save_checkpoint")
-
-    class CustomBoringDataModuleLoad(BoringDataModule):
-        def on_load_checkpoint(self, checkpoint):
-            print("override on_load_checkpoint")
-
-    trainer = Mock()
-
-    trainer.datamodule = CustomBoringDataModuleSave()
-    with pytest.deprecated_call(
-        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
-        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-    ):
-        _check_datamodule_checkpoint_hooks(trainer)
-
-    trainer.datamodule = CustomBoringDataModuleLoad()
-    with pytest.deprecated_call(
-        match="`LightningDataModule.on_load_checkpoint` was deprecated in"
-        " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
-    ):
-        _check_datamodule_checkpoint_hooks(trainer)
-
-
-def test_v1_8_0_deprecated_lightning_ipu_module():
-    with pytest.deprecated_call(match=r"has been deprecated in v1.7.0 and will be removed in v1.8."):
-        _ = LightningIPUModule(BoringModel(), 32)
 
 
 def test_deprecated_mc_save_checkpoint():

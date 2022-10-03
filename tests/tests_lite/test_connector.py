@@ -251,7 +251,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
 )
 @pytest.mark.parametrize("devices", [1, 2])
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_accelerator_choice_multi_node_gpu(_, strategy, strategy_class, devices):
+def test_strategy_choice_multi_node_gpu(_, strategy, strategy_class, devices):
     connector = _Connector(num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(connector.strategy, strategy_class)
 
@@ -373,6 +373,19 @@ def test_strategy_choice_cpu_instance(strategy_class):
 def test_strategy_choice_gpu_str(strategy, strategy_class):
     connector = _Connector(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(connector.strategy, strategy_class)
+
+
+@RunIf(fairscale=True)
+@pytest.mark.parametrize(
+    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
+)
+@pytest.mark.parametrize(
+    "precision,expected_precision", [(16, NativeMixedPrecision), (32, Precision), ("bf16", NativeMixedPrecision)]
+)
+def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
+    connector = _Connector(strategy=strategy, devices=1, precision=precision)
+    assert isinstance(connector.strategy, expected_strategy)
+    assert isinstance(connector.precision_plugin, expected_precision)
 
 
 @RunIf(min_cuda_gpus=2)

@@ -17,8 +17,6 @@ import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
-from torch.utils.data import DataLoader
-
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_setattr
@@ -35,10 +33,10 @@ def scale_batch_size(
     init_val: int = 2,
     max_trials: int = 25,
     batch_arg_name: str = "batch_size",
-):
+) -> Optional[int]:
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
-        return
+        return None
 
     # Save initial model, that is loaded after batch size is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
@@ -141,7 +139,12 @@ def __scale_batch_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) 
 
 
 def _run_power_scaling(
-    trainer: "pl.Trainer", pl_module: "pl.LightningModule", new_size: int, batch_arg_name: str, max_trials: int, params
+    trainer: "pl.Trainer",
+    pl_module: "pl.LightningModule",
+    new_size: int,
+    batch_arg_name: str,
+    max_trials: int,
+    params: Dict[str, Any],
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
     # this flag is used to determine whether the previously scaled batch size, right before OOM, was a success or not
@@ -179,7 +182,12 @@ def _run_power_scaling(
 
 
 def _run_binary_scaling(
-    trainer: "pl.Trainer", pl_module: "pl.LightningModule", new_size: int, batch_arg_name: str, max_trials: int, params
+    trainer: "pl.Trainer",
+    pl_module: "pl.LightningModule",
+    new_size: int,
+    batch_arg_name: str,
+    max_trials: int,
+    params: Dict[str, Any],
 ) -> int:
     """Batch scaling mode where the size is initially is doubled at each iteration until an OOM error is
     encountered.
@@ -267,13 +275,15 @@ def _adjust_batch_size(
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
     if trainer.state.fn == "fit":
+        from pytorch_lightning.trainer.supporters import CombinedLoader
+
         if trainer.train_dataloader is None:
             trainer.reset_train_dataloader()
 
-        assert trainer.train_dataloader is not None
-        # TODO: should we check val_dataloaders here too?
+        assert isinstance(trainer.train_dataloader, CombinedLoader)
         if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
-            new_size = min(new_size, len(trainer.train_dataloader.dataset))
+            # at this moment, `train_dataloader` is already a CombinedLoader. len can return a size or infinity
+            new_size = min(new_size, len(trainer.train_dataloader.dataset))  # type: ignore[arg-type]
     else:
         stage = trainer.state.stage
         assert stage is not None
@@ -292,11 +302,14 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer") -> bool:
+def _is_valid_batch_size(
+    batch_size: int, dataloader: "pl.trainer.supporters.CombinedLoader", trainer: "pl.Trainer"
+) -> bool:
     from pytorch_lightning.utilities.data import has_len_all_ranks
 
     module = trainer.lightning_module or trainer.datamodule
-    return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
+    has_len = has_len_all_ranks(dataloader, trainer.strategy, module)
+    return not has_len or batch_size <= len(dataloader)  # type: ignore[arg-type]
 
 
 def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -309,7 +322,7 @@ def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -
         reset_fn(pl_module)
 
 
-def _try_loop_run(trainer: "pl.Trainer", params) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
     if trainer.state.fn == "fit":
         loop = trainer.fit_loop
     else:
