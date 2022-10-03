@@ -18,7 +18,7 @@ from typing import Any, Callable, Optional
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from lightning_lite.strategies.launchers.xla import _save_spawn
+from lightning_lite.strategies.launchers.xla import _rank_teardown
 from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.strategies.launchers.multiprocessing import (
     _FakeQueue,
@@ -74,7 +74,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         """
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
-        _save_spawn(
+        xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
@@ -105,6 +105,8 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
+
+        _rank_teardown(process_idx)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
