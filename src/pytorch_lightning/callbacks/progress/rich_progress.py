@@ -174,7 +174,7 @@ if _RICH_AVAILABLE:
             return Text(text, justify="left", style=self._style)
 
 else:
-    Task, Style = None, None  # type: ignore[assignment, misc]
+    Task, Style = Any, Any  # type: ignore[assignment, misc]
 
 
 @dataclass
