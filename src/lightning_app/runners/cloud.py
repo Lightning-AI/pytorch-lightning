@@ -41,7 +41,7 @@ from lightning_cloud.openapi import (
 from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.core.app import LightningApp
-from lightning_app.core.constants import CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE, CLOUD_QUEUE_TYPE
+from lightning_app.core.constants import CLOUD_QUEUE_TYPE, CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
