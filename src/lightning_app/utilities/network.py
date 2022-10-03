@@ -13,7 +13,7 @@ from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 from urllib.parse import urljoin, urlencode
 
-from core.constants import get_lightning_cloud_url, HTTP_QUEUE_URL
+from lightning_app.core.constants import HTTP_QUEUE_URL
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
