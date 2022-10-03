@@ -1,7 +1,8 @@
 import socket
 import time
 from functools import wraps
-from typing import Any, Callable, Optional, Dict
+from typing import Any, Callable, Dict, Optional
+from urllib.parse import urlencode, urljoin
 
 import lightning_cloud
 import requests
@@ -11,7 +12,6 @@ from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
-from urllib.parse import urljoin, urlencode
 
 from lightning_app.core.constants import HTTP_QUEUE_URL
 from lightning_app.utilities.app_helpers import Logger
@@ -140,24 +140,25 @@ class TimeoutHTTPAdapter(HTTPAdapter):
 
 
 def _http_method_logger_wrapper(name: str, func: Callable) -> Callable:
-    """Returns the function decorated by a wrapper that logs the message using the `log_function` hook
-    """
+    """Returns the function decorated by a wrapper that logs the message using the `log_function` hook."""
 
     @wraps(func)
-    def wrapped(self: 'HTTPClient', *args: Any, **kwargs: Any) -> Any:
-        self.log_function(f"HTTP call from HTTPClient. Method: {name.upper()}, Base URL: {self.base_url}, Path: {args[0]}")
+    def wrapped(self: "HTTPClient", *args: Any, **kwargs: Any) -> Any:
+        self.log_function(
+            f"HTTP call from HTTPClient. Method: {name.upper()}, Base URL: {self.base_url}, Path: {args[0]}"
+        )
         params = kwargs.get("query_params", {})
         if params:
             self.log_function(f"Params: {params}")
         resp: requests.Response = func(self, *args, **kwargs)
         self.log_function(f"Response Status Code: {resp.status_code}")
+
     return wrapped
 
 
 class _MethodsDebuLoggingWrapperMeta(type):
-    """This metaclass wraps all the non-private methods of the child class with :func:`_http_method_logger_wrapper` so
-    they log the request life cycle, depends on the debug level set
-    """
+    """This metaclass wraps all the non-private methods of the child class with :func:`_http_method_logger_wrapper`
+    so they log the request life cycle, depends on the debug level set."""
 
     def __new__(mcs, name, bases, dct):
         new_class = super().__new__(mcs, name, bases, dct)
@@ -169,7 +170,6 @@ class _MethodsDebuLoggingWrapperMeta(type):
 
 
 class HTTPClient(metaclass=_MethodsDebuLoggingWrapperMeta):
-
     def __init__(self, base_url: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
         self.base_url = base_url or HTTP_QUEUE_URL
         retry_strategy = Retry(
@@ -180,12 +180,8 @@ class HTTPClient(metaclass=_MethodsDebuLoggingWrapperMeta):
         )
         adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         sess = requests.Session()
-        sess.hooks.update(
-            {
-                'response': lambda r, *args, **kwargs: r.raise_for_status()
-            }
-        )
-        sess.mount("http://", adapter)  # noqa
+        sess.hooks.update({"response": lambda r, *args, **kwargs: r.raise_for_status()})
+        sess.mount("http://", adapter)
         sess.mount("https://", adapter)
         self.client: requests.Session = sess
         self.log_function = log_callback or self.log_function
@@ -203,13 +199,17 @@ class HTTPClient(metaclass=_MethodsDebuLoggingWrapperMeta):
         return self.client.delete(url)
 
     def log_function(self, message: str, *args, **kwargs):
-        """ This function is used to log the messages in the client, it can be overridden by caller to customise
-        the logging logic. We enabled customisation here instead of just using `logger.debug` because HTTP logging
-        can be very noisy, but it is crucial for finding bugs when we have them
+        """This function is used to log the messages in the client, it can be overridden by caller to customise the
+        logging logic.
+
+        We enabled customisation here instead of just using `logger.debug` because HTTP logging can be very noisy, but
+        it is crucial for finding bugs when we have them
         """
         pass
 
     def _update_headers(self, headers: Dict):
-        """ Updates the session headers with the provided headers. Note that this function doesn't replace
-        the exising headers but updates them """
+        """Updates the session headers with the provided headers.
+
+        Note that this function doesn't replace the exising headers but updates them
+        """
         self.client.headers.update(headers)
