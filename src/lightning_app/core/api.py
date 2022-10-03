@@ -269,7 +269,7 @@ async def healthz(response: Response):
     if not _is_redis_available():
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"status": "failure", "reason": "Redis is not available"}
-    if not RedisQueue(name="ping", default_timeout=1).ping():
+    if not RedisQueue(name="ping", default_timeout=1).is_running():
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"status": "failure", "reason": "Redis is not available"}
     x_lightning_session_uuid = TEST_SESSION_UUID

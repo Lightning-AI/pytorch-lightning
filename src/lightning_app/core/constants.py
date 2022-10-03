@@ -5,6 +5,26 @@ import lightning_cloud.env
 
 import lightning_app
 
+
+def truthy(val) -> bool:
+    if val in [
+        "1",
+        "true",
+        "True",
+        True,
+    ]:
+        return True
+    if val in ["0", "false", "False", False, None]:
+        return False
+
+    return bool(val)
+
+
+def get_lightning_cloud_url() -> str:
+    # DO NOT CHANGE!
+    return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
+
+
 SUPPORTED_PRIMITIVE_TYPES = (type(None), str, int, float, bool)
 STATE_UPDATE_TIMEOUT = 0.001
 STATE_ACCUMULATE_WAIT = 0.05
@@ -17,11 +37,16 @@ FLOW_DURATION_SAMPLES = 5
 APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
 APP_SERVER_PORT = 7501
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
+
+QUEUE_TYPE = os.getenv("LIGHTNING_QUEUE_TYPE", "redis")
+
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
 REDIS_QUEUES_READ_DEFAULT_TIMEOUT = 0.005
-REDIS_WARNING_QUEUE_SIZE = 1000
+
+WARNING_QUEUE_SIZE = 1000
+
 USER_ID = os.getenv("USER_ID", "1234")
 FRONTEND_DIR = os.path.join(os.path.dirname(lightning_app.__file__), "ui")
 PACKAGE_LIGHTNING = os.getenv("PACKAGE_LIGHTNING", None)

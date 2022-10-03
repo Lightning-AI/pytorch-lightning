@@ -11,7 +11,7 @@ from lightning_app.core.constants import (
     REDIS_PASSWORD,
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
-    REDIS_WARNING_QUEUE_SIZE,
+    WARNING_QUEUE_SIZE,
     STATE_UPDATE_TIMEOUT,
 )
 from lightning_app.utilities.app_helpers import Logger
@@ -149,6 +149,13 @@ class BaseQueue(ABC):
         """
         pass
 
+    @property
+    def is_running(self) -> bool:
+        """ Returns True if the queue is running, False otherwise. Child classes should override this
+        property and implement custom logic as requires
+        """
+        return True
+
 
 class SingleProcessQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
@@ -213,20 +220,13 @@ class RedisQueue(BaseQueue):
         self.default_timeout = default_timeout
         self.redis = redis.Redis(host=host, port=port, password=password)
 
-    def ping(self):
-        """Ping the redis server to see if it is alive."""
-        try:
-            return self.redis.ping()
-        except redis.exceptions.ConnectionError:
-            return False
-
     def put(self, item: Any) -> None:
         value = pickle.dumps(item)
         queue_len = self.length()
-        if queue_len >= REDIS_WARNING_QUEUE_SIZE:
+        if queue_len >= WARNING_QUEUE_SIZE:
             warnings.warn(
                 f"The Redis Queue {self.name} length is larger than the "
-                f"recommended length of {REDIS_WARNING_QUEUE_SIZE}. "
+                f"recommended length of {WARNING_QUEUE_SIZE}. "
                 f"Found {queue_len}. This might cause your application to crash, "
                 "please investigate this."
             )
@@ -282,3 +282,11 @@ class RedisQueue(BaseQueue):
                 "Please try running your app again. "
                 "If the issue persists, please contact support@lightning.ai"
             )
+
+    @property
+    def is_running(self) -> bool:
+        """Pinging the redis server to see if it is alive."""
+        try:
+            return self.redis.ping()
+        except redis.exceptions.ConnectionError:
+            return False
