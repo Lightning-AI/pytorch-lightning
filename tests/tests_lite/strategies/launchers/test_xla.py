@@ -18,8 +18,8 @@ def test_xla_launcher_interactive_compatible(xla_available):
     assert launcher.is_interactive_compatible
 
 
-@RunIf(skip_windows=True)
-@mock.patch("lightning_lite.strategies.launchers.xla.xmp")
+@RunIf(skip_windows=True, tpu=True)
+@mock.patch("torch_xla.distributed.xla_multiprocessing")
 @mock.patch("lightning_lite.strategies.launchers.xla.get_context")
 def test_xla_launcher_xmp_spawn(get_context_mock, xmp_mock):
     strategy = Mock()
