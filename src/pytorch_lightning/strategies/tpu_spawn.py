@@ -44,6 +44,8 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRA
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
+else:
+    MpDeviceLoader = None
 
 
 class TPUSpawnStrategy(DDPSpawnStrategy):

@@ -59,7 +59,7 @@ class TPUAccelerator(Accelerator):
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
         # check `_XLA_AVAILABLE` again to avoid launching processes
-        return _XLA_AVAILABLE and _is_device_tpu()
+        return bool(_XLA_AVAILABLE) and _is_device_tpu()
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:

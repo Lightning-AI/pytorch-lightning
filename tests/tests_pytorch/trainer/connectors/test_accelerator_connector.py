@@ -210,8 +210,7 @@ def test_dist_backend_accelerator_mapping(cuda_count_0):
     assert trainer.strategy.local_rank == 0
 
 
-@mock.patch("lightning_lite.accelerators.mps._get_all_available_mps_gpus", return_value=[0, 1])
-def test_ipython_incompatible_backend_error(_, cuda_count_2, monkeypatch):
+def test_ipython_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
@@ -759,10 +758,8 @@ def test_gpu_accelerator_backend_choice_cuda(cuda_count_1):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-@mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=True)
-@mock.patch("lightning_lite.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
-def test_gpu_accelerator_backend_choice_mps(*_):
+def test_gpu_accelerator_backend_choice_mps(_, mps_count_1):
     trainer = Trainer(accelerator="gpu")
 
     assert trainer._accelerator_connector._accelerator_flag == "mps"

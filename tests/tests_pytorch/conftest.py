@@ -162,6 +162,16 @@ def mps_count_1(monkeypatch):
 
 
 @pytest.fixture(scope="function")
+def mps_count_2(monkeypatch):
+    mock_mps_count(monkeypatch, 2)
+
+
+@pytest.fixture(scope="function")
+def mps_count_4(monkeypatch):
+    mock_mps_count(monkeypatch, 4)
+
+
+@pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pytorch_lightning.accelerators.tpu, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(pytorch_lightning.strategies.tpu_spawn, "_XLA_AVAILABLE", True)
