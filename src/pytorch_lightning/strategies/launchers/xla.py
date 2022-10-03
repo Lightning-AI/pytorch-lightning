@@ -71,6 +71,8 @@ class _XLALauncher(_MultiProcessingLauncher):
         """
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
+        import torch_xla.distributed.xla_multiprocessing as xmp
+
         xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
