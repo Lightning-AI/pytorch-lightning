@@ -17,11 +17,12 @@ from lightning_app.core.constants import (
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
     WARNING_QUEUE_SIZE,
+    QUEUE_DEBUG_ENABLED,
+    LIGHTNING_DIR
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
-from core.constants import QUEUE_DEBUG_ENABLED, LIGHTNING_DIR
-from utilities.network import HTTPClient
+from lightning_app.utilities.network import HTTPClient
 
 if _is_redis_available():
     import redis
