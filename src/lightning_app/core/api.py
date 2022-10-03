@@ -22,8 +22,8 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import CLOUD_QUEUE_TYPE, ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
 from lightning_app.core.queues import QueuingSystem
+from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR, CLOUD_QUEUE_TYPE
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
 from lightning_app.utilities.cloud import is_running_in_cloud

@@ -218,7 +218,7 @@ class CloudRuntime(Runtime):
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
-                queue_server_type=V1QueueServerType.HTTP if QUEUE_TYPE == "http" else V1QueueServerType.REDIS
+                queue_server_type=V1QueueServerType.REDIS if QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
             )
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)

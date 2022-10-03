@@ -316,15 +316,12 @@ class HTTPQueue(BaseQueue):
         """
         if name is None:
             raise ValueError("You must specify a name for the queue")
-        host = host or REDIS_HOST
-        port = port or REDIS_PORT
         self.app_id, self.name = self._split_app_id_and_queue_name(name)
         self.default_timeout = default_timeout
-        self.host = host
-        self.port = port
         self.client = HTTPClient(log_callback=debug_log_callback)
 
-    def get(self, timeout: int = None):
+    def get(self, timeout: int = None) -> Any:
+        # TODO - check how many calls it is making in the boring app and use that as baseline for scaling up
         if timeout is None:
             # it's a blocking call, we need to loop and call the backend to mimic this behavior
             while True:
@@ -345,9 +342,7 @@ class HTTPQueue(BaseQueue):
                 time.sleep(0.1)
 
     def _get(self):
-        # TODO - exception handling
-        resp = self.client.post(f"v1/{self.app_id}/{self.name}")
-        # TODO - this status code is not in the backend
+        resp = self.client.post(f"v1/{self.app_id}/{self.name}?action=pop")
         if resp.status_code == 204:
             raise queue.Empty
 
@@ -362,13 +357,7 @@ class HTTPQueue(BaseQueue):
                 f"Found {queue_len}. This might cause your application to crash, "
                 "please investigate this."
             )
-        try:
-            requests.post(f"http://{self.host}:{self.port}/rpush/{self.name}", data=value)
-        except requests.exceptions.ConnectionError:
-            raise ConnectionError(
-                "Your app failed because it couldn't connect to Redis. "
-                "Please try running your app again. "
-                "If the issue persists, please contact")
+        self.client.post(f"v1/{self.app_id}/{self.name}?action=push", data=value)
 
     def length(self):
         try:
