@@ -11,8 +11,8 @@ from lightning_app.core.constants import (
     REDIS_PASSWORD,
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
-    WARNING_QUEUE_SIZE,
     STATE_UPDATE_TIMEOUT,
+    WARNING_QUEUE_SIZE,
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
@@ -151,8 +151,9 @@ class BaseQueue(ABC):
 
     @property
     def is_running(self) -> bool:
-        """ Returns True if the queue is running, False otherwise. Child classes should override this
-        property and implement custom logic as requires
+        """Returns True if the queue is running, False otherwise.
+
+        Child classes should override this property and implement custom logic as requires
         """
         return True
 
