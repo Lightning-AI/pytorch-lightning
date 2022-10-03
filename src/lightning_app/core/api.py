@@ -261,11 +261,12 @@ async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
 
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
-    """Health check endpoint used in the cloud FastAPI servers to check the status periodically. This requires
-    Redis to be installed for it to work.
+    """Health check endpoint used in the cloud FastAPI servers to check the status periodically.
+
+    This requires Redis to be installed for it to work.
     """
     # TODO - should be checked with the abstraction
-    if QUEUE_TYPE == 'redis':
+    if QUEUE_TYPE == "redis":
         if not _is_redis_available():
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {"status": "failure", "reason": "Redis is not available"}

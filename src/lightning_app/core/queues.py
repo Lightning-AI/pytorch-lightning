@@ -8,14 +8,14 @@ from enum import Enum
 from typing import Any, Optional
 
 from lightning_app.core.constants import (
+    LIGHTNING_DIR,
+    QUEUE_DEBUG_ENABLED,
     REDIS_HOST,
     REDIS_PASSWORD,
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
-    WARNING_QUEUE_SIZE,
     STATE_UPDATE_TIMEOUT,
-    QUEUE_DEBUG_ENABLED,
-    LIGHTNING_DIR
+    WARNING_QUEUE_SIZE,
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
@@ -290,6 +290,7 @@ class RedisQueue(BaseQueue):
                 "If the issue persists, please contact support@lightning.ai"
             )
 
+
 # TODO - exception handling in general for HTTP and pickling
 
 
@@ -357,8 +358,10 @@ class HTTPQueue(BaseQueue):
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name):
-        """ This splits the app id and the queue name into two parts. This can be brittle, as if the queue name
-        creation logic changes, the response values from here wouldn't be accurate
+        """This splits the app id and the queue name into two parts.
+
+        This can be brittle, as if the queue name creation logic changes, the response values from here wouldn't be
+        accurate
         """
         app_id, queue_name = queue_name.split("_", 1)
         return app_id, queue_name
