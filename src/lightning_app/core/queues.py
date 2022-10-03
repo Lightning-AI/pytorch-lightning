@@ -44,7 +44,7 @@ class QueuingSystem(Enum):
     MULTIPROCESS = "multiprocess"
     REDIS = "redis"
 
-    def _get_queue(self, queue_name: str) -> "BaseQueue":
+    def get_queue(self, queue_name: str) -> "BaseQueue":
         if self == QueuingSystem.MULTIPROCESS:
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         elif self == QueuingSystem.REDIS:
@@ -54,37 +54,37 @@ class QueuingSystem(Enum):
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_readiness_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{READINESS_QUEUE_CONSTANT}" if queue_id else READINESS_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_delta_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{DELTA_QUEUE_CONSTANT}" if queue_id else DELTA_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_error_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{ERROR_QUEUE_CONSTANT}" if queue_id else ERROR_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_has_server_started_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{HAS_SERVER_STARTED_CONSTANT}" if queue_id else HAS_SERVER_STARTED_CONSTANT
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_caller_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
             f"{queue_id}_{CALLER_QUEUE_CONSTANT}_{work_name}" if queue_id else f"{CALLER_QUEUE_CONSTANT}_{work_name}"
         )
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_api_state_publish_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_STATE_PUBLISH_QUEUE_CONSTANT}" if queue_id else API_STATE_PUBLISH_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_api_delta_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_DELTA_QUEUE_CONSTANT}" if queue_id else API_DELTA_QUEUE_CONSTANT
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_orchestrator_request_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
@@ -92,7 +92,7 @@ class QueuingSystem(Enum):
             if queue_id
             else f"{ORCHESTRATOR_REQUEST_CONSTANT}_{work_name}"
         )
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_orchestrator_response_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
@@ -100,7 +100,7 @@ class QueuingSystem(Enum):
             if queue_id
             else f"{ORCHESTRATOR_RESPONSE_CONSTANT}_{work_name}"
         )
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_orchestrator_copy_request_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
@@ -108,7 +108,7 @@ class QueuingSystem(Enum):
             if queue_id
             else f"{ORCHESTRATOR_COPY_REQUEST_CONSTANT}_{work_name}"
         )
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_orchestrator_copy_response_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
@@ -116,13 +116,13 @@ class QueuingSystem(Enum):
             if queue_id
             else f"{ORCHESTRATOR_COPY_RESPONSE_CONSTANT}_{work_name}"
         )
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
     def get_work_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
             f"{queue_id}_{WORK_QUEUE_CONSTANT}_{work_name}" if queue_id else f"{WORK_QUEUE_CONSTANT}_{work_name}"
         )
-        return self._get_queue(queue_name)
+        return self.get_queue(queue_name)
 
 
 class BaseQueue(ABC):

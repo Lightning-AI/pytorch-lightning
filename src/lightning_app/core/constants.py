@@ -38,7 +38,7 @@ APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
 APP_SERVER_PORT = 7501
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 
-QUEUE_TYPE = os.getenv("LIGHTNING_QUEUE_TYPE", "redis")
+CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
