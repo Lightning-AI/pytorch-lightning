@@ -254,10 +254,9 @@ class ColossalAIStrategy(DDPStrategy):
             model = _LightningModuleWrapperBase(self.model)
             self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
             assert self.model is not None
-            pl_module._colossalai_zero = self.model
+            pl_module._colossalai_zero = [self.model]
         else:
-            assert isinstance(pl_module._colossalai_zero, Module)
-            self.model = pl_module._colossalai_zero
+            self.model = pl_module._colossalai_zero[0]
         if is_training:
             self.optimizers = [
                 ZeroOptimizer(optimizer, self.model, gpu_margin_mem_ratio=self.gpu_margin_mem_ratio, **self.amp_kwargs)
