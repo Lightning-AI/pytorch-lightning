@@ -63,8 +63,3 @@ LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 
 DEBUG: bool = lightning_cloud.env.DEBUG
-
-
-def get_lightning_cloud_url() -> str:
-    # DO NOT CHANGE!
-    return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
