@@ -22,13 +22,13 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR, CLOUD_QUEUE_TYPE
+from lightning_app.core.constants import CLOUD_QUEUE_TYPE, ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.imports import _is_starsessions_available
-from lightning_app.utilities.cloud import is_running_in_cloud
 
 if _is_starsessions_available():
     from starsessions import SessionMiddleware
@@ -262,8 +262,7 @@ async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
 
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
-    """Health check endpoint used in the cloud FastAPI servers to check the status periodically.
-    """
+    """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
     # check the queue status only if running in cloud
     if is_running_in_cloud():
         queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
