@@ -34,11 +34,9 @@ def test_multiprocessing_launcher_forking_on_unsupported_platform(_):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
 
 
-@pytest.mark.parametrize("start_method", ["spawn", "fork"])
+@pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
 @mock.patch("lightning_lite.strategies.launchers.multiprocessing.mp")
-# we're just testing invocation so we bypass the CUDA check here to avoid failure if another test has initialized CUDA
-@mock.patch.object(torch.cuda, "is_initialized", return_value=False)
-def test_multiprocessing_launcher_start_method(_, mp_mock, start_method):
+def test_multiprocessing_launcher_start_method(mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
     launcher.launch(function=Mock())
@@ -51,11 +49,9 @@ def test_multiprocessing_launcher_start_method(_, mp_mock, start_method):
     )
 
 
-@pytest.mark.parametrize("start_method", ["spawn", "fork"])
+@pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
 @mock.patch("lightning_lite.strategies.launchers.multiprocessing.mp")
-# we're just testing invocation so we bypass the CUDA check here to avoid failure if another test has initialized CUDA
-@mock.patch.object(torch.cuda, "is_initialized", return_value=False)
-def test_multiprocessing_launcher_restore_globals(_, mp_mock, start_method):
+def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
     """Test that we pass the global state snapshot to the worker function only if we are starting with 'spawn'."""
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
