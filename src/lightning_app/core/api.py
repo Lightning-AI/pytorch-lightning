@@ -264,22 +264,17 @@ async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
 async def healthz(response: Response):
     """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
     # check the queue status only if running in cloud
-    print("healthz")
     if is_running_in_cloud():
         queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
-        print("queue object")
         if not queue_obj.is_running:
-            print('not running')
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {"status": "failure", "reason": "Redis is not available"}
     x_lightning_session_uuid = TEST_SESSION_UUID
     state = global_app_state_store.get_app_state(x_lightning_session_uuid)
     global_app_state_store.set_served_state(x_lightning_session_uuid, state)
     if not state:
-        print("healthz: state is empty")
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"status": "failure", "reason": f"State is empty {state}"}
-    print("healthz: state is not empty")
     return {"status": "ok"}
 
 

@@ -348,6 +348,7 @@ class HTTPQueue(BaseQueue):
         resp = self.client.post(f"v1/{self.app_id}/{self.name}?action=pop")
         if resp.status_code == 204:
             raise queue.Empty
+        return resp.content
 
     def put(self, item: Any) -> None:
         value = pickle.dumps(item)
