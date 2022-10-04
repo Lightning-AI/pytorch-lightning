@@ -82,6 +82,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -143,6 +144,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -163,6 +165,7 @@ def test_model_16bit_tpu_devices_8(tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works."""
 
@@ -228,6 +231,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU."""
     tutils.reset_seed()
@@ -306,6 +310,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_if_test_works_with_checkpoint_false(tmpdir):
     """Ensure that model trains properly when `enable_checkpointing` is set to False."""
 
@@ -347,12 +352,14 @@ def tpu_sync_dist_fn(strategy):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
     xla_launch(tpu_sync_dist_fn)
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_debug_mode(tmpdir):
     """Test if debug mode works on TPU."""
 
@@ -380,6 +387,7 @@ def test_tpu_debug_mode(tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_host_world_size(tmpdir):
     """Test Host World size env setup on TPU."""
 

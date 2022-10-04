@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from multiprocessing import Event, Process
+from unittest import mock
 
 import pytest
 
@@ -23,6 +24,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_profiler_instance(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", accelerator="tpu", devices=8)
