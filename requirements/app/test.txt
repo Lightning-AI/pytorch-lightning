@@ -6,6 +6,7 @@ pytest-cov <=3.0.0
 playwright==1.22.0
 # pytest-flake8
 httpx
-trio
+trio<0.22.0
 pympler
 psutil
+setuptools<=59.5.0

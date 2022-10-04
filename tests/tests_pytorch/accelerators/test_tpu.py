@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 import collections
+import os
 from copy import deepcopy
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
 import torch
 from torch import nn
+from torch.multiprocessing import ProcessExitedException
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
@@ -66,14 +69,15 @@ def test_resume_training_on_cpu(tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, {}, clear=True)
+@pytest.mark.xfail(raises=ProcessExitedException, reason="https://github.com/pytorch/xla/issues/1666")
 def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
-
-    # Train a model on TPU
     model = BoringModel()
     trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-    assert len(trainer.test(model)) == 1
+    out = trainer.test(model)
+    assert len(out) == 1
 
 
 @RunIf(tpu=True)
