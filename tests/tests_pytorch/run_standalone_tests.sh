@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -e
+#set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_<package> DIRECTORY
 
 # Batch size for testing: Determines how many standalone test invocations run in parallel
