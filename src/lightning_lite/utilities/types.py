@@ -84,17 +84,17 @@ class Optimizable(Protocol):
     """To structurally type ``optimizer``"""
 
     param_groups: List[Union[torch.Tensor, Mapping[str, torch.Tensor]]]
-    defaults: Mapping[str, Any]
-    state: Dict[str, Any]
+    defaults: Mapping[Any, Any]
+    state: Dict[Any, Any]
 
     # Inferred from `torch.optim.optimizer.pyi`
     def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
         ...
 
-    def state_dict() -> Dict[str, Dict[str, Any]]:
+    def state_dict() -> Dict[str, Dict[Any, Any]]:
         ...
 
-    def load_state_dict(self, state_dict: Dict[str, Dict[str, Any]]) -> None:
+    def load_state_dict(self, state_dict: Dict[str, Dict[Any, Any]]) -> None:
         ...
 
     def zero_grad(self, set_to_none: bool = False) -> None:
