@@ -15,14 +15,12 @@ import os
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
+from pytorch_lightning.utilities import find_shared_parameters, set_shared_parameters
 
 
 class SingleTPUStrategy(SingleDeviceStrategy):
@@ -38,6 +36,10 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
     ):
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        import torch_xla.core.xla_model as xm
+
         super().__init__(
             accelerator=accelerator,
             device=xm.xla_device(device),

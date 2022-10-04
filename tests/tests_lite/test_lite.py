@@ -371,6 +371,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
 )
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
 
