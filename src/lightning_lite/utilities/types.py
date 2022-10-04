@@ -83,7 +83,7 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
 class Optimizable(Protocol):
     """To structurally type ``optimizer``"""
 
-    param_groups: List[Union[torch.Tensor, Dict[Any, Any]]]
+    param_groups: List[Dict[Any, Any]]
     defaults: Dict[Any, Any]
     state: Dict[Any, Any]
 
