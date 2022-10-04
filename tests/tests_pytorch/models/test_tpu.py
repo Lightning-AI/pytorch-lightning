@@ -62,6 +62,7 @@ def test_model_tpu_devices_1(tmpdir):
 
 @pytest.mark.parametrize("tpu_core", [1, 5])
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -195,6 +196,7 @@ def test_model_tpu_early_stop(tmpdir):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
     tutils.reset_seed()
@@ -260,6 +262,7 @@ def test_exception_when_no_tpu_found(xla_available):
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_set_when_using_tpu(tpu_cores):
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
     assert isinstance(Trainer(accelerator="tpu", devices=tpu_cores).accelerator, TPUAccelerator)
@@ -270,6 +273,7 @@ def test_accelerator_set_when_using_tpu(tpu_cores):
     [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
 )
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_cores_with_argparse(cli_args, expected):
     """Test passing tpu_cores in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
@@ -284,29 +288,23 @@ def test_tpu_cores_with_argparse(cli_args, expected):
         assert Trainer.from_argparse_args(args)
 
 
-@RunIf(tpu=True, standalone=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@pytest.mark.parametrize("clip_val", [10])
+@pytest.mark.parametrize("clip_val", [0, 10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
-def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
-    """Ensure that clip gradients is only called if the value is greater than 0.
-
-    TODO: Fix (test fails with parametrize)
-    """
-    tutils.reset_seed()
-    trainer_options = dict(
+def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
+    """Ensure that clip gradients is only called if the value is greater than 0."""
+    # TODO: shouldn't be in the TPU file
+    model = BoringModel()
+    trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=1,
-        accelerator="tpu",
         devices=1,
         precision=16,
         limit_train_batches=4,
-        limit_val_batches=4,
+        limit_val_batches=0,
         gradient_clip_val=clip_val,
     )
-    model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, with_hpc=False)
+    trainer.fit(model)
 
     if clip_val > 0:
         mock_clip_grad_norm.assert_called()
