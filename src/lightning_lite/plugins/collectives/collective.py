@@ -1,12 +1,48 @@
 import datetime
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from contextlib import contextmanager
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-from torch.distributed import ProcessGroup, ReduceOp
+from torch.distributed import Backend, ProcessGroup, ReduceOp
 
 
 class Collective(ABC):
+    def __init__(self, process_groups: Optional[Union[List[ProcessGroup], Dict[str, ProcessGroup]]] = None):
+        self._managed_process_groups = set()
+        self.current_process_group = "default"
+        self.process_groups: Dict[str, Optional[ProcessGroup]] = dict()
+        if isinstance(process_groups, list):
+            for i, pg in enumerate(process_groups):
+                self.process_groups[str(i)] = pg
+        elif isinstance(process_groups, dict):
+            for key in process_groups:
+                self.process_groups[str(key)] = process_groups[key]
+
+        self.process_groups["default"] = None
+
+    def get_available_process_groups(self) -> List[str]:
+        return list(self.process_groups.keys())
+
+    @contextmanager
+    def use_process_group(self, process_group: Optional[str] = None):
+        if process_group is None:
+            process_group = "default"
+        old_process_group, self.current_process_group = self.current_process_group, process_group
+        yield
+        self.current_process_group = old_process_group
+
+    @abstractmethod
+    def init_process_group(
+        self,
+        backend: Union[str, Backend],
+        world_size: int = -1,
+        rank: int = -1,
+        group_name: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        pass
+
     @abstractmethod
     def broadcast(
         self, tensor: torch.Tensor, src: int, group: Optional[ProcessGroup] = None, async_op: bool = False
