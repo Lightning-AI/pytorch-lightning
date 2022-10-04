@@ -13,23 +13,19 @@
 # limitations under the License.
 import os
 from multiprocessing import Event, Process
+from unittest import mock
 
 import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.profilers import XLAProfiler
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
-
-if _TPU_AVAILABLE:
-    import torch_xla.debug.profiler as xp
-    import torch_xla.utils.utils as xu
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_profiler_instance(tmpdir):
-
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler="xla", accelerator="tpu", devices=8)
 
@@ -37,8 +33,10 @@ def test_xla_profiler_instance(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(True, reason="XLA Profiler doesn't support Prog. capture yet")
+@pytest.mark.skip(reason="XLA Profiler doesn't support Prog. capture yet")
 def test_xla_profiler_prog_capture(tmpdir):
+    import torch_xla.debug.profiler as xp
+    import torch_xla.utils.utils as xu
 
     port = xu.get_free_tcp_ports()[0]
     training_started = Event()
