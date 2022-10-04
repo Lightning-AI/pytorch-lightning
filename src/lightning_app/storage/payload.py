@@ -239,7 +239,9 @@ class BasePayload(ABC):
 class Payload(BasePayload):
 
     """The Payload object enables to transfer python objects from one work to another in a similar fashion as
-    :class:`~lightning_app.storage.path.Path`."""
+    :class:`~lightning_app.storage.path.Path`.
+    Payload is similar to Drive object, Payload object is basically a pickled file that is unpickled into other work
+    """
 
     def save(self, obj: Any, path: str) -> None:
         with open(path, "wb") as f:
