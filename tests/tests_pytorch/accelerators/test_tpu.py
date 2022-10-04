@@ -70,7 +70,7 @@ def test_resume_training_on_cpu(tmpdir):
 
 
 @RunIf(tpu=True)
-@mock.patch.dict(os.environ, {}, clear=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @pytest.mark.xfail(raises=ProcessExitedException, reason="https://github.com/pytorch/xla/issues/1666")
 def test_if_test_works_after_train(tmpdir):
     """Ensure that .test() works after .fit()"""
@@ -320,6 +320,7 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_trainer_config_device_ids(devices, expected_device_ids):
     trainer = Trainer(accelerator="tpu", devices=devices)
     assert trainer.device_ids == expected_device_ids
