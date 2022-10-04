@@ -384,6 +384,6 @@ def start_server(
 
         register_global_routes()
 
-        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", base_path=base_path)
+        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", root_path=base_path)
 
     return refresher

@@ -84,7 +84,7 @@ def start_server(
 
     log_config = _get_log_config(log_file) if log_file else uvicorn.config.LOGGING_CONFIG
 
-    uvicorn.run(app=fastapi_service, host=host, port=port, log_config=log_config, base_path=base_path)
+    uvicorn.run(app=fastapi_service, host=host, port=port, log_config=log_config, root_path=base_path)
 
 
 def _get_log_config(log_file: str) -> dict:
