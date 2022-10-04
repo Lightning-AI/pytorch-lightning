@@ -48,6 +48,8 @@ if _COLOSSALAI_AVAILABLE:
     from colossalai.utils import get_current_device
     from colossalai.utils.model.colo_init_context import ColoInitContext
     from colossalai.zero import ZeroOptimizer
+else:
+    ColoInitContext = None
 
 
 class ColossalAIStrategy(DDPStrategy):
@@ -268,9 +270,9 @@ class ColossalAIStrategy(DDPStrategy):
             model = _LightningModuleWrapperBase(self.model)
             self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
             assert self.model is not None
-            pl_module._colossalai_zero = [self.model]
+            pl_module._colossalai_zero = [self.model]  # type: ignore[assignment]
         else:
-            self.model = pl_module._colossalai_zero[0]
+            self.model = pl_module._colossalai_zero[0]  # type: ignore[index, assignment]
         if is_training:
             self.optimizers = [
                 ZeroOptimizer(optimizer, self.model, gpu_margin_mem_ratio=self.gpu_margin_mem_ratio, **self.amp_kwargs)
