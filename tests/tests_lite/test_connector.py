@@ -27,7 +27,7 @@ from lightning_lite.accelerators.cpu import CPUAccelerator
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DoublePrecision, Precision
+from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -252,7 +252,7 @@ def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
 )
 @pytest.mark.parametrize("devices", [1, 2])
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_accelerator_choice_multi_node_gpu(_, strategy, strategy_class, devices):
+def test_strategy_choice_multi_node_gpu(_, strategy, strategy_class, devices):
     connector = _Connector(num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(connector.strategy, strategy_class)
 
@@ -374,6 +374,19 @@ def test_strategy_choice_cpu_instance(strategy_class):
 def test_strategy_choice_gpu_str(strategy, strategy_class):
     connector = _Connector(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(connector.strategy, strategy_class)
+
+
+@RunIf(fairscale=True)
+@pytest.mark.parametrize(
+    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
+)
+@pytest.mark.parametrize(
+    "precision,expected_precision", [(16, NativeMixedPrecision), (32, Precision), ("bf16", NativeMixedPrecision)]
+)
+def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
+    connector = _Connector(strategy=strategy, devices=1, precision=precision)
+    assert isinstance(connector.strategy, expected_strategy)
+    assert isinstance(connector.precision_plugin, expected_precision)
 
 
 @RunIf(min_cuda_gpus=2)
@@ -692,3 +705,44 @@ def test_gpu_accelerator_no_gpu_backend_found_error(*_):
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         _Connector(strategy=strategy)
+
+
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
+def test_precision_selection_16_on_cpu_warns():
+    with pytest.warns(
+        UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
+    ):
+        _Connector(precision=16)
+
+
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", False)
+def test_precision_selection_16_raises_torch_version(monkeypatch):
+    with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+        _Connector(accelerator="cpu", precision=16)
+    with pytest.raises(ImportError, match="must install torch greater or equal to 1.10"):
+        _Connector(accelerator="cpu", precision="bf16")
+
+
+class MyNativeAMP(NativeMixedPrecision):
+    pass
+
+
+@RunIf(mps=False)
+@pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize(
+    "is_custom_plugin,plugin_cls",
+    [(False, NativeMixedPrecision), (True, MyNativeAMP)],
+)
+@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
+def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
+    plugin = None
+    if is_custom_plugin:
+        plugin = plugin_cls(16, "cpu")
+
+    trainer = _Connector(
+        precision=16,
+        devices=devices,
+        strategy=strategy,
+        plugins=plugin,
+    )
+    assert isinstance(trainer.precision_plugin, plugin_cls)

@@ -14,12 +14,14 @@
 import traceback
 from typing import Any, Callable
 
+import pytorch_lightning as pl
 from lightning_lite.utilities.distributed import distributed_available
 from pytorch_lightning.trainer.states import TrainerStatus
+from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
-def call_and_handle_interrupt(trainer: Any, trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
+def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *args: Any, **kwargs: Any) -> Any:
     r"""
     Error handling, intended to be used only for main trainer function entry points (fit, validate, test, predict)
     as all errors should funnel through them
@@ -34,6 +36,13 @@ def call_and_handle_interrupt(trainer: Any, trainer_fn: Callable, *args: Any, **
             return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
         else:
             return trainer_fn(*args, **kwargs)
+
+    except _TunerExitException:
+        trainer._call_teardown_hook()
+        trainer._teardown()
+        trainer.state.status = TrainerStatus.FINISHED
+        trainer.state.stage = None
+
     # TODO: Unify both exceptions below, where `KeyboardError` doesn't re-raise
     except KeyboardInterrupt as exception:
         rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
