@@ -51,8 +51,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_epoch_start_end(model)
     # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
     _check_on_pretrain_routine(model)
-    # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
-    _check_datamodule_checkpoint_hooks(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -212,13 +210,6 @@ def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_init_start", instance=callback):
-            rank_zero_deprecation(
-                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
-            )
-        if is_overridden(method_name="on_init_end", instance=callback):
-            rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
-
         if is_overridden(method_name="on_configure_sharded_model", instance=callback):
             rank_zero_deprecation(
                 "The `on_configure_sharded_model` callback hook was deprecated in"
@@ -261,16 +252,3 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                     f"The `Callback.{hook}` hook has been deprecated in v1.6 and"
                     " will be removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
-
-
-def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
-    if is_overridden(method_name="on_save_checkpoint", instance=trainer.datamodule):
-        rank_zero_deprecation(
-            "`LightningDataModule.on_save_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-        )
-    if is_overridden(method_name="on_load_checkpoint", instance=trainer.datamodule):
-        rank_zero_deprecation(
-            "`LightningDataModule.on_load_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
-        )
