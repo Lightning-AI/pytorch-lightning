@@ -20,6 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
@@ -87,7 +88,6 @@ class RunIf:
         bagua: bool = False,
         psutil: bool = False,
         hivemind: bool = False,
-        min_cuda_gpus_no_init: bool = False,
         **kwargs,
     ):
         """
@@ -119,14 +119,15 @@ class RunIf:
             bagua: Require that BaguaSys/bagua is installed.
             psutil: Require that psutil is installed.
             hivemind: Require that Hivemind is installed.
-            min_cuda_gpus_no_init: Require this number of gpus but use an NVML-based CUDA availabilty check.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
         reasons = []
 
         if min_cuda_gpus:
-            conditions.append(torch.cuda.is_available() < min_cuda_gpus)
+            # defer CUDA initialization if possible, supporting tests that will attempt forks after NVML-based CUDA
+            # availability checks
+            conditions.append(num_cuda_devices() < min_cuda_gpus)
             reasons.append(f"GPUs>={min_cuda_gpus}")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["min_cuda_gpus"] = True
@@ -250,17 +251,6 @@ class RunIf:
         if hivemind:
             conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Hivemind")
-
-        if min_cuda_gpus_no_init:
-            # special condition to defer CUDA initialization if possible, supporting tests that will attempt forks after
-            # NVML-based CUDA availbility checks
-            # local import to avoid potential issues this import could cause other tests (e.g. infinite recursion)
-            from lightning_lite.accelerators.cuda import num_cuda_devices
-
-            conditions.append(num_cuda_devices() < min_cuda_gpus)
-            reasons.append(f"GPUs>={min_cuda_gpus}")
-            # used in conftest.py::pytest_collection_modifyitems
-            kwargs["min_cuda_gpus_no_init"] = True
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

@@ -11,31 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from torch.utils.data import DataLoader
+import multiprocessing
 
-import tests_pytorch.helpers.utils as tutils
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import RandomDataset
+import torch
+
+from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.test_models import AMPTestModel
 
 
 # needs to be standalone to avoid other processes initializing CUDA
-@RunIf(min_cuda_gpus_no_init=2, skip_windows=True, min_torch="1.12", standalone=True)
-def test_amp_gpus_ddp_fork(tmpdir):
-    """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        accelerator="gpu",
-        devices=2,
-        strategy="ddp_fork",
-        precision=16,
-    )
-
-    model = AMPTestModel()
-    trainer.fit(model)
-    trainer.test(model)
-    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+def test_amp_gpus_ddp_fork():
+    """Ensure the use of native AMP with `ddp_fork` (or associated alias strategies) does not generate CUDA
+    initialization errors."""
+    _ = NativeMixedPrecisionPlugin(precision=16, device="cuda")
+    with multiprocessing.get_context("fork").Pool(1) as pool:
+        in_bad_fork = pool.apply(torch.cuda._is_in_bad_fork)
+    assert not in_bad_fork
