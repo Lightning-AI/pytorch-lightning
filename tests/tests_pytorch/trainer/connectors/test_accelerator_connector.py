@@ -454,7 +454,6 @@ def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_coun
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
 
-@RunIf(mps=True)
 @pytest.mark.parametrize("strategy,expected_cls", [("ddp", DDPStrategy), ("ddp_spawn", DDPSpawnStrategy)])
 def test_strategy_choice_ddp_mps(strategy, expected_cls, mps_count_1, cuda_count_0):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=1)
@@ -758,10 +757,8 @@ def test_gpu_accelerator_backend_choice_cuda(cuda_count_1):
     assert isinstance(trainer.accelerator, CUDAAccelerator)
 
 
-@mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
-def test_gpu_accelerator_backend_choice_mps(_, mps_count_1):
+def test_gpu_accelerator_backend_choice_mps(mps_count_1):
     trainer = Trainer(accelerator="gpu")
-
     assert trainer._accelerator_connector._accelerator_flag == "mps"
     assert isinstance(trainer.accelerator, MPSAccelerator)
 
