@@ -52,4 +52,4 @@ ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 DEBUG: bool = lightning_cloud.env.DEBUG
 DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 # different flag because queue debug can be very noisy, and almost always not useful unless debugging the queue itself.
-QUEUE_DEBUG_ENABLED = truthy(os.getenv("LIGHTNING_QUEUE_DEBUG_ENABLED", "false"))
+QUEUE_DEBUG_ENABLED = bool(os.getenv("LIGHTNING_QUEUE_DEBUG_ENABLED", "0"))
