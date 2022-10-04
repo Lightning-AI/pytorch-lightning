@@ -26,13 +26,10 @@ from lightning_app.core.constants import CLOUD_QUEUE_TYPE, ENABLE_STATE_WEBSOCKE
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.component import _context
 from lightning_app.utilities.enum import ComponentContext, OpenAPITags
 from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
-from lightning_app.utilities.cloud import is_running_in_cloud
-from lightning_app.utilities.enum import OpenAPITags
-from lightning_app.utilities.imports import _is_starsessions_available
-
 
 if _is_starsessions_available():
     from starsessions import SessionMiddleware
