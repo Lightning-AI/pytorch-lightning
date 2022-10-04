@@ -96,6 +96,3 @@ class Optimizable(Protocol):
 
     def load_state_dict(self, state_dict: Dict[str, Dict[Any, Any]]) -> None:
         ...
-
-    def zero_grad(self, set_to_none: bool = False) -> None:
-        ...
