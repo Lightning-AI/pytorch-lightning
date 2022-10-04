@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -80,9 +80,22 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
 
 
 @runtime_checkable
-class Steppable(Protocol):
-    """To structurally type ``optimizer.step()``"""
+class Optimizable(Protocol):
+    """To structurally type ``optimizer``"""
+
+    param_groups: List[Union[torch.Tensor, Mapping[str, torch.Tensor]]]
+    defaults: Mapping[str, Any]
+    state: Dict[str, Any]
 
     # Inferred from `torch.optim.optimizer.pyi`
     def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
+        ...
+
+    def state_dict() -> Dict[str, Dict[str, Any]]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Dict[str, Any]]) -> None:
+        ...
+    
+    def zero_grad(self, set_to_none: bool = False) -> None:
         ...

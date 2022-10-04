@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import Precision as LitePrecision
-from lightning_lite.utilities.types import Steppable
+from lightning_lite.utilities.types import Optimizable
 from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 
@@ -50,7 +50,7 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
-        optimizer: Optional[Steppable],
+        optimizer: Optional[Optimizable],
         optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
@@ -75,7 +75,7 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
         module.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
 
-    def _after_closure(self, model: "pl.LightningModule", optimizer: Steppable, optimizer_idx: int) -> None:
+    def _after_closure(self, model: "pl.LightningModule", optimizer: Optimizable, optimizer_idx: int) -> None:
         """Utility to share some code after the closure has been run."""
         trainer = model.trainer
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
@@ -110,7 +110,7 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
 
     def optimizer_step(  # type: ignore[override]
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
@@ -138,7 +138,7 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
     def _clip_gradients(
         self,
         model: Union["pl.LightningModule", Module],
-        optimizer: Steppable,
+        optimizer: Optimizable,
         optimizer_idx: int,
         clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[GradClipAlgorithmType] = None,

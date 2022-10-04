@@ -22,7 +22,7 @@ from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.imports import _APEX_AVAILABLE
-from lightning_lite.utilities.types import Steppable
+from lightning_lite.utilities.types import Optimizable
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
@@ -79,7 +79,7 @@ class DeepSpeedPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         # DeepSpeed handles the optimizer step internally
