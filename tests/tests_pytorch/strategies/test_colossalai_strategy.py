@@ -96,7 +96,7 @@ def test_gradient_clip_algorithm_error(tmpdir):
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
     )
-    with pytest.raises(MisconfigurationException, match="`clip_grad_by_value` is not supported by `ColossalAI`"):
+    with pytest.raises(NotImplementedError, match="`clip_grad_by_value` is not supported by `ColossalAI`"):
         trainer.fit(model)
 
 
@@ -114,7 +114,7 @@ def test_gradient_accumulation_error(tmpdir):
     )
 
     with pytest.raises(
-        MisconfigurationException,
+        ValueError,
         match="ColossalAI currently does not support different `accumulate_grad_batches` at different epochs.",
     ):
         trainer.fit(model)

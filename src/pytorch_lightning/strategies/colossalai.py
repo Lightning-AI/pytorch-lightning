@@ -30,6 +30,7 @@ from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin, Preci
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -276,6 +277,13 @@ class ColossalAIStrategy(DDPStrategy):
             ]
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        precision = self.precision_plugin.precision
+        if not (precision == PrecisionType.HALF):
+            raise ValueError(
+                f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
+                " Consider setting `precision=16`."
+            )
+
         if not isinstance(self.accelerator, CUDAAccelerator):
             raise MisconfigurationException(
                 "`ColossalAIStrategy` is only supported on `CUDAAccelerator`, "
@@ -291,13 +299,13 @@ class ColossalAIStrategy(DDPStrategy):
                 )
 
             if trainer.accumulate_grad_batches > 1:
-                raise MisconfigurationException(
+                raise ValueError(
                     "ColossalAI does not support gradient accumulation now. Please set `accumulate_grad_batches` to 1."
                 )
 
             accumulation_scheduler = trainer.accumulation_scheduler
             if accumulation_scheduler.epochs != [0]:
-                raise MisconfigurationException(
+                raise ValueError(
                     "ColossalAI currently does not support different `accumulate_grad_batches` at different epochs."
                 )
 

@@ -21,7 +21,6 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.enums import PrecisionType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 warning_cache = WarningCache()
 
@@ -33,13 +32,13 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         precision: Half precision (16).
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If precison is not 16.
     """
 
     def __init__(self, precision: Union[str, int] = 16) -> None:
         if not (precision == PrecisionType.HALF):
-            raise MisconfigurationException(
+            raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."
             )
@@ -62,7 +61,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         optimizer.clip_grad_norm(None, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
-        raise MisconfigurationException("`clip_grad_by_value` is not supported by `ColossalAI`")
+        raise NotImplementedError("`clip_grad_by_value` is not supported by `ColossalAI`")
 
     def optimizer_step(  # type: ignore[override]
         self,
@@ -76,7 +75,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
-            raise MisconfigurationException(
+            raise ValueError(
                 "Skipping backward by returning `None` from your `training_step` is not supported by `ColossalAI`."
             )
         optimizer.step()
