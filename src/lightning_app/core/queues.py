@@ -363,24 +363,23 @@ class HTTPQueue(BaseQueue):
         self.client.post(f"v1/{self.app_id}/{self.name}?action=push", data=value)
 
     def length(self):
-        try:
-            val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
-            if val.status_code != 200:
-                pass  # TODO - raise error
-            return int(val.text)
-        except requests.exceptions.ConnectionError:
-            # TODO
-            pass
+        val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
+        return int(val.text)
+
+    @property
+    def is_running(self) -> bool:
+        resp = self.client.get("/healthz")
+        return resp.status_code == 200
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name):
         """This splits the app id and the queue name into two parts.
 
         This can be brittle, as if the queue name creation logic changes, the response values from here wouldn't be
-        accurate
+        accurate. Remove this eventually and let the Queue class take app id and name of the queue as arguments
         """
         if "_" not in queue_name:
-            return queue_name, queue_name
+            return "", queue_name
         app_id, queue_name = queue_name.split("_", 1)
         return app_id, queue_name
 

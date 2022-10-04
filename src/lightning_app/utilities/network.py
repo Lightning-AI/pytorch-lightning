@@ -180,7 +180,7 @@ class HTTPClient(metaclass=_MethodsDebuLoggingWrapperMeta):
         )
         adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         sess = requests.Session()
-        sess.hooks.update({"response": lambda r, *args, **kwargs: r.raise_for_status()})
+        # sess.hooks.update({"response": lambda r, *args, **kwargs: r.raise_for_status()})
         sess.mount("http://", adapter)
         sess.mount("https://", adapter)
         self.client: requests.Session = sess
