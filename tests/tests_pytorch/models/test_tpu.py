@@ -42,6 +42,7 @@ class SerialLoaderBoringModel(BoringModel):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -102,6 +103,7 @@ def test_model_tpu_devices_8(tmpdir):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -122,6 +124,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 
 @pytest.mark.parametrize("tpu_core", [1, 5])
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -211,6 +214,7 @@ def test_tpu_grad_norm(tmpdir):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_clip_grad_by_value(tmpdir):
     """Test if clip_gradients by value works on TPU."""
     tutils.reset_seed()
@@ -281,6 +285,7 @@ def test_tpu_cores_with_argparse(cli_args, expected):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @pytest.mark.parametrize("clip_val", [10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):

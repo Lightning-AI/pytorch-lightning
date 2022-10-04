@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
@@ -87,6 +88,7 @@ class BoringModelTPU(BoringModel):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_one_core():
     """Tests if device/debug flag is set correctly when training and after teardown for TPUSpawnStrategy."""
     model = BoringModelTPU()
