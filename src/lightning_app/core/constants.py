@@ -6,20 +6,6 @@ import lightning_cloud.env
 import lightning_app
 
 
-def truthy(val) -> bool:
-    if val in [
-        "1",
-        "true",
-        "True",
-        True,
-    ]:
-        return True
-    if val in ["0", "false", "False", False, None]:
-        return False
-
-    return bool(val)
-
-
 def get_lightning_cloud_url() -> str:
     # DO NOT CHANGE!
     return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
