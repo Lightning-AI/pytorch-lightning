@@ -322,7 +322,6 @@ class ColossalAIStrategy(DDPStrategy):
     def model_to_device(self) -> None:
         assert self.lightning_module is not None
         pl_module = self.lightning_module
-        pl_module._device = self.root_device
         for child in pl_module.modules():
             if child is not pl_module and not getattr(child, "_colossalai_module", False):
                 child.to(self.root_device)
