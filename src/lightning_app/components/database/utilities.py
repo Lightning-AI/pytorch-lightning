@@ -1,0 +1,230 @@
+import functools
+import inspect
+import json
+import os
+import pathlib
+import sys
+from typing import Generic, List, Type, TypeVar
+
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel, parse_obj_as
+from pydantic.main import ModelMetaclass
+
+from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.imports import _is_sqlmodel_available
+
+if _is_sqlmodel_available():
+    from sqlalchemy.inspection import inspect as sqlalchemy_inspect
+    from sqlmodel import JSON, select, Session, SQLModel, TypeDecorator
+
+logger = Logger(__name__)
+engine = None
+
+T = TypeVar("T")
+
+
+# Taken from https://github.com/tiangolo/sqlmodel/issues/63#issuecomment-1081555082
+def pydantic_column_type(pydantic_type):
+    """This function enables to support JSON types with SQLModel.
+
+    Example::
+
+        from sqlmodel import SQLModel
+        from sqlalchemy import Column
+
+        class TrialConfig(SQLModel, table=False):
+            ...
+            params: Dict[str, Union[Dict[str, float]] = Field(sa_column=Column(pydantic_column_type[Dict[str, float]))
+    """
+
+    class PydanticJSONType(TypeDecorator, Generic[T]):
+        impl = JSON()
+
+        def __init__(
+            self,
+            json_encoder=json,
+        ):
+            self.json_encoder = json_encoder
+            super().__init__()
+
+        def bind_processor(self, dialect):
+            impl_processor = self.impl.bind_processor(dialect)
+            dumps = self.json_encoder.dumps
+            if impl_processor:
+
+                def process(value: T):
+                    if value is not None:
+                        if isinstance(pydantic_type, ModelMetaclass):
+                            # This allows to assign non-InDB models and if they're
+                            # compatible, they're directly parsed into the InDB
+                            # representation, thus hiding the implementation in the
+                            # background. However, the InDB model will still be returned
+                            value_to_dump = pydantic_type.from_orm(value)
+                        else:
+                            value_to_dump = value
+                        value = jsonable_encoder(value_to_dump)
+                    return impl_processor(value)
+
+            else:
+
+                def process(value):
+                    if isinstance(pydantic_type, ModelMetaclass):
+                        # This allows to assign non-InDB models and if they're
+                        # compatible, they're directly parsed into the InDB
+                        # representation, thus hiding the implementation in the
+                        # background. However, the InDB model will still be returned
+                        value_to_dump = pydantic_type.from_orm(value)
+                    else:
+                        value_to_dump = value
+                    value = dumps(jsonable_encoder(value_to_dump))
+                    return value
+
+            return process
+
+        def result_processor(self, dialect, coltype) -> T:
+            impl_processor = self.impl.result_processor(dialect, coltype)
+            if impl_processor:
+
+                def process(value):
+                    value = impl_processor(value)
+                    if value is None:
+                        return None
+
+                    data = value
+                    # Explicitly use the generic directly, not type(T)
+                    full_obj = parse_obj_as(pydantic_type, data)
+                    return full_obj
+
+            else:
+
+                def process(value):
+                    if value is None:
+                        return None
+
+                    # Explicitly use the generic directly, not type(T)
+                    full_obj = parse_obj_as(pydantic_type, value)
+                    return full_obj
+
+            return process
+
+        def compare_values(self, x, y):
+            return x == y
+
+    return PydanticJSONType
+
+
+@functools.lru_cache
+def get_primary_key(model_type: Type[SQLModel]) -> str:
+    primary_keys = sqlalchemy_inspect(model_type).primary_key
+
+    if len(primary_keys) != 1:
+        raise ValueError(f"The model {model_type.__name__} should have a single primary key field.")
+
+    return primary_keys[0].name
+
+
+class GeneralModel(BaseModel):
+    cls_name: str
+    cls_module: str
+    data: str
+
+    def convert_to_model(self):
+        return self.data_cls.parse_raw(self.data)
+
+    @property
+    def data_cls(self) -> "BaseModel":
+        return getattr(sys.modules[self.cls_module], self.cls_name)
+
+    @classmethod
+    def from_obj(cls, obj):
+        return cls(
+            **{
+                "cls_path": inspect.getfile(obj.__class__),
+                "cls_name": obj.__class__.__name__,
+                "cls_module": obj.__class__.__module__,
+                "data": obj.json(),
+            }
+        )
+
+    @classmethod
+    def from_cls(cls, obj_cls):
+        return cls(
+            **{
+                "cls_path": inspect.getfile(obj_cls),
+                "cls_name": obj_cls.__name__,
+                "cls_module": obj_cls.__module__,
+                "data": "",
+            }
+        )
+
+
+def general_select_all(model: GeneralModel):
+    with Session(engine) as session:
+        statement = select(model.data_cls)
+        results = session.exec(statement)
+        return results.all()
+
+
+def general_insert(model: GeneralModel):
+    with Session(engine) as session:
+        data = model.convert_to_model()
+        session.add(data)
+        session.commit()
+        session.refresh(data)
+        return data
+
+
+def general_update(model: GeneralModel):
+    with Session(engine) as session:
+        update_data = model.convert_to_model()
+        primary_key = get_primary_key(update_data.__class__)
+        identifier = getattr(update_data.__class__, primary_key, None)
+        statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
+        results = session.exec(statement)
+        result = results.one()
+        for k, v in vars(update_data).items():
+            if k in ("id", "_sa_instance_state"):
+                continue
+            if getattr(result, k) != v:
+                setattr(result, k, v)
+        session.add(result)
+        session.commit()
+        session.refresh(result)
+
+
+def general_delete(model: GeneralModel):
+    with Session(engine) as session:
+        update_data = model.convert_to_model()
+        primary_key = get_primary_key(update_data.__class__)
+        identifier = getattr(update_data.__class__, primary_key, None)
+        statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
+        results = session.exec(statement)
+        result = results.one()
+        session.delete(result)
+        session.commit()
+
+
+def create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool = False):
+    global engine
+
+    from sqlmodel import create_engine, SQLModel
+
+    engine = create_engine(f"sqlite:///{pathlib.Path(db_filename).resolve()}", echo=echo)
+
+    logger.debug(f"Creating the following tables {models}")
+    try:
+        SQLModel.metadata.create_all(engine)
+    except Exception as e:
+        logger.debug(e)
+
+
+def delete_database(db_filename: str, models: List[Type["SQLModel"]]) -> None:
+
+    database_path = str(pathlib.Path(db_filename).resolve())
+    if os.path.exists(database_path):
+        os.remove(database_path)
+
+
+def reset_database(db_filename: str, models: List[Type["SQLModel"]]) -> None:
+    delete_database(db_filename, models)
+    create_database(db_filename, models)
