@@ -4,11 +4,11 @@ from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
 import torch.nn.functional as F
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.imports import _HPU_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_info
 
 if torch.distributed.is_available():
@@ -137,12 +137,16 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
         op = reduce_op
 
     # WA for HPU. HPU doesn't support Long types, forcefully set it to float
-    if _HPU_AVAILABLE:
-        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-        if is_hpu_backend:
-            if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
-                rank_zero_info("Long tensor unsupported on HPU, casting to float")
-                result = result.float()
+    if module_available("habana_frameworks.torch.utils.library_loader"):
+        from habana_frameworks.torch.utils.library_loader import is_habana_available
+
+        if (
+            is_habana_available()
+            and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+            and result.type() in ("torch.LongTensor", "torch.hpu.LongTensor")
+        ):
+            rank_zero_info("Long tensor unsupported on HPU, casting to float")
+            result = result.float()
 
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
