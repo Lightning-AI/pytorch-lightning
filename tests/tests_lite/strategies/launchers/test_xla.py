@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import ANY, Mock
+from unittest.mock import Mock
 
 from tests_lite.helpers.runif import RunIf
 
@@ -29,11 +29,9 @@ def test_xla_launcher_xmp_spawn(get_context_mock, xmp_mock):
     queue = get_context_mock.return_value.SimpleQueue.return_value
     get_context_mock.assert_called_with("fork")
     xmp_mock.spawn.assert_called_with(
-        ANY,
+        launcher._wrapping_function,
         args=(function, ("positional-arg",), {"keyword_arg": 0}, queue),
         nprocs=strategy.num_processes,
-        join=True,
-        daemon=False,
         start_method="fork",
     )
     queue.get.assert_called_once_with()

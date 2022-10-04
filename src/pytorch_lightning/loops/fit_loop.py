@@ -305,7 +305,10 @@ class FitLoop(Loop[None]):
         self.trainer._logger_connector.on_epoch_end()
 
         if self.epoch_loop._num_ready_batches_reached():
-            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
+            # if we are restarting and the above condition holds, it's because we are reloading an epoch-end checkpoint.
+            # since metric-based schedulers require access to metrics and those are not currently saved in the
+            # checkpoint, the plateau schedulers shouldn't be updated
+            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=not self.restarting)
 
         # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
         # even when the batch loop has finished

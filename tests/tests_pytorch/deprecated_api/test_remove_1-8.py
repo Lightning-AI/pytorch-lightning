@@ -21,13 +21,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
-    from pytorch_lightning.callbacks.device_stats_monitor import prefix_metric_keys
-
-    with pytest.deprecated_call(match="in v1.6 and will be removed in v1.8"):
-        prefix_metric_keys({"foo": 1.0}, "bar")
-
-
 def test_v1_8_0_remove_on_batch_start_end(tmpdir):
     class TestCallback(Callback):
         def on_batch_start(self, *args, **kwargs):
