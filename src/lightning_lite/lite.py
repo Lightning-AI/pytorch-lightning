@@ -475,4 +475,5 @@ class LightningLite(ABC):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
 
-def _do_nothing(*_): pass
+def _do_nothing(*_):
+    pass

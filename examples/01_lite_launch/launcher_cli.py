@@ -6,7 +6,6 @@ import torch.distributed
 
 from lightning_lite import LightningLite
 
-
 if __name__ == "__main__":
     lite = LightningLite()
     print("launched", lite.global_rank)
