@@ -31,6 +31,7 @@ from lightning_lite.plugins import (
     TPUBf16Precision,
     TPUPrecision,
 )
+from lightning_lite.plugins.collectives import Collective
 from lightning_lite.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -57,7 +58,7 @@ from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_wa
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
 from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
 
-_PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
+_PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO, Collective]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
 _PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
