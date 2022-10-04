@@ -153,6 +153,9 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
+    - name: Setup upterm session
+      uses: lhotari/action-upterm@v1
+
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
