@@ -17,7 +17,9 @@ def main():
     parser.add_argument("--main-address", type=str, default="127.0.0.1")
     parser.add_argument("--main-port", type=int, default=29400)
     parser.add_argument("--precision", type=str, default="32", choices=("32", "16", "bf16"))
-    args = parser.parse_args()
+
+    # TODO: Problem: if typo, the args will be passed to script args and potentially never fail
+    args, script_args = parser.parse_known_args()
 
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy:
@@ -35,6 +37,7 @@ def main():
     torchrun_args.extend(["--master_addr", args.main_address])
     torchrun_args.extend(["--master_port", str(args.main_port)])
     torchrun_args.append(args.script)
+    torchrun_args.extend(script_args)
 
     os.environ.setdefault("OMP_NUM_THREADS", str(max(1, os.cpu_count() // num_devices)))
 
