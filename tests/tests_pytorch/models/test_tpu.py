@@ -288,6 +288,7 @@ def test_tpu_cores_with_argparse(cli_args, expected):
         assert Trainer.from_argparse_args(args)
 
 
+@RunIf(min_torch="1.10")
 @pytest.mark.parametrize("clip_val", [0, 10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
