@@ -6,7 +6,7 @@ import os
 import pathlib
 import subprocess
 import sys
-from typing import Callable, TextIO, Union
+from typing import Callable, TextIO
 
 from lightning_app.frontend.frontend import Frontend
 from lightning_app.frontend.utils import _get_frontend_environment
@@ -32,8 +32,8 @@ class PanelFrontend(Frontend):
     Reference: https://lightning.ai/lightning-docs/workflows/add_web_ui/panel/
 
     Args:
-        entry_point: The path to a .py or .ipynb file, or a pure function. The file or function must contain your Panel code.
-            The function can optionally accept an ``AppStateWatcher`` argument.
+        entry_point: The path to a .py or .ipynb file, or a pure function. The file or function must contain your Panel
+            code. The function can optionally accept an ``AppStateWatcher`` argument.
 
     Raises:
         TypeError: Raised if the ``entry_point`` provided is a class method
