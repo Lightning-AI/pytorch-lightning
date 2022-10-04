@@ -6,13 +6,6 @@ subprojects:
 
   # SECTION: pytorch_lightning
 
-  - id: "CI: CircleCI"
-    paths:
-      - ".circleci/**"
-      - ".github/workflows/ci-pytorch-test-tpu.yml"
-    checks:
-      - "test-on-tpus"
-
   - id: "pytorch_lightning"
     paths:
       # all examples don't need to be added because they aren't used in CI, but these are
@@ -57,7 +50,7 @@ subprojects:
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
       - "pl-slow (windows-2022, 3.7, 1.11)"
-      # TODO: since this job cannot run on forks, it cannot be required or it will block all PL PRs from forks
+      # TODO: since this job has intermittent availability, it cannot be required or it will block all PL PRs from forks
       #- "test-on-tpus"
 
   - id: "pytorch_lightning: CPU"
@@ -108,6 +101,12 @@ subprojects:
       - ".azure/ipu-tests.yml"
     checks:
       - "pytorch-lightning (IPUs)"
+
+  - id: "pytorch-lightning: TPU"
+    paths:
+      - ".github/workflows/ci-pytorch-test-tpu.yml"
+    checks:
+      - "test-on-tpus"
 
   - id: "pytorch_lightning: Docs"
     paths:

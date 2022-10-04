@@ -12,7 +12,7 @@
 | pytorch-lightning (HPUs)   | .azure-pipelines/hpu-tests.yml             | Run only HPU-specific tests.                                                                                                                                                | HPU           |
 | pytorch-lightning (GPUs)   | .azure-pipelines/gpu-tests.yml             | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
 | PyTorchLightning.Benchmark | .azure-pipelines/gpu-benchmark.yml         | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
-| test-on-tpus               | .circleci/config.yml                       | Run only TPU-specific tests.                                                                                                                                                | TPU           |
+| test-on-tpus               | .github/workflows/ci-pytorch-test-tpu.yml  | Run only TPU-specific tests.                                                                                                                                                | TPU           |
 
 - \*Accelerators used in CI
 

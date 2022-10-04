@@ -55,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.circleci/config.yml`'
+        # the config used in '.github/workflows/ci-pytorch-test-tpu.yml'
         python_version: ["3.7"]
         xla_version: ["1.12"]
     steps:

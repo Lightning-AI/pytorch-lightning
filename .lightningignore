@@ -1,6 +1,5 @@
 _notebooks
 .azure
-.circleci
 .github
 .ipynb_checkpoints
 .pytest_cache
