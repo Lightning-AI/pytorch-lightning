@@ -77,6 +77,13 @@ class LightningLite(ABC):
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
+        accelerator = os.getenv("LT_ACCELERATOR", accelerator)
+        strategy = os.getenv("LT_STRATEGY", strategy)
+        devices = os.getenv("LT_DEVICES", devices)
+        num_nodes = os.getenv("LT_NUM_NODES", num_nodes)
+        precision = os.getenv("LT_PRECISION", precision)
+        precision = int(precision) if precision in ("16", "32") else precision
+
         self._connector = _Connector(
             accelerator=accelerator,
             strategy=strategy,
@@ -92,6 +99,9 @@ class LightningLite(ABC):
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
+
+        if "LT_ACCELERATOR" in os.environ:
+            self._strategy.setup_environment()
 
     @property
     def device(self) -> torch.device:
@@ -126,7 +136,7 @@ class LightningLite(ABC):
         """Wether this rank is rank zero."""
         return self._strategy.is_global_zero
 
-    @abstractmethod
+    # TODO(lite): Error/warn when run overridden but launcher is used
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
@@ -367,6 +377,15 @@ class LightningLite(ABC):
         """
         return self._strategy.load_checkpoint(filepath)
 
+    def launch(self, function: Optional[Callable] = None, *args: Any, **kwargs: Any) -> Any:
+        function = _do_nothing if function is None else function
+        function = partial(self._function_with_strategy_setup, function)
+        args = [self, *args]
+        if self._strategy.launcher is not None:
+            return self._strategy.launcher.launch(function, *args, **kwargs)
+        else:
+            return function(*args, **kwargs)
+
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
         """Helper function to seed everything without explicitly importing Lightning.
@@ -380,9 +399,8 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        # wrap the real run method with setup logic
+        # TODO: skip launcher if already launched externally!
         run_method = partial(self._run_with_setup, run_method)
-
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(run_method, *args, **kwargs)
         else:
@@ -395,6 +413,11 @@ class LightningLite(ABC):
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)
+
+    def _function_with_strategy_setup(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._strategy.setup_environment()
+        with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
+            return function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters()).device
@@ -450,3 +473,6 @@ class LightningLite(ABC):
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+
+
+def _do_nothing(*_): pass
