@@ -22,12 +22,13 @@ import torch.distributed
 from tests_lite.helpers.runif import RunIf
 
 import lightning_lite
+from lightning_lite.accelerators import TPUAccelerator
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.accelerators.cpu import CPUAccelerator
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precision
+from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precision, TPUPrecision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -43,25 +44,34 @@ from lightning_lite.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
+    XLAStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
-def test_accelerator_choice_cpu(tmpdir):
+def test_accelerator_choice_cpu():
     connector = _Connector()
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
 
 
+@RunIf(tpu=True)
+@pytest.mark.parametrize(["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", 8), ("auto", 1), ("auto", 8)])
+def test_accelerator_choice_tpu(accelerator, devices):
+    connector = _Connector(accelerator=accelerator, devices=devices)
+    assert isinstance(connector.accelerator, TPUAccelerator)
+    assert isinstance(connector.strategy, XLAStrategy)
+
+
 @RunIf(skip_windows=True, standalone=True)
-def test_strategy_choice_ddp_on_cpu(tmpdir):
+def test_strategy_choice_ddp_on_cpu():
     """Test that selecting DDPStrategy on CPU works."""
     _test_strategy_choice_ddp_and_cpu(ddp_strategy_class=DDPStrategy)
 
 
 @RunIf(skip_windows=True)
-def test_strategy_choice_ddp_spawn_on_cpu(tmpdir):
+def test_strategy_choice_ddp_spawn_on_cpu():
     """Test that selecting DDPSpawnStrategy on CPU works."""
     _test_strategy_choice_ddp_and_cpu(ddp_strategy_class=DDPSpawnStrategy)
 
@@ -476,10 +486,10 @@ def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
             "SLURM_LOCALID": "1",
         },
     ):
-        trainer = _Connector(strategy=strategy, accelerator="cuda", devices=2)
-        assert isinstance(trainer.accelerator, CUDAAccelerator)
-        assert isinstance(trainer.strategy, DDPStrategy)
-        assert isinstance(trainer.strategy.cluster_environment, expected_env)
+        connector = _Connector(strategy=strategy, accelerator="cuda", devices=2)
+        assert isinstance(connector.accelerator, CUDAAccelerator)
+        assert isinstance(connector.strategy, DDPStrategy)
+        assert isinstance(connector.strategy.cluster_environment, expected_env)
 
 
 @mock.patch.dict(
@@ -596,6 +606,16 @@ def test_unsupported_tpu_choice(tpu_available):
         UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
     ):
         _Connector(accelerator="tpu", precision=16, strategy="ddp")
+
+    # wrong precision plugin type
+    strategy = XLAStrategy(accelerator=TPUAccelerator(), precision_plugin=Precision())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecision` plugin"):
+        _Connector(strategy=strategy, devices=8)
+
+    # wrong strategy type
+    strategy = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecision())
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
+        _Connector(strategy=strategy, devices=8)
 
 
 @mock.patch("lightning_lite.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
@@ -736,10 +756,18 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     if is_custom_plugin:
         plugin = plugin_cls(16, "cpu")
 
-    trainer = _Connector(
+    connector = _Connector(
         precision=16,
         devices=devices,
         strategy=strategy,
         plugins=plugin,
     )
-    assert isinstance(trainer.precision_plugin, plugin_cls)
+    assert isinstance(connector.precision_plugin, plugin_cls)
+
+
+@pytest.mark.parametrize(
+    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
+)
+def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
+    connector = _Connector(strategy=strategy)
+    assert isinstance(connector.strategy, strategy_cls)
