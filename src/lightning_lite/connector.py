@@ -130,9 +130,9 @@ class _Connector:
         # 2. Instantiate Accelerator
         # handle `auto`, `None` and `gpu`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
-            self._accelerator_flag = _choose_auto_accelerator()
+            self._accelerator_flag = self._choose_auto_accelerator()
         elif self._accelerator_flag == "gpu":
-            self._accelerator_flag = _choose_gpu_accelerator_backend()
+            self._accelerator_flag = self._choose_gpu_accelerator_backend()
 
         self._set_parallel_devices_and_init_accelerator()
 
@@ -297,6 +297,30 @@ class _Connector:
                 f"You passed `devices={devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'cpu'|'mps')` for the devices mapping."
             )
+
+    def _choose_auto_accelerator(self) -> str:
+        """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
+        if self._accelerator_flag == "auto":
+            if _TPU_AVAILABLE:
+                return "tpu"
+            if _IPU_AVAILABLE:
+                return "ipu"
+            if _HPU_AVAILABLE:
+                return "hpu"
+            if MPSAccelerator.is_available():
+                return "mps"
+            if CUDAAccelerator.is_available():
+                return "cuda"
+        return "cpu"
+
+    @staticmethod
+    def _choose_gpu_accelerator_backend() -> str:
+        if MPSAccelerator.is_available():
+            return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
+
+        raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
@@ -515,27 +539,3 @@ class _Connector:
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
-
-
-def _choose_gpu_accelerator_backend() -> str:
-    if MPSAccelerator.is_available():
-        return "mps"
-    if CUDAAccelerator.is_available():
-        return "cuda"
-
-    raise RuntimeError("No supported gpu backend found!")
-
-
-def _choose_auto_accelerator() -> str:
-    """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
-    if _TPU_AVAILABLE:
-        return "tpu"
-    if _IPU_AVAILABLE:
-        return "ipu"
-    if _HPU_AVAILABLE:
-        return "hpu"
-    if MPSAccelerator.is_available():
-        return "mps"
-    if CUDAAccelerator.is_available():
-        return "cuda"
-    return "cpu"
