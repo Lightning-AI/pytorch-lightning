@@ -44,8 +44,6 @@ class LambdaCallback(Callback):
         setup: Optional[Callable] = None,
         on_configure_sharded_model: Optional[Callable] = None,
         teardown: Optional[Callable] = None,
-        on_init_start: Optional[Callable] = None,
-        on_init_end: Optional[Callable] = None,
         on_fit_start: Optional[Callable] = None,
         on_fit_end: Optional[Callable] = None,
         on_sanity_check_start: Optional[Callable] = None,

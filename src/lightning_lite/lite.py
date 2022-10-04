@@ -27,7 +27,7 @@ from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.connector import _Connector, _PLUGIN_INPUT
+from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
 from lightning_lite.strategies.strategy import TBroadcast
@@ -74,7 +74,7 @@ class LightningLite(ABC):
         strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
         self._connector = _Connector(
@@ -380,16 +380,17 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        # apply sharded context to prevent OOM
-        run_method = partial(self._run_with_strategy_setup, run_method)
+        # wrap the real run method with setup logic
+        run_method = partial(self._run_with_setup, run_method)
 
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
-    def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_with_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
+        # apply sharded context to prevent OOM
         with self._strategy.module_sharded_context(), _replace_dunder_methods(
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):
