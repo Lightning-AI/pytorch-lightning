@@ -55,7 +55,7 @@ from lightning_lite.strategies import (
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE
+from lightning_lite.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
@@ -110,7 +110,7 @@ class _Connector:
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
+        # For devices: Assign gpus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
         self._precision_flag: Optional[_PRECISION_INPUT] = None
@@ -303,10 +303,6 @@ class _Connector:
         if self._accelerator_flag == "auto":
             if TPUAccelerator.is_available():
                 return "tpu"
-            if _IPU_AVAILABLE:
-                return "ipu"
-            if _HPU_AVAILABLE:
-                return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
             if CUDAAccelerator.is_available():
@@ -502,7 +498,7 @@ class _Connector:
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
 
-        from lightning_lite.utilities import _IS_INTERACTIVE
+        from lightning_lite.utilities.imports import _IS_INTERACTIVE
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise RuntimeError(
