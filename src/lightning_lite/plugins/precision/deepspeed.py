@@ -21,7 +21,6 @@ from typing_extensions import Literal
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.imports import _APEX_AVAILABLE
 from lightning_lite.utilities.types import Steppable
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
@@ -48,8 +47,8 @@ class DeepSpeedPrecision(Precision):
 
     def __init__(self, precision: Literal[16, 32, "bf16"], amp_type: str, amp_level: Optional[str] = None) -> None:
         if amp_type == AMPType.APEX:
-            if not _APEX_AVAILABLE:
-                raise ImportError(
+            if not RequirementCache("apex"):
+                raise ModuleNotFoundError(
                     "You have asked for Apex AMP but `apex` is not installed."
                     " Install `apex` using this guide: https://github.com/NVIDIA/apex"
                 )
