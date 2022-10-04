@@ -78,6 +78,7 @@ class AMPTestModel(BoringModel):
 )
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("devices", [1, 2])
+@mock.patch(os.environ, {"MASTER_ADDRESS": "localhost"})
 def test_amp_cpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
     tutils.reset_seed()
