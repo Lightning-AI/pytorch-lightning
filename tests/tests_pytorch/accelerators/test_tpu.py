@@ -80,6 +80,7 @@ def test_if_test_works_after_train(tmpdir):
     assert len(out) == 1
 
 
+@RunIf(skip_windows=True)
 def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
     assert TPUAccelerator.is_available()
 
@@ -91,6 +92,7 @@ def test_accelerator_cpu_with_tpu_cores_flag(tpu_available):
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
 def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert TPUAccelerator.is_available()
@@ -101,6 +103,7 @@ def test_accelerator_tpu(accelerator, devices, tpu_available):
     assert trainer.num_devices == 8
 
 
+@RunIf(skip_windows=True)
 def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
     """Test for checking `tpu_cores` flag takes priority over `devices`."""
     tpu_cores = 8
@@ -111,6 +114,7 @@ def test_accelerator_tpu_with_tpu_cores_priority(tpu_available):
     assert trainer.num_devices == tpu_cores
 
 
+@RunIf(skip_windows=True)
 def test_set_devices_if_none_tpu(tpu_available):
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         trainer = Trainer(accelerator="tpu", tpu_cores=8)
@@ -197,6 +201,7 @@ def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
         Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
 
+@RunIf(skip_windows=True)
 def test_strategy_choice_tpu_str_tpu_spawn_debug(tpu_available):
     trainer = Trainer(strategy="tpu_spawn_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
@@ -278,6 +283,7 @@ def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available):
         Trainer(strategy=strategy, devices=8)
 
 
+@RunIf(skip_windows=True)
 def test_xla_checkpoint_plugin_being_default(tpu_available):
     trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
