@@ -155,13 +155,13 @@ class WandbLogger(Logger):
 
         wandb_logger = WandbLogger(log_model="all")
 
-    Custom checkpointing can be set up through :class:`~pytorch_lightning.callbacks.Checkpoint`:
+    Custom checkpointing can be set up through :class:`~pytorch_lightning.callbacks.ModelCheckpoint`:
 
     .. code-block:: python
 
         # log model only if `val_accuracy` increases
         wandb_logger = WandbLogger(log_model="all")
-        checkpoint_callback = Checkpoint(monitor="val_accuracy", mode="max")
+        checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max")
         trainer = Trainer(logger=wandb_logger, callbacks=[checkpoint_callback])
 
     `latest` and `best` aliases are automatically set to easily retrieve a model checkpoint:
@@ -265,12 +265,12 @@ class WandbLogger(Logger):
         version: Same as id.
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
-        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.Checkpoint`
+        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
             as W&B artifacts. `latest` and `best` aliases are automatically set.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
-              :paramref:`~pytorch_lightning.callbacks.model_checkpoint.Checkpoint.save_top_k` ``== -1``
+              :paramref:`~pytorch_lightning.callbacks.ModelCheckpoint.save_top_k` ``== -1``
               which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
 
