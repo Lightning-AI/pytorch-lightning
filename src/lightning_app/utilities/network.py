@@ -159,10 +159,15 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 
 class HTTPClient:
     """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
-    automatically."""
+    automatically.
+    TODO - exception handling on
+        1. Persistent errors after retry (we'll retry for 120 sec)
+        2. Other HTTP errors which are not handled by retry (we probably shouldn't handle it)
+        3. Connection Refused Error (we should retry for ever in this case as well)
+    """
 
-    def __init__(self, base_url: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
-        self.base_url = base_url or HTTP_QUEUE_URL
+    def __init__(self, base_url: str, log_callback: Optional[Callable] = None) -> None:
+        self.base_url = base_url
         retry_strategy = Retry(
             # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
             total=_CONNECTION_RETRY_TOTAL,

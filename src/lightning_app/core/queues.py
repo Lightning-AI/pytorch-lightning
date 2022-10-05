@@ -1,5 +1,4 @@
 import multiprocessing
-import os
 import pickle
 import queue
 import time
@@ -9,8 +8,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
-import requests
-
 from lightning_app.core.constants import (
     LIGHTNING_DIR,
     QUEUE_DEBUG_ENABLED,
@@ -19,7 +16,7 @@ from lightning_app.core.constants import (
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
-    WARNING_QUEUE_SIZE,
+    WARNING_QUEUE_SIZE, HTTP_QUEUE_URL,
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
@@ -305,41 +302,43 @@ class RedisQueue(BaseQueue):
 
 
 class HTTPQueue(BaseQueue):
-    def __init__(self, name: str, default_timeout: float, host: str = None, port: int = None):
+    def __init__(self, name: str, default_timeout: float):
         """
         Parameters
         ----------
         name:
-            The name of the list to use
+            The name of the Queue to use. In the current implementation, we expect the name to be of the format
+            `appID_queueName`. Based on this assumption, we try to fetch the app id and the queue name by splitting
+            the `name` argument.
         default_timeout:
             Default timeout for redis read
-        host:
-            The hostname of the redis server
-        port:
-            The port of the redis server
         """
         if name is None:
             raise ValueError("You must specify a name for the queue")
         self.app_id, self.name = self._split_app_id_and_queue_name(name)
+        self._original_name = name  # keeping the name for debugging
         self.default_timeout = default_timeout
-        self.client = HTTPClient(log_callback=debug_log_callback)
+        self.client = HTTPClient(base_url=HTTP_QUEUE_URL, log_callback=debug_log_callback)
 
     def get(self, timeout: int = None) -> Any:
-        # TODO - check how many calls it is making in the boring app and use that as baseline for scaling up
-        # TODO - we'd need to catch retry exception and do retries again?
+        if not self.app_id:
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+
+        # it's a blocking call, we need to loop and call the backend to mimic this behavior
         if timeout is None:
-            # it's a blocking call, we need to loop and call the backend to mimic this behavior
             while True:
                 try:
                     return self._get()
                 except queue.Empty:
                     time.sleep(0.1)
 
+        # make one request and return the result
         if timeout == 0:
             return self._get()
 
         # timeout is some value - loop until the timeout is reached
         start_time = time.time()
+        timeout += 0.5  # add 0.5 seconds as a safe margin
         while (time.time() - start_time) < timeout:
             try:
                 return self._get()
@@ -353,24 +352,23 @@ class HTTPQueue(BaseQueue):
         return resp.content
 
     def put(self, item: Any) -> None:
+        if not self.app_id:
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+
         value = pickle.dumps(item)
         queue_len = self.length()
-        # TODO - variable name and warning message
         if queue_len >= WARNING_QUEUE_SIZE:
             warnings.warn(
-                f"The Redis Queue {self.name} length is larger than the "
-                f"recommended length of {WARNING_QUEUE_SIZE}. "
-                f"Found {queue_len}. This might cause your application to crash, "
-                "please investigate this."
+                f"The Queue {self.name} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
+                f"Found {queue_len}. This might cause your application to crash, please investigate this."
             )
         self.client.post(f"v1/{self.app_id}/{self.name}", data=value, query_params={"action": "push"})
 
     def length(self):
-        try:
-            val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
-        except Exception as e:
-            # TODO - Connection refused
-            raise e
+        if not self.app_id:
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+
+        val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
         return int(val.text)
 
     @property
