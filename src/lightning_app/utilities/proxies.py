@@ -30,11 +30,11 @@ from lightning_app.utilities.enum import (
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import CacheMissException, LightningSigtermStateException
+from lightning_app.utilities.serializable import Hashable
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
     from lightning_app.core.queues import BaseQueue
-
 
 from lightning_app.utilities.app_helpers import Logger
 
@@ -99,7 +99,7 @@ class ProxyWorkRun:
         self._validate_call_args(args, kwargs)
         args, kwargs = self._process_call_args(args, kwargs)
 
-        call_hash = self.work._call_hash(self.work_run, args, kwargs)
+        call_hash = self.work._call_hash(self.work_run, *self._convert_hashable(args, kwargs))
         entered = call_hash in self.work._calls
         returned = entered and "ret" in self.work._calls[call_hash]
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
@@ -176,6 +176,26 @@ class ProxyWorkRun:
             return obj.to_dict()
 
         return apply_to_collection((args, kwargs), dtype=(Path, Drive), function=sanitize)
+
+    @staticmethod
+    def _convert_hashable(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
+        the LightningWork.
+
+        Currently, this method only applies sanitization to Hashable Objects.
+
+        Args:
+            args: The tuple of positional arguments passed to the run method.
+            kwargs: The dictionary of named arguments passed to the run method.
+
+        Returns:
+            The positional and keyword arguments in the same order they were passed in.
+        """
+
+        def sanitize(obj: Hashable) -> Union[Path, Dict]:
+            return obj.to_dict()
+
+        return apply_to_collection((args, kwargs), dtype=Hashable, function=sanitize)
 
 
 class WorkStateObserver(Thread):

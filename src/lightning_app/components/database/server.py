@@ -5,8 +5,8 @@ from typing import List, Optional, Type, Union
 from fastapi import FastAPI
 from uvicorn import run
 
-from lightning import BuildConfig, LightningFlow, LightningWork
-from lightning_app.components.database.client import _DatabaseClientFlow, _DatabaseClientWork
+from lightning import BuildConfig, LightningWork
+from lightning_app.components.database.client import DatabaseClient
 from lightning_app.components.database.utilities import (
     create_database,
     delete_database,
@@ -27,18 +27,12 @@ logger = Logger(__name__)
 engine = None
 
 
-class DatabaseType:
-    FLOW = "flow"
-    WORK = "work"
-
-
-class Database(LightningFlow):
+class Database(LightningWork):
     def __init__(
         self,
         models: Union[Type["SQLModel"], List[Type["SQLModel"]]],
         db_filename: str = "database.db",
         debug: bool = False,
-        mode: str = DatabaseType.WORK,
     ):
         """The Database Component enables to interact with an SQLite database to store some structured information
         about your application.
@@ -55,7 +49,7 @@ class Database(LightningFlow):
 
             from sqlmodel import SQLModel, Field
             from lightning import LightningFlow, LightningApp
-            from lightning_app.components.database import Database
+            from lightning_app.components.database import Database, DatabaseClient
 
             class CounterModel(SQLModel, table=True):
                 __table_args__ = {"extend_existing": True}
@@ -69,6 +63,7 @@ class Database(LightningFlow):
                 def __init__(self):
                     super().__init__()
                     self.db = Database(models=[CounterModel])
+                    self._client = None
                     self.counter = 0
 
                 def run(self):
@@ -78,91 +73,32 @@ class Database(LightningFlow):
                         return
 
                     if self.counter == 0:
-                        self.db.reset_database()
+                        self._client = DatabaseClient(model=CounterModel, db_url=self.db.url)
+                        self._client.reset_database()
 
-                    rows = self.db.select_all(CounterModel)
+                    assert self._client
+
+                    rows = self._client.select_all()
+
                     print(f"{self.counter}: {rows}")
+
                     if not rows:
-                        self.db.insert(CounterModel(count=0))
+                        self._client.insert(CounterModel(count=0))
                     else:
-                        row : CounterModel= rows[0]
+                        row: CounterModel = rows[0]
                         row.count += 1
-                        self.db.update(row)
+                        self._client.update(row)
+
+                    if self.counter >= 100:
+                        row: CounterModel = rows[0]
+                        self._client.delete(row)
+                        self._client.delete_database()
+                        self._exit()
 
                     self.counter += 1
 
             app = LightningApp(Flow())
         """
-        super().__init__()
-        self.mode = mode
-        self.db_filename = db_filename
-        self._models = models if isinstance(models, list) else [models]
-        if self.mode == DatabaseType.WORK:
-            self.database_server_work = _DatabaseServerWork(self._models, db_filename=db_filename, debug=debug)
-        else:
-            create_database(db_filename, self._models, debug)
-        self._client = None
-
-    def run(self):
-        if self.mode == DatabaseType.WORK:
-            self.database_server_work.run()
-
-    def alive(self) -> bool:
-        if self.mode == DatabaseType.WORK:
-            return self.database_server_work.alive()
-        else:
-            return True
-
-    def insert(self, model: "SQLModel"):
-        return self.client.insert(model)
-
-    def update(self, model: "SQLModel"):
-        return self.client.update(model)
-
-    def select_all(self, model: Type["SQLModel"]):
-        return self.client.select_all(model)
-
-    def delete(self, model: "SQLModel"):
-        return self.client.delete(model)
-
-    @property
-    def client(self):
-        if not self.alive():
-            return
-
-        if not self._client:
-            if self.mode == DatabaseType.WORK:
-                self._client = _DatabaseClientWork(db_url=self.database_server_work.db_url)
-            else:
-                self._client = _DatabaseClientFlow(self.db_filename)
-        return self._client
-
-    def delete_database(self):
-        if self.client:
-            if self.mode == DatabaseType.WORK:
-                self.client._delete_database()
-            else:
-                delete_database(self.db_filename, self._models)
-        else:
-            raise Exception("The database isn't ready yet.")
-
-    def reset_database(self):
-        if self.client:
-            if self.mode == DatabaseType.WORK:
-                self.client._reset_database()
-            else:
-                reset_database(self.db_filename, self._models)
-        else:
-            raise Exception("The database isn't ready yet.")
-
-
-class _DatabaseServerWork(LightningWork):
-    def __init__(
-        self,
-        models: Union[Type["SQLModel"], List[Type["SQLModel"]]],
-        db_filename: str = "database.db",
-        debug: bool = False,
-    ):
         super().__init__(parallel=True, cloud_build_config=BuildConfig(["sqlmodel"]))
         self.db_filename = db_filename
         self.debug = debug
@@ -173,10 +109,11 @@ class _DatabaseServerWork(LightningWork):
         app = FastAPI()
 
         create_database(self.db_filename, self._models, self.debug)
-        app.get("/general/")(general_select_all)
-        app.post("/general/")(general_insert)
-        app.put("/general/")(general_update)
-        app.delete("/general/")(general_delete)
+        models = {m.__name__: m for m in self._models}
+        app.post("/select_all/")(partial(general_select_all, models=models))
+        app.post("/insert/")(partial(general_insert, models=models))
+        app.post("/update/")(partial(general_update, models=models))
+        app.post("/delete/")(partial(general_delete, models=models))
         app.post("/delete_database/")(partial(delete_database, self.db_filename, self._models))
         app.post("/reset_database/")(partial(reset_database, self.db_filename, self._models))
 
@@ -194,3 +131,8 @@ class _DatabaseServerWork(LightningWork):
         if self.internal_ip != "":
             return f"http://{self.internal_ip}:{self.port}"
         return self.internal_ip
+
+    @property
+    def client(self) -> Optional[DatabaseClient]:
+        if self.db_url:
+            return DatabaseClient(self.db_url)

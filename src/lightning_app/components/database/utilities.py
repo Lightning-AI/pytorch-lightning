@@ -1,10 +1,8 @@
 import functools
-import inspect
 import json
 import os
 import pathlib
-import sys
-from typing import Generic, List, Type, TypeVar
+from typing import Dict, Generic, List, Type, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, parse_obj_as
@@ -125,23 +123,16 @@ def get_primary_key(model_type: Type[SQLModel]) -> str:
 
 class GeneralModel(BaseModel):
     cls_name: str
-    cls_module: str
     data: str
 
-    def convert_to_model(self):
-        return self.data_cls.parse_raw(self.data)
-
-    @property
-    def data_cls(self) -> "BaseModel":
-        return getattr(sys.modules[self.cls_module], self.cls_name)
+    def convert_to_model(self, models: Dict[str, BaseModel]):
+        return models[self.cls_name].parse_raw(self.data)
 
     @classmethod
     def from_obj(cls, obj):
         return cls(
             **{
-                "cls_path": inspect.getfile(obj.__class__),
                 "cls_name": obj.__class__.__name__,
-                "cls_module": obj.__class__.__module__,
                 "data": obj.json(),
             }
         )
@@ -150,33 +141,35 @@ class GeneralModel(BaseModel):
     def from_cls(cls, obj_cls):
         return cls(
             **{
-                "cls_path": inspect.getfile(obj_cls),
                 "cls_name": obj_cls.__name__,
-                "cls_module": obj_cls.__module__,
                 "data": "",
             }
         )
 
 
-def general_select_all(model: GeneralModel):
+def general_select_all(data: Dict, models=None):
+    assert models
     with Session(engine) as session:
-        statement = select(model.data_cls)
+        cls: Type[SQLModel] = models[data["cls_name"]]
+        statement = select(cls)
         results = session.exec(statement)
         return results.all()
 
 
-def general_insert(model: GeneralModel):
+def general_insert(data: Dict, models=None):
+    assert models
     with Session(engine) as session:
-        data = model.convert_to_model()
-        session.add(data)
+        ele: SQLModel = models[data["cls_name"]].parse_raw(data["data"])
+        session.add(ele)
         session.commit()
-        session.refresh(data)
-        return data
+        session.refresh(ele)
+        return ele
 
 
-def general_update(model: GeneralModel):
+def general_update(data: Dict, models=None):
+    assert models
     with Session(engine) as session:
-        update_data = model.convert_to_model()
+        update_data: SQLModel = models[data["cls_name"]].parse_raw(data["data"])
         primary_key = get_primary_key(update_data.__class__)
         identifier = getattr(update_data.__class__, primary_key, None)
         statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
@@ -192,9 +185,10 @@ def general_update(model: GeneralModel):
         session.refresh(result)
 
 
-def general_delete(model: GeneralModel):
+def general_delete(data: Dict, models=None):
+    assert models
     with Session(engine) as session:
-        update_data = model.convert_to_model()
+        update_data: SQLModel = models[data["cls_name"]].parse_raw(data["data"])
         primary_key = get_primary_key(update_data.__class__)
         identifier = getattr(update_data.__class__, primary_key, None)
         statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
