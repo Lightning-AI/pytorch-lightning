@@ -331,8 +331,9 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
 
 
 def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
-    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently :class:`~torch.utils.data.DataLoader`
-    and :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
+    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently
+    :class:`~torch.utils.data.DataLoader` and :class:`~torch.utils.data.BatchSampler`) in order to enable re-
+    instantiation of custom subclasses."""
 
     @functools.wraps(method)
     def wrapper(obj: Any, *args: Any) -> None:

@@ -90,7 +90,10 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
 
 
 def _set_env_variables(args: Namespace) -> None:
-    """Set the environment variables for the new processes. The Lite connector will parse the arguments set here."""
+    """Set the environment variables for the new processes.
+
+    The Lite connector will parse the arguments set here.
+    """
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
