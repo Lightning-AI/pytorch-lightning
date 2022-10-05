@@ -4,7 +4,7 @@
 Encrypted Secrets
 #################
 
-Encrypted Secrets allow you to pass private data to your apps, like API keys, access tokens, database passwords, or other credentials, in a secure way without exposing bthem in your code.
+Encrypted Secrets allow you to pass private data to your apps, like API keys, access tokens, database passwords, or other credentials, in a secure way without exposing them in your code.
 Secrets provide you with a secure way to store this data in a way that is accessible to Apps so that they can authenticate third-party services/solutions.
 
 .. tip::
