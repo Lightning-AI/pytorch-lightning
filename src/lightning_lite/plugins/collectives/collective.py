@@ -31,8 +31,9 @@ class Collective(ABC):
     @property
     def group(self) -> CollectibleGroup:
         if self._group is None:
-            self.create_group()
-        assert self._group is not None
+            raise RuntimeError(
+                f"{type(self).__name__} already owns a group. HINT: try `collective.create_group().group`"
+            )
         return self._group
 
     @property
