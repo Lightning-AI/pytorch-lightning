@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import os
 from unittest import mock
 from unittest.mock import PropertyMock
 
@@ -20,12 +21,12 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning_lite.utilities import device_parser
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomIterableDataset
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -113,6 +114,7 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
     assert trainer.estimated_stepping_batches == expected_steps
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     ["trainer_kwargs", "estimated_steps"],
     [
@@ -126,8 +128,7 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
 def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
     """Test stepping batches with GPU strategies."""
     num_devices_per_node = 7
-    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
-    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: num_devices_per_node)
+    mock_cuda_count(monkeypatch, num_devices_per_node)
     trainer = Trainer(max_epochs=1, devices=num_devices_per_node, accelerator="gpu", **trainer_kwargs)
 
     # set the `parallel_devices` to cpu to run the test on CPU and take `num_nodes`` into consideration
@@ -141,6 +142,7 @@ def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_num_stepping_batches_with_tpu_single():
     """Test stepping batches with the single-core TPU strategy."""
     trainer = Trainer(accelerator="tpu", devices=1, max_epochs=1)

@@ -14,7 +14,7 @@
 import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 import torch
 import torch.backends.cudnn
@@ -22,10 +22,12 @@ import torch.multiprocessing as mp
 from typing_extensions import Literal
 
 from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.strategies.strategy import Strategy
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
+
+if TYPE_CHECKING:
+    from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -53,7 +55,7 @@ class _MultiProcessingLauncher(_Launcher):
 
     def __init__(
         self,
-        strategy: "Strategy",
+        strategy: "DDPSpawnStrategy",
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
     ) -> None:
         self._strategy = strategy
@@ -62,10 +64,6 @@ class _MultiProcessingLauncher(_Launcher):
             raise ValueError(
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
-            )
-        if start_method in ("fork", "forkserver") and _is_forking_disabled():
-            raise ValueError(
-                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different start method."
             )
 
     @property
@@ -86,10 +84,15 @@ class _MultiProcessingLauncher(_Launcher):
             *args: Optional positional arguments to be passed to the given function.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
+        if self._start_method in ("fork", "forkserver"):
+            _check_bad_cuda_fork()
+
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
+        assert self._strategy.cluster_environment is not None
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
+
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
 
@@ -121,7 +124,7 @@ class _MultiProcessingLauncher(_Launcher):
         self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
 
@@ -172,6 +175,20 @@ class _GlobalStateSnapshot:
         _set_rng_states(self.rng_states)
 
 
-def _is_forking_disabled() -> bool:
-    """Returns whether forking is disabled through the environment variable ``PL_DISABLE_FORK``."""
-    return bool(int(os.environ.get("PL_DISABLE_FORK", "0")))
+def _check_bad_cuda_fork() -> None:
+    """Checks whether it is safe to fork and initialize CUDA in the new processes, and raises an exception if not.
+
+    The error message replaces PyTorch's 'Cannot re-initialize CUDA in forked subprocess' with helpful advice for
+    Lightning users.
+    """
+    if not torch.cuda.is_initialized():
+        return
+
+    message = (
+        "Lightning can't create new processes if CUDA is already initialized. Did you manually call"
+        " `torch.cuda.*` functions, have moved the model to the device, or allocated memory on the GPU any"
+        " other way? Please remove any such calls, or change the selected strategy."
+    )
+    if _IS_INTERACTIVE:
+        message += " You will have to restart the Python kernel."
+    raise RuntimeError(message)

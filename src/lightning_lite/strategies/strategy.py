@@ -23,14 +23,14 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins import TorchCheckpointIO
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizer_to_device
-from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH, Optimizable
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -167,18 +167,16 @@ class Strategy(ABC):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional[Module] = None,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
-            model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return self.precision_plugin.optimizer_step(optimizer, model=model, **kwargs)
+        return self.precision_plugin.optimizer_step(optimizer, **kwargs)
 
     @abstractmethod
     def reduce(
@@ -242,6 +240,7 @@ class Strategy(ABC):
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
+        # TODO(lite): Integrate this into Lightning Lite
         return module.state_dict()
 
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
@@ -249,6 +248,13 @@ class Strategy(ABC):
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
         """
+        if hasattr(optimizer, "consolidate_state_dict"):
+            # there are optimizers like Fairscale's OSS or PyTorch's ZeroRedundancyOptimizer that shard their
+            # states, and to avoid OOM we consolidate the full state on rank 0 only
+            optimizer.consolidate_state_dict()
+            return optimizer.state_dict() if self.is_global_zero else {}
+
+        # for optimizers that are not sharded, we return the state dict on all ranks
         return optimizer.state_dict()
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
@@ -256,6 +262,7 @@ class Strategy(ABC):
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:
+        # TODO(lite): Integrate this into Lightning Lite
         module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(

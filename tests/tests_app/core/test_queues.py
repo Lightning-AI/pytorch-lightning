@@ -51,19 +51,19 @@ def test_redis_queue():
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-def test_redis_ping_success():
+def test_redis_health_check_success():
     redis_queue = QueuingSystem.REDIS.get_readiness_queue()
-    assert redis_queue.ping()
+    assert redis_queue.is_running
 
     redis_queue = RedisQueue(name="test_queue", default_timeout=1)
-    assert redis_queue.ping()
+    assert redis_queue.is_running
 
 
 @pytest.mark.skipif(not _is_redis_available(), reason="redis is required for this test.")
 @pytest.mark.skipif(check_if_redis_running(), reason="This is testing the failure case when redis is not running")
-def test_redis_ping_failure():
+def test_redis_health_check_failure():
     redis_queue = RedisQueue(name="test_queue", default_timeout=1)
-    assert not redis_queue.ping()
+    assert not redis_queue.is_running
 
 
 @pytest.mark.skipif(not _is_redis_available(), reason="redis isn't installed.")
