@@ -11,7 +11,6 @@ class Flow(LightningFlow):
 
     def run(self):
         print(self.counter)
-        self.counter -= 1
 
     def configure_layout(self):
         return JustPyFrontend(render_fn=render_fn)
@@ -23,8 +22,8 @@ def render_fn(get_state: Callable) -> Callable:
     def my_click(self, *_):
         state = get_state()
         old_counter = state.counter
-        state.counter += 100
-        self.text = f"I was clicked! Old Counter: {old_counter} New Counter: {state.counter}"
+        state.counter += 1
+        self.text = f"Click Me ! Old Counter: {old_counter} New Counter: {state.counter}"
 
     def website():
         wp = jp.WebPage()
