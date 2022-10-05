@@ -20,7 +20,7 @@ from torch.optim import LBFGS
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.cuda import _patch_cuda_is_available
-from lightning_lite.utilities.types import Optimizable, Steppable
+from lightning_lite.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
