@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -27,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import DeepSpeedStrategy, Strategy
+from lightning_lite.strategies import Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
@@ -372,6 +371,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
 )
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
 
@@ -452,79 +452,3 @@ def test_autocast():
     with lite.autocast():
         lite._precision_plugin.forward_context().__enter__.assert_called()
     lite._precision_plugin.forward_context().__exit__.assert_called()
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_multiple_models():
-    class Lite(LightningLite):
-        def run(self):
-            model = BoringModel()
-            optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
-            model, optimizer = self.setup(model, optimizer)
-
-            for i in range(2):
-                optimizer.zero_grad()
-                x = model(torch.randn(1, 32).to(self.device))
-                loss = x.sum()
-                if i == 0:
-                    # the weights are not initialized with stage 3 until backward is run once
-                    assert all(w.nelement() == 0 for w in model.state_dict().values())
-                self.backward(loss, model=model)
-                if i == 0:
-                    # save for later to check that the weights were updated
-                    state_dict = deepcopy(model.state_dict())
-                optimizer.step()
-
-            # check that the model trained, the weights from step 1 do not match the weights from step 2
-            for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
-                assert not torch.allclose(mw_b, mw_a)
-
-            self.seed_everything(42)
-            model_1 = BoringModel()
-            optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=0.0001)
-
-            self.seed_everything(42)
-            model_2 = BoringModel()
-            optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
-
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.allclose(mw_1, mw_2)
-
-            model_1, optimizer_1 = self.setup(model_1, optimizer_1)
-            model_2, optimizer_2 = self.setup(model_2, optimizer_2)
-
-            # train model_1 first
-            self.seed_everything(42)
-            data_list = []
-            for _ in range(2):
-                optimizer_1.zero_grad()
-                data = torch.randn(1, 32).to(self.device)
-                data_list.append(data)
-                x = model_1(data)
-                loss = x.sum()
-                self.backward(loss, model=model_1)
-                optimizer_1.step()
-
-            # the weights do not match
-            assert all(w.nelement() > 1 for w in model_1.state_dict().values())
-            assert all(w.nelement() == 0 for w in model_2.state_dict().values())
-
-            # now train model_2 with the same data
-            for data in data_list:
-                optimizer_2.zero_grad()
-                x = model_2(data)
-                loss = x.sum()
-                self.backward(loss, model=model_2)
-                optimizer_2.step()
-
-            # the weights should match
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.allclose(mw_1, mw_2)
-
-            # Verify collectives works as expected
-            ranks = self.all_gather(torch.tensor([self.local_rank]).to(self.device))
-            assert torch.allclose(ranks.cpu(), torch.tensor([[0], [1]]))
-            assert self.broadcast(True)
-            assert self.is_global_zero == (self.local_rank == 0)
-
-    Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()

@@ -222,10 +222,13 @@ def _load_state(
 
     obj = cls(**_cls_kwargs)
 
-    # give model a chance to load something
-    obj.on_load_checkpoint(checkpoint)
+    if isinstance(obj, pl.LightningModule):
+        # give model a chance to load something
+        obj.on_load_checkpoint(checkpoint)
 
     if isinstance(obj, pl.LightningDataModule):
+        if obj.__class__.__qualname__ in checkpoint:
+            obj.load_state_dict(checkpoint[obj.__class__.__qualname__])
         return obj
 
     if strict is not None and obj.strict_loading is not None and strict != obj.strict_loading:
