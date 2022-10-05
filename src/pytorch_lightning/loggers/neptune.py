@@ -22,7 +22,7 @@ __all__ = [
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union
+from typing import Any, Dict, Generator, List, Optional, Set, Union
 from weakref import ReferenceType
 
 from lightning_utilities.core.imports import RequirementCache
@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 _NEPTUNE_AVAILABLE = RequirementCache("neptune-client")
 if _NEPTUNE_AVAILABLE:
     from neptune import new as neptune
-    from neptune.new.exceptions import NeptuneOfflineModeFetchException
     from neptune.new.run import Run
 else:
     # needed for test mocks, and function signatures
@@ -227,15 +226,13 @@ class NeptuneLogger(Logger):
         run: Optional["Run"] = None,
         log_model_checkpoints: Optional[bool] = True,
         prefix: str = "training",
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **neptune_run_kwargs: Any,
     ):
         if not _NEPTUNE_AVAILABLE:
             raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
         self._log_model_checkpoints = log_model_checkpoints
         self._prefix = prefix
         self._run_name = name
@@ -252,12 +249,13 @@ class NeptuneLogger(Logger):
             self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
-        try:
-            assert self._run_instance is not None
-            self._run_instance.wait()
+        assert self._run_instance is not None
+        self._run_instance.wait()
+
+        if self._run_instance.exists("sys/id"):
             self._run_short_id = self._run_instance["sys/id"].fetch()
             self._run_name = self._run_instance["sys/name"].fetch()
-        except NeptuneOfflineModeFetchException:
+        else:
             self._run_short_id = "OFFLINE"
             self._run_name = "offline-name"
 

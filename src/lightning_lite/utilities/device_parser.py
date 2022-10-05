@@ -1,7 +1,19 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
-from lightning_lite.accelerators.cuda import _get_all_available_cuda_gpus
-from lightning_lite.accelerators.mps import _get_all_available_mps_gpus
+import lightning_lite.accelerators as accelerators  # avoid circular dependency
 from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
@@ -148,8 +160,8 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     Returns:
         A list of all available GPUs
     """
-    cuda_gpus = _get_all_available_cuda_gpus() if include_cuda else []
-    mps_gpus = _get_all_available_mps_gpus() if include_mps else []
+    cuda_gpus = accelerators.cuda._get_all_available_cuda_gpus() if include_cuda else []
+    mps_gpus = accelerators.mps._get_all_available_mps_gpus() if include_mps else []
     return cuda_gpus + mps_gpus
 
 

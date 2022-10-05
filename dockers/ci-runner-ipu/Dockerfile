@@ -23,7 +23,7 @@ RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 WORKDIR /azp
 
-COPY ./dockers/ci-runner-ipu/start.sh /usr/local/bin/
+COPY ./.azure/start.sh /usr/local/bin/
 
 RUN curl -o /usr/local/bin/installdependencies.sh \
     "https://raw.githubusercontent.com/microsoft/azure-pipelines-agent/d2acd5f77c6b3914cdb6ed0e5fbea672929c7da9/src/Misc/layoutbin/installdependencies.sh" && \

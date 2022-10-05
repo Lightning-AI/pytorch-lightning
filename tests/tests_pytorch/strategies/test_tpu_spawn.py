@@ -55,9 +55,8 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
         (None, [_loader, _loader_no_len], None, None),
     ],
 )
-@mock.patch("pytorch_lightning.strategies.tpu_spawn.xm")
 def test_error_iterable_dataloaders_passed_to_fit(
-    _, tmpdir, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
+    xla_available, train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders
 ):
     """Test that the TPUSpawnStrategy identifies dataloaders with iterable datasets and fails early."""
     trainer = Trainer()
@@ -76,8 +75,7 @@ def test_error_iterable_dataloaders_passed_to_fit(
         TPUSpawnStrategy(MagicMock()).connect(model)
 
 
-@mock.patch("pytorch_lightning.strategies.tpu_spawn.xm")
-def test_error_process_iterable_dataloader(_):
+def test_error_process_iterable_dataloader(xla_available):
     with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
         TPUSpawnStrategy(MagicMock()).process_dataloader(_loader_no_len)
 
@@ -90,6 +88,7 @@ class BoringModelTPU(BoringModel):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_one_core():
     """Tests if device/debug flag is set correctly when training and after teardown for TPUSpawnStrategy."""
     model = BoringModelTPU()

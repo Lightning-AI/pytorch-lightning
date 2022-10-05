@@ -2,6 +2,7 @@ import random
 
 import pytest
 import torch
+from tests_lite.helpers.models import RandomDataset, RandomIterableDataset
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
 from lightning_lite.utilities.data import (
@@ -15,9 +16,6 @@ from lightning_lite.utilities.data import (
     has_len,
 )
 from lightning_lite.utilities.exceptions import MisconfigurationException
-
-# TODO(lite): provide boring classes in Lite
-from pytorch_lightning.demos.boring_classes import RandomDataset, RandomIterableDataset
 
 
 def test_has_iterable_dataset():

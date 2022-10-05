@@ -75,7 +75,6 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from pytorch_lightning.strategies.launchers.multiprocessing import _is_forking_disabled
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
@@ -84,7 +83,6 @@ from pytorch_lightning.utilities.imports import (
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
-    _TPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
@@ -110,7 +108,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: Union[bool, _LITERAL_WARN] = False,
+        deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
         auto_select_gpus: bool = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
@@ -495,7 +493,7 @@ class AcceleratorConnector:
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if self._accelerator_flag == "auto":
-            if _TPU_AVAILABLE:
+            if TPUAccelerator.is_available():
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
@@ -522,15 +520,16 @@ class AcceleratorConnector:
         else:
             assert self._accelerator_flag is not None
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
+        accelerator_cls = self.accelerator.__class__
 
-        if not self.accelerator.is_available():
+        if not accelerator_cls.is_available():
             available_accelerator = [
                 acc_str
                 for acc_str in self._accelerator_types
                 if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
             raise MisconfigurationException(
-                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f"`{accelerator_cls.__qualname__}` can not run on your system"
                 " since the accelerator is not available. The following accelerator(s)"
                 " is available and can be passed into `accelerator` argument of"
                 f" `Trainer`: {available_accelerator}."
@@ -543,9 +542,9 @@ class AcceleratorConnector:
 
         self._set_devices_flag_if_auto_select_gpus_passed()
 
-        self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
+        self._devices_flag = accelerator_cls.parse_devices(self._devices_flag)
         if not self._parallel_devices:
-            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+            self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
@@ -632,10 +631,6 @@ class AcceleratorConnector:
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
                 f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
             )
-        if strategy_flag in _DDP_FORK_ALIASES and _is_forking_disabled():
-            raise ValueError(
-                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different strategy."
-            )
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
@@ -668,7 +663,8 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
-            self.strategy = self._strategy_flag
+            # TODO(lite): remove ignore after merging lite and PL strategies
+            self.strategy = self._strategy_flag  # type: ignore[assignment]
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
 
@@ -692,9 +688,7 @@ class AcceleratorConnector:
                     )
                 return TPUBf16PrecisionPlugin()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(
-                self._precision_flag, self._amp_type_flag, self._amp_level_flag  # type: ignore
-            )
+            return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
         if self._precision_flag == 32:
             return PrecisionPlugin()

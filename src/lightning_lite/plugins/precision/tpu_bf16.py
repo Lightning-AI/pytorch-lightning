@@ -13,7 +13,11 @@
 # limitations under the License.
 import os
 
+import torch
+from torch import Tensor
+
 from lightning_lite.plugins.precision import TPUPrecision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 
 
 class TPUBf16Precision(TPUPrecision):
@@ -24,6 +28,9 @@ class TPUBf16Precision(TPUPrecision):
     def __init__(self) -> None:
         super().__init__()
         os.environ["XLA_USE_BF16"] = "1"
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        return _convert_fp_tensor(data, torch.bfloat16)
 
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
