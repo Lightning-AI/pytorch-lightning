@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from collections import Counter
 from typing import Dict, List, Optional, Union
 
@@ -102,6 +102,14 @@ class _Connector:
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
+        accelerator = os.getenv("LT_ACCELERATOR", accelerator)
+        strategy = os.getenv("LT_STRATEGY", strategy)
+        devices = os.getenv("LT_DEVICES", devices)
+        num_nodes = os.getenv("LT_NUM_NODES", num_nodes)
+        precision = os.getenv("LT_PRECISION", precision)
+        # TODO: support precision input as string
+        precision = int(precision) if precision in ("16", "32", "64") else precision
+
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()

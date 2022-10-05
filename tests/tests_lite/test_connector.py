@@ -48,20 +48,20 @@ from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
-def test_accelerator_choice_cpu(tmpdir):
+def test_accelerator_choice_cpu():
     connector = _Connector()
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
 
 
 @RunIf(skip_windows=True, standalone=True)
-def test_strategy_choice_ddp_on_cpu(tmpdir):
+def test_strategy_choice_ddp_on_cpu():
     """Test that selecting DDPStrategy on CPU works."""
     _test_strategy_choice_ddp_and_cpu(ddp_strategy_class=DDPStrategy)
 
 
 @RunIf(skip_windows=True)
-def test_strategy_choice_ddp_spawn_on_cpu(tmpdir):
+def test_strategy_choice_ddp_spawn_on_cpu():
     """Test that selecting DDPSpawnStrategy on CPU works."""
     _test_strategy_choice_ddp_and_cpu(ddp_strategy_class=DDPSpawnStrategy)
 
@@ -746,3 +746,48 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
         plugins=plugin,
     )
     assert isinstance(trainer.precision_plugin, plugin_cls)
+
+
+@pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
+def test_connector_precision_from_environment(precision):
+    """Test that the precision input can be set through the environment variable."""
+    with mock.patch.dict(os.environ, {"LT_PRECISION": precision}):
+        connector = _Connector()
+    assert isinstance(connector.precision_plugin, Precision)
+
+
+@pytest.mark.parametrize(
+    "accelerator, strategy, expected_accelerator, expected_strategy",
+    [
+        ("cpu", None, CPUAccelerator, SingleDeviceStrategy),
+        ("cpu", "ddp", CPUAccelerator, DDPStrategy),
+        pytest.param("mps", None, MPSAccelerator, SingleDeviceStrategy, marks=RunIf(mps=True)),
+        pytest.param("cuda", "dp", CUDAAccelerator, DataParallelStrategy, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(
+            "cuda", "deepspeed", CUDAAccelerator, DeepSpeedStrategy, marks=RunIf(min_cuda_gpus=1, deepspeed=True)
+        ),
+    ],
+)
+def test_connector_accelerator_strategy_from_environment(
+    accelerator, strategy, expected_accelerator, expected_strategy
+):
+    """Test that the accelerator and strategy input can be set through the environment variables."""
+    env_vars = {"LT_ACCELERATOR": accelerator}
+    if strategy is not None:
+        env_vars["LT_STRATEGY"] = strategy
+
+    with mock.patch.dict(os.environ, env_vars):
+        connector = _Connector()
+        assert isinstance(connector.accelerator, expected_accelerator)
+        assert isinstance(connector.strategy, expected_strategy)
+
+
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=8)
+def test_connector_devices_from_environment(*_):
+    """Test that the devices and number of nodes can be set through the environment variables."""
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3"}):
+        connector = _Connector(accelerator="cuda")
+        assert isinstance(connector.accelerator, CUDAAccelerator)
+        assert isinstance(connector.strategy, DDPStrategy)
+        assert len(connector._parallel_devices) == 2
+        assert connector._num_nodes_flag == 3

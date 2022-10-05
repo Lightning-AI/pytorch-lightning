@@ -24,9 +24,11 @@ from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
+from lightning_lite import LightningLite
+from lightning_lite.accelerators import CPUAccelerator
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import Strategy
+from lightning_lite.strategies import SingleDeviceStrategy, Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function

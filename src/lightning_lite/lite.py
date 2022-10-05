@@ -77,13 +77,6 @@ class LightningLite(ABC):
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
-        accelerator = os.getenv("LT_ACCELERATOR", accelerator)
-        strategy = os.getenv("LT_STRATEGY", strategy)
-        devices = os.getenv("LT_DEVICES", devices)
-        num_nodes = os.getenv("LT_NUM_NODES", num_nodes)
-        precision = os.getenv("LT_PRECISION", precision)
-        precision = int(precision) if precision in ("16", "32") else precision
-
         self._connector = _Connector(
             accelerator=accelerator,
             strategy=strategy,
@@ -100,7 +93,9 @@ class LightningLite(ABC):
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
 
-        if "LT_ACCELERATOR" in os.environ:
+        if _is_using_cli():
+            # when the CLI is used to launch the script, we need to set up the environment (init processes) here so
+            # that the user can immediately use all functionality in strategies
             self._strategy.setup_environment()
 
     @property
@@ -473,6 +468,10 @@ class LightningLite(ABC):
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+
+
+def _is_using_cli() -> bool:
+    return "LT_ACCELERATOR" in os.environ
 
 
 def _do_nothing(*_):
