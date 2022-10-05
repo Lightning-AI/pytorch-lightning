@@ -20,10 +20,11 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from lightning_lite.accelerators import TPUAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10, _TPU_AVAILABLE
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
 
 class RunIf:
@@ -112,7 +113,7 @@ class RunIf:
             reasons.append("unimplemented on Windows")
 
         if tpu:
-            conditions.append(not _TPU_AVAILABLE)
+            conditions.append(not TPUAccelerator.is_available())
             reasons.append("TPU")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True
