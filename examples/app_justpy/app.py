@@ -19,17 +19,16 @@ class Flow(LightningFlow):
 def render_fn(get_state: Callable) -> Callable:
     import justpy as jp
 
-    def my_click(self, *_):
+    async def my_click(self, msg):
         state = get_state()
-        old_counter = state.counter
         state.counter += 1
-        self.text = f"Click Me ! Old Counter: {old_counter} New Counter: {state.counter}"
+        msg.page.components[0].components[1].text = f"Counter: {state.counter}"
 
     def website():
-        wp = jp.WebPage()
-        d = jp.Div(text="Hello ! Click Me!")
-        d.on("click", my_click)
-        wp.add(d)
+        wp = jp.QuasarPage(dark=True)
+        d = jp.Div(classes="q-pa-md q-gutter-sm", a=wp)
+        jp.QBtn(color="primary", text="Click Me!", click=my_click, a=d)
+        jp.QBtn(color="primary", text="Counter: 0", a=d)
         return wp
 
     return website
