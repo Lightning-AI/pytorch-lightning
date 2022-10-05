@@ -16,7 +16,7 @@ import operator
 import platform
 import sys
 
-from lightning_utilities.core.imports import compare_version, module_available, package_available, RequirementCache
+from lightning_utilities.core.imports import compare_version, module_available, package_available
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
@@ -35,8 +35,6 @@ _HIVEMIND_AVAILABLE = package_available("hivemind")
 _HOROVOD_AVAILABLE = module_available("horovod.torch")
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-
 
 if _POPTORCH_AVAILABLE:
     import poptorch
