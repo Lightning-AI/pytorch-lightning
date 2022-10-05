@@ -29,8 +29,6 @@ from lightning_lite.utilities.imports import (  # noqa: F401
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
     _TORCH_GREATER_EQUAL_1_12,
-    _TPU_AVAILABLE,
-    _XLA_AVAILABLE,
 )
 from lightning_lite.utilities.rank_zero import (  # noqa: F401
     rank_zero_deprecation,

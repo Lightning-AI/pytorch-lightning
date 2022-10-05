@@ -225,8 +225,7 @@ def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning_lite.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_ipython_compatible_strategy_tpu(_, monkeypatch):
+def test_ipython_compatible_strategy_tpu(tpu_available, monkeypatch):
     monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
     connector = _Connector(accelerator="tpu")
     assert connector.strategy.launcher.is_interactive_compatible
@@ -258,13 +257,13 @@ def test_strategy_choice_multi_node_gpu(_, strategy, strategy_class, devices):
 
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
-def test_accelerator_cpu(*_):
+def test_accelerator_cpu(_):
     connector = _Connector(accelerator="cpu")
     assert isinstance(connector.accelerator, CPUAccelerator)
 
     with pytest.raises(
         RuntimeError,
-        match="CUDAAccelerator can not run on your system since the accelerator is not available.",
+        match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         _Connector(accelerator="cuda", devices=1)
 
@@ -587,23 +586,21 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
     assert connector.strategy.local_rank == 0
 
 
-@mock.patch("lightning_lite.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_unsupported_tpu_choice(*_):
-
+def test_unsupported_tpu_choice(tpu_available):
     with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         _Connector(accelerator="tpu", precision=64)
 
     # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or TPUSpawnStrategy
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
-        with pytest.warns(UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"):
-            _Connector(accelerator="tpu", precision=16, strategy="ddp")
+    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
+        UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
+    ):
+        _Connector(accelerator="tpu", precision=16, strategy="ddp")
 
 
 @mock.patch("lightning_lite.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
-@mock.patch("lightning_lite.accelerators.tpu.TPUAccelerator.is_available", return_value=False)
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_devices_auto_choice_cpu(*_):
+def test_devices_auto_choice_cpu(tpu_available, *_):
     connector = _Connector(accelerator="auto", devices="auto")
     assert isinstance(connector.accelerator, CPUAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)
@@ -681,9 +678,9 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 @mock.patch("lightning_lite.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
-@mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
 def test_gpu_accelerator_backend_choice_mps(*_):
     connector = _Connector(accelerator="gpu")
     assert connector._accelerator_flag == "mps"
