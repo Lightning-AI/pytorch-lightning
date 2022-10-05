@@ -86,7 +86,7 @@ class Steppable(Protocol):
         ...
 
 @runtime_checkable
-class Optimizable(Steppable):
+class Optimizable(Steppable, Protocol):
     """To structurally type ``optimizer``"""
 
     param_groups: List[Dict[Any, Any]]
