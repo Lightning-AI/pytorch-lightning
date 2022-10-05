@@ -17,16 +17,16 @@ class CollectibleGroup(Protocol):
 
 
 class Collective(ABC):
-    def __init__(self, instantiate_pg: bool = False, **pg_kwargs: Any) -> None:
-        self._group = None
-        self._pg_kwargs = pg_kwargs
-        if instantiate_pg:
+    def __init__(self, instantiate_group: bool = False, **group_kwargs: Any) -> None:
+        self._group: Optional[CollectibleGroup] = None
+        self._group_kwargs = group_kwargs
+        if instantiate_group:
             _ = self.group
 
     @property
-    def group(self) -> Any:
+    def group(self) -> CollectibleGroup:
         if self._group is None:
-            self._group = self.init_group(**self._pg_kwargs)
+            self._group = self.init_group(**self._group_kwargs)
         return self._group
 
     @property
