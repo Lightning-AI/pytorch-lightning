@@ -6,6 +6,7 @@ import time
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
 
 import requests
@@ -364,7 +365,11 @@ class HTTPQueue(BaseQueue):
         self.client.post(f"v1/{self.app_id}/{self.name}?action=push", data=value)
 
     def length(self):
-        val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
+        try:
+            val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
+        except Exception as e:
+            # TODO - Connection refused
+            raise e
         return int(val.text)
 
     @property
@@ -386,5 +391,5 @@ class HTTPQueue(BaseQueue):
 
 
 def debug_log_callback(message: str, *args: Any, **kwargs: Any) -> None:
-    if QUEUE_DEBUG_ENABLED or "QUEUE_DEBUG_ENABLED" in os.listdir(LIGHTNING_DIR):
+    if QUEUE_DEBUG_ENABLED or (Path(LIGHTNING_DIR) / "QUEUE_DEBUG_ENABLED").exists():
         logger.info(message, *args, **kwargs)

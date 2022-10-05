@@ -139,37 +139,27 @@ class TimeoutHTTPAdapter(HTTPAdapter):
         return super().send(request, **kwargs)
 
 
-def _http_method_logger_wrapper(name: str, func: Callable) -> Callable:
+def _http_method_logger_wrapper(func: Callable) -> Callable:
     """Returns the function decorated by a wrapper that logs the message using the `log_function` hook."""
 
     @wraps(func)
     def wrapped(self: "HTTPClient", *args: Any, **kwargs: Any) -> Any:
         self.log_function(
-            f"HTTP call from HTTPClient. Method: {name.upper()}, Base URL: {self.base_url}, Path: {args[0]}"
+            f"HTTPClient: Method: {func.__name__.upper()}, Base URL: {self.base_url}, Path: {args[0]}"
         )
         params = kwargs.get("query_params", {})
         if params:
             self.log_function(f"Params: {params}")
         resp: requests.Response = func(self, *args, **kwargs)
         self.log_function(f"Response Status Code: {resp.status_code}")
-
+        return resp
     return wrapped
 
 
-class _MethodsDebuLoggingWrapperMeta(type):
-    """This metaclass wraps all the non-private methods of the child class with :func:`_http_method_logger_wrapper`
-    so they log the request life cycle, depends on the debug level set."""
-
-    def __new__(mcs, name, bases, dct):
-        new_class = super().__new__(mcs, name, bases, dct)
-        for base in new_class.__mro__[1:-1]:
-            for key, value in base.__dict__.items():
-                if callable(value) and not key.startswith("_") and key != "log_function":
-                    setattr(new_class, key, _http_method_logger_wrapper(key, value))
-        return new_class
-
-
-class HTTPClient(metaclass=_MethodsDebuLoggingWrapperMeta):
+class HTTPClient:
+    """
+    TODO document about the log behaviour
+    """
     def __init__(self, base_url: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
         self.base_url = base_url or HTTP_QUEUE_URL
         retry_strategy = Retry(
@@ -186,14 +176,17 @@ class HTTPClient(metaclass=_MethodsDebuLoggingWrapperMeta):
         self.client: requests.Session = sess
         self.log_function = log_callback or self.log_function
 
+    @_http_method_logger_wrapper
     def get(self, path: str):
         url = urljoin(self.base_url, path)
         return self.client.get(url)
 
+    @_http_method_logger_wrapper
     def post(self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None):
         url = urljoin(self.base_url, path) + urlencode(query_params or {})
         return self.client.post(url, data=data)
 
+    @_http_method_logger_wrapper
     def delete(self, path: str):
         url = urljoin(self.base_url, path)
         return self.client.delete(url)
