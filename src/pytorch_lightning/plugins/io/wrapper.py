@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Any, Dict, Optional
 
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO
 
 
 class _WrappingCheckpointIO(CheckpointIO):

@@ -1,18 +1,19 @@
 import os
 from pathlib import Path
 from typing import Any, Dict, Union
+from unittest.mock import Mock
 
 import pytest
 import torch
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restore_checkpoint_after_pre_setup_default():
@@ -25,6 +26,15 @@ def test_restore_checkpoint_after_pre_setup_default():
 
 def test_availability():
     assert CPUAccelerator.is_available()
+
+
+@RunIf(psutil=True)
+def test_get_device_stats(tmpdir):
+    gpu_stats = CPUAccelerator().get_device_stats(Mock())
+    fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
+
+    for f in fields:
+        assert any(f in h for h in gpu_stats.keys())
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])
@@ -67,10 +77,3 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
     for func in (trainer.test, trainer.validate, trainer.predict):
         plugin.setup_called = False
         func(model, ckpt_path=checkpoint_path)
-
-
-@pytest.mark.parametrize("devices", ([3], -1))
-def test_invalid_devices_with_cpu_accelerator(devices):
-    """Test invalid device flag raises MisconfigurationException with CPUAccelerator."""
-    with pytest.raises(MisconfigurationException, match="should be an int > 0"):
-        Trainer(accelerator="cpu", devices=devices)

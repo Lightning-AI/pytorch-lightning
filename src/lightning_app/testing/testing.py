@@ -1,14 +1,13 @@
 import asyncio
 import json
-import logging
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
-import traceback
 from contextlib import contextmanager
+from multiprocessing import Process
 from subprocess import Popen
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Type
@@ -28,6 +27,7 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
+from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import _configure_session, LightningClient
 from lightning_app.utilities.proxies import ProxyWorkRun
 
@@ -36,7 +36,48 @@ if _is_playwright_available():
     from playwright.sync_api import HttpCredentials, sync_playwright
 
 
-_logger = logging.getLogger(__name__)
+def _on_error_callback(ws_app, *_):
+    ws_app.close()
+
+
+def print_logs(app_id: str):
+    client = LightningClient()
+    project = _get_project(client)
+
+    works = client.lightningwork_service_list_lightningwork(
+        project_id=project.project_id,
+        app_id=app_id,
+    ).lightningworks
+    component_names = ["flow"] + [w.name for w in works]
+
+    rich_colors = list(ANSI_COLOR_NAMES)
+    colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
+
+    max_length = max(len(c.replace("root.", "")) for c in component_names)
+    identifiers = []
+
+    print("################### PRINTING LOGS ###################")
+
+    logs_api_client = _LightningLogsSocketAPI(client.api_client)
+
+    while True:
+        gen = _app_logs_reader(
+            logs_api_client=logs_api_client,
+            project_id=project.project_id,
+            app_id=app_id,
+            component_names=component_names,
+            follow=False,
+            on_error_callback=_on_error_callback,
+        )
+        for log_event in gen:
+            message = log_event.message
+            identifier = f"{log_event.timestamp}{log_event.message}"
+            if identifier not in identifiers:
+                date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
+                identifiers.append(identifier)
+                color = colors[log_event.component_name]
+                padding = (max_length - len(log_event.component_name)) * " "
+                print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
 
 
 class LightningTestApp(LightningApp):
@@ -167,7 +208,9 @@ def run_cli(args) -> Generator:
 
 @requires("playwright")
 @contextmanager
-def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str] = []) -> Generator:
+def run_app_in_cloud(
+    app_folder: str, app_name: str = "app.py", extra_args: List[str] = [], debug: bool = True
+) -> Generator:
     """This utility is used to automate testing e2e application with lightning_app.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
@@ -178,11 +221,26 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     # 2. Create the right application name.
     basename = app_folder.split("/")[-1]
     PR_NUMBER = os.getenv("PR_NUMBER", None)
+
     TEST_APP_NAME = os.getenv("TEST_APP_NAME", basename)
+    os.environ["TEST_APP_NAME"] = TEST_APP_NAME
+
     if PR_NUMBER:
         name = f"test-{PR_NUMBER}-{TEST_APP_NAME}-" + str(int(time.time()))
     else:
         name = f"test-{TEST_APP_NAME}-" + str(int(time.time()))
+
+    os.environ["LIGHTNING_APP_NAME"] = name
+
+    url = Config.url
+    if url.endswith("/"):
+        url = url[:-1]
+    payload = {"apiKey": Config.api_key, "username": Config.username}
+    res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
+    if "token" not in res.json():
+        raise Exception("You haven't properly setup your environment variables.")
+
+    token = res.json()["token"]
 
     # 3. Disconnect from the App if any.
     Popen("lightning disconnect", shell=True).wait()
@@ -191,6 +249,8 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
+        if debug:
+            env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
         process = Popen(
@@ -223,7 +283,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
     # 6. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
-        payload = {"apiKey": Config.api_key, "username": Config.username, "duration": "120000"}
         context = browser.new_context(
             # Eventually this will need to be deleted
             http_credentials=HttpCredentials(
@@ -233,11 +292,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             record_har_path=Config.har_location,
         )
         admin_page = context.new_page()
-        url = Config.url
-        if url.endswith("/"):
-            url = url[:-1]
-        res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
-        token = res.json()["token"]
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")
         print(f"The Lightning App user id is: {Config.id}")
@@ -259,7 +313,22 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             """,
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
-        admin_page.goto(f"{Config.url}/{Config.username}/apps")
+        admin_page.goto(f"{Config.url}/{Config.username}/apps", timeout=60 * 1000)
+
+        # Closing the Complete your profile dialog
+        try:
+            dialog = admin_page.locator("text=Complete your profile")
+            dialog.wait_for(timeout=10 * 1000, state="visible")
+            print("'Complete your profile' dialog visible, closing it.")
+            admin_page.locator('input[name="firstName"]').fill("first")
+            admin_page.locator('input[name="lastName"]').fill("last")
+            admin_page.locator('input[name="email"]').fill("e2e.test.admin@lightning.ai")
+            admin_page.locator('input[name="organization"]').fill("Lightning AI")
+            button = admin_page.locator('button:has-text("Confirm")')
+            button.wait_for(timeout=3 * 1000)
+            button.click()
+        except playwright._impl._api_types.TimeoutError:
+            print("'Complete your profile' dialog not visible, skipping.")
 
         # Closing the Create Project dialog.
         try:
@@ -275,15 +344,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             print("'Create Project' dialog not visible, skipping.")
 
         admin_page.locator(f"text={name}").click()
-        admin_page.evaluate(
-            """data => {
-            window.localStorage.setItem('gridUserId', data[0]);
-            window.localStorage.setItem('gridUserKey', data[1]);
-            window.localStorage.setItem('gridUserToken', data[2]);
-        }
-        """,
-            [Config.id, Config.key, token],
-        )
         sleep(5)
         # Scroll to the bottom of the page. Used to capture all logs.
         admin_page.evaluate(
@@ -295,6 +355,27 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             """
         )
 
+        client = LightningClient()
+        project = _get_project(client)
+
+        lightning_apps = [
+            app
+            for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            ).lightningapps
+            if app.name == name
+        ]
+
+        if not lightning_apps:
+            return True
+
+        assert len(lightning_apps) == 1
+        app_id = lightning_apps[0].id
+
+        if debug:
+            process = Process(target=print_logs, kwargs={"app_id": app_id})
+            process.start()
+
         while True:
             try:
                 with admin_page.context.expect_page() as page_catcher:
@@ -305,15 +386,28 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
-        client = LightningClient()
-        project = _get_project(client)
-        identifiers = []
-        rich_colors = list(ANSI_COLOR_NAMES)
+        lightning_apps = [
+            app
+            for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            ).lightningapps
+            if app.name == name
+        ]
+
+        app_url = lightning_apps[0].status.url
+
+        while True:
+            sleep(1)
+            resp = requests.get(app_url + "/openapi.json")
+            if resp.status_code == 200:
+                break
+
+        print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
+
+        logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
         def fetch_logs(component_names: Optional[List[str]] = None) -> Generator:
             """This methods creates websockets connection in threads and returns the logs to the main thread."""
-            app_id = admin_page.url.split("/")[-1]
-
             if not component_names:
                 works = client.lightningwork_service_list_lightningwork(
                     project_id=project.project_id,
@@ -321,65 +415,27 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py", extra_args: [str
                 ).lightningworks
                 component_names = ["flow"] + [w.name for w in works]
 
-            def on_error_callback(ws_app, *_):
-                print(traceback.print_exc())
-                ws_app.close()
-
-            colors = {c: rich_colors[i + 1] for i, c in enumerate(component_names)}
             gen = _app_logs_reader(
-                client=client,
+                logs_api_client=logs_api_client,
                 project_id=project.project_id,
                 app_id=app_id,
                 component_names=component_names,
                 follow=False,
-                on_error_callback=on_error_callback,
+                on_error_callback=_on_error_callback,
             )
-            max_length = max(len(c.replace("root.", "")) for c in component_names)
             for log_event in gen:
-                message = log_event.message
-                identifier = f"{log_event.timestamp}{log_event.message}"
-                if identifier not in identifiers:
-                    date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-                    identifiers.append(identifier)
-                    color = colors[log_event.component_name]
-                    padding = (max_length - len(log_event.component_name)) * " "
-                    print(f"[{color}]{log_event.component_name}{padding}[/{color}] {date} {message}")
-                yield message
-
-        # 7. Print your application ID
-        print(
-            f"The Lightning Id Name : [bold magenta]{str(view_page.url).split('.')[0].split('//')[-1]}[/bold magenta]"
-        )
+                yield log_event.message
 
         try:
             yield admin_page, view_page, fetch_logs, name
         except KeyboardInterrupt:
             pass
         finally:
-            print("##################################################")
-            button = admin_page.locator('[data-cy="stop"]')
-            try:
-                button.wait_for(timeout=3 * 1000)
-                button.click()
-            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-                pass
+            if debug:
+                process.kill()
+
             context.close()
             browser.close()
-
-            list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
-
-            for lightningapp in list_lightningapps.lightningapps:
-                if lightningapp.name != name:
-                    continue
-                try:
-                    res = client.lightningapp_instance_service_delete_lightningapp_instance(
-                        project_id=project.project_id,
-                        id=lightningapp.id,
-                    )
-                    assert res == {}
-                except ApiException as e:
-                    print(f"Failed to delete {lightningapp.name}. Exception {e}")
-
             Popen("lightning disconnect", shell=True).wait()
 
 
@@ -420,7 +476,7 @@ def delete_cloud_lightning_apps():
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
-    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
     print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
 

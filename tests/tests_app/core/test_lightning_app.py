@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle
+from re import escape
 from time import sleep
 from unittest import mock
 from unittest.mock import ANY
@@ -10,7 +11,7 @@ from deepdiff import Delta
 from pympler import asizeof
 from tests_app import _PROJECT_ROOT
 
-from lightning_app import LightningApp, LightningFlow, LightningWork  # F401
+from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
 from lightning_app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
@@ -20,15 +21,40 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue, SingleProcessQueue
 from lightning_app.frontend import StreamlitFrontend
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import RunIf
 from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.app_helpers import affiliation
 from lightning_app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
+from lightning_app.utilities.packaging import cloud_compute
 from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.warnings import LightningFlowWarning
 
 logger = logging.getLogger()
+
+
+def test_lightning_app_requires_root_run_method():
+    """Test that a useful exception is raised if the root flow does not override the run method."""
+
+    with pytest.raises(
+        TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
+    ):
+        LightningApp(LightningFlow())
+
+    class FlowWithoutRun(LightningFlow):
+        pass
+
+    with pytest.raises(
+        TypeError, match=escape("The root flow passed to `LightningApp` does not override the `run()` method")
+    ):
+        LightningApp(FlowWithoutRun())
+
+    class FlowWithRun(LightningFlow):
+        def run(self):
+            pass
+
+    LightningApp(FlowWithRun())  # no error
 
 
 class B1(LightningFlow):
@@ -230,7 +256,7 @@ def test_nested_component(runtime_cls):
     assert app.root.b.c.d.e.w_e.c == 1
 
 
-class WorkCC(LightningWork):
+class WorkCCC(LightningWork):
     def run(self):
         pass
 
@@ -238,7 +264,7 @@ class WorkCC(LightningWork):
 class CC(LightningFlow):
     def __init__(self):
         super().__init__()
-        self.work_cc = WorkCC()
+        self.work_cc = WorkCCC()
 
     def run(self):
         pass
@@ -694,7 +720,7 @@ class WorkDD(LightningWork):
             self.counter += 1
 
 
-class FlowCC(LightningFlow):
+class FlowCCTolerance(LightningFlow):
     def __init__(self):
         super().__init__()
         self.work = WorkDD()
@@ -719,7 +745,7 @@ class FaultToleranceLightningTestApp(LightningTestApp):
 # TODO (tchaton) Resolve this test with Resumable App.
 @RunIf(skip_windows=True)
 def test_fault_tolerance_work():
-    app = FaultToleranceLightningTestApp(FlowCC())
+    app = FaultToleranceLightningTestApp(FlowCCTolerance())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.counter == 2
 
@@ -927,8 +953,8 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 5904
-    assert app.root._state_sizes[20] <= 23736
+    assert app.root._state_sizes[0] <= 6952
+    assert app.root._state_sizes[20] <= 24896
 
 
 class FlowUpdated(LightningFlow):
@@ -955,3 +981,131 @@ def test_non_updated_flow(caplog):
         MultiProcessRuntime(app, start_server=False).dispatch()
     assert caplog.messages == ["Hello World"]
     assert app.counter == 3
+
+
+def test_debug_mode_logging():
+    """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and
+    cleanup once finished."""
+
+    from lightning_app.core.app import _console
+
+    app = LightningApp(A4(), debug=True)
+    assert _console.level == logging.DEBUG
+    assert os.getenv("LIGHTNING_DEBUG") == "2"
+
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+    assert os.getenv("LIGHTNING_DEBUG") is None
+    assert _console.level == logging.INFO
+
+    app = LightningApp(A4())
+    assert _console.level == logging.INFO
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkPath(LightningWork):
+    def __init__(self):
+        super().__init__()
+        self.path = None
+
+    def run(self):
+        self.path = Path(__file__)
+
+
+class FlowPath(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkPath()
+
+    def run(self):
+        self.w.run()
+
+
+class TestLightningHasUpdatedApp(LightningApp):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.counter = 0
+
+    def run_once(self):
+        res = super().run_once()
+
+        if self.root.w.has_succeeded:
+            self.counter += 1
+
+        # TODO: Resolve bug where it should work with self.counter == 2
+        if self.counter > 5:
+            assert not self._has_updated
+            return True
+        return res
+
+
+def test_lightning_app_has_updated():
+    app = TestLightningHasUpdatedApp(FlowPath())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkCC(LightningWork):
+    def run(self):
+        pass
+
+
+class FlowCC(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.cloud_compute = CloudCompute(name="gpu", _internal_id="a")
+        self.work_a = WorkCC(cloud_compute=self.cloud_compute)
+        self.work_b = WorkCC(cloud_compute=self.cloud_compute)
+        self.work_c = WorkCC()
+        assert self.work_a.cloud_compute._internal_id == self.work_b.cloud_compute._internal_id
+
+    def run(self):
+        self.work_d = WorkCC()
+
+
+class FlowWrapper(LightningFlow):
+    def __init__(self, flow):
+        super().__init__()
+        self.w = flow
+
+
+def test_cloud_compute_binding():
+
+    cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
+
+    assert cloud_compute._CLOUD_COMPUTE_STORE == {}
+    flow = FlowCC()
+    assert len(cloud_compute._CLOUD_COMPUTE_STORE) == 2
+    assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.work_c"]
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.work_a", "root.work_b"]
+
+    wrapper = FlowWrapper(flow)
+    assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.w.work_c"]
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.work_a", "root.w.work_b"]
+
+    _ = FlowWrapper(wrapper)
+    assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.w.w.work_c"]
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.w.work_a", "root.w.w.work_b"]
+
+    assert "__cloud_compute__" == flow.state["vars"]["cloud_compute"]["type"]
+    assert "__cloud_compute__" == flow.work_a.state["vars"]["_cloud_compute"]["type"]
+    assert "__cloud_compute__" == flow.work_b.state["vars"]["_cloud_compute"]["type"]
+    assert "__cloud_compute__" == flow.work_c.state["vars"]["_cloud_compute"]["type"]
+    work_a_id = flow.work_a.state["vars"]["_cloud_compute"]["_internal_id"]
+    work_b_id = flow.work_b.state["vars"]["_cloud_compute"]["_internal_id"]
+    work_c_id = flow.work_c.state["vars"]["_cloud_compute"]["_internal_id"]
+    assert work_a_id == work_b_id
+    assert work_a_id != work_c_id
+    assert work_c_id == "default"
+
+    flow.work_a.cloud_compute = CloudCompute(name="something_else")
+    assert cloud_compute._CLOUD_COMPUTE_STORE["a"].component_names == ["root.w.w.work_b"]
+
+    flow.set_state(flow.state)
+    assert isinstance(flow.cloud_compute, CloudCompute)
+    assert isinstance(flow.work_a.cloud_compute, CloudCompute)
+    assert isinstance(flow.work_c.cloud_compute, CloudCompute)
+
+    cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = False
+
+    with pytest.raises(Exception, match="A Cloud Compute can be assigned only to a single Work"):
+        FlowCC()

@@ -17,10 +17,11 @@ from copy import deepcopy
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from torch.utils.data.dataloader import DataLoader
 
+from lightning_lite.utilities.data import has_len
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _patch_dataloader_get_iterators,
@@ -29,7 +30,6 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
     patch_dataloader_iterator,
 )
-from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -276,7 +276,11 @@ class DataFetcher(AbstractDataFetcher):
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         start_output = self.on_fetch_start()
-        batch = next(iterator)
+        try:
+            batch = next(iterator)
+        except StopIteration as e:
+            self._stop_profiler()
+            raise e
         self.fetched += 1
         if not self.prefetch_batches and self._has_len:
             # when we don't prefetch but the dataloader is sized, we use the length for `done`

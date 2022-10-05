@@ -19,12 +19,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -68,21 +69,12 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
-    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
-
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
         assert self.lightning_module
         if self.model is not None and self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
-
-        return self._reinit_optimizers_with_oss(optimizers)
+        optimizers = [o._optimizer if isinstance(o, LightningOptimizer) else o for o in optimizers]
+        return _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
 
     @contextmanager
     def block_backward_sync(self) -> Generator:

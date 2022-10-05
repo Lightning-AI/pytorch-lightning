@@ -17,6 +17,7 @@ import sys
 from collections import ChainMap, OrderedDict
 from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
@@ -28,7 +29,6 @@ from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -56,7 +56,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results = _ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
         self._logged_outputs: List[_OUT_DICT] = []
-        self._max_batches: List[int] = []
+        self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
         self._data_fetcher: Optional[AbstractDataFetcher] = None
 
@@ -213,7 +213,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.cpu()
         self.epoch_loop.teardown()
 
-    def _get_max_batches(self) -> List[int]:
+    def _get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches

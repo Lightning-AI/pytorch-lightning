@@ -27,15 +27,13 @@ from unittest.mock import ANY
 import numpy as np
 import pytest
 import torch
-import torch.distributed as dist
-import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, SequentialSampler
 from torch.utils.data._utils.worker import _generate_state, get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
-import tests_pytorch.helpers.utils as tutils
-from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -58,6 +56,7 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBat
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_12
+from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
@@ -249,15 +248,9 @@ def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     assert torch.equal(batches_restart[2]["data"], batches[4]["data"])
 
 
-def _setup_ddp(rank, worldsize):
-    os.environ["MASTER_ADDR"] = "localhost"
-
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=worldsize)
-
-
-def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
-    _setup_ddp(rank, worldsize)
+def fast_forward_sampler_with_distributed_sampler_fn(strategy):
+    rank = strategy.local_rank
+    worldsize = strategy.num_processes
 
     initial_seed = seed_everything(42)
 
@@ -315,10 +308,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 
 @RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler():
-    """Make sure result logging works with DDP."""
-    tutils.set_random_main_port()
-    worldsize = 2
-    mp.spawn(_test_fast_forward_sampler_with_distributed_sampler, args=(worldsize,), nprocs=worldsize)
+    spawn_launch(fast_forward_sampler_with_distributed_sampler_fn, [torch.device("cpu")] * 2)
 
 
 class MetaLearningDataset(IterableDataset):
@@ -456,9 +446,9 @@ class ClassificationDataset(Dataset):
         return len(self.inputs)
 
 
-def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(rank, worldsize):
-    if worldsize > 1:
-        _setup_ddp(rank, worldsize)
+def fast_forward_sampler_iterative_dataset_fn(strategy):
+    rank = strategy.local_rank
+    worldsize = strategy.num_processes
 
     def all_gather(tensor, world_size):
         tensor_list = [torch.zeros_like(tensor, dtype=torch.int64) for _ in range(world_size)]
@@ -584,18 +574,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(slow=True)
 def test_fast_forward_sampler_iterative_dataset():
-    _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
+    spawn_launch(fast_forward_sampler_iterative_dataset_fn, [torch.device("cpu")])
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
-    """Make sure result logging works with DDP."""
-    tutils.set_random_main_port()
-    worldsize = 2
-    mp.spawn(
-        _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset, args=(worldsize,), nprocs=worldsize
-    )
+    spawn_launch(fast_forward_sampler_iterative_dataset_fn, [torch.device("cpu")] * 2)
 
 
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):

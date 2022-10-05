@@ -59,9 +59,9 @@ To train a model using multiple nodes, do the following:
         #!/bin/bash -l
 
         # SLURM SUBMIT SCRIPT
-        #SBATCH --nodes=4
+        #SBATCH --nodes=4             # This needs to match Trainer(num_nodes=...)
         #SBATCH --gres=gpu:8
-        #SBATCH --ntasks-per-node=8
+        #SBATCH --ntasks-per-node=8   # This needs to match Trainer(devices=...)
         #SBATCH --mem=0
         #SBATCH --time=0-02:00:00
 
@@ -112,6 +112,18 @@ To get this behavior make sure to add the correct signal to your SLURM script
 
     # 90 seconds before training ends
     SBATCH --signal=SIGUSR1@90
+
+You can change this signal if your environment requires the use of a different one, for example
+
+.. code-block:: bash
+
+    #SBATCH --signal=SIGHUP@90
+
+Then, when you make your trainer, pass the `requeue_signal` option to the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
+
+.. code-block:: python
+
+    trainer = Trainer(plugins=[SLURMEnvironment(requeue_signal=signal.SIGHUP)])
 
 If auto-resubmit is not desired, it can be turned off in the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
 
@@ -183,11 +195,39 @@ See also the multi-node examples
 The other option is that you generate scripts on your own via a bash command or use our
 :doc:`native solution <../clouds/cloud_training>`.
 
+
+----
+
+***************
+Troubleshooting
+***************
+
+**The Trainer is stuck initializing at startup, what is causing this?**
+
+You are seeing a message like this in the logs but nothing happens:
+
+.. code-block::
+
+    Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+
+
+The most likely reasons and how to fix it:
+
+- You forgot to run the ``python train.py`` command with ``srun``:
+  Please have a look at the SLURM template script above which includes the ``srun`` at the botton of the script.
+
+- The number of nodes or number of devices per node is configured incorrectly:
+  There are two parametres in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
+  The numbers there need to match what is configured in your Trainer in the code: ``Trainer(num_nodes=X, devices=Y)``.
+  If you change the numbers, update them in BOTH places.
+
+
 ----
 
 ********
 Get help
 ********
+
 Setting up a cluster for distributed training is not trivial. Lightning offers lightning-grid which allows you to configure a cluster easily and run experiments via the CLI and web UI.
 
 Try it out for free today:

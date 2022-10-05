@@ -55,7 +55,7 @@ def test_quick_start_example_cloud() -> None:
 
         def click_gradio_demo(*_, **__):
             button = view_page.locator('button:has-text("Interactive demo")')
-            button.wait_for(timeout=3 * 1000)
+            button.wait_for(timeout=5 * 1000)
             button.click()
             return True
 
