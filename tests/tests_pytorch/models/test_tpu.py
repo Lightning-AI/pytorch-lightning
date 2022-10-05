@@ -29,12 +29,8 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-
-if _TPU_AVAILABLE:
-    import torch_xla
 
 
 class SerialLoaderBoringModel(BoringModel):
@@ -46,6 +42,7 @@ class SerialLoaderBoringModel(BoringModel):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -65,6 +62,7 @@ def test_model_tpu_devices_1(tmpdir):
 
 @pytest.mark.parametrize("tpu_core", [1, 5])
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -80,10 +78,13 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
+    import torch_xla
+
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -103,6 +104,7 @@ def test_model_tpu_devices_8(tmpdir):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -123,6 +125,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 
 @pytest.mark.parametrize("tpu_core", [1, 5])
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -139,10 +142,13 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
+    import torch_xla
+
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
@@ -163,6 +169,7 @@ def test_model_16bit_tpu_devices_8(tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works."""
 
@@ -189,6 +196,7 @@ def test_model_tpu_early_stop(tmpdir):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
     tutils.reset_seed()
@@ -208,6 +216,7 @@ def test_tpu_grad_norm(tmpdir):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_clip_grad_by_value(tmpdir):
     """Test if clip_gradients by value works on TPU."""
     tutils.reset_seed()
@@ -228,6 +237,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU."""
     tutils.reset_seed()
@@ -237,23 +247,22 @@ def test_dataloaders_passed_to_fit(tmpdir):
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
 
-@RunIf(tpu=True)
 @pytest.mark.parametrize("tpu_cores", [[1, 8], "9, ", [9], [0], 2, 10])
-def test_tpu_misconfiguration(tpu_cores):
+def test_tpu_misconfiguration(tpu_cores, tpu_available):
     with pytest.raises(TypeError, match="`tpu_cores` can only be"):
         Trainer(accelerator="tpu", devices=tpu_cores)
 
 
-@pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
-def test_exception_when_no_tpu_found():
+@pytest.mark.skipif(TPUAccelerator.is_available(), reason="test requires missing TPU")
+def test_exception_when_no_tpu_found(xla_available):
     """Test if exception is thrown when xla devices are not available."""
-
-    with pytest.raises(MisconfigurationException, match="TPUAccelerator can not run on your system"):
+    with pytest.raises(MisconfigurationException, match="TPUAccelerator` can not run on your system"):
         Trainer(accelerator="tpu", devices=8)
 
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_set_when_using_tpu(tpu_cores):
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
     assert isinstance(Trainer(accelerator="tpu", devices=tpu_cores).accelerator, TPUAccelerator)
@@ -264,6 +273,7 @@ def test_accelerator_set_when_using_tpu(tpu_cores):
     [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
 )
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_cores_with_argparse(cli_args, expected):
     """Test passing tpu_cores in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
@@ -278,28 +288,24 @@ def test_tpu_cores_with_argparse(cli_args, expected):
         assert Trainer.from_argparse_args(args)
 
 
-@RunIf(tpu=True, standalone=True)
-@pytest.mark.parametrize("clip_val", [10])
+@RunIf(min_torch="1.10")
+@pytest.mark.parametrize("clip_val", [0, 10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
-def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
-    """Ensure that clip gradients is only called if the value is greater than 0.
-
-    TODO: Fix (test fails with parametrize)
-    """
-    tutils.reset_seed()
-    trainer_options = dict(
+def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
+    """Ensure that clip gradients is only called if the value is greater than 0."""
+    # TODO: shouldn't be in the TPU file
+    model = BoringModel()
+    trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=1,
-        accelerator="tpu",
         devices=1,
         precision=16,
         limit_train_batches=4,
-        limit_val_batches=4,
+        limit_val_batches=0,
         gradient_clip_val=clip_val,
     )
-    model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, with_hpc=False)
+    trainer.fit(model)
 
     if clip_val > 0:
         mock_clip_grad_norm.assert_called()
@@ -308,6 +314,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_if_test_works_with_checkpoint_false(tmpdir):
     """Ensure that model trains properly when `enable_checkpointing` is set to False."""
 
@@ -349,12 +356,14 @@ def tpu_sync_dist_fn(strategy):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation."""
     xla_launch(tpu_sync_dist_fn)
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_debug_mode(tmpdir):
     """Test if debug mode works on TPU."""
 
@@ -382,6 +391,7 @@ def test_tpu_debug_mode(tmpdir):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_host_world_size(tmpdir):
     """Test Host World size env setup on TPU."""
 

@@ -292,6 +292,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             and self.batch_progress.current.ready  # did start
         ):
+            assert isinstance(trainer.train_dataloader, CombinedLoader)
             loader: CombinedLoader = trainer.train_dataloader
             state = loader.state_dict(has_completed=self._has_completed())
             if state:

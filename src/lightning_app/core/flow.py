@@ -14,6 +14,7 @@ from lightning_app.utilities.app_helpers import _is_json_serializable, _Lightnin
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
+from lightning_app.utilities.packaging.cloud_compute import _maybe_create_cloud_compute, CloudCompute
 
 
 class LightningFlow:
@@ -145,6 +146,8 @@ class LightningFlow:
                 # Attach the backend to the flow and its children work.
                 if self._backend:
                     LightningFlow._attach_backend(value, self._backend)
+                for work in value.works():
+                    work._register_cloud_compute()
 
             elif isinstance(value, LightningWork):
                 self._works.add(name)
@@ -153,6 +156,7 @@ class LightningFlow:
                     self._state.remove(name)
                 if self._backend:
                     self._backend._wrap_run_method(_LightningAppRef().get_current(), value)
+                value._register_cloud_compute()
 
             elif isinstance(value, (Dict, List)):
                 value._backend = self._backend
@@ -175,6 +179,9 @@ class LightningFlow:
             elif isinstance(value, Drive):
                 value = deepcopy(value)
                 value.component_name = self.name
+                self._state.add(name)
+
+            elif isinstance(value, CloudCompute):
                 self._state.add(name)
 
             elif _is_json_serializable(value):
@@ -320,6 +327,8 @@ class LightningFlow:
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
+            if isinstance(v, Dict):
+                v = _maybe_create_cloud_compute(v)
             setattr(self, k, v)
         self._changes = provided_state["changes"]
         self._calls.update(provided_state["calls"])
