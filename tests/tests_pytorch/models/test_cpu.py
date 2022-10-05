@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import torch
 
@@ -25,7 +26,8 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-def test_cpu_slurm_save_load(tmpdir):
+@mock.patch("lightning_lite.plugins.environments.slurm_environment.SLURMEnvironment.detect", return_value=True)
+def test_cpu_slurm_save_load(_, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     model = BoringModel()
 
