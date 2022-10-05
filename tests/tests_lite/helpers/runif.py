@@ -20,8 +20,8 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.accelerators import TPUAccelerator
+from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
