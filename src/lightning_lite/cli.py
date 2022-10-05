@@ -1,12 +1,13 @@
 import os
 from argparse import ArgumentParser, Namespace
+from typing import Any, Dict, List, Tuple
 
 import torch.distributed.run as torchrun
 
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 
 
-def _parse_args():
+def _parse_args() -> Tuple[Namespace, List[str]]:
     parser = ArgumentParser()
     parser.add_argument("script", type=str, help="Path to the Python script with Lightning Lite inside.")
     parser.add_argument(
@@ -74,7 +75,7 @@ def _parse_args():
     return args, script_args
 
 
-def _set_env_variables(args: Namespace):
+def _set_env_variables(args: Namespace) -> None:
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
@@ -95,7 +96,7 @@ def _get_num_devices(accelerator: str, devices: str) -> int:
     return len(devices) if devices is not None else 0
 
 
-def _torchrun_launch(args, script_args):
+def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     if args.strategy == "dp":
         num_devices = 1
     else:
@@ -114,7 +115,7 @@ def _torchrun_launch(args, script_args):
     torchrun.main(torchrun_args)
 
 
-def main():
+def main() -> None:
     args, script_args = _parse_args()
     _set_env_variables(args)
     _torchrun_launch(args, script_args)

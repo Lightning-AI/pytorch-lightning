@@ -473,6 +473,7 @@ def test_launch_without_function():
 
 def test_launch_with_function():
     """Test the various ways `LightningLite.launch(function)` can be called."""
+
     def fn_without_args():
         pass
 

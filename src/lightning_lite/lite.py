@@ -373,14 +373,14 @@ class LightningLite(ABC):
         """
         return self._strategy.load_checkpoint(filepath)
 
-    def launch(self, function: Optional[Callable[["LightningLite", ...], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Optional[Callable[["LightningLite"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
         function = _do_nothing if function is None else function
         if not inspect.signature(function).parameters:
             raise TypeError(
                 "The function passed to `Lite.launch()` needs to take at least one argument. The launcher will pass"
                 " in the `LightningLite` object so you can use it inside the function."
             )
-        function = partial(self._function_with_strategy_setup, function)
+        function = partial(self._run_with_setup, function)
         args = [self, *args]
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(function, *args, **kwargs)
@@ -407,18 +407,13 @@ class LightningLite(ABC):
         else:
             return run_method(*args, **kwargs)
 
-    def _run_with_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
         with self._strategy.module_sharded_context(), _replace_dunder_methods(
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):
-            return run_method(*args, **kwargs)
-
-    def _function_with_strategy_setup(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._strategy.setup_environment()
-        with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
-            return function(*args, **kwargs)
+            return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters()).device
@@ -480,5 +475,5 @@ def _is_using_cli() -> bool:
     return "LT_ACCELERATOR" in os.environ
 
 
-def _do_nothing(*_):
+def _do_nothing(*_: Any) -> None:
     pass
