@@ -4,14 +4,24 @@ from typing import Any, List, Optional
 
 import torch
 from torch.distributed import ReduceOp
+from typing_extensions import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class CollectibleGroup(Protocol):
+    def size(self) -> int:
+        ...
+
+    def rank(self) -> int:
+        ...
 
 
 class Collective(ABC):
-    def __init__(self, group: Optional[Any] = None, instantiate_pg: bool = False, **pg_kwargs: Any) -> None:
-        self._group = group
+    def __init__(self, instantiate_pg: bool = False, **pg_kwargs: Any) -> None:
+        self._group = None
         self._pg_kwargs = pg_kwargs
-        if self._group is None and instantiate_pg:
-            self._group = self.init_group(**self._pg_kwargs)
+        if instantiate_pg:
+            _ = self.group
 
     @property
     def group(self) -> Any:
