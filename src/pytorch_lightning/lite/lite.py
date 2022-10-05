@@ -18,6 +18,7 @@ from typing import List, Optional, Tuple, Union
 from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 from lightning_lite.connector import _PLUGIN_INPUT as _LITE_PLUGIN_INPUT
+from lightning_lite.connector import _PRECISION_INPUT
 from lightning_lite.lite import LightningLite as _NewLightningLite
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
@@ -96,7 +97,7 @@ class LightningLite(_NewLightningLite, ABC):
         strategy: Optional[Union[str, PLStrategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PL_PLUGIN_INPUT, List[_PL_PLUGIN_INPUT]]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
@@ -284,13 +285,17 @@ def _to_lite_precision_plugin(plugin: Optional[PLPrecisionPlugin]) -> LitePrecis
         return LitePrecision()
 
     if type(plugin) is PLNativeMixedPrecisionPlugin:
-        return LiteNativeMixedPrecision(precision=plugin.precision, device=plugin.device, scaler=plugin.scaler)
+        return LiteNativeMixedPrecision(
+            precision=plugin.precision, device=plugin.device, scaler=plugin.scaler  # type: ignore[arg-type]
+        )
 
     if type(plugin) is PLDoublePrecisionPlugin:
         return LiteDoublePrecision()
 
     if type(plugin) is PLDeepSpeedPrecisionPlugin:
-        return LiteDeepSpeedPrecision(precision=plugin.precision, amp_type=plugin.amp_type, amp_level=plugin.amp_level)
+        return LiteDeepSpeedPrecision(
+            precision=plugin.precision, amp_type=plugin.amp_type, amp_level=plugin.amp_level  # type: ignore[arg-type]
+        )
 
     if type(plugin) is PLTPUPrecisionPlugin:
         return LiteTPUPrecision()

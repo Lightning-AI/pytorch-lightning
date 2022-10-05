@@ -504,10 +504,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         track_grad_norm=1,
         **kwargs,
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
     trainer.fit(model)
     saved_ckpt = {
         "callbacks": ANY,
@@ -523,8 +519,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
@@ -621,10 +615,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         callbacks=[callback],
         track_grad_norm=1,
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
 
     # resume from checkpoint with HookedModel
     model = HookedModel(called)
@@ -641,8 +631,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
     }
     saved_ckpt = {**loaded_ckpt, "global_step": 4, "epoch": 1}
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
@@ -718,10 +706,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         callbacks=[callback],
         track_grad_norm=1,
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
 
     trainer.fit(model, ckpt_path=best_model_path)
     loaded_ckpt = {
@@ -736,8 +720,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
     }
     saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload}
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
@@ -799,10 +781,6 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         enable_model_summary=False,
         callbacks=[callback],
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
     fn = getattr(trainer, verb)
     fn(model, verbose=False)
     hooks = [
@@ -819,8 +797,6 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         dict(name=f"on_{noun}_model_train"),
     ]
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
@@ -843,14 +819,8 @@ def test_trainer_model_hook_system_predict(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir, limit_predict_batches=batches, enable_progress_bar=False, callbacks=[callback]
     )
-    assert called == [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
-    ]
     trainer.predict(model)
     expected = [
-        dict(name="Callback.on_init_start", args=(trainer,)),
-        dict(name="Callback.on_init_end", args=(trainer,)),
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         dict(name="Callback.on_before_accelerator_backend_setup", args=(trainer, model)),
@@ -955,7 +925,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         dict(name="val_dataloader"),
         dict(name="train_dataloader"),
         dict(name="state_dict"),
-        dict(name="on_save_checkpoint", args=(ANY,)),
         dict(name="teardown", kwargs=dict(stage="fit")),
     ]
     assert called == expected
@@ -1022,13 +991,10 @@ def test_load_from_checkpoint_hook_calls(tmpdir):
     }
 
     assert lm_called == [dict(name="on_save_checkpoint", args=(saved_ckpt,))]
-    assert ldm_called == [dict(name="state_dict"), dict(name="on_save_checkpoint", args=(saved_ckpt,))]
+    assert ldm_called == [dict(name="state_dict")]
 
     lm_called, ldm_called = [], []
-    model = HookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
-    datamodule = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
+    _ = HookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
+    _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
     assert lm_called == [dict(name="on_load_checkpoint", args=({**saved_ckpt, "hyper_parameters": ANY},))]
-    assert ldm_called == [
-        dict(name="on_load_checkpoint", args=({**saved_ckpt, "datamodule_hyper_parameters": ANY},)),
-        dict(name="load_state_dict", args=(saved_ckpt[datamodule_state_dict_key],)),
-    ]
+    assert ldm_called == [dict(name="load_state_dict", args=(saved_ckpt[datamodule_state_dict_key],))]
