@@ -40,7 +40,7 @@ def main() -> None:
     host = os.environ["LIGHTNING_HOST"]
     port = int(os.environ["LIGHTNING_PORT"])
     entry_fn = render_fn(get_state)
-    if not isinstance(entry_fn, Callable):
+    if not isinstance(entry_fn, Callable):  # type: ignore
         raise Exception("You need to return a function with JustPy Frontend.")
 
     jp.app.add_jproute(f"/{flow_name}", entry_fn)
