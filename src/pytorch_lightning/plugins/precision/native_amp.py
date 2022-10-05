@@ -20,7 +20,7 @@ from torch.optim import LBFGS
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.cuda import _patch_cuda_is_available
-from lightning_lite.utilities.types import Steppable
+from lightning_lite.utilities.types import Optimizable, Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -67,7 +67,7 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(  # type: ignore[override]
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],

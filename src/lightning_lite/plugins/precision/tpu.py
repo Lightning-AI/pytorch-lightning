@@ -14,7 +14,7 @@
 from typing import Any
 
 from lightning_lite.plugins.precision.precision import Precision
-from lightning_lite.utilities.types import Steppable
+from lightning_lite.utilities.types import Optimizable
 
 
 class TPUPrecision(Precision):
@@ -22,7 +22,7 @@ class TPUPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
 
