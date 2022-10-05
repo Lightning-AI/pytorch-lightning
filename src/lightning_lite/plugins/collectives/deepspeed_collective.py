@@ -1,19 +1,14 @@
 import datetime
 from typing import Any, List, Optional
 
+import deepspeed.comm as dist
 import torch
-import torch.distributed as dist
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.utilities.types import ProcessGroup, ReduceOp
-
-if dist.is_available():
-    from dist.constants import default_pg_timeout
-else:
-    default_pg_timeout = datetime.timedelta(seconds=1800)
+from lightning_lite.utilities.types import ProcessGroup
 
 
-class TorchCollective(Collective):
+class DeepSpeedCollective(Collective):
     @property
     def rank(self) -> int:
         return dist.get_rank(self.group)
@@ -39,7 +34,7 @@ class TorchCollective(Collective):
     def all_reduce(
         self,
         tensor: torch.Tensor,
-        op: ReduceOp = ReduceOp.SUM,
+        op: dist.ReduceOp = dist.ReduceOp.SUM,
     ) -> torch.Tensor:
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
@@ -48,7 +43,7 @@ class TorchCollective(Collective):
         self,
         tensor: torch.Tensor,
         dst: int,
-        op: ReduceOp = ReduceOp.SUM,
+        op: dist.ReduceOp = dist.ReduceOp.SUM,
     ) -> torch.Tensor:
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
@@ -84,7 +79,7 @@ class TorchCollective(Collective):
         self,
         output: torch.Tensor,
         input_list: List[torch.Tensor],
-        op: ReduceOp = ReduceOp.SUM,
+        op: dist.ReduceOp = dist.ReduceOp.SUM,
     ) -> torch.Tensor:
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
