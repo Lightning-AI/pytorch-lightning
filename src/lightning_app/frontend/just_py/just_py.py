@@ -84,7 +84,7 @@ class JustPyFrontend(Frontend):
         env = os.environ.copy()
         env["LIGHTNING_FLOW_NAME"] = self.flow.name
         env["LIGHTNING_RENDER_FUNCTION"] = self.render_fn.__name__
-        env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(self.render_fn).__file__
+        env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(self.render_fn).__file__  # type: ignore
         env["LIGHTNING_HOST"] = host
         env["LIGHTNING_PORT"] = str(port)
         std_out_out = get_frontend_logfile("output.log")

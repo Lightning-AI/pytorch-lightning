@@ -1,6 +1,6 @@
 import os
 import pydoc
-from typing import Callable
+from typing import Any, Callable
 
 from lightning_app.frontend.utils import _reduce_to_flow_scope
 from lightning_app.utilities.state import AppState
@@ -11,7 +11,7 @@ def get_state() -> AppState:
     return _reduce_to_flow_scope(app_state, flow=os.environ["LIGHTNING_FLOW_NAME"])
 
 
-def website():
+def website() -> Any:
     import justpy as jp
 
     wp = jp.WebPage()
@@ -27,7 +27,7 @@ def _get_render_fn_from_environment() -> Callable:
     return getattr(module, render_fn_name)
 
 
-def main():
+def main() -> None:
     import justpy as jp
 
     """Run the render_fn with the current flow_state."""
