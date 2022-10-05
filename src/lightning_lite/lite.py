@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
@@ -372,8 +373,13 @@ class LightningLite(ABC):
         """
         return self._strategy.load_checkpoint(filepath)
 
-    def launch(self, function: Optional[Callable] = None, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Optional[Callable[["LightningLite", ...], Any]] = None, *args: Any, **kwargs: Any) -> Any:
         function = _do_nothing if function is None else function
+        if not inspect.signature(function).parameters:
+            raise TypeError(
+                "The function passed to `Lite.launch()` needs to take at least one argument. The launcher will pass"
+                " in the `LightningLite` object so you can use it inside the function."
+            )
         function = partial(self._function_with_strategy_setup, function)
         args = [self, *args]
         if self._strategy.launcher is not None:

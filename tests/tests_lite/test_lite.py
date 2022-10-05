@@ -453,3 +453,37 @@ def test_autocast():
     with lite.autocast():
         lite._precision_plugin.forward_context().__enter__.assert_called()
     lite._precision_plugin.forward_context().__exit__.assert_called()
+
+
+def test_launch_without_function():
+    """Test the various ways `LightningLite.launch()` can be called."""
+
+    # default: no launcher, single process
+    lite = LightningLite()
+    with mock.patch("lightning_lite.lite._do_nothing") as nothing:
+        lite.launch()
+    nothing.assert_called()
+
+    # with a launcher on the strategy
+    lite = LightningLite()
+    lite._strategy._launcher = Mock()
+    lite.launch()
+    lite._strategy._launcher.launch.assert_called()
+
+
+def test_launch_with_function():
+    """Test the various ways `LightningLite.launch(function)` can be called."""
+    def fn_without_args():
+        pass
+
+    lite = LightningLite()
+    with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
+        lite.launch(fn_without_args)
+
+    def fn_with_one_arg(arg):
+        assert isinstance(arg, LightningLite)
+        fn_with_one_arg.called = True
+
+    lite = LightningLite()
+    lite.launch(fn_with_one_arg)
+    assert fn_with_one_arg.called
