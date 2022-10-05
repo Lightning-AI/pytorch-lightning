@@ -158,9 +158,9 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 
 
 class HTTPClient:
-    """
-    A wrapper class around the requests library which handles chores like logging, retries, and timeouts automatically.
-    """
+    """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
+    automatically."""
+
     def __init__(self, base_url: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
         self.base_url = base_url or HTTP_QUEUE_URL
         retry_strategy = Retry(
@@ -173,7 +173,7 @@ class HTTPClient:
                 500,  # Internal Server Error
                 502,  # Bad Gateway
                 503,  # Service Unavailable
-                504   # Gateway Timeout
+                504,  # Gateway Timeout
             ],
         )
         adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
