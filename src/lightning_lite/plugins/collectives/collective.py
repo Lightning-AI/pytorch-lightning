@@ -46,15 +46,15 @@ class Collective(ABC):
     ) -> CollectibleGroup:
         pass
 
-    def destroy_group(self) -> None:
+    def teardown(self) -> None:
         if self._group is None:
             raise RuntimeError(f"{type(self).__name__} does not own a group to destroy.")
-        self.destroy_group_impl(self._group)
+        self.destroy_group(self._group)
         self._group = None
 
     @staticmethod
     @abstractmethod
-    def destroy_group_impl(group: CollectibleGroup) -> None:
+    def destroy_group(group: CollectibleGroup) -> None:
         pass
 
     @abstractmethod

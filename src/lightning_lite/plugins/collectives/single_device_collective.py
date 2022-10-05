@@ -22,7 +22,7 @@ class SingleDeviceCollective(Collective):
         return object()  # type: ignore[return-value]
 
     @staticmethod
-    def destroy_group_impl(group: CollectibleGroup) -> None:
+    def destroy_group(group: CollectibleGroup) -> None:
         pass
 
     def broadcast(

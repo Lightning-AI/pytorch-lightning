@@ -32,7 +32,7 @@ class DeepSpeedCollective(Collective):
         return dist.init_process_group(**kwargs)
 
     @staticmethod
-    def destroy_group_impl(group: CollectibleGroup) -> None:
+    def destroy_group(group: CollectibleGroup) -> None:
         dist.destroy_process_group(group)
 
     def broadcast(
