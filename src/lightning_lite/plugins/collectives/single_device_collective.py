@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 import torch
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.utilities.types import ProcessGroup
+from lightning_lite.utilities.types import CollectibleGroup
 
 
 class SingleDeviceCollective(Collective):
@@ -18,8 +18,12 @@ class SingleDeviceCollective(Collective):
     @staticmethod
     def init_group(
         **kwargs: Any,
-    ) -> ProcessGroup:
+    ) -> CollectibleGroup:
         return object()  # type: ignore[return-value]
+
+    @staticmethod
+    def destroy_group_impl(group: CollectibleGroup) -> None:
+        pass
 
     def broadcast(
         self,

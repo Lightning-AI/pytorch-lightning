@@ -46,6 +46,15 @@ class _Stateful(Protocol[_DictKey]):
         ...
 
 
+@runtime_checkable
+class CollectibleGroup(Protocol):
+    def size(self) -> int:
+        ...
+
+    def rank(self) -> int:
+        ...
+
+
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable

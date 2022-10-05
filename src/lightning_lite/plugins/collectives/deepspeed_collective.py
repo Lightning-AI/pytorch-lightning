@@ -5,7 +5,7 @@ import torch
 
 from lightning_lite.plugins.collectives.collective import Collective
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning_lite.utilities.types import ProcessGroup
+from lightning_lite.utilities.types import CollectibleGroup
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed.comm as dist
@@ -28,8 +28,12 @@ class DeepSpeedCollective(Collective):
     @staticmethod
     def init_group(
         **kwargs: Any,
-    ) -> ProcessGroup:
+    ) -> CollectibleGroup:
         return dist.init_process_group(**kwargs)
+
+    @staticmethod
+    def destroy_group_impl(group: CollectibleGroup) -> None:
+        dist.destroy_process_group(group)
 
     def broadcast(
         self,

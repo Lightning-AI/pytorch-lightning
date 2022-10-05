@@ -2,16 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
 import torch
-from typing_extensions import Protocol, runtime_checkable, Self
+from typing_extensions import Self
 
-
-@runtime_checkable
-class CollectibleGroup(Protocol):
-    def size(self) -> int:
-        ...
-
-    def rank(self) -> int:
-        ...
+from lightning_lite.utilities.types import CollectibleGroup
 
 
 class Collective(ABC):
@@ -32,7 +25,7 @@ class Collective(ABC):
     def group(self) -> CollectibleGroup:
         if self._group is None:
             raise RuntimeError(
-                f"{type(self).__name__} does not own a group yet. HINT: try `collective.create_group().group`"
+                f"{type(self).__name__} does not own a group. HINT: try `collective.create_group().group`"
             )
         return self._group
 
@@ -51,6 +44,17 @@ class Collective(ABC):
     def init_group(
         **kwargs: Any,
     ) -> CollectibleGroup:
+        pass
+
+    def destroy_group(self) -> None:
+        if self._group is None:
+            raise RuntimeError(f"{type(self).__name__} does not own a group to destroy.")
+        self.destroy_group_impl(self._group)
+        self._group = None
+
+    @staticmethod
+    @abstractmethod
+    def destroy_group_impl(group: CollectibleGroup) -> None:
         pass
 
     @abstractmethod

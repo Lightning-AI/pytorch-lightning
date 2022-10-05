@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.utilities.types import ProcessGroup, ReduceOp
+from lightning_lite.utilities.types import CollectibleGroup, ReduceOp
 
 if dist.is_available():
     from torch.distributed.constants import default_pg_timeout
@@ -30,8 +30,12 @@ class TorchCollective(Collective):
     @staticmethod
     def init_group(
         **kwargs: Any,
-    ) -> ProcessGroup:
+    ) -> CollectibleGroup:
         return dist.init_process_group(**kwargs)
+
+    @staticmethod
+    def destroy_group_impl(group: CollectibleGroup) -> None:
+        dist.destroy_process_group(group)
 
     def broadcast(
         self,
