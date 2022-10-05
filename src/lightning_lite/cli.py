@@ -3,16 +3,12 @@ from argparse import ArgumentParser, Namespace
 
 import torch.distributed.run as torchrun
 
-from lightning_lite.accelerators import CUDAAccelerator, MPSAccelerator, CPUAccelerator
+from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 
 
 def _parse_args():
     parser = ArgumentParser()
-    parser.add_argument(
-        "script",
-        type=str,
-        help="Path to the Python script with Lightning Lite inside."
-    )
+    parser.add_argument("script", type=str, help="Path to the Python script with Lightning Lite inside.")
     parser.add_argument(
         "--accelerator",
         type=str,
@@ -34,7 +30,7 @@ def _parse_args():
         help=(
             "Number of devices to run on (``int``), which devices to run on (``list`` or ``str``), or ``'auto'``."
             " The value applies per node."
-        )
+        ),
     )
     parser.add_argument(
         "--num-nodes",
@@ -49,7 +45,7 @@ def _parse_args():
         help=(
             "The index of the machine (node) this command gets started on. Must be a number in the range"
             " 0, ..., num_nodes - 1."
-        )
+        ),
     )
     parser.add_argument(
         "--main-address",
@@ -71,7 +67,7 @@ def _parse_args():
         help=(
             "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
             " (``'bf16'``)"
-        )
+        ),
     )
 
     args, script_args = parser.parse_known_args()
