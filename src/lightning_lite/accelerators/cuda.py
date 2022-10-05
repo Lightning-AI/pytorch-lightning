@@ -93,6 +93,8 @@ def _patch_cuda_is_available() -> Generator:
             yield
         finally:
             torch.cuda.is_available = orig_check
+    else:
+        yield
 
 
 @lru_cache(1)
