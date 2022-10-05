@@ -8,7 +8,7 @@ from lightning_lite.plugins.collectives.collective import Collective
 from lightning_lite.utilities.types import ProcessGroup, ReduceOp
 
 if dist.is_available():
-    from dist.constants import default_pg_timeout
+    from torch.distributed.constants import default_pg_timeout
 else:
     default_pg_timeout = datetime.timedelta(seconds=1800)
 
