@@ -24,7 +24,12 @@ from lightning_app.utilities.exceptions import LightningWorkException
 from lightning_app.utilities.introspection import _is_init_context
 from lightning_app.utilities.network import find_free_network_port
 from lightning_app.utilities.packaging.build_config import BuildConfig
-from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app.utilities.packaging.cloud_compute import (
+    _CLOUD_COMPUTE_STORE,
+    _CloudComputeStore,
+    _maybe_create_cloud_compute,
+    CloudCompute,
+)
 from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
 
 
@@ -103,7 +108,7 @@ class LightningWork:
                 " in the next version. Use `cache_calls` instead."
             )
         self._cache_calls = run_once if run_once is not None else cache_calls
-        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting"}
+        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
         self._parallel = parallel
         self._host: str = host
         self._port: Optional[int] = port
@@ -226,8 +231,14 @@ class LightningWork:
         return self._cloud_compute
 
     @cloud_compute.setter
-    def cloud_compute(self, cloud_compute) -> None:
+    def cloud_compute(self, cloud_compute: CloudCompute) -> None:
         """Returns the cloud compute used to select the cloud hardware."""
+        # A new ID
+        current_id = self._cloud_compute.id
+        new_id = cloud_compute.id
+        if current_id != new_id:
+            compute_store: _CloudComputeStore = _CLOUD_COMPUTE_STORE[current_id]
+            compute_store.remove(self.name)
         self._cloud_compute = cloud_compute
 
     @property
@@ -488,6 +499,8 @@ class LightningWork:
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
+            if isinstance(v, Dict):
+                v = _maybe_create_cloud_compute(v)
             setattr(self, k, v)
 
         self._changes = provided_state["changes"]
@@ -575,3 +588,10 @@ class LightningWork:
                 f"The work `{self.__class__.__name__}` is missing the `run()` method. This is required. Implement it"
                 " first and then call it in your Flow."
             )
+
+    def _register_cloud_compute(self):
+        internal_id = self.cloud_compute.id
+        assert internal_id
+        if internal_id not in _CLOUD_COMPUTE_STORE:
+            _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
+        _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)

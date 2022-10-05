@@ -1,4 +1,6 @@
+import os
 from functools import partial
+from unittest import mock
 
 import pytest
 from tests_lite.helpers.runif import RunIf
@@ -32,6 +34,7 @@ def broadcast_on_tpu_fn(strategy):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_broadcast_on_tpu():
     """Checks if an object from the main process is broadcasted to other processes correctly."""
     xla_launch(broadcast_on_tpu_fn)
@@ -54,6 +57,7 @@ def tpu_reduce_fn(strategy):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_reduce():
     """Test tpu spawn reduce operation."""
     xla_launch(tpu_reduce_fn)

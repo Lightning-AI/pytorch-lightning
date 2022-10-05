@@ -23,7 +23,7 @@ from typing_extensions import Literal
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
-from lightning_lite.utilities.types import Steppable
+from lightning_lite.utilities.types import Optimizable
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
@@ -71,7 +71,7 @@ class NativeMixedPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:
