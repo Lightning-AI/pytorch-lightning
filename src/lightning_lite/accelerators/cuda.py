@@ -90,10 +90,9 @@ def _patch_cuda_is_available() -> Generator:
         # otherwise, patching is_available could lead to attribute errors or infinite recursion
         orig_check = torch.cuda.is_available
         torch.cuda.is_available = new_check  # type: ignore[assignment]
-    try:
-        yield
-    finally:
-        if orig_check:
+        try:
+            yield
+        finally:
             torch.cuda.is_available = orig_check
 
 
