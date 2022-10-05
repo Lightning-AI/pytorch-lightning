@@ -3,30 +3,37 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
 import torch
-from torch.distributed import ProcessGroup, ReduceOp
+from torch.distributed import ReduceOp
 
 
 class Collective(ABC):
-    def __init__(self, delayed_init: bool, *init_args, **init_kwargs):
-        if delayed_init:
-            self._group = None
-            self._init_args = init_args
-            self._init_kwargs = init_kwargs
-        else:
-            self._group = self._init_group_impl(*init_args, **init_kwargs)
+    def __init__(self, group: Optional[Any] = None, instantiate_pg: bool = False, **pg_kwargs: Any) -> None:
+        self._group = group
+        self._pg_kwargs = pg_kwargs
+        if self._group is None and instantiate_pg:
+            self._group = self.init_group(**self._pg_kwargs)
 
     @property
-    def group(self) -> ProcessGroup:
+    def group(self) -> Any:
         if self._group is None:
-            self._group = self._init_group_impl(*self._init_args, **self._init_kwargs)
+            self._group = self.init_group(**self._pg_kwargs)
         return self._group
 
+    @property
     @abstractmethod
-    def _init_group_impl(
+    def rank(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def world_size(self) -> int:
+        pass
+
+    @abstractmethod
+    def init_group(
         self,
-        *init_args,
-        **kwargs: Any,
-    ) -> ProcessGroup:
+        **init_kwargs: Any,
+    ) -> Any:
         pass
 
     @abstractmethod
@@ -127,7 +134,7 @@ class Collective(ABC):
         output: torch.Tensor,
         input_list: List[torch.Tensor],
         op: ReduceOp = ReduceOp.SUM,
-        async_op=False,
+        async_op: bool = False,
     ) -> torch.Tensor:
         pass
 
