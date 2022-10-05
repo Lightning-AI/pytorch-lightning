@@ -30,8 +30,21 @@ class Collective(ABC):
         def inner(self, *args, **kwargs):
             params = inspect.signature(fn).parameters
             group_index = params.values().index("group")
-            if len(args) <= group_index and "group" not in kwargs:  # "group" is not passed
-                kwargs["group"] = self.groups[self.current_group]
+            group_name = None
+            try:
+                if len(args) <= group_index and "group" not in kwargs:  # "group" is not passed
+                    kwargs["group"] = self.groups[self.current_group]
+                elif len(args) <= group_index:
+                    group_name = args[group_index]
+                    if isinstance(args[group_index], str):
+                        args = list(args)
+                        args[group_index] = self.groups[args[group_index]]
+                else:
+                    group_name = kwargs["group"]
+                    if isinstance(kwargs["group"], str):
+                        kwargs["group"] = self.groups[kwargs["group"]]
+            except KeyError:
+                raise ValueError(f"Group {group_name} does not exist")
             return fn(*args, **kwargs)
 
         return inner
