@@ -144,31 +144,41 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 
     @wraps(func)
     def wrapped(self: "HTTPClient", *args: Any, **kwargs: Any) -> Any:
-        self.log_function(f"HTTPClient: Method: {func.__name__.upper()}, Base URL: {self.base_url}, Path: {args[0]}")
+        message = f"HTTPClient: Method: {func.__name__.upper()}, Path: {args[0]}\n"
+        message += f"      Base URL: {self.base_url}\n"
         params = kwargs.get("query_params", {})
         if params:
-            self.log_function(f"Params: {params}")
+            message += f"      Params: {params}\n"
         resp: requests.Response = func(self, *args, **kwargs)
-        self.log_function(f"Response Status Code: {resp.status_code}")
+        message += f"      Response: {resp.status_code} {resp.reason}"
+        self.log_function(message)
         return resp
 
     return wrapped
 
 
 class HTTPClient:
-    """TODO document about the log behaviour."""
-
+    """
+    A wrapper class around the requests library which handles chores like logging, retries, and timeouts automatically.
+    """
     def __init__(self, base_url: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
         self.base_url = base_url or HTTP_QUEUE_URL
         retry_strategy = Retry(
             # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
             total=_CONNECTION_RETRY_TOTAL,
             backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
-            status_forcelist=[429, 500, 502, 503, 504],
+            status_forcelist=[
+                408,  # Request Timeout
+                429,  # Too Many Requests
+                500,  # Internal Server Error
+                502,  # Bad Gateway
+                503,  # Service Unavailable
+                504   # Gateway Timeout
+            ],
         )
         adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         sess = requests.Session()
-        # sess.hooks.update({"response": lambda r, *args, **kwargs: r.raise_for_status()})
+        sess.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}
         sess.mount("http://", adapter)
         sess.mount("https://", adapter)
         self.client: requests.Session = sess
@@ -181,8 +191,8 @@ class HTTPClient:
 
     @_http_method_logger_wrapper
     def post(self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None):
-        url = urljoin(self.base_url, path) + urlencode(query_params or {})
-        return self.client.post(url, data=data)
+        url = urljoin(self.base_url, path)
+        return self.client.post(url, data=data, params=query_params)
 
     @_http_method_logger_wrapper
     def delete(self, path: str):
@@ -197,10 +207,3 @@ class HTTPClient:
         it is crucial for finding bugs when we have them
         """
         pass
-
-    def _update_headers(self, headers: Dict):
-        """Updates the session headers with the provided headers.
-
-        Note that this function doesn't replace the exising headers but updates them
-        """
-        self.client.headers.update(headers)

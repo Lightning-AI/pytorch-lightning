@@ -326,6 +326,7 @@ class HTTPQueue(BaseQueue):
 
     def get(self, timeout: int = None) -> Any:
         # TODO - check how many calls it is making in the boring app and use that as baseline for scaling up
+        # TODO - we'd need to catch retry exception and do retries again?
         if timeout is None:
             # it's a blocking call, we need to loop and call the backend to mimic this behavior
             while True:
@@ -346,7 +347,7 @@ class HTTPQueue(BaseQueue):
                 time.sleep(0.1)
 
     def _get(self):
-        resp = self.client.post(f"v1/{self.app_id}/{self.name}?action=pop")
+        resp = self.client.post(f"v1/{self.app_id}/{self.name}", query_params={"action": "pop"})
         if resp.status_code == 204:
             raise queue.Empty
         return resp.content
@@ -362,7 +363,7 @@ class HTTPQueue(BaseQueue):
                 f"Found {queue_len}. This might cause your application to crash, "
                 "please investigate this."
             )
-        self.client.post(f"v1/{self.app_id}/{self.name}?action=push", data=value)
+        self.client.post(f"v1/{self.app_id}/{self.name}", data=value, query_params={"action": "push"})
 
     def length(self):
         try:
