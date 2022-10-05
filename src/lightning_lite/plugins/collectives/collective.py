@@ -55,7 +55,6 @@ class Collective(ABC):
     ) -> torch.Tensor:
         pass
 
-    @abstractmethod
     def broadcast_object_list(
         self,
         object_list: List[Any],
@@ -92,7 +91,6 @@ class Collective(ABC):
     ) -> List[torch.Tensor]:
         pass
 
-    @abstractmethod
     def all_gather_object(
         self,
         object_list: List[Any],
@@ -110,7 +108,6 @@ class Collective(ABC):
     ) -> List[torch.Tensor]:
         pass
 
-    @abstractmethod
     def gather_object(
         self,
         obj: Any,
@@ -129,7 +126,6 @@ class Collective(ABC):
     ) -> torch.Tensor:
         pass
 
-    @abstractmethod
     def scatter_object_list(
         self,
         scatter_object_output_list: List[Any],
@@ -165,7 +161,6 @@ class Collective(ABC):
     ) -> None:
         pass
 
-    @abstractmethod
     def monitored_barrier(
         self,
         timeout: Optional[datetime.timedelta] = None,
