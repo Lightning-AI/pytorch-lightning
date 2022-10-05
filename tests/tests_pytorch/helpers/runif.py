@@ -22,6 +22,7 @@ from pkg_resources import get_distribution
 
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.accelerators.mps import MPSAccelerator
+from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
@@ -36,7 +37,6 @@ from pytorch_lightning.utilities.imports import (
     _PSUTIL_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
-    _TPU_AVAILABLE,
 )
 
 _HOROVOD_NCCL_AVAILABLE = False
@@ -174,7 +174,7 @@ class RunIf:
             reasons.append("unimplemented on Windows")
 
         if tpu:
-            conditions.append(not _TPU_AVAILABLE)
+            conditions.append(not TPUAccelerator.is_available())
             reasons.append("TPU")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True

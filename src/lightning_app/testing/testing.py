@@ -386,6 +386,22 @@ def run_app_in_cloud(
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
+        lightning_apps = [
+            app
+            for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            ).lightningapps
+            if app.name == name
+        ]
+
+        app_url = lightning_apps[0].status.url
+
+        while True:
+            sleep(1)
+            resp = requests.get(app_url + "/openapi.json")
+            if resp.status_code == 200:
+                break
+
         print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
         logs_api_client = _LightningLogsSocketAPI(client.api_client)

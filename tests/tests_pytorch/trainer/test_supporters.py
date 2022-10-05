@@ -314,10 +314,9 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=[0, 1])
 @pytest.mark.parametrize("use_fault_tolerant", [False, True])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_validation_test(_, cuda_count_2, use_fault_tolerant, replace_sampler_ddp):
+def test_combined_data_loader_validation_test(mps_count_2, cuda_count_2, use_fault_tolerant, replace_sampler_ddp):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using
     CombinedLoader."""
 
