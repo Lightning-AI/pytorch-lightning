@@ -20,7 +20,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
-from lightning_lite.utilities.types import _PARAMETERS, Steppable
+from lightning_lite.utilities.types import _PARAMETERS, Optimizable
 
 
 class Precision:
@@ -77,7 +77,7 @@ class Precision:
 
     def optimizer_step(
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
