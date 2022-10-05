@@ -28,7 +28,7 @@ class DeepSpeedCollective(Collective):
         tensor: torch.Tensor,
         src: int,
     ) -> torch.Tensor:
-        torch.distirbuted.broadcast(tensor, src, group=self.group)
+        dist.broadcast(tensor, src, group=self.group)
         return tensor
 
     def all_reduce(
