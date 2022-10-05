@@ -323,3 +323,63 @@ def test_trainer_config_device_ids(devices, expected_device_ids):
     trainer = Trainer(accelerator="tpu", devices=devices)
     assert trainer.device_ids == expected_device_ids
     assert trainer.num_devices == len(expected_device_ids)
+
+
+@RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_all_gather_sync_grads(tmpdir):
+    class TestModel(BoringModel):
+
+        training_step_called = False
+
+        def training_step(self, batch, batch_idx):
+            self.training_step_called = True
+            tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
+            gathered_tensor = self.all_gather(tensor, sync_grads=True)
+            assert gathered_tensor.shape == torch.Size([8, 2, 2])
+
+            loss = gathered_tensor.sum()
+
+            return loss
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="tpu",
+        devices=8,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert model.training_step_called
+
+
+@RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_all_gather_no_grads(tmpdir):
+    class TestModel(BoringModel):
+
+        training_step_called = False
+
+        def training_step(self, batch, batch_idx):
+            self.training_step_called = True
+            tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
+            gathered_tensor = self.all_gather(tensor, sync_grads=False)
+            assert gathered_tensor.shape == torch.Size([8, 2, 2])
+
+            loss = gathered_tensor.sum()
+
+            return loss
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="tpu",
+        devices=8,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert model.training_step_called
