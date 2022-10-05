@@ -90,6 +90,7 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
 
 
 def _set_env_variables(args: Namespace) -> None:
+    """Set the environment variables for the new processes. The Lite connector will parse the arguments set here."""
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
@@ -98,7 +99,8 @@ def _set_env_variables(args: Namespace) -> None:
     os.environ["LT_PRECISION"] = str(args.precision)
 
 
-def _get_num_devices(accelerator: str, devices: str) -> int:
+def _get_num_processes(accelerator: str, devices: str) -> int:
+    """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
     if accelerator in ("cuda", "gpu"):
         devices = CUDAAccelerator.parse_devices(devices)
     elif accelerator in ("mps", "gpu"):
@@ -111,13 +113,14 @@ def _get_num_devices(accelerator: str, devices: str) -> int:
 
 
 def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
+    """This will invoke `torchrun` programmatically to launch the given script in new processes."""
     if args.strategy == "dp":
-        num_devices = 1
+        num_processes = 1
     else:
-        num_devices = _get_num_devices(args.accelerator, args.devices)
+        num_processes = _get_num_processes(args.accelerator, args.devices)
 
     torchrun_args = []
-    torchrun_args.extend(["--nproc_per_node", str(num_devices)])
+    torchrun_args.extend(["--nproc_per_node", str(num_processes)])
     torchrun_args.extend(["--nnodes", str(args.num_nodes)])
     torchrun_args.extend(["--node_rank", str(args.node_rank)])
     torchrun_args.extend(["--master_addr", args.main_address])
@@ -125,7 +128,8 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun_args.append(args.script)
     torchrun_args.extend(script_args)
 
-    os.environ.setdefault("OMP_NUM_THREADS", str(max(1, os.cpu_count() // num_devices)))
+    # set a good default number of threads for OMP to avoid warnings being emitted to the user
+    os.environ.setdefault("OMP_NUM_THREADS", str(max(1, os.cpu_count() // num_processes)))
     torchrun.main(torchrun_args)
 
 
