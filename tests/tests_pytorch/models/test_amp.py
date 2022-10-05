@@ -157,14 +157,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         logger=logger,
     )
     trainer.fit(model)
-
-    # test root model address
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
-    generated = trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
-    assert generated == "abc23"
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")

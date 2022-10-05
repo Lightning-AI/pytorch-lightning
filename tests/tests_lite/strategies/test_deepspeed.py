@@ -17,6 +17,7 @@ import os
 import pytest
 from tests_lite.helpers.runif import RunIf
 
+from lightning_lite.accelerators import CPUAccelerator
 from lightning_lite.strategies import DeepSpeedStrategy
 
 
@@ -29,6 +30,19 @@ def deepspeed_config():
             "params": {"last_batch_iteration": -1, "warmup_min_lr": 0, "warmup_max_lr": 3e-5, "warmup_num_steps": 100},
         },
     }
+
+
+@pytest.fixture
+def deepspeed_zero_config(deepspeed_config):
+    return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_only_compatible_with_cuda():
+    """Test that the DeepSpeed strategy raises an exception if an invalid accelerator is used."""
+    strategy = DeepSpeedStrategy(accelerator=CPUAccelerator())
+    with pytest.raises(RuntimeError, match="The DeepSpeed strategy is only supported on CUDA GPUs"):
+        strategy.setup_environment()
 
 
 @RunIf(deepspeed=True)
@@ -74,3 +88,30 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     assert checkpoint_config["cpu_checkpointing"]
     assert checkpoint_config["contiguous_memory_optimization"]
     assert checkpoint_config["synchronize_checkpoint_boundary"]
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_config_zero_offload(deepspeed_zero_config):
+    """Test the various ways optimizer-offloading can be configured."""
+
+    # default config
+    strategy = DeepSpeedStrategy(config=deepspeed_zero_config)
+    assert "offload_optimizer" not in strategy.config["zero_optimization"]
+
+    # default config
+    strategy = DeepSpeedStrategy()
+    assert "offload_optimizer" not in strategy.config["zero_optimization"]
+
+    # default config with `offload_optimizer` argument override
+    strategy = DeepSpeedStrategy(offload_optimizer=True)
+    assert strategy.config["zero_optimization"]["offload_optimizer"] == {
+        "buffer_count": 4,
+        "device": "cpu",
+        "nvme_path": "/local_nvme",
+        "pin_memory": False,
+    }
+
+    # externally configured through config
+    deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
+    strategy = DeepSpeedStrategy(config=deepspeed_zero_config)
+    assert strategy.config["zero_optimization"]["offload_optimizer"] is False
