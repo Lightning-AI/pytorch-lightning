@@ -61,10 +61,10 @@ class SingleDeviceCollective(Collective):
     ) -> Optional[List[torch.Tensor]]:
         return [tensor]
 
-    def scatter(
+    def scatter(  # type: ignore[override]
         self,
         tensor: torch.Tensor,
-        scatter_list: List[torch.Tensor],
+        scatter_list: List[torch.Tensor],  # it doesn't make sense to have a None here for a single device
         *_: Any,
         **__: Any,
     ) -> torch.Tensor:
