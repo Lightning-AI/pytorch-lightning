@@ -48,43 +48,45 @@ class SingleDeviceCollective(Collective):
     def all_gather(
         self,
         tensor_list: List[torch.Tensor],
-        *_: Any,
+        tensor: torch.Tensor,
         **__: Any,
     ) -> List[torch.Tensor]:
-        return tensor_list
+        return [tensor]
 
     def gather(
         self,
         tensor: torch.Tensor,
-        gather_list: Optional[List[torch.Tensor]] = None,
         *_: Any,
         **__: Any,
     ) -> Optional[List[torch.Tensor]]:
-        return gather_list
+        return [tensor]
 
     def scatter(
         self,
         tensor: torch.Tensor,
+        scatter_list: List[torch.Tensor],
         *_: Any,
         **__: Any,
     ) -> torch.Tensor:
-        return tensor
+        return scatter_list[0]
 
     def reduce_scatter(
         self,
         output: torch.Tensor,
+        input_list: List[torch.Tensor],
         *_: Any,
         **__: Any,
     ) -> torch.Tensor:
-        return output
+        return input_list[0]
 
     def all_to_all(
         self,
         output_tensor_list: List[torch.Tensor],
+        input_tensor_list: List[torch.Tensor],
         *_: Any,
         **__: Any,
     ) -> List[torch.Tensor]:
-        return output_tensor_list
+        return input_tensor_list
 
     def barrier(
         self,
