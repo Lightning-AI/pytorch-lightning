@@ -1,9 +1,22 @@
 # Python CircleCI 2.1 configuration file.
 version: 2.1
 orbs:
-  gcp-gke: circleci/gcp-gke@1.0.4
-  go: circleci/go@1.3.0
+  gcp-gke: circleci/gcp-gke@1.4.0
+  go: circleci/go@1.7.1
   codecov: codecov/codecov@1.1.0
+parameters:
+  GHA_Actor:
+    type: string
+    default: ""
+  GHA_Action:
+    type: string
+    default: ""
+  GHA_Event:
+    type: string
+    default: ""
+  GHA_Meta:
+    type: string
+    default: ""
 
 references:
 
@@ -11,13 +24,10 @@ references:
     run:
       name: Make Documentation
       command: |
-        # First run the same pipeline as Read-The-Docs
-        # apt-get update && apt-get install -y cmake
-        # using: https://hub.docker.com/r/readthedocs/build
-        # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
+        # the image uses python 2.7 by default, force a different version
         pyenv global 3.7.3
         python --version
-        pip install -r requirements/docs.txt
+        pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
         make clean
@@ -33,27 +43,33 @@ references:
        git checkout stable
        cd ..
 
-  build_push_docker: &build_push_docker
+  install_jsonnet: &install_jsonnet
     run:
-      name: Build and push Docker image
-      environment:
-        - PYTHON_VER: 3.7
+      name: Install jsonnet
       command: |
-        gcloud --quiet auth configure-docker
-        #cd dockers/tpu-tests
-        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
-        docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
+        go install github.com/google/go-jsonnet/cmd/jsonnet@latest
+
+  update_jsonnet: &update_jsonnet
+    run:
+      name: Update jsonnet
+      environment:
+        PR_NUMBER: << pipeline.parameters.GHA_Meta >>
+      command: |
+       export SHA=$(git rev-parse --short HEAD)
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
+       data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
+       cat dockers/tpu-tests/tpu_test_cases.jsonnet
 
   deploy_cluster: &deploy_cluster
    run:
      name: Deploy the job on the kubernetes cluster
      command: |
-       go get github.com/google/go-jsonnet/cmd/jsonnet
        export PATH=$PATH:$HOME/go/bin
-       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
-       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
+       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
+       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
+       echo "GKE pod name: $pod_name"
        echo "Waiting on kubernetes job: $job_name"
        i=0 && \
        # N checks spaced 30s apart = 900s total.
@@ -63,16 +79,13 @@ references:
        # still the job hasn't finished, give up and return the starting
        # non-zero status code.
        printf "Waiting for job to finish: " && \
-       while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
+       while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SLEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
-       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
-       echo "GKE pod name: $pod_name" && \
        kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
        # First portion is the test logs. Print these to Github Action stdout.
        cat xx00 && \
        echo "Done with log retrieval attempt." && \
-       gcloud container images delete "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" --force-delete-tags && \
        exit $status_code
 
   stats: &stats
@@ -80,10 +93,6 @@ references:
      name: Statistics
      command: |
        mv ./xx01 coverage.xml
-       # TODO: add human readable report
-       cat coverage.xml
-       sudo pip install pycobertura
-       pycobertura show coverage.xml
 
 jobs:
 
@@ -91,9 +100,10 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.7
-      - MAX_CHECKS: 240
-      - CHECK_SPEEP: 5
+      - XLA_VER: 1.12
+      - PYTHON_VER: 3.7
+      - MAX_CHECKS: 1000
+      - CHECK_SLEEP: 5
     steps:
       - checkout
       - go/install
@@ -102,8 +112,8 @@ jobs:
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $GKE_CLUSTER
           perform-login: true
-      - setup_remote_docker
-      - *build_push_docker
+      - *install_jsonnet
+      - *update_jsonnet
       - *deploy_cluster
       - *stats
       - codecov/upload:
@@ -119,6 +129,10 @@ jobs:
       - image: readthedocs/build:latest
     steps:
       - checkout
+      - run:
+          command: |
+            git submodule update --init --recursive
+          name: Init git submodule
       - *make_docs
       - store_artifacts:
           # allows us to preview the generated html pages
@@ -126,8 +140,11 @@ jobs:
           destination: html
 
 workflows:
-  version: 2
-  tpu-tests:
+  #build-docs:  # FixMe
+  #  when: << pipeline.parameters.GHA_Action >>
+  #  jobs:
+  #    - build-Docs
+  test-on-tpus:
+    when: << pipeline.parameters.GHA_Action >>
     jobs:
-      - build-Docs
       - TPU-tests

@@ -1,0 +1,11 @@
+name: Check Schema
+
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+
+jobs:
+  check:
+    uses: Lightning-AI/devtools/.github/workflows/check-schema.yml@v0.1.0

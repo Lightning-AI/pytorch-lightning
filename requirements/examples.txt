@@ -1,2 +1,0 @@
-torchvision>=0.5
-gym>=0.17.0

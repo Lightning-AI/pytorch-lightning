@@ -1,0 +1,102 @@
+name: Report a bug
+description: Any errors that are not UI related.
+labels: ["needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Before you go any further. Is this really a **🐛 bug**?
+
+        If it's a question about how Lightning works, have a look at our [Lightning documentation](https://lightning.ai/lightning-docs/)
+        or ask a question on our [Community Slack](https://pytorch-lightning.slack.com).
+
+  - type: textarea
+    attributes:
+      label: Bug description
+      description: A description of the 🐛bug🐛.
+      placeholder: |
+        A clear and concise description of what the bug is.
+
+        Include steps to reproduce, the expected behaviour, and the actual behaviour.
+
+        ```
+        The error message you got, with the full traceback if available.
+        ```
+
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "**Note: The rest of this form is optional, but filling it out may help us to provide better support.**"
+
+  - type: textarea
+    attributes:
+      label: How to reproduce the bug
+      description: >
+        Provide steps and example code here.
+      placeholder: |
+        ```python
+        # Sample code to reproduce the problem
+        ```
+      render: python
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Error messages and logs
+      description: >
+        Provide any error messages and/or logs
+      placeholder: "# Copy the complete error messages and logs"
+      value: |
+        ```
+
+        # Error messages and logs here please
+
+        ```
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        Please provide details about your enviornment by copying and pasting the output from our environment collection script:
+        https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
+        (For security purposes, please check the contents of the script before running it)
+        You can get the script and run it with:
+        ```console
+        wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
+        python collect_env_details.py
+        ```
+
+        You can also fill out the list below manually.
+      value: |
+        ```
+
+        #- Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
+        #- PyTorch Lightning Version (e.g., 1.5.0):
+        #- Lightning App Version (e.g., 0.5.2):
+        #- PyTorch Version (e.g., 1.10):
+        #- Python version (e.g., 3.9):
+        #- OS (e.g., Linux):
+        #- CUDA/cuDNN version:
+        #- GPU models and configuration:
+        #- How you installed Lightning(`conda`, `pip`, source):
+        #- Running environment of LightningApp (e.g. local, cloud):
+
+        ```
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: More info
+      description: Add any other info about the issue here.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "**Happy engineering!**"

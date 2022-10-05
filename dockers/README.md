@@ -1,34 +1,17 @@
 # Docker images
 
-## Builds images form attached Dockerfiles
+## Build images from Dockerfiles
 
 You can build it on your own, note it takes lots of time, be prepared.
 
 ```bash
-git clone <git-repository>
-docker image build -t pytorch-lightning:latest -f dockers/conda/Dockerfile .
-```
+git clone https://github.com/Lightning-AI/lightning.git
 
-or with specific arguments
+# build with the default arguments
+docker image build -t pytorch-lightning:latest -f dockers/base-cuda/Dockerfile .
 
-```bash
-git clone <git-repository>
-docker image build \
-    -t pytorch-lightning:py3.8-pt1.6 \
-    -f dockers/base-cuda/Dockerfile \
-    --build-arg PYTHON_VERSION=3.8 \
-    --build-arg PYTORCH_VERSION=1.6 \
-    .
-```
-or nightly version from Coda
-```bash
-git clone <git-repository>
-docker image build \
-    -t pytorch-lightning:py3.7-pt1.8 \
-    -f dockers/base-conda/Dockerfile \
-    --build-arg PYTHON_VERSION=3.7 \
-    --build-arg PYTORCH_VERSION=1.8 \
-    .
+# build with specific arguments
+docker image build -t pytorch-lightning:base-cuda-py3.9-torch1.12-cuda11.6.1 -f dockers/base-cuda/Dockerfile --build-arg PYTHON_VERSION=3.9 --build-arg PYTORCH_VERSION=1.12 --build-arg CUDA_VERSION=11.6.1 .
 ```
 
 To run your docker use
@@ -45,9 +28,10 @@ docker image list
 docker image rm pytorch-lightning:latest
 ```
 
-### Run docker image with GPUs
+## Run docker image with GPUs
 
-To run docker image with access to you GPUs you need to install
+To run docker image with access to your GPUs, you need to install
+
 ```bash
 # Add the package repositories
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
@@ -58,8 +42,24 @@ sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 ```
 
-and later run the docker image with `--gpus all` so for example
+and later run the docker image with `--gpus all`. For example,
 
 ```
-docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6
+docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.12-cuda11.6.1
 ```
+
+## Run Jupyter server
+
+Inspiration comes from https://u.group/thinking/how-to-put-jupyter-notebooks-in-a-dockerfile
+
+1. Build the docker image:
+   ```bash
+   docker image build -t pytorch-lightning:v1.6.5 -f dockers/nvidia/Dockerfile --build-arg LIGHTNING_VERSION=1.6.5 .
+   ```
+1. start the server and map ports:
+   ```bash
+   docker run --rm -it --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all -p 8888:8888 pytorch-lightning:v1.6.5
+   ```
+1. Connect in local browser:
+   - copy the generated path e.g. `http://hostname:8888/?token=0719fa7e1729778b0cec363541a608d5003e26d4910983c6`
+   - replace the `hostname` by `localhost`

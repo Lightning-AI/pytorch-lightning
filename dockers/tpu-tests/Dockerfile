@@ -12,34 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.6
+ARG PYTHON_VERSION=3.9
+ARG PYTORCH_VERSION=1.9
 
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
-#SHELL ["/bin/bash", "-c"]
-
-COPY ./ ./pytorch-lightning/
+COPY ./ ./lightning/
 
 # Pull the legacy checkpoints
-RUN cd pytorch-lightning && \
-    wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/ && \
-    unzip -o legacy/checkpoints.zip -d legacy/ && \
-    ls -l legacy/checkpoints/
+RUN cd lightning && \
+    bash .actions/pull_legacy_checkpoints.sh
 
-# If using this image for tests, intall more dependencies and don"t delete the source code where the tests live.
 RUN \
-    # Install pytorch-lightning at the current PR, plus dependencies.
-    #pip install -r pytorch-lightning/requirements.txt --no-cache-dir && \
-    # drop Horovod as it is not needed
-    python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    # drop fairscale as it is not needed
-    python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
-    pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
-
-#RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
+    pip install -q fire && \
+    # drop unnecessary packages
+    pip install -r lightning/requirements/pytorch/devel.txt --no-cache-dir
 
 COPY ./dockers/tpu-tests/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

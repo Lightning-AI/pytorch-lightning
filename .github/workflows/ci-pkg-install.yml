@@ -1,0 +1,157 @@
+name: Package
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  init-temp:
+    runs-on: ubuntu-20.04
+    steps:
+    - run: mkdir pypi && touch pypi/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ci-packages-${{ github.sha }}
+        path: pypi
+
+  install-standalone:
+    needs: init-temp
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
+        pkg: ["app", "lite", "pytorch"]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: DocTests actions
+        working-directory: .actions/
+        run: |
+          grep 'pytest>' ../requirements/pytorch/test.txt | xargs -0 pip install
+          python -m pytest setup_tools.py -v --doctest-modules --color=yes
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - run: ls -lh pypi/
+
+      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ matrix.pkg }}
+          nb-dirs: ${{ env.NB_DIRS }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+
+      - uses: ./.github/actions/pkg-install
+
+  install-meta-src:
+    needs: install-standalone
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
+        pkg: ["", "lightning"]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: mkdir -p pypi
+      - uses: actions/download-artifact@v3
+        if: ${{ matrix.pkg != '' }}
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - run: ls -lh pypi/
+
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ matrix.pkg }}
+
+      - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: "lightning"
+          pip-flags: "-U --pre --find-links ../pypi/"
+
+      - name: Run CLI
+        run: python -m lightning --version
+
+  install-meta-pypi:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Dowload package
+        # todo: download also lite after it is fist published
+        run: |
+          pip install -q -r .actions/requirements.txt
+          for pkg in 'app' 'pytorch' ; do
+            python .actions/assistant.py download-package "$pkg" --folder pypi
+          done
+          ls -lh pypi/
+
+      - name: Unzip packages
+        working-directory: pypi
+        run: for file in `ls *.gz`; do tar -xzf $file; done
+      - name: Show upacked pkgs
+        if: runner.os == 'linux'
+        run: |
+          sudo apt install -y tree
+          tree pypi/ -L 3
+
+      - name: Miror source
+        run: |
+          pip install -q -r .actions/requirements.txt
+          python .actions/assistant.py mirror-pkg2source pypi src
+          ls -R src/
+
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: "lightning"
+
+      - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: "lightning"
+          pip-flags: "-U --pre --find-links ../pypi/"
+
+      - name: Run CLI
+        run: python -m lightning --version

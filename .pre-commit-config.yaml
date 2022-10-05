@@ -13,23 +13,98 @@
 # limitations under the License.
 
 default_language_version:
-  python: python3.8
+  python: python3
+
+ci:
+  autofix_prs: true
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
+  autoupdate_schedule: quarterly
+  # submodules: true
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v4.3.0
     hooks:
-      - id: trailing-whitespace
       - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-toml
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=350', '--enforce-all']
+        exclude: |
+            (?x)^(
+                docs/source-pytorch/_static/images/general/fast_2.gif|
+                docs/source-pytorch/_static/images/mnist_imgs/pt_to_pl.jpg|
+                docs/source-pytorch/_static/images/lightning_module/pt_to_pl.png|
+                docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
+                docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
+                docs/source-pytorch/_static/images/general/pl_overview.gif|
+                src/lightning_app/cli/pl-app-template/ui/yarn.lock|
+                src/pytorch_lightning/CHANGELOG.md|
+                src/lightning_lite/CHANGELOG.md
+            )$
+      - id: detect-private-key
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.34.0
+    hooks:
+      - id: pyupgrade
+        args: [--py37-plus]
+        name: Upgrade code
+
+  - repo: https://github.com/myint/docformatter
+    rev: v1.4
+    hooks:
+      - id: docformatter
+        args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
+
+  - repo: https://github.com/asottile/yesqa
+    rev: v1.3.0
+    hooks:
+      - id: yesqa
+        name: Unused noqa
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.7.0
+    rev: 5.10.1
     hooks:
       - id: isort
-        args: [--settings-path, ./pyproject.toml]
+        name: Format imports
 
-  - repo: https://github.com/pre-commit/mirrors-yapf
-    rev: v0.30.0
+  - repo: https://github.com/psf/black
+    rev: 22.6.0
     hooks:
-      - id: yapf
-        args: [--parallel, --in-place]
+      - id: black
+        name: Format code
+        exclude: docs/source-app
+
+  - repo: https://github.com/asottile/blacken-docs
+    rev: v1.12.1
+    hooks:
+      - id: blacken-docs
+        args: [--line-length=120]
+        additional_dependencies: [black==21.12b0]
+        exclude: docs/source-app
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.14
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm
+          #- mdformat-black
+          - mdformat_frontmatter
+        exclude: |
+            (?x)^(
+                src/pytorch_lightning/CHANGELOG.md|
+                src/lightning_app/CHANGELOG.md|
+                src/lightning_lite/CHANGELOG.md
+            )$
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
+    hooks:
+      - id: flake8
+        name: Check PEP8
