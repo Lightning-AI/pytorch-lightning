@@ -82,7 +82,7 @@ class JustPyFrontend(Frontend):
 
     def start_server(self, host: str, port: int) -> None:
         env = os.environ.copy()
-        env["LIGHTNING_FLOW_NAME"] = self.flow.name
+        env["LIGHTNING_FLOW_NAME"] = self.flow.name  # type: ignore
         env["LIGHTNING_RENDER_FUNCTION"] = self.render_fn.__name__
         env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(self.render_fn).__file__  # type: ignore
         env["LIGHTNING_HOST"] = host
