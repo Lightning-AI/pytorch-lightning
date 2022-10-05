@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from typing_extensions import Literal
@@ -102,13 +102,13 @@ class _Connector:
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
-        accelerator = os.getenv("LT_ACCELERATOR", accelerator)
-        strategy = os.getenv("LT_STRATEGY", strategy)
-        devices = os.getenv("LT_DEVICES", devices)
-        num_nodes = os.getenv("LT_NUM_NODES", num_nodes)
-        precision = os.getenv("LT_PRECISION", precision)
-        # TODO: support precision input as string
-        precision = int(precision) if precision in ("16", "32", "64") else precision
+
+        # These arguments can be set through environment variables set by the CLI
+        accelerator = self._argument_from_env("accelerator", accelerator, default=None)
+        strategy = self._argument_from_env("strategy", strategy, default=None)
+        devices = self._argument_from_env("devices", devices, default=None)
+        num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
+        precision = self._argument_from_env("precision", precision, default=32)
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
@@ -527,6 +527,24 @@ class _Connector:
                 "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
+
+    @staticmethod
+    def _argument_from_env(name: str, current: Any, default: Any) -> Any:
+        env_value = os.environ.get("LT_" + name.upper())
+
+        if name == "precision":
+            # TODO: support precision input as string, then this special handling is not needed
+            env_value = int(env_value) if env_value in ("16", "32", "64") else env_value
+
+        if env_value is not None and env_value != current and current != default:
+            raise ValueError(
+                f"Your code has `LightningLite({name}={current!r}, ...)` but it conflicts with the value "
+                f"`--{name}={current}` set through the CLI. "
+                " Remove it either from the CLI or from the Lightning Lite object."
+            )
+        if env_value is None:
+            return current
+        return env_value
 
     @property
     def is_distributed(self) -> bool:
