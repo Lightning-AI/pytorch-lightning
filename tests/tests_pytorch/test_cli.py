@@ -509,7 +509,7 @@ def test_cli_config_overwrite(tmpdir):
     with mock.patch("sys.argv", argv), pytest.raises(RuntimeError, match="Aborting to avoid overwriting"):
         LightningCLI(BoringModel, trainer_defaults=trainer_defaults)
     with mock.patch("sys.argv", argv):
-        LightningCLI(BoringModel, save_config_overwrite=True, trainer_defaults=trainer_defaults)
+        LightningCLI(BoringModel, save_config_kwargs={"overwrite": True}, trainer_defaults=trainer_defaults)
 
 
 @pytest.mark.parametrize("run", (False, True))
