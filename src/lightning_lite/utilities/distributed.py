@@ -3,17 +3,13 @@ import os
 from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
-from torch.nn import functional as F
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
+from lightning_lite.utilities.imports import _HPU_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_info
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
@@ -89,6 +85,8 @@ def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> L
 
 
 def distributed_available() -> bool:
+    from lightning_lite.accelerators.tpu import tpu_distributed
+
     return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
 
 
@@ -243,10 +241,6 @@ def init_dist_connection(
         f"All distributed processes registered. Starting with {world_size} processes\n"
         f"{'-' * 100}\n"
     )
-
-
-def tpu_distributed() -> bool:
-    return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
 def get_default_process_group_backend_for_device(device: torch.device) -> str:

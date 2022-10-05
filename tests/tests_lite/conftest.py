@@ -17,6 +17,8 @@ from typing import List
 import pytest
 import torch.distributed
 
+import lightning_lite
+
 
 @pytest.fixture(scope="function", autouse=True)
 def preserve_global_rank_variable():
@@ -52,17 +54,6 @@ def restore_env_variables():
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        # set by XLA
-        "TF2_BEHAVIOR",
-        "XRT_MESH_SERVICE_ADDRESS",
-        "XRT_TORCH_DIST_ROOT",
-        "XRT_MULTI_PROCESSING_DEVICE",
-        "XRT_SHARD_WORLD_SIZE",
-        "XRT_LOCAL_WORKER",
-        "XRT_HOST_WORLD_SIZE",
-        "XRT_SHARD_ORDINAL",
-        "XRT_SHARD_LOCAL_ORDINAL",
-        "TF_CPP_MIN_LOG_LEVEL",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -81,6 +72,19 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture(scope="function")
+def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+
+
+@pytest.fixture(scope="function")
+def tpu_available(xla_available, monkeypatch) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
 
 
 @pytest.fixture

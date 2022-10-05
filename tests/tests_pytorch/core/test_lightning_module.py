@@ -24,7 +24,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -333,7 +333,7 @@ def test_sharded_tensor_state_dict(single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 else "sharded_tensor"
+    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 and not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
     assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)
