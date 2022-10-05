@@ -125,8 +125,6 @@ class RunIf:
         reasons = []
 
         if min_cuda_gpus:
-            # defer CUDA initialization if possible, supporting tests that will attempt forks after NVML-based CUDA
-            # availability checks
             conditions.append(num_cuda_devices() < min_cuda_gpus)
             reasons.append(f"GPUs>={min_cuda_gpus}")
             # used in conftest.py::pytest_collection_modifyitems
