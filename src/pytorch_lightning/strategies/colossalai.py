@@ -26,7 +26,7 @@ from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin, PrecisionPlugin
+from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
@@ -49,7 +49,7 @@ if _COLOSSALAI_AVAILABLE:
     from colossalai.utils.model.colo_init_context import ColoInitContext
     from colossalai.zero import ZeroOptimizer
 else:
-    ColoInitContext = None
+    ColoInitContext = Any
 
 
 class ColossalAIStrategy(DDPStrategy):
@@ -146,11 +146,11 @@ class ColossalAIStrategy(DDPStrategy):
         growth_interval: int = 1000,
         hysteresis: int = 2,
         max_scale: float = 2**32,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[ColossalAIPrecisionPlugin] = None,
     ) -> None:
         if not _COLOSSALAI_AVAILABLE:
             raise MisconfigurationException(
