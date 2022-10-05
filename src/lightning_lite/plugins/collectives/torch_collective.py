@@ -14,6 +14,11 @@ else:
 
 
 class TorchCollective(Collective):
+    def __init__(self, instantiate_group: bool = False, **group_kwargs: Any) -> None:
+        if not dist.is_available():
+            raise RuntimeError("Torch distributed is not available.")
+        super().__init__(instantiate_group, **group_kwargs)
+
     @property
     def rank(self) -> int:
         return dist.get_rank(self.group)

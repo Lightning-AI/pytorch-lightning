@@ -1,14 +1,22 @@
 import datetime
 from typing import Any, List, Optional
 
-import deepspeed.comm as dist
 import torch
 
 from lightning_lite.plugins.collectives.collective import Collective
+from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.utilities.types import ProcessGroup
+
+if _DEEPSPEED_AVAILABLE:
+    import deepspeed.comm as dist
 
 
 class DeepSpeedCollective(Collective):
+    def __init__(self, instantiate_group: bool = False, **group_kwargs: Any) -> None:
+        if not _DEEPSPEED_AVAILABLE:
+            raise RuntimeError("Torch distributed is not available.")
+        super().__init__(instantiate_group, **group_kwargs)
+
     @property
     def rank(self) -> int:
         return dist.get_rank(self.group)
