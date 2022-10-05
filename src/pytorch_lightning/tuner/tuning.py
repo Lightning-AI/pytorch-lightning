@@ -18,9 +18,10 @@ from typing_extensions import Literal, NotRequired, TypedDict
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
-from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -99,7 +100,9 @@ class Tuner:
             )
 
             lr_find_kwargs.setdefault("update_attr", True)
-            result["lr_find"] = lr_find(self.trainer, model, **lr_find_kwargs)
+            result["lr_find"] = self.lr_find(
+                model, train_dataloaders, val_dataloaders, dataloaders, datamodule, method, **lr_find_kwargs
+            )
             self.trainer.state.status = TrainerStatus.FINISHED
 
         return result
@@ -202,7 +205,9 @@ class Tuner:
         model: "pl.LightningModule",
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
+        dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional["pl.LightningDataModule"] = None,
+        method: Literal["fit", "validate", "test", "predict"] = "fit",
         min_lr: float = 1e-8,
         max_lr: float = 1,
         num_training: int = 100,
@@ -222,6 +227,9 @@ class Tuner:
 
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
+                samples used for running tuner on validation/testing/prediction.
+
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
             min_lr: minimum learning rate to investigate
@@ -232,10 +240,10 @@ class Tuner:
 
             mode: Search strategy to update learning rate after each batch:
 
-                - ``'exponential'`` (default): Will increase the learning rate exponentially.
-                - ``'linear'``: Will increase the learning rate linearly.
+                - ``'exponential'``: Increases the learning rate exponentially.
+                - ``'linear'``: Increases the learning rate linearly.
 
-            early_stop_threshold: threshold for stopping the search. If the
+            early_stop_threshold: Threshold for stopping the search. If the
                 loss at any point is larger than early_stop_threshold*best_loss
                 then the search is stopped. To disable, set to None.
 
@@ -246,23 +254,32 @@ class Tuner:
                 If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
                 or if you are using more than one optimizer.
         """
-        self.trainer.auto_lr_find = True
-        result = self.trainer.tune(
-            model,
-            train_dataloaders=train_dataloaders,
-            val_dataloaders=val_dataloaders,
-            datamodule=datamodule,
-            lr_find_kwargs={
-                "min_lr": min_lr,
-                "max_lr": max_lr,
-                "num_training": num_training,
-                "mode": mode,
-                "early_stop_threshold": early_stop_threshold,
-                "update_attr": update_attr,
-            },
+        self.trainer.state.fn = TrainerFn.TUNING
+        self.tuning = True
+
+        if method != "fit":
+            raise MisconfigurationException("method='fit' is an invalid configuration to run lr finder.")
+
+        _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
+
+        lr_finder_callback: Callback = LearningRateFinder(
+            min_lr=min_lr,
+            max_lr=max_lr,
+            num_training_steps=num_training,
+            mode=mode,
+            early_stop_threshold=early_stop_threshold,
+            update_attr=update_attr,
         )
+
+        lr_finder_callback._early_exit = True
+        self.trainer.callbacks = [lr_finder_callback] + self.trainer.callbacks
+
+        self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
+
+        self.trainer.callbacks = [cb for cb in self.trainer.callbacks if cb is not lr_finder_callback]
+
         self.trainer.auto_lr_find = False
-        return result["lr_find"]
+        return lr_finder_callback.optimal_lr
 
 
 def _check_tuner_configuration(
@@ -289,7 +306,7 @@ def _check_tuner_configuration(
                 " arguments should be None, please consider setting `dataloaders` instead."
             )
 
-    if any(isinstance(cb, BatchSizeFinder) for cb in trainer.callbacks):
+    if any(isinstance(cb, (BatchSizeFinder, LearningRateFinder)) for cb in trainer.callbacks):
         raise MisconfigurationException(
             "Trainer is already configured with a `BatchSizeFinder` callback. Please remove it if you"
             " want to use tuner."
