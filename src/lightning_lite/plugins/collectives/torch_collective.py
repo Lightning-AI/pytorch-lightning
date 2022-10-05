@@ -31,14 +31,6 @@ class TorchCollective(Collective):
         torch.distirbuted.broadcast(tensor, src, group=self.group)
         return tensor
 
-    def broadcast_object_list(
-        self,
-        object_list: List[Any],
-        src: int,
-        device: Optional[torch.device] = None,
-    ) -> List[Any]:
-        torch.distributed.broadcast_object_list(object_list, src, group=self.group, device=device)
-
     def all_reduce(
         self,
         tensor: torch.Tensor,
@@ -64,14 +56,6 @@ class TorchCollective(Collective):
         torch.distributed.all_gather(tensor_list, tensor, group=self.group)
         return tensor_list
 
-    def all_gather_object(
-        self,
-        object_list: List[Any],
-        object: Any,
-    ) -> List[Any]:
-        torch.distributed.all_gather_object(object_list, object, group=self.group)
-        return object_list
-
     def gather(
         self,
         tensor: torch.Tensor,
@@ -80,15 +64,6 @@ class TorchCollective(Collective):
     ) -> Optional[List[torch.Tensor]]:
         torch.distributed.gather(tensor, gather_list, dst, group=self.group)
         return gather_list
-
-    def gather_object(
-        self,
-        obj: Any,
-        object_gather_list: Optional[List[Any]] = None,
-        dst: int = 0,
-    ) -> Optional[List[Any]]:
-        torch.distributed.gather_object(obj, object_gather_list, dst, group=self.group)
-        return object_gather_list
 
     def scatter(
         self,
@@ -99,17 +74,6 @@ class TorchCollective(Collective):
     ) -> torch.Tensor:
         torch.distributed.scatter(tensor, scatter_list, src, group=self.group, async_op=async_op)
         return tensor
-
-    def scatter_object_list(
-        self,
-        scatter_object_output_list: List[Any],
-        scatter_object_input_list: Optional[List[Any]],
-        src: int = 0,
-    ) -> List[Any]:
-        torch.distributed.scatter_object_list(
-            scatter_object_output_list, scatter_object_input_list, src, group=self.group
-        )
-        return scatter_object_output_list
 
     def reduce_scatter(
         self,
@@ -133,6 +97,43 @@ class TorchCollective(Collective):
         device_ids: Optional[List[int]] = None,
     ) -> None:
         torch.distributed.barrier(group=self.group, device_ids=device_ids)
+
+    def all_gather_object(
+        self,
+        object_list: List[Any],
+        object: Any,
+    ) -> List[Any]:
+        torch.distributed.all_gather_object(object_list, object, group=self.group)
+        return object_list
+
+    def broadcast_object_list(
+        self,
+        object_list: List[Any],
+        src: int,
+        device: Optional[torch.device] = None,
+    ) -> List[Any]:
+        torch.distributed.broadcast_object_list(object_list, src, group=self.group, device=device)
+        return object_list
+
+    def gather_object(
+        self,
+        obj: Any,
+        object_gather_list: Optional[List[Any]] = None,
+        dst: int = 0,
+    ) -> Optional[List[Any]]:
+        torch.distributed.gather_object(obj, object_gather_list, dst, group=self.group)
+        return object_gather_list
+
+    def scatter_object_list(
+        self,
+        scatter_object_output_list: List[Any],
+        scatter_object_input_list: Optional[List[Any]],
+        src: int = 0,
+    ) -> List[Any]:
+        torch.distributed.scatter_object_list(
+            scatter_object_output_list, scatter_object_input_list, src, group=self.group
+        )
+        return scatter_object_output_list
 
     def monitored_barrier(
         self,

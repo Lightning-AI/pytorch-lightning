@@ -32,7 +32,7 @@ class Collective(ABC):
     def group(self) -> CollectibleGroup:
         if self._group is None:
             raise RuntimeError(
-                f"{type(self).__name__} already owns a group. HINT: try `collective.create_group().group`"
+                f"{type(self).__name__} does not own a group yet. HINT: try `collective.create_group().group`"
             )
         return self._group
 
