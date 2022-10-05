@@ -22,6 +22,10 @@ class SingleDeviceCollective(Collective):
         return object()  # type: ignore[return-value]
 
     @staticmethod
+    def _convert_to_native_op(op: str) -> str:
+        return op
+
+    @staticmethod
     def destroy_group(group: CollectibleGroup) -> None:
         pass
 

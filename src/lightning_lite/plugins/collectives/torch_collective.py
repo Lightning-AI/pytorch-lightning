@@ -37,7 +37,8 @@ class TorchCollective(Collective):
     def destroy_group(group: CollectibleGroup) -> None:
         dist.destroy_process_group(group)
 
-    def convert_to_native_op(op: str) -> ReduceOp:
+    @staticmethod
+    def _convert_to_native_op(op: str) -> ReduceOp:
         value = getattr(ReduceOp, op.upper(), None)
         if value is None:
             raise ValueError("TODO")
@@ -54,8 +55,9 @@ class TorchCollective(Collective):
     def all_reduce(
         self,
         tensor: torch.Tensor,
-        op: ReduceOp = ReduceOp.SUM,
+        op: str = "sum",
     ) -> torch.Tensor:
+        op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
@@ -63,8 +65,9 @@ class TorchCollective(Collective):
         self,
         tensor: torch.Tensor,
         dst: int,
-        op: ReduceOp = ReduceOp.SUM,
+        op: str = "sum",
     ) -> torch.Tensor:
+        op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
 
@@ -98,8 +101,9 @@ class TorchCollective(Collective):
         self,
         output: torch.Tensor,
         input_list: List[torch.Tensor],
-        op: ReduceOp = ReduceOp.SUM,
+        op: str = "sum",
     ) -> torch.Tensor:
+        op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
 

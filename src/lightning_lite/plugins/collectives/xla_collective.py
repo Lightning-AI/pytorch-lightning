@@ -13,7 +13,7 @@ class XLACollective(Collective):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def convert_to_native_op(op: str) -> str:
+    def _convert_to_native_op(op: str) -> str:
         import torch_xla.core.xla_model as xm
 
         # https://github.com/pytorch/xla/blob/28ea3758e9586ef8cc22270a16e1ddb4a21aa6f7/torch_xla/core/xla_model.py#L23-L28
@@ -29,7 +29,7 @@ class XLACollective(Collective):
         op: str,
     ) -> torch.Tensor:
         if op != "mean":
-            op = self.convert_to_native_op(op)
+            op = self._convert_to_native_op(op)
         if op not in ("sum", "mean"):
             raise NotImplementedError("TODO")
 

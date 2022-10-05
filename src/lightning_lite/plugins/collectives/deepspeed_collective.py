@@ -35,6 +35,13 @@ class DeepSpeedCollective(Collective):
     def destroy_group(group: CollectibleGroup) -> None:
         dist.destroy_process_group(group)
 
+    @staticmethod
+    def _convert_to_native_op(op: str) -> "dist.ReduceOp":
+        value = getattr(dist.ReduceOp, op.upper(), None)
+        if value is None:
+            raise ValueError("TODO")
+        return value
+
     def broadcast(
         self,
         tensor: torch.Tensor,
@@ -46,8 +53,9 @@ class DeepSpeedCollective(Collective):
     def all_reduce(
         self,
         tensor: torch.Tensor,
-        op: dist.ReduceOp = dist.ReduceOp.SUM,
+        op: str = "sum",
     ) -> torch.Tensor:
+        op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
@@ -55,8 +63,9 @@ class DeepSpeedCollective(Collective):
         self,
         tensor: torch.Tensor,
         dst: int,
-        op: dist.ReduceOp = dist.ReduceOp.SUM,
+        op: str = "sum",
     ) -> torch.Tensor:
+        op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
 
@@ -90,8 +99,9 @@ class DeepSpeedCollective(Collective):
         self,
         output: torch.Tensor,
         input_list: List[torch.Tensor],
-        op: dist.ReduceOp = dist.ReduceOp.SUM,
+        op: str = "sum",
     ) -> torch.Tensor:
+        op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
 

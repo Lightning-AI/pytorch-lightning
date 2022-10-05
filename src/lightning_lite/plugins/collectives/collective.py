@@ -59,8 +59,8 @@ class Collective(ABC):
 
     @staticmethod
     @abstractmethod
-    def convert_to_native_op(op: str) -> Any:
-        ...
+    def _convert_to_native_op(op: str) -> Any:
+        pass
 
     @abstractmethod
     def broadcast(
@@ -74,7 +74,7 @@ class Collective(ABC):
     def all_reduce(
         self,
         tensor: torch.Tensor,
-        op: Any,
+        op: str,
     ) -> torch.Tensor:
         pass
 
@@ -83,7 +83,7 @@ class Collective(ABC):
         self,
         tensor: torch.Tensor,
         dst: int,
-        op: Any,
+        op: str,
     ) -> torch.Tensor:
         pass
 
@@ -118,7 +118,7 @@ class Collective(ABC):
         self,
         output: torch.Tensor,
         input_list: List[torch.Tensor],
-        op: Any,
+        op: str,
     ) -> torch.Tensor:
         pass
 
