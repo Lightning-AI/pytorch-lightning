@@ -160,6 +160,7 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 class HTTPClient:
     """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
     automatically.
+
     TODO - exception handling on
         1. Persistent errors after retry (we'll retry for 120 sec)
         2. Other HTTP errors which are not handled by retry (we probably shouldn't handle it)
