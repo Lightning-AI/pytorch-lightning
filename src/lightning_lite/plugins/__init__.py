@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning_lite.plugins.collectives.collective import Collective
+from lightning_lite.plugins.collectives.deepspeed_collective import DeepSpeedCollective
+from lightning_lite.plugins.collectives.single_device_collective import SingleDeviceCollective
+from lightning_lite.plugins.collectives.torch_collective import TorchCollective
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
@@ -27,12 +30,15 @@ __all__ = [
     "CheckpointIO",
     "ClusterEnvironment",
     "Collective",
-    "TorchCheckpointIO",
-    "XLACheckpointIO",
+    "DeepSpeedCollective",
     "DeepSpeedPrecision",
     "DoublePrecision",
     "NativeMixedPrecision",
     "Precision",
-    "TPUPrecision",
+    "SingleDeviceCollective",
+    "TorchCheckpointIO",
+    "TorchCollective",
     "TPUBf16Precision",
+    "TPUPrecision",
+    "XLACheckpointIO",
 ]
