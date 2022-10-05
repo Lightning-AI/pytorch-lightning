@@ -7,6 +7,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.enum import ComponentContext
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.tree import breadth_first
 
 if TYPE_CHECKING:
@@ -52,9 +53,13 @@ def _sanitize_state(state: Dict[str, Any]) -> Dict[str, Any]:
     def sanitize_drive(drive: Drive) -> Dict:
         return drive.to_dict()
 
+    def sanitize_cloud_compute(cloud_compute: CloudCompute) -> Dict:
+        return cloud_compute.to_dict()
+
     state = apply_to_collection(state, dtype=Path, function=sanitize_path)
     state = apply_to_collection(state, dtype=BasePayload, function=sanitize_payload)
     state = apply_to_collection(state, dtype=Drive, function=sanitize_drive)
+    state = apply_to_collection(state, dtype=CloudCompute, function=sanitize_cloud_compute)
     return state
 
 
