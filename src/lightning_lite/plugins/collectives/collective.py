@@ -22,7 +22,7 @@ class Collective(ABC):
         if instantiate_group:
             self.create_group()
 
-    def create_group(self, **kwargs: Any) -> Self:
+    def create_group(self, **kwargs: Any) -> Self:  # type: ignore[valid-type]
         if self._group is not None:
             raise RuntimeError(f"{type(self).__name__} already owns a group.")
         self._group_kwargs.update(kwargs)
@@ -31,6 +31,9 @@ class Collective(ABC):
 
     @property
     def group(self) -> CollectibleGroup:
+        if self._group is None:
+            self.create_group()
+        assert self._group is not None
         return self._group
 
     @property
@@ -43,8 +46,8 @@ class Collective(ABC):
     def world_size(self) -> int:
         pass
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def init_group(
         **kwargs: Any,
     ) -> CollectibleGroup:
@@ -89,7 +92,7 @@ class Collective(ABC):
         tensor: torch.Tensor,
         gather_list: Optional[List[torch.Tensor]] = None,
         dst: int = 0,
-    ) -> List[torch.Tensor]:
+    ) -> Optional[List[torch.Tensor]]:
         pass
 
     @abstractmethod

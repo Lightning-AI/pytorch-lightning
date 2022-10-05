@@ -20,7 +20,7 @@ class TorchCollective(Collective):
     def init_group(
         **kwargs: Any,
     ) -> ProcessGroup:
-        pass
+        return torch.distributed.init_process_group(**kwargs)
 
     def broadcast(
         self,
@@ -76,7 +76,7 @@ class TorchCollective(Collective):
         tensor: torch.Tensor,
         gather_list: Optional[List[torch.Tensor]] = None,
         dst: int = 0,
-    ) -> List[torch.Tensor]:
+    ) -> Optional[List[torch.Tensor]]:
         torch.distributed.gather(tensor, gather_list, dst, group=self.group)
         return gather_list
 
@@ -85,7 +85,7 @@ class TorchCollective(Collective):
         obj: Any,
         object_gather_list: Optional[List[Any]] = None,
         dst: int = 0,
-    ) -> List[Any]:
+    ) -> Optional[List[Any]]:
         torch.distributed.gather_object(obj, object_gather_list, dst, group=self.group)
         return object_gather_list
 
