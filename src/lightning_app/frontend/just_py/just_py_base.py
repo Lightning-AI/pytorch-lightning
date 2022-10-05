@@ -11,6 +11,15 @@ def get_state() -> AppState:
     return _reduce_to_flow_scope(app_state, flow=os.environ["LIGHTNING_FLOW_NAME"])
 
 
+def website():
+    import justpy as jp
+
+    wp = jp.WebPage()
+    d = jp.Div(text="")
+    wp.add(d)
+    return wp
+
+
 def _get_render_fn_from_environment() -> Callable:
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
     render_fn_module_file = os.environ["LIGHTNING_RENDER_MODULE_FILE"]
@@ -33,8 +42,10 @@ def main():
     entry_fn = render_fn(get_state)
     if not isinstance(entry_fn, Callable):
         raise Exception("You need to return a function with JustPy Frontend.")
+
     jp.app.add_jproute(f"/{flow_name}", entry_fn)
-    jp.justpy(entry_fn, host=host, port=port)
+
+    jp.justpy(website, host=host, port=port)
 
 
 if __name__ == "__main__":
