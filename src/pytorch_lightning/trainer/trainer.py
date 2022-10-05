@@ -2222,7 +2222,7 @@ def _evaluation_context(accelerator: Accelerator) -> Generator:
     # and HPU & TPU accelerators.
     context_manager_class = (
         torch.inference_mode
-        if not (dist.is_initialized() and dist.get_backend() == "gloo")
+        if not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
         and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
