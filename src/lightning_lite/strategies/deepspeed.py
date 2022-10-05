@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
 import torch
-from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_only
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -32,11 +31,11 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.utilities.distributed import log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.imports import _DEEPSPEED_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 
-_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
 

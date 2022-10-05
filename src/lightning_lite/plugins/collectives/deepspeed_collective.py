@@ -4,7 +4,7 @@ from typing import Any, List, Optional
 import torch
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning_lite.utilities.imports import _DEEPSPEED_AVAILABLE
 from lightning_lite.utilities.types import CollectibleGroup
 
 if _DEEPSPEED_AVAILABLE:
