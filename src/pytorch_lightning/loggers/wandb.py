@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 from weakref import ReferenceType
 
 import torch.nn as nn
@@ -133,7 +133,7 @@ class WandbLogger(Logger):
 
     .. code-block:: python
 
-        wandb_logger.unwatch(model)
+        wandb_logger.experiment.unwatch(model)
 
     **Log model checkpoints**
 
@@ -254,9 +254,10 @@ class WandbLogger(Logger):
     Args:
         name: Display name for the run.
         save_dir: Path where data is saved.
+        version: Sets the version, mainly used to resume a previous run.
         offline: Run offline (data can be streamed later to wandb servers).
-        id: Sets the version, mainly used to resume a previous run.
-        version: Same as id.
+        dir: Same as save_dir.
+        id: Same as version.
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
         log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
@@ -286,16 +287,15 @@ class WandbLogger(Logger):
         self,
         name: Optional[str] = None,
         save_dir: str = ".",
+        version: Optional[str] = None,
         offline: bool = False,
+        dir: Optional[str] = None,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
-        version: Optional[str] = None,
         project: str = "lightning_logs",
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs: Any,
     ) -> None:
         if wandb is None:
@@ -318,7 +318,7 @@ class WandbLogger(Logger):
                 "Hint: Upgrade with `pip install --upgrade wandb`."
             )
 
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
         self._offline = offline
         self._log_model = log_model
         self._prefix = prefix
@@ -329,8 +329,8 @@ class WandbLogger(Logger):
         self._wandb_init: Dict[str, Any] = dict(
             name=name,
             project=project,
+            dir=save_dir or dir,
             id=version or id,
-            dir=save_dir or kwargs.pop("dir"),
             resume="allow",
             anonymous=("allow" if anonymous else None),
         )

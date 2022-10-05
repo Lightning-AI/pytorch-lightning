@@ -50,7 +50,7 @@ def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = Fals
 
 def main() -> None:
     # 1: Handle connection to a Lightning App.
-    if sys.argv[1] in ("connect", "disconnect"):
+    if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect"):
         _main()
     else:
         # 2: Collect the connection a Lightning App.
@@ -86,8 +86,8 @@ def show() -> None:
     pass
 
 
-_main.command(connect)
-_main.command(disconnect)
+_main.command()(connect)
+_main.command()(disconnect)
 
 
 @show.command()

@@ -83,38 +83,20 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         return False
 
 
-def test_deepspeed_lightning_module():
-    """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly."""
-
-    model = BoringModel()
-    with pytest.deprecated_call(match="`LightningDeepSpeedModule` has been deprecated in v1.7.1"):
-        module = LightningDeepSpeedModule(model, precision=16)
-
-    module.half()
-    assert module.dtype == torch.half
-    assert model.dtype == torch.half
-
-    module.to(torch.double)
-    assert module.dtype == torch.double
-    assert model.dtype == torch.double
-
-
 @RunIf(min_cuda_gpus=1)
 def test_deepspeed_lightning_module_precision():
     """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision
     16."""
-
     model = BoringModel()
     with pytest.deprecated_call(match="`LightningDeepSpeedModule` has been deprecated in v1.7.1"):
         module = LightningDeepSpeedModule(model, precision=16)
 
-    module.cuda().half()
+    module.to(device="cuda", dtype=torch.half)
     assert module.dtype == torch.half
     assert model.dtype == torch.half
 
-    x = torch.randn((1, 32), dtype=torch.float).cuda()
+    x = torch.randn((1, 32), device="cuda", dtype=torch.float)
     out = module(x)
-
     assert out.dtype == torch.half
 
     module.to(torch.double)
@@ -373,15 +355,15 @@ def test_deepspeed_custom_precision_params(tmpdir):
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
             assert trainer.strategy.config["fp16"]["loss_scale"] == 10
-            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 10
-            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 10
-            assert trainer.strategy.config["fp16"]["hysteresis"] == 10
-            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 10
+            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 11
+            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 12
+            assert trainer.strategy.config["fp16"]["hysteresis"] == 13
+            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 14
             raise SystemExit()
 
     model = BoringModel()
     ds = DeepSpeedStrategy(
-        loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10
+        loss_scale=10, initial_scale_power=11, loss_scale_window=12, hysteresis=13, min_loss_scale=14
     )
     trainer = Trainer(
         default_root_dir=tmpdir,

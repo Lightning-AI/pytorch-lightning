@@ -13,7 +13,7 @@
 # limitations under the License.
 from pathlib import Path
 from re import escape
-from unittest.mock import call, Mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -39,13 +39,8 @@ def test_callbacks_configured_in_model(tmpdir):
     )
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
-        # some methods in callbacks configured through model won't get called
-        uncalled_methods = [call.on_init_start(_trainer), call.on_init_end(_trainer)]
-        for uncalled in uncalled_methods:
-            assert uncalled not in model_callback.method_calls
-
         # assert that the rest of calls are the same as for trainer callbacks
-        expected_calls = [m for m in trainer_callback.method_calls if m not in uncalled_methods]
+        expected_calls = [m for m in trainer_callback.method_calls if m]
         assert expected_calls
         assert model_callback.method_calls == expected_calls
 

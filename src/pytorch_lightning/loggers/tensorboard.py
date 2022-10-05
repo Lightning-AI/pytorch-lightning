@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
 from torch import Tensor
@@ -94,11 +94,9 @@ class TensorBoardLogger(Logger):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs: Any,
     ):
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
@@ -244,9 +242,8 @@ class TensorBoardLogger(Logger):
             if input_array is not None:
                 input_array = model._on_before_batch_transfer(input_array)
                 input_array = model._apply_batch_transfer_handler(input_array)
-                model._running_torchscript = True
-                self.experiment.add_graph(model, input_array)
-                model._running_torchscript = False
+                with pl.core.module._jit_is_scripting():
+                    self.experiment.add_graph(model, input_array)
             else:
                 rank_zero_warn(
                     "Could not log computational graph since the"

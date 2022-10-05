@@ -86,3 +86,18 @@ class Steppable(Protocol):
     # Inferred from `torch.optim.optimizer.pyi`
     def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
         ...
+
+
+@runtime_checkable
+class Optimizable(Steppable, Protocol):
+    """To structurally type ``optimizer``"""
+
+    param_groups: List[Dict[Any, Any]]
+    defaults: Dict[Any, Any]
+    state: Dict[Any, Any]
+
+    def state_dict(self) -> Dict[str, Dict[Any, Any]]:
+        ...
+
+    def load_state_dict(self, state_dict: Dict[str, Dict[Any, Any]]) -> None:
+        ...
