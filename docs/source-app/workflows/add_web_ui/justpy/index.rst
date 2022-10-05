@@ -58,16 +58,21 @@ Secondly, you would need to implement a ``render_fn`` that takes as input a ``ge
     def render_fn(get_state: Callable) -> Callable:
         import justpy as jp
 
-        async def click(self, msg):
-            state = get_state()
-            state.counter += 1
-            msg.page.components[0].components[1].text = f"Counter: {state.counter}"
-
         def website():
             wp = jp.QuasarPage(dark=True)
             d = jp.Div(classes="q-pa-md q-gutter-sm", a=wp)
-            jp.QBtn(color="primary", text="Click Me!", click=click, a=d)
-            jp.QBtn(color="primary", text="Counter: 0", a=d)
+            container = jp.QBtn(color="primary", text="Counter: 0")
+
+            async def click(*_):
+                state = get_state()
+                state.counter += 1
+                container.text = f"Counter: {state.counter}"
+
+            button = jp.QBtn(color="primary", text="Click Me!", click=click)
+
+            d.add(button)
+            d.add(container)
+
             return wp
 
         return website
