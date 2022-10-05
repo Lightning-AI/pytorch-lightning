@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 import torch
 from torch.distributed import ReduceOp
-from typing_extensions import Protocol, runtime_checkable
+from typing_extensions import Protocol, runtime_checkable, Self
 
 
 @runtime_checkable
@@ -17,15 +17,20 @@ class CollectibleGroup(Protocol):
 
 class Collective(ABC):
     def __init__(self, instantiate_group: bool = False, **group_kwargs: Any) -> None:
-        self._group: Optional[CollectibleGroup] = None
         self._group_kwargs = group_kwargs
+        self._group: Optional[CollectibleGroup] = None
         if instantiate_group:
-            _ = self.group
+            self.create_group()
+
+    def create_group(self, **kwargs: Any) -> Self:
+        if self._group is not None:
+            raise RuntimeError(f"{type(self).__name__} already owns a group.")
+        self._group_kwargs.update(kwargs)
+        self._group = self.init_group(**self._group_kwargs)
+        return self
 
     @property
     def group(self) -> CollectibleGroup:
-        if self._group is None:
-            self._group = self.init_group(**self._group_kwargs)
         return self._group
 
     @property
@@ -39,9 +44,10 @@ class Collective(ABC):
         pass
 
     @abstractmethod
+    @staticmethod
     def init_group(
         self,
-        **init_kwargs: Any,
+        **kwargs: Any,
     ) -> CollectibleGroup:
         pass
 
