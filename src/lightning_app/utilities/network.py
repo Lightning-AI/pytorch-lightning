@@ -144,22 +144,20 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 
     @wraps(func)
     def wrapped(self: "HTTPClient", *args: Any, **kwargs: Any) -> Any:
-        self.log_function(
-            f"HTTPClient: Method: {func.__name__.upper()}, Base URL: {self.base_url}, Path: {args[0]}"
-        )
+        self.log_function(f"HTTPClient: Method: {func.__name__.upper()}, Base URL: {self.base_url}, Path: {args[0]}")
         params = kwargs.get("query_params", {})
         if params:
             self.log_function(f"Params: {params}")
         resp: requests.Response = func(self, *args, **kwargs)
         self.log_function(f"Response Status Code: {resp.status_code}")
         return resp
+
     return wrapped
 
 
 class HTTPClient:
-    """
-    TODO document about the log behaviour
-    """
+    """TODO document about the log behaviour."""
+
     def __init__(self, base_url: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
         self.base_url = base_url or HTTP_QUEUE_URL
         retry_strategy = Retry(
