@@ -28,6 +28,8 @@ from pytorch_lightning.callbacks import (
     RichProgressBar,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -229,19 +231,30 @@ class CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """Moves all Checkpoint callbacks to the end of the list. The sequential order within the group of
-        checkpoint callbacks is preserved, as well as the order of all other callbacks.
+        """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint`
+        callbacks to the end of the list. The sequential order within the group of checkpoint callbacks is
+        preserved, as well as the order of all other callbacks.
 
         Args:
             callbacks: A list of callbacks.
 
         Return:
-            A new list in which the last elements are Checkpoint if there were any present in the
-            input.
+            A new list in which the first elements are tuner specific callbacks and last elements are ModelCheckpoints
+            if there were any present in the input.
         """
-        checkpoints: List[Callback] = [c for c in callbacks if isinstance(c, Checkpoint)]
-        not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint)]
-        return not_checkpoints + checkpoints
+        tuner_callbacks: List[Callback] = []
+        other_callbacks: List[Callback] = []
+        checkpoint_callbacks: List[Callback] = []
+
+        for cb in callbacks:
+            if isinstance(cb, (BatchSizeFinder, LearningRateFinder)):
+                tuner_callbacks.append(cb)
+            elif isinstance(cb, Checkpoint):
+                checkpoint_callbacks.append(cb)
+            else:
+                other_callbacks.append(cb)
+
+        return tuner_callbacks + other_callbacks + checkpoint_callbacks
 
 
 def _configure_external_callbacks() -> List[Callback]:

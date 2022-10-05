@@ -301,6 +301,7 @@ class CometLogger(Logger):
                 self._experiment = CometOfflineExperiment(
                     offline_directory=self.save_dir, project_name=self._project_name, **self._kwargs
                 )
+            self._experiment.log_other("Created from", "pytorch-lightning")
         finally:
             if self._future_experiment_key is not None:
                 os.environ.pop("COMET_EXPERIMENT_KEY")
