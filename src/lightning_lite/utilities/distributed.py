@@ -10,17 +10,7 @@ from torch.utils.data import Dataset, DistributedSampler, Sampler
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _HPU_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_info
-
-if torch.distributed.is_available():
-    from torch.distributed import group, ReduceOp
-else:
-
-    class ReduceOp:  # type: ignore # (see https://github.com/python/mypy/issues/1153)
-        SUM = None
-
-    class group:  # type: ignore
-        WORLD = None
-
+from lightning_lite.utilities.types import ReduceOp
 
 log = logging.getLogger(__name__)
 
@@ -41,9 +31,6 @@ def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tens
         gathered_result: List with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
     """
-    if group is None:
-        group = torch.distributed.group.WORLD
-
     # Convert tensors to contiguous format
     result = result.contiguous()
 
@@ -125,9 +112,6 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
     """
     divide_by_world_size = False
 
-    if group is None:
-        group = torch.distributed.group.WORLD
-
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
         if reduce_op.lower() in ("avg", "mean"):
@@ -161,7 +145,7 @@ class AllGatherGrad(torch.autograd.Function):
     def forward(  # type: ignore[override]
         ctx: Any,
         tensor: Tensor,
-        group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
+        group: Optional["torch.distributed.ProcessGroup"] = None,
     ) -> Tensor:
         ctx.group = group
 
@@ -194,7 +178,6 @@ def all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    group = group if group is not None else torch.distributed.group.WORLD
     if distributed_available():
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)

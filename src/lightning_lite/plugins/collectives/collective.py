@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
 import torch
-from torch.distributed import ReduceOp
 from typing_extensions import Protocol, runtime_checkable, Self
 
 
@@ -65,7 +64,7 @@ class Collective(ABC):
     def all_reduce(
         self,
         tensor: torch.Tensor,
-        op: ReduceOp = ReduceOp.SUM,
+        op: Any,
     ) -> torch.Tensor:
         pass
 
@@ -74,7 +73,7 @@ class Collective(ABC):
         self,
         tensor: torch.Tensor,
         dst: int,
-        op: ReduceOp = ReduceOp.SUM,
+        op: Any,
     ) -> torch.Tensor:
         pass
 
@@ -109,7 +108,7 @@ class Collective(ABC):
         self,
         output: torch.Tensor,
         input_list: List[torch.Tensor],
-        op: ReduceOp = ReduceOp.SUM,
+        op: Any,
     ) -> torch.Tensor:
         pass
 

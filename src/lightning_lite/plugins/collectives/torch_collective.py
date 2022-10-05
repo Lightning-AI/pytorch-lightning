@@ -2,9 +2,10 @@ import datetime
 from typing import Any, List, Optional
 
 import torch
-from torch.distributed import ProcessGroup, ReduceOp
+from torch.distributed import ReduceOp
 
 from lightning_lite.plugins.collectives.collective import Collective
+from lightning_lite.utilities.types import ProcessGroup
 
 
 class TorchCollective(Collective):
@@ -14,7 +15,7 @@ class TorchCollective(Collective):
 
     @property
     def world_size(self) -> int:
-        return torch.distirbuted.get_world_size(self.group)
+        return torch.distributed.get_world_size(self.group)
 
     @staticmethod
     def init_group(

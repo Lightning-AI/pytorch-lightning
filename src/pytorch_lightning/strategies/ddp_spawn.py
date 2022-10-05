@@ -25,9 +25,13 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import (
+    distributed_available,
+    get_default_process_group_backend_for_device,
+    init_dist_connection,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
@@ -237,7 +241,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore[list-item]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src)
         return obj[0]
 
     def model_to_device(self) -> None:

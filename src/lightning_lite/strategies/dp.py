@@ -23,7 +23,7 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast, TReduce
 from lightning_lite.utilities.apply_func import apply_to_collection
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.types import ReduceOp
 
 
 class DataParallelStrategy(ParallelStrategy):

@@ -28,11 +28,15 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import (
+    distributed_available,
+    get_default_process_group_backend_for_device,
+    init_dist_connection,
+    sync_ddp_if_available,
+)
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import ReduceOp
 
 
 class DDPStrategy(ParallelStrategy):
@@ -139,7 +143,7 @@ class DDPStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore[list-item]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src)
         return obj[0]
 
     @classmethod

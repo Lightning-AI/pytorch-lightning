@@ -26,9 +26,10 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 
 
 if torch.distributed.is_available():
-    from torch.distributed import ProcessGroup
+    from torch.distributed import ProcessGroup, ReduceOp
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
+    ReduceOp = Any  # type: ignore[assignment,misc]
 
 
 _DictKey = TypeVar("_DictKey")

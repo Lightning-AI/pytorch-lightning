@@ -22,8 +22,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO
 from lightning_lite.utilities.distributed import distributed_available
-from lightning_lite.utilities.distributed import group as dist_group
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
@@ -185,8 +184,8 @@ class HorovodStrategy(ParallelStrategy):
         self.join()
         return hvd.allreduce(tensor, op=reduce_op)
 
-    def all_gather(self, result: Tensor, group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False) -> Tensor:
-        if group is not None and group != dist_group.WORLD:
+    def all_gather(self, result: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+        if group is not None:
             raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
 
         if len(result.shape) == 0:

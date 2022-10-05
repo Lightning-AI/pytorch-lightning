@@ -24,7 +24,6 @@ import inspect
 import logging
 import math
 import os
-import warnings
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
@@ -102,10 +101,6 @@ from pytorch_lightning.utilities.types import (
 )
 
 log = logging.getLogger(__name__)
-# warnings to ignore in trainer
-warnings.filterwarnings(
-    "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
-)
 
 
 class Trainer:
