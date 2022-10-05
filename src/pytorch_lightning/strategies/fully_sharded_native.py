@@ -20,11 +20,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import (
-    get_default_process_group_backend_for_device,
-    init_dist_connection,
-    sync_ddp_if_available,
-)
+from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device, init_dist_connection
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ProcessGroup, ReduceOp
@@ -35,6 +31,7 @@ from pytorch_lightning.strategies.launchers.subprocess_script import _Subprocess
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.distributed import _sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -299,7 +296,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:

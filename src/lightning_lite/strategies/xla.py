@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -31,7 +31,6 @@ from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.types import _PATH
 
@@ -112,28 +111,6 @@ class XLAStrategy(DDPSpawnStrategy):
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
         return dataloader
-
-    def reduce(
-        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-    ) -> Tensor:
-        if not isinstance(output, Tensor):
-            output = torch.tensor(output, device=self.root_device)
-
-        invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
-        invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
-        if invalid_reduce_op or invalid_reduce_op_str:
-            raise ValueError(
-                "Currently, the XLAStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
-                f" {reduce_op}"
-            )
-        import torch_xla.core.xla_model as xm
-
-        output = xm.mesh_reduce("reduce", output, sum)
-
-        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
-            output = output / self.world_size
-
-        return output
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if self.is_distributed:

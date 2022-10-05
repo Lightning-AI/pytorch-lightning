@@ -53,20 +53,6 @@ class SingleDeviceStrategy(Strategy):
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
-    def reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
-        operates with a single device, the reduction is simply the identity.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            *args: ignored
-            **kwargs: ignored
-
-        Return:
-            the unmodified input as reduction is not needed for single process operation
-        """
-        return tensor
-
     def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return tensor

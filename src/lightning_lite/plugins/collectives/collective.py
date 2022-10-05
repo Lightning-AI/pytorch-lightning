@@ -57,6 +57,11 @@ class Collective(ABC):
     def destroy_group(group: CollectibleGroup) -> None:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def convert_to_native_op(op: str) -> Any:
+        ...
+
     @abstractmethod
     def broadcast(
         self,

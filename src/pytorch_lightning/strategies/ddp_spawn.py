@@ -31,7 +31,6 @@ from lightning_lite.utilities.distributed import (
     get_default_process_group_backend_for_device,
     init_dist_connection,
     ReduceOp,
-    sync_ddp_if_available,
 )
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -42,7 +41,7 @@ from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcess
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
+from pytorch_lightning.utilities.distributed import _sync_ddp_if_available, register_ddp_comm_hook
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
@@ -270,7 +269,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:

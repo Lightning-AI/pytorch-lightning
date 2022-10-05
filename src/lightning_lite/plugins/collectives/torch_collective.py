@@ -37,6 +37,12 @@ class TorchCollective(Collective):
     def destroy_group(group: CollectibleGroup) -> None:
         dist.destroy_process_group(group)
 
+    def convert_to_native_op(op: str) -> ReduceOp:
+        value = getattr(ReduceOp, op.upper(), None)
+        if value is None:
+            raise ValueError("TODO")
+        return value
+
     def broadcast(
         self,
         tensor: torch.Tensor,

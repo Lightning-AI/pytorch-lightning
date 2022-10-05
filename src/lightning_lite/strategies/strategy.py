@@ -29,7 +29,7 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.optimizer import optimizer_to_device
-from lightning_lite.utilities.types import _PATH, Optimizable, ReduceOp
+from lightning_lite.utilities.types import _PATH, Optimizable
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -176,22 +176,6 @@ class Strategy(ABC):
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         return self.precision_plugin.optimizer_step(optimizer, **kwargs)
-
-    @abstractmethod
-    def reduce(
-        self,
-        tensor: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> Union[Tensor, Any]:
-        """Reduces the given tensor (e.g. across GPUs/processes).
-
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to reduce
-            reduce_op: the reduction operation. Defaults to 'mean'.
-                Can also be a string 'sum' or ReduceOp.
-        """
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None) -> None:

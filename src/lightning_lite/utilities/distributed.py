@@ -79,25 +79,6 @@ def distributed_available() -> bool:
     return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
 
 
-def sync_ddp_if_available(
-    result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-) -> Tensor:
-    """Function to reduce a tensor across worker processes during distributed training.
-
-    Args:
-        result: The value to sync and reduce (typically tensor or number)
-        group: The process group to gather results from. Defaults to all processes (world)
-        reduce_op: The reduction operation. Defaults to sum.
-            Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
-
-    Return:
-        reduced value
-    """
-    if distributed_available():
-        return sync_ddp(result, group=group, reduce_op=reduce_op)
-    return result
-
-
 def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
     """Function to reduce the tensors from several DDP processes to one main process.
 

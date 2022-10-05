@@ -11,19 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import torch
-from torch import Tensor
 from torch.nn import DataParallel, Module
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.parallel import ParallelStrategy
-from lightning_lite.strategies.strategy import TBroadcast, TReduce
-from lightning_lite.utilities.apply_func import apply_to_collection
-from lightning_lite.utilities.types import ReduceOp
+from lightning_lite.strategies.strategy import TBroadcast
 
 
 class DataParallelStrategy(ParallelStrategy):
@@ -60,15 +57,6 @@ class DataParallelStrategy(ParallelStrategy):
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         # DataParallel handles the transfer of batch to the device
         return batch
-
-    def reduce(
-        self, collection: TReduce, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> TReduce:
-        def mean(t: Tensor) -> Tensor:
-            original_dtype = t.dtype
-            return t.float().mean().to(original_dtype)
-
-        return apply_to_collection(collection, Tensor, mean)
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
