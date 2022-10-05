@@ -33,7 +33,7 @@ class Database(LightningWork):
         models: Union[Type["SQLModel"], List[Type["SQLModel"]]],
         db_filename: str = "database.db",
         debug: bool = False,
-    ):
+    ) -> None:
         """The Database Component enables to interact with an SQLite database to store some structured information
         about your application.
 
@@ -105,7 +105,7 @@ class Database(LightningWork):
         self._models = models if isinstance(models, list) else [models]
         self._client = None
 
-    def run(self):
+    def run(self) -> None:
         app = FastAPI()
 
         create_database(self.db_filename, self._models, self.debug)
@@ -119,7 +119,7 @@ class Database(LightningWork):
 
         run(app, host=self.host, port=self.port, log_level="error")
 
-    def alive(self):
+    def alive(self) -> bool:
         """Hack: Returns whether the server is alive."""
         return self.db_url != ""
 

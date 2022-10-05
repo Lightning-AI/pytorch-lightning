@@ -2,7 +2,7 @@ import functools
 import json
 import os
 import pathlib
-from typing import Dict, Generic, List, Type, TypeVar
+from typing import Any, Dict, Generic, List, Type, TypeVar
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, parse_obj_as
@@ -22,7 +22,7 @@ T = TypeVar("T")
 
 
 # Taken from https://github.com/tiangolo/sqlmodel/issues/63#issuecomment-1081555082
-def pydantic_column_type(pydantic_type):
+def pydantic_column_type(pydantic_type: Any) -> Any:
     """This function enables to support JSON types with SQLModel.
 
     Example::

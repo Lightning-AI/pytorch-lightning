@@ -33,7 +33,7 @@ T = TypeVar("T")
 
 
 class DatabaseClient:
-    def __init__(self, db_url: str, model: Optional[T] = None):
+    def __init__(self, db_url: str, model: Optional[T] = None) -> None:
         self.db_url = db_url
         self.model = model
         self._session = None
@@ -45,7 +45,7 @@ class DatabaseClient:
         assert resp.status_code == 200
         return [cls(**data) for data in resp.json()]
 
-    def insert(self, model: T):
+    def insert(self, model: T) -> None:
         resp = self.session.post(
             self.db_url + "/insert/",
             data=GeneralModel.from_obj(model).json(),
