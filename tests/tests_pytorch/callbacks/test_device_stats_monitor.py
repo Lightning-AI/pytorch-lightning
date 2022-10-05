@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from typing import Dict, Optional
 from unittest import mock
 from unittest.mock import Mock
@@ -97,6 +98,7 @@ def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
 
 
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
 
