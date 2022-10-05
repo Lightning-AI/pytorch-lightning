@@ -200,7 +200,7 @@ class SaveConfigCallback(Callback):
         self,
         parser: LightningArgumentParser,
         config: Namespace,
-        config_filename: str,
+        config_filename: str = "config.yaml",
         overwrite: bool = False,
         multifile: bool = False,
     ) -> None:
@@ -256,9 +256,7 @@ class LightningCLI:
         model_class: Optional[Union[Type[LightningModule], Callable[..., LightningModule]]] = None,
         datamodule_class: Optional[Union[Type[LightningDataModule], Callable[..., LightningDataModule]]] = None,
         save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
-        save_config_filename: str = "config.yaml",
-        save_config_overwrite: bool = False,
-        save_config_multifile: bool = False,
+        save_config_kwargs: Optional[Dict[str, Any]] = None,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
         seed_everything_default: Union[bool, int] = True,
@@ -271,6 +269,7 @@ class LightningCLI:
         args: ArgsType = None,
         run: bool = True,
         auto_registry: bool = False,
+        **kwargs: Any,  # Remove with deprecations of v1.10
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
         are called / instantiated using a parsed configuration file and / or command line args.
@@ -290,10 +289,8 @@ class LightningCLI:
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
                 called. If ``None``, you can pass a registered datamodule with ``--data=MyDataModule``.
-            save_config_callback: A callback class to save the training config.
-            save_config_filename: Filename for the config file.
-            save_config_overwrite: Whether to overwrite an existing config file.
-            save_config_multifile: When input is multiple config files, saved config preserves this structure.
+            save_config_callback: A callback class to save the config.
+            save_config_kwargs: Parameters that will be used to instantiate the save_config_callback.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
                 callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
@@ -321,19 +318,12 @@ class LightningCLI:
             auto_registry: Whether to automatically fill up the registries with all defined subclasses.
         """
         self.save_config_callback = save_config_callback
-        self.save_config_filename = save_config_filename
-        self.save_config_overwrite = save_config_overwrite
-        self.save_config_multifile = save_config_multifile
+        self.save_config_kwargs = save_config_kwargs or {}
         self.trainer_class = trainer_class
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
 
-        if self.seed_everything_default is None:
-            rank_zero_deprecation(
-                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
-                "and will be removed in v1.9. Set it to `False` instead."
-            )
-            self.seed_everything_default = False
+        self._handle_deprecated_params(kwargs)
 
         self.model_class = model_class
         # used to differentiate between the original value and the processed value
@@ -365,6 +355,27 @@ class LightningCLI:
 
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
+
+    def _handle_deprecated_params(self, kwargs: dict) -> None:
+        if self.seed_everything_default is None:
+            rank_zero_deprecation(
+                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
+                "and will be removed in v1.9. Set it to `False` instead."
+            )
+            self.seed_everything_default = False
+
+        for name in ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
+            if name in kwargs:
+                value = kwargs.pop(name)
+                key = name.replace("save_config_", "").replace("filename", "config_filename")
+                self.save_config_kwargs[key] = value
+                rank_zero_deprecation(
+                    f"LightningCLI's {name!r} init parameter is deprecated from v1.8 "
+                    "and will be removed in v1.10. Use 'save_config_kwargs' instead."
+                )
+
+        if kwargs:
+            raise ValueError(f"Unexpected keyword parameters: {kwargs}")
 
     def _setup_parser_kwargs(
         self, kwargs: Dict[str, Any], defaults: Dict[str, Any]
@@ -539,9 +550,7 @@ class LightningCLI:
                 config_callback = self.save_config_callback(
                     self._parser(self.subcommand),
                     self.config.get(str(self.subcommand), self.config),
-                    self.save_config_filename,
-                    overwrite=self.save_config_overwrite,
-                    multifile=self.save_config_multifile,
+                    **self.save_config_kwargs,
                 )
                 config[key].append(config_callback)
         else:
