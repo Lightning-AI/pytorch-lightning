@@ -42,8 +42,8 @@ from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
-    CLOUD_UPLOAD_WARNING,
     CLOUD_QUEUE_TYPE,
+    CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
