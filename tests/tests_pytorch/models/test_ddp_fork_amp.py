@@ -20,7 +20,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 # needs to be standalone to avoid other processes initializing CUDA
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
 def test_amp_gpus_ddp_fork():
     """Ensure the use of native AMP with `ddp_fork` (or associated alias strategies) does not generate CUDA
     initialization errors."""
