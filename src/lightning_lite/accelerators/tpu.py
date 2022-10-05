@@ -11,17 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union
+import functools
+import queue as q
+import traceback
+from multiprocessing import Process, Queue
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities.device_parser import _check_data_type
-from lightning_lite.utilities.imports import _TPU_AVAILABLE
 
 
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        super().__init__(*args, **kwargs)
 
     def setup_device(self, device: torch.device) -> None:
         pass
@@ -47,8 +56,10 @@ class TPUAccelerator(Accelerator):
         return 8
 
     @staticmethod
+    @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
-        return _TPU_AVAILABLE
+        # check `_XLA_AVAILABLE` again to avoid launching processes
+        return bool(_XLA_AVAILABLE) and _is_device_tpu()
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
@@ -57,6 +68,64 @@ class TPUAccelerator(Accelerator):
             cls,
             description=cls.__class__.__name__,
         )
+
+
+# define TPU availability timeout in seconds
+TPU_CHECK_TIMEOUT = 60
+
+
+def _inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
+    try:
+        queue.put(func(*args, **kwargs))
+    except Exception:
+        traceback.print_exc()
+        queue.put(None)
+
+
+def _multi_process(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Union[bool, Any]:
+        queue: Queue = Queue()
+        proc = Process(target=_inner_f, args=(queue, func, *args), kwargs=kwargs)
+        proc.start()
+        proc.join(TPU_CHECK_TIMEOUT)
+        try:
+            return queue.get_nowait()
+        except q.Empty:
+            traceback.print_exc()
+            return False
+
+    return wrapper
+
+
+@_multi_process
+def _is_device_tpu() -> bool:
+    """Check if TPU devices are available. Runs XLA device check within a separate process.
+
+    Return:
+        A boolean value indicating if TPU devices are available
+    """
+    if not _XLA_AVAILABLE:
+        return False
+    import torch_xla.core.xla_model as xm
+
+    # For the TPU Pod training process, for example, if we have
+    # TPU v3-32 with 4 VMs, the world size would be 4 and as
+    # we would have to use `torch_xla.distributed.xla_dist` for
+    # multiple VMs and TPU_CONFIG won't be available, running
+    # `xm.get_xla_supported_devices("TPU")` won't be possible.
+    return (xm.xrt_world_size() > 1) or bool(xm.get_xla_supported_devices("TPU"))
+
+
+_XLA_AVAILABLE = RequirementCache("torch_xla")
+
+
+def tpu_distributed() -> bool:
+    if not TPUAccelerator.is_available():
+        return False
+    import torch_xla.core.xla_model as xm
+
+    return xm.xrt_world_size() > 1
 
 
 def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
