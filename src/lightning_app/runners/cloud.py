@@ -41,7 +41,14 @@ from lightning_cloud.openapi import (
 from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.core.app import LightningApp
-from lightning_app.core.constants import CLOUD_QUEUE_TYPE, CLOUD_UPLOAD_WARNING, DISABLE_DEPENDENCY_CACHE
+from lightning_app.core.constants import (
+    CLOUD_UPLOAD_WARNING,
+    CLOUD_QUEUE_TYPE,
+    DEFAULT_NUMBER_OF_EXPOSED_PORTS,
+    DISABLE_DEPENDENCY_CACHE,
+    ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
+    ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
+)
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
@@ -108,6 +115,12 @@ class CloudRuntime(Runtime):
                 V1EnvVar(name=k, from_secret=secret_names_to_ids[v]) for k, v in self.secrets.items()
             ]
             v1_env_vars.extend(env_vars_from_secrets)
+
+        if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
+
+        if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", value="1"))
 
         work_reqs: List[V1Work] = []
         for flow in self.app.flows:
@@ -185,6 +198,7 @@ class CloudRuntime(Runtime):
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
         )
+
         # if requirements file at the root of the repository is present,
         # we pass just the file name to the backend, so backend can find it in the relative path
         if requirements_file.is_file():
@@ -220,6 +234,22 @@ class CloudRuntime(Runtime):
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
             )
+
+            if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+                network_configs: List[V1NetworkConfig] = []
+
+                initial_port = 8080 + 1 + len(frontend_specs)
+                for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
+                    network_configs.append(
+                        V1NetworkConfig(
+                            name="w" + str(initial_port),
+                            port=initial_port,
+                        )
+                    )
+                    initial_port += 1
+
+                release_body.network_config = network_configs
+
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 

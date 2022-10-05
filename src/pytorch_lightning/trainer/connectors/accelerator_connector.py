@@ -83,7 +83,6 @@ from pytorch_lightning.utilities.imports import (
     _IPU_AVAILABLE,
     _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
-    _TPU_AVAILABLE,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
@@ -494,7 +493,7 @@ class AcceleratorConnector:
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if self._accelerator_flag == "auto":
-            if _TPU_AVAILABLE:
+            if TPUAccelerator.is_available():
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
@@ -521,15 +520,16 @@ class AcceleratorConnector:
         else:
             assert self._accelerator_flag is not None
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
+        accelerator_cls = self.accelerator.__class__
 
-        if not self.accelerator.is_available():
+        if not accelerator_cls.is_available():
             available_accelerator = [
                 acc_str
                 for acc_str in self._accelerator_types
                 if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
             raise MisconfigurationException(
-                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f"`{accelerator_cls.__qualname__}` can not run on your system"
                 " since the accelerator is not available. The following accelerator(s)"
                 " is available and can be passed into `accelerator` argument of"
                 f" `Trainer`: {available_accelerator}."
@@ -542,9 +542,9 @@ class AcceleratorConnector:
 
         self._set_devices_flag_if_auto_select_gpus_passed()
 
-        self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
+        self._devices_flag = accelerator_cls.parse_devices(self._devices_flag)
         if not self._parallel_devices:
-            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+            self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
