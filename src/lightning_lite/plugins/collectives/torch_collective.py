@@ -16,9 +16,9 @@ class TorchCollective(Collective):
     def world_size(self) -> int:
         return torch.distirbuted.get_world_size(self.group)
 
+    @staticmethod
     def init_group(
-        self,
-        **init_kwargs: Any,
+        **kwargs: Any,
     ) -> ProcessGroup:
         pass
 

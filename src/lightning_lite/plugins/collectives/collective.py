@@ -46,7 +46,6 @@ class Collective(ABC):
     @abstractmethod
     @staticmethod
     def init_group(
-        self,
         **kwargs: Any,
     ) -> CollectibleGroup:
         pass
