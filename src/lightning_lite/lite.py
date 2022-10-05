@@ -131,7 +131,6 @@ class LightningLite(ABC):
         """Wether this rank is rank zero."""
         return self._strategy.is_global_zero
 
-    # TODO(lite): Error/warn when run overridden but launcher is used
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
