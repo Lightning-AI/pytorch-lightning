@@ -7,16 +7,17 @@ import pickle
 
 import torch
 
+from lightning_lite.utilities.types import ProcessGroup
+
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
 
 
 logger = logging.getLogger(__name__)
 
-_TORCH_DISTRIBUTED_AVAILABLE = torch.distributed.is_available()
 
-if _TORCH_DISTRIBUTED_AVAILABLE:
-    from torch._C._distributed_c10d import ProcessGroup
+# FIXME: refactor this file
+if torch.distributed.is_available():
     from torch.distributed import Backend, broadcast, get_backend, get_rank, GroupMember
 
 # The code underneath is taken from PyTorch `torch/distributed/distributed_c10d.py`
@@ -50,7 +51,7 @@ def _tensor_to_object(tensor, tensor_size):
     return _unpickler(io.BytesIO(buf)).load()
 
 
-def _broadcast_object_list(object_list, src=0, group=None, device=None):
+def broadcast_object_list(object_list, src=0, group=None, device=None):
     """Broadcasts picklable objects in ``object_list`` to the whole group. Similar to :func:`broadcast`, but Python
     objects can be passed in. Note that all objects in ``object_list`` must be picklable in order to be
     broadcasted.
@@ -107,7 +108,6 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
     group_backend = get_backend(group)
     is_nccl_backend = group_backend == Backend.NCCL
     is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-    current_device = None
     if device is not None:
         if is_nccl_backend and device.type != "cuda":
             raise ValueError("device type must be cuda for nccl backend")
@@ -157,14 +157,3 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
                 obj_view = obj_view.cpu()
             offset += obj_size
             object_list[i] = _tensor_to_object(obj_view, obj_size)
-
-
-if not _TORCH_DISTRIBUTED_AVAILABLE:
-    # avoid failures on early PyTorch versions for Windows where
-    # not all functions used in `broadcast_object_list` are available.
-    def _broadcast_noop(obj, *_, **__):
-        return obj
-
-    broadcast_object_list = _broadcast_noop
-else:
-    broadcast_object_list = _broadcast_object_list

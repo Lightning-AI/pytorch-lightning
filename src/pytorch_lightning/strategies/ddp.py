@@ -30,6 +30,7 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from lightning_lite.utilities.distributed import (
     distributed_available,
@@ -61,11 +62,6 @@ else:
     OSS = object
 if _TORCH_GREATER_EQUAL_1_10 and torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
-
-if torch.distributed.is_available():
-    from torch.distributed.constants import default_pg_timeout
-else:
-    default_pg_timeout = timedelta(seconds=1800)
 
 log = logging.getLogger(__name__)
 

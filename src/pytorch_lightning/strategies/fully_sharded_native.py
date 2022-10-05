@@ -57,8 +57,6 @@ else:
     BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
 
-if _distributed_available:
-    from torch.distributed.distributed_c10d import _get_default_group
 
 log = logging.getLogger(__name__)
 
@@ -150,9 +148,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @property
     def process_group(self) -> Optional[ProcessGroup]:
-        if self._process_group is None:
-            # The strategy should have already initilized process group in setup_environment()
-            self._process_group = _get_default_group()
         return self._process_group
 
     @property

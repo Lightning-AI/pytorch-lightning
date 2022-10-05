@@ -2,10 +2,14 @@ import datetime
 from typing import Any, List, Optional
 
 import torch
-from torch.distributed import ReduceOp
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.utilities.types import ProcessGroup
+from lightning_lite.utilities.types import ProcessGroup, ReduceOp
+
+if torch.distributed.is_available():
+    from torch.distributed.constants import default_pg_timeout
+else:
+    default_pg_timeout = datetime.timedelta(seconds=1800)
 
 
 class TorchCollective(Collective):

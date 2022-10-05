@@ -17,12 +17,12 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import torch
 from lightning_utilities.core.imports import module_available
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.utilities.enums import PrecisionType
