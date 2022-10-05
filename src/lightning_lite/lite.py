@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
@@ -22,6 +22,7 @@ from typing import Any, Callable, cast, Dict, Generator, List, Optional, overloa
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.overrides import is_overridden
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
@@ -91,9 +92,7 @@ class LightningLite(ABC):
         self._precision_plugin: Precision = self._strategy.precision_plugin
         self._models_setup: int = 0
 
-        # wrap the run method so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", partial(self._run_impl, self.run))
-
+        self._prepare_run_method()
         if _is_using_cli():
             # when the CLI is used to launch the script, we need to set up the environment (init processes) here so
             # that the user can immediately use all functionality in strategies
@@ -375,6 +374,11 @@ class LightningLite(ABC):
 
     def launch(self, function: Optional[Callable[["LightningLite"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
         function = _do_nothing if function is None else function
+        if _is_using_cli():
+            raise RuntimeError(
+                "This script was launched through the CLI, and processes have already been created. Calling "
+                " `.launch()` again is not allowed."
+            )
         if not inspect.signature(function).parameters:
             raise TypeError(
                 "The function passed to `Lite.launch()` needs to take at least one argument. The launcher will pass"
@@ -400,7 +404,6 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        # TODO: skip launcher if already launched externally!
         run_method = partial(self._run_with_setup, run_method)
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(run_method, *args, **kwargs)
@@ -453,6 +456,15 @@ class LightningLite(ABC):
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
+
+    def _prepare_run_method(self) -> None:
+        if is_overridden("run", self, LightningLite) and _is_using_cli():
+            raise TypeError(
+                "Overriding `LightningLite.run()` and launching from the CLI is not allowed. Run the script normally,"
+                " or change your code to directly call `lite = LightningLite(...); lite.setup(...)` etc."
+            )
+        # wrap the run method, so we can inject setup logic or spawn processes for the user
+        setattr(self, "run", partial(self._run_impl, self.run))
 
     @staticmethod
     def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:

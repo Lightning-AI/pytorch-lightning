@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -24,11 +25,9 @@ from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
-from lightning_lite import LightningLite
-from lightning_lite.accelerators import CPUAccelerator
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import SingleDeviceStrategy, Strategy
+from lightning_lite.strategies import Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
@@ -488,3 +487,22 @@ def test_launch_with_function():
     lite = LightningLite()
     lite.launch(fn_with_one_arg)
     assert fn_with_one_arg.called
+
+
+@mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"})  # pretend we are using the CLI
+def test_launch_and_cli_not_allowed():
+    lite = LightningLite()
+    with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
+        lite.launch()
+
+
+@mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"})  # pretend we are using the CLI
+def test_overridden_run_and_cli_not_allowed():
+    class LiteWithRun(LightningLite):
+        def run(self):
+            pass
+
+    with pytest.raises(
+        TypeError, match=escape("Overriding `LightningLite.run()` and launching from the CLI is not allowed")
+    ):
+        LiteWithRun()
