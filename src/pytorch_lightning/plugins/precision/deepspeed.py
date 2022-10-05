@@ -20,7 +20,7 @@ from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.types import Optimizable
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -77,7 +77,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
-        optimizer: Optional[Optimizable],
+        optimizer: Optional[Steppable],
         optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
@@ -102,7 +102,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(  # type: ignore[override]
         self,
-        optimizer: Optimizable,
+        optimizer: Steppable,
         model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
