@@ -1,16 +1,6 @@
 from typing import Union
 
-from lightning_lite.plugins import (
-    CheckpointIO,
-    ClusterEnvironment,
-    Collective,
-    DeepSpeedCollective,
-    SingleDeviceCollective,
-    TorchCheckpointIO,
-    TorchCollective,
-    XLACheckpointIO,
-)
-from pytorch_lightning.plugins.collectives.horovod_collective import HorovodCollective
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, TorchCheckpointIO, XLACheckpointIO
 from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
@@ -27,7 +17,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 
-PLUGIN = Union[PrecisionPlugin, ClusterEnvironment, CheckpointIO, LayerSync, Collective]
+PLUGIN = Union[PrecisionPlugin, ClusterEnvironment, CheckpointIO, LayerSync]
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
@@ -50,9 +40,4 @@ __all__ = [
     "TPUBf16PrecisionPlugin",
     "LayerSync",
     "NativeSyncBatchNorm",
-    "Collective",
-    "DeepSpeedCollective",
-    "TorchCollective",
-    "SingleDeviceCollective",
-    "HorovodCollective",
 ]
