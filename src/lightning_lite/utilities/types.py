@@ -78,18 +78,20 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
     def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None:
         ...
 
+@runtime_checkable
+class Steppable(Protocol):
+    """To structurally type ``optimizer.step``"""
+    # Inferred from `torch.optim.optimizer.pyi`
+    def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
+        ...
 
 @runtime_checkable
-class Optimizable(Protocol):
+class Optimizable(Steppable):
     """To structurally type ``optimizer``"""
 
     param_groups: List[Dict[Any, Any]]
     defaults: Dict[Any, Any]
     state: Dict[Any, Any]
-
-    # Inferred from `torch.optim.optimizer.pyi`
-    def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
-        ...
 
     def state_dict(self) -> Dict[str, Dict[Any, Any]]:
         ...
