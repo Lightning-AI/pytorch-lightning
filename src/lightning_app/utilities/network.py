@@ -49,12 +49,12 @@ def _configure_session() -> Session:
     return http
 
 
-def _check_service_url_is_ready(url: str, timeout: float = 5) -> bool:
+def _check_service_url_is_ready(url: str, timeout: float = 5, metadata="") -> bool:
     try:
         response = requests.get(url, timeout=timeout)
         return response.status_code in (200, 404)
     except (ConnectionError, ConnectTimeout, ReadTimeout):
-        logger.debug(f"The url {url} is not ready.")
+        logger.debug(f"The url {url} is not ready. {metadata}")
         return False
 
 

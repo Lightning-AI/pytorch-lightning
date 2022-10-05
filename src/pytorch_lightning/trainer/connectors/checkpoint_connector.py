@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import logging
-import operator
 import os
 import re
 from copy import deepcopy
-from functools import partial
 from typing import Any, Dict, Optional
 
 import torch
@@ -28,6 +26,7 @@ import pytorch_lightning as pl
 from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
@@ -160,9 +159,10 @@ class CheckpointConnector:
             ckpt_path = getattr(self.trainer.checkpoint_callback, "best_model_path", None)
 
         elif ckpt_path == "last":
-            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
-                getattr(cb, "last_model_path", None) for cb in self.trainer.checkpoint_callbacks
-            ]
+            candidates = {getattr(ft, "ckpt_path", None) for ft in ft_checkpoints}
+            for callback in self.trainer.checkpoint_callbacks:
+                if isinstance(callback, ModelCheckpoint):
+                    candidates |= callback._find_last_checkpoints(self.trainer)
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
             if not candidates_ts:
@@ -172,7 +172,7 @@ class CheckpointConnector:
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
                 return None
-            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+            ckpt_path = max(candidates_ts, key=candidates_ts.get)  # type: ignore[arg-type]
 
         elif ckpt_path == "hpc":
             if not self._hpc_resume_path:
@@ -245,12 +245,10 @@ class CheckpointConnector:
             return
 
         datamodule = self.trainer.datamodule
-        if datamodule is not None:
-            self.trainer._call_lightning_datamodule_hook("on_load_checkpoint", self._loaded_checkpoint)
-            if datamodule.__class__.__qualname__ in self._loaded_checkpoint:
-                self.trainer._call_lightning_datamodule_hook(
-                    "load_state_dict", self._loaded_checkpoint[datamodule.__class__.__qualname__]
-                )
+        if datamodule is not None and datamodule.__class__.__qualname__ in self._loaded_checkpoint:
+            self.trainer._call_lightning_datamodule_hook(
+                "load_state_dict", self._loaded_checkpoint[datamodule.__class__.__qualname__]
+            )
 
     def restore_model(self) -> None:
         """Restores a model's weights from a PyTorch Lightning checkpoint.
@@ -521,9 +519,6 @@ class CheckpointConnector:
             # will be removed in v1.8
             self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
         self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
-        if datamodule is not None:
-            self.trainer._call_lightning_datamodule_hook("on_save_checkpoint", checkpoint)
-
         return checkpoint
 
     def save_checkpoint(

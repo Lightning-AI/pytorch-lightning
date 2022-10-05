@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import os
 from unittest import mock
 from unittest.mock import PropertyMock
 
@@ -141,6 +142,7 @@ def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
 
 
 @RunIf(tpu=True, standalone=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_num_stepping_batches_with_tpu_single():
     """Test stepping batches with the single-core TPU strategy."""
     trainer = Trainer(accelerator="tpu", devices=1, max_epochs=1)
