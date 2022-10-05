@@ -14,7 +14,6 @@
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import lightning_lite.accelerators as accelerators  # avoid circular dependency
-from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
 
@@ -89,6 +88,8 @@ def parse_gpu_ids(
     gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
+
+    from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
 
     if (
         TorchElasticEnvironment.detect()
