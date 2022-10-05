@@ -78,9 +78,8 @@ class DeepSpeedCollective(Collective):
         tensor: torch.Tensor,
         scatter_list: Optional[List[torch.Tensor]] = None,
         src: int = 0,
-        async_op: bool = False,
     ) -> torch.Tensor:
-        dist.scatter(tensor, scatter_list, src, group=self.group, async_op=async_op)
+        dist.scatter(tensor, scatter_list, src, group=self.group)
         return tensor
 
     def reduce_scatter(
