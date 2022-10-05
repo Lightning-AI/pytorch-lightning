@@ -35,7 +35,7 @@ exclude = [
     "src/lightning_app/cli/pl-app-template/",
     "src/lightning_app/cli/react-ui-template",
     "src/lightning_app/cli/app-template",
-    "src/lightning_app/components/database/utilities.py",
+    "src/lightning_app/components/database",
 ]
 install_types = "True"
 non_interactive = "True"
