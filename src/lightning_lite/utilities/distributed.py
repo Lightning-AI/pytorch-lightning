@@ -28,6 +28,8 @@ else:
 
 log = logging.getLogger(__name__)
 
+# FIXME: clean up this file
+
 
 def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
     """Function to gather all tensors from several DDP processes onto a list that is broadcasted to all processes.

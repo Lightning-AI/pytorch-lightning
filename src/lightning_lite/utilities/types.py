@@ -25,6 +25,12 @@ _MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
 
+if torch.distributed.is_available():
+    from torch.distributed import ProcessGroup
+else:
+    ProcessGroup = Any  # type: ignore[assignment,misc]
+
+
 _DictKey = TypeVar("_DictKey")
 
 
