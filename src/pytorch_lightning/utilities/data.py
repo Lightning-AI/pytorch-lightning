@@ -30,35 +30,24 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import LightningEnum
 from lightning_lite.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
 from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterable_dataset
 from lightning_lite.utilities.data import has_len as new_has_len
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
+# might be supported in later releases, see https://github.com/python/mypy/pull/13297
+BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore[misc]
 
 warning_cache = WarningCache()
 
 
-class _WrapAttrTag(LightningEnum):
-    SET = "set"
-    DEL = "del"
-
-    def __call__(self, *args):
-        if self == self.SET:
-            fn = setattr
-        else:
-            fn = delattr
-        return fn(*args)
-
-
-def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
+def _extract_batch_size(batch: BType) -> Generator[Optional[int], None, None]:
     if isinstance(batch, Tensor):
         if batch.ndim == 0:
             yield 1
@@ -108,14 +97,14 @@ def extract_batch_size(batch: BType) -> int:
 
 
 def has_len_all_ranks(
-    dataloader: DataLoader,
-    strategy: "pl.Strategy",
+    dataloader: Union[DataLoader, CombinedLoader],
+    strategy: "pl.strategies.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
-        local_length = len(dataloader)
+        local_length = len(dataloader)  # type: ignore [arg-type] # we are checking with duck-typing
         total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
 
         if total_length == 0:
@@ -141,7 +130,8 @@ def has_len_all_ranks(
     except (TypeError, NotImplementedError):
         has_len = False
 
-    if has_len and new_has_iterable_dataset(dataloader):
+    # we are checking using lightning_lite, which doesn't know CombinedLoader
+    if has_len and new_has_iterable_dataset(dataloader):  # type: ignore [arg-type]
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
@@ -151,14 +141,14 @@ def has_len_all_ranks(
     return has_len
 
 
-def get_len(dataloader: DataLoader) -> Union[int, float]:
+def get_len(dataloader: Union[DataLoader, Dataset]) -> Union[int, float]:
     """Return the length of the given DataLoader.
 
     If ``__len__`` method is not implemented, return float('inf').
     """
 
     if new_has_len(dataloader):
-        return len(dataloader)
+        return len(dataloader)  # type: ignore [arg-type]
 
     return float("inf")
 
@@ -173,7 +163,7 @@ def _update_dataloader(
 
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
-    sampler: Optional[Sampler],
+    sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
     disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
@@ -197,7 +187,7 @@ def _get_dataloader_init_args_and_kwargs(
         arg_names = ()
 
     # get the dataloader instance `__init__` parameters
-    params = dict(inspect.signature(dataloader.__init__).parameters)
+    params = dict(inspect.signature(dataloader.__init__).parameters)  # type: ignore[misc]
     has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
     if has_variadic_kwargs:
         # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
@@ -239,14 +229,14 @@ def _get_dataloader_init_args_and_kwargs(
     }
     # the dataloader has required args which we could not extract from the existing attributes
     if required_args:
-        required_args = sorted(required_args)
+        sorted_required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
-        missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in required_args)
+        missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in sorted_required_args)
         raise MisconfigurationException(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
-            f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
-            "`*_dataloader` hook of your module, we will do this for you."
+            f"The missing attributes are {sorted_required_args}. If you instantiate your `{dataloader_cls_name}` "
+            "inside a `*_dataloader` hook of your module, we will do this for you."
             f" Otherwise, define {missing_args_message} inside your `__init__`."
         )
 
@@ -254,13 +244,13 @@ def _get_dataloader_init_args_and_kwargs(
         # the dataloader signature does not allow keyword arguments that need to be passed
         missing_kwargs = (set(dl_kwargs) | set(arg_names)) - params.keys()
         if missing_kwargs:
-            missing_kwargs = sorted(missing_kwargs)
+            sorted_missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
                 f"Trying to inject parameters into the `{dataloader_cls_name}` instance. "
                 "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
-                f"The missing arguments are {missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` class, "
-                "add the `__init__` arguments or allow passing `**kwargs`"
+                f"The missing arguments are {sorted_missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` "
+                "class, add the `__init__` arguments or allow passing `**kwargs`"
             )
 
     if _FaultTolerantMode.detect_current_mode().is_automatic:
@@ -273,7 +263,7 @@ def _get_dataloader_init_args_and_kwargs(
 
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
-    sampler: Optional[Sampler],
+    sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
     disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:

@@ -123,7 +123,7 @@ class StochasticWeightAveraging(Callback):
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
         self._model_contains_batch_norm: Optional[bool] = None
-        self._average_model: "pl.LightningModule"
+        self._average_model: Optional["pl.LightningModule"] = None
         self._initialized = False
         self._swa_scheduler: Optional[_LRScheduler] = None
         self._scheduler_state: Optional[Dict] = None
@@ -160,6 +160,7 @@ class StochasticWeightAveraging(Callback):
         if len(trainer.lr_scheduler_configs) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
+        assert trainer.max_epochs is not None
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
@@ -179,6 +180,7 @@ class StochasticWeightAveraging(Callback):
             self._initialized = True
 
             # move average model to request device.
+            assert self._average_model is not None
             self._average_model = self._average_model.to(self._device or pl_module.device)
 
             optimizer = trainer.optimizers[0]
@@ -188,6 +190,7 @@ class StochasticWeightAveraging(Callback):
             for lr, group in zip(self._swa_lrs, optimizer.param_groups):
                 group["initial_lr"] = lr
 
+            assert trainer.max_epochs is not None
             self._swa_scheduler = cast(
                 _LRScheduler,
                 SWALR(
@@ -232,12 +235,14 @@ class StochasticWeightAveraging(Callback):
             trainer.current_epoch > self._latest_update_epoch
         ):
             assert self.n_averaged is not None
+            assert self._average_model is not None
             self.update_parameters(self._average_model, pl_module, self.n_averaged, self._avg_fn)
             self._latest_update_epoch = trainer.current_epoch
 
         # Note: No > here in case the callback is saved with the model and training continues
         if trainer.current_epoch == self.swa_end + 1:
             # Transfer weights from average model to pl_module
+            assert self._average_model is not None
             self.transfer_weights(self._average_model, pl_module)
 
             # Reset BatchNorm for update
@@ -266,6 +271,7 @@ class StochasticWeightAveraging(Callback):
             self.reset_momenta()
         elif trainer.current_epoch - 1 == self.swa_end:
             # Last SWA epoch. Transfer weights from average model to pl_module
+            assert self._average_model is not None
             self.transfer_weights(self._average_model, pl_module)
 
     @staticmethod

@@ -10,6 +10,9 @@ from uuid import uuid4
 from fastapi import FastAPI
 
 from lightning_app.api.request_types import APIRequest, CommandRequest
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def _signature_proxy_function():
@@ -51,6 +54,7 @@ class HttpMethod:
         async def _handle_request(*args, **kwargs):
             async def fn(*args, **kwargs):
                 request_id = str(uuid4()).split("-")[0]
+                logger.debug(f"Processing request {request_id} for route: {self.route}")
                 request_queue.put(
                     request_cls(
                         name=self.component_name,
@@ -66,6 +70,8 @@ class HttpMethod:
                     await asyncio.sleep(0.1)
                     if (time.time() - t0) > self.timeout:
                         raise Exception("The response was never received.")
+
+                logger.debug(f"Processed request {request_id} for route: {self.route}")
 
                 return responses_store.pop(request_id)
 

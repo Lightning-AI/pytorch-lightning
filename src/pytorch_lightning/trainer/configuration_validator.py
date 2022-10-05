@@ -14,7 +14,6 @@
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -50,12 +49,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_deprecated_callback_hooks(trainer)
     # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
     _check_on_epoch_start_end(model)
-    # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
-    _check_precision_plugin_checkpoint_hooks(trainer)
     # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
     _check_on_pretrain_routine(model)
-    # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
-    _check_datamodule_checkpoint_hooks(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -66,16 +61,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     if not has_training_step:
         raise MisconfigurationException(
             "No `training_step()` method defined. Lightning `Trainer` expects as minimum a"
-            " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
-        )
-
-    # -----------------------------------
-    # verify model has a train dataloader
-    # -----------------------------------
-    has_train_dataloader = trainer._data_connector._train_dataloader_source.is_defined()
-    if not has_train_dataloader:
-        raise MisconfigurationException(
-            "No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a"
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
@@ -119,18 +104,10 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
 
 
 def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule", stage: str) -> None:
-    loader_name = f"{stage}_dataloader"
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
     trainer_method = "validate" if stage == "val" else stage
 
-    has_loader = getattr(trainer._data_connector, f"_{stage}_dataloader_source").is_defined()
     has_step = is_overridden(step_name, model)
-
-    # -----------------------------------
-    # verify model has an eval_dataloader
-    # -----------------------------------
-    if not has_loader:
-        raise MisconfigurationException(f"No `{loader_name}()` method defined to run `Trainer.{trainer_method}`.")
 
     # predict_step is not required to be overridden
     if stage == "predict":
@@ -233,13 +210,6 @@ def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_init_start", instance=callback):
-            rank_zero_deprecation(
-                "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
-            )
-        if is_overridden(method_name="on_init_end", instance=callback):
-            rank_zero_deprecation("The `on_init_end` callback hook was deprecated in v1.6 and will be removed in v1.8.")
-
         if is_overridden(method_name="on_configure_sharded_model", instance=callback):
             rank_zero_deprecation(
                 "The `on_configure_sharded_model` callback hook was deprecated in"
@@ -282,29 +252,3 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                     f"The `Callback.{hook}` hook has been deprecated in v1.6 and"
                     " will be removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
-
-
-def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
-    if is_overridden(method_name="on_save_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
-        rank_zero_deprecation(
-            "`PrecisionPlugin.on_save_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-        )
-    if is_overridden(method_name="on_load_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
-        rank_zero_deprecation(
-            "`PrecisionPlugin.on_load_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
-        )
-
-
-def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
-    if is_overridden(method_name="on_save_checkpoint", instance=trainer.datamodule):
-        rank_zero_deprecation(
-            "`LightningDataModule.on_save_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-        )
-    if is_overridden(method_name="on_load_checkpoint", instance=trainer.datamodule):
-        rank_zero_deprecation(
-            "`LightningDataModule.on_load_checkpoint` was deprecated in"
-            " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
-        )

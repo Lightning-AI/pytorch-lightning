@@ -30,11 +30,13 @@ callbacks
     BackboneFinetuning
     BaseFinetuning
     BasePredictionWriter
+    BatchSizeFinder
     Callback
     DeviceStatsMonitor
     EarlyStopping
     GradientAccumulationScheduler
     LambdaCallback
+    LearningRateFinder
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
@@ -189,7 +191,6 @@ precision
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin

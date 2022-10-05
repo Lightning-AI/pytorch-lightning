@@ -1,18 +1,15 @@
 import logging
 import os
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
-from torch.nn import functional as F
+from torch.utils.data import Dataset, DistributedSampler, Sampler
 
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
-from lightning_lite.utilities.rank_zero import rank_zero_deprecation
-from lightning_lite.utilities.rank_zero import rank_zero_info as new_rank_zero_info
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.utilities.imports import _HPU_AVAILABLE
+from lightning_lite.utilities.rank_zero import rank_zero_info
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
@@ -88,6 +85,8 @@ def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> L
 
 
 def distributed_available() -> bool:
+    from lightning_lite.accelerators.tpu import tpu_distributed
+
     return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
 
 
@@ -142,7 +141,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
         is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
         if is_hpu_backend:
             if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
-                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                rank_zero_info("Long tensor unsupported on HPU, casting to float")
                 result = result.float()
 
     # Sync all processes before reduction
@@ -203,8 +202,7 @@ def all_gather_ddp_if_available(
 
 
 def init_dist_connection(
-    # TODO(lite): Fix this type error
-    cluster_environment: "ClusterEnvironment",  # type: ignore[name-defined] # noqa: F821
+    cluster_environment: ClusterEnvironment,
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
@@ -237,7 +235,7 @@ def init_dist_connection(
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
     # On rank=0 let everyone know training is starting
-    new_rank_zero_info(
+    rank_zero_info(
         f"{'-' * 100}\n"
         f"distributed_backend={torch_distributed_backend}\n"
         f"All distributed processes registered. Starting with {world_size} processes\n"
@@ -245,20 +243,60 @@ def init_dist_connection(
     )
 
 
-def tpu_distributed() -> bool:
-    return _TPU_AVAILABLE and xm.xrt_world_size() > 1
-
-
 def get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
 
 
-def _get_process_group_backend_from_env() -> Optional[str]:
-    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
-    if torch_backend is not None:
-        rank_zero_deprecation(
-            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
-            " was deprecated in v1.6 and will be removed in v1.8."
-            " Specify `process_group_backend` directly on the strategy constructor."
-        )
-    return torch_backend
+# TODO(lite): The error messages refer to 'replace_sampler_ddp' in PL but Lite has it named 'replace_sampler'
+class _DatasetSamplerWrapper(Dataset):
+    """Dataset to create indexes from `Sampler` or `Iterable`"""
+
+    def __init__(self, sampler: Union[Sampler, Iterable]) -> None:
+        if not isinstance(sampler, Sized):
+            raise TypeError(
+                "You seem to have configured a sampler in your DataLoader which"
+                " does not provide `__len__` method. The sampler was about to be"
+                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " is True and you are using distributed training. Either provide `__len__`"
+                " method in your sampler, remove it from DataLoader or set `replace_sampler_ddp=False`"
+                " if you want to handle distributed sampling yourself."
+            )
+        if len(sampler) == float("inf"):
+            raise TypeError(
+                "You seem to have configured a sampler in your DataLoader which"
+                " does not provide finite `__len__` method. The sampler was about to be"
+                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " is True and you are using distributed training. Either provide `__len__`"
+                " method in your sampler which returns a finite number, remove it from DataLoader"
+                " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
+            )
+        self._sampler = sampler
+        # defer materializing an iterator until it is necessary
+        self._sampler_list: Optional[List[Any]] = None
+
+    def __getitem__(self, index: int) -> Any:
+        if self._sampler_list is None:
+            self._sampler_list = list(self._sampler)
+        return self._sampler_list[index]
+
+    def __len__(self) -> int:
+        return len(self._sampler)
+
+    def reset(self) -> None:
+        """Reset the sampler list in order to get new sampling."""
+        self._sampler_list = list(self._sampler)
+
+
+class DistributedSamplerWrapper(DistributedSampler):
+    """Wrapper over ``Sampler`` for distributed training.
+
+    Allows you to use any sampler in distributed mode. It will be automatically used by Lightning in distributed mode if
+    sampler replacement is enabled.
+    """
+
+    def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
+        super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
+
+    def __iter__(self) -> Iterator:
+        self.dataset.reset()
+        return (self.dataset[index] for index in super().__iter__())

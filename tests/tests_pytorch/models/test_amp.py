@@ -20,9 +20,9 @@ from torch import optim
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins.environments import SLURMEnvironment
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -157,14 +157,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         logger=logger,
     )
     trainer.fit(model)
-
-    # test root model address
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
-    generated = trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
-    assert generated == "abc23"
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")

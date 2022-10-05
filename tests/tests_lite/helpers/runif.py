@@ -20,7 +20,11 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.utilities.imports import _FAIRSCALE_AVAILABLE, _PSUTIL_AVAILABLE, _TPU_AVAILABLE
+from lightning_lite.accelerators import TPUAccelerator
+from lightning_lite.accelerators.mps import MPSAccelerator
+from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
 
 class RunIf:
@@ -39,11 +43,13 @@ class RunIf:
         min_torch: Optional[str] = None,
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
+        bf16_cuda: bool = False,
         tpu: bool = False,
+        mps: Optional[bool] = None,
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
-        psutil: bool = False,
+        deepspeed: bool = False,
         **kwargs,
     ):
         """
@@ -53,12 +59,15 @@ class RunIf:
             min_torch: Require that PyTorch is greater or equal than this version.
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
+            bf16_cuda: Require that CUDA device supports bf16.
             tpu: Require that TPU is available.
+            mps: If True: Require that MPS (Apple Silicon) is available,
+                if False: Explicitly Require that MPS is not available
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             fairscale: Require that facebookresearch/fairscale is installed.
-            psutil: Require that psutil is installed.
+            deepspeed: Require that microsoft/DeepSpeed is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -85,15 +94,37 @@ class RunIf:
             conditions.append(Version(py_version) < Version(min_python))
             reasons.append(f"python>={min_python}")
 
+        if bf16_cuda:
+            try:
+                cond = not (torch.cuda.is_available() and _TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
+            except (AssertionError, RuntimeError) as e:
+                # AssertionError: Torch not compiled with CUDA enabled
+                # RuntimeError: Found no NVIDIA driver on your system.
+                is_unrelated = "Found no NVIDIA driver" not in str(e) or "Torch not compiled with CUDA" not in str(e)
+                if is_unrelated:
+                    raise e
+                cond = True
+
+            conditions.append(cond)
+            reasons.append("CUDA device bf16")
+
         if skip_windows:
             conditions.append(sys.platform == "win32")
             reasons.append("unimplemented on Windows")
 
         if tpu:
-            conditions.append(not _TPU_AVAILABLE)
+            conditions.append(not TPUAccelerator.is_available())
             reasons.append("TPU")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True
+
+        if mps is not None:
+            if mps:
+                conditions.append(not MPSAccelerator.is_available())
+                reasons.append("MPS")
+            else:
+                conditions.append(MPSAccelerator.is_available())
+                reasons.append("not MPS")
 
         if standalone:
             env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
@@ -110,9 +141,9 @@ class RunIf:
             conditions.append(not _FAIRSCALE_AVAILABLE)
             reasons.append("Fairscale")
 
-        if psutil:
-            conditions.append(not _PSUTIL_AVAILABLE)
-            reasons.append("psutil")
+        if deepspeed:
+            conditions.append(not _DEEPSPEED_AVAILABLE)
+            reasons.append("Deepspeed")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
