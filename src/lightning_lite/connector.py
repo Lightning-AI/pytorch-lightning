@@ -16,6 +16,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
+from typing_extensions import Literal
 
 from lightning_lite.accelerators import ACCELERATOR_REGISTRY
 from lightning_lite.accelerators.accelerator import Accelerator
@@ -54,10 +55,11 @@ from lightning_lite.strategies import (
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE, _TPU_AVAILABLE
+from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
+_PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
 
 class _Connector:
@@ -97,7 +99,7 @@ class _Connector:
         strategy: Optional[Union[str, Strategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
         # 1. Parsing flags
@@ -111,7 +113,7 @@ class _Connector:
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[Union[int, str]] = None
+        self._precision_flag: Optional[_PRECISION_INPUT] = None
         self._precision_plugin_flag: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -154,7 +156,7 @@ class _Connector:
         self,
         strategy: Optional[Union[str, Strategy]],
         accelerator: Optional[Union[str, Accelerator]],
-        precision: Union[int, str],
+        precision: _PRECISION_INPUT,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
     ) -> None:
         """This method checks:
@@ -299,7 +301,7 @@ class _Connector:
     def _choose_auto_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if self._accelerator_flag == "auto":
-            if _TPU_AVAILABLE:
+            if TPUAccelerator.is_available():
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
@@ -326,13 +328,16 @@ class _Connector:
         else:
             assert self._accelerator_flag is not None
             self.accelerator = ACCELERATOR_REGISTRY.get(self._accelerator_flag)
+        accelerator_cls = self.accelerator.__class__
 
-        if not self.accelerator.is_available():
+        if not accelerator_cls.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._registered_accelerators if ACCELERATOR_REGISTRY.get(acc_str).is_available()
+                acc_str
+                for acc_str in self._registered_accelerators
+                if ACCELERATOR_REGISTRY[acc_str]["accelerator"].is_available()
             ]
             raise RuntimeError(
-                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f"`{accelerator_cls.__qualname__}` can not run on your system"
                 " since the accelerator is not available. The following accelerator(s)"
                 " is available and can be passed into `accelerator` argument of"
                 f" `Lite`: {available_accelerator}."
@@ -340,9 +345,9 @@ class _Connector:
 
         self._set_devices_flag_if_auto_passed()
 
-        self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
+        self._devices_flag = accelerator_cls.parse_devices(self._devices_flag)
         if not self._parallel_devices:
-            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+            self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:

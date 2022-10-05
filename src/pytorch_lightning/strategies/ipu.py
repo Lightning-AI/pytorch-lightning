@@ -22,12 +22,12 @@ from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
@@ -275,12 +275,9 @@ class IPUStrategy(ParallelStrategy):
 
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         args = self._prepare_input(args)
-        assert self.lightning_module is not None
         poptorch_model = self.poptorch_models[stage]
-        self.lightning_module._running_torchscript = True
-        out = poptorch_model(*args, **kwargs)
-        self.lightning_module._running_torchscript = False
-        return out
+        with pl.core.module._jit_is_scripting():
+            return poptorch_model(*args, **kwargs)
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():

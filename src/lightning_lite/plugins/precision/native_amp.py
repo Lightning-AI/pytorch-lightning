@@ -18,10 +18,12 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS
+from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
-from lightning_lite.utilities.types import Steppable
+from lightning_lite.utilities.types import Optimizable
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
@@ -39,7 +41,7 @@ class NativeMixedPrecision(Precision):
     """
 
     def __init__(
-        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal[16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
         if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
@@ -57,6 +59,11 @@ class NativeMixedPrecision(Precision):
         with self._autocast_context_manager():
             yield
 
+    def convert_input(self, data: Tensor) -> Tensor:
+        precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16}
+        dst_type = precision_to_type[self.precision]
+        return _convert_fp_tensor(data, dst_type)
+
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
@@ -64,7 +71,7 @@ class NativeMixedPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:
