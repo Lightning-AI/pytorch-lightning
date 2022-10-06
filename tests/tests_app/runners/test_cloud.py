@@ -30,7 +30,7 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import BuildConfig, CloudCompute, LightningApp, LightningFlow, LightningWork
+from lightning_app import BuildConfig, CloudCompute, LightningApp, LightningWork
 from lightning_app.runners import backends, cloud
 from lightning_app.runners.cloud import _validate_build_spec_and_compute
 from lightning_app.storage import Drive
