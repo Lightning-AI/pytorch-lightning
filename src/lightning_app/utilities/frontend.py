@@ -14,12 +14,14 @@ class AppInfo:
     meta_tags: Optional[List[str]] = None
 
 
-def update_index_file_with_info_and_prefix(ui_root: str, prefix: str, info: AppInfo = None) -> None:
+def update_index_file_with_info_and_root_path(
+    ui_root: str, info: Optional[AppInfo] = None, root_path: str = ""
+) -> None:
     import shutil
     from pathlib import Path
 
-    def rewrite_static_with_prefix(content: str):
-        return content.replace("/static", f"{prefix}/static")
+    def rewrite_static_with_root_path(content: str):
+        return content.replace("/static", f"{root_path}/static")
 
     entry_file = Path(ui_root) / "index.html"
     original_file = Path(ui_root) / "index.original.html"
@@ -35,22 +37,24 @@ def update_index_file_with_info_and_prefix(ui_root: str, prefix: str, info: AppI
             original = f.read()
 
         with entry_file.open("w") as f:
-            f.write(rewrite_static_with_prefix(_get_updated_content(original=original, prefix=prefix, info=info)))
+            f.write(
+                rewrite_static_with_root_path(_get_updated_content(original=original, root_path=root_path, info=info))
+            )
 
-    if prefix:
-        prefix_without_slash = prefix.replace("/", "", 1) if prefix.startswith("/") else prefix
+    if root_path:
+        root_path_without_slash = root_path.replace("/", "", 1) if root_path.startswith("/") else root_path
         src_dir = Path(ui_root)
-        dst_dir = src_dir / prefix_without_slash
+        dst_dir = src_dir / root_path_without_slash
 
         if dst_dir.exists():
             shutil.rmtree(dst_dir, ignore_errors=True)
-        # copy everything except the current prefix, this is to fix a bug if user specifies
+        # copy everything except the current root_path, this is to fix a bug if user specifies
         # /abc at first and then /abc/def, server don't start
-        # ideally we should copy everything except custom prefixes that user passed.
-        shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(f"{prefix_without_slash}*"))
+        # ideally we should copy everything except custom root_path that user passed.
+        shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(f"{root_path_without_slash}*"))
 
 
-def _get_updated_content(original: str, prefix: str, info: AppInfo) -> str:
+def _get_updated_content(original: str, root_path: str, info: AppInfo) -> str:
     soup = BeautifulSoup(original, "html.parser")
 
     # replace favicon
@@ -70,8 +74,8 @@ def _get_updated_content(original: str, prefix: str, info: AppInfo) -> str:
         for meta in info.meta_tags:
             soup.find("head").append(BeautifulSoup(meta, "html.parser"))
 
-    if prefix:
-        # this will be used by lightning app ui to add prefix to add requests
-        soup.find("head").append(BeautifulSoup(f'<script>window.app_prefix="{prefix}"</script>', "html.parser"))
+    if root_path:
+        # this will be used by lightning app ui to add root_path to add requests
+        soup.find("head").append(BeautifulSoup(f'<script>window.app_prefix="{root_path}"</script>', "html.parser"))
 
     return str(soup)
