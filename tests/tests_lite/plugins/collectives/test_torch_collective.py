@@ -178,10 +178,9 @@ def collective_launch(fn, parallel_devices):
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collective = TorchCollective(
         init_kwargs={
-            "rank": strategy.local_rank,
+            "rank": strategy.global_rank,
             "world_size": strategy.num_processes,
-            "main_address": strategy.cluster_environment.main_address,
-            "main_port": strategy.cluster_environment.main_port,
+            "main_address": "localhost",
             "backend": "gloo",
         },
     )
@@ -189,23 +188,24 @@ def collective_launch(fn, parallel_devices):
 
 
 def _test_distributed_collectives_fn(strategy, collective):
-    collective.create_group()
+    rank = strategy._local_rank
+    collective.create_group(init_kwargs={"rank": rank})
 
     # all_gather
     tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
-    this = torch.arange(2, dtype=torch.long) + 2 * strategy.local_rank
+    this = torch.arange(2, dtype=torch.long) + 2 * rank
     out = collective.all_gather(tensor_list, this)
     expected = torch.arange(2 * strategy.num_processes).split(2)
     torch_test_assert_close(tuple(out), expected)
 
     # reduce
-    this = torch.tensor(strategy.local_rank + 1)
+    this = torch.tensor(rank + 1)
     out = collective.reduce(this, dst=0, op="max")
-    expected = torch.tensor(strategy.num_processes) if strategy.local_rank == 0 else this
+    expected = torch.tensor(strategy.num_processes) if rank == 0 else this
     torch_test_assert_close(out, expected)
 
     # all_reduce
-    this = torch.tensor(strategy.local_rank + 1)
+    this = torch.tensor(rank + 1)
     out = collective.all_reduce(this, op="min")
     expected = torch.tensor(1)
     torch_test_assert_close(out, expected)

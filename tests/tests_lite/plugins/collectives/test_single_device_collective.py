@@ -11,6 +11,7 @@ def test_can_instantiate_without_args():
 
 def test_create_group():
     collective = SingleDeviceCollective(init_kwargs={"arg1": None, "arg2": 10}, group_kwargs={"arg3": None, "arg4": 10})
+
     with pytest.raises(RuntimeError, match=r"SingleDeviceCollective` does not own a group"):
         _ = collective.group
 
@@ -20,6 +21,7 @@ def test_create_group():
         "lightning_lite.plugins.collectives.single_device_collective.SingleDeviceCollective.new_group"
     ) as new_mock:
         collective.create_group(init_kwargs={"arg2": 13, "arg3": 10}, group_kwargs={"arg1": 15, "arg3": 10})
+
     init_kwargs = {"arg1": None, "arg2": 13, "arg3": 10}
     group_kwargs = {"arg3": 10, "arg4": 10, "arg1": 15}
 

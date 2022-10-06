@@ -114,11 +114,11 @@ class TorchCollective(Collective):
     def init_group(
         cls, main_address: Optional[str] = None, main_port: Optional[Union[str, int]] = None, **kwargs: Any
     ) -> None:
-        if main_address is not None:
-            os.environ["MASTER_ADDR"] = main_address
-        if main_port is not None:
-            os.environ["MASTER_PORT"] = str(main_port)
         if not dist.is_initialized():
+            if main_address is not None:
+                os.environ["MASTER_ADDR"] = main_address
+            if main_port is not None:
+                os.environ["MASTER_PORT"] = str(main_port)
             dist.init_process_group(**kwargs)
 
     @classmethod
