@@ -197,6 +197,6 @@ class TestHTTPQueue:
             "POST",
             f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=pop",
             status_code=200,
-            content=b"test",
+            content=pickle.dumps("test"),
         )
-        assert test_queue.get() == b"test"
+        assert test_queue.get() == "test"
