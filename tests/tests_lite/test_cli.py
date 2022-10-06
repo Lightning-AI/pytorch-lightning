@@ -15,6 +15,7 @@ import os
 from unittest import mock
 
 import pytest
+from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.cli import main as cli_main
 
@@ -31,7 +32,7 @@ def test_cli_env_vars_defaults(*_):
     assert os.environ["LT_PRECISION"] == "32"
 
 
-@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", "mps"])
+@pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)

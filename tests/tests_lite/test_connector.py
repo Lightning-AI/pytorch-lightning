@@ -746,11 +746,12 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
 
-@pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
-def test_precision_from_environment(precision):
+@pytest.mark.parametrize("precision", ["64", "32", "16", pytest.param("bf16", marks=RunIf(min_torch="1.10"))])
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
+def test_precision_from_environment(_, precision):
     """Test that the precision input can be set through the environment variable."""
     with mock.patch.dict(os.environ, {"LT_PRECISION": precision}):
-        connector = _Connector()
+        connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
     assert isinstance(connector.precision_plugin, Precision)
 
 
