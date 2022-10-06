@@ -79,6 +79,7 @@ def test_tpu_reduce():
     xla_launch(tpu_reduce_fn)
 
 
+@RunIf(tpu=True)
 @mock.patch("lightning_lite.strategies.xla.MpDeviceLoader")
 @mock.patch("lightning_lite.strategies.xla.XLAStrategy.root_device")
 def test_xla_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
@@ -94,6 +95,7 @@ _iterable_loader = DataLoader(RandomIterableDataset(32, 64))
 _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 
+@RunIf(tpu=True)
 @pytest.mark.parametrize("dataloader", [None, _iterable_loader, _loader_no_len])
 @mock.patch("lightning_lite.strategies.xla.MpDeviceLoader")
 @mock.patch("lightning_lite.strategies.xla.XLAStrategy.root_device")
