@@ -87,11 +87,13 @@ PASSED_OBJECT = mock.Mock()
     ],
 )
 def test_collective_calls_with_created_group(fn_name, orig_call, kwargs, return_key):
-    with mock.patch(orig_call, autospec=True) as mock_call, mock.patch(
+    with mock.patch("torch.distributed.is_available", return_value=True), mock.patch(
         "torch.distributed.init_process_group"
-    ), mock.patch("torch.distributed.is_available", return_value=True):
-        collective = TorchCollective().create_group()
-        result = collective.__getattribute__(fn_name)(**kwargs)
-        mock_call.assert_called_once_with(**kwargs, group=collective.group)
-        if return_key is not None:
-            assert result == kwargs[return_key]
+    ):
+        collective = TorchCollective(instantiate_group=True)
+    fn = getattr(collective, fn_name)
+    with mock.patch(orig_call, autospec=True) as mock_call:
+        result = fn(**kwargs)
+    mock_call.assert_called_once_with(**kwargs, group=collective.group)
+    if return_key is not None:
+        assert result == kwargs[return_key]
