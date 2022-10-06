@@ -143,14 +143,14 @@ def test_repeated_create_and_destroy():
     init_mock.assert_called_once()
     new_mock.assert_called_once()
 
-    with pytest.raises(RuntimeError, match="TorchCollective already owns a group."):
+    with pytest.raises(RuntimeError, match="TorchCollective` already owns a group"):
         collective.create_group()
 
     with mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective.teardown()
-    with pytest.raises(RuntimeError, match="TorchCollective does not own a group to destroy."):
+    with pytest.raises(RuntimeError, match="TorchCollective` does not own a group to destroy"):
         collective.teardown()
-        with pytest.raises(RuntimeError, match="TorchCollective does not own a group to destroy."):
+        with pytest.raises(RuntimeError, match="TorchCollective` does not own a group to destroy"):
             collective.teardown()
 
         destroy_mock.assert_called_once_with(init_mock.return_value)

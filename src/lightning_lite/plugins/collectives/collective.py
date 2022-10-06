@@ -34,7 +34,7 @@ class Collective(ABC):
     def group(self) -> CollectibleGroup:
         if self._group is None:
             raise RuntimeError(
-                f"{type(self).__name__} does not own a group. HINT: try `collective.create_group().group`"
+                f"`{type(self).__name__}` does not own a group. HINT: try `collective.create_group().group`"
             )
         return self._group
 
@@ -112,7 +112,7 @@ class Collective(ABC):
         self, init_kwargs: Optional[Dict[str, Any]] = None, group_kwargs: Optional[Dict[str, Any]] = None
     ) -> Self:  # type: ignore[valid-type]
         if self._group is not None:
-            raise RuntimeError(f"{type(self).__name__} already owns a group.")
+            raise RuntimeError(f"`{type(self).__name__}` already owns a group.")
         self._init_kwargs.update(init_kwargs or {})
         self.init_group(**self._init_kwargs)
         self._group_kwargs.update(group_kwargs or {})
@@ -121,6 +121,6 @@ class Collective(ABC):
 
     def teardown(self) -> None:
         if self._group is None:
-            raise RuntimeError(f"{type(self).__name__} does not own a group to destroy.")
+            raise RuntimeError(f"`{type(self).__name__}` does not own a group to destroy.")
         self.destroy_group(self._group)
         self._group = None

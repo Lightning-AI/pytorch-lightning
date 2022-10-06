@@ -20,13 +20,13 @@ def check_destroy_group():
         ), "new_group and destroy_group should be called the same number of times"
 
 
-def test_can_instantiate():
+def test_can_instantiate_without_args():
     SingleDeviceCollective()
 
 
 def test_create_group():
     collective = SingleDeviceCollective(init_kwargs={"arg1": None, "arg2": 10}, group_kwargs={"arg3": None, "arg4": 10})
-    with pytest.raises(RuntimeError, match=r"SingleDeviceCollective does not own a group\. HINT:"):
+    with pytest.raises(RuntimeError, match=r"SingleDeviceCollective` does not own a group"):
         _ = collective.group
 
     with mock.patch(
