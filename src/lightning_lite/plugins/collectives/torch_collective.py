@@ -1,4 +1,5 @@
 import datetime
+import os
 from typing import Any, List, Optional, Union
 
 import torch
@@ -28,73 +29,45 @@ class TorchCollective(Collective):
     def world_size(self) -> int:
         return dist.get_world_size(self.group)
 
-    def broadcast(
-        self,
-        tensor: torch.Tensor,
-        src: int,
-    ) -> torch.Tensor:
+    def broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         dist.broadcast(tensor, src, group=self.group)
         return tensor
 
-    def all_reduce(
-        self,
-        tensor: torch.Tensor,
-        op: Union[str, ReduceOp] = "sum",
-    ) -> torch.Tensor:
+    def all_reduce(self, tensor: torch.Tensor, op: Union[str, ReduceOp] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
-    def reduce(
-        self,
-        tensor: torch.Tensor,
-        dst: int,
-        op: Union[str, ReduceOp] = "sum",
-    ) -> torch.Tensor:
+    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, ReduceOp] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
 
-    def all_gather(
-        self,
-        tensor_list: List[torch.Tensor],
-        tensor: torch.Tensor,
-    ) -> List[torch.Tensor]:
+    def all_gather(self, tensor_list: List[torch.Tensor], tensor: torch.Tensor) -> List[torch.Tensor]:
         dist.all_gather(tensor_list, tensor, group=self.group)
         return tensor_list
 
     def gather(
-        self,
-        tensor: torch.Tensor,
-        gather_list: Optional[List[torch.Tensor]] = None,
-        dst: int = 0,
+        self, tensor: torch.Tensor, gather_list: Optional[List[torch.Tensor]] = None, dst: int = 0
     ) -> Optional[List[torch.Tensor]]:
         dist.gather(tensor, gather_list, dst, group=self.group)
         return gather_list
 
     def scatter(
-        self,
-        tensor: torch.Tensor,
-        scatter_list: Optional[List[torch.Tensor]] = None,
-        src: int = 0,
+        self, tensor: torch.Tensor, scatter_list: Optional[List[torch.Tensor]] = None, src: int = 0
     ) -> torch.Tensor:
         dist.scatter(tensor, scatter_list, src, group=self.group)
         return tensor
 
     def reduce_scatter(
-        self,
-        output: torch.Tensor,
-        input_list: List[torch.Tensor],
-        op: Union[str, ReduceOp] = "sum",
+        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, ReduceOp] = "sum"
     ) -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
 
     def all_to_all(
-        self,
-        output_tensor_list: List[torch.Tensor],
-        input_tensor_list: List[torch.Tensor],
+        self, output_tensor_list: List[torch.Tensor], input_tensor_list: List[torch.Tensor]
     ) -> List[torch.Tensor]:
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
@@ -106,19 +79,12 @@ class TorchCollective(Collective):
         dist.recv(tensor, src, tag=tag, group=self.group)
         return tensor
 
-    def all_gather_object(
-        self,
-        object_list: List[Any],
-        obj: Any,
-    ) -> List[Any]:
+    def all_gather_object(self, object_list: List[Any], obj: Any) -> List[Any]:
         dist.all_gather_object(object_list, obj, group=self.group)
         return object_list
 
     def broadcast_object_list(
-        self,
-        object_list: List[Any],
-        src: int,
-        device: Optional[torch.device] = None,
+        self, object_list: List[Any], src: int, device: Optional[torch.device] = None
     ) -> List[Any]:
         kwargs = {}
         if _TORCH_GREATER_EQUAL_1_10:
@@ -127,48 +93,39 @@ class TorchCollective(Collective):
         return object_list
 
     def gather_object(
-        self,
-        obj: Any,
-        object_gather_list: Optional[List[Any]] = None,
-        dst: int = 0,
+        self, obj: Any, object_gather_list: Optional[List[Any]] = None, dst: int = 0
     ) -> Optional[List[Any]]:
         dist.gather_object(obj, object_gather_list, dst, group=self.group)
         return object_gather_list
 
     def scatter_object_list(
-        self,
-        scatter_object_output_list: List[Any],
-        scatter_object_input_list: Optional[List[Any]],
-        src: int = 0,
+        self, scatter_object_output_list: List[Any], scatter_object_input_list: Optional[List[Any]], src: int = 0
     ) -> List[Any]:
         dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)
         return scatter_object_output_list
 
-    def barrier(
-        self,
-        device_ids: Optional[List[int]] = None,
-    ) -> None:
+    def barrier(self, device_ids: Optional[List[int]] = None) -> None:
         dist.barrier(group=self.group, device_ids=device_ids)
 
-    def monitored_barrier(
-        self,
-        timeout: Optional[datetime.timedelta] = None,
-        wait_all_ranks: bool = False,
-    ) -> None:
+    def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
-    @staticmethod
+    @classmethod
     def init_group(
-        **kwargs: Any,
+        cls, main_address: Optional[str] = None, main_port: Optional[Union[str, int]] = None, **kwargs: Any
     ) -> CollectibleGroup:
+        if main_address is not None:
+            os.environ["MASTER_ADDR"] = main_address
+        if main_port is not None:
+            os.environ["MASTER_PORT"] = str(main_port)
         return dist.init_process_group(**kwargs)
 
-    @staticmethod
-    def destroy_group(group: CollectibleGroup) -> None:
+    @classmethod
+    def destroy_group(cls, group: CollectibleGroup) -> None:
         dist.destroy_process_group(group)
 
-    @staticmethod
-    def _convert_to_native_op(op: Union[str, ReduceOp]) -> ReduceOp:
+    @classmethod
+    def _convert_to_native_op(cls, op: Union[str, ReduceOp]) -> ReduceOp:
         if isinstance(op, ReduceOp):
             return op
         if not isinstance(op, str):

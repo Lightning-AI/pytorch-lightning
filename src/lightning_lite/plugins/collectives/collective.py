@@ -33,70 +33,40 @@ class Collective(ABC):
         return self._group
 
     @abstractmethod
-    def broadcast(
-        self,
-        tensor: torch.Tensor,
-        src: int,
-    ) -> torch.Tensor:
+    def broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def all_reduce(
-        self,
-        tensor: torch.Tensor,
-        op: str,
-    ) -> torch.Tensor:
+    def all_reduce(self, tensor: torch.Tensor, op: str) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def reduce(
-        self,
-        tensor: torch.Tensor,
-        dst: int,
-        op: str,
-    ) -> torch.Tensor:
+    def reduce(self, tensor: torch.Tensor, dst: int, op: str) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def all_gather(
-        self,
-        tensor_list: List[torch.Tensor],
-        tensor: torch.Tensor,
-    ) -> List[torch.Tensor]:
+    def all_gather(self, tensor_list: List[torch.Tensor], tensor: torch.Tensor) -> List[torch.Tensor]:
         ...
 
     @abstractmethod
     def gather(
-        self,
-        tensor: torch.Tensor,
-        gather_list: Optional[List[torch.Tensor]] = None,
-        dst: int = 0,
+        self, tensor: torch.Tensor, gather_list: Optional[List[torch.Tensor]] = None, dst: int = 0
     ) -> Optional[List[torch.Tensor]]:
         ...
 
     @abstractmethod
     def scatter(
-        self,
-        tensor: torch.Tensor,
-        scatter_list: Optional[List[torch.Tensor]] = None,
-        src: int = 0,
+        self, tensor: torch.Tensor, scatter_list: Optional[List[torch.Tensor]] = None, src: int = 0
     ) -> torch.Tensor:
         ...
 
     @abstractmethod
-    def reduce_scatter(
-        self,
-        output: torch.Tensor,
-        input_list: List[torch.Tensor],
-        op: str,
-    ) -> torch.Tensor:
+    def reduce_scatter(self, output: torch.Tensor, input_list: List[torch.Tensor], op: str) -> torch.Tensor:
         ...
 
     @abstractmethod
     def all_to_all(
-        self,
-        output_tensor_list: List[torch.Tensor],
-        input_tensor_list: List[torch.Tensor],
+        self, output_tensor_list: List[torch.Tensor], input_tensor_list: List[torch.Tensor]
     ) -> List[torch.Tensor]:
         ...
 
@@ -109,27 +79,22 @@ class Collective(ABC):
         ...
 
     @abstractmethod
-    def barrier(
-        self,
-        device_ids: Optional[List[int]] = None,
-    ) -> None:
+    def barrier(self, device_ids: Optional[List[int]] = None) -> None:
         ...
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def init_group(
-        **kwargs: Any,
-    ) -> CollectibleGroup:
+    def init_group(cls, **kwargs: Any) -> CollectibleGroup:
         ...
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def destroy_group(group: CollectibleGroup) -> None:
+    def destroy_group(cls, group: CollectibleGroup) -> None:
         ...
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def _convert_to_native_op(op: str) -> Any:
+    def _convert_to_native_op(cls, op: str) -> Any:
         ...
 
     def create_group(self, **kwargs: Any) -> Self:  # type: ignore[valid-type]
