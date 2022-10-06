@@ -15,26 +15,6 @@ class SingleDeviceCollective(Collective):
     def world_size(self) -> int:
         return 1
 
-    @staticmethod
-    def init_group(
-        **kwargs: Any,
-    ) -> CollectibleGroup:
-        return object()  # type: ignore[return-value]
-
-    @staticmethod
-    def _convert_to_native_op(op: str) -> str:
-        return op
-
-    @staticmethod
-    def destroy_group(group: CollectibleGroup) -> None:
-        pass
-
-    def send(self, *_: Any, **__: Any) -> None:
-        pass
-
-    def recv(self, tensor: torch.Tensor, *_: Any, **__: Any) -> torch.Tensor:
-        return tensor
-
     def broadcast(
         self,
         tensor: torch.Tensor,
@@ -102,9 +82,29 @@ class SingleDeviceCollective(Collective):
     ) -> List[torch.Tensor]:
         return input_tensor_list
 
+    def send(self, *_: Any, **__: Any) -> None:
+        pass
+
+    def recv(self, tensor: torch.Tensor, *_: Any, **__: Any) -> torch.Tensor:
+        return tensor
+
     def barrier(
         self,
         *_: Any,
         **__: Any,
     ) -> None:
         pass
+
+    @staticmethod
+    def init_group(
+        **kwargs: Any,
+    ) -> CollectibleGroup:
+        return object()  # type: ignore[return-value]
+
+    @staticmethod
+    def destroy_group(group: CollectibleGroup) -> None:
+        pass
+
+    @staticmethod
+    def _convert_to_native_op(op: str) -> str:
+        return op

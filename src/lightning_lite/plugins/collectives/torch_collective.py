@@ -27,30 +27,6 @@ class TorchCollective(Collective):
     def world_size(self) -> int:
         return dist.get_world_size(self.group)
 
-    @staticmethod
-    def init_group(
-        **kwargs: Any,
-    ) -> CollectibleGroup:
-        return dist.init_process_group(**kwargs)
-
-    @staticmethod
-    def destroy_group(group: CollectibleGroup) -> None:
-        dist.destroy_process_group(group)
-
-    @staticmethod
-    def _convert_to_native_op(op: str) -> ReduceOp:
-        value = getattr(ReduceOp, op.upper(), None)
-        if value is None:
-            raise ValueError("TODO")
-        return value
-
-    def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
-        dist.send(tensor, dst, tag=tag, group=self.group)
-
-    def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
-        dist.recv(tensor, src, tag=tag, group=self.group)
-        return tensor
-
     def broadcast(
         self,
         tensor: torch.Tensor,
@@ -122,11 +98,12 @@ class TorchCollective(Collective):
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
 
-    def barrier(
-        self,
-        device_ids: Optional[List[int]] = None,
-    ) -> None:
-        dist.barrier(group=self.group, device_ids=device_ids)
+    def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
+        dist.send(tensor, dst, tag=tag, group=self.group)
+
+    def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
+        dist.recv(tensor, src, tag=tag, group=self.group)
+        return tensor
 
     def all_gather_object(
         self,
@@ -163,9 +140,32 @@ class TorchCollective(Collective):
         dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)
         return scatter_object_output_list
 
+    def barrier(
+        self,
+        device_ids: Optional[List[int]] = None,
+    ) -> None:
+        dist.barrier(group=self.group, device_ids=device_ids)
+
     def monitored_barrier(
         self,
         timeout: Optional[datetime.timedelta] = None,
         wait_all_ranks: bool = False,
     ) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
+
+    @staticmethod
+    def init_group(
+        **kwargs: Any,
+    ) -> CollectibleGroup:
+        return dist.init_process_group(**kwargs)
+
+    @staticmethod
+    def destroy_group(group: CollectibleGroup) -> None:
+        dist.destroy_process_group(group)
+
+    @staticmethod
+    def _convert_to_native_op(op: str) -> ReduceOp:
+        value = getattr(ReduceOp, op.upper(), None)
+        if value is None:
+            raise ValueError("TODO")
+        return value

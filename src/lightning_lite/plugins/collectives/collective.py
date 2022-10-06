@@ -14,12 +14,15 @@ class Collective(ABC):
         if instantiate_group:
             self.create_group()
 
-    def create_group(self, **kwargs: Any) -> Self:  # type: ignore[valid-type]
-        if self._group is not None:
-            raise RuntimeError(f"{type(self).__name__} already owns a group.")
-        self._group_kwargs.update(kwargs)
-        self._group = self.init_group(**self._group_kwargs)
-        return self
+    @property
+    @abstractmethod
+    def rank(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def world_size(self) -> int:
+        ...
 
     @property
     def group(self) -> CollectibleGroup:
@@ -29,54 +32,13 @@ class Collective(ABC):
             )
         return self._group
 
-    @property
-    @abstractmethod
-    def rank(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def world_size(self) -> int:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def init_group(
-        **kwargs: Any,
-    ) -> CollectibleGroup:
-        pass
-
-    def teardown(self) -> None:
-        if self._group is None:
-            raise RuntimeError(f"{type(self).__name__} does not own a group to destroy.")
-        self.destroy_group(self._group)
-        self._group = None
-
-    @staticmethod
-    @abstractmethod
-    def destroy_group(group: CollectibleGroup) -> None:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def _convert_to_native_op(op: str) -> Any:
-        pass
-
-    @abstractmethod
-    def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
-        pass
-
-    @abstractmethod
-    def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
-        pass
-
     @abstractmethod
     def broadcast(
         self,
         tensor: torch.Tensor,
         src: int,
     ) -> torch.Tensor:
-        pass
+        ...
 
     @abstractmethod
     def all_reduce(
@@ -84,7 +46,7 @@ class Collective(ABC):
         tensor: torch.Tensor,
         op: str,
     ) -> torch.Tensor:
-        pass
+        ...
 
     @abstractmethod
     def reduce(
@@ -93,7 +55,7 @@ class Collective(ABC):
         dst: int,
         op: str,
     ) -> torch.Tensor:
-        pass
+        ...
 
     @abstractmethod
     def all_gather(
@@ -101,7 +63,7 @@ class Collective(ABC):
         tensor_list: List[torch.Tensor],
         tensor: torch.Tensor,
     ) -> List[torch.Tensor]:
-        pass
+        ...
 
     @abstractmethod
     def gather(
@@ -110,7 +72,7 @@ class Collective(ABC):
         gather_list: Optional[List[torch.Tensor]] = None,
         dst: int = 0,
     ) -> Optional[List[torch.Tensor]]:
-        pass
+        ...
 
     @abstractmethod
     def scatter(
@@ -119,7 +81,7 @@ class Collective(ABC):
         scatter_list: Optional[List[torch.Tensor]] = None,
         src: int = 0,
     ) -> torch.Tensor:
-        pass
+        ...
 
     @abstractmethod
     def reduce_scatter(
@@ -128,7 +90,7 @@ class Collective(ABC):
         input_list: List[torch.Tensor],
         op: str,
     ) -> torch.Tensor:
-        pass
+        ...
 
     @abstractmethod
     def all_to_all(
@@ -136,11 +98,49 @@ class Collective(ABC):
         output_tensor_list: List[torch.Tensor],
         input_tensor_list: List[torch.Tensor],
     ) -> List[torch.Tensor]:
-        pass
+        ...
+
+    @abstractmethod
+    def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
+        ...
+
+    @abstractmethod
+    def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
+        ...
 
     @abstractmethod
     def barrier(
         self,
         device_ids: Optional[List[int]] = None,
     ) -> None:
-        pass
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def init_group(
+        **kwargs: Any,
+    ) -> CollectibleGroup:
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def destroy_group(group: CollectibleGroup) -> None:
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def _convert_to_native_op(op: str) -> Any:
+        ...
+
+    def create_group(self, **kwargs: Any) -> Self:  # type: ignore[valid-type]
+        if self._group is not None:
+            raise RuntimeError(f"{type(self).__name__} already owns a group.")
+        self._group_kwargs.update(kwargs)
+        self._group = self.init_group(**self._group_kwargs)
+        return self
+
+    def teardown(self) -> None:
+        if self._group is None:
+            raise RuntimeError(f"{type(self).__name__} does not own a group to destroy.")
+        self.destroy_group(self._group)
+        self._group = None
