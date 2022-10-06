@@ -15,7 +15,7 @@ class Frontend(ABC):
         self.flow: Optional["LightningFlow"] = None
 
     @abstractmethod
-    def start_server(self, host: str, port: int, base_path: str = "") -> None:
+    def start_server(self, host: str, port: int, root_path: str = "") -> None:
         """Start the process that serves the UI at the given hostname and port number.
 
         Arguments:
@@ -23,13 +23,13 @@ class Frontend(ABC):
                 but defaults to localhost when running locally.
             port: The port number where the UI will be served. This gets determined by the dispatcher, which by default
                 chooses any free port when running locally.
-            base_path: base_path for the server if app in exposed via a proxy at `/<base_path>`
+            root_path: root_path for the server if app in exposed via a proxy at `/<root_path>`
         Example:
             An custom implementation could look like this:
 
             .. code-block:: python
 
-                def start_server(self, host, port, base_path=""):
+                def start_server(self, host, port, root_path=""):
                     self._process = subprocess.Popen(["flask", "run" "--host", host, "--port", str(port)])
         """
 

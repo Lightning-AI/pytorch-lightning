@@ -346,7 +346,7 @@ def start_server(
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
-    base_path: str = "",
+    root_path: str = "",
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
     apis: Optional[List[HttpMethod]] = None,
@@ -383,6 +383,6 @@ def start_server(
 
         register_global_routes()
 
-        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", root_path=base_path)
+        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", root_path=root_path)
 
     return refresher
