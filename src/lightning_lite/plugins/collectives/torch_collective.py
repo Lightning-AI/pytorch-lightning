@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -38,7 +38,7 @@ class TorchCollective(Collective):
     def all_reduce(
         self,
         tensor: torch.Tensor,
-        op: str = "sum",
+        op: Union[str, ReduceOp] = "sum",
     ) -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
@@ -48,7 +48,7 @@ class TorchCollective(Collective):
         self,
         tensor: torch.Tensor,
         dst: int,
-        op: str = "sum",
+        op: Union[str, ReduceOp] = "sum",
     ) -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
@@ -84,7 +84,7 @@ class TorchCollective(Collective):
         self,
         output: torch.Tensor,
         input_list: List[torch.Tensor],
-        op: str = "sum",
+        op: Union[str, ReduceOp] = "sum",
     ) -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
@@ -164,8 +164,13 @@ class TorchCollective(Collective):
         dist.destroy_process_group(group)
 
     @staticmethod
-    def _convert_to_native_op(op: str) -> ReduceOp:
-        value = getattr(ReduceOp, op.upper(), None)
+    def _convert_to_native_op(op: Union[str, ReduceOp]) -> ReduceOp:
+        if isinstance(op, ReduceOp):
+            return op
+        if not isinstance(op, str):
+            raise ValueError(f"op {op!r} should be a `str` or `ReduceOp`")
+        op = op.upper()
+        value = getattr(ReduceOp, op, None)
         if value is None:
-            raise ValueError("TODO")
+            raise ValueError(f"op {op!r} is not a member of `ReduceOp`")
         return value
