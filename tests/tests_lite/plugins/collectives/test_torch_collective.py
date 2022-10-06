@@ -4,7 +4,13 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.distributed import ReduceOp
+from tests_lite.helpers.runif import RunIf
+
+if torch.distributed.is_available():
+
+    from torch.distributed import ReduceOp
+else:
+    ReduceOp = mock.Mock()
 
 from lightning_lite.plugins.collectives import TorchCollective
 
@@ -15,64 +21,72 @@ PASSED_OBJECT = mock.Mock()
 @pytest.mark.parametrize(
     ["fn_name", "kwargs", "return_key"],
     [
-        ("send", {"tensor": PASSED_TENSOR, "dst": 0, "tag": 0}, None),
-        ("recv", {"tensor": PASSED_TENSOR, "src": 0, "tag": 0}, "tensor"),
-        ("broadcast", {"tensor": PASSED_TENSOR, "src": 0}, "tensor"),
-        ("all_reduce", {"tensor": PASSED_TENSOR, "op": ReduceOp.SUM}, "tensor"),
-        ("reduce", {"tensor": PASSED_TENSOR, "dst": 0, "op": ReduceOp.SUM}, "tensor"),
-        (
+        pytest.param("send", {"tensor": PASSED_TENSOR, "dst": 0, "tag": 0}, None),
+        pytest.param("recv", {"tensor": PASSED_TENSOR, "src": 0, "tag": 0}, "tensor"),
+        pytest.param("broadcast", {"tensor": PASSED_TENSOR, "src": 0}, "tensor"),
+        pytest.param("all_reduce", {"tensor": PASSED_TENSOR, "op": ReduceOp.SUM}, "tensor"),
+        pytest.param("reduce", {"tensor": PASSED_TENSOR, "dst": 0, "op": ReduceOp.SUM}, "tensor"),
+        pytest.param(
             "all_gather",
             {"tensor_list": [PASSED_TENSOR], "tensor": PASSED_TENSOR},
             "tensor_list",
         ),
-        (
+        pytest.param(
             "gather",
             {"tensor": PASSED_TENSOR, "gather_list": [PASSED_TENSOR], "dst": 0},
             "gather_list",
         ),
-        (
+        pytest.param(
             "scatter",
             {"tensor": PASSED_TENSOR, "scatter_list": [PASSED_TENSOR], "src": 0},
             "tensor",
         ),
-        (
+        pytest.param(
             "reduce_scatter",
             {"output": PASSED_TENSOR, "input_list": [PASSED_TENSOR], "op": ReduceOp.SUM},
             "output",
         ),
-        (
+        pytest.param(
             "all_to_all",
             {"output_tensor_list": [PASSED_TENSOR], "input_tensor_list": [PASSED_TENSOR]},
             "output_tensor_list",
         ),
-        ("barrier", {"device_ids": [0]}, None),
-        (
+        pytest.param("barrier", {"device_ids": [0]}, None),
+        pytest.param(
             "all_gather_object",
             {"object_list": [PASSED_OBJECT], "obj": PASSED_OBJECT},
             "object_list",
         ),
-        (
+        pytest.param(
+            "broadcast_object_list",
+            {"object_list": [PASSED_OBJECT], "src": 0},
+            "object_list",
+            marks=RunIf(max_torch="1.10"),
+        ),
+        pytest.param(
             "broadcast_object_list",
             {"object_list": [PASSED_OBJECT], "src": 0, "device": torch.device("cpu")},
             "object_list",
+            marks=RunIf(min_torch="1.10"),
         ),
-        (
+        pytest.param(
             "gather_object",
             {"obj": PASSED_OBJECT, "object_gather_list": [PASSED_OBJECT], "dst": 0},
             "object_gather_list",
         ),
-        (
+        pytest.param(
             "scatter_object_list",
             {"scatter_object_output_list": [PASSED_OBJECT], "scatter_object_input_list": [PASSED_OBJECT], "src": 0},
             "scatter_object_output_list",
         ),
-        (
+        pytest.param(
             "monitored_barrier",
             {"timeout": datetime.timedelta(seconds=1), "wait_all_ranks": False},
             None,
         ),
     ],
 )
+@RunIf(distributed=True)
 def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
     with mock.patch("torch.distributed.is_available", return_value=True), mock.patch(
         "torch.distributed.init_process_group"
@@ -86,6 +100,7 @@ def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
         assert result == kwargs[return_key]
 
 
+@RunIf(distributed=True)
 def test_convert_ops():
     if torch.distributed.is_available():
         cm = contextlib.nullcontext()

@@ -51,6 +51,7 @@ class RunIf:
         standalone: bool = False,
         fairscale: bool = False,
         deepspeed: bool = False,
+        distributed: bool = False,
         **kwargs,
     ):
         """
@@ -69,6 +70,7 @@ class RunIf:
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
             fairscale: Require that facebookresearch/fairscale is installed.
             deepspeed: Require that microsoft/DeepSpeed is installed.
+            distributed: Requires that `torch.distributed.is_available()` is True.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -145,6 +147,10 @@ class RunIf:
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             reasons.append("Deepspeed")
+
+        if distributed:
+            conditions.append(not torch.distributed.is_available())
+            reasons.append("Distributed")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
