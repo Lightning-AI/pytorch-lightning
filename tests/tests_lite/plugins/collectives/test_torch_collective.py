@@ -24,6 +24,8 @@ PASSED_OBJECT = mock.Mock()
 
 @pytest.fixture(autouse=True)
 def check_destroy_group():
+    if torch.distributed.is_available():
+        assert not torch.distributed.is_initialized()
     with mock.patch(
         "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
@@ -196,6 +198,6 @@ def _test_distributed_collectives_fn(strategy, collective):
 
 
 @RunIf(distributed=True)
-@pytest.mark.parametrize("n", (1,))  # FIXME
+@pytest.mark.parametrize("n", (1, 2))  # FIXME
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
