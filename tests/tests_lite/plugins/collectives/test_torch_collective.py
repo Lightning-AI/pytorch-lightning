@@ -174,30 +174,31 @@ def spawn_launch(fn, parallel_devices):
     launcher.launch(fn, strategy, collective)
 
 
-def _all_gather_fn(strategy, collective):
+def _test_distributed_collectives_fn(strategy, collective):
     collective.create_group()
+
+    # all_gather
     tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
     this = torch.arange(2, dtype=torch.long) + 2 * strategy.local_rank
     out = collective.all_gather(tensor_list, this)
     expected = torch.arange(2 * strategy.num_processes).split(2)
     torch_test_assert_close(tuple(out), expected)
-    collective.teardown()
 
-
-@RunIf(distributed=True)
-def test_all_gather():
-    spawn_launch(_all_gather_fn, [torch.device("cpu")])
-
-
-def _reduce_fn(strategy, collective):
-    collective.create_group()
+    # reduce
     this = torch.tensor(strategy.local_rank + 1)
     out = collective.reduce(this, dst=0, op="max")
     expected = torch.tensor(strategy.num_processes) if strategy.local_rank == 0 else this
     torch_test_assert_close(out, expected)
+
+    # all_reduce
+    this = torch.tensor(strategy.local_rank + 1)
+    out = collective.all_reduce(this, op="min")
+    expected = torch.tensor(1)
+    torch_test_assert_close(out, expected)
+
     collective.teardown()
 
 
 @RunIf(distributed=True)
-def test_reduce():
-    spawn_launch(_reduce_fn, [torch.device("cpu")])
+def test_collectives_distributed():
+    spawn_launch(_test_distributed_collectives_fn, [torch.device("cpu")])
