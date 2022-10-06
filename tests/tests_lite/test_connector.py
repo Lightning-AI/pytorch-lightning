@@ -56,7 +56,7 @@ def test_accelerator_choice_cpu():
     assert isinstance(connector.strategy, SingleDeviceStrategy)
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", 8), ("auto", 1), ("auto", 8)])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_choice_tpu(accelerator, devices):
