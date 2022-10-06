@@ -16,10 +16,10 @@ else:
 
 
 class TorchCollective(Collective):
-    def __init__(self, instantiate_group: bool = False, **group_kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         if not dist.is_available():
             raise RuntimeError("Torch distributed is not available.")
-        super().__init__(instantiate_group, **group_kwargs)
+        super().__init__(**kwargs)
 
     @property
     def rank(self) -> int:
@@ -113,12 +113,17 @@ class TorchCollective(Collective):
     @classmethod
     def init_group(
         cls, main_address: Optional[str] = None, main_port: Optional[Union[str, int]] = None, **kwargs: Any
-    ) -> CollectibleGroup:
+    ) -> None:
         if main_address is not None:
             os.environ["MASTER_ADDR"] = main_address
         if main_port is not None:
             os.environ["MASTER_PORT"] = str(main_port)
-        return dist.init_process_group(**kwargs)
+        if not dist.is_initialized():
+            dist.init_process_group(**kwargs)
+
+    @classmethod
+    def new_group(cls, **kwargs: Any) -> CollectibleGroup:
+        return dist.new_group(**kwargs)
 
     @classmethod
     def destroy_group(cls, group: CollectibleGroup) -> None:

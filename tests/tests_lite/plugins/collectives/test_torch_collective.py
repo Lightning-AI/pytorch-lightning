@@ -3,16 +3,21 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
 
+from lightning_lite.accelerators import CPUAccelerator
 from lightning_lite.plugins.collectives import TorchCollective
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning_lite.plugins.environments import LightningEnvironment
+from lightning_lite.strategies import DDPSpawnStrategy
+from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from tests.tests_lite.helpers.runif import RunIf
+
+torch_test_assert_close = torch.testing.assert_close if _TORCH_GREATER_EQUAL_1_12 else torch.testing.assert_allclose
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 else:
     ReduceOp = mock.Mock()
-
 
 PASSED_TENSOR = mock.Mock()
 PASSED_OBJECT = mock.Mock()
@@ -41,37 +46,17 @@ def check_destroy_group():
         ("broadcast", {"tensor": PASSED_TENSOR, "src": 0}, "tensor"),
         ("all_reduce", {"tensor": PASSED_TENSOR, "op": ReduceOp.SUM}, "tensor"),
         ("reduce", {"tensor": PASSED_TENSOR, "dst": 0, "op": ReduceOp.SUM}, "tensor"),
-        (
-            "all_gather",
-            {"tensor_list": [PASSED_TENSOR], "tensor": PASSED_TENSOR},
-            "tensor_list",
-        ),
-        (
-            "gather",
-            {"tensor": PASSED_TENSOR, "gather_list": [PASSED_TENSOR], "dst": 0},
-            "gather_list",
-        ),
-        (
-            "scatter",
-            {"tensor": PASSED_TENSOR, "scatter_list": [PASSED_TENSOR], "src": 0},
-            "tensor",
-        ),
-        (
-            "reduce_scatter",
-            {"output": PASSED_TENSOR, "input_list": [PASSED_TENSOR], "op": ReduceOp.SUM},
-            "output",
-        ),
+        ("all_gather", {"tensor_list": [PASSED_TENSOR], "tensor": PASSED_TENSOR}, "tensor_list"),
+        ("gather", {"tensor": PASSED_TENSOR, "gather_list": [PASSED_TENSOR], "dst": 0}, "gather_list"),
+        ("scatter", {"tensor": PASSED_TENSOR, "scatter_list": [PASSED_TENSOR], "src": 0}, "tensor"),
+        ("reduce_scatter", {"output": PASSED_TENSOR, "input_list": [PASSED_TENSOR], "op": ReduceOp.SUM}, "output"),
         (
             "all_to_all",
             {"output_tensor_list": [PASSED_TENSOR], "input_tensor_list": [PASSED_TENSOR]},
             "output_tensor_list",
         ),
         ("barrier", {"device_ids": [0]}, None),
-        (
-            "all_gather_object",
-            {"object_list": [PASSED_OBJECT], "obj": PASSED_OBJECT},
-            "object_list",
-        ),
+        ("all_gather_object", {"object_list": [PASSED_OBJECT], "obj": PASSED_OBJECT}, "object_list"),
         pytest.param(
             "broadcast_object_list",
             {"object_list": [PASSED_OBJECT], "src": 0},
@@ -94,11 +79,7 @@ def check_destroy_group():
             {"scatter_object_output_list": [PASSED_OBJECT], "scatter_object_input_list": [PASSED_OBJECT], "src": 0},
             "scatter_object_output_list",
         ),
-        (
-            "monitored_barrier",
-            {"timeout": datetime.timedelta(seconds=1), "wait_all_ranks": False},
-            None,
-        ),
+        ("monitored_barrier", {"timeout": datetime.timedelta(seconds=1), "wait_all_ranks": False}, None),
     ],
 )
 @RunIf(distributed=True)
@@ -179,3 +160,35 @@ def test_create_group_pass_params():
 
     with mock.patch("torch.distributed.destroy_process_group"):
         collective.teardown()
+
+
+def spawn_launch(fn, parallel_devices):
+    strategy = DDPSpawnStrategy(
+        accelerator=CPUAccelerator(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+    )
+    launcher = _MultiProcessingLauncher(strategy=strategy)
+    collective = TorchCollective(
+        init_kwargs={
+            "rank": strategy.local_rank,
+            "world_size": strategy.num_processes,
+            "main_address": strategy.cluster_environment.main_address,
+            "main_port": strategy.cluster_environment.main_port,
+            "backend": "gloo",
+        }
+    )
+    launcher.launch(fn, strategy, collective)
+
+
+def _all_gather_fn(strategy, collective):
+    collective.create_group()
+    tensor_list = [torch.zeros(2, dtype=torch.int64) for _ in range(strategy.num_processes)]
+    this = torch.arange(2, dtype=torch.int64) + 2 * strategy.local_rank
+    out = collective.all_gather(tensor_list, this)
+    expected = torch.arange(2 * strategy.num_processes).split(2)
+    torch_test_assert_close(tuple(out), expected)
+    collective.teardown()
+
+
+@RunIf(distributed=True)
+def test_all_gather():
+    spawn_launch(_all_gather_fn, [torch.device("cpu")])

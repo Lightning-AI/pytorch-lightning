@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from typing_extensions import Self
@@ -8,8 +8,14 @@ from lightning_lite.utilities.types import CollectibleGroup
 
 
 class Collective(ABC):
-    def __init__(self, instantiate_group: bool = False, **group_kwargs: Any) -> None:
-        self._group_kwargs = group_kwargs
+    def __init__(
+        self,
+        instantiate_group: bool = False,
+        init_kwargs: Optional[Dict[str, Any]] = None,
+        group_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self._init_kwargs = init_kwargs or {}
+        self._group_kwargs = group_kwargs or {}
         self._group: Optional[CollectibleGroup] = None
         if instantiate_group:
             self.create_group()
@@ -97,11 +103,15 @@ class Collective(ABC):
     def _convert_to_native_op(cls, op: str) -> Any:
         ...
 
-    def create_group(self, **kwargs: Any) -> Self:  # type: ignore[valid-type]
+    def create_group(
+        self, init_kwargs: Optional[Dict[str, Any]] = None, group_kwargs: Optional[Dict[str, Any]] = None
+    ) -> Self:  # type: ignore[valid-type]
         if self._group is not None:
             raise RuntimeError(f"{type(self).__name__} already owns a group.")
-        self._group_kwargs.update(kwargs)
-        self._group = self.init_group(**self._group_kwargs)
+        self._init_kwargs.update(init_kwargs or {})
+        self.init_group(**self._init_kwargs)
+        self._group_kwargs.update(group_kwargs or {})
+        self._group = self.new_group(**self._group_kwargs)
         return self
 
     def teardown(self) -> None:
