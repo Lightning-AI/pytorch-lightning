@@ -20,7 +20,6 @@ from unittest.mock import patch
 import pytest
 import torch
 from torch import nn
-from torch.multiprocessing import ProcessExitedException
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
