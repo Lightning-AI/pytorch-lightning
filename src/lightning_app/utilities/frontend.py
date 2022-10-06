@@ -14,9 +14,7 @@ class AppInfo:
     meta_tags: Optional[List[str]] = None
 
 
-def update_index_file_with_info_and_root_path(
-    ui_root: str, info: Optional[AppInfo] = None, root_path: str = ""
-) -> None:
+def update_index_file(ui_root: str, info: Optional[AppInfo] = None, root_path: str = "") -> None:
     import shutil
     from pathlib import Path
 
