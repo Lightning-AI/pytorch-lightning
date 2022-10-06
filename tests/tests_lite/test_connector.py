@@ -62,7 +62,8 @@ def test_accelerator_choice_cpu():
 def test_accelerator_choice_tpu(accelerator, devices):
     connector = _Connector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
-    if devices and devices > 1:
+    if devices is None or devices > 1:
+        # TODO: accelerator=tpu, devices=None (default) should imply SingleTPUStrategy
         assert isinstance(connector.strategy, XLAStrategy)
     else:
         assert isinstance(connector.strategy, SingleTPUStrategy)
