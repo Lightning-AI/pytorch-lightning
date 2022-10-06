@@ -62,7 +62,7 @@ class SingleDeviceCollective(Collective):
 
     @classmethod
     def new_group(cls, **_: Any) -> CollectibleGroup:
-        return CollectibleGroup()
+        return object()  # type: ignore[return-value]
 
     @classmethod
     def destroy_group(cls, group: CollectibleGroup) -> None:
