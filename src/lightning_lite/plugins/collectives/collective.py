@@ -63,6 +63,14 @@ class Collective(ABC):
         pass
 
     @abstractmethod
+    def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
+        pass
+
+    @abstractmethod
+    def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
+        pass
+
+    @abstractmethod
     def broadcast(
         self,
         tensor: torch.Tensor,

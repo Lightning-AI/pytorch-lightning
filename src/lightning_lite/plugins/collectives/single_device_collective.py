@@ -29,6 +29,12 @@ class SingleDeviceCollective(Collective):
     def destroy_group(group: CollectibleGroup) -> None:
         pass
 
+    def send(self, *_: Any, **__: Any) -> None:
+        pass
+
+    def recv(self, tensor: torch.Tensor, *_: Any, **__: Any) -> torch.Tensor:
+        return tensor
+
     def broadcast(
         self,
         tensor: torch.Tensor,
