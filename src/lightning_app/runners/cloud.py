@@ -4,10 +4,13 @@ import random
 import string
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
+import click
+from lightning_app.utilities.load_app import load_app_from_file, _prettifiy_exception
 from lightning_cloud.openapi import (
     Body3,
     Body4,
@@ -398,3 +401,40 @@ class CloudRuntime(Runtime):
             balance = 0  # value is missing in some tests
 
         return balance >= 1
+
+    @classmethod
+    def _should_force_run_app_on_cloud_promote(cls, filepath: str) -> bool:
+        # we want to format the exception as if no frame was on top.
+        exp, val, tb = sys.exc_info()
+        listing = traceback.format_exception(exp, val, tb)
+        # remove the entry for the first frame
+        del listing[1]
+        listing = [
+                      f"Found an exception when loading your application from {filepath}.\n\n"
+                  ] + listing
+        logger.error("".join(listing))
+        click.echo("Maybe some dependencies are missing? If you want to force run the on cloud, please type 'y'.")
+        value = input("\nPress enter to continue:   ")
+        value = value.strip().lower()
+        is_force_run = len(value) == 0 or value in {"y", "yes", 1}
+        return is_force_run
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        """This is meant to use only locally for cloud runtime."""
+        try:
+            app = load_app_from_file(filepath, raise_exception=True)
+        except ModuleNotFoundError as e:
+            # this is very generic exception.
+            is_force_run = cls._show_loading_app_module_error(filepath)
+            if is_force_run:
+                from lightning.app.testing.helpers import EmptyFlow
+                # Create a mocking app.
+                app = LightningApp(EmptyFlow())
+            else:
+                sys.exit(1)
+        except FileNotFoundError as e:
+            raise e
+        except Exception:
+            _prettifiy_exception(filepath)
+        return app
