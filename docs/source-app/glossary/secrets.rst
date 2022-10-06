@@ -34,7 +34,7 @@ Provide a name and value to your secret, for example, name could be "github_api_
 Use a secret
 ************
 
-1. Add an environment variables to your app to read the secret. For example, add an "api_token" environment variable:
+1. Add an environment variable to your app to read the secret. For example, add an "api_token" environment variable:
 
 .. code:: python
 
