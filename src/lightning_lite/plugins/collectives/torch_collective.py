@@ -5,6 +5,7 @@ import torch
 import torch.distributed as dist
 
 from lightning_lite.plugins.collectives.collective import Collective
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from lightning_lite.utilities.types import CollectibleGroup, ReduceOp
 
 if dist.is_available():
@@ -119,7 +120,10 @@ class TorchCollective(Collective):
         src: int,
         device: Optional[torch.device] = None,
     ) -> List[Any]:
-        dist.broadcast_object_list(object_list, src, group=self.group, device=device)
+        kwargs = {}
+        if _TORCH_GREATER_EQUAL_1_10:
+            kwargs["device"] = device
+        dist.broadcast_object_list(object_list, src, group=self.group, **kwargs)
         return object_list
 
     def gather_object(
