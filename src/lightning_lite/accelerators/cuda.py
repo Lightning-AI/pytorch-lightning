@@ -13,8 +13,9 @@
 # limitations under the License.
 import os
 import warnings
+from contextlib import contextmanager
 from functools import lru_cache
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, Generator, List, Optional, Set, Union
 
 import torch
 
@@ -75,6 +76,23 @@ def _get_all_available_cuda_gpus() -> List[int]:
          A list of all available CUDA GPUs
     """
     return list(range(num_cuda_devices()))
+
+
+@contextmanager
+def _patch_cuda_is_available() -> Generator:
+    """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
+    possible."""
+    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0:
+        # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
+        # otherwise, patching is_available could lead to attribute errors or infinite recursion
+        orig_check = torch.cuda.is_available
+        torch.cuda.is_available = is_cuda_available
+        try:
+            yield
+        finally:
+            torch.cuda.is_available = orig_check
+    else:
+        yield
 
 
 @lru_cache(1)
