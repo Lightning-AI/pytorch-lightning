@@ -20,7 +20,7 @@ def update_index_file_with_info_and_root_path(
     import shutil
     from pathlib import Path
 
-    def rewrite_static_with_root_path(content: str):
+    def rewrite_static_with_root_path(content: str) -> str:
         return content.replace("/static", f"{root_path}/static")
 
     entry_file = Path(ui_root) / "index.html"
