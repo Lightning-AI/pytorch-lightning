@@ -57,8 +57,12 @@ class SingleDeviceCollective(Collective):
         pass
 
     @classmethod
-    def init_group(cls, **kwargs: Any) -> CollectibleGroup:
-        return object()  # type: ignore[return-value]
+    def init_group(cls, **_: Any) -> None:
+        pass
+
+    @classmethod
+    def new_group(cls, **_: Any) -> CollectibleGroup:
+        return CollectibleGroup()
 
     @classmethod
     def destroy_group(cls, group: CollectibleGroup) -> None:
