@@ -86,7 +86,7 @@ def check_destroy_group():
 def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
     with mock.patch("torch.distributed.is_available", return_value=True), mock.patch(
         "torch.distributed.init_process_group"
-    ):
+    ), mock.patch("torch.distributed.new_group"):
         collective = TorchCollective(instantiate_group=True)
     fn = getattr(collective, fn_name)
     with mock.patch(f"torch.distributed.{fn_name}", autospec=True) as mock_call:
@@ -137,9 +137,13 @@ def test_convert_ops():
 @RunIf(distributed=True)
 def test_repeated_create_and_destroy():
     with mock.patch("torch.distributed.init_process_group") as init_mock, mock.patch(
-        "torch.distributed.destroy_process_group"
-    ) as destroy_mock:
+        "torch.distributed.new_group"
+    ) as new_mock, mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective = TorchCollective(instantiate_group=True)
+
+        init_mock.assert_called_once()
+        new_mock.assert_called_once()
+
         with pytest.raises(RuntimeError, match="TorchCollective already owns a group."):
             collective.create_group()
 
@@ -147,7 +151,7 @@ def test_repeated_create_and_destroy():
         with pytest.raises(RuntimeError, match="TorchCollective does not own a group to destroy."):
             collective.teardown()
 
-        destroy_mock.assert_called_once_with(init_mock.return_value)
+    destroy_mock.assert_called_once_with(new_mock.return_value)
 
 
 @RunIf(distributed=True)

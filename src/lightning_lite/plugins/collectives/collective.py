@@ -90,7 +90,12 @@ class Collective(ABC):
 
     @classmethod
     @abstractmethod
-    def init_group(cls, **kwargs: Any) -> CollectibleGroup:
+    def init_group(cls, **kwargs: Any) -> None:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def new_group(cls, **kwargs: Any) -> CollectibleGroup:
         ...
 
     @classmethod
