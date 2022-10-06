@@ -108,9 +108,9 @@ class TorchCollective(Collective):
     def all_gather_object(
         self,
         object_list: List[Any],
-        object: Any,
+        obj: Any,
     ) -> List[Any]:
-        dist.all_gather_object(object_list, object, group=self.group)
+        dist.all_gather_object(object_list, obj, group=self.group)
         return object_list
 
     def broadcast_object_list(
