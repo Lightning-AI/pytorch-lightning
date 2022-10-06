@@ -15,6 +15,7 @@ from lightning_lite.plugins.collectives.collective import Collective
 from lightning_lite.plugins.collectives.deepspeed_collective import DeepSpeedCollective
 from lightning_lite.plugins.collectives.single_device_collective import SingleDeviceCollective
 from lightning_lite.plugins.collectives.torch_collective import TorchCollective
+from lightning_lite.plugins.collectives.xla_collective import XLACollective
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
@@ -27,18 +28,19 @@ from lightning_lite.plugins.precision.tpu import TPUPrecision
 from lightning_lite.plugins.precision.tpu_bf16 import TPUBf16Precision
 
 __all__ = [
-    "CheckpointIO",
-    "ClusterEnvironment",
     "Collective",
     "DeepSpeedCollective",
+    "SingleDeviceCollective",
+    "TorchCollective",
+    "XLACollective",
+    "ClusterEnvironment",
+    "CheckpointIO",
+    "TorchCheckpointIO",
+    "XLACheckpointIO",
+    "Precision",
     "DeepSpeedPrecision",
     "DoublePrecision",
     "NativeMixedPrecision",
-    "Precision",
-    "SingleDeviceCollective",
-    "TorchCheckpointIO",
-    "TorchCollective",
-    "TPUBf16Precision",
     "TPUPrecision",
-    "XLACheckpointIO",
+    "TPUBf16Precision",
 ]
