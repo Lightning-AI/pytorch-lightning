@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 import torch
+from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.accelerators import CPUAccelerator
 from lightning_lite.plugins.collectives import TorchCollective
@@ -10,7 +11,6 @@ from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
-from tests.tests_lite.helpers.runif import RunIf
 
 torch_test_assert_close = torch.testing.assert_close if _TORCH_GREATER_EQUAL_1_12 else torch.testing.assert_allclose
 
@@ -26,16 +26,16 @@ PASSED_OBJECT = mock.Mock()
 @pytest.fixture(autouse=True)
 def check_destroy_group():
     with mock.patch(
-        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.init_group",
-        wraps=TorchCollective.init_group,
-    ) as mock_create, mock.patch(
+        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
+        wraps=TorchCollective.new_group,
+    ) as mock_new, mock.patch(
         "lightning_lite.plugins.collectives.torch_collective.TorchCollective.destroy_group",
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield
         assert (
-            mock_create.call_count == mock_destroy.call_count
-        ), "init_group and destroy_group should be called the same number of times"
+            mock_new.call_count == mock_destroy.call_count
+        ), "new_group and destroy_group should be called the same number of times"
 
 
 @pytest.mark.parametrize(
@@ -150,19 +150,11 @@ def test_repeated_create_and_destroy():
         collective.teardown()
     with pytest.raises(RuntimeError, match="TorchCollective does not own a group to destroy."):
         collective.teardown()
-    destroy_mock.assert_called_once_with(new_mock.return_value)
+        with pytest.raises(RuntimeError, match="TorchCollective does not own a group to destroy."):
+            collective.teardown()
 
-
-@RunIf(distributed=True)
-def test_create_group_pass_params():
-    collective = TorchCollective(arg1=None, arg2=10)
-    with mock.patch("torch.distributed.init_process_group") as init_mock:
-        collective.create_group(arg2=2, arg3=3)
-    init_mock.assert_called_once_with(arg1=None, arg2=2, arg3=3)
-    assert collective._group_kwargs == {"arg1": None, "arg2": 2, "arg3": 3}
-
-    with mock.patch("torch.distributed.destroy_process_group"):
-        collective.teardown()
+        destroy_mock.assert_called_once_with(init_mock.return_value)
+        assert collective._group is None
 
 
 def spawn_launch(fn, parallel_devices):
