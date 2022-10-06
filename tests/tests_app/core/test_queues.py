@@ -1,12 +1,16 @@
 import pickle
 import queue
 import time
+import multiprocessing as mp
 from unittest import mock
 
 import pytest
+import requests_mock
 
+from lightning_app import LightningFlow
+from lightning_app.core.constants import HTTP_QUEUE_URL
 from lightning_app.core import queues
-from lightning_app.core.queues import QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning_app.core.queues import QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue, HTTPQueue
 from lightning_app.utilities.imports import _is_redis_available
 from lightning_app.utilities.redis import check_if_redis_running
 
@@ -151,3 +155,49 @@ def test_redis_raises_error_if_failing(redis_mock):
     with pytest.raises(ConnectionError, match="Your app failed because it couldn't connect to Redis."):
         redis_mock.return_value.llen.side_effect = redis.exceptions.ConnectionError("EROOOR")
         my_queue.length()
+
+
+class TestHTTPQueue:
+
+    def test_http_queue_failure_on_queue_name(self):
+        test_queue = QueuingSystem.HTTP.get_queue(queue_name="test")
+        with pytest.raises(ValueError, match="App ID couldn't be extracted"):
+            test_queue.put("test")
+
+        with pytest.raises(ValueError, match="App ID couldn't be extracted"):
+            test_queue.get()
+
+        with pytest.raises(ValueError, match="App ID couldn't be extracted"):
+            test_queue.length()
+
+    def test_http_queue_put(self):
+        test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
+        test_obj = LightningFlow()
+
+        # mocking requests and responses
+        adapter = requests_mock.Adapter()
+        test_queue.client.session.mount("http://", adapter)
+        adapter.register_uri("GET", f"{HTTP_QUEUE_URL}/v1/test/http_queue/length", status_code=200, content=b"1")
+        adapter.register_uri(
+            "POST",
+            f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=push",
+            status_code=201,
+            additional_matcher=lambda req: pickle.dumps(test_obj) == req._request.body,
+            content=b"data pushed",
+        )
+
+        test_queue.put(test_obj)
+
+    def test_http_queue_get(self):
+        test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
+
+        adapter = requests_mock.Adapter()
+        test_queue.client.session.mount("http://", adapter)
+
+        adapter.register_uri(
+            "POST",
+            f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=pop",
+            status_code=200,
+            content=b"test",
+        )
+        assert test_queue.get() == b"test"

@@ -17,7 +17,7 @@ from lightning_app.core.constants import (
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
-    WARNING_QUEUE_SIZE,
+    WARNING_QUEUE_SIZE, HTTP_QUEUE_REFRESH_INTERVAL,
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
@@ -331,7 +331,7 @@ class HTTPQueue(BaseQueue):
                 try:
                     return self._get()
                 except queue.Empty:
-                    time.sleep(0.1)
+                    time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
         # make one request and return the result
         if timeout == 0:
@@ -339,18 +339,18 @@ class HTTPQueue(BaseQueue):
 
         # timeout is some value - loop until the timeout is reached
         start_time = time.time()
-        timeout += 0.5  # add 0.5 seconds as a safe margin
+        timeout += 0.1  # add 0.1 seconds as a safe margin
         while (time.time() - start_time) < timeout:
             try:
                 return self._get()
             except queue.Empty:
-                time.sleep(0.1)
+                time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
     def _get(self):
         resp = self.client.post(f"v1/{self.app_id}/{self.name}", query_params={"action": "pop"})
         if resp.status_code == 204:
             raise queue.Empty
-        return resp.content
+        return pickle.loads(resp.content)
 
     def put(self, item: Any) -> None:
         if not self.app_id:
@@ -363,7 +363,9 @@ class HTTPQueue(BaseQueue):
                 f"The Queue {self.name} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
                 f"Found {queue_len}. This might cause your application to crash, please investigate this."
             )
-        self.client.post(f"v1/{self.app_id}/{self.name}", data=value, query_params={"action": "push"})
+        resp = self.client.post(f"v1/{self.app_id}/{self.name}", data=value, query_params={"action": "push"})
+        if resp.status_code != 201:
+            raise RuntimeError(f"Failed to push to queue: {self.name}")
 
     def length(self):
         if not self.app_id:

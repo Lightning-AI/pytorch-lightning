@@ -183,27 +183,26 @@ class HTTPClient:
             ],
         )
         adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
-        sess = requests.Session()
-        sess.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}
-        sess.mount("http://", adapter)
-        sess.mount("https://", adapter)
-        self.client: requests.Session = sess
+        self.session = requests.Session()
+        self.session.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         self.log_function = log_callback or self.log_function
 
     @_http_method_logger_wrapper
     def get(self, path: str):
         url = urljoin(self.base_url, path)
-        return self.client.get(url)
+        return self.session.get(url)
 
     @_http_method_logger_wrapper
     def post(self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None):
         url = urljoin(self.base_url, path)
-        return self.client.post(url, data=data, params=query_params)
+        return self.session.post(url, data=data, params=query_params)
 
     @_http_method_logger_wrapper
     def delete(self, path: str):
         url = urljoin(self.base_url, path)
-        return self.client.delete(url)
+        return self.session.delete(url)
 
     def log_function(self, message: str, *args, **kwargs):
         """This function is used to log the messages in the client, it can be overridden by caller to customise the
