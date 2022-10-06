@@ -1,16 +1,16 @@
+import multiprocessing as mp
 import pickle
 import queue
 import time
-import multiprocessing as mp
 from unittest import mock
 
 import pytest
 import requests_mock
 
 from lightning_app import LightningFlow
-from lightning_app.core.constants import HTTP_QUEUE_URL
 from lightning_app.core import queues
-from lightning_app.core.queues import QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue, HTTPQueue
+from lightning_app.core.constants import HTTP_QUEUE_URL
+from lightning_app.core.queues import HTTPQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
 from lightning_app.utilities.imports import _is_redis_available
 from lightning_app.utilities.redis import check_if_redis_running
 
@@ -158,7 +158,6 @@ def test_redis_raises_error_if_failing(redis_mock):
 
 
 class TestHTTPQueue:
-
     def test_http_queue_failure_on_queue_name(self):
         test_queue = QueuingSystem.HTTP.get_queue(queue_name="test")
         with pytest.raises(ValueError, match="App ID couldn't be extracted"):

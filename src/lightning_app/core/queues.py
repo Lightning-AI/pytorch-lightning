@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from lightning_app.core.constants import (
+    HTTP_QUEUE_REFRESH_INTERVAL,
     HTTP_QUEUE_URL,
     LIGHTNING_DIR,
     QUEUE_DEBUG_ENABLED,
@@ -17,7 +18,7 @@ from lightning_app.core.constants import (
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
-    WARNING_QUEUE_SIZE, HTTP_QUEUE_REFRESH_INTERVAL,
+    WARNING_QUEUE_SIZE,
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
