@@ -68,6 +68,9 @@ class LightningApp:
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
                 description and image meta tags and specify any additional tags as list of html strings.
+            prefix: Set this to `/path` if you want to run your app behind a proxy at `/path` leave empty for "/".
+                In most cases users should avoid adding this, or the app won't start.
+
 
         .. doctest::
 
