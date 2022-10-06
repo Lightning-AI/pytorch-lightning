@@ -114,7 +114,8 @@ def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
     if return_key is not None:
         assert result == kwargs[return_key]
 
-    collective.teardown()
+    with mock.patch("torch.distributed.destroy_process_group"):
+        collective.teardown()
 
 
 @RunIf(distributed=True)
