@@ -14,7 +14,7 @@ class AppInfo:
     meta_tags: Optional[List[str]] = None
 
 
-def update_index_file_with_info(ui_root: str, info: AppInfo = None) -> None:
+def update_index_file_with_info_and_prefix(ui_root: str, prefix: str, info: AppInfo = None) -> None:
     import shutil
     from pathlib import Path
 
@@ -36,10 +36,10 @@ def update_index_file_with_info(ui_root: str, info: AppInfo = None) -> None:
         original = f.read()
 
     with entry_file.open("w") as f:
-        f.write(_get_updated_content(original=original, info=info))
+        f.write(_get_updated_content(original=original, prefix=prefix, info=info))
 
 
-def _get_updated_content(original: str, info: AppInfo) -> str:
+def _get_updated_content(original: str, prefix: str, info: AppInfo) -> str:
     soup = BeautifulSoup(original, "html.parser")
 
     # replace favicon
@@ -58,4 +58,4 @@ def _get_updated_content(original: str, info: AppInfo) -> str:
     if info.meta_tags:
         soup.find("head").append(*[BeautifulSoup(meta, "html.parser") for meta in info.meta_tags])
 
-    return str(soup)
+    return str(soup).replace("/static", f"/{prefix}/static")

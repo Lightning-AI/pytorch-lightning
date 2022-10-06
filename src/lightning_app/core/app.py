@@ -49,6 +49,7 @@ class LightningApp:
         root: "lightning_app.LightningFlow",
         debug: bool = False,
         info: frontend.AppInfo = None,
+        prefix: str = "",
     ):
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
         applications. There are two kinds of components: :class:`~lightning_app.core.flow.LightningFlow` and
@@ -82,7 +83,7 @@ class LightningApp:
             Hello World!
         """
 
-        self.base_path = ""  # when running behind a proxy
+        self.base_path = prefix  # when running behind a proxy
         _validate_root_flow(root)
         self._root = root
 
@@ -141,7 +142,7 @@ class LightningApp:
 
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
-        frontend.update_index_file_with_info(FRONTEND_DIR, info=info)
+        frontend.update_index_file_with_info_and_prefix(FRONTEND_DIR, info=info, prefix=prefix)
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
