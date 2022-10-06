@@ -55,19 +55,21 @@ def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch):
     FastAPIMock.get.return_value = FastAPIGetDecoratorMock
     monkeypatch.setattr(lightning_app.frontend.web, "FastAPI", MagicMock(return_value=FastAPIMock))
 
+    root_path = "/base"
+
     lightning_app.frontend.web.start_server(
-        serve_dir=tmpdir, host="myhost", port=1000, path="/test-flow", root_path="base"
+        serve_dir=tmpdir, host="myhost", port=1000, path="/test-flow", root_path=root_path
     )
-    uvicorn_mock.run.assert_called_once_with(app=ANY, host="myhost", port=1000, log_config=ANY, root_path="base")
-    FastAPIMock.mount.assert_called_once_with("/test-flow", ANY, name="static")
+    uvicorn_mock.run.assert_called_once_with(app=ANY, host="myhost", port=1000, log_config=ANY, root_path=root_path)
+    FastAPIMock.mount.assert_called_once_with(root_path, ANY, name="static")
     FastAPIMock.get.assert_called_once_with("/test-flow/healthz", status_code=200)
 
     FastAPIGetDecoratorMock.assert_called_once_with(healthz)
 
     # path has default value "/"
     FastAPIMock.mount = MagicMock()
-    lightning_app.frontend.web.start_server(serve_dir=tmpdir, host="myhost", port=1000)
-    FastAPIMock.mount.assert_called_once_with("/", ANY, name="static")
+    lightning_app.frontend.web.start_server(serve_dir=tmpdir, host="myhost", port=1000, root_path=root_path)
+    FastAPIMock.mount.assert_called_once_with(root_path, ANY, name="static")
 
 
 def test_healthz():
