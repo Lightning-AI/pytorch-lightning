@@ -6,13 +6,14 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-if torch.distributed.is_available():
+from lightning_lite.plugins.collectives import TorchCollective
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 
+if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 else:
     ReduceOp = mock.Mock()
 
-from lightning_lite.plugins.collectives import TorchCollective
 
 PASSED_TENSOR = mock.Mock()
 PASSED_OBJECT = mock.Mock()
@@ -107,9 +108,7 @@ def test_convert_ops():
     else:
         cm = mock.patch("torch.distributed.ReduceOp")
     with cm:
-        assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
-        assert TorchCollective._convert_to_native_op("Avg") == ReduceOp.AVG
-        assert TorchCollective._convert_to_native_op("AVG") == ReduceOp.AVG
+
         assert TorchCollective._convert_to_native_op("band") == ReduceOp.BAND
         assert TorchCollective._convert_to_native_op("Band") == ReduceOp.BAND
         assert TorchCollective._convert_to_native_op("BAND") == ReduceOp.BAND
@@ -131,6 +130,11 @@ def test_convert_ops():
         assert TorchCollective._convert_to_native_op("sum") == ReduceOp.SUM
         assert TorchCollective._convert_to_native_op("Sum") == ReduceOp.SUM
         assert TorchCollective._convert_to_native_op("SUM") == ReduceOp.SUM
+
+        if _TORCH_GREATER_EQUAL_1_11:
+            assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
+            assert TorchCollective._convert_to_native_op("Avg") == ReduceOp.AVG
+            assert TorchCollective._convert_to_native_op("AVG") == ReduceOp.AVG
 
     with pytest.raises(ValueError, match="op 1 should be a `str` or `ReduceOp`"):
         TorchCollective._convert_to_native_op(1)
