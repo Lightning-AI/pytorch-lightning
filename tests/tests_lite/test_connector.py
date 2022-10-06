@@ -44,7 +44,7 @@ from lightning_lite.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
-    XLAStrategy,
+    XLAStrategy, SingleTPUStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
@@ -62,7 +62,10 @@ def test_accelerator_choice_cpu():
 def test_accelerator_choice_tpu(accelerator, devices):
     connector = _Connector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
-    assert isinstance(connector.strategy, XLAStrategy)
+    if devices and devices > 1:
+        assert isinstance(connector.strategy, XLAStrategy)
+    else:
+        assert isinstance(connector.strategy, SingleTPUStrategy)
 
 
 @RunIf(skip_windows=True, standalone=True)
