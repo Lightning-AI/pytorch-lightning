@@ -15,9 +15,10 @@ from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 
+
 def _prettifiy_exception(filepath: str):
-    """
-    Pretty print the exception that occurred when loading the app.
+    """Pretty print the exception that occurred when loading the app.
+
     :param filepath:
     :return:
     """
@@ -27,15 +28,15 @@ def _prettifiy_exception(filepath: str):
     # remove the entry for the first frame
     del listing[1]
     listing = [
-                  f"Found an exception when loading your application from {filepath}. Please, resolve it to run your app.\n\n"
-              ] + listing
+        f"Found an exception when loading your application from {filepath}. Please, resolve it to run your app.\n\n"
+    ] + listing
     logger.error("".join(listing))
     sys.exit(1)
 
 
 def load_app_from_file(filepath: str, raise_exception: bool = False) -> "LightningApp":
-    """
-    Load a LightningApp from a file.
+    """Load a LightningApp from a file.
+
     :param filepath:  The path to the file containing the LightningApp.
     :param raise_exception: If True, raise an exception if the app cannot be loaded.
     """
