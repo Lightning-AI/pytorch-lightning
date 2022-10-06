@@ -355,7 +355,7 @@ class HTTPQueue(BaseQueue):
 
     def put(self, item: Any) -> None:
         if not self.app_id:
-            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+            raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self._original_name}")
 
         value = pickle.dumps(item)
         queue_len = self.length()
