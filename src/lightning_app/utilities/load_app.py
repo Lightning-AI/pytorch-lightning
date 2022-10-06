@@ -56,7 +56,7 @@ def load_app_from_file(filepath: str, raise_exception: bool = False) -> "Lightni
     except Exception as e:
         if raise_exception:
             raise e
-        _pretty_exception(filepath)
+        _prettifiy_exception(filepath)
 
     apps = [v for v in module.__dict__.values() if isinstance(v, LightningApp)]
     if len(apps) > 1:
