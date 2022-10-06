@@ -151,3 +151,31 @@ def test_convert_ops():
     # Test invalid string
     with pytest.raises(ValueError, match="op 'INVALID' is not a member of `ReduceOp`"):
         TorchCollective._convert_to_native_op("invalid")
+
+
+@RunIf(distributed=True)
+def test_repeated_create_and_destroy():
+    with mock.patch("torch.distributed.init_process_group") as init_mock, mock.patch(
+        "torch.distributed.destroy_process_group"
+    ) as destroy_mock:
+        collective = TorchCollective(instantiate_group=True)
+        with pytest.raises(RuntimeError, match="TorchCollective already owns a group."):
+            collective.create_group()
+
+        collective.teardown()
+        with pytest.raises(RuntimeError, match="TorchCollective does not own a group to destroy."):
+            collective.teardown()
+
+        destroy_mock.assert_called_once_with(init_mock.return_value)
+
+
+@RunIf(distributed=True)
+def test_create_group_pass_params():
+    collective = TorchCollective(arg1=None, arg2=10)
+    with mock.patch("torch.distributed.init_process_group") as init_mock:
+        collective.create_group(arg2=2, arg3=3)
+    init_mock.assert_called_once_with(arg1=None, arg2=2, arg3=3)
+    assert collective._group_kwargs == {"arg1": None, "arg2": 2, "arg3": 3}
+
+    with mock.patch("torch.distributed.destroy_process_group"):
+        collective.teardown()
