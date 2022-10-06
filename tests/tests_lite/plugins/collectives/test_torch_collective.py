@@ -8,8 +8,7 @@ from tests_lite.helpers.runif import RunIf
 from lightning_lite.accelerators import CPUAccelerator
 from lightning_lite.plugins.collectives import TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
-from lightning_lite.strategies import DDPSpawnStrategy
-from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_lite.strategies import DDPStrategy
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
 
 torch_test_assert_close = torch.testing.assert_close if _TORCH_GREATER_EQUAL_1_12 else torch.testing.assert_allclose
@@ -157,26 +156,25 @@ def test_repeated_create_and_destroy():
         assert collective._group is None
 
 
-def spawn_launch(fn, parallel_devices):
-    strategy = DDPSpawnStrategy(
+def collective_launch(fn, parallel_devices):
+    strategy = DDPStrategy(
         accelerator=CPUAccelerator(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
     )
-    launcher = _MultiProcessingLauncher(strategy=strategy)
     collective = TorchCollective(
+        instantiate_group=True,
         init_kwargs={
             "rank": strategy.local_rank,
             "world_size": strategy.num_processes,
             "main_address": strategy.cluster_environment.main_address,
             "main_port": strategy.cluster_environment.main_port,
             "backend": "gloo",
-        }
+        },
     )
-    launcher.launch(fn, strategy, collective)
+    fn(strategy, collective)
+    collective.teardown()
 
 
 def _test_distributed_collectives_fn(strategy, collective):
-    collective.create_group()
-
     # all_gather
     tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
     this = torch.arange(2, dtype=torch.long) + 2 * strategy.local_rank
@@ -196,9 +194,8 @@ def _test_distributed_collectives_fn(strategy, collective):
     expected = torch.tensor(1)
     torch_test_assert_close(out, expected)
 
-    collective.teardown()
-
 
 @RunIf(distributed=True)
-def test_collectives_distributed():
-    spawn_launch(_test_distributed_collectives_fn, [torch.device("cpu")])
+@pytest.mark.parametrize("n", (1,))  # FIXME
+def test_collectives_distributed(n):
+    collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
