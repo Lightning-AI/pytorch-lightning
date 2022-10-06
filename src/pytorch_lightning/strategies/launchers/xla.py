@@ -18,6 +18,7 @@ from typing import Any, Callable, Optional
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.strategies.launchers.xla import _rank_teardown
 from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.strategies.launchers.multiprocessing import (
@@ -27,13 +28,7 @@ from pytorch_lightning.strategies.launchers.multiprocessing import (
     _WorkerOutput,
 )
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
-
-if _TPU_AVAILABLE:
-    import torch_xla.distributed.xla_multiprocessing as xmp
-else:
-    xmp = None
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -53,6 +48,8 @@ class _XLALauncher(_MultiProcessingLauncher):
     """
 
     def __init__(self, strategy: "pl.strategies.TPUSpawnStrategy") -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
@@ -74,6 +71,8 @@ class _XLALauncher(_MultiProcessingLauncher):
         """
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
+        import torch_xla.distributed.xla_multiprocessing as xmp
+
         xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
