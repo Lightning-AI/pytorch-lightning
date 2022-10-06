@@ -36,38 +36,38 @@ def check_destroy_group():
 @pytest.mark.parametrize(
     ["fn_name", "kwargs", "return_key"],
     [
-        pytest.param("send", {"tensor": PASSED_TENSOR, "dst": 0, "tag": 0}, None),
-        pytest.param("recv", {"tensor": PASSED_TENSOR, "src": 0, "tag": 0}, "tensor"),
-        pytest.param("broadcast", {"tensor": PASSED_TENSOR, "src": 0}, "tensor"),
-        pytest.param("all_reduce", {"tensor": PASSED_TENSOR, "op": ReduceOp.SUM}, "tensor"),
-        pytest.param("reduce", {"tensor": PASSED_TENSOR, "dst": 0, "op": ReduceOp.SUM}, "tensor"),
-        pytest.param(
+        ("send", {"tensor": PASSED_TENSOR, "dst": 0, "tag": 0}, None),
+        ("recv", {"tensor": PASSED_TENSOR, "src": 0, "tag": 0}, "tensor"),
+        ("broadcast", {"tensor": PASSED_TENSOR, "src": 0}, "tensor"),
+        ("all_reduce", {"tensor": PASSED_TENSOR, "op": ReduceOp.SUM}, "tensor"),
+        ("reduce", {"tensor": PASSED_TENSOR, "dst": 0, "op": ReduceOp.SUM}, "tensor"),
+        (
             "all_gather",
             {"tensor_list": [PASSED_TENSOR], "tensor": PASSED_TENSOR},
             "tensor_list",
         ),
-        pytest.param(
+        (
             "gather",
             {"tensor": PASSED_TENSOR, "gather_list": [PASSED_TENSOR], "dst": 0},
             "gather_list",
         ),
-        pytest.param(
+        (
             "scatter",
             {"tensor": PASSED_TENSOR, "scatter_list": [PASSED_TENSOR], "src": 0},
             "tensor",
         ),
-        pytest.param(
+        (
             "reduce_scatter",
             {"output": PASSED_TENSOR, "input_list": [PASSED_TENSOR], "op": ReduceOp.SUM},
             "output",
         ),
-        pytest.param(
+        (
             "all_to_all",
             {"output_tensor_list": [PASSED_TENSOR], "input_tensor_list": [PASSED_TENSOR]},
             "output_tensor_list",
         ),
-        pytest.param("barrier", {"device_ids": [0]}, None),
-        pytest.param(
+        ("barrier", {"device_ids": [0]}, None),
+        (
             "all_gather_object",
             {"object_list": [PASSED_OBJECT], "obj": PASSED_OBJECT},
             "object_list",
@@ -84,17 +84,17 @@ def check_destroy_group():
             "object_list",
             marks=RunIf(min_torch="1.10"),
         ),
-        pytest.param(
+        (
             "gather_object",
             {"obj": PASSED_OBJECT, "object_gather_list": [PASSED_OBJECT], "dst": 0},
             "object_gather_list",
         ),
-        pytest.param(
+        (
             "scatter_object_list",
             {"scatter_object_output_list": [PASSED_OBJECT], "scatter_object_input_list": [PASSED_OBJECT], "src": 0},
             "scatter_object_output_list",
         ),
-        pytest.param(
+        (
             "monitored_barrier",
             {"timeout": datetime.timedelta(seconds=1), "wait_all_ranks": False},
             None,
