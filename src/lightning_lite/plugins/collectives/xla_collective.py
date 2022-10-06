@@ -3,7 +3,7 @@ from typing import Any
 import torch
 
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.plugins import Collective
+from lightning_lite.plugins.collectives.collective import Collective
 
 
 class XLACollective(Collective):

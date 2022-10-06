@@ -43,10 +43,10 @@ class DeepSpeedCollective(Collective):
         return value
 
     def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
-        dist.send(tensor, dst, tag, group=self.group)
+        dist.send(tensor, dst, tag=tag, group=self.group)
 
     def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
-        dist.recv(tensor, src, tag, group=self.group)
+        dist.recv(tensor, src, tag=tag, group=self.group)
         return tensor
 
     def broadcast(
