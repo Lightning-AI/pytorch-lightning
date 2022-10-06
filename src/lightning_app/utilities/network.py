@@ -2,7 +2,7 @@ import socket
 import time
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urljoin
 
 import lightning_cloud
 import requests
@@ -13,7 +13,6 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 
-from lightning_app.core.constants import HTTP_QUEUE_URL
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)

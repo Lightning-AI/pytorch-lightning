@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import pickle
 import queue
 import time
@@ -10,7 +9,7 @@ import requests_mock
 from lightning_app import LightningFlow
 from lightning_app.core import queues
 from lightning_app.core.constants import HTTP_QUEUE_URL
-from lightning_app.core.queues import HTTPQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning_app.core.queues import QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
 from lightning_app.utilities.imports import _is_redis_available
 from lightning_app.utilities.redis import check_if_redis_running
 
