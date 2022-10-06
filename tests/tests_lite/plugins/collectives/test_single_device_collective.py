@@ -5,21 +5,6 @@ import pytest
 from lightning_lite.plugins.collectives import SingleDeviceCollective
 
 
-@pytest.fixture(autouse=True)
-def check_destroy_group():
-    with mock.patch(
-        "lightning_lite.plugins.collectives.single_device_collective.SingleDeviceCollective.new_group",
-        wraps=SingleDeviceCollective.new_group,
-    ) as mock_new, mock.patch(
-        "lightning_lite.plugins.collectives.single_device_collective.SingleDeviceCollective.destroy_group",
-        wraps=SingleDeviceCollective.destroy_group,
-    ) as mock_destroy:
-        yield
-        assert (
-            mock_new.call_count == mock_destroy.call_count
-        ), "new_group and destroy_group should be called the same number of times"
-
-
 def test_can_instantiate_without_args():
     SingleDeviceCollective()
 
