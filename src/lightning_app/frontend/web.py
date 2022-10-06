@@ -32,7 +32,7 @@ class StaticWebFrontend(Frontend):
                 return StaticWebFrontend("path/to/folder/to/serve")
     """
 
-    def __init__(self, serve_dir: str, base_path: str = "") -> None:
+    def __init__(self, serve_dir: str) -> None:
         super().__init__()
         self.serve_dir = serve_dir
         self._process: Optional[mp.Process] = None
@@ -80,7 +80,7 @@ def start_server(
     # trailing / is required for urljoin to properly join the path. In case of
     # multiple trailing /, urljoin removes them
     fastapi_service.get(urljoin(f"{path}/", "healthz"), status_code=200)(healthz)
-    fastapi_service.mount(path, StaticFiles(directory=serve_dir, html=True), name="static")
+    fastapi_service.mount(urljoin(f"{path}/", base_path), StaticFiles(directory=serve_dir, html=True), name="static")
 
     log_config = _get_log_config(log_file) if log_file else uvicorn.config.LOGGING_CONFIG
 
