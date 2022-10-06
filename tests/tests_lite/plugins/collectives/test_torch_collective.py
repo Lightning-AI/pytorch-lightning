@@ -18,6 +18,21 @@ PASSED_TENSOR = mock.Mock()
 PASSED_OBJECT = mock.Mock()
 
 
+@pytest.fixture(autouse=True)
+def check_destroy_group():
+    with mock.patch(
+        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.init_group",
+        wraps=TorchCollective.init_group,
+    ) as mock_create, mock.patch(
+        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.destroy_group",
+        wraps=TorchCollective.destroy_group,
+    ) as mock_destroy:
+        yield
+        assert (
+            mock_create.call_count == mock_destroy.call_count
+        ), "init_group and destroy_group should be called the same number of times"
+
+
 @pytest.mark.parametrize(
     ["fn_name", "kwargs", "return_key"],
     [
@@ -98,6 +113,8 @@ def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
     mock_call.assert_called_once_with(**kwargs, group=collective.group)
     if return_key is not None:
         assert result == kwargs[return_key]
+
+    collective.teardown()
 
 
 @RunIf(distributed=True)
