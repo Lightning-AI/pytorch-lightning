@@ -3,11 +3,7 @@ from unittest import mock
 
 import pytest
 import torch
-
-if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
-else:
-    ReduceOp = mock.Mock()
+from torch.distributed import ReduceOp
 
 from lightning_lite.plugins.collectives import TorchCollective
 
