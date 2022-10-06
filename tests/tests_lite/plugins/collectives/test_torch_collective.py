@@ -1,4 +1,3 @@
-import contextlib
 import datetime
 from unittest import mock
 
@@ -103,42 +102,34 @@ def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
 
 @RunIf(distributed=True)
 def test_convert_ops():
-    if torch.distributed.is_available():
-        cm = contextlib.nullcontext()
-    else:
-        cm = mock.patch("torch.distributed.ReduceOp")
-    with cm:
+    # Test regular names
+    assert TorchCollective._convert_to_native_op("band") == ReduceOp.BAND
+    assert TorchCollective._convert_to_native_op("bor") == ReduceOp.BOR
+    assert TorchCollective._convert_to_native_op("bxor") == ReduceOp.BXOR
+    assert TorchCollective._convert_to_native_op("max") == ReduceOp.MAX
+    assert TorchCollective._convert_to_native_op("min") == ReduceOp.MIN
+    assert TorchCollective._convert_to_native_op("product") == ReduceOp.PRODUCT
+    assert TorchCollective._convert_to_native_op("sum") == ReduceOp.SUM
+    # Test we are passing through native ops without change
+    assert TorchCollective._convert_to_native_op(ReduceOp.BAND) == ReduceOp.BAND
+    assert TorchCollective._convert_to_native_op(ReduceOp.BOR) == ReduceOp.BOR
+    assert TorchCollective._convert_to_native_op(ReduceOp.BXOR) == ReduceOp.BXOR
+    assert TorchCollective._convert_to_native_op(ReduceOp.MAX) == ReduceOp.MAX
+    assert TorchCollective._convert_to_native_op(ReduceOp.MIN) == ReduceOp.MIN
+    assert TorchCollective._convert_to_native_op(ReduceOp.PRODUCT) == ReduceOp.PRODUCT
+    assert TorchCollective._convert_to_native_op(ReduceOp.SUM) == ReduceOp.SUM
+    # Test we are handling different casing properly
+    assert TorchCollective._convert_to_native_op("BOR") == ReduceOp.BOR
+    assert TorchCollective._convert_to_native_op("BoR") == ReduceOp.BOR
 
-        assert TorchCollective._convert_to_native_op("band") == ReduceOp.BAND
-        assert TorchCollective._convert_to_native_op("Band") == ReduceOp.BAND
-        assert TorchCollective._convert_to_native_op("BAND") == ReduceOp.BAND
-        assert TorchCollective._convert_to_native_op("bor") == ReduceOp.BOR
-        assert TorchCollective._convert_to_native_op("Bor") == ReduceOp.BOR
-        assert TorchCollective._convert_to_native_op("BOR") == ReduceOp.BOR
-        assert TorchCollective._convert_to_native_op("bxor") == ReduceOp.BXOR
-        assert TorchCollective._convert_to_native_op("Bxor") == ReduceOp.BXOR
-        assert TorchCollective._convert_to_native_op("BXOR") == ReduceOp.BXOR
-        assert TorchCollective._convert_to_native_op("max") == ReduceOp.MAX
-        assert TorchCollective._convert_to_native_op("Max") == ReduceOp.MAX
-        assert TorchCollective._convert_to_native_op("MAX") == ReduceOp.MAX
-        assert TorchCollective._convert_to_native_op("min") == ReduceOp.MIN
-        assert TorchCollective._convert_to_native_op("Min") == ReduceOp.MIN
-        assert TorchCollective._convert_to_native_op("MIN") == ReduceOp.MIN
-        assert TorchCollective._convert_to_native_op("product") == ReduceOp.PRODUCT
-        assert TorchCollective._convert_to_native_op("Product") == ReduceOp.PRODUCT
-        assert TorchCollective._convert_to_native_op("PRODUCT") == ReduceOp.PRODUCT
-        assert TorchCollective._convert_to_native_op("sum") == ReduceOp.SUM
-        assert TorchCollective._convert_to_native_op("Sum") == ReduceOp.SUM
-        assert TorchCollective._convert_to_native_op("SUM") == ReduceOp.SUM
+    # AVG is very recent!
+    if _TORCH_GREATER_EQUAL_1_11:
+        assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
 
-        if _TORCH_GREATER_EQUAL_1_11:
-            assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
-            assert TorchCollective._convert_to_native_op("Avg") == ReduceOp.AVG
-            assert TorchCollective._convert_to_native_op("AVG") == ReduceOp.AVG
-
+    # Test invalid type
     with pytest.raises(ValueError, match="op 1 should be a `str` or `ReduceOp`"):
         TorchCollective._convert_to_native_op(1)
 
-    if torch.distributed.is_available():
-        with pytest.raises(ValueError, match="op 'INVALID' is not a member of `ReduceOp`"):
-            TorchCollective._convert_to_native_op("invalid")
+    # Test invalid string
+    with pytest.raises(ValueError, match="op 'INVALID' is not a member of `ReduceOp`"):
+        TorchCollective._convert_to_native_op("invalid")
