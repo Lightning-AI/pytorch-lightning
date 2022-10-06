@@ -39,6 +39,7 @@ def test_start_stop_server_through_frontend(process_mock):
             "serve_dir": ".",
             "path": "/root.my.flow",
             "log_file": os.path.join(log_file_root, "frontend", "logs.log"),
+            "base_path": "",
         },
     )
     process_mock().start.assert_called_once()
@@ -54,8 +55,10 @@ def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch):
     FastAPIMock.get.return_value = FastAPIGetDecoratorMock
     monkeypatch.setattr(lightning_app.frontend.web, "FastAPI", MagicMock(return_value=FastAPIMock))
 
-    lightning_app.frontend.web.start_server(serve_dir=tmpdir, host="myhost", port=1000, path="/test-flow")
-    uvicorn_mock.run.assert_called_once_with(app=ANY, host="myhost", port=1000, log_config=ANY)
+    lightning_app.frontend.web.start_server(
+        serve_dir=tmpdir, host="myhost", port=1000, path="/test-flow", base_path="base"
+    )
+    uvicorn_mock.run.assert_called_once_with(app=ANY, host="myhost", port=1000, log_config=ANY, root_path="base")
     FastAPIMock.mount.assert_called_once_with("/test-flow", ANY, name="static")
     FastAPIMock.get.assert_called_once_with("/test-flow/healthz", status_code=200)
 
