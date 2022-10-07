@@ -389,6 +389,9 @@ class Trainer:
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
+
+            inference_grad_mode: Controls if autograd is used in the inference phase, such as during model testing.
+                Default: ``False``.
         """
         super().__init__()
         Trainer._log_api_event("init")
