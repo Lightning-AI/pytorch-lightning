@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as dist
+from typing_extensions import Self
 
 from lightning_lite.plugins.collectives.collective import Collective
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
@@ -112,6 +113,27 @@ class TorchCollective(Collective):
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
+    def setup(self, main_address=None, main_port=None, **kwargs: Any) -> Self:
+        if not self.is_initialized():
+            addr_key = "MASTER_ADDR"
+            if main_address is not None and addr_key not in os.environ:
+                os.environ[addr_key] = main_address
+                self._set_addr = True
+            port_key = "MASTER_PORT"
+            if main_port is not None and port_key not in os.environ:
+                os.environ[port_key] = str(main_port)
+                self._set_port = True
+        return super().setup(**kwargs)
+
+    def teardown(self) -> None:
+        if self._set_addr:
+            os.environ.pop("MASTER_ADDR", None)
+            self._set_addr = False
+        if self._set_port:
+            os.environ.pop("MASTER_PORT", None)
+            self._set_port = False
+        super().teardown()
+
     @classmethod
     def is_available(cls) -> bool:
         return dist.is_available()
@@ -121,18 +143,8 @@ class TorchCollective(Collective):
         return dist.is_initialized()
 
     @classmethod
-    def init_group(
-        cls, main_address: Optional[str] = None, main_port: Optional[Union[str, int]] = None, **kwargs: Any
-    ) -> None:
+    def init_group(cls, **kwargs: Any) -> None:
         if not dist.is_initialized():
-            addr_key = "MASTER_ADDR"
-            if main_address is not None and addr_key not in os.environ:
-                os.environ[addr_key] = main_address
-                cls._set_addr = True
-            port_key = "MASTER_PORT"
-            if main_port is not None and port_key not in os.environ:
-                os.environ[port_key] = str(main_port)
-                cls._set_port = True
             dist.init_process_group(**kwargs)
 
     @classmethod
@@ -141,10 +153,6 @@ class TorchCollective(Collective):
 
     @classmethod
     def destroy_group(cls, group: CollectibleGroup) -> None:
-        if cls._set_addr:
-            os.environ.pop("MASTER_ADDR", None)
-        if cls._set_port:
-            os.environ.pop("MASTER_PORT", None)
         dist.destroy_process_group(group)
 
     @classmethod

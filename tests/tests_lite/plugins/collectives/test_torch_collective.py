@@ -89,8 +89,11 @@ def check_destroy_group():
 )
 @skip_distributed_unavailable
 def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
+    collective = TorchCollective()
+    with mock.patch("torch.distributed.init_process_group"):
+        collective.setup()
     with mock.patch("torch.distributed.new_group"):
-        collective = TorchCollective(instantiate_group=True)
+        collective.create_group()
     fn = getattr(collective, fn_name)
     with mock.patch(f"torch.distributed.{fn_name}", autospec=True) as mock_call:
         result = fn(**kwargs)
@@ -139,6 +142,9 @@ def test_convert_ops():
 
 @skip_distributed_unavailable
 def test_repeated_create_and_destroy():
+    collective = TorchCollective()
+    with mock.patch("torch.distributed.init_process_group"):
+        collective.setup()
     with mock.patch("torch.distributed.new_group") as new_mock:
         collective = TorchCollective(instantiate_group=True)
     new_mock.assert_called_once()
@@ -154,9 +160,12 @@ def test_repeated_create_and_destroy():
     destroy_mock.assert_called_once_with(new_mock.return_value)
     assert collective._group is None
 
-    # check we can create_group again
-    collective.create_group()
-    collective.teardown()
+    with mock.patch("torch.distributed.new_group") as new_mock, mock.patch(
+        "torch.distributed.destroy_process_group"
+    ) as destroy_mock:
+        # check we can create_group again
+        collective.create_group()
+        collective.teardown()
 
 
 def collective_launch(fn, parallel_devices, num_groups=1):
@@ -165,13 +174,13 @@ def collective_launch(fn, parallel_devices, num_groups=1):
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collectives = [TorchCollective() for _ in range(num_groups)]
-    wrapped = partial(wrap_launch_function, fn, strategy)
+    wrapped = partial(wrap_launch_function, fn, strategy, collectives[0])
     return launcher.launch(wrapped, strategy, *collectives)
 
 
-def wrap_launch_function(fn, strategy, *args, **kwargs):
+def wrap_launch_function(fn, strategy, collective, *args, **kwargs):
     strategy._set_world_ranks()
-    TorchCollective.init_group(
+    collective.setup(
         world_size=strategy.num_processes,
         main_address="localhost",
         backend="gloo",
