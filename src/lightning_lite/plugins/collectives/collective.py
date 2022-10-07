@@ -31,6 +31,10 @@ class Collective(ABC):
         ...
 
     @property
+    def is_member(self) -> bool:
+        return self.rank >= 0
+
+    @property
     def group(self) -> CollectibleGroup:
         if self._group is None:
             raise RuntimeError(

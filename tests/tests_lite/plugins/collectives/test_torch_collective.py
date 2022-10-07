@@ -1,4 +1,5 @@
 import datetime
+import os
 from unittest import mock
 
 import pytest
@@ -168,41 +169,44 @@ def test_init_and_new_group():
     assert destroy_mock.call_count == 2
 
 
-def collective_launch(fn, parallel_devices):
+def collective_launch(fn, parallel_devices, num_groups=1):
     strategy = DDPStrategy(
         accelerator=CPUAccelerator(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
-    collective = TorchCollective(
-        init_kwargs={
-            "rank": strategy.global_rank,
-            "world_size": strategy.num_processes,
-            "main_address": "localhost",
-            "backend": "gloo",
-        },
-    )
-    launcher.launch(fn, strategy, collective)
+    collectives = [
+        TorchCollective(
+            init_kwargs={
+                "world_size": strategy.num_processes,
+                "main_address": "localhost",
+                "backend": "gloo",
+            },
+        )
+        for _ in range(num_groups)
+    ]
+    launcher.launch(fn, strategy, *collectives)
 
 
 def _test_distributed_collectives_fn(strategy, collective):
-    rank = strategy._local_rank
-    collective.create_group(init_kwargs={"rank": rank})
+    os.environ["LOCAL_RANK"] = str(strategy._local_rank)
+    strategy._set_world_ranks()
+    collective.create_group(init_kwargs={"rank": strategy.global_rank})
 
     # all_gather
     tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
-    this = torch.arange(2, dtype=torch.long) + 2 * rank
+    this = torch.arange(2, dtype=torch.long) + 2 * strategy.global_rank
     out = collective.all_gather(tensor_list, this)
     expected = torch.arange(2 * strategy.num_processes).split(2)
     torch.testing.assert_close(tuple(out), expected)
 
     # reduce
-    this = torch.tensor(rank + 1)
+    this = torch.tensor(strategy.global_rank + 1)
     out = collective.reduce(this, dst=0, op="max")
-    expected = torch.tensor(strategy.num_processes) if rank == 0 else this
+    expected = torch.tensor(strategy.num_processes) if strategy.global_rank == 0 else this
     torch.testing.assert_close(out, expected)
 
     # all_reduce
-    this = torch.tensor(rank + 1)
+    this = torch.tensor(strategy.global_rank + 1)
     out = collective.all_reduce(this, op="min")
     expected = torch.tensor(1)
     torch.testing.assert_close(out, expected)
@@ -210,7 +214,37 @@ def _test_distributed_collectives_fn(strategy, collective):
     collective.teardown()
 
 
+def _test_two_groups(strategy, left_collective, right_collective):
+    os.environ["LOCAL_RANK"] = str(strategy._local_rank)
+    strategy._set_world_ranks()
+    left_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [0, 1]})
+    right_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [1, 2]})
+
+    if strategy.global_rank in (0, 1):
+        tensor = torch.tensor([strategy.global_rank])
+
+        # How do I call all_reduce with the collective object on the left group?
+        left_collective.all_reduce(tensor)
+        if left_collective.rank == 0:
+            assert tensor == 1
+
+    torch.distributed.barrier()
+
+    if right_collective.is_member:
+        tensor = torch.tensor([strategy.global_rank])
+
+        # How do I call all_reduce with the collective object on the right group?
+        right_collective.all_reduce(tensor)
+        if right_collective.rank == 0:
+            assert tensor == 3
+
+
 @RunIf(distributed=True)
 @pytest.mark.parametrize("n", (1, 2))
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
+
+
+@RunIf(distributed=True)
+def test_two_groups():
+    collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
