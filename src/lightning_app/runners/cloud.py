@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
 import click
-from lightning_app.utilities.load_app import load_app_from_file, _prettifiy_exception
 from lightning_cloud.openapi import (
     Body3,
     Body4,
@@ -59,6 +58,7 @@ from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
+from lightning_app.utilities.load_app import _prettifiy_exception, load_app_from_file
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
