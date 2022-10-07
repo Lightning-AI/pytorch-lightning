@@ -48,7 +48,7 @@ class LearningRateFinder(Callback):
 
         update_attr: Whether to update the learning rate attribute or not.
 
-    Example:
+    Example::
 
         class FineTuneLearningRateFinder(LearningRateFinder):
             def __init__(self, milestones=(5, 10), *args, **kwargs):

@@ -58,7 +58,7 @@ class BatchSizeFinder(Callback):
             - ``model.hparams``
             - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
-    Example:
+    Example::
 
         class FineTuneBatchSizeFinder(BatchSizeFinder):
             def __init__(self, *args, **kwargs):
