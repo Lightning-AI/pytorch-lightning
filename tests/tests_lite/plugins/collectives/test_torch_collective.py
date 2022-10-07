@@ -18,14 +18,16 @@ if TorchCollective.is_available():
 else:
     ReduceOp = mock.Mock()
 
+skip_distributed_unavailable = pytest.mark.skipif(
+    not TorchCollective.is_available(), reason="torch.distributed unavailable"
+)
+
 PASSED_TENSOR = mock.Mock()
 PASSED_OBJECT = mock.Mock()
 
 
 @pytest.fixture(autouse=True)
 def check_destroy_group():
-    if TorchCollective.is_available():
-        assert not TorchCollective.is_initialized()
     with mock.patch(
         "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
@@ -37,6 +39,8 @@ def check_destroy_group():
         assert (
             mock_new.call_count == mock_destroy.call_count
         ), "new_group and destroy_group should be called the same number of times"
+    if TorchCollective.is_available():
+        assert not TorchCollective.is_initialized()
 
 
 @pytest.mark.parametrize(
@@ -83,9 +87,9 @@ def check_destroy_group():
         ("monitored_barrier", {"timeout": datetime.timedelta(seconds=1), "wait_all_ranks": False}, None),
     ],
 )
-@RunIf(distributed=True)
+@skip_distributed_unavailable
 def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
-    with mock.patch("torch.distributed.is_available", return_value=True), mock.patch("torch.distributed.new_group"):
+    with mock.patch("torch.distributed.new_group"):
         collective = TorchCollective(instantiate_group=True)
     fn = getattr(collective, fn_name)
     with mock.patch(f"torch.distributed.{fn_name}", autospec=True) as mock_call:
@@ -98,7 +102,7 @@ def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
         collective.teardown()
 
 
-@RunIf(distributed=True)
+@skip_distributed_unavailable
 def test_convert_ops():
     # Test regular names
     assert TorchCollective._convert_to_native_op("band") == ReduceOp.BAND
@@ -133,7 +137,7 @@ def test_convert_ops():
         TorchCollective._convert_to_native_op("invalid")
 
 
-@RunIf(distributed=True)
+@skip_distributed_unavailable
 def test_repeated_create_and_destroy():
     with mock.patch("torch.distributed.new_group") as new_mock:
         collective = TorchCollective(instantiate_group=True)
@@ -151,7 +155,7 @@ def test_repeated_create_and_destroy():
     assert collective._group is None
 
 
-@RunIf(distributed=True)
+@skip_distributed_unavailable
 def test_init_and_new_group():
     with mock.patch("torch.distributed.new_group") as new_mock, mock.patch(
         "torch.distributed.destroy_process_group"
@@ -204,7 +208,7 @@ def _test_distributed_collectives_fn(strategy, collective):
     collective.teardown()
 
 
-@RunIf(distributed=True)
+@skip_distributed_unavailable
 @pytest.mark.parametrize("n", (1, 2))
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
@@ -231,6 +235,6 @@ def _test_two_groups(strategy, left_collective, right_collective):
             assert tensor == 3
 
 
-@RunIf(distributed=True)
+@skip_distributed_unavailable
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
