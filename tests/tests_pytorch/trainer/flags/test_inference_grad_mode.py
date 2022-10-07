@@ -38,4 +38,3 @@ def test_inference_grad_mode():
     trainer.test(_BoringModelForEnableGrad())
     trainer = Trainer(logger=False, inference_grad_mode=False)
     trainer.test(_BoringModelForNoGrad())
- 
