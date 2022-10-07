@@ -30,11 +30,15 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import LightningApp, LightningWork
-from lightning_app.runners import backends, cloud
+from lightning_app import LightningApp, LightningWork, _PROJECT_ROOT
+from lightning_app.runners import backends, cloud, CloudRuntime
 from lightning_app.storage import Drive
+from lightning_app.testing.helpers import EmptyFlow
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
+
+
+import os
 
 
 class MyWork(LightningWork):
@@ -702,3 +706,20 @@ def test_project_has_sufficient_credits():
     for balance, result in credits_and_test_value:
         project = V1Membership(name="test-project1", project_id="test-project-id1", balance=balance)
         assert cloud_runtime._project_has_sufficient_credits(project) is result
+
+
+@mock.patch(
+    "lightning_app.runners.cloud.load_app_from_file",
+    MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
+)
+def test_load_app_from_file_module_error():
+    import builtins
+
+    with mock.patch.object(builtins, "input", lambda _: "y"):
+        empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
+        isinstance(empty_app, LightningApp)
+        isinstance(empty_app.root, EmptyFlow)
+
+    with mock.patch.object(builtins, "input", lambda _: "n"), pytest.raises(SystemExit):
+        return_empty = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
+        assert return_empty is None

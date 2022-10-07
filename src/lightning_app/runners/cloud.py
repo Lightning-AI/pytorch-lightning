@@ -428,14 +428,12 @@ class CloudRuntime(Runtime):
             # this is very generic exception.
             is_force_run = cls._should_force_run_app_on_cloud_promote(filepath)
             if is_force_run:
-                from lightning.app.testing.helpers import EmptyFlow
+                from lightning_app.testing.helpers import EmptyFlow
 
                 # Create a mocking app.
                 app = LightningApp(EmptyFlow())
             else:
                 sys.exit(1)
-        except FileNotFoundError as e:
-            raise e
         except Exception:
             _prettifiy_exception(filepath)
         return app
