@@ -20,7 +20,7 @@ class StaticWebFrontend(Frontend):
 
     Arguments:
         serve_dir: A local directory to serve files from. This directory should at least contain a file `index.html`.
-                root_path: A path prefix when routing traffic from behind a proxy at `<root_path>`
+        root_path: A path prefix when routing traffic from behind a proxy at `/<root_path>`
 
     Example:
 
