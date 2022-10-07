@@ -57,7 +57,7 @@ RUN \
         ninja-build \
         libnccl2=$TO_INSTALL_NCCL \
         libnccl-dev=$TO_INSTALL_NCCL && \
-# Install python
+    # Install python
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
         python${PYTHON_VERSION} \
@@ -66,7 +66,7 @@ RUN \
     && \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
-# Cleaning
+    # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /root/.cache && \
