@@ -1,4 +1,5 @@
 import datetime
+import os
 from functools import partial
 from unittest import mock
 
@@ -141,12 +142,16 @@ def test_convert_ops():
 
 
 @skip_distributed_unavailable
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_repeated_create_and_destroy():
     collective = TorchCollective()
     with mock.patch("torch.distributed.init_process_group"):
-        collective.setup()
+        collective.setup(main_address="foo", main_port=123)
+
+    assert os.environ == {"MASTER_ADDR": "foo", "MASTER_PORT": "123"}
+
     with mock.patch("torch.distributed.new_group") as new_mock:
-        collective = TorchCollective(instantiate_group=True)
+        collective.create_group()
     new_mock.assert_called_once()
 
     with pytest.raises(RuntimeError, match="TorchCollective` already owns a group"):
@@ -154,14 +159,17 @@ def test_repeated_create_and_destroy():
 
     with mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective.teardown()
+    destroy_mock.assert_called_once()
+
+    assert not os.environ
+
     with pytest.raises(RuntimeError, match="TorchCollective` does not own a group to destroy"):
         collective.teardown()
-
     destroy_mock.assert_called_once_with(new_mock.return_value)
     assert collective._group is None
 
     with mock.patch("torch.distributed.new_group"), mock.patch("torch.distributed.destroy_process_group"):
-        # check we can create_group again
+        # check we can create_group again. also chaining
         collective.create_group().teardown()
 
 
