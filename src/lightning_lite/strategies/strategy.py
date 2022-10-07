@@ -28,9 +28,8 @@ from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizer_to_device
-from lightning_lite.utilities.types import _PATH, Optimizable
+from lightning_lite.utilities.types import _PATH, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")

@@ -33,6 +33,7 @@ from lightning_cloud.openapi import (
     V1PackageManager,
     V1ProjectClusterBinding,
     V1PythonDependencyInfo,
+    V1QueueServerType,
     V1SourceType,
     V1UserRequestedComputeConfig,
     V1Work,
@@ -41,6 +42,7 @@ from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
+    CLOUD_QUEUE_TYPE,
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
@@ -278,6 +280,7 @@ class CloudRuntime(Runtime):
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id, app_id=lightning_app.id
             )
+            queue_server_type = V1QueueServerType.REDIS if CLOUD_QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
@@ -311,7 +314,11 @@ class CloudRuntime(Runtime):
                     project_id=project.project_id,
                     id=existing_instance.id,
                     body=Body3(
-                        spec=V1LightningappInstanceSpec(desired_state=app_release_desired_state, env=v1_env_vars)
+                        spec=V1LightningappInstanceSpec(
+                            desired_state=app_release_desired_state,
+                            env=v1_env_vars,
+                            queue_server_type=queue_server_type,
+                        )
                     ),
                 )
             else:
@@ -325,6 +332,7 @@ class CloudRuntime(Runtime):
                             desired_state=app_release_desired_state,
                             name=lightning_app.name,
                             env=v1_env_vars,
+                            queue_server_type=queue_server_type,
                         ),
                     )
                 )
