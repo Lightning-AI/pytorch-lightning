@@ -80,7 +80,7 @@ def start_server(
     # trailing / is required for urljoin to properly join the path. In case of
     # multiple trailing /, urljoin removes them
     fastapi_service.get(urljoin(f"{path}/", "healthz"), status_code=200)(healthz)
-    fastapi_service.mount(urljoin(f"{path}/", root_path), StaticFiles(directory=serve_dir, html=True), name="static")
+    fastapi_service.mount(urljoin(path, root_path), StaticFiles(directory=serve_dir, html=True), name="static")
 
     log_config = _get_log_config(log_file) if log_file else uvicorn.config.LOGGING_CONFIG
 
