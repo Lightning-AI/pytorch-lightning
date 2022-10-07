@@ -117,6 +117,11 @@ class Collective(ABC):
         ...
 
     def create_group(self, **kwargs: Any) -> Self:  # type: ignore[valid-type]
+        """Create a group.
+
+        This assumes that :meth:`~lightning_lite.plugins.collectives.Collective.init_group` has been
+        called already by the user.
+        """
         if self._group is not None:
             raise RuntimeError(f"`{type(self).__name__}` already owns a group.")
         self._kwargs.update(kwargs)
