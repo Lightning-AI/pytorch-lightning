@@ -1,4 +1,5 @@
 import logging
+import os
 from copy import copy
 from pathlib import Path
 from unittest import mock
@@ -30,15 +31,12 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import LightningApp, LightningWork, _PROJECT_ROOT
+from lightning_app import _PROJECT_ROOT, LightningApp, LightningWork
 from lightning_app.runners import backends, cloud, CloudRuntime
 from lightning_app.storage import Drive
 from lightning_app.testing.helpers import EmptyFlow
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
-
-
-import os
 
 
 class MyWork(LightningWork):
