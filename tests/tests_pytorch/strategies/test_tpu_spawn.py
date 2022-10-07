@@ -45,7 +45,6 @@ _loader = DataLoader(RandomDataset(32, 64))
 _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 
-# lite: adopted
 @pytest.mark.parametrize(
     "train_dataloaders, val_dataloaders, test_dataloaders, predict_dataloaders",
     [
@@ -76,7 +75,6 @@ def test_error_iterable_dataloaders_passed_to_fit(
         TPUSpawnStrategy(MagicMock()).connect(model)
 
 
-# lite: adopted
 def test_error_process_iterable_dataloader(xla_available):
     with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
         TPUSpawnStrategy(MagicMock()).process_dataloader(_loader_no_len)
@@ -89,7 +87,6 @@ class BoringModelTPU(BoringModel):
         assert os.environ.get("PT_XLA_DEBUG") == "1"
 
 
-# lite: skipped
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_one_core():
