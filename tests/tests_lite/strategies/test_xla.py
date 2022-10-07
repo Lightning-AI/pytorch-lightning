@@ -82,11 +82,12 @@ def test_tpu_reduce():
 @RunIf(tpu=True)
 @mock.patch("lightning_lite.strategies.xla.MpDeviceLoader")
 @mock.patch("lightning_lite.strategies.xla.XLAStrategy.root_device")
-def test_xla_mp_device_dataloader_attribute(root_device_mock, mp_loader_mock):
+def test_xla_mp_device_dataloader_attribute(_, mp_loader_mock):
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
-    processed_dataloader = XLAStrategy().process_dataloader(dataloader)
-    mp_loader_mock.assert_called_with(dataloader, root_device_mock)
+    strategy = XLAStrategy()
+    processed_dataloader = strategy.process_dataloader(dataloader)
+    mp_loader_mock.assert_called_with(dataloader, strategy.root_device)
     assert processed_dataloader.dataset == processed_dataloader._loader.dataset
 
 
