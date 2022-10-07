@@ -39,6 +39,7 @@ def test_start_stop_server_through_frontend(process_mock):
             "serve_dir": ".",
             "path": "/root.my.flow",
             "log_file": os.path.join(log_file_root, "frontend", "logs.log"),
+            "root_path": "",
         },
     )
     process_mock().start.assert_called_once()
@@ -47,24 +48,28 @@ def test_start_stop_server_through_frontend(process_mock):
 
 
 @mock.patch("lightning_app.frontend.web.uvicorn")
-def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch):
+@pytest.mark.parametrize("root_path", ["", "/base"])
+def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch, root_path):
     FastAPIMock = MagicMock()
     FastAPIMock.mount = MagicMock()
     FastAPIGetDecoratorMock = MagicMock()
     FastAPIMock.get.return_value = FastAPIGetDecoratorMock
     monkeypatch.setattr(lightning_app.frontend.web, "FastAPI", MagicMock(return_value=FastAPIMock))
 
-    lightning_app.frontend.web.start_server(serve_dir=tmpdir, host="myhost", port=1000, path="/test-flow")
-    uvicorn_mock.run.assert_called_once_with(app=ANY, host="myhost", port=1000, log_config=ANY)
-    FastAPIMock.mount.assert_called_once_with("/test-flow", ANY, name="static")
+    lightning_app.frontend.web.start_server(
+        serve_dir=tmpdir, host="myhost", port=1000, path="/test-flow", root_path=root_path
+    )
+    uvicorn_mock.run.assert_called_once_with(app=ANY, host="myhost", port=1000, log_config=ANY, root_path=root_path)
+
+    FastAPIMock.mount.assert_called_once_with(root_path or "/test-flow", ANY, name="static")
     FastAPIMock.get.assert_called_once_with("/test-flow/healthz", status_code=200)
 
     FastAPIGetDecoratorMock.assert_called_once_with(healthz)
 
     # path has default value "/"
     FastAPIMock.mount = MagicMock()
-    lightning_app.frontend.web.start_server(serve_dir=tmpdir, host="myhost", port=1000)
-    FastAPIMock.mount.assert_called_once_with("/", ANY, name="static")
+    lightning_app.frontend.web.start_server(serve_dir=tmpdir, host="myhost", port=1000, root_path=root_path)
+    FastAPIMock.mount.assert_called_once_with(root_path or "/", ANY, name="static")
 
 
 def test_healthz():
