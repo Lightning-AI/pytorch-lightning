@@ -8,6 +8,14 @@ from lightning_lite.utilities.types import CollectibleGroup
 
 
 class Collective(ABC):
+    """Interface for collective operations.
+
+    Supports communications between multiple processes and multiple nodes. A collective owns a group.
+
+    .. note::
+        This API is experimental and subject to change
+    """
+
     def __init__(self) -> None:
         self._group: Optional[CollectibleGroup] = None
 
