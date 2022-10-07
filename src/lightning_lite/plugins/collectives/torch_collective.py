@@ -17,12 +17,12 @@ else:
 
 
 class TorchCollective(Collective):
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self) -> None:
         if not dist.is_available():
             raise RuntimeError("Torch distributed is not available.")
         self._set_addr = False
         self._set_port = False
-        super().__init__(**kwargs)
+        super().__init__()
 
     @property
     def rank(self) -> int:

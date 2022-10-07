@@ -10,7 +10,7 @@ def test_can_instantiate_without_args():
 
 
 def test_create_group():
-    collective = SingleDeviceCollective(arg3=None, arg4=10)
+    collective = SingleDeviceCollective()
     assert collective.is_available()
     assert collective.is_initialized()
 
@@ -22,10 +22,8 @@ def test_create_group():
     ) as new_mock:
         collective.create_group(arg1=15, arg3=10)
 
-    group_kwargs = {"arg3": 10, "arg4": 10, "arg1": 15}
-
+    group_kwargs = {"arg3": 10, "arg1": 15}
     new_mock.assert_called_once_with(**group_kwargs)
-    assert collective._kwargs == group_kwargs
 
     with mock.patch("lightning_lite.plugins.collectives.single_device_collective.SingleDeviceCollective.destroy_group"):
         collective.teardown()

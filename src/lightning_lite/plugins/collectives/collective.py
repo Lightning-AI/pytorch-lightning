@@ -8,11 +8,8 @@ from lightning_lite.utilities.types import CollectibleGroup
 
 
 class Collective(ABC):
-    def __init__(self, instantiate_group: bool = False, **kwargs: Any) -> None:
-        self._kwargs = kwargs
+    def __init__(self) -> None:
         self._group: Optional[CollectibleGroup] = None
-        if instantiate_group:
-            self.create_group()
 
     @property
     @abstractmethod
@@ -125,8 +122,7 @@ class Collective(ABC):
         """
         if self._group is not None:
             raise RuntimeError(f"`{type(self).__name__}` already owns a group.")
-        self._kwargs.update(kwargs)
-        self._group = self.new_group(**self._kwargs)
+        self._group = self.new_group(**kwargs)
         return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
