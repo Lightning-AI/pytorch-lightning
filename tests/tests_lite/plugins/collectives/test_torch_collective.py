@@ -148,7 +148,7 @@ def test_repeated_create_and_destroy():
     with mock.patch("torch.distributed.init_process_group"):
         collective.setup(main_address="foo", main_port=123)
 
-    assert os.environ == {"MASTER_ADDR": "foo", "MASTER_PORT": "123"}
+    assert not os.environ
 
     with mock.patch("torch.distributed.new_group") as new_mock:
         collective.create_group()

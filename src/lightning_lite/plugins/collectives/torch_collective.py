@@ -20,8 +20,6 @@ class TorchCollective(Collective):
     def __init__(self) -> None:
         if not dist.is_available():
             raise RuntimeError("Torch distributed is not available.")
-        self._set_addr = False
-        self._set_port = False
         super().__init__()
 
     @property
@@ -116,24 +114,30 @@ class TorchCollective(Collective):
     def setup(
         self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any
     ) -> Self:  # type: ignore[valid-type]
-        if not self.is_initialized():
-            addr_key = "MASTER_ADDR"
-            if main_address is not None and addr_key not in os.environ:
-                os.environ[addr_key] = main_address
-                self._set_addr = True
-            port_key = "MASTER_PORT"
-            if main_port is not None and port_key not in os.environ:
-                os.environ[port_key] = str(main_port)
-                self._set_port = True
-        return super().setup(**kwargs)
+        if self.is_initialized():
+            return
+        # maybe set addr
+        set_addr = False
+        addr_key = "MASTER_ADDR"
+        if main_address is not None and addr_key not in os.environ:
+            os.environ[addr_key] = main_address
+            set_addr = True
+        # maybe set port
+        set_port = False
+        port_key = "MASTER_PORT"
+        if main_port is not None and port_key not in os.environ:
+            os.environ[port_key] = str(main_port)
+            set_port = True
+        # this will `init_group`
+        super().setup(**kwargs)
+        # cleanup
+        if set_addr:
+            os.environ.pop("MASTER_ADDR", None)
+        if set_port:
+            os.environ.pop("MASTER_PORT", None)
+        return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
-        if self._set_addr:
-            os.environ.pop("MASTER_ADDR", None)
-            self._set_addr = False
-        if self._set_port:
-            os.environ.pop("MASTER_PORT", None)
-            self._set_port = False
         super().teardown()
 
     @classmethod
