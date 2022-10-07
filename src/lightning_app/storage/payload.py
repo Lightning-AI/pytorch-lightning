@@ -240,7 +240,7 @@ class Payload(BasePayload):
 
     """The Payload object enables to transfer python objects from one work to another in a similar fashion as
     :class:`~lightning_app.storage.payload.Payload`.
-    Payload is similar to Drive, Payload object is a pickled file that is unpickled into another work.
+    `Payload` is used to hold large objects as part of the app state. In this case the state variable will only hold a reference to the object, while the object itself will be serialized and transferred outside the state. Currently `Payload` serializes using `pickle` and transfers through `s3` (similarly to `Drive`), but `BasePayload` can be subclassed to support different serialization and transfer mechanisms.
     """
 
     def save(self, obj: Any, path: str) -> None:
