@@ -409,14 +409,14 @@ class CloudRuntime(Runtime):
         listing = traceback.format_exception(exp, val, tb)
         # remove the entry for the first frame
         del listing[1]
-        listing = [
-                      f"Found an exception when loading your application from {filepath}.\n\n"
-                  ] + listing
-        logger.error("".join(listing))
+
+        click.echo(f"Found an exception when loading your application from {filepath}.\n")
         click.echo("Maybe some dependencies are missing? If you want to force run the on cloud, please type 'y'.")
         value = input("\nPress enter to continue:   ")
         value = value.strip().lower()
         is_force_run = len(value) == 0 or value in {"y", "yes", 1}
+        if not is_force_run:
+            logger.error("".join(listing))
         return is_force_run
 
     @classmethod
@@ -426,7 +426,7 @@ class CloudRuntime(Runtime):
             app = load_app_from_file(filepath, raise_exception=True)
         except ModuleNotFoundError as e:
             # this is very generic exception.
-            is_force_run = cls._show_loading_app_module_error(filepath)
+            is_force_run = cls._should_force_run_app_on_cloud_promote(filepath)
             if is_force_run:
                 from lightning.app.testing.helpers import EmptyFlow
                 # Create a mocking app.

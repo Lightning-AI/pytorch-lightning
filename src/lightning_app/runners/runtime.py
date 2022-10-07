@@ -54,7 +54,7 @@ def dispatch(
 
     runtime_type = RuntimeType(runtime_type)
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
-    app = load_app_from_file(str(entrypoint_file))
+    app = runtime_cls.load_app_from_file(str(entrypoint_file))
 
     env_vars = {} if env_vars is None else env_vars
     secrets = {} if secrets is None else secrets
