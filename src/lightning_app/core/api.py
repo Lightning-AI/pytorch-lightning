@@ -268,6 +268,8 @@ async def healthz(response: Response):
     # check the queue status only if running in cloud
     if is_running_in_cloud():
         queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
+        # this is only being implemented on Redis Queue. For HTTP Queue, it doesn't make sense to have every single
+        # app checking the status of the Queue server
         if not queue_obj.is_running:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {"status": "failure", "reason": "Redis is not available"}
