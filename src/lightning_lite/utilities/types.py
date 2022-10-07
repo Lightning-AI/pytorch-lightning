@@ -25,6 +25,13 @@ _MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[
 _PARAMETERS = Iterator[torch.nn.Parameter]
 
 
+if torch.distributed.is_available():
+    from torch.distributed import ProcessGroup, ReduceOp
+else:
+    ProcessGroup = Any  # type: ignore[assignment,misc]
+    ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
+
+
 _DictKey = TypeVar("_DictKey")
 
 
@@ -36,6 +43,15 @@ class _Stateful(Protocol[_DictKey]):
         ...
 
     def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None:
+        ...
+
+
+@runtime_checkable
+class CollectibleGroup(Protocol):
+    def size(self) -> int:
+        ...
+
+    def rank(self) -> int:
         ...
 
 
