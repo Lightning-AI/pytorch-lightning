@@ -1,5 +1,4 @@
 import datetime
-import os
 from functools import partial
 from unittest import mock
 
@@ -10,7 +9,7 @@ from tests_lite.helpers.runif import RunIf
 from lightning_lite.accelerators import CPUAccelerator
 from lightning_lite.plugins.collectives import TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
-from lightning_lite.strategies import DDPStrategy
+from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 
@@ -172,7 +171,7 @@ def test_init_and_new_group():
 
 
 def collective_launch(fn, parallel_devices, num_groups=1):
-    strategy = DDPStrategy(
+    strategy = DDPSpawnStrategy(
         accelerator=CPUAccelerator(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
@@ -191,7 +190,6 @@ def collective_launch(fn, parallel_devices, num_groups=1):
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
-    os.environ["LOCAL_RANK"] = str(strategy._local_rank)
     strategy._set_world_ranks()
     return fn(*args, **kwargs)
 
@@ -234,7 +232,6 @@ def _test_two_groups(strategy, left_collective, right_collective):
     if strategy.global_rank in (0, 1):
         tensor = torch.tensor([strategy.global_rank])
 
-        # How do I call all_reduce with the collective object on the left group?
         left_collective.all_reduce(tensor)
         if left_collective.rank == 0:
             assert tensor == 1
@@ -244,7 +241,6 @@ def _test_two_groups(strategy, left_collective, right_collective):
     if right_collective.is_member:
         tensor = torch.tensor([strategy.global_rank])
 
-        # How do I call all_reduce with the collective object on the right group?
         right_collective.all_reduce(tensor)
         if right_collective.rank == 0:
             assert tensor == 3
