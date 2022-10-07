@@ -429,6 +429,7 @@ class CloudRuntime(Runtime):
             is_force_run = cls._should_force_run_app_on_cloud_promote(filepath)
             if is_force_run:
                 from lightning.app.testing.helpers import EmptyFlow
+
                 # Create a mocking app.
                 app = LightningApp(EmptyFlow())
             else:
