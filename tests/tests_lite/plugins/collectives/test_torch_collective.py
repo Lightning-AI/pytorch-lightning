@@ -233,7 +233,7 @@ def _test_two_groups(strategy, left_collective, right_collective):
         tensor = torch.tensor(strategy.global_rank)
         left_collective.all_reduce(tensor)
         assert tensor == 1
-
+    right_collective.barrier()
     if right_collective.rank >= 0:
         tensor = torch.tensor(strategy.global_rank)
         right_collective.all_reduce(tensor)
