@@ -13,7 +13,7 @@ from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 
-if torch.distributed.is_available():
+if TorchCollective.is_available():
     from torch.distributed import ReduceOp
 else:
     ReduceOp = mock.Mock()
@@ -24,8 +24,8 @@ PASSED_OBJECT = mock.Mock()
 
 @pytest.fixture(autouse=True)
 def check_destroy_group():
-    if torch.distributed.is_available():
-        assert not torch.distributed.is_initialized()
+    if TorchCollective.is_available():
+        assert not TorchCollective.is_initialized()
     with mock.patch(
         "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,

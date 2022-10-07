@@ -111,6 +111,14 @@ class TorchCollective(Collective):
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
     @classmethod
+    def is_available(cls) -> bool:
+        return dist.is_available()
+
+    @classmethod
+    def is_initialized(cls) -> bool:
+        return dist.is_initialized()
+
+    @classmethod
     def init_group(
         cls, main_address: Optional[str] = None, main_port: Optional[Union[str, int]] = None, **kwargs: Any
     ) -> None:

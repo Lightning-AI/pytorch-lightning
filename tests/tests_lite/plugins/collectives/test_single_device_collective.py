@@ -11,6 +11,8 @@ def test_can_instantiate_without_args():
 
 def test_create_group():
     collective = SingleDeviceCollective(init_kwargs={"arg1": None, "arg2": 10}, group_kwargs={"arg3": None, "arg4": 10})
+    assert collective.is_available()
+    assert collective.is_initialized()
 
     with pytest.raises(RuntimeError, match=r"SingleDeviceCollective` does not own a group"):
         _ = collective.group

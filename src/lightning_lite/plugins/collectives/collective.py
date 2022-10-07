@@ -94,6 +94,16 @@ class Collective(ABC):
 
     @classmethod
     @abstractmethod
+    def is_available(cls) -> bool:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def is_initialized(cls) -> bool:
+        ...
+
+    @classmethod
+    @abstractmethod
     def init_group(cls, **kwargs: Any) -> None:
         ...
 

@@ -57,6 +57,14 @@ class SingleDeviceCollective(Collective):
         pass
 
     @classmethod
+    def is_available(cls) -> bool:
+        return True  # vacuous truth
+
+    @classmethod
+    def is_initialized(cls) -> bool:
+        return True  # vacuous truth
+
+    @classmethod
     def init_group(cls, **_: Any) -> None:
         pass
 
