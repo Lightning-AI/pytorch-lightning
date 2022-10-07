@@ -1,5 +1,6 @@
 import datetime
 import os
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -158,13 +159,14 @@ def test_repeated_create_and_destroy():
 
 @RunIf(distributed=True)
 def test_init_and_new_group():
-    with mock.patch("torch.distributed.init_process_group"), mock.patch(
+    with mock.patch("torch.distributed.init_process_group") as init_mock, mock.patch(
         "torch.distributed.new_group"
     ) as new_mock, mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective = TorchCollective(instantiate_group=True)
         collective.teardown()
         collective.create_group()
         collective.teardown()
+    assert init_mock.call_count == 2
     assert new_mock.call_count == 2
     assert destroy_mock.call_count == 2
 
@@ -184,12 +186,17 @@ def collective_launch(fn, parallel_devices, num_groups=1):
         )
         for _ in range(num_groups)
     ]
-    launcher.launch(fn, strategy, *collectives)
+    wrapped = partial(wrap_launch_function, fn, strategy)
+    return launcher.launch(wrapped, strategy, *collectives)
+
+
+def wrap_launch_function(fn, strategy, *args, **kwargs):
+    os.environ["LOCAL_RANK"] = str(strategy._local_rank)
+    strategy._set_world_ranks()
+    return fn(*args, **kwargs)
 
 
 def _test_distributed_collectives_fn(strategy, collective):
-    os.environ["LOCAL_RANK"] = str(strategy._local_rank)
-    strategy._set_world_ranks()
     collective.create_group(init_kwargs={"rank": strategy.global_rank})
 
     # all_gather
@@ -215,8 +222,6 @@ def _test_distributed_collectives_fn(strategy, collective):
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
-    os.environ["LOCAL_RANK"] = str(strategy._local_rank)
-    strategy._set_world_ranks()
     left_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [0, 1]})
     right_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [1, 2]})
 
