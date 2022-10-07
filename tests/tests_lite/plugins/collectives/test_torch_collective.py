@@ -180,11 +180,17 @@ def collective_launch(fn, parallel_devices, num_groups=1):
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
     strategy._set_world_ranks()
+    TorchCollective.init_group(
+        world_size=strategy.num_processes,
+        main_address="localhost",
+        backend="gloo",
+        rank=strategy.global_rank,
+    )
     return fn(*args, **kwargs)
 
 
 def _test_distributed_collectives_fn(strategy, collective):
-    collective.create_group(init_kwargs={"rank": strategy.global_rank})
+    collective.create_group()
 
     # all_gather
     tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
@@ -215,8 +221,8 @@ def test_collectives_distributed(n):
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
-    left_collective.create_group(init_kwargs={"rank": strategy.global_rank}, ranks=[0, 1])
-    right_collective.create_group(init_kwargs={"rank": strategy.global_rank}, ranks=[1, 2])
+    left_collective.create_group(ranks=[0, 1])
+    right_collective.create_group(ranks=[1, 2])
 
     if strategy.global_rank in (0, 1):
         tensor = torch.tensor([strategy.global_rank])
