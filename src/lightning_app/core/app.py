@@ -69,9 +69,9 @@ class LightningApp:
             info: Provide additional info about the app which will be used to update html title,
                 description and image meta tags and specify any additional tags as list of html strings.
             root_path: Set this to `/path` if you want to run your app behind a proxy at `/path` leave empty for "/".
-                For instance, if you want to run your app at `https://customdomain.com/myapp`, 
+                For instance, if you want to run your app at `https://customdomain.com/myapp`,
                 set `root_path` to `/myapp`.
-                In most cases users should avoid adding this, or the app won't start.
+                You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
 
 
         .. doctest::
