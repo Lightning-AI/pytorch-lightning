@@ -2235,19 +2235,7 @@ def _evaluation_context(accelerator: Accelerator, grad_mode: Optional[bool] = Fa
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
 
-
-    if grad_mode:
-        assert not (
-            dist.is_initialized() and dist.get_backend() == "gloo"
-        ), "Inference mode is not supported with gloo backend"
-        assert not isinstance(
-            accelerator, (HPUAccelerator, TPUAccelerator)
-        ), "Inference mode is not supported with HPU & TPU accelerators"
-        
-        context_manager_class = torch.enable_grad
-    
-    else:
-        context_manager_class = (
+    context_manager_class = (
         torch.inference_mode
         if not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
         and not isinstance(accelerator, HPUAccelerator)
@@ -2255,6 +2243,8 @@ def _evaluation_context(accelerator: Accelerator, grad_mode: Optional[bool] = Fa
         else torch.no_grad
     )
         
+    if grad_mode:
+        context_manager_class = torch.enable_grad
 
     with context_manager_class():
         yield
