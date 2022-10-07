@@ -85,9 +85,7 @@ def check_destroy_group():
 )
 @RunIf(distributed=True)
 def test_collective_calls_with_created_group(fn_name, kwargs, return_key):
-    with mock.patch("torch.distributed.is_available", return_value=True), mock.patch(
-        "torch.distributed.init_process_group"
-    ), mock.patch("torch.distributed.new_group"):
+    with mock.patch("torch.distributed.is_available", return_value=True), mock.patch("torch.distributed.new_group"):
         collective = TorchCollective(instantiate_group=True)
     fn = getattr(collective, fn_name)
     with mock.patch(f"torch.distributed.{fn_name}", autospec=True) as mock_call:
@@ -137,11 +135,8 @@ def test_convert_ops():
 
 @RunIf(distributed=True)
 def test_repeated_create_and_destroy():
-    with mock.patch("torch.distributed.init_process_group") as init_mock, mock.patch(
-        "torch.distributed.new_group"
-    ) as new_mock:
+    with mock.patch("torch.distributed.new_group") as new_mock:
         collective = TorchCollective(instantiate_group=True)
-    init_mock.assert_called_once()
     new_mock.assert_called_once()
 
     with pytest.raises(RuntimeError, match="TorchCollective` already owns a group"):
@@ -158,14 +153,13 @@ def test_repeated_create_and_destroy():
 
 @RunIf(distributed=True)
 def test_init_and_new_group():
-    with mock.patch("torch.distributed.init_process_group") as init_mock, mock.patch(
-        "torch.distributed.new_group"
-    ) as new_mock, mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
+    with mock.patch("torch.distributed.new_group") as new_mock, mock.patch(
+        "torch.distributed.destroy_process_group"
+    ) as destroy_mock:
         collective = TorchCollective(instantiate_group=True)
         collective.teardown()
         collective.create_group()
         collective.teardown()
-    assert init_mock.call_count == 2
     assert new_mock.call_count == 2
     assert destroy_mock.call_count == 2
 
@@ -175,16 +169,7 @@ def collective_launch(fn, parallel_devices, num_groups=1):
         accelerator=CPUAccelerator(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
-    collectives = [
-        TorchCollective(
-            init_kwargs={
-                "world_size": strategy.num_processes,
-                "main_address": "localhost",
-                "backend": "gloo",
-            },
-        )
-        for _ in range(num_groups)
-    ]
+    collectives = [TorchCollective() for _ in range(num_groups)]
     wrapped = partial(wrap_launch_function, fn, strategy)
     return launcher.launch(wrapped, strategy, *collectives)
 
@@ -226,8 +211,8 @@ def test_collectives_distributed(n):
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
-    left_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [0, 1]})
-    right_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [1, 2]})
+    left_collective.create_group(init_kwargs={"rank": strategy.global_rank}, ranks=[0, 1])
+    right_collective.create_group(init_kwargs={"rank": strategy.global_rank}, ranks=[1, 2])
 
     if strategy.global_rank in (0, 1):
         tensor = torch.tensor([strategy.global_rank])
