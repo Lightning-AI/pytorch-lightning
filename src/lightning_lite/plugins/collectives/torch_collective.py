@@ -19,6 +19,8 @@ class TorchCollective(Collective):
     def __init__(self, **kwargs: Any) -> None:
         if not dist.is_available():
             raise RuntimeError("Torch distributed is not available.")
+        self._set_addr = False
+        self._set_port = False
         super().__init__(**kwargs)
 
     @property
@@ -123,10 +125,14 @@ class TorchCollective(Collective):
         cls, main_address: Optional[str] = None, main_port: Optional[Union[str, int]] = None, **kwargs: Any
     ) -> None:
         if not dist.is_initialized():
-            if main_address is not None:
-                os.environ["MASTER_ADDR"] = main_address
-            if main_port is not None:
-                os.environ["MASTER_PORT"] = str(main_port)
+            addr_key = "MASTER_ADDR"
+            if main_address is not None and addr_key not in os.environ:
+                os.environ[addr_key] = main_address
+                cls._set_addr = True
+            port_key = "MASTER_PORT"
+            if main_port is not None and port_key not in os.environ:
+                os.environ[port_key] = str(main_port)
+                cls._set_port = True
             dist.init_process_group(**kwargs)
 
     @classmethod
@@ -135,6 +141,10 @@ class TorchCollective(Collective):
 
     @classmethod
     def destroy_group(cls, group: CollectibleGroup) -> None:
+        if cls._set_addr:
+            os.environ.pop("MASTER_ADDR", None)
+        if cls._set_port:
+            os.environ.pop("MASTER_PORT", None)
         dist.destroy_process_group(group)
 
     @classmethod

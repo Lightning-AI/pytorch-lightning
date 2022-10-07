@@ -154,18 +154,9 @@ def test_repeated_create_and_destroy():
     destroy_mock.assert_called_once_with(new_mock.return_value)
     assert collective._group is None
 
-
-@skip_distributed_unavailable
-def test_init_and_new_group():
-    with mock.patch("torch.distributed.new_group") as new_mock, mock.patch(
-        "torch.distributed.destroy_process_group"
-    ) as destroy_mock:
-        collective = TorchCollective(instantiate_group=True)
-        collective.teardown()
-        collective.create_group()
-        collective.teardown()
-    assert new_mock.call_count == 2
-    assert destroy_mock.call_count == 2
+    # check we can create_group again
+    collective.create_group()
+    collective.teardown()
 
 
 def collective_launch(fn, parallel_devices, num_groups=1):
@@ -225,20 +216,14 @@ def _test_two_groups(strategy, left_collective, right_collective):
     right_collective.create_group(ranks=[1, 2])
 
     if strategy.global_rank in (0, 1):
-        tensor = torch.tensor([strategy.global_rank])
-
+        tensor = torch.tensor(strategy.global_rank)
         left_collective.all_reduce(tensor)
-        if left_collective.rank == 0:
-            assert tensor == 1
+        assert tensor == 1
 
-    torch.distributed.barrier()
-
-    if right_collective.is_member:
-        tensor = torch.tensor([strategy.global_rank])
-
+    if right_collective.rank >= 0:
+        tensor = torch.tensor(strategy.global_rank)
         right_collective.all_reduce(tensor)
-        if right_collective.rank == 0:
-            assert tensor == 3
+        assert tensor == 3
 
 
 @skip_distributed_unavailable
