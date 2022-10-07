@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [0.6.3] - 2022-10-07
+
+### Added
+
+- Added option to add custom meta tags to the UI container ([#14915](https://github.com/Lightning-AI/lightning/pull/14915))
+
+### Changed
+
+- Allowed root path to run the app on `/path` ([#14972](https://github.com/Lightning-AI/lightning/pull/14972))
+
+
 ## [0.6.2] - 2022-09-21
 
 ### Changed
