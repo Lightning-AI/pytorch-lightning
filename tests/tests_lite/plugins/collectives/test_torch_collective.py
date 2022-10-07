@@ -221,6 +221,12 @@ def _test_distributed_collectives_fn(strategy, collective):
     collective.teardown()
 
 
+@RunIf(distributed=True)
+@pytest.mark.parametrize("n", (1, 2))
+def test_collectives_distributed(n):
+    collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
+
+
 def _test_two_groups(strategy, left_collective, right_collective):
     left_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [0, 1]})
     right_collective.create_group(init_kwargs={"rank": strategy.global_rank}, group_kwargs={"ranks": [1, 2]})
@@ -242,12 +248,6 @@ def _test_two_groups(strategy, left_collective, right_collective):
         right_collective.all_reduce(tensor)
         if right_collective.rank == 0:
             assert tensor == 3
-
-
-@RunIf(distributed=True)
-@pytest.mark.parametrize("n", (1, 2))
-def test_collectives_distributed(n):
-    collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 
 
 @RunIf(distributed=True)
