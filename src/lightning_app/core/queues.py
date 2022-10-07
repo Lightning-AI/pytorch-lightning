@@ -375,11 +375,6 @@ class HTTPQueue(BaseQueue):
         val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
         return int(val.text)
 
-    @property
-    def is_running(self) -> bool:
-        resp = self.client.get("/healthz")
-        return resp.status_code == 200
-
     @staticmethod
     def _split_app_id_and_queue_name(queue_name):
         """This splits the app id and the queue name into two parts.
