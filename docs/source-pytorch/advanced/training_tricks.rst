@@ -91,6 +91,31 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     # Find the batch size
     trainer.tune(model)
 
+
+You can also customize the :class:`~pytorch_lightning.callbacks.batch_size_finder.BatchSizeFinder` callback to run at different epochs. This feature is useful while fine-tuning models since
+you can't always use the same batch size after unfreezing the backbone.
+
+.. code-block:: python
+
+        from pytorch_lightning.callbacks import BatchSizeFinder
+
+
+        class FineTuneBatchSizeFinder(BatchSizeFinder):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.milestones = milestones
+
+            def on_fit_start(self, *args, **kwargs):
+                return
+
+            def on_train_epoch_start(self, trainer, pl_module):
+                if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                    self.scale_batch_size(trainer, pl_module)
+
+
+        trainer = Trainer(callbacks=[FineTuneBatchSizeFinder(milestones=(5, 10))])
+        trainer.fit(...)
+
 Currently, this feature supports two modes ``'power'`` scaling and ``'binsearch'``
 scaling. In ``'power'`` scaling, starting from a batch size of 1 keeps doubling
 the batch size until an out-of-memory (OOM) error is encountered. Setting the
@@ -98,7 +123,6 @@ argument to ``'binsearch'`` will initially also try doubling the batch size unti
 it encounters an OOM, after which it will do a binary search that will finetune the
 batch size. Additionally, it should be noted that the batch size scaler cannot
 search for batch sizes larger than the size of the training dataset.
-
 
 .. note::
 
@@ -253,6 +277,29 @@ via ``self.learning_rate`` or ``self.lr``.
     trainer = Trainer(auto_lr_find=True)
 
     trainer.tune(model)
+
+You can also customize the :class:`~pytorch_lightning.callbacks.lr_finder.LearningRateFinder` callback to run at different epochs. This feature is useful while fine-tuning models.
+
+.. code-block:: python
+
+        from pytorch_lightning.callbacks import LearningRateFinder
+
+
+        class FineTuneLearningRateFinder(LearningRateFinder):
+            def __init__(self, milestones=(5, 10), *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.milestones = milestones
+
+            def on_fit_start(self, *args, **kwargs):
+                return
+
+            def on_train_epoch_start(self, trainer, pl_module):
+                if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                    self.lr_find(trainer, pl_module)
+
+
+        trainer = Trainer(callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))])
+        trainer.fit(...)
 
 If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as ``auto_lr_find``:
 
