@@ -18,9 +18,6 @@ def update_index_file(ui_root: str, info: Optional[AppInfo] = None, root_path: s
     import shutil
     from pathlib import Path
 
-    def rewrite_static_with_root_path(content: str) -> str:
-        return content.replace("/static", f"{root_path}/static")
-
     entry_file = Path(ui_root) / "index.html"
     original_file = Path(ui_root) / "index.original.html"
 
@@ -35,9 +32,7 @@ def update_index_file(ui_root: str, info: Optional[AppInfo] = None, root_path: s
             original = f.read()
 
         with entry_file.open("w") as f:
-            f.write(
-                rewrite_static_with_root_path(_get_updated_content(original=original, root_path=root_path, info=info))
-            )
+            f.write(_get_updated_content(original=original, root_path=root_path, info=info))
 
     if root_path:
         root_path_without_slash = root_path.replace("/", "", 1) if root_path.startswith("/") else root_path
@@ -76,4 +71,4 @@ def _get_updated_content(original: str, root_path: str, info: AppInfo) -> str:
         # this will be used by lightning app ui to add root_path to add requests
         soup.find("head").append(BeautifulSoup(f'<script>window.app_prefix="{root_path}"</script>', "html.parser"))
 
-    return str(soup)
+    return str(soup).replace("/static", f"{root_path}/static")
