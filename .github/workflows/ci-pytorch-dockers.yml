@@ -1,13 +1,28 @@
 name: Docker
 
 on:
-  pull_request: {}
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    paths:
+      - "dockers/**"
+      - "!dockers/README.md"
+      - "requirements.txt"
+      - "requirements/*.txt"
+      - "requirements/pytorch/*"
+      - "environment.yml"
+      - ".github/workflows/*docker*.yml"
+      - "setup.py"
+  schedule:
+    - cron: "0 0 * * *"  # at the end of every day
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_TO_HUB: true
+  PUSH_TO_HUB: ${{ github.event_name == 'schedule' }}
 
 jobs:
   build-pl:
