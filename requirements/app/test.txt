@@ -11,3 +11,4 @@ pympler
 psutil
 setuptools<=59.5.0
 sqlmodel
+requests-mock
