@@ -37,8 +37,6 @@ from lightning_lite.utilities.types import _PATH
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
-else:
-    MpDeviceLoader = None
 
 
 class XLAStrategy(DDPSpawnStrategy):

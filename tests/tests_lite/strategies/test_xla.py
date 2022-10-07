@@ -14,6 +14,7 @@
 import os
 from functools import partial
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 from tests_lite.helpers.dataloaders import CustomNotImplementedErrorDataloader
@@ -80,9 +81,12 @@ def test_tpu_reduce():
 
 
 @RunIf(tpu=True)
-@mock.patch("lightning_lite.strategies.xla.MpDeviceLoader")
 @mock.patch("lightning_lite.strategies.xla.XLAStrategy.root_device")
-def test_xla_mp_device_dataloader_attribute(_, mp_loader_mock):
+def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
+    import torch_xla.distributed.parallel_loader as parallel_loader
+    mp_loader_mock = Mock()
+    monkeypatch.setattr(parallel_loader, "MpDeviceLoader", mp_loader_mock)
+
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)
     strategy = XLAStrategy()
