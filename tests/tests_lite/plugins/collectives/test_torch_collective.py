@@ -160,12 +160,9 @@ def test_repeated_create_and_destroy():
     destroy_mock.assert_called_once_with(new_mock.return_value)
     assert collective._group is None
 
-    with mock.patch("torch.distributed.new_group") as new_mock, mock.patch(
-        "torch.distributed.destroy_process_group"
-    ) as destroy_mock:
+    with mock.patch("torch.distributed.new_group"), mock.patch("torch.distributed.destroy_process_group"):
         # check we can create_group again
-        collective.create_group()
-        collective.teardown()
+        collective.create_group().teardown()
 
 
 def collective_launch(fn, parallel_devices, num_groups=1):

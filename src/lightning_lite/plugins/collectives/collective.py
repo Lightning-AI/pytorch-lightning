@@ -112,7 +112,7 @@ class Collective(ABC):
     def _convert_to_native_op(cls, op: str) -> Any:
         ...
 
-    def setup(self, **kwargs: Any) -> Self:
+    def setup(self, **kwargs: Any) -> Self:  # type: ignore[valid-type]
         if not self.is_initialized():
             self.init_group(**kwargs)
         return self
@@ -129,8 +129,9 @@ class Collective(ABC):
         self._group = self.new_group(**self._kwargs)
         return self
 
-    def teardown(self) -> None:
+    def teardown(self) -> Self:  # type: ignore[valid-type]
         if self._group is None:
             raise RuntimeError(f"`{type(self).__name__}` does not own a group to destroy.")
         self.destroy_group(self._group)
         self._group = None
+        return self

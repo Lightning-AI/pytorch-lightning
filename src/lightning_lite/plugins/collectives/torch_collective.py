@@ -113,7 +113,9 @@ class TorchCollective(Collective):
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
-    def setup(self, main_address=None, main_port=None, **kwargs: Any) -> Self:
+    def setup(
+        self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any
+    ) -> Self:  # type: ignore[valid-type]
         if not self.is_initialized():
             addr_key = "MASTER_ADDR"
             if main_address is not None and addr_key not in os.environ:
@@ -125,7 +127,7 @@ class TorchCollective(Collective):
                 self._set_port = True
         return super().setup(**kwargs)
 
-    def teardown(self) -> None:
+    def teardown(self) -> Self:  # type: ignore[valid-type]
         if self._set_addr:
             os.environ.pop("MASTER_ADDR", None)
             self._set_addr = False
@@ -144,8 +146,7 @@ class TorchCollective(Collective):
 
     @classmethod
     def init_group(cls, **kwargs: Any) -> None:
-        if not dist.is_initialized():
-            dist.init_process_group(**kwargs)
+        dist.init_process_group(**kwargs)
 
     @classmethod
     def new_group(cls, **kwargs: Any) -> CollectibleGroup:
