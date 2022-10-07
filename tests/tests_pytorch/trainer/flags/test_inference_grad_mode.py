@@ -28,7 +28,6 @@ class _BoringModelForEnableGrad(BoringModel):
 class _BoringModelForNoGrad(BoringModel):
     def on_test_epoch_start(self) -> None:
         assert not torch.is_grad_enabled()
-        assert not torch.is_inference_mode_enabled()
         return super().on_test_epoch_start()
 
 
