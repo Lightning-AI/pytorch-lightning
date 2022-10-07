@@ -109,7 +109,7 @@ class TorchCollective(Collective):
         self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any
     ) -> Self:  # type: ignore[valid-type]
         if self.is_initialized():
-            return
+            return self
         # maybe set addr
         set_addr = False
         addr_key = "MASTER_ADDR"

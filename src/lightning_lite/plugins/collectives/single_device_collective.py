@@ -30,10 +30,10 @@ class SingleDeviceCollective(Collective):
     def gather(self, tensor: torch.Tensor, *_: Any, **__: Any) -> List[torch.Tensor]:
         return [tensor]
 
-    def scatter(  # type: ignore[override]
+    def scatter(
         self,
         tensor: torch.Tensor,
-        scatter_list: List[torch.Tensor],  # it doesn't make sense to have a None here for a single device
+        scatter_list: List[torch.Tensor],
         *_: Any,
         **__: Any,
     ) -> torch.Tensor:
