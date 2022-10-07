@@ -54,15 +54,11 @@ class Collective(ABC):
         ...
 
     @abstractmethod
-    def gather(
-        self, tensor: torch.Tensor, gather_list: Optional[List[torch.Tensor]] = None, dst: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, gather_list: List[torch.Tensor], dst: int = 0) -> List[torch.Tensor]:
         ...
 
     @abstractmethod
-    def scatter(
-        self, tensor: torch.Tensor, scatter_list: Optional[List[torch.Tensor]] = None, src: int = 0
-    ) -> torch.Tensor:
+    def scatter(self, tensor: torch.Tensor, scatter_list: List[torch.Tensor], src: int = 0) -> torch.Tensor:
         ...
 
     @abstractmethod

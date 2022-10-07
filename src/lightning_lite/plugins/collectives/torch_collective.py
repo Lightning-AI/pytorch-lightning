@@ -48,15 +48,11 @@ class TorchCollective(Collective):
         dist.all_gather(tensor_list, tensor, group=self.group)
         return tensor_list
 
-    def gather(
-        self, tensor: torch.Tensor, gather_list: Optional[List[torch.Tensor]] = None, dst: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, gather_list: List[torch.Tensor], dst: int = 0) -> List[torch.Tensor]:
         dist.gather(tensor, gather_list, dst, group=self.group)
         return gather_list
 
-    def scatter(
-        self, tensor: torch.Tensor, scatter_list: Optional[List[torch.Tensor]] = None, src: int = 0
-    ) -> torch.Tensor:
+    def scatter(self, tensor: torch.Tensor, scatter_list: List[torch.Tensor], src: int = 0) -> torch.Tensor:
         dist.scatter(tensor, scatter_list, src, group=self.group)
         return tensor
 
@@ -93,14 +89,12 @@ class TorchCollective(Collective):
         dist.broadcast_object_list(object_list, src, group=self.group, **kwargs)
         return object_list
 
-    def gather_object(
-        self, obj: Any, object_gather_list: Optional[List[Any]] = None, dst: int = 0
-    ) -> Optional[List[Any]]:
+    def gather_object(self, obj: Any, object_gather_list: List[Any], dst: int = 0) -> List[Any]:
         dist.gather_object(obj, object_gather_list, dst, group=self.group)
         return object_gather_list
 
     def scatter_object_list(
-        self, scatter_object_output_list: List[Any], scatter_object_input_list: Optional[List[Any]], src: int = 0
+        self, scatter_object_output_list: List[Any], scatter_object_input_list: List[Any], src: int = 0
     ) -> List[Any]:
         dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)
         return scatter_object_output_list

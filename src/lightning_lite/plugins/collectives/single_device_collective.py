@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List
 
 import torch
 
@@ -27,7 +27,7 @@ class SingleDeviceCollective(Collective):
     def all_gather(self, tensor_list: List[torch.Tensor], tensor: torch.Tensor, **__: Any) -> List[torch.Tensor]:
         return [tensor]
 
-    def gather(self, tensor: torch.Tensor, *_: Any, **__: Any) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, *_: Any, **__: Any) -> List[torch.Tensor]:
         return [tensor]
 
     def scatter(  # type: ignore[override]
