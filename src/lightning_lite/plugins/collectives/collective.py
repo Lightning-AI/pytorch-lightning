@@ -12,7 +12,7 @@ class Collective(ABC):
 
     Supports communications between multiple processes and multiple nodes. A collective owns a group.
 
-    .. note::
+    .. warning::
         This API is experimental and subject to change
     """
 
