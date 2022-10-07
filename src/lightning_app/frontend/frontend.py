@@ -24,7 +24,7 @@ class Frontend(ABC):
             port: The port number where the UI will be served. This gets determined by the dispatcher, which by default
                 chooses any free port when running locally.
             root_path: root_path for the server if app in exposed via a proxy at `/<root_path>`
-            
+
 
         Example:
 
