@@ -10,9 +10,7 @@ from lightning_lite.plugins.collectives import TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies import DDPStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
-
-torch_test_assert_close = torch.testing.assert_close if _TORCH_GREATER_EQUAL_1_12 else torch.testing.assert_allclose
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -153,20 +151,19 @@ def test_repeated_create_and_destroy():
     with pytest.raises(RuntimeError, match="TorchCollective` does not own a group to destroy"):
         collective.teardown()
 
-    destroy_mock.assert_called_once_with(init_mock.return_value)
+    destroy_mock.assert_called_once_with(new_mock.return_value)
     assert collective._group is None
 
 
 @RunIf(distributed=True)
 def test_init_and_new_group():
-    with mock.patch("torch.distributed.init_process_group") as init_mock, mock.patch(
+    with mock.patch("torch.distributed.init_process_group"), mock.patch(
         "torch.distributed.new_group"
     ) as new_mock, mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective = TorchCollective(instantiate_group=True)
         collective.teardown()
         collective.create_group()
         collective.teardown()
-    assert init_mock.call_count == 1
     assert new_mock.call_count == 2
     assert destroy_mock.call_count == 2
 
@@ -196,19 +193,19 @@ def _test_distributed_collectives_fn(strategy, collective):
     this = torch.arange(2, dtype=torch.long) + 2 * rank
     out = collective.all_gather(tensor_list, this)
     expected = torch.arange(2 * strategy.num_processes).split(2)
-    torch_test_assert_close(tuple(out), expected)
+    torch.testing.assert_close(tuple(out), expected)
 
     # reduce
     this = torch.tensor(rank + 1)
     out = collective.reduce(this, dst=0, op="max")
     expected = torch.tensor(strategy.num_processes) if rank == 0 else this
-    torch_test_assert_close(out, expected)
+    torch.testing.assert_close(out, expected)
 
     # all_reduce
     this = torch.tensor(rank + 1)
     out = collective.all_reduce(this, op="min")
     expected = torch.tensor(1)
-    torch_test_assert_close(out, expected)
+    torch.testing.assert_close(out, expected)
 
     collective.teardown()
 
