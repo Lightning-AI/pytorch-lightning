@@ -30,9 +30,9 @@ from lightning_lite.utilities.distributed import (
     distributed_available,
     get_default_process_group_backend_for_device,
     init_dist_connection,
-    ReduceOp,
 )
 from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward

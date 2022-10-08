@@ -49,6 +49,7 @@ class LightningApp:
         root: "lightning_app.LightningFlow",
         debug: bool = False,
         info: frontend.AppInfo = None,
+        root_path: str = "",
     ):
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
         applications. There are two kinds of components: :class:`~lightning_app.core.flow.LightningFlow` and
@@ -67,6 +68,11 @@ class LightningApp:
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
                 description and image meta tags and specify any additional tags as list of html strings.
+            root_path: Set this to `/path` if you want to run your app behind a proxy at `/path` leave empty for "/".
+                For instance, if you want to run your app at `https://customdomain.com/myapp`,
+                set `root_path` to `/myapp`.
+                You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
+
 
         .. doctest::
 
@@ -82,6 +88,7 @@ class LightningApp:
             Hello World!
         """
 
+        self.root_path = root_path  # when running behind a proxy
         _validate_root_flow(root)
         self._root = root
 
@@ -140,7 +147,7 @@ class LightningApp:
 
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
-        frontend.update_index_file_with_info(FRONTEND_DIR, info=info)
+        frontend.update_index_file(FRONTEND_DIR, info=info, root_path=root_path)
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""

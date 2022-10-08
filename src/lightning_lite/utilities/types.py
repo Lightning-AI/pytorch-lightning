@@ -29,7 +29,7 @@ if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
-    ReduceOp = Any  # type: ignore[assignment,misc]
+    ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
 
 
 _DictKey = TypeVar("_DictKey")
