@@ -359,6 +359,7 @@ def test_start_server_started():
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
         port=1111,
+        root_path="",
     )
 
     server_proc = mp.Process(target=start_server, kwargs=kwargs)
@@ -385,6 +386,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
+        root_path="test",
     )
 
     monkeypatch.setattr(api, "logger", logging.getLogger())
@@ -395,7 +397,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     assert "Your app has started. View it in your browser: http://0.0.0.1:1111/view" in caplog.text
 
     ui_refresher.assert_called_once()
-    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY)
+    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY, root_path="test")
 
 
 class InputRequestModel(BaseModel):
