@@ -14,7 +14,7 @@ class AppInfo:
     meta_tags: Optional[List[str]] = None
 
 
-def update_index_file_with_info(ui_root: str, info: AppInfo = None) -> None:
+def update_index_file(ui_root: str, info: Optional[AppInfo] = None, root_path: str = "") -> None:
     import shutil
     from pathlib import Path
 
@@ -27,19 +27,27 @@ def update_index_file_with_info(ui_root: str, info: AppInfo = None) -> None:
         # revert index.html in case it was modified after creating original.html
         shutil.copyfile(original_file, entry_file)
 
-    if not info:
-        return
+    if info:
+        with original_file.open() as f:
+            original = f.read()
 
-    original = ""
+        with entry_file.open("w") as f:
+            f.write(_get_updated_content(original=original, root_path=root_path, info=info))
 
-    with original_file.open() as f:
-        original = f.read()
+    if root_path:
+        root_path_without_slash = root_path.replace("/", "", 1) if root_path.startswith("/") else root_path
+        src_dir = Path(ui_root)
+        dst_dir = src_dir / root_path_without_slash
 
-    with entry_file.open("w") as f:
-        f.write(_get_updated_content(original=original, info=info))
+        if dst_dir.exists():
+            shutil.rmtree(dst_dir, ignore_errors=True)
+        # copy everything except the current root_path, this is to fix a bug if user specifies
+        # /abc at first and then /abc/def, server don't start
+        # ideally we should copy everything except custom root_path that user passed.
+        shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns(f"{root_path_without_slash}*"))
 
 
-def _get_updated_content(original: str, info: AppInfo) -> str:
+def _get_updated_content(original: str, root_path: str, info: AppInfo) -> str:
     soup = BeautifulSoup(original, "html.parser")
 
     # replace favicon
@@ -56,6 +64,11 @@ def _get_updated_content(original: str, info: AppInfo) -> str:
         soup.find("meta", {"property": "og:image"}).attrs["content"] = info.image
 
     if info.meta_tags:
-        soup.find("head").append(*[BeautifulSoup(meta, "html.parser") for meta in info.meta_tags])
+        for meta in info.meta_tags:
+            soup.find("head").append(BeautifulSoup(meta, "html.parser"))
 
-    return str(soup)
+    if root_path:
+        # this will be used by lightning app ui to add root_path to add requests
+        soup.find("head").append(BeautifulSoup(f'<script>window.app_prefix="{root_path}"</script>', "html.parser"))
+
+    return str(soup).replace("/static", f"{root_path}/static")

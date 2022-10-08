@@ -27,7 +27,8 @@ from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
 from lightning_app.utilities.cloud import is_running_in_cloud
-from lightning_app.utilities.enum import OpenAPITags
+from lightning_app.utilities.component import _context
+from lightning_app.utilities.enum import ComponentContext, OpenAPITags
 from lightning_app.utilities.imports import _is_starsessions_available
 
 if _is_starsessions_available():
@@ -256,7 +257,8 @@ async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
                 f.write(content)
                 done = content == b""
 
-        drive.put(filename)
+        with _context(ComponentContext.WORK):
+            drive.put(filename)
     return f"Successfully uploaded '{filename}' to the Drive"
 
 
@@ -266,6 +268,8 @@ async def healthz(response: Response):
     # check the queue status only if running in cloud
     if is_running_in_cloud():
         queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
+        # this is only being implemented on Redis Queue. For HTTP Queue, it doesn't make sense to have every single
+        # app checking the status of the Queue server
         if not queue_obj.is_running:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {"status": "failure", "reason": "Redis is not available"}
@@ -344,6 +348,7 @@ def start_server(
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
+    root_path: str = "",
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
     apis: Optional[List[HttpMethod]] = None,
@@ -380,6 +385,6 @@ def start_server(
 
         register_global_routes()
 
-        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
+        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", root_path=root_path)
 
     return refresher

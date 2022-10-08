@@ -359,6 +359,7 @@ def test_start_server_started():
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
         port=1111,
+        root_path="",
     )
 
     server_proc = mp.Process(target=start_server, kwargs=kwargs)
@@ -385,6 +386,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
+        root_path="test",
     )
 
     monkeypatch.setattr(api, "logger", logging.getLogger())
@@ -395,7 +397,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     assert "Your app has started. View it in your browser: http://0.0.0.1:1111/view" in caplog.text
 
     ui_refresher.assert_called_once()
-    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY)
+    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY, root_path="test")
 
 
 class InputRequestModel(BaseModel):
@@ -431,7 +433,7 @@ def target():
 
 
 def test_configure_api():
-
+    # Setup
     process = Process(target=target)
     process.start()
     time_left = 15
@@ -443,6 +445,13 @@ def test_configure_api():
             sleep(0.1)
             time_left -= 0.1
 
+    # Test Upload File
+    files = {"uploaded_file": open(__file__, "rb")}
+
+    response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
+    assert response.json() == "Successfully uploaded 'test' to the Drive"
+
+    # Test Custom Request
     response = requests.post(
         f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
     )
@@ -451,6 +460,8 @@ def test_configure_api():
         f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
     )
     assert response.json() == {"name": "hello", "counter": 2}
+
+    # Teardown
     time_left = 15
     while time_left > 0:
         if process.exitcode == 0:
