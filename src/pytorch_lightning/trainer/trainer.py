@@ -162,7 +162,7 @@ class Trainer:
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        inference_grad_mode: Optional[bool] = False,
+        inference_grad_mode: bool = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
