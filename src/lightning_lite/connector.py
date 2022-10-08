@@ -536,7 +536,7 @@ class _Connector:
         env_value: Optional[Union[str, int]] = os.environ.get("LT_" + name.upper())
 
         if env_value is None:
-            return default
+            return current
 
         if name == "precision":
             # TODO: support precision input as string, then this special handling is not needed
