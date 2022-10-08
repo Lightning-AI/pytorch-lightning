@@ -29,6 +29,54 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 class BatchSizeFinder(Callback):
+    """The ``BatchSizeFinder`` callback tries to find the largest batch size for a given model that does not give
+    an out of memory (OOM) error. All you need to do is add it as a callback inside Trainer and call
+    ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function ``steps_per_trial``
+    times for each batch size until one of the batch sizes generates an OOM error.
+
+    Args:
+        mode: search strategy to update the batch size:
+
+            - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
+            - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
+                do a binary search between the last successful batch size and the batch size that failed.
+
+        steps_per_trial: number of steps to run with a given batch size.
+            Ideally 1 should be enough to test if an OOM error occurs,
+            however in practice a few are needed.
+
+        init_val: initial batch size to start the search with.
+
+        max_trials: max number of increases in batch size done before
+            algorithm is terminated
+
+        batch_arg_name: name of the attribute that stores the batch size.
+            It is expected that the user has provided a model or datamodule that has a hyperparameter
+            with that name. We will look for this attribute name in the following places
+
+            - ``model``
+            - ``model.hparams``
+            - ``trainer.datamodule`` (the datamodule passed to the tune method)
+
+    Example::
+
+        class FineTuneBatchSizeFinder(BatchSizeFinder):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.milestones = milestones
+
+            def on_fit_start(self, *args, **kwargs):
+                return
+
+            def on_train_epoch_start(self, trainer, pl_module):
+                if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                    self.scale_batch_size(trainer, pl_module)
+
+
+        trainer = Trainer(callbacks=[FineTuneBatchSizeFinder(milestones=(5, 10))])
+        trainer.fit(...)
+    """
+
     SUPPORTED_MODES = ("power", "binsearch")
 
     def __init__(
@@ -39,38 +87,10 @@ class BatchSizeFinder(Callback):
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
     ) -> None:
-        """The ``BatchSizeFinder`` callback tries to find the largest batch size for a given model that does not
-        give an out of memory (OOM) error. All you need to do is add it as a callback inside Trainer and call
-        ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function
-        ``steps_per_trial`` times for each batch size until one of the batch sizes generates an OOM error.
-
-        Args:
-            mode: search strategy to update the batch size:
-
-                - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
-                - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
-                    do a binary search between the last successful batch size and the batch size that failed.
-
-            steps_per_trial: number of steps to run with a given batch size.
-                Ideally 1 should be enough to test if an OOM error occurs,
-                however in practice a few are needed.
-
-            init_val: initial batch size to start the search with.
-
-            max_trials: max number of increases in batch size done before
-               algorithm is terminated
-
-            batch_arg_name: name of the attribute that stores the batch size.
-                It is expected that the user has provided a model or datamodule that has a hyperparameter
-                with that name. We will look for this attribute name in the following places
-
-                - ``model``
-                - ``model.hparams``
-                - ``trainer.datamodule`` (the datamodule passed to the tune method)
-        """
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
             raise ValueError(f"`mode` should be either of {self.SUPPORTED_MODES}")
+
         self.optimal_batch_size: Optional[int] = init_val
         self._mode = mode
         self._steps_per_trial = steps_per_trial
