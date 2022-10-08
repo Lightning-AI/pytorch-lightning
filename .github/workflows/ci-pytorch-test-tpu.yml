@@ -30,8 +30,7 @@ env:
 jobs:
   test-on-tpus:
     runs-on: ubuntu-22.04
-    # FIXME: uncomment after finished
-    # if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false
     env:
       PYTHON_VER: 3.7
     timeout-minutes: 100  # should match the timeout in `tpu_test_cases.jsonnet`
@@ -115,6 +114,7 @@ jobs:
       if: success()
       run: |
         mv ./xx01 coverage.xml
+        pip install coverage -q
         coverage report
         coverage xml
 
