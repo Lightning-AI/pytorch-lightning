@@ -18,7 +18,6 @@ import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPStrategy
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
@@ -71,12 +70,3 @@ def test_model_parallel_setup_called(tmpdir):
     trainer.fit(model)
 
     assert model.configure_sharded_model_called
-
-
-@pytest.mark.parametrize(
-    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
-)
-def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
-
-    trainer = Trainer(strategy=strategy)
-    assert isinstance(trainer.strategy, strategy_cls)
