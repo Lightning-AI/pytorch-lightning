@@ -2236,7 +2236,7 @@ class Trainer:
 
 
 @contextmanager
-def _evaluation_context(accelerator: Accelerator, grad_mode: Optional[bool] = False) -> Generator:
+def _evaluation_context(accelerator: Accelerator, inference_grad_mode: bool = False) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
 
