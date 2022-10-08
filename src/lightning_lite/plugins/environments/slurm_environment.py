@@ -144,7 +144,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return nodes.split(" ")[0].split(",")[0]
 
     @staticmethod
-    def _validate_srun_variables():
+    def _validate_srun_variables() -> None:
         """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error
         message.
 
