@@ -26,6 +26,7 @@ from lightning_lite.utilities.types import Steppable
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
+_APEX_AVAILABLE = RequirementCache("apex")
 
 
 class DeepSpeedPrecision(Precision):
@@ -47,7 +48,7 @@ class DeepSpeedPrecision(Precision):
 
     def __init__(self, precision: Literal[16, 32, "bf16"], amp_type: str, amp_level: Optional[str] = None) -> None:
         if amp_type == AMPType.APEX:
-            if not RequirementCache("apex"):
+            if not _APEX_AVAILABLE:
                 raise ModuleNotFoundError(
                     "You have asked for Apex AMP but `apex` is not installed."
                     " Install `apex` using this guide: https://github.com/NVIDIA/apex"
