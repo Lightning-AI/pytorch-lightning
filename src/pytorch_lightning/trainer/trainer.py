@@ -391,7 +391,6 @@ class Trainer:
                 Default: ``"max_size_cycle"``.
 
             inference_grad_mode: Controls if autograd is used in the inference phase, such as during model testing.
-                Default: ``False``.
         """
         super().__init__()
         Trainer._log_api_event("init")
