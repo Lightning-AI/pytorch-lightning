@@ -66,7 +66,8 @@ def test_accelerator_choice_tpu(accelerator, devices):
     connector = _Connector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
     if devices is None or (isinstance(devices, int) and devices > 1):
-        # TODO: accelerator=tpu, devices=None (default) should imply SingleTPUStrategy
+        # accelerator=tpu, devices=None (default) maps to devices=auto (8) and then chooses XLAStrategy
+        # This behavior may change in the future: https://github.com/Lightning-AI/lightning/issues/10606
         assert isinstance(connector.strategy, XLAStrategy)
     else:
         assert isinstance(connector.strategy, SingleTPUStrategy)
