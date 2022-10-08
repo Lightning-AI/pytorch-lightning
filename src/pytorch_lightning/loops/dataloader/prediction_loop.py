@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional, Sequence, Union
 
 from torch.utils.data import DataLoader
 
@@ -52,7 +52,7 @@ class PredictionLoop(DataLoaderLoop):
         return length
 
     @property
-    def max_batches(self) -> List[int]:
+    def max_batches(self) -> List[Union[int, float]]:
         """The max number of batches this loop will run for each dataloader."""
         return self.trainer.num_predict_batches
 

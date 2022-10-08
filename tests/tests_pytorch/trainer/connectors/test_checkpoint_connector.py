@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import Mock
+from unittest import mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -53,7 +54,8 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert not connector._loaded_checkpoint
 
 
-def test_hpc_restore_attempt(tmpdir):
+@mock.patch("lightning_lite.plugins.environments.slurm_environment.SLURMEnvironment.detect", return_value=True)
+def test_hpc_restore_attempt(_, tmpdir):
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
@@ -75,12 +77,11 @@ def test_hpc_restore_attempt(tmpdir):
         assert param.abs().sum() > 0
         torch.nn.init.constant_(param, 0)
 
-    # case 2: explicit resume path provided, restore hpc anyway
+    # case 2: explicit resume path provided, file not found
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
-    trainer.fit(model, ckpt_path="not existing")
 
-    for param in model.parameters():
-        assert param.abs().sum() > 0
+    with pytest.raises(FileNotFoundError, match="Checkpoint at not existing not found. Aborting training."):
+        trainer.fit(model, ckpt_path="not existing")
 
 
 def test_hpc_max_ckpt_version(tmpdir):
@@ -125,7 +126,7 @@ def test_loops_restore(tmpdir):
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
             trainer_fn = getattr(trainer, f"{fn}_loop")
-            trainer_fn.load_state_dict = Mock()
+            trainer_fn.load_state_dict = mock.Mock()
 
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:

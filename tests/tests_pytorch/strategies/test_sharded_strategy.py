@@ -5,9 +5,10 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
@@ -56,6 +57,7 @@ def test_ddp_choice_sharded_amp(strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=1, precision=16, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
+    assert isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin)
 
 
 @RunIf(fairscale=True)
