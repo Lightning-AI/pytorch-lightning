@@ -25,6 +25,7 @@ from lightning_lite.cli import main as cli_main
 def test_cli_env_vars_defaults(*_):
     with mock.patch("sys.argv", ["cli.py", "script.py"]):
         cli_main()
+    assert os.environ["LT_CLI_USED"] == "1"
     assert os.environ["LT_ACCELERATOR"] == "cpu"
     assert "LT_STRATEGY" not in os.environ
     assert os.environ["LT_DEVICES"] == "1"

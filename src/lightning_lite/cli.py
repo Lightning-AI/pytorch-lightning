@@ -94,6 +94,7 @@ def _set_env_variables(args: Namespace) -> None:
 
     The Lite connector will parse the arguments set here.
     """
+    os.environ["LT_CLI_USED"] = "1"
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
