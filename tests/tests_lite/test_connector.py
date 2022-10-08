@@ -162,21 +162,21 @@ def test_custom_accelerator(*_):
     class Strat(SingleDeviceStrategy):
         pass
 
-    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
+    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
     assert isinstance(connector.strategy, Strat)
-    assert isinstance(connector.precision_plugin, Prec)
+    assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
     class Strat(DDPStrategy):
         pass
 
-    strategy = Strat(accelerator=Accel(), precision_plugin=Prec())
+    strategy = Strat(accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
     assert isinstance(connector.strategy, Strat)
-    assert isinstance(connector.precision_plugin, Prec)
+    assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
 
@@ -385,7 +385,7 @@ def test_strategy_choice_gpu_str(strategy, strategy_class):
 def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
     connector = _Connector(strategy=strategy, devices=1, precision=precision)
     assert isinstance(connector.strategy, expected_strategy)
-    assert isinstance(connector.precision_plugin, expected_precision)
+    assert isinstance(connector.precision, expected_precision)
 
 
 @RunIf(min_cuda_gpus=2)
@@ -735,11 +735,10 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     plugin = None
     if is_custom_plugin:
         plugin = plugin_cls(16, "cpu")
-
-    trainer = _Connector(
+    connector = _Connector(
         precision=16,
         devices=devices,
         strategy=strategy,
         plugins=plugin,
     )
-    assert isinstance(trainer.precision_plugin, plugin_cls)
+    assert isinstance(connector.precision, plugin_cls)
