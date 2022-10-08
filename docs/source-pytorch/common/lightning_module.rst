@@ -55,7 +55,7 @@ Notice a few things.
 
         # or to init a new tensor
         new_x = torch.Tensor(2, 3)
-        new_x = new_x.type_as(x)
+        new_x = new_x.to(x)
 
 5. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
 

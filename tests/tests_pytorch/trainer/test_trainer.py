@@ -61,7 +61,7 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -69,11 +69,6 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 def test_trainer_error_when_input_not_lightning_module():
@@ -1125,7 +1120,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            torch_test_assert_close(grad_norm, torch.tensor(0.05, device=self.device))
+            torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1156,7 +1151,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            torch_test_assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
+            torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
