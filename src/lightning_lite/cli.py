@@ -20,6 +20,10 @@ import torch.distributed.run as torchrun
 
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 
+_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
+_SUPPORTED_STRATEGIES = (None, "ddp", "dp", "deepspeed")
+_SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
+
 
 def _parse_args() -> Tuple[Namespace, List[str]]:
     parser = ArgumentParser(
@@ -30,14 +34,14 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
         "--accelerator",
         type=str,
         default="cpu",
-        choices=("cpu", "gpu", "cuda", "mps", "tpu"),
+        choices=_SUPPORTED_ACCELERATORS,
         help="The hardware accelerator to run on.",
     )
     parser.add_argument(
         "--strategy",
         type=str,
         default=None,
-        choices=(None, "ddp", "dp", "deepspeed"),
+        choices=_SUPPORTED_STRATEGIES,
         help="Strategy for how to run across multiple devices.",
     )
     parser.add_argument(
@@ -80,7 +84,7 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
         "--precision",
         type=str,
         default="32",
-        choices=("64", "32", "16", "bf16"),
+        choices=_SUPPORTED_PRECISION,
         help=(
             "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
             " (``'bf16'``)"
