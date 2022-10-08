@@ -48,7 +48,7 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
     # with lightning
     def forward(self, x):
         z = torch.Tensor(2, 3)
-        z = z.Tensor.to(x)
+        z = z.to(x)
 
 The :class:`~pytorch_lightning.core.module.LightningModule` knows what device it is on. You can access the reference via ``self.device``.
 Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
