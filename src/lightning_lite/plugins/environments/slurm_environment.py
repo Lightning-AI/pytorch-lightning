@@ -18,8 +18,6 @@ import re
 import signal
 from typing import Optional
 
-from lightning_utilities.core.rank_zero import rank_zero_warn
-
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _IS_WINDOWS
 
@@ -150,13 +148,12 @@ class SLURMEnvironment(ClusterEnvironment):
         """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error
         message.
 
-        Right now, we only check for the most commond user errors. See `the srun docs
+        Right now, we only check for the most common user errors. See `the srun docs
         <https://slurm.schedmd.com/srun.html>`_ for a complete list of supported srun variables.
         """
-
         ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
         if ntasks > 1:
-            raise rank_zero_warn(
+            raise RuntimeError(
                 f"You set `--ntasks={ntasks}` in your SLURM bash script, but this variable is not supported. Please use"
                 f" `--ntasks-per-node={ntasks}` instead."
             )
