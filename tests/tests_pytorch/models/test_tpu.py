@@ -260,12 +260,12 @@ def test_exception_when_no_tpu_found(xla_available):
         Trainer(accelerator="tpu", devices=8)
 
 
-@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
+@pytest.mark.parametrize("devices", [1, 8, [1]])
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_accelerator_set_when_using_tpu(tpu_cores):
-    """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
-    assert isinstance(Trainer(accelerator="tpu", devices=tpu_cores).accelerator, TPUAccelerator)
+def test_accelerator_set_when_using_tpu(devices):
+    """Test if the accelerator is set to `tpu` when devices is not None."""
+    assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, TPUAccelerator)
 
 
 @pytest.mark.parametrize(
@@ -286,31 +286,6 @@ def test_tpu_cores_with_argparse(cli_args, expected):
         assert getattr(args, k) == v
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         assert Trainer.from_argparse_args(args)
-
-
-@RunIf(min_torch="1.10")
-@pytest.mark.parametrize("clip_val", [0, 10])
-@mock.patch("torch.nn.utils.clip_grad_norm_")
-def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
-    """Ensure that clip gradients is only called if the value is greater than 0."""
-    # TODO: shouldn't be in the TPU file
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        devices=1,
-        precision=16,
-        limit_train_batches=4,
-        limit_val_batches=0,
-        gradient_clip_val=clip_val,
-    )
-    trainer.fit(model)
-
-    if clip_val > 0:
-        mock_clip_grad_norm.assert_called()
-    else:
-        mock_clip_grad_norm.assert_not_called()
 
 
 @RunIf(tpu=True)

@@ -58,12 +58,14 @@ def test_accelerator_choice_cpu():
 
 
 @RunIf(tpu=True, standalone=True)
-@pytest.mark.parametrize(["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", 8), ("auto", 1), ("auto", 8)])
+@pytest.mark.parametrize(
+    ["accelerator", "devices"], [("tpu", None), ("tpu", 1), ("tpu", [1]), ("tpu", 8), ("auto", 1), ("auto", 8)]
+)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_accelerator_choice_tpu(accelerator, devices):
     connector = _Connector(accelerator=accelerator, devices=devices)
     assert isinstance(connector.accelerator, TPUAccelerator)
-    if devices is None or devices > 1:
+    if devices is None or (isinstance(devices, int) and devices > 1):
         # TODO: accelerator=tpu, devices=None (default) should imply SingleTPUStrategy
         assert isinstance(connector.strategy, XLAStrategy)
     else:
@@ -273,7 +275,7 @@ def test_strategy_choice_multi_node_gpu(_, strategy, strategy_class, devices):
 
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
-def test_accelerator_cpu(_):
+def test_cuda_accelerator_can_not_run_on_system(_):
     connector = _Connector(accelerator="cpu")
     assert isinstance(connector.accelerator, CPUAccelerator)
 
@@ -282,6 +284,13 @@ def test_accelerator_cpu(_):
         match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         _Connector(accelerator="cuda", devices=1)
+
+
+@pytest.mark.skipif(TPUAccelerator.is_available(), reason="test requires missing TPU")
+@mock.patch("lightning_lite.accelerators.tpu._XLA_AVAILABLE", True)
+def test_tpu_accelerator_can_not_run_on_system():
+    with pytest.raises(RuntimeError, match="TPUAccelerator` can not run on your system"):
+        _Connector(accelerator="tpu", devices=8)
 
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -607,7 +616,7 @@ def test_unsupported_tpu_choice(tpu_available):
     with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         _Connector(accelerator="tpu", precision=64)
 
-    # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or TPUSpawnStrategy
+    # if user didn't set strategy, _Connector will choose the TPUSingleStrategy or XLAStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
         UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
     ):
@@ -655,7 +664,7 @@ def test_devices_auto_choice_mps():
     ["parallel_devices", "accelerator"],
     [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], "tpu")],
 )
-def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
+def test_parallel_devices_in_strategy_conflict_with_accelerator(parallel_devices, accelerator):
     with pytest.raises(ValueError, match=r"parallel_devices set through"):
         _Connector(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
