@@ -10,13 +10,11 @@ from torch.utils.data import Dataset, DistributedSampler, Sampler
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _HPU_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_info
+from lightning_lite.utilities.types import ReduceOp
 
 if torch.distributed.is_available():
-    from torch.distributed import group, ReduceOp
+    from torch.distributed import group
 else:
-
-    class ReduceOp:  # type: ignore # (see https://github.com/python/mypy/issues/1153)
-        SUM = None
 
     class group:  # type: ignore
         WORLD = None

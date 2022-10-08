@@ -18,15 +18,9 @@ import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 @pytest.mark.parametrize(
@@ -57,7 +51,7 @@ def test_evaluate(tmpdir, trainer_kwargs):
 
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
-    torch_test_assert_close(old_weights, new_weights)
+    torch.testing.assert_close(old_weights, new_weights)
 
 
 def test_model_parallel_setup_called(tmpdir):
