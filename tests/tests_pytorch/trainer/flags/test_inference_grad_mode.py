@@ -35,6 +35,6 @@ class _BoringModelForNoGrad(BoringModel):
 def test_inference_grad_mode():
     """Testing overwriting trainer arguments."""
     trainer = Trainer(logger=False, inference_grad_mode=True)
-    trainer.test(_BoringModelForEnableGrad())
+    trainer.test(_BoringModelForEnableGrad(), fast_dev_run=True)
     trainer = Trainer(logger=False, inference_grad_mode=False)
-    trainer.test(_BoringModelForNoGrad())
+    trainer.test(_BoringModelForNoGrad(), fast_dev_run=True)
