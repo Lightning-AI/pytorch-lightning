@@ -106,14 +106,14 @@ def _set_env_variables(args: Namespace) -> None:
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
     if accelerator in ("cuda", "gpu"):
-        devices = CUDAAccelerator.parse_devices(devices)
+        parsed_devices = CUDAAccelerator.parse_devices(devices)
     elif accelerator in ("mps", "gpu"):
-        devices = MPSAccelerator.parse_devices(devices)
+        parsed_devices = MPSAccelerator.parse_devices(devices)
     elif accelerator == "tpu":
         raise ValueError("Launching processes for TPU through the CLI is not supported.")
     else:
         return CPUAccelerator.parse_devices(devices)
-    return len(devices) if devices is not None else 0
+    return len(parsed_devices) if parsed_devices is not None else 0
 
 
 def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:

@@ -372,23 +372,21 @@ class LightningLite(ABC):
         return self._strategy.load_checkpoint(filepath)
 
     def launch(self, function: Optional[Callable[["LightningLite"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
-        function = _do_nothing if function is None else function
         if _is_using_cli():
             raise RuntimeError(
                 "This script was launched through the CLI, and processes have already been created. Calling "
                 " `.launch()` again is not allowed."
             )
-        if not inspect.signature(function).parameters:
+        if function is not None and not inspect.signature(function).parameters:
             raise TypeError(
                 "The function passed to `Lite.launch()` needs to take at least one argument. The launcher will pass"
                 " in the `LightningLite` object so you can use it inside the function."
             )
-        function = partial(self._run_with_setup, function)
+        function = partial(self._run_with_setup, function or _do_nothing)
         args = [self, *args]
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(function, *args, **kwargs)
-        else:
-            return function(*args, **kwargs)
+        return function(*args, **kwargs)
 
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:

@@ -533,7 +533,10 @@ class _Connector:
 
     @staticmethod
     def _argument_from_env(name: str, current: Any, default: Any) -> Any:
-        env_value = os.environ.get("LT_" + name.upper())
+        env_value: Optional[Union[str, int]] = os.environ.get("LT_" + name.upper())
+
+        if env_value is None:
+            return default
 
         if name == "precision":
             # TODO: support precision input as string, then this special handling is not needed
