@@ -100,6 +100,7 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
     connector.teardown()
 
 
+@RunIf(skip_windows=True)
 @mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call", mock.MagicMock(return_value=0))
 @mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12345"})
@@ -115,6 +116,7 @@ def test_auto_requeue_job():
     connector.teardown()
 
 
+@RunIf(skip_windows=True)
 @mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call", mock.MagicMock(return_value=0))
 @mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12346", "SLURM_ARRAY_JOB_ID": "12345", "SLURM_ARRAY_TASK_ID": "2"})
