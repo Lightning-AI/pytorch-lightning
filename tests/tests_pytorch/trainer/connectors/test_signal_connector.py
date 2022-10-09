@@ -105,33 +105,24 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
 @mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12345"})
 def test_auto_requeue_job(call_mock):
-    # from pytorch_lightning.trainer.connectors.signal_connector import call
     call_mock.return_value = 0
-
     trainer = Trainer(plugins=[SLURMEnvironment()])
     connector = SignalConnector(trainer)
-    connector.slurm_sigusr_handler_fn(signal.SIGUSR1, None)
-
-    print("list", call_mock.call_args_list[0])
-    print("args", call_mock.call_args_list[0].args)
-    assert call_mock.call_args_list[0].args[0] == ["scontrol", "requeue", "12345"]
-
+    connector.slurm_sigusr_handler_fn(None, None)
+    call_mock.assert_called_once_with(["scontrol", "requeue", "12345"])
     connector.teardown()
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call", mock.MagicMock(return_value=0))
+@mock.patch("pytorch_lightning.trainer.connectors.signal_connector.call")
 @mock.patch("pytorch_lightning.trainer.Trainer.save_checkpoint", mock.MagicMock())
 @mock.patch.dict(os.environ, {"SLURM_JOB_ID": "12346", "SLURM_ARRAY_JOB_ID": "12345", "SLURM_ARRAY_TASK_ID": "2"})
-def test_auto_requeue_array_job():
-    from pytorch_lightning.trainer.connectors.signal_connector import call
-
+def test_auto_requeue_array_job(call_mock):
+    call_mock.return_value = 0
     trainer = Trainer(plugins=[SLURMEnvironment()])
     connector = SignalConnector(trainer)
-    connector.slurm_sigusr_handler_fn(signal.SIGUSR1, None)
-
-    assert call.call_args_list[0].args[0] == ["scontrol", "requeue", "12345_2"]
-
+    connector.slurm_sigusr_handler_fn(None, None)
+    call_mock.assert_called_once_with(["scontrol", "requeue", "12345_2"])
     connector.teardown()
 
 
