@@ -162,7 +162,7 @@ class Trainer:
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        inference_grad_mode: bool = True,
+        inference_grad_mode: bool = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -390,7 +390,7 @@ class Trainer:
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
 
-            inference_grad_mode: Controls if autograd is used in the inference phase, such as during model testing.
+            inference_grad_mode: Controls if autograd is turned on during the inference phase, such as during model testing.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -2247,8 +2247,9 @@ def _evaluation_context(accelerator: Accelerator, inference_grad_mode: bool = Fa
         else torch.no_grad
     )
 
-    if not inference_grad_mode:
-        context_manager_class = torch.no_grad
+    if inference_grad_mode:
+        context_manager_class = torch.enable_grad
+   
 
     with context_manager_class():
         yield
