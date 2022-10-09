@@ -2249,7 +2249,6 @@ def _evaluation_context(accelerator: Accelerator, inference_grad_mode: bool = Fa
 
     if inference_grad_mode:
         context_manager_class = torch.enable_grad
-   
 
     with context_manager_class():
         yield
