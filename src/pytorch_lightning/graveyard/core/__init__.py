@@ -1,10 +1,4 @@
-import sys
-
 from pytorch_lightning import LightningModule
-
-self = sys.modules[__name__]
-sys.modules["pytorch_lightning.core"] = self
-sys.modules["pytorch_lightning.core.module"] = self
 
 
 def _use_amp(_: LightningModule) -> None:

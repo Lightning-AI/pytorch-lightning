@@ -4,8 +4,6 @@ from typing import Any, Optional
 from pytorch_lightning import Trainer
 
 self = sys.modules[__name__]
-sys.modules["pytorch_lightning.trainer"] = self
-sys.modules["pytorch_lightning.trainer.trainer"] = self
 sys.modules["pytorch_lightning.trainer.data_loading"] = self
 sys.modules["pytorch_lightning.trainer.optimizers"] = self
 
