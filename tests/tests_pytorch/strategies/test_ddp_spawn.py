@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer import Trainer
@@ -23,8 +22,6 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 @RunIf(min_cuda_gpus=2)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
-    tutils.set_random_main_port()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         callbacks=[EarlyStopping(monitor="train_acc")],
@@ -43,8 +40,6 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 @RunIf(min_cuda_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
-    tutils.set_random_main_port()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -64,8 +59,6 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 @RunIf(min_cuda_gpus=2)
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
-    tutils.set_random_main_port()
-
     model = BoringModel()
 
     trainer = Trainer(
