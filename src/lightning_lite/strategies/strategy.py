@@ -44,11 +44,11 @@ class Strategy(ABC):
         self,
         accelerator: Optional[Accelerator] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ) -> None:
         self._accelerator: Optional[Accelerator] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[Precision] = precision_plugin
+        self._precision: Optional[Precision] = precision
         self._launcher: Optional[_Launcher] = None
 
     @property
@@ -84,12 +84,12 @@ class Strategy(ABC):
         self._checkpoint_io = io
 
     @property
-    def precision_plugin(self) -> Precision:
-        return self._precision_plugin if self._precision_plugin is not None else Precision()
+    def precision(self) -> Precision:
+        return self._precision if self._precision is not None else Precision()
 
-    @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
-        self._precision_plugin = precision_plugin
+    @precision.setter
+    def precision(self, precision: Optional[Precision]) -> None:
+        self._precision = precision
 
     def _configure_launcher(self) -> None:
         """Attach the launcher based on Strategy."""
@@ -160,9 +160,9 @@ class Strategy(ABC):
 
     def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
-        self.precision_plugin.pre_backward(tensor, module)
-        self.precision_plugin.backward(tensor, module, *args, **kwargs)
-        self.precision_plugin.post_backward(tensor, module)
+        self.precision.pre_backward(tensor, module)
+        self.precision.backward(tensor, module, *args, **kwargs)
+        self.precision.post_backward(tensor, module)
 
     def optimizer_step(
         self,
@@ -175,7 +175,7 @@ class Strategy(ABC):
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return self.precision_plugin.optimizer_step(optimizer, **kwargs)
+        return self.precision.optimizer_step(optimizer, **kwargs)
 
     @abstractmethod
     def reduce(
@@ -288,7 +288,7 @@ class Strategy(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        self.precision_plugin.teardown()
+        self.precision.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
         self.checkpoint_io.teardown()
