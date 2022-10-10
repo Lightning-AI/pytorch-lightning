@@ -28,6 +28,7 @@ from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from tests.tests_pytorch.helpers.runif import RunIf
 
 
 class CustomLogger(Logger):
@@ -322,6 +323,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         trainer.fit(model, dm)
 
 
+@RunIf(min_python="3.8")
 @pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
 @patch("pytorch_lightning.callbacks.ModelCheckpoint")
 def test_scan_checkpoints(checkpoint_callback_mock, tmpdir, save_top_k: int):
