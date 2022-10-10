@@ -280,7 +280,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
 
 
 def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
-    """Re-instantiates a PL-PrecisionPlugin as the corresponding Lite precision."""
+    """Re-instantiates a PL-PrecisionPlugin as the corresponding Lite-Precision plugin."""
 
     if type(plugin) is PLPrecisionPlugin:
         return LitePrecision()
