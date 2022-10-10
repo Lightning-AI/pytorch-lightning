@@ -221,7 +221,7 @@ def test_dist_backend_accelerator_mapping(*_):
 @RunIf(mps=False)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_ipython_incompatible_backend_error(_, monkeypatch):
-    monkeypatch.setattr(lightning_lite.utilities.imports, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning_lite.connector, "_IS_INTERACTIVE", True)
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         _Connector(strategy="ddp", accelerator="gpu", devices=2)
 
