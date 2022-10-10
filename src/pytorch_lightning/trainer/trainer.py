@@ -1752,7 +1752,7 @@ class Trainer:
         return getattr(self.precision_plugin, "scaler", None)
 
     @property
-    def model(self) -> torch.nn.Module:
+    def model(self) -> Optional[torch.nn.Module]:
         """The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
 
         To access the pure LightningModule, use
