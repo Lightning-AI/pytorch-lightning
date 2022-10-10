@@ -46,7 +46,7 @@ def test_v2_0_0_deprecated_ipus(_, monkeypatch):
         _ = Trainer(ipus=4)
 
 
-def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+def test_v2_0_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     # test resume_from_checkpoint still works until v2.0 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
@@ -86,7 +86,7 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
         trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
 
 
-def test_v1_2_0_callback_on_load_checkpoint_hook(tmpdir):
+def test_v2_0_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
         def on_load_checkpoint(self, trainer, pl_module, callback_state):
             print("overriding on_load_checkpoint")
@@ -106,7 +106,7 @@ def test_v1_2_0_callback_on_load_checkpoint_hook(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_2_0_callback_on_save_checkpoint_hook(tmpdir):
+def test_v2_0_0_callback_on_save_checkpoint_hook(tmpdir):
     class TestCallbackSaveHookReturn(Callback):
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             return {"returning": "on_save_checkpoint"}
