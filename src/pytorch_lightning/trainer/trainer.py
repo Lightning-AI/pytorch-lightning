@@ -162,7 +162,7 @@ class Trainer:
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        inference_grad_mode: bool = False,
+        eval_inference_mode: bool = True,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -390,7 +390,7 @@ class Trainer:
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
 
-            inference_grad_mode: Controls if autograd is turned on during the inference phase, such as during model testing.
+            eval_inference_mode: Control whether to use inference mode or no grad mode during evaluation.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -490,7 +490,7 @@ class Trainer:
         )
         self.track_grad_norm: float = float(track_grad_norm)
 
-        self._inference_grad_mode: str = inference_grad_mode
+        self._eval_inference_mode: str = eval_inference_mode
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
@@ -1175,7 +1175,7 @@ class Trainer:
         self._evaluation_loop.trainer = self
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(
-            self.accelerator, self._inference_grad_mode
+            self.accelerator, self._eval_inference_mode
         ):
             eval_loop_results = self._evaluation_loop.run()
 
@@ -1192,7 +1192,7 @@ class Trainer:
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context(self.accelerator, self._inference_grad_mode):
+        with _evaluation_context(self.accelerator, self._eval_inference_mode):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -2235,7 +2235,7 @@ class Trainer:
 
 
 @contextmanager
-def _evaluation_context(accelerator: Accelerator, inference_grad_mode: bool = False) -> Generator:
+def _evaluation_context(accelerator: Accelerator, eval_inference_mode: bool = False) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
 
@@ -2247,8 +2247,8 @@ def _evaluation_context(accelerator: Accelerator, inference_grad_mode: bool = Fa
         else torch.no_grad
     )
 
-    if inference_grad_mode:
-        context_manager_class = torch.enable_grad
+    if not eval_inference_mode:
+        context_manager_class = torch.no_grad
 
     with context_manager_class():
         yield
