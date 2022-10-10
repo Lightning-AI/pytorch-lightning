@@ -40,6 +40,8 @@ _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
 if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
     with _patch_cuda_is_available():
         from colossalai.utils.model.colo_init_context import ColoInitContext
+else:
+    ColoInitContext = Any
 
 
 class ColossalAIStrategy(DDPStrategy):
