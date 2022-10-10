@@ -14,8 +14,6 @@
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -33,8 +31,6 @@ from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
     ),
 )
 def test_evaluate(tmpdir, trainer_kwargs):
-    tutils.set_random_main_port()
-    seed_everything(1)
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
     trainer = Trainer(
