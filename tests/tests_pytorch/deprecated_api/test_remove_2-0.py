@@ -101,7 +101,7 @@ def test_v1_2_0_callback_on_load_checkpoint_hook(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.raises(
-        TypeError, match="`TestCallbackLoadHook.on_load_checkpoint` has changed its signature and behavior in v1.8."
+        RuntimeError, match="`TestCallbackLoadHook.on_load_checkpoint` has changed its signature and behavior in v1.8."
     ):
         trainer.fit(model)
 
