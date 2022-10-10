@@ -100,6 +100,7 @@ jobs:
        done
        echo "Done waiting. Job status code: $status_code"
        kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
+       echo /tmp/full_output.txt
        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt; then
          csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/';
        else
