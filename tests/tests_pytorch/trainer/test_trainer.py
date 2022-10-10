@@ -32,13 +32,12 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
-import lightning_lite
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -62,19 +61,14 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from tests_pytorch.conftest import mock_cuda_count
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 def test_trainer_error_when_input_not_lightning_module():
@@ -776,6 +770,40 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
         assert trainer.ckpt_path == final_path
 
 
+def test_checkpoint_find_last(tmpdir):
+    """Test that the last checkpoint is found correctly."""
+    model = BoringModel()
+    mc = ModelCheckpoint(save_last=True)
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+    )
+    assert trainer.ckpt_path is None
+    trainer.fit(model)
+
+    model = BoringModel()
+    mc = ModelCheckpoint()
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+    )
+    assert trainer.ckpt_path is None
+    trainer.fit(model, ckpt_path="last")
+    assert trainer.ckpt_path == str(tmpdir / "checkpoints" / "last.ckpt")
+
+
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
@@ -810,9 +838,9 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
         if save_top_k == 0:
-            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+            with pytest.raises(ValueError, match=".*is not configured to save the best.*"):
                 trainer_fn(ckpt_path=ckpt_path)
-            with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
+            with pytest.raises(ValueError, match=".*is not configured to save the best.*"):
                 trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
@@ -885,9 +913,9 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
         trainer_fn(model, ckpt_path="best")
         assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     else:
-        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+        with pytest.raises(ValueError, match="`ModelCheckpoint` is not configured."):
             trainer_fn(ckpt_path="best")
-        with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
+        with pytest.raises(ValueError, match="`ModelCheckpoint` is not configured."):
             trainer_fn(model, ckpt_path="best")
 
 
@@ -1073,8 +1101,6 @@ def test_on_exception_hook(tmpdir):
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
@@ -1092,7 +1118,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            torch_test_assert_close(grad_norm, torch.tensor(0.05, device=self.device))
+            torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1103,8 +1129,6 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
@@ -1123,7 +1147,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            torch_test_assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
+            torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1681,7 +1705,7 @@ def test_check_val_every_n_epoch_exception(tmpdir):
 def test_exception_when_testing_or_validating_with_fast_dev_run():
     trainer = Trainer(fast_dev_run=True)
     trainer.state.fn = TrainerFn.TESTING
-    with pytest.raises(MisconfigurationException, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
+    with pytest.raises(ValueError, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
         trainer._checkpoint_connector._set_ckpt_path(
             trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
         )
@@ -1728,7 +1752,6 @@ class TestDummyModelForCheckpoint(BoringModel):
 @RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
-    tutils.set_random_main_port()
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
@@ -2181,10 +2204,9 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     if trainer_kwargs.get("accelerator") in ("cuda", "gpu"):
         mock_cuda_count(monkeypatch, 4)
     elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
-        monkeypatch.setattr(lightning_lite.utilities.device_parser, "_get_all_available_mps_gpus", lambda: [0])
-        monkeypatch.setattr(MPSAccelerator, "is_available", lambda *_: True)
+        mock_mps_count(monkeypatch, 1)
     elif trainer_kwargs.get("accelerator") == "ipu":
-        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
         monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
 
     trainer = Trainer(**trainer_kwargs)

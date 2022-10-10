@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Houses the methods used to set up the Trainer."""
 
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
+import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
     CUDAAccelerator,
@@ -33,13 +33,13 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
-def init_debugging_flags(
-    trainer: Any,
+def _init_debugging_flags(
+    trainer: "pl.Trainer",
     limit_train_batches: Optional[Union[int, float]],
     limit_val_batches: Optional[Union[int, float]],
     limit_test_batches: Optional[Union[int, float]],
@@ -128,7 +128,7 @@ def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> 
     )
 
 
-def init_profiler(trainer: Any, profiler: Optional[Union[Profiler, str]]) -> None:
+def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str]]) -> None:
     if isinstance(profiler, str):
         PROFILERS = {
             "simple": SimpleProfiler,
@@ -147,8 +147,7 @@ def init_profiler(trainer: Any, profiler: Optional[Union[Profiler, str]]) -> Non
     trainer.profiler = profiler or PassThroughProfiler()
 
 
-def log_device_info(trainer: Any) -> None:
-
+def _log_device_info(trainer: "pl.Trainer") -> None:
     if CUDAAccelerator.is_available():
         gpu_available = True
         gpu_type = " (cuda)"
@@ -163,7 +162,7 @@ def log_device_info(trainer: Any) -> None:
     rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, TPUAccelerator) else 0
-    rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
+    rank_zero_info(f"TPU available: {TPUAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
     num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
     rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
@@ -179,7 +178,7 @@ def log_device_info(trainer: Any) -> None:
             category=PossibleUserWarning,
         )
 
-    if _TPU_AVAILABLE and not isinstance(trainer.accelerator, TPUAccelerator):
+    if TPUAccelerator.is_available() and not isinstance(trainer.accelerator, TPUAccelerator):
         rank_zero_warn(
             "TPU available but not used. Set `accelerator` and `devices` using"
             f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."

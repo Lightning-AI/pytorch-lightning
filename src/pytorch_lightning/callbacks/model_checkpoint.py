@@ -25,7 +25,7 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set
 from weakref import proxy
 
 import numpy as np
@@ -39,7 +39,7 @@ from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -238,6 +238,7 @@ class ModelCheckpoint(Checkpoint):
         self.last_model_path = ""
 
         self.kth_value: Tensor
+        self.dirpath: Optional[_PATH]
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
@@ -255,8 +256,9 @@ class ModelCheckpoint(Checkpoint):
         )
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
-        self.__resolve_ckpt_dir(trainer)
-        assert self.dirpath is not None
+        dirpath = self.__resolve_ckpt_dir(trainer)
+        dirpath = trainer.strategy.broadcast(dirpath)
+        self.dirpath = dirpath
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
@@ -349,19 +351,12 @@ class ModelCheckpoint(Checkpoint):
 
         self.best_model_path = state_dict["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
-        """Performs the main logic around saving a checkpoint.
-
-        This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
-        behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and will be removed in v1.8."
-            " Instead, you can use `trainer.save_checkpoint()` to manually save a checkpoint."
+    def save_checkpoint(self, trainer: "pl.Trainer") -> None:
+        raise NotImplementedError(
+            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and is no longer supported"
+            f" as of 1.8. Please use `trainer.save_checkpoint()` to manually save a checkpoint. This method will be"
+            f" removed completely in v2.0."
         )
-        monitor_candidates = self._monitor_candidates(trainer)
-        self._save_topk_checkpoint(trainer, monitor_candidates)
-        self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
@@ -571,7 +566,7 @@ class ModelCheckpoint(Checkpoint):
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
+    def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> _PATH:
         """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
         determine where to save checkpoints. The path for saving weights is set in this priority:
 
@@ -583,7 +578,7 @@ class ModelCheckpoint(Checkpoint):
         """
         if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint
-            return
+            return self.dirpath
 
         if len(trainer.loggers) > 0:
             if trainer.loggers[0].save_dir is not None:
@@ -600,9 +595,18 @@ class ModelCheckpoint(Checkpoint):
             # if no loggers, use default_root_dir
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
-        ckpt_path = trainer.strategy.broadcast(ckpt_path)
+        return ckpt_path
 
-        self.dirpath = ckpt_path
+    def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
+        # find all checkpoints in the folder
+        ckpt_path = self.__resolve_ckpt_dir(trainer)
+        if self._fs.exists(ckpt_path):
+            return {
+                os.path.normpath(p)
+                for p in self._fs.ls(ckpt_path, detail=False)
+                if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
+            }
+        return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:

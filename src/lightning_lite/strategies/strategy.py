@@ -28,9 +28,8 @@ from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizer_to_device
-from lightning_lite.utilities.types import _PATH, Steppable
+from lightning_lite.utilities.types import _PATH, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -45,11 +44,11 @@ class Strategy(ABC):
         self,
         accelerator: Optional[Accelerator] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ) -> None:
         self._accelerator: Optional[Accelerator] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[Precision] = precision_plugin
+        self._precision: Optional[Precision] = precision
         self._launcher: Optional[_Launcher] = None
 
     @property
@@ -85,12 +84,12 @@ class Strategy(ABC):
         self._checkpoint_io = io
 
     @property
-    def precision_plugin(self) -> Precision:
-        return self._precision_plugin if self._precision_plugin is not None else Precision()
+    def precision(self) -> Precision:
+        return self._precision if self._precision is not None else Precision()
 
-    @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
-        self._precision_plugin = precision_plugin
+    @precision.setter
+    def precision(self, precision: Optional[Precision]) -> None:
+        self._precision = precision
 
     def _configure_launcher(self) -> None:
         """Attach the launcher based on Strategy."""
@@ -161,13 +160,13 @@ class Strategy(ABC):
 
     def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
-        self.precision_plugin.pre_backward(tensor, module)
-        self.precision_plugin.backward(tensor, module, *args, **kwargs)
-        self.precision_plugin.post_backward(tensor, module)
+        self.precision.pre_backward(tensor, module)
+        self.precision.backward(tensor, module, *args, **kwargs)
+        self.precision.post_backward(tensor, module)
 
     def optimizer_step(
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
@@ -176,7 +175,7 @@ class Strategy(ABC):
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        return self.precision_plugin.optimizer_step(optimizer, **kwargs)
+        return self.precision.optimizer_step(optimizer, **kwargs)
 
     @abstractmethod
     def reduce(
@@ -240,6 +239,7 @@ class Strategy(ABC):
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
+        # TODO(lite): Integrate this into Lightning Lite
         return module.state_dict()
 
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
@@ -247,6 +247,13 @@ class Strategy(ABC):
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
         """
+        if hasattr(optimizer, "consolidate_state_dict"):
+            # there are optimizers like Fairscale's OSS or PyTorch's ZeroRedundancyOptimizer that shard their
+            # states, and to avoid OOM we consolidate the full state on rank 0 only
+            optimizer.consolidate_state_dict()
+            return optimizer.state_dict() if self.is_global_zero else {}
+
+        # for optimizers that are not sharded, we return the state dict on all ranks
         return optimizer.state_dict()
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
@@ -254,6 +261,7 @@ class Strategy(ABC):
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:
+        # TODO(lite): Integrate this into Lightning Lite
         module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(
@@ -280,7 +288,7 @@ class Strategy(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        self.precision_plugin.teardown()
+        self.precision.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
         self.checkpoint_io.teardown()

@@ -201,9 +201,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_output = []
         else:
             # hook
-            self.trainer._call_callback_hooks("on_batch_start")
-
-            # hook
             self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx)
             response = self.trainer._call_lightning_module_hook("on_train_batch_start", batch, batch_idx)
             self.trainer._call_strategy_hook("on_train_batch_start", batch, batch_idx)
@@ -232,7 +229,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
         self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
-        self.trainer._call_callback_hooks("on_batch_end")
         self.trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
@@ -292,6 +288,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             and self.batch_progress.current.ready  # did start
         ):
+            assert isinstance(trainer.train_dataloader, CombinedLoader)
             loader: CombinedLoader = trainer.train_dataloader
             state = loader.state_dict(has_completed=self._has_completed())
             if state:

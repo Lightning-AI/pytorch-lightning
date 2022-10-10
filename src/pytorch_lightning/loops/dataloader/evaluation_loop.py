@@ -56,7 +56,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results = _ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
         self._logged_outputs: List[_OUT_DICT] = []
-        self._max_batches: List[int] = []
+        self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
         self._data_fetcher: Optional[AbstractDataFetcher] = None
 
@@ -213,7 +213,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.cpu()
         self.epoch_loop.teardown()
 
-    def _get_max_batches(self) -> List[int]:
+    def _get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches
@@ -267,10 +267,8 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._logger_connector.reset_results()
 
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks."""
+        """Runs the ``on_{validation/test}_epoch_start`` hooks."""
         self.trainer._logger_connector.on_epoch_start()
-        self.trainer._call_callback_hooks("on_epoch_start", *args, **kwargs)
-        self.trainer._call_lightning_module_hook("on_epoch_start", *args, **kwargs)
 
         hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
         self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
@@ -295,8 +293,6 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_callback_hooks(hook_name)
         self.trainer._call_lightning_module_hook(hook_name)
 
-        self.trainer._call_callback_hooks("on_epoch_end")
-        self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer._logger_connector.on_epoch_end()
 
     @staticmethod
