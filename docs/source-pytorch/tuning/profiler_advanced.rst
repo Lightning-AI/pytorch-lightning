@@ -91,8 +91,7 @@ To understand the cost of each PyTorch operation, use the :class:`~pytorch_light
 
     from pytorch_lightning.profilers import HPUProfiler
 
-    profiler = HPUProfiler()
-    trainer = Trainer(profiler=profiler)
+    trainer = Trainer(profiler=HPUProfiler())
 
 The profiler will dump a trace file for each profiler step, ``training_step``, ``backward``, ``validation_step``, ``test_step``, and ``predict_step`` by default.
 The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the scope of profiled functions.
