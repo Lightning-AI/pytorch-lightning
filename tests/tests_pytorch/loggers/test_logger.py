@@ -28,7 +28,7 @@ from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests.tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class CustomLogger(Logger):
