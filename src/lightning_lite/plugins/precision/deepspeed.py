@@ -24,9 +24,9 @@ from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.types import Steppable
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
+_APEX_AVAILABLE = RequirementCache("apex")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
-_APEX_AVAILABLE = RequirementCache("apex")
 
 
 class DeepSpeedPrecision(Precision):
