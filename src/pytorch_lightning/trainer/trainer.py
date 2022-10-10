@@ -2197,6 +2197,20 @@ class Trainer:
         )
 
     @property
+    def use_amp(self) -> bool:
+        raise AttributeError(
+            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.amp_backend`.",
+        )
+
+    @use_amp.setter
+    def use_amp(self, use_amp: bool) -> None:
+        raise AttributeError(
+            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.amp_backend`.",
+        )
+
+    @property
     def _results(self) -> Optional[_ResultCollection]:
         active_loop = self._active_loop
         if active_loop is not None:
