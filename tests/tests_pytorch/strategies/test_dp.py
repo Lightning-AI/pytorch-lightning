@@ -18,7 +18,6 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -56,8 +55,6 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
     with early stopping
     """
-    tutils.set_random_main_port()
-
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
 
@@ -77,8 +74,6 @@ def test_multi_gpu_early_stop_dp(tmpdir):
 
 @RunIf(min_cuda_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
-    tutils.set_random_main_port()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,

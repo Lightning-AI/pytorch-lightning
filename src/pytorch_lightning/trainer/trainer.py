@@ -981,7 +981,6 @@ class Trainer:
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
         self.__setup_profiler()
@@ -1135,15 +1134,6 @@ class Trainer:
         # register signals
         self._signal_connector.register_signal_handlers()
 
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        self._call_callback_hooks("on_pretrain_routine_start")
-        self._call_lightning_module_hook("on_pretrain_routine_start")
-
-        self._call_callback_hooks("on_pretrain_routine_end")
-        self._call_lightning_module_hook("on_pretrain_routine_end")
-
     def _run_train(self) -> None:
         self._pre_training_routine()
 
@@ -1255,7 +1245,6 @@ class Trainer:
                 materialize_module(self.lightning_module)
 
             self._call_lightning_module_hook("configure_sharded_model")
-            self._call_callback_hooks("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
         assert self.state.fn is not None
@@ -1354,11 +1343,7 @@ class Trainer:
         return callback_state_dicts
 
     def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook.
-
-        Will be removed in v1.8: If state is returned, we insert the callback state into
-        ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
-        """
+        """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook."""
         pl_module = self.lightning_module
         if pl_module:
             prev_fx_name = pl_module._current_fx_name
@@ -1367,13 +1352,13 @@ class Trainer:
         for callback in self.callbacks:
             with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
-            if state:
-                rank_zero_deprecation(
-                    f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` is deprecated in v1.6"
-                    " and will be removed in v1.8. Please override `Callback.state_dict`"
-                    " to return state to be saved."
+            if state is not None:
+                # TODO: Remove this error message in v2.0
+                raise ValueError(
+                    f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` was deprecated in v1.6"
+                    f" and is no longer supported as of v1.8. Please override `Callback.state_dict` to return state"
+                    f" to be saved."
                 )
-                checkpoint["callbacks"][callback.state_key] = state
 
         if pl_module:
             # restore current_fx when nested context
@@ -1406,11 +1391,8 @@ class Trainer:
             )
 
         for callback in self.callbacks:
-            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
-            if state:
-                state = deepcopy(state)
-                with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
-                    callback.on_load_checkpoint(self, self.lightning_module, state)
+            with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
+                callback.on_load_checkpoint(self, self.lightning_module, checkpoint)
 
         if pl_module:
             # restore current_fx when nested context

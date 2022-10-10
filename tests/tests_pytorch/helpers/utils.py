@@ -17,10 +17,8 @@ import re
 from contextlib import contextmanager
 from typing import Optional, Type
 
-import numpy as np
 import pytest
 
-from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -63,20 +61,6 @@ def assert_ok_model_acc(trainer, key="test_acc", thr=0.5):
     # this model should get 0.80+ acc
     acc = trainer.callback_metrics[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
-
-
-def reset_seed(seed=0):
-    seed_everything(seed)
-
-
-# generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
-
-
-def set_random_main_port():
-    reset_seed()
-    port = RANDOM_PORTS.pop()
-    os.environ["MASTER_PORT"] = str(port)
 
 
 def init_checkpoint_callback(logger):
