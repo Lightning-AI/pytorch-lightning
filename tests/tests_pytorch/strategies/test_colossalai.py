@@ -20,7 +20,7 @@ from torch import nn, Tensor
 from torch.optim import Optimizer
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningModule, seed_everything, Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
@@ -141,7 +141,7 @@ def test_colossalai_optimizer(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
+@RunIf(min_cuda_gpus=1, colossalai=True)
 def test_warn_colossalai_ignored(tmpdir):
     class TestModel(ModelParallelBoringModel):
         def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
@@ -241,7 +241,6 @@ class ModelParallelClassificationModel(LightningModule):
 
 @RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
 def test_multi_gpu_checkpointing(tmpdir):
-    seed_everything(4321)
     dm = ClassifDataModule()
     model = ModelParallelClassificationModel()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
@@ -270,7 +269,6 @@ def test_multi_gpu_checkpointing(tmpdir):
 
 @RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
 def test_multi_gpu_model_colossalai_fit_test(tmpdir):
-    seed_everything(4321)
     dm = ClassifDataModule()
     model = ModelParallelClassificationModel()
     trainer = Trainer(
