@@ -1,1 +1,1 @@
-import pytorch_lightning.graveyard.training_type  # noqa: F401
+import pytorch_lightning.graveyard.trainer  # noqa: F401
