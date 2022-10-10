@@ -33,5 +33,5 @@ def test_deepspeed_precision_choice(precision, tmpdir):
     )
 
     assert isinstance(connector.strategy, DeepSpeedStrategy)
-    assert isinstance(connector.strategy.precision_plugin, DeepSpeedPrecision)
-    assert connector.strategy.precision_plugin.precision == precision
+    assert isinstance(connector.strategy.precision, DeepSpeedPrecision)
+    assert connector.strategy.precision.precision == precision
