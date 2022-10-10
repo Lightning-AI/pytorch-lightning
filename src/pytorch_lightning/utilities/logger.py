@@ -15,8 +15,7 @@
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, MutableMapping, Optional, Union
-from weakref import ReferenceType
+from typing import Any, Dict, Generator, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -163,7 +162,7 @@ def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
         return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
-def _scan_checkpoints(checkpoint_callback: "ReferenceType[Checkpoint]", logged_model_time: dict) -> List[Checkpoint]:
+def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
     """Return the checkpoints to be logged.
 
     Args:

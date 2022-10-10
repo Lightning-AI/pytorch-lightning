@@ -19,7 +19,6 @@ import os
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Union
-from weakref import ReferenceType
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -330,7 +329,7 @@ class WandbLogger(Logger):
         self._prefix = prefix
         self._experiment = experiment
         self._logged_model_time: Dict[str, float] = {}
-        self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
+        self._checkpoint_callback: Optional[Checkpoint] = None
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
             name=name,
@@ -505,7 +504,7 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         # log checkpoints as artifacts
         if (
             self._log_model == "all"
@@ -565,7 +564,7 @@ class WandbLogger(Logger):
         if self._checkpoint_callback and self._experiment is not None:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: Checkpoint) -> None:
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 
