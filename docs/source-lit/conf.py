@@ -147,9 +147,6 @@ os.makedirs(os.path.join(_PATH_HERE, "generated"), exist_ok=True)
 for md in glob.glob(os.path.join(_PATH_ROOT, ".github", "*.md")):
     shutil.copy(md, os.path.join(_PATH_HERE, "generated", os.path.basename(md)))
 
-
-set_type_checking_flag = True
-
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 

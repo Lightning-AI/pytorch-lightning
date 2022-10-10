@@ -168,9 +168,6 @@ if _PL_FAST_DOCS_DEV:
     exclude_patterns.append("tutorials.rst")
 
 
-set_type_checking_flag = True
-
-
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
