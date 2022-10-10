@@ -157,14 +157,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         logger=logger,
     )
     trainer.fit(model)
-
-    # test root model address
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
-    generated = trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
-    assert generated == "abc23"
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
@@ -232,3 +225,27 @@ def test_amp_with_apex_reload(tmpdir):
         trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
 
     trainer.test(model, ckpt_path="best")
+
+
+@RunIf(min_torch="1.10")
+@pytest.mark.parametrize("clip_val", [0, 10])
+@mock.patch("torch.nn.utils.clip_grad_norm_")
+def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
+    """Ensure that clip gradients is only called if the value is greater than 0."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=1,
+        devices=1,
+        precision=16,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        gradient_clip_val=clip_val,
+    )
+    trainer.fit(model)
+
+    if clip_val > 0:
+        mock_clip_grad_norm.assert_called()
+    else:
+        mock_clip_grad_norm.assert_not_called()

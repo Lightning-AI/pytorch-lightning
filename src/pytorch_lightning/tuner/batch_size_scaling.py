@@ -17,8 +17,6 @@ import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
-from torch.utils.data import DataLoader
-
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_setattr
@@ -277,13 +275,15 @@ def _adjust_batch_size(
         rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
     if trainer.state.fn == "fit":
+        from pytorch_lightning.trainer.supporters import CombinedLoader
+
         if trainer.train_dataloader is None:
             trainer.reset_train_dataloader()
 
-        assert trainer.train_dataloader is not None
-        # TODO: should we check val_dataloaders here too?
+        assert isinstance(trainer.train_dataloader, CombinedLoader)
         if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
-            new_size = min(new_size, len(trainer.train_dataloader.dataset))
+            # at this moment, `train_dataloader` is already a CombinedLoader. len can return a size or infinity
+            new_size = min(new_size, len(trainer.train_dataloader.dataset))  # type: ignore[arg-type]
     else:
         stage = trainer.state.stage
         assert stage is not None
@@ -302,11 +302,14 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer") -> bool:
+def _is_valid_batch_size(
+    batch_size: int, dataloader: "pl.trainer.supporters.CombinedLoader", trainer: "pl.Trainer"
+) -> bool:
     from pytorch_lightning.utilities.data import has_len_all_ranks
 
     module = trainer.lightning_module or trainer.datamodule
-    return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
+    has_len = has_len_all_ranks(dataloader, trainer.strategy, module)
+    return not has_len or batch_size <= len(dataloader)  # type: ignore[arg-type]
 
 
 def _reset_dataloaders(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:

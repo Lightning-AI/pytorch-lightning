@@ -17,11 +17,11 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 import torch.distributed
 from torch import Tensor
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision import Precision

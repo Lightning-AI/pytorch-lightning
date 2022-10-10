@@ -17,12 +17,6 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class MultiOptModel(BoringModel):
@@ -58,7 +52,7 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     for k, v in model.actual.items():
         assert torch.equal(trainer.callback_metrics[f"loss_{k}_step"], v[-1])
         # test loss is properly reduced
-        torch_test_assert_close(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
+        torch.testing.assert_close(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
 
 
 def test_multiple_optimizers(tmpdir):

@@ -11,6 +11,7 @@ from tests_app import _PROJECT_ROOT
 
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.component import _set_context
+from lightning_app.utilities.packaging import cloud_compute
 from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
 from lightning_app.utilities.state import AppState
 
@@ -74,6 +75,7 @@ def clear_app_state_state_variables():
     lightning_app.utilities.state._STATE = None
     lightning_app.utilities.state._LAST_STATE = None
     AppState._MY_AFFILIATION = ()
+    cloud_compute._CLOUD_COMPUTE_STORE.clear()
 
 
 @pytest.fixture
