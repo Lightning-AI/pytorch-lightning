@@ -2205,6 +2205,68 @@ class Trainer:
         )
 
     @property
+    def should_rank_save_checkpoint(self) -> None:
+        raise AttributeError(
+            "`Trainer.should_rank_save_checkpoint` was deprecated in v1.6 and is no longer accessible as of v1.8.",
+        )
+
+    @property
+    def validated_ckpt_path(self) -> None:
+        raise AttributeError(
+            "The `Trainer.validated_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.ckpt_path` instead."
+        )
+
+    @validated_ckpt_path.setter
+    def validated_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        raise AttributeError(
+            "The `Trainer.validated_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.ckpt_path` instead."
+        )
+
+    @property
+    def tested_ckpt_path(self) -> None:
+        raise AttributeError(
+            "The `Trainer.tested_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.ckpt_path` instead."
+        )
+
+    @tested_ckpt_path.setter
+    def tested_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        raise AttributeError(
+            "The `Trainer.tested_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.ckpt_path` instead."
+        )
+
+    @property
+    def predicted_ckpt_path(self) -> None:
+        raise AttributeError(
+            "The `Trainer.predicted_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.ckpt_path` instead."
+        )
+
+    @predicted_ckpt_path.setter
+    def predicted_ckpt_path(self, ckpt_path: Optional[str]) -> None:
+        raise AttributeError(
+            "The `Trainer.predicted_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.ckpt_path` instead."
+        )
+
+    @property
+    def verbose_evaluate(self) -> None:
+        raise AttributeError(
+            "The `Trainer.verbose_evaluate` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `trainer.{validate,test}_loop.verbose` instead.",
+        )
+
+    @verbose_evaluate.setter
+    def verbose_evaluate(self, verbose: bool) -> None:
+        raise AttributeError(
+            "The `Trainer.verbose_evaluate` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `trainer.{validate,test}_loop.verbose` instead.",
+        )
+
+    @property
     def _results(self) -> Optional[_ResultCollection]:
         active_loop = self._active_loop
         if active_loop is not None:
