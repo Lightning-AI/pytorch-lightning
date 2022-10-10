@@ -74,8 +74,8 @@ class MultiProcessingBackend(Backend):
                 and work._url == ""
                 and work._port
             ):
-                url = f"http://{work._host}:{work._port}"
-                if _check_service_url_is_ready(url):
+                url = work._future_url if work._future_url else f"http://{work._host}:{work._port}"
+                if _check_service_url_is_ready(url, metadata=f"Checking {work.name}"):
                     work._url = url
 
     def stop_work(self, app, work: "lightning_app.LightningWork") -> None:

@@ -202,13 +202,6 @@ def test_dm_checkpoint_save_and_load(tmpdir):
         def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
             self.my_state_dict = state_dict
 
-        def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            checkpoint[self.__class__.__qualname__].update({"on_save": "update"})
-
-        def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            self.checkpoint_state = checkpoint.get(self.__class__.__qualname__).copy()
-            checkpoint[self.__class__.__qualname__].pop("on_save")
-
     reset_seed()
     dm = CustomBoringDataModule()
     model = CustomBoringModel()
@@ -223,21 +216,15 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     )
 
     # fit model
-    with pytest.deprecated_call(
-        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
-        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-    ):
-        trainer.fit(model, datamodule=dm)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.fit(model, datamodule=dm)
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__qualname__ in checkpoint
-    assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict", "on_save": "update"}
+    assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict"}
 
     for trainer_fn in TrainerFn:
         trainer.state.fn = trainer_fn
         trainer._restore_modules_and_callbacks(checkpoint_path)
-        assert dm.checkpoint_state == {"my": "state_dict", "on_save": "update"}
         assert dm.my_state_dict == {"my": "state_dict"}
 
 
@@ -510,7 +497,6 @@ def test_datamodule_hooks_are_profiled():
         "[LightningDataModule]CustomBoringDataModule.prepare_data",
         "[LightningDataModule]CustomBoringDataModule.setup",
         "[LightningDataModule]CustomBoringDataModule.state_dict",
-        "[LightningDataModule]CustomBoringDataModule.on_save_checkpoint",
         "[LightningDataModule]CustomBoringDataModule.teardown",
     ]
     for key in keys:
@@ -527,7 +513,6 @@ def test_datamodule_hooks_are_profiled():
     keys = [
         "[LightningDataModule]CustomBoringDataModule.prepare_data",
         "[LightningDataModule]CustomBoringDataModule.setup",
-        "[LightningDataModule]CustomBoringDataModule.on_load_checkpoint",
         "[LightningDataModule]CustomBoringDataModule.load_state_dict",
         "[LightningDataModule]CustomBoringDataModule.teardown",
     ]

@@ -1,17 +1,17 @@
 import asyncio
-import logging
 import os
 import queue
 import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
+from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from typing import Dict, List, Mapping, Optional
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
-from fastapi import FastAPI, HTTPException, Request, Response, status, WebSocket
+from fastapi import FastAPI, File, HTTPException, Request, Response, status, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Header
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -22,11 +22,14 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
-from lightning_app.core.queues import RedisQueue
-from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
-from lightning_app.utilities.enum import OpenAPITags
-from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
+from lightning_app.core.constants import CLOUD_QUEUE_TYPE, ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
+from lightning_app.core.queues import QueuingSystem
+from lightning_app.storage import Drive
+from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
+from lightning_app.utilities.cloud import is_running_in_cloud
+from lightning_app.utilities.component import _context
+from lightning_app.utilities.enum import ComponentContext, OpenAPITags
+from lightning_app.utilities.imports import _is_starsessions_available
 
 if _is_starsessions_available():
     from starsessions import SessionMiddleware
@@ -58,7 +61,7 @@ app_spec: Optional[List] = None
 # In the future, this would be abstracted to support horizontal scaling.
 responses_store = {}
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 # This can be replaced with a consumer that publishes states in a kv-store
@@ -235,19 +238,41 @@ async def post_state(
     api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
 
 
+@fastapi_service.put("/api/v1/upload_file/{filename}")
+async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
+    with TemporaryDirectory() as tmp:
+        drive = Drive(
+            "lit://uploaded_files",
+            component_name="file_server",
+            allow_duplicates=True,
+            root_folder=tmp,
+        )
+        tmp_file = os.path.join(tmp, filename)
+
+        with open(tmp_file, "wb") as f:
+            done = False
+            while not done:
+                # Note: The 8192 number doesn't have a strong reason.
+                content = await uploaded_file.read(8192)
+                f.write(content)
+                done = content == b""
+
+        with _context(ComponentContext.WORK):
+            drive.put(filename)
+    return f"Successfully uploaded '{filename}' to the Drive"
+
+
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
-    """Health check endpoint used in the cloud FastAPI servers to check the status periodically. This requires
-    Redis to be installed for it to work.
-
-    # TODO - Once the state store abstraction is in, check that too
-    """
-    if not _is_redis_available():
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return {"status": "failure", "reason": "Redis is not available"}
-    if not RedisQueue(name="ping", default_timeout=1).ping():
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return {"status": "failure", "reason": "Redis is not available"}
+    """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
+    # check the queue status only if running in cloud
+    if is_running_in_cloud():
+        queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
+        # this is only being implemented on Redis Queue. For HTTP Queue, it doesn't make sense to have every single
+        # app checking the status of the Queue server
+        if not queue_obj.is_running:
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            return {"status": "failure", "reason": "Redis is not available"}
     x_lightning_session_uuid = TEST_SESSION_UUID
     state = global_app_state_store.get_app_state(x_lightning_session_uuid)
     global_app_state_store.set_served_state(x_lightning_session_uuid, state)
@@ -323,6 +348,7 @@ def start_server(
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
+    root_path: str = "",
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
     apis: Optional[List[HttpMethod]] = None,
@@ -359,6 +385,6 @@ def start_server(
 
         register_global_routes()
 
-        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
+        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", root_path=root_path)
 
     return refresher

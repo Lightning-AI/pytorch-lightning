@@ -11,29 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import sys
 
 import numpy as np
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
+from lightning_lite.utilities.distributed import AllGatherGrad
+from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities import AllGatherGrad
+from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
 
-def setup_ddp(rank, world_size):
-    """Setup ddp environment."""
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "8088"
-
-    if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
-        torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
-
-
-def _test_all_gather_ddp(rank, world_size):
-    setup_ddp(rank, world_size)
+def all_gather_ddp_spawn_fn(strategy):
+    rank = strategy.local_rank
+    world_size = strategy.num_processes
 
     tensor1 = torch.ones(8, requires_grad=True)
     tensor2 = torch.ones((8, 16, 32), requires_grad=True)
@@ -56,8 +48,7 @@ def _test_all_gather_ddp(rank, world_size):
 
 @RunIf(skip_windows=True)
 def test_all_gather_ddp_spawn():
-    world_size = 3
-    torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
+    spawn_launch(all_gather_ddp_spawn_fn, [torch.device("cpu")] * 3)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)

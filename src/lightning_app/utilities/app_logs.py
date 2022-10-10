@@ -9,7 +9,6 @@ from websocket import WebSocketApp
 
 from lightning_app.utilities.log_helpers import _error_callback, _OrderedLogEntry
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
-from lightning_app.utilities.network import LightningClient
 
 
 @dataclass
@@ -56,7 +55,7 @@ def _push_log_events_to_read_queue_callback(component_name: str, read_queue: que
 
 
 def _app_logs_reader(
-    client: LightningClient,
+    logs_api_client: _LightningLogsSocketAPI,
     project_id: str,
     app_id: str,
     component_names: List[str],
@@ -65,7 +64,6 @@ def _app_logs_reader(
 ) -> Iterator[_LogEvent]:
 
     read_queue = queue.PriorityQueue()
-    logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
     # We will use a socket per component
     log_sockets = [
@@ -88,16 +86,22 @@ def _app_logs_reader(
         th.start()
 
     # Print logs from queue when log event is available
-    skip = "lightning-launcher"
+    flow = "Your app has started. View it in your browser"
+    work = "USER_RUN_WORK"
+    start_timestamps = {}
 
     # Print logs from queue when log event is available
     try:
         while True:
             log_event: _LogEvent = read_queue.get(timeout=None if follow else 1.0)
-            if skip in log_event.message:
-                pass
-            else:
-                yield log_event
+            token = flow if log_event.component_name == "flow" else work
+            if token in log_event.message:
+                start_timestamps[log_event.component_name] = log_event.timestamp
+
+            timestamp = start_timestamps.get(log_event.component_name, None)
+            if timestamp and log_event.timestamp >= timestamp:
+                if "launcher" not in log_event.message:
+                    yield log_event
 
     except queue.Empty:
         # Empty is raised by queue.get if timeout is reached. Follow = False case.

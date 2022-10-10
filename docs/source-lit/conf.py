@@ -406,12 +406,8 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
-    _XLA_AVAILABLE,
-    _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
-    _module_available,
 )
-_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True

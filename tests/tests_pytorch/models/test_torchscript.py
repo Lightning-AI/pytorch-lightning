@@ -19,8 +19,9 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 
+from lightning_lite.utilities.cloud_io import get_filesystem
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -154,7 +155,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
-def test_torchcript_invalid_method(tmpdir):
+def test_torchcript_invalid_method():
     """Test that an error is thrown with invalid torchscript method."""
     model = BoringModel()
     model.train(True)
@@ -163,10 +164,42 @@ def test_torchcript_invalid_method(tmpdir):
         model.to_torchscript(method="temp")
 
 
-def test_torchscript_with_no_input(tmpdir):
+def test_torchscript_with_no_input():
     """Test that an error is thrown when there is no input tensor."""
     model = BoringModel()
     model.example_input_array = None
 
     with pytest.raises(ValueError, match="requires either `example_inputs` or `model.example_input_array`"):
         model.to_torchscript(method="trace")
+
+
+def test_torchscript_script_recursively():
+    class GrandChild(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = torch.nn.Linear(1, 1)
+
+        def forward(self, inputs):
+            return self.model(inputs)
+
+    class Child(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = torch.nn.Sequential(GrandChild(), GrandChild())
+
+        def forward(self, inputs):
+            return self.model(inputs)
+
+    class Parent(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = Child()
+
+        def forward(self, inputs):
+            return self.model(inputs)
+
+    lm = Parent()
+    assert not lm._jit_is_scripting
+    script = lm.to_torchscript(method="script")
+    assert not lm._jit_is_scripting
+    assert isinstance(script, torch.jit.RecursiveScriptModule)

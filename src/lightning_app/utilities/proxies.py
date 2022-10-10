@@ -1,4 +1,3 @@
-import logging
 import os
 import pathlib
 import signal
@@ -14,6 +13,7 @@ from threading import Event, Thread
 from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
+from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.storage import Path
 from lightning_app.storage.copier import Copier, copy_files
@@ -21,7 +21,6 @@ from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.path import path_to_work_artifact
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import affiliation
-from lightning_app.utilities.apply_func import apply_to_collection
 from lightning_app.utilities.component import _set_work_context
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
@@ -37,7 +36,9 @@ if TYPE_CHECKING:
     from lightning_app.core.queues import BaseQueue
 
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 _state_observer_lock = threading.Lock()
 
 
@@ -404,10 +405,27 @@ class WorkRunner:
         except BaseException as e:
             # 10.2 Send failed delta to the flow.
             reference_state = deepcopy(self.work.state)
+            exp, val, tb = sys.exc_info()
+            listing = traceback.format_exception(exp, val, tb)
+            user_exception = False
+            used_runpy = False
+            trace = []
+            for p in listing:
+                if "runpy.py" in p:
+                    trace = []
+                    used_runpy = True
+                if user_exception:
+                    trace.append(p)
+                if "ret = work_run(*args, **kwargs)" in p:
+                    user_exception = True
+
+            if used_runpy:
+                trace = trace[1:]
+
             self.work._calls[call_hash]["statuses"].append(
                 make_status(
                     WorkStageStatus.FAILED,
-                    message=str(traceback.format_exc()),
+                    message=str("\n".join(trace)),
                     reason=WorkFailureReasons.USER_EXCEPTION,
                 )
             )
@@ -457,6 +475,7 @@ class WorkRunner:
         # TODO: Introduce cleaner hooks.
         self.work.on_exit()
         with _state_observer_lock:
+            self.work.on_exit()
             self.work._calls[call_hash]["statuses"] = []
             state = deepcopy(self.work.state)
             self.work._calls[call_hash]["statuses"].append(

@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.device_parser import parse_hpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
@@ -29,17 +29,16 @@ if _HPU_AVAILABLE:
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
-    def setup_environment(self, root_device: torch.device) -> None:
+    def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
                 If the selected device is not HPU.
         """
-        super().setup_environment(root_device)
-        if root_device.type != "hpu":
-            raise MisconfigurationException(f"Device should be HPU, got {root_device} instead.")
+        if device.type != "hpu":
+            raise MisconfigurationException(f"Device should be HPU, got {device} instead.")
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Returns a map of the following metrics with their values:
 
         - Limit: amount of total memory on HPU device.
@@ -58,6 +57,9 @@ class HPUAccelerator(Accelerator):
         except (AttributeError, NameError):
             rank_zero_debug("HPU `get_device_stats` failed")
             return {}
+
+    def teardown(self) -> None:
+        pass
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[int]:
@@ -99,5 +101,26 @@ class HPUAccelerator(Accelerator):
         accelerator_registry.register(
             "hpu",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
+
+
+def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+    """
+    Parses the hpus given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
+
+    Args:
+        devices: An integer that indicates the number of Gaudi devices to be used
+
+    Returns:
+        Either an integer or ``None`` if no devices were requested
+
+    Raises:
+        MisconfigurationException:
+            If devices aren't of type `int` or `str`
+    """
+    if devices is not None and not isinstance(devices, (int, str)):
+        raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
+
+    return int(devices) if isinstance(devices, str) else devices

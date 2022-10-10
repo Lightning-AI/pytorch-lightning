@@ -38,12 +38,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
-# remove the "tests/tests_pytorch" path suffixes
-parametrizations=${parametrizations//"tests/tests_pytorch/"/}
+# remove the "tests/tests_pytorch/" path suffixes
+path_suffix=$(basename "$(dirname "$(pwd)")")/$(basename "$(pwd)")"/"  # https://stackoverflow.com/a/8223345
+parametrizations=${parametrizations//$path_suffix/}
 parametrizations_arr=($parametrizations)
 
-# tests to skip - space separated
-blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
 
 rm -f standalone_test_output.txt  # in case it exists, remove it
@@ -59,7 +58,8 @@ for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
 
   # check blocklist
-  if echo $blocklist | grep -F "${parametrization}"; then
+  if [[ "${parametrization}" == *"test_pytorch_profiler_nested_emit_nvtx"* ]]; then
+    echo "Skipping $parametrization"
     report+="Skipped\t$parametrization\n"
     # do not continue the loop because we might need to wait for batched jobs
   else

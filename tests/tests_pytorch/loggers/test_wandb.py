@@ -58,8 +58,18 @@ def test_wandb_logger_init(wandb, monkeypatch):
     wandb.init.reset_mock()
     WandbLogger(project="test_project").experiment
     wandb.init.assert_called_once_with(
-        name=None, dir=None, id=None, project="test_project", resume="allow", anonymous=None
+        name=None, dir=".", id=None, project="test_project", resume="allow", anonymous=None
     )
+
+    # test wandb.init set save_dir correctly after created
+    wandb.run = None
+    wandb.init.reset_mock()
+    logger = WandbLogger()
+    assert logger.save_dir is not None
+    wandb.run = None
+    wandb.init.reset_mock()
+    logger = WandbLogger(save_dir=".", dir=None)
+    assert logger.save_dir is not None
 
     # test wandb.init and setting logger experiment externally
     wandb.run = None
@@ -316,3 +326,20 @@ def test_wandb_logger_offline_log_model(wandb, tmpdir):
     """Test that log_model=True raises an error in offline mode."""
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
+
+
+@mock.patch("pytorch_lightning.loggers.wandb.Run", object)
+@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+def test_wandb_logger_download_artifact(wandb, tmpdir):
+    """Test that download_artifact works."""
+
+    wandb.run = wandb.init()
+    logger = WandbLogger()
+    logger.download_artifact("test_artifact", str(tmpdir), "model", True)
+    wandb.run.use_artifact.assert_called_once_with("test_artifact")
+
+    wandb.run = None
+
+    WandbLogger.download_artifact("test_artifact", str(tmpdir), "model", True)
+
+    wandb.Api().artifact.assert_called_once_with("test_artifact", type="model")

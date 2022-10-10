@@ -14,11 +14,11 @@
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Mapping, Optional, Set, Type, Union
 
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.nn import Module, Parameter
 
-from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.imports import _module_available
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def is_meta_init() -> bool:
@@ -43,21 +43,9 @@ def get_all_subclasses(cls: Type) -> Set[Type]:
         "`pytorch_lightning.utilities.meta.get_all_subclasses` is deprecated in v1.8 and will be removed in v1.9."
         " Please copy its implementation if you have a use for it."
     )
-    return _get_all_subclasses(cls)
+    from lightning_utilities.core.inheritance import get_all_subclasses as new_get_all_subclasses
 
-
-# https://stackoverflow.com/a/63851681/9201239
-def _get_all_subclasses(cls: Type) -> Set[Type]:
-    subclass_list = []
-
-    def recurse(cl: Type) -> None:
-        for subclass in cl.__subclasses__():
-            subclass_list.append(subclass)
-            recurse(subclass)
-
-    recurse(cls)
-
-    return set(subclass_list)
+    return new_get_all_subclasses(cls)
 
 
 def recursively_setattr(root_module: Any, prefix: str, materialized_module: Module) -> None:
@@ -107,7 +95,7 @@ def is_on_meta_device(module: Module) -> bool:
 
 
 def _is_deferred(module: Optional[Module]) -> bool:
-    if module is None or not _module_available("torchdistx.fake"):
+    if module is None or not module_available("torchdistx.fake"):
         return False
     from torchdistx.fake import is_fake
 

@@ -24,7 +24,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=1)
-def test_get_torch_gpu_stats(tmpdir):
+def test_get_torch_gpu_stats():
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     gpu_stats = CUDAAccelerator().get_device_stats(current_device)
     fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
@@ -34,7 +34,7 @@ def test_get_torch_gpu_stats(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_get_nvidia_gpu_stats(tmpdir):
+def test_get_nvidia_gpu_stats():
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     gpu_stats = get_nvidia_gpu_stats(current_device)
     fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]

@@ -16,7 +16,12 @@ from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
+from lightning_app.utilities.app_helpers import (
+    _delta_to_app_state_delta,
+    _LightningAppRef,
+    _load_state_dict,
+    _state_dict,
+)
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.exceptions import ExitAppException
 
@@ -320,6 +325,17 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "clusters": None,
+                        "preemptible": False,
+                        "wait_timeout": None,
+                        "idle_timeout": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
@@ -334,6 +350,17 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "clusters": None,
+                        "preemptible": False,
+                        "wait_timeout": None,
+                        "idle_timeout": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
@@ -364,6 +391,17 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "clusters": None,
+                        "preemptible": False,
+                        "wait_timeout": None,
+                        "idle_timeout": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
@@ -378,6 +416,17 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "clusters": None,
+                        "preemptible": False,
+                        "wait_timeout": None,
+                        "idle_timeout": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {
                     CacheCallsKeys.LATEST_CALL_HASH: None,
@@ -633,3 +682,109 @@ def test_lightning_flow():
             assert len(self._calls["scheduling"]) == 8
 
     Flow().run()
+
+
+class WorkReload(LightningWork):
+    def __init__(self):
+        super().__init__(cache_calls=False)
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+
+class FlowReload(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.counter = 0
+
+    def run(self):
+        if not getattr(self, "w", None):
+            self.w = WorkReload()
+
+        self.counter += 1
+        self.w.run()
+
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        self.w = WorkReload()
+        super().load_state_dict(flow_state, children_states, strict=strict)
+
+
+class FlowReload2(LightningFlow):
+    def __init__(self, random_value: str):
+        super().__init__()
+        self.random_value = random_value
+        self.counter = 0
+
+    def run(self):
+        if not getattr(self, "w", None):
+            self.w = WorkReload()
+        self.w.run()
+        self.counter += 1
+
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        self.w = WorkReload()
+        super().load_state_dict(flow_state, children_states, strict=strict)
+
+
+class RootFlowReload(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow = FlowReload()
+        self.counter = 0
+
+    def run(self):
+        if not getattr(self, "flow_2", None):
+            self.flow_2 = FlowReload2("something")
+        self.flow.run()
+        self.flow_2.run()
+        self.counter += 1
+
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        self.flow_2 = FlowReload2(children_states["flow_2"]["vars"]["random_value"])
+        super().load_state_dict(flow_state, children_states, strict=strict)
+
+
+class RootFlowReload2(RootFlowReload):
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        LightningFlow.load_state_dict(self, flow_state, children_states, strict=strict)
+
+
+def test_lightning_flow_reload():
+    flow = RootFlowReload()
+
+    assert flow.counter == 0
+    assert flow.flow.counter == 0
+
+    flow.run()
+
+    assert flow.flow.w.counter == 1
+    assert flow.counter == 1
+    assert flow.flow.counter == 1
+    assert flow.flow_2.counter == 1
+    assert flow.flow_2.w.counter == 1
+
+    state = _state_dict(flow)
+    flow = RootFlowReload()
+    _load_state_dict(flow, state)
+
+    assert flow.flow.w.counter == 1
+    assert flow.counter == 1
+    assert flow.flow.counter == 1
+    assert flow.flow_2.counter == 1
+    assert flow.flow_2.w.counter == 1
+
+    flow.run()
+
+    assert flow.flow.w.counter == 2
+    assert flow.counter == 2
+    assert flow.flow.counter == 2
+    assert flow.flow_2.counter == 2
+    assert flow.flow_2.w.counter == 2
+
+    flow = RootFlowReload2()
+    flow.run()
+    state = _state_dict(flow)
+    flow = RootFlowReload2()
+    with pytest.raises(ValueError, match="The component flow_2 wasn't instantiated for the component root"):
+        _load_state_dict(flow, state)
