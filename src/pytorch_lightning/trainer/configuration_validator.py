@@ -20,7 +20,7 @@ from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
@@ -48,10 +48,11 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_eval_loop_configuration(trainer, model, "predict")
 
     __verify_batch_transfer_support(trainer)
+    # TODO: Delete this check in v2.0
     _check_deprecated_callback_hooks(trainer)
-    # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
+    # TODO: Delete this check in v2.0
     _check_on_epoch_start_end(model)
-    # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
+    # TODO: Delete this check in v2.0
     _check_on_pretrain_routine(model)
 
 
@@ -185,7 +186,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
             )
 
 
-# TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
 def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     hooks = (
         ("on_epoch_start", "on_<train/validation/test>_epoch_start"),
@@ -193,34 +193,32 @@ def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     )
 
     for hook, alternative_hook in hooks:
-        if is_overridden(hook, model):
-            rank_zero_deprecation(
-                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
-                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
+        if callable(getattr(model, hook, None)):
+            raise RuntimeError(
+                f"The `LightningModule.{hook}` hook was removed in v1.8. Please use"
+                f" `LightningModule.{alternative_hook}` instead."
             )
 
 
 def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
     hooks = (("on_pretrain_routine_start", "on_fit_start"), ("on_pretrain_routine_end", "on_fit_start"))
     for hook, alternative_hook in hooks:
-        if is_overridden(hook, model):
-            rank_zero_deprecation(
-                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
-                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
+        if callable(getattr(model, hook, None)):
+            raise RuntimeError(
+                f"The `LightningModule.{hook}` hook was removed in v1.8. Please use"
+                f" `LightningModule.{alternative_hook}` instead."
             )
 
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_configure_sharded_model", instance=callback):
-            rank_zero_deprecation(
-                "The `on_configure_sharded_model` callback hook was deprecated in"
-                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+        if callable(getattr(callback, "on_configure_sharded_model", None)):
+            raise RuntimeError(
+                "The `on_configure_sharded_model` callback hook was removed in v1.8. Use `setup()` instead."
             )
-        if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
-            rank_zero_deprecation(
-                "The `on_before_accelerator_backend_setup` callback hook was deprecated in"
-                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+        if callable(getattr(callback, "on_before_accelerator_backend_setup", None)):
+            raise RuntimeError(
+                "The `on_before_accelerator_backend_setup` callback hook was removed in v1.8. Use `setup()` instead."
             )
 
         has_legacy_argument = "callback_state" in inspect.signature(callback.on_load_checkpoint).parameters
@@ -238,23 +236,20 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
             ["on_batch_start", "on_train_batch_start"],
             ["on_batch_end", "on_train_batch_end"],
         ):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
-                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+            if callable(getattr(callback, hook, None)):
+                raise RuntimeError(
+                    f"The `Callback.{hook}` hook was removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
         for hook, alternative_hook in (
             ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
             ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
         ):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
-                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+            if callable(getattr(callback, hook, None)):
+                raise RuntimeError(
+                    f"The `Callback.{hook}` hook was removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
         for hook in ("on_pretrain_routine_start", "on_pretrain_routine_end"):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook has been deprecated in v1.6 and"
-                    " will be removed in v1.8. Please use `Callback.on_fit_start` instead."
+            if callable(getattr(callback, hook, None)):
+                raise RuntimeError(
+                    f"The `Callback.{hook}` hook was removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
