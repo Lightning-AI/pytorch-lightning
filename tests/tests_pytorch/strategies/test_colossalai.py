@@ -141,7 +141,7 @@ def test_colossalai_optimizer(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, colossalai=True)
+@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
 def test_warn_colossalai_ignored(tmpdir):
     class TestModel(ModelParallelBoringModel):
         def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
