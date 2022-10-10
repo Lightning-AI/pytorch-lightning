@@ -2246,8 +2246,8 @@ def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -
         and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
         and inference_mode
-        else torch.no_grad  
-    )   
+        else torch.no_grad
+    )
 
     with context_manager_class():
         yield
