@@ -3,13 +3,15 @@ import inspect
 import time
 from copy import deepcopy
 from functools import wraps
+from inspect import Parameter, Signature
 from multiprocessing import Queue
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 
 from lightning_app.api.request_types import APIRequest, CommandRequest
+from lightning_app.api.user import User
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
@@ -37,6 +39,22 @@ class HttpMethod:
         self.timeout = timeout
         self.kwargs = kwargs
 
+        self.user_key = None
+        for key, value in self.method_annotations.items():
+            if value == User:
+                self.user_key = key
+
+        if self.user_key:
+            self.method_annotations.pop(self.user_key)
+            self.method_annotations["x_lightning_user_id"] = Header
+
+            params = {k: v for k, v in self.method_signature.parameters.items()}
+            params.pop(self.user_key)
+            params["x_lightning_user_id"] = Parameter(
+                "x_lightning_user_id", Parameter.POSITIONAL_OR_KEYWORD, default=Header(None)
+            )
+            self.method_signature = Signature(parameters=params.values())
+
     def add_route(self, app: FastAPI, request_queue: Queue, responses_store: Dict[str, Any]) -> None:
         # 1: Create a proxy function with the signature of the wrapped method.
         fn = deepcopy(_signature_proxy_function)
@@ -55,6 +73,11 @@ class HttpMethod:
             async def fn(*args, **kwargs):
                 request_id = str(uuid4()).split("-")[0]
                 logger.debug(f"Processing request {request_id} for route: {self.route}")
+
+                if self.user_key:
+                    user_id = kwargs.pop("x_lightning_user_id", None)
+                    kwargs[self.user_key] = User(user_id=user_id)
+
                 request_queue.put(
                     request_cls(
                         name=self.component_name,
