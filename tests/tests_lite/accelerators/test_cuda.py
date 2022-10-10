@@ -61,3 +61,4 @@ def test_num_cuda_devices_without_nvml(*_):
     num_cuda_devices.cache_clear()
     assert is_cuda_available()
     assert num_cuda_devices() == 100
+    num_cuda_devices.cache_clear()
