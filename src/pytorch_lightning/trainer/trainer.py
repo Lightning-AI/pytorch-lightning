@@ -2144,52 +2144,64 @@ class Trainer:
         return self._logger_connector.progress_bar_metrics
 
     @property
-    def gpus(self) -> Optional[Union[List[int], str, int]]:
+    def gpus(self) -> None:
         raise AttributeError(
             "`Trainer.gpus` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
         )
 
     @property
-    def root_gpu(self) -> Optional[int]:
+    def root_gpu(self) -> None:
         raise AttributeError(
             "`Trainer.root_gpu` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.strategy.root_device.index` instead."
         )
 
     @property
-    def tpu_cores(self) -> int:
+    def tpu_cores(self) -> None:
         raise AttributeError(
             "`Trainer.tpu_cores` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.num_devices` instead."
         )
 
     @property
-    def ipus(self) -> int:
+    def ipus(self) -> None:
         raise AttributeError(
             "`Trainer.ipus` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.num_devices` instead."
         )
 
     @property
-    def num_gpus(self) -> int:
+    def num_gpus(self) -> None:
         raise AttributeError(
             "`Trainer.num_gpus` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.num_devices` instead."
         )
 
     @property
-    def devices(self) -> int:
+    def devices(self) -> None:
         raise AttributeError(
             "`Trainer.devices` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
         )
 
     @property
-    def use_amp(self) -> bool:
+    def use_amp(self) -> None:
         raise AttributeError(
             "`Trainer.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.amp_backend`.",
+        )
+
+    @property
+    def weights_save_path(self) -> None:
+        raise AttributeError(
+            "`Trainer.weights_save_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
+        )
+
+    @property
+    def lightning_optimizers(self) -> None:
+        raise AttributeError(
+            "`Trainer.lightning_optimizers` was deprecated in v1.6 and is no longer accessible as of v1.8."
         )
 
     @property

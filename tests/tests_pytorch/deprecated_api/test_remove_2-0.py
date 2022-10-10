@@ -302,31 +302,23 @@ def test_v2_0_0_deprecated_mc_save_checkpoint():
         mc.save_checkpoint(trainer)
 
 
-@pytest.mark.parametrize("attribute", ["gpus", "num_gpus", "root_gpu", "devices", "tpu_cores", "ipus"])
-def test_v2_0_0_trainer_unsupported_device_attributes(attribute):
+@pytest.mark.parametrize(
+    "attribute",
+    [
+        "gpus",
+        "num_gpus",
+        "root_gpu",
+        "devices",
+        "tpu_cores",
+        "ipus",
+        "use_amp",
+        "weights_save_path",
+        "lightning_optimizers",
+    ],
+)
+def test_v2_0_0_trainer_unsupported_attributes(attribute):
     trainer = Trainer()
     with pytest.raises(
         AttributeError, match=f"`Trainer.{attribute}` was deprecated in v1.6 and is no longer accessible as of v1.8."
     ):
         getattr(trainer, attribute)
-
-
-def test_v2_0_0_unsupported_use_amp():
-    trainer = Trainer()
-    with pytest.raises(
-        AttributeError, match=f"`Trainer.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
-    ):
-        _ = trainer.use_amp
-
-    model = BoringModel()
-    with pytest.raises(
-        AttributeError,
-        match=f"`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8.",
-    ):
-        _ = model.use_amp
-
-    with pytest.raises(
-        AttributeError,
-        match=f"`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8.",
-    ):
-        model.use_amp = False
