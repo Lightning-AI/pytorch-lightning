@@ -47,7 +47,7 @@ def test_v2_0_0_deprecated_ipus(_, monkeypatch):
         _ = Trainer(ipus=4)
 
 
-def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+def test_v2_0_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     # test resume_from_checkpoint still works until v2.0 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
@@ -87,7 +87,7 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
         trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
 
 
-def test_v2_0_callback_on_load_checkpoint_hook(tmpdir):
+def test_v2_0_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
         def on_load_checkpoint(self, trainer, pl_module, callback_state):
             print("overriding on_load_checkpoint")
@@ -107,7 +107,7 @@ def test_v2_0_callback_on_load_checkpoint_hook(tmpdir):
         trainer.fit(model)
 
 
-def test_v2_0_callback_on_save_checkpoint_hook(tmpdir):
+def test_v2_0_0_callback_on_save_checkpoint_hook(tmpdir):
     class TestCallbackSaveHookReturn(Callback):
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             return {"returning": "on_save_checkpoint"}
@@ -139,7 +139,7 @@ def test_v2_0_callback_on_save_checkpoint_hook(tmpdir):
     trainer.save_checkpoint(tmpdir + "/pathok.ckpt")
 
 
-def test_v2_0_remove_on_batch_start_end(tmpdir):
+def test_v2_0_0_remove_on_batch_start_end(tmpdir):
     class TestCallback(Callback):
         def on_batch_start(self, *args, **kwargs):
             print("on_batch_start")
@@ -166,7 +166,7 @@ def test_v2_0_remove_on_batch_start_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v2_0_on_configure_sharded_model(tmpdir):
+def test_v2_0_0_on_configure_sharded_model(tmpdir):
     class TestCallback(Callback):
         def on_configure_sharded_model(self, trainer, model):
             print("Configuring sharded model")
@@ -185,7 +185,7 @@ def test_v2_0_on_configure_sharded_model(tmpdir):
         trainer.fit(model)
 
 
-def test_v2_0_remove_on_epoch_start_end_lightning_module(tmpdir):
+def test_v2_0_0_remove_on_epoch_start_end_lightning_module(tmpdir):
     class CustomModel(BoringModel):
         def on_epoch_start(self, *args, **kwargs):
             print("on_epoch_start")
@@ -212,7 +212,7 @@ def test_v2_0_remove_on_epoch_start_end_lightning_module(tmpdir):
         trainer.fit(model)
 
 
-def test_v2_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
+def test_v2_0_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
     class CustomModel(BoringModel):
         def on_pretrain_routine_start(self, *args, **kwargs):
             print("foo")
@@ -239,7 +239,7 @@ def test_v2_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
         trainer.fit(model)
 
 
-def test_v2_0_on_before_accelerator_backend_setup(tmpdir):
+def test_v2_0_0_on_before_accelerator_backend_setup(tmpdir):
     class TestCallback(Callback):
         def on_before_accelerator_backend_setup(self, *args, **kwargs):
             print("on_before_accelerator_backend called.")
@@ -260,7 +260,7 @@ def test_v2_0_on_before_accelerator_backend_setup(tmpdir):
         trainer.fit(model)
 
 
-def test_v2_0_callback_on_pretrain_routine_start_end(tmpdir):
+def test_v2_0_0_callback_on_pretrain_routine_start_end(tmpdir):
     class TestCallback(Callback):
         def on_pretrain_routine_start(self, trainer, pl_module):
             print("on_pretrain_routine_start called.")
