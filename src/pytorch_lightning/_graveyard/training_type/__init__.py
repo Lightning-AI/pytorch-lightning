@@ -1,11 +1,9 @@
 import sys
 from typing import Any
 
-from pytorch_lightning import Trainer
+import pytorch_lightning as pl
 
 self = sys.modules[__name__]
-# FIXME: this needs to add, not replace
-# sys.modules["pytorch_lightning.plugins"] = self
 sys.modules["pytorch_lightning.plugins.training_type"] = self
 sys.modules["pytorch_lightning.plugins.training_type.ddp"] = self
 sys.modules["pytorch_lightning.plugins.training_type.ddp2"] = self
@@ -22,29 +20,52 @@ sys.modules["pytorch_lightning.plugins.training_type.single_device"] = self
 sys.modules["pytorch_lightning.plugins.training_type.single_tpu"] = self
 sys.modules["pytorch_lightning.plugins.training_type.tpu_spawn"] = self
 sys.modules["pytorch_lightning.plugins.training_type.training_type_plugin"] = self
+sys.modules["pytorch_lightning.plugins.training_type.utils"] = self
 
 
-class DDPPlugin:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        raise RuntimeError(
-            "The `pl.plugins.training_type.ddp.DDPPlugin` was removed in v1.8. Use `pl.strategies.ddp.DDPStrategy`"
-            " instead."
-        )
+def _ttp_constructor(self: Any, *_: Any, **__: Any) -> None:
+    raise RuntimeError(
+        f"The `pl.plugins.{self._name}Plugin` class was removed in v1.8. Use `pl.strategies.{self._name}Strategy`"
+        " instead."
+    )
 
 
-class SingleDevicePlugin:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        raise RuntimeError(
-            "The `pl.plugins.training_type.single_device.SingleDevicePlugin` was  removed in v1.8. Use"
-            " `pl.strategies.single_device.SingleDeviceStrategy` instead."
-        )
+for _name in (
+    "DDP",
+    "DDP2",
+    "DDPSpawn",
+    "DeepSpeed",
+    "DataParallel",
+    "DDPFullySharded",
+    "Horovod",
+    "IPU",
+    "Parallel",
+    "DDPSharded",
+    "DDPSpawnSharded",
+    "SingleDevice",
+    "SingleTPU",
+    "TPUSpawn",
+    "TrainingType",
+):
+    _plugin_name = _name + "Plugin"
+    _plugin_cls = type(_plugin_name, (object,), {"__init__": _ttp_constructor, "_name": _name})
+    setattr(self, _plugin_name, _plugin_cls)
+    # do not overwrite sys.modules as `pl.plugins` still exists. manually patch instead
+    setattr(pl.plugins, _plugin_name, _plugin_cls)
 
 
-def _training_type_plugin(_: Trainer):
+def on_colab_kaggle():
+    raise RuntimeError(
+        "`pl.plugins.training_type.utils.on_colab_kaggle` was removed in v1.8."
+        " Use `pl.strategies.utils.on_colab_kaggle` instead."
+    )
+
+
+def _training_type_plugin(_: pl.Trainer) -> None:
     raise RuntimeError(
         "`Trainer.training_type_plugin` is deprecated in v1.6 and was removed in v1.8. Use"
         " `Trainer.strategy` instead."
     )
 
 
-Trainer.training_type_plugin = property(_training_type_plugin)
+pl.Trainer.training_type_plugin = property(_training_type_plugin)
