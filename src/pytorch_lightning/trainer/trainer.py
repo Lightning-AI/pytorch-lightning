@@ -390,8 +390,8 @@ class Trainer:
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
 
-            inference_mode: Control whether to use inference mode or no grad mode during
-                evaluation (validate/test/predict).
+            inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
+                evaluation (``validate``/``test``/``predict``).
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -2239,15 +2239,13 @@ class Trainer:
 def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
-
     context_manager_class = (
         torch.inference_mode
-        if not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
+        if inference_mode
+        and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
         and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
-        and inference_mode
         else torch.no_grad
     )
-
     with context_manager_class():
         yield

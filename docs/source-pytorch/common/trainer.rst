@@ -1529,25 +1529,25 @@ Whether to enable or disable the model summarization. Defaults to True.
 inference_mode
 ^^^^^^^^^^^^^^
 
-Whether to use :meth:`~torch.inference_mode` or :meth:`~torch.no_grad` mode during evaluation
+Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` mode during evaluation
+(``validate``/``test``/``predict``)
 
 .. testcode::
 
     # default used by the Trainer
     trainer = Trainer(inference_mode=True)
 
-    # enables no_grad mode
+    # Use `torch.no_grad` instead
     trainer = Trainer(inference_mode=False)
 
 
-With :meth:`~torch.inference_mode` disabled, you can enable the grad of your model layers if required during validation/test/predict.
+With :func:`torch.inference_mode` disabled, you can enable the grad of your model layers if required.
 
 .. code-block:: python
 
     class LitModel(LightningModule):
         def validation_step(self, batch, batch_idx):
             preds = self.layer1(batch)
-
             with torch.enable_grad():
                 grad_preds = preds.requires_grad_()
                 preds2 = self.layer2(grad_preds)
