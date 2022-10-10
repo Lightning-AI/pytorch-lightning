@@ -269,6 +269,20 @@ class LightningModule(
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
 
+    @property
+    def use_amp(self) -> None:
+        raise AttributeError(
+            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.amp_backend`.",
+        )
+
+    @use_amp.setter
+    def use_amp(self, use_amp: bool) -> None:
+        raise AttributeError(
+            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.amp_backend`.",
+        )
+
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
             datahook_selector = self._trainer._data_connector._datahook_selector

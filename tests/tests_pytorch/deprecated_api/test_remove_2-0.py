@@ -322,3 +322,18 @@ def test_v2_0_0_trainer_unsupported_attributes(attribute):
         AttributeError, match=f"`Trainer.{attribute}` was deprecated in v1.6 and is no longer accessible as of v1.8."
     ):
         getattr(trainer, attribute)
+
+
+def test_v2_0_0_lightning_module_unsupported_use_amp():
+    model = BoringModel()
+    with pytest.raises(
+        AttributeError,
+        match=f"`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8.",
+    ):
+        _ = model.use_amp
+
+    with pytest.raises(
+        AttributeError,
+        match=f"`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8.",
+    ):
+        model.use_amp = False
