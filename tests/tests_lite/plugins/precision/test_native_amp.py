@@ -22,8 +22,8 @@ from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
 
 
 def test_native_amp_precision_default_scaler():
-    precision_plugin = NativeMixedPrecision(precision=16, device=Mock())
-    assert isinstance(precision_plugin.scaler, torch.cuda.amp.GradScaler)
+    precision = NativeMixedPrecision(precision=16, device=Mock())
+    assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
 
 
 @mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
@@ -31,8 +31,8 @@ def test_native_amp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16'` does not use a scaler"):
         NativeMixedPrecision(precision="bf16", device=Mock(), scaler=Mock())
 
-    precision_plugin = NativeMixedPrecision(precision="bf16", device=Mock())
-    assert precision_plugin.scaler is None
+    precision = NativeMixedPrecision(precision="bf16", device=Mock())
+    assert precision.scaler is None
 
 
 @mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", False)
@@ -44,51 +44,51 @@ def test_native_amp_precision_bf16_min_torch():
 @RunIf(min_torch="1.10")
 def test_native_amp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
-    precision_plugin = NativeMixedPrecision(precision=16, device="cuda")
-    assert precision_plugin.device == "cuda"
-    assert isinstance(precision_plugin.scaler, torch.cuda.amp.GradScaler)
+    precision = NativeMixedPrecision(precision=16, device="cuda")
+    assert precision.device == "cuda"
+    assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
     assert torch.get_default_dtype() == torch.float32
-    with precision_plugin.forward_context():
+    with precision.forward_context():
         assert torch.get_autocast_gpu_dtype() == torch.float16
 
-    precision_plugin = NativeMixedPrecision(precision="bf16", device="cpu")
-    assert precision_plugin.device == "cpu"
-    assert precision_plugin.scaler is None
-    with precision_plugin.forward_context():
+    precision = NativeMixedPrecision(precision="bf16", device="cpu")
+    assert precision.device == "cpu"
+    assert precision.scaler is None
+    with precision.forward_context():
         assert torch.get_autocast_cpu_dtype() == torch.bfloat16
 
-    context_manager = precision_plugin._autocast_context_manager()
+    context_manager = precision._autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
     # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
     assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
 def test_native_amp_precision_backward():
-    precision_plugin = NativeMixedPrecision(precision="mixed", device="cuda")
-    precision_plugin.scaler = Mock()
-    precision_plugin.scaler.scale = Mock(side_effect=(lambda x: x))
+    precision = NativeMixedPrecision(precision="mixed", device="cuda")
+    precision.scaler = Mock()
+    precision.scaler.scale = Mock(side_effect=(lambda x: x))
     tensor = Mock()
     model = Mock()
-    precision_plugin.backward(tensor, model, "positional-arg", keyword="arg")
-    precision_plugin.scaler.scale.assert_called_once_with(tensor)
+    precision.backward(tensor, model, "positional-arg", keyword="arg")
+    precision.scaler.scale.assert_called_once_with(tensor)
     tensor.backward.assert_called_once_with("positional-arg", keyword="arg")
 
 
 def test_native_amp_precision_optimizer_step_with_scaler():
-    precision_plugin = NativeMixedPrecision(precision="mixed", device="cuda")
-    precision_plugin.scaler = Mock()
+    precision = NativeMixedPrecision(precision="mixed", device="cuda")
+    precision.scaler = Mock()
     optimizer = Mock()
 
-    precision_plugin.optimizer_step(optimizer, keyword="arg")
-    precision_plugin.scaler.step.assert_called_once_with(optimizer, keyword="arg")
-    precision_plugin.scaler.update.assert_called_once()
+    precision.optimizer_step(optimizer, keyword="arg")
+    precision.scaler.step.assert_called_once_with(optimizer, keyword="arg")
+    precision.scaler.update.assert_called_once()
 
 
 @RunIf(min_torch="1.10")
 def test_native_amp_precision_optimizer_step_without_scaler():
-    precision_plugin = NativeMixedPrecision(precision="bf16", device="cuda")
-    assert precision_plugin.scaler is None
+    precision = NativeMixedPrecision(precision="bf16", device="cuda")
+    assert precision.scaler is None
     optimizer = Mock()
 
-    precision_plugin.optimizer_step(optimizer, keyword="arg")
+    precision.optimizer_step(optimizer, keyword="arg")
     optimizer.step.assert_called_once_with(keyword="arg")

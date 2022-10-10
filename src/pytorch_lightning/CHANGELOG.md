@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added support for requeueing slurm array jobs ([#15022](https://github.com/Lightning-AI/lightning/issues/15022))
+
+
 - Added native AMP support for `ddp_fork` (and associated alias strategies) with CUDA GPUs ([#14983](https://github.com/Lightning-AI/lightning/pull/14983))
 
 
@@ -124,6 +127,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - HPC checkpoints are now loaded automatically only in slurm environment when no specific value for `ckpt_path` has been set ([#14911](https://github.com/Lightning-AI/lightning/pull/14911))
+
+
+- The `Callback.on_load_checkpoint` now gets the full checkpoint dictionary and the `callback_state` argument was renamed `checkpoint` ([#14835](https://github.com/Lightning-AI/lightning/pull/14835))
 
 
 ### Deprecated
@@ -249,6 +255,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated way to set the distributed backend via the environment variable `PL_TORCH_DISTRIBUTED_BACKEND`, in favor of setting the `process_group_backend` in the strategy constructor ([#14693](https://github.com/Lightning-AI/lightning/pull/14693))
 
 
+- Removed deprecated callback hooks ([#14834](https://github.com/Lightning-AI/lightning/pull/14834))
+  * `Callback.on_configure_sharded_model` in favor of `Callback.setup`
+  * `Callback.on_before_accelerator_backend_setup` in favor of `Callback.setup`
+  * `Callback.on_batch_start` in favor of `Callback.on_train_batch_start`
+  * `Callback.on_batch_end` in favor of `Callback.on_train_batch_end`
+  * `Callback.on_epoch_start` in favor of `Callback.on_{train,validation,test}_epoch_start`
+  * `Callback.on_epoch_end` in favor of `Callback.on_{train,validation,test}_epoch_end`
+  * `Callback.on_pretrain_routine_{start,end}` in favor of `Callback.on_fit_start`
+
+
 - Removed the deprecated device attributes `Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}` in favor of the accelerator-agnostic `Trainer.num_devices` ([#14829](https://github.com/Lightning-AI/lightning/pull/14829))
 
 
@@ -300,6 +316,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed the deprecated `LightningDataModule.on_save/load_checkpoint` hooks ([#14909](https://github.com/Lightning-AI/lightning/pull/14909))
+
+
+- Removed support for returning a value in `Callback.on_save_checkpoint` in favor of implementing `Callback.state_dict` ([#14835](https://github.com/Lightning-AI/lightning/pull/14835))
+
 
 
 ### Fixed

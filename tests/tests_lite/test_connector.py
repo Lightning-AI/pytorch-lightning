@@ -181,21 +181,21 @@ def test_custom_accelerator(*_):
     class Strat(SingleDeviceStrategy):
         pass
 
-    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
+    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
     assert isinstance(connector.strategy, Strat)
-    assert isinstance(connector.precision_plugin, Prec)
+    assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
     class Strat(DDPStrategy):
         pass
 
-    strategy = Strat(accelerator=Accel(), precision_plugin=Prec())
+    strategy = Strat(accelerator=Accel(), precision=Prec())
     connector = _Connector(strategy=strategy, devices=2)
     assert isinstance(connector.accelerator, Accel)
     assert isinstance(connector.strategy, Strat)
-    assert isinstance(connector.precision_plugin, Prec)
+    assert isinstance(connector.precision, Prec)
     assert connector.strategy is strategy
 
 
@@ -411,7 +411,7 @@ def test_strategy_choice_gpu_str(strategy, strategy_class):
 def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
     connector = _Connector(strategy=strategy, devices=1, precision=precision)
     assert isinstance(connector.strategy, expected_strategy)
-    assert isinstance(connector.precision_plugin, expected_precision)
+    assert isinstance(connector.precision, expected_precision)
 
 
 @RunIf(min_cuda_gpus=2)
@@ -624,12 +624,12 @@ def test_unsupported_tpu_choice(tpu_available):
         _Connector(accelerator="tpu", precision=16, strategy="ddp")
 
     # wrong precision plugin type
-    strategy = XLAStrategy(accelerator=TPUAccelerator(), precision_plugin=Precision())
+    strategy = XLAStrategy(accelerator=TPUAccelerator(), precision=Precision())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `TPUPrecision` plugin"):
         _Connector(strategy=strategy, devices=8)
 
     # wrong strategy type
-    strategy = DDPStrategy(accelerator=TPUAccelerator(), precision_plugin=TPUPrecision())
+    strategy = DDPStrategy(accelerator=TPUAccelerator(), precision=TPUPrecision())
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         _Connector(strategy=strategy, devices=8)
 
@@ -771,14 +771,13 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     plugin = None
     if is_custom_plugin:
         plugin = plugin_cls(16, "cpu")
-
     connector = _Connector(
         precision=16,
         devices=devices,
         strategy=strategy,
         plugins=plugin,
     )
-    assert isinstance(connector.precision_plugin, plugin_cls)
+    assert isinstance(connector.precision, plugin_cls)
 
 
 @pytest.mark.parametrize(
