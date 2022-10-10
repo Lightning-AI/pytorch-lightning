@@ -351,19 +351,12 @@ class ModelCheckpoint(Checkpoint):
 
         self.best_model_path = state_dict["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
-        """Performs the main logic around saving a checkpoint.
-
-        This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
-        behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and will be removed in v1.8."
-            " Instead, you can use `trainer.save_checkpoint()` to manually save a checkpoint."
+    def save_checkpoint(self, trainer: "pl.Trainer") -> None:
+        raise NotImplementedError(
+            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and is no longer supported"
+            f" as of 1.8. Please use `trainer.save_checkpoint()` to manually save a checkpoint. This method will be"
+            f" removed completely in v2.0."
         )
-        monitor_candidates = self._monitor_candidates(trainer)
-        self._save_topk_checkpoint(trainer, monitor_candidates)
-        self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:

@@ -292,10 +292,11 @@ def test_v2_0_0_callback_on_pretrain_routine_start_end(tmpdir):
         trainer.fit(model)
 
 
-def test_deprecated_mc_save_checkpoint():
+def test_v2_0_0_deprecated_mc_save_checkpoint():
     mc = ModelCheckpoint()
     trainer = Trainer()
-    with mock.patch.object(trainer, "save_checkpoint"), pytest.deprecated_call(
-        match=r"ModelCheckpoint.save_checkpoint\(\)` was deprecated in v1.6"
+    with mock.patch.object(trainer, "save_checkpoint"), pytest.raises(
+        NotImplementedError,
+        match=r"ModelCheckpoint.save_checkpoint\(\)` was deprecated in v1.6 and is no longer supported as of 1.8.",
     ):
         mc.save_checkpoint(trainer)
