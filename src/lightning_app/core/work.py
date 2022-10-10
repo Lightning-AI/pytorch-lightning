@@ -90,7 +90,7 @@ class LightningWork:
             :header: The Lightning Work inner workings.
             :description: Learn more Lightning Work.
             :col_css: col-md-4
-            :button_link: ../../../core_api/lightning_work/index.html
+            :button_link: ../../core_api/lightning_work/index.html
             :height: 180
             :tag: Basic
 
