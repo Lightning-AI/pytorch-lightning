@@ -81,7 +81,7 @@ class ModelParallelBoringModelNoSchedulers(ModelParallelBoringModel):
         return HybridAdam(self.layer.parameters(), lr=1e-3)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
+@RunIf(min_cuda_gpus=1, colossalai=True)
 def test_gradient_clip_algorithm_error(tmpdir):
     model = ModelParallelBoringModel()
     trainer = Trainer(
@@ -100,7 +100,7 @@ def test_gradient_clip_algorithm_error(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
+@RunIf(min_cuda_gpus=1, colossalai=True)
 def test_gradient_accumulation_error(tmpdir):
     model = ModelParallelBoringModel()
     trainer = Trainer(
@@ -120,7 +120,7 @@ def test_gradient_accumulation_error(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
+@RunIf(min_cuda_gpus=1, colossalai=True)
 def test_colossalai_optimizer(tmpdir):
     model = BoringModel()
     trainer = Trainer(
@@ -134,7 +134,7 @@ def test_colossalai_optimizer(tmpdir):
         enable_model_summary=False,
     )
     with pytest.raises(
-        MisconfigurationException,
+        ValueError,
         match="`ColossalAIStrategy` only supports `colossalai.nn.optimizer.CPUAdam` "
         "and `colossalai.nn.optimizer.HybridAdam` as its optimizer.",
     ):

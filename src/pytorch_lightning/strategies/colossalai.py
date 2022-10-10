@@ -254,10 +254,10 @@ class ColossalAIStrategy(DDPStrategy):
 
         if is_training:
             if len(self.optimizers) > 1:
-                raise MisconfigurationException("`ColossalAIStrategy` only supports single Optimizer now.")
+                raise ValueError("`ColossalAIStrategy` only supports single Optimizer now.")
             optimizer = self.optimizers[0]
             if not isinstance(optimizer, (CPUAdam, HybridAdam)):
-                raise MisconfigurationException(
+                raise ValueError(
                     "`ColossalAIStrategy` only supports `colossalai.nn.optimizer.CPUAdam` "
                     "and `colossalai.nn.optimizer.HybridAdam` as its optimizer."
                 )
@@ -298,7 +298,7 @@ class ColossalAIStrategy(DDPStrategy):
             )
 
         if not isinstance(self.accelerator, CUDAAccelerator):
-            raise MisconfigurationException(
+            raise ValueError(
                 "`ColossalAIStrategy` is only supported on `CUDAAccelerator`, "
                 f"but `{self.accelerator.__class__.__name__}` is used."
             )
@@ -323,7 +323,7 @@ class ColossalAIStrategy(DDPStrategy):
                 )
 
         if not isinstance(self.precision_plugin, ColossalAIPrecisionPlugin):
-            raise MisconfigurationException("`ColossalAIStrategy` is only compatible with `ColossalAIPrecisionPlugin`.")
+            raise ValueError("`ColossalAIStrategy` is only compatible with `ColossalAIPrecisionPlugin`.")
 
         self.accelerator.setup(trainer)
         assert self.lightning_module is not None
