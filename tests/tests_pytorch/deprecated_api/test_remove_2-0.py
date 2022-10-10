@@ -18,6 +18,7 @@ import pytest
 
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
 from tests_pytorch.helpers.runif import RunIf
@@ -136,6 +137,169 @@ def test_v2_0_0_callback_on_save_checkpoint_hook(tmpdir):
 
     trainer.callbacks = [TestCallbackSaveHookOverride()]
     trainer.save_checkpoint(tmpdir + "/pathok.ckpt")
+
+
+def test_v2_0_0_remove_on_batch_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_batch_start(self, *args, **kwargs):
+            print("on_batch_start")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(RuntimeError, match="The `Callback.on_batch_start` hook was removed in v1.8"):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_batch_end(self, *args, **kwargs):
+            print("on_batch_end")
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(RuntimeError, match="The `Callback.on_batch_end` hook was removed in v1.8"):
+        trainer.fit(model)
+
+
+def test_v2_0_0_on_configure_sharded_model(tmpdir):
+    class TestCallback(Callback):
+        def on_configure_sharded_model(self, trainer, model):
+            print("Configuring sharded model")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(RuntimeError, match="The `on_configure_sharded_model` callback hook was removed in v1.8."):
+        trainer.fit(model)
+
+
+def test_v2_0_0_remove_on_epoch_start_end_lightning_module(tmpdir):
+    class CustomModel(BoringModel):
+        def on_epoch_start(self, *args, **kwargs):
+            print("on_epoch_start")
+
+    model = CustomModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(RuntimeError, match="The `LightningModule.on_epoch_start` hook was removed in v1.8"):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def on_epoch_end(self, *args, **kwargs):
+            print("on_epoch_end")
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+
+    model = CustomModel()
+    with pytest.raises(RuntimeError, match="The `LightningModule.on_epoch_end` hook was removed in v1.8"):
+        trainer.fit(model)
+
+
+def test_v2_0_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
+    class CustomModel(BoringModel):
+        def on_pretrain_routine_start(self, *args, **kwargs):
+            print("foo")
+
+    model = CustomModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(RuntimeError, match="The `LightningModule.on_pretrain_routine_start` hook was removed in v1.8"):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def on_pretrain_routine_end(self, *args, **kwargs):
+            print("foo")
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+
+    model = CustomModel()
+    with pytest.raises(RuntimeError, match="The `LightningModule.on_pretrain_routine_end` hook was removed in v1.8"):
+        trainer.fit(model)
+
+
+def test_v2_0_0_on_before_accelerator_backend_setup(tmpdir):
+    class TestCallback(Callback):
+        def on_before_accelerator_backend_setup(self, *args, **kwargs):
+            print("on_before_accelerator_backend called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(
+        RuntimeError, match="The `on_before_accelerator_backend_setup` callback hook was removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v2_0_0_callback_on_pretrain_routine_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_pretrain_routine_start(self, trainer, pl_module):
+            print("on_pretrain_routine_start called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(RuntimeError, match="The `Callback.on_pretrain_routine_start` hook was removed in v1.8"):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_pretrain_routine_end(self, trainer, pl_module):
+            print("on_pretrain_routine_end called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(RuntimeError, match="The `Callback.on_pretrain_routine_end` hook was removed in v1.8."):
+        trainer.fit(model)
+
+
+def test_v2_0_0_deprecated_mc_save_checkpoint():
+    mc = ModelCheckpoint()
+    trainer = Trainer()
+    with mock.patch.object(trainer, "save_checkpoint"), pytest.raises(
+        NotImplementedError,
+        match=r"ModelCheckpoint.save_checkpoint\(\)` was deprecated in v1.6 and is no longer supported as of 1.8.",
+    ):
+        mc.save_checkpoint(trainer)
 
 
 @pytest.mark.parametrize("attribute", ["gpus", "num_gpus", "root_gpu", "devices", "tpu_cores", "ipus"])
