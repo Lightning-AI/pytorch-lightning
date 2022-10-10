@@ -16,6 +16,7 @@ import inspect
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -54,6 +55,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_epoch_start_end(model)
     # TODO: Delete this check in v2.0
     _check_on_pretrain_routine(model)
+    # TODO: Delete this check in v2.0
+    _check_deprecated_logger_methods(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -253,3 +256,17 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 raise RuntimeError(
                     f"The `Callback.{hook}` hook was removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
+
+
+def _check_deprecated_logger_methods(trainer: "pl.Trainer") -> None:
+    for logger in trainer.loggers:
+        if is_overridden(method_name="update_agg_funcs", instance=logger, parent=Logger):
+            raise RuntimeError(
+                f"`{type(logger).__name__}.update_agg_funcs` was deprecated in v1.6 and is no longer supported as of"
+                " v1.8."
+            )
+        if is_overridden(method_name="agg_and_log_metrics", instance=logger, parent=Logger):
+            raise RuntimeError(
+                f"`{type(logger).__name__}.agg_and_log_metrics` was deprecated in v1.6 and is no longer supported as of"
+                " v1.8."
+            )
