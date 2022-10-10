@@ -80,8 +80,6 @@ class AMPTestModel(BoringModel):
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_cpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="cpu",
@@ -103,8 +101,6 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_gpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -135,8 +131,6 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
-    tutils.set_random_main_port()
-
     model = AMPTestModel()
 
     # exp file to get meta
