@@ -21,6 +21,7 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.cuda import _patch_cuda_is_available
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
@@ -37,17 +38,18 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
 if _COLOSSALAI_AVAILABLE:
-    from colossalai.communication.collective import all_gather, broadcast, reduce
-    from colossalai.context import ParallelMode
-    from colossalai.core import global_context as gpc
-    from colossalai.gemini import ChunkManager, GeminiManager
-    from colossalai.logging import disable_existing_loggers, get_dist_logger
-    from colossalai.nn.optimizer import CPUAdam, HybridAdam
-    from colossalai.nn.parallel import ZeroDDP
-    from colossalai.tensor import ProcessGroup
-    from colossalai.utils import get_current_device
-    from colossalai.utils.model.colo_init_context import ColoInitContext
-    from colossalai.zero import ZeroOptimizer
+    with _patch_cuda_is_available():
+        from colossalai.communication.collective import all_gather, broadcast, reduce
+        from colossalai.context import ParallelMode
+        from colossalai.core import global_context as gpc
+        from colossalai.gemini import ChunkManager, GeminiManager
+        from colossalai.logging import disable_existing_loggers, get_dist_logger
+        from colossalai.nn.optimizer import CPUAdam, HybridAdam
+        from colossalai.nn.parallel import ZeroDDP
+        from colossalai.tensor import ProcessGroup
+        from colossalai.utils import get_current_device
+        from colossalai.utils.model.colo_init_context import ColoInitContext
+        from colossalai.zero import ZeroOptimizer
 else:
     ColoInitContext = Any
 
