@@ -62,10 +62,7 @@ def on_colab_kaggle():
 
 
 def _training_type_plugin(_: pl.Trainer) -> None:
-    raise RuntimeError(
-        "`Trainer.training_type_plugin` is deprecated in v1.6 and was removed in v1.8. Use"
-        " `Trainer.strategy` instead."
-    )
+    raise RuntimeError("`Trainer.training_type_plugin` was removed in v1.8. Use `Trainer.strategy` instead.")
 
 
 pl.Trainer.training_type_plugin = property(_training_type_plugin)
