@@ -1526,7 +1526,7 @@ Whether to enable or disable the model summarization. Defaults to True.
     trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
 
-eval_inference_mode
+inference_mode
 ^^^^^^^^^^^^^^^^^^^
 
 Whether to use :meth:`~torch.inference_mode` or :meth:`~torch.no_grad` mode during evaluation
@@ -1534,13 +1534,13 @@ Whether to use :meth:`~torch.inference_mode` or :meth:`~torch.no_grad` mode duri
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(eval_inference_mode=True)
+    trainer = Trainer(inference_mode=True)
 
     # enables no_grad mode
-    trainer = Trainer(eval_inference_mode=False)
+    trainer = Trainer(inference_mode=False)
 
 
-With :meth:`~torch.inference_mode` disabled, you can enable the grad of your model layers if required during validat/test/predict.
+With :meth:`~torch.inference_mode` disabled, you can enable the grad of your model layers if required during validation/test/predict.
 
 .. code-block:: python
 
@@ -1554,7 +1554,7 @@ With :meth:`~torch.inference_mode` disabled, you can enable the grad of your mod
 
 
     model = LitModel()
-    trainer = Trainer(eval_inference_mode=False)
+    trainer = Trainer(inference_mode=False)
     trainer.validate(model)
 
 
