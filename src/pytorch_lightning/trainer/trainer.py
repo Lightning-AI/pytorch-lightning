@@ -1364,6 +1364,7 @@ class Trainer:
             with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state is not None:
+                # TODO: Remove this error message in v2.0
                 raise ValueError(
                     f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` was deprecated in v1.6"
                     f" and is no longer supported as of v1.8. Please override `Callback.state_dict` to return state"

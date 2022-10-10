@@ -225,6 +225,7 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
 
         has_legacy_argument = "callback_state" in inspect.signature(callback.on_load_checkpoint).parameters
         if is_overridden(method_name="on_load_checkpoint", instance=callback) and has_legacy_argument:
+            # TODO: Remove this error message in v2.0
             raise TypeError(
                 f"`{callback.__class__.__name__}.on_load_checkpoint` has changed its signature and behavior in v1.8."
                 " If you wish to load the state of the callback, use `load_state_dict` instead."
