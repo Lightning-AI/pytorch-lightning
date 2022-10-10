@@ -37,12 +37,9 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
-if TYPE_CHECKING:
-    if _COLOSSALAI_AVAILABLE:
-        with _patch_cuda_is_available():
-            from colossalai.utils.model.colo_init_context import ColoInitContext
-    else:
-        ColoInitContext = Any
+if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
+    with _patch_cuda_is_available():
+        from colossalai.utils.model.colo_init_context import ColoInitContext
 
 
 class ColossalAIStrategy(DDPStrategy):
