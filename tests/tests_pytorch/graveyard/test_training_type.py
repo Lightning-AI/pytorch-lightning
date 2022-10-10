@@ -8,35 +8,34 @@ from pytorch_lightning import Trainer
 def test_removed_training_type_plugin_property():
     trainer = Trainer()
     with pytest.raises(RuntimeError, match="training_type_plugin` was removed"):
-        _ = trainer.training_type_plugin
+        trainer.training_type_plugin
 
 
 @pytest.mark.parametrize(
     "name",
     (
-        "DDP",
-        "DDP2",
-        "DDPSpawn",
-        "DeepSpeed",
-        "DataParallel",
-        "DDPFullySharded",
-        "Horovod",
-        "IPU",
-        "Parallel",
-        "DDPSharded",
-        "DDPSpawnSharded",
-        "SingleDevice",
-        "SingleTPU",
-        "TPUSpawn",
-        "TrainingType",
+        "DDPPlugin",
+        "DDP2Plugin",
+        "DDPSpawnPlugin",
+        "DeepSpeedPlugin",
+        "DataParallelPlugin",
+        "DDPFullyShardedPlugin",
+        "HorovodPlugin",
+        "IPUPlugin",
+        "ParallelPlugin",
+        "DDPShardedPlugin",
+        "DDPSpawnShardedPlugin",
+        "SingleDevicePlugin",
+        "SingleTPUPlugin",
+        "TPUSpawnPlugin",
+        "TrainingTypePlugin",
     ),
 )
 @pytest.mark.parametrize("import_path", ("pytorch_lightning.plugins", "pytorch_lightning.plugins.training_type"))
 def test_removed_training_type_plugin_classes(name, import_path):
     module = import_module(import_path)
-    cls_name = name + "Plugin"
-    cls = getattr(module, cls_name)
-    with pytest.raises(RuntimeError, match=f"{cls_name}` class was removed"):
+    cls = getattr(module, name)
+    with pytest.raises(RuntimeError, match=f"{name}` class was removed"):
         cls()
 
 

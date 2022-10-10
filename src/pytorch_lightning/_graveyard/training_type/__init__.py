@@ -54,7 +54,7 @@ for _name in (
     setattr(pl.plugins, _plugin_name, _plugin_cls)
 
 
-def on_colab_kaggle():
+def on_colab_kaggle() -> None:
     raise RuntimeError(
         "`pl.plugins.training_type.utils.on_colab_kaggle` was removed in v1.8."
         " Use `pl.strategies.utils.on_colab_kaggle` instead."
