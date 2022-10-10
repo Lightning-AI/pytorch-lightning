@@ -127,7 +127,10 @@ def test_v1_2_0_callback_on_save_checkpoint_hook(tmpdir):
     trainer.fit(model)
     with pytest.raises(
         ValueError,
-        match="Returning a value from `TestCallbackSaveHookReturn.on_save_checkpoint` was deprecated in v1.6 and is no longer supported as of v1.8",
+        match=(
+            "Returning a value from `TestCallbackSaveHookReturn.on_save_checkpoint` was deprecated in v1.6 and is"
+            " no longer supported as of v1.8"
+        ),
     ):
         trainer.save_checkpoint(tmpdir + "/path.ckpt")
 
