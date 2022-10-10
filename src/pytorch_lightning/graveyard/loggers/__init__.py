@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
-#
-# from pytorch_lightning.loggers import *  # noqa: F403
-# from pytorch_lightning.loggers.base import *  # noqa: F403
-# from pytorch_lightning.loggers.logger import *  # noqa: F403
 
 # self = sys.modules[__name__]
 # sys.modules["pytorch_lightning.loggers"] = self
@@ -25,6 +21,11 @@ from typing import Any
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import Logger
+
+#
+# from pytorch_lightning.loggers import *
+# from pytorch_lightning.loggers.base import *
+# from pytorch_lightning.loggers.logger import *
 
 
 class LoggerCollection:
