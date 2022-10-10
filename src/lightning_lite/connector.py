@@ -63,7 +63,7 @@ _PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
 
 class _Connector:
-    """The Connector parses several Lite arguments and instantiates the Strategy including it's owned components.
+    """The Connector parses several Lite arguments and instantiates the Strategy including its owned components.
 
         A. accelerator flag could be:
             1. accelerator class
