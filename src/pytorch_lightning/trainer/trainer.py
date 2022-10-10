@@ -2199,14 +2199,7 @@ class Trainer:
     @property
     def use_amp(self) -> bool:
         raise AttributeError(
-            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
-            " Please use `Trainer.amp_backend`.",
-        )
-
-    @use_amp.setter
-    def use_amp(self, use_amp: bool) -> None:
-        raise AttributeError(
-            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            "`Trainer.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
             " Please use `Trainer.amp_backend`.",
         )
 
