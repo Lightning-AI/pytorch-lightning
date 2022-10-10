@@ -292,11 +292,32 @@ def test_v2_0_0_callback_on_pretrain_routine_start_end(tmpdir):
         trainer.fit(model)
 
 
-def test_v2_0_0_deprecated_mc_save_checkpoint():
-    mc = ModelCheckpoint()
-    trainer = Trainer()
-    with mock.patch.object(trainer, "save_checkpoint"), pytest.raises(
-        NotImplementedError,
-        match=r"ModelCheckpoint.save_checkpoint\(\)` was deprecated in v1.6 and is no longer supported as of 1.8.",
+class OnInitStartCallback(Callback):
+    def on_init_start(self, trainer):
+        print("Starting to init trainer!")
+
+
+class OnInitEndCallback(Callback):
+    def on_init_end(self, trainer):
+        print("Trainer is init now")
+
+
+@pytest.mark.parametrize("callback_class", [OnInitStartCallback, OnInitEndCallback])
+def test_v2_0_0_unsupported_on_init_start_end(callback_class, tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[callback_class()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(
+        RuntimeError, match="callback hook was deprecated in v1.6 and is no longer supported as of v1.8"
     ):
-        mc.save_checkpoint(trainer)
+        trainer.fit(model)
+    with pytest.raises(
+        RuntimeError, match="callback hook was deprecated in v1.6 and is no longer supported as of v1.8"
+    ):
+        trainer.validate(model)
