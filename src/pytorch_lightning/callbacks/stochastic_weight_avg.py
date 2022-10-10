@@ -298,7 +298,7 @@ class StochasticWeightAveraging(Callback):
                 dtype=module.running_var.dtype,
             )
             self.momenta[module] = module.momentum
-            module.momentum = float()
+            module.momentum = None
             assert module.num_batches_tracked is not None
             module.num_batches_tracked *= 0
 
