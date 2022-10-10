@@ -20,7 +20,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class _LightningPrecisionModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
@@ -101,6 +101,7 @@ class _LightningModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
                 # `require_backward_grad_sync` will be reset in the
                 # ddp_strategy `post_training_step` hook
                 if not pl_module.automatic_optimization:
+                    assert trainer.model is not None
                     trainer.model.require_backward_grad_sync = False  # type: ignore[assignment]
                 return output
             if trainer.testing:

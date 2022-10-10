@@ -1,12 +1,12 @@
 name: Test Lite full
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
@@ -45,13 +45,10 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Reset caching
-      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
-
     - name: basic setup
       run: |
         pip --version
-        pip install -q fire
+        pip install -q -r .actions/requirements.txt
 
     - name: Setup Windows
       if: runner.os == 'windows'
@@ -73,9 +70,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Install dependencies
       env:
@@ -87,6 +84,13 @@ jobs:
         pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         pip list
       shell: bash
+
+    - name: Testing Warnings
+      # the stacklevel can only be set on >=3.7
+      if: matrix.python-version != '3.7'
+      working-directory: tests/tests_lite
+      # needs to run outside of `pytest`
+      run: python utilities/test_warnings.py
 
     - name: Testing Lite
       working-directory: tests/tests_lite

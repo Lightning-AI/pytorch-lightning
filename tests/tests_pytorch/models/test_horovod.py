@@ -26,7 +26,6 @@ from torch import optim
 from torchmetrics.classification.accuracy import Accuracy
 
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -55,7 +54,6 @@ TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_
 def _run_horovod(trainer_options):
     """Execute the training script across multiple workers in parallel."""
     devices = trainer_options.get("devices", 1)
-    tutils.reset_seed()
     # TODO: Find out why coverage breaks CI.
     # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
     # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
@@ -327,8 +325,6 @@ def test_result_reduce_horovod(tmpdir):
 
     This test mirrors tests/core/test_results.py::_ddp_test_fn
     """
-    tutils.reset_seed()
-    tutils.set_random_main_port()
 
     def hvd_test_fn():
         path_here = os.path.abspath(os.path.dirname(__file__))

@@ -16,14 +16,12 @@ from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
+from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint
 
 
 def run_model_test_without_loggers(
     trainer_options: dict, model: LightningModule, data: LightningDataModule = None, min_acc: float = 0.50
 ):
-    reset_seed()
-
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, datamodule=data)
@@ -31,7 +29,7 @@ def run_model_test_without_loggers(
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    model2 = load_model_from_checkpoint(trainer.logger, trainer.checkpoint_callback.best_model_path, type(model))
+    model2 = load_model_from_checkpoint(trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
     test_loaders = model2.test_dataloader() if not data else data.test_dataloader()
@@ -51,7 +49,6 @@ def run_model_test(
     with_hpc: bool = True,
     min_acc: float = 0.25,
 ):
-    reset_seed()
     save_dir = trainer_options["default_root_dir"]
 
     # logger file to get meta
@@ -68,7 +65,7 @@ def run_model_test(
     assert change_ratio > 0.03, f"the model is changed of {change_ratio}"
 
     # test model loading
-    _ = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
+    _ = load_model_from_checkpoint(trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
     test_loaders = model.test_dataloader() if not data else data.test_dataloader()

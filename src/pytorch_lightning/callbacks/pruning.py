@@ -361,7 +361,7 @@ class ModelPruning(Callback):
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: LightningModule, stage: str) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -396,7 +396,7 @@ class ModelPruning(Callback):
             rank_zero_debug("`ModelPruning.on_train_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
 
-    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
         if not trainer.sanity_checking and not self._prune_on_train_epoch_end:
             rank_zero_debug("`ModelPruning.on_validation_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
@@ -423,9 +423,7 @@ class ModelPruning(Callback):
 
         return apply_to_collection(state_dict, Tensor, move_to_cpu)
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Optional[dict]:
+    def on_save_checkpoint(self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             # manually prune the weights so training can keep going with the same buffers

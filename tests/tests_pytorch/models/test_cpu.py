@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import torch
 
@@ -25,7 +26,8 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-def test_cpu_slurm_save_load(tmpdir):
+@mock.patch("lightning_lite.plugins.environments.slurm_environment.SLURMEnvironment.detect", return_value=True)
+def test_cpu_slurm_save_load(_, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     model = BoringModel()
 
@@ -104,7 +106,6 @@ def test_early_stopping_cpu_model(tmpdir):
             self.log("val_loss", output["x"])
             return output
 
-    tutils.reset_seed()
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
     trainer_options = dict(
         callbacks=[stopping],
@@ -128,8 +129,6 @@ def test_early_stopping_cpu_model(tmpdir):
 @RunIf(skip_windows=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    tutils.set_random_main_port()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,

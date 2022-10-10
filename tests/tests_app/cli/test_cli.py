@@ -49,6 +49,18 @@ def test_commands(command):
     assert result.exit_code == 0
 
 
+def test_main_lightning_cli_no_arguments():
+    """Validate the Lightning CLI without args."""
+    res = os.popen("python -m lightning").read()
+    assert "login   " in res
+    assert "logout  " in res
+    assert "run     " in res
+    assert "list    " in res
+    assert "delete  " in res
+    assert "create  " in res
+    assert "show    " in res
+
+
 def test_main_lightning_cli_help():
     """Validate the Lightning CLI."""
     res = os.popen("python -m lightning --help").read()

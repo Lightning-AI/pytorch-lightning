@@ -25,7 +25,7 @@ from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain, groupby
 from types import ModuleType
-from typing import List
+from typing import List, Sequence
 
 from pkg_resources import parse_requirements
 
@@ -177,7 +177,18 @@ def replace_block_with_imports(lines: List[str], import_path: str, kword: str = 
     >>> lines = replace_block_with_imports(lines, import_path, "def")
     """
     body, tracking, skip_offset = [], False, 0
-    for ln in lines:
+    for i, ln in enumerate(lines):
+        # support for defining a class with this condition
+        conditional_class_definitions = ("if TYPE_CHECKING", "if typing.TYPE_CHECKING", "if torch.", "if _TORCH_")
+        if (
+            any(ln.startswith(pattern) for pattern in conditional_class_definitions)
+            # avoid bug in CI for the <1.7 meta code
+            and "pytorch_lightning.utilities.meta" not in import_path
+        ):
+            # dedent the next line
+            lines[i + 1] = lines[i + 1].lstrip()
+            continue
+
         offset = len(ln) - len(ln.lstrip())
         # in case of mating the class args are multi-line
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]"):
@@ -489,18 +500,22 @@ def _download_frontend(root: str = _PROJECT_ROOT):
         print("The Lightning UI downloading has failed!")
 
 
-def _relax_require_versions(source_dir: str = "src", req_dir: str = "requirements") -> None:
+def _relax_require_versions(
+    source_dir: str = "src", req_dir: str = "requirements", strict_pkgs: Sequence[str] = ("lightning_app",)
+) -> None:
     """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`.
 
     >>> _relax_require_versions("../src", "../requirements")
     """
+    strict_pkgs = strict_pkgs or tuple()
     reqs = load_requirements(req_dir, file_name="base.txt")
     for i, req in enumerate(parse_requirements(reqs)):
-        ver_ = parse_version_from_file(os.path.join(source_dir, req.name))
-        if not ver_:
+        ver = parse_version_from_file(os.path.join(source_dir, req.name))
+        if not ver:
             continue
-        ver2 = ".".join(ver_.split(".")[:2] + ["*"])
-        reqs[i] = f"{req}, =={ver2}"
+        if req.name not in strict_pkgs:
+            ver = ".".join(ver.split(".")[:2] + ["*"])
+        reqs[i] = f"{req}, =={ver}"
 
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in reqs])
@@ -511,7 +526,8 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     requires = [
         load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
         for d in glob.glob(os.path.join(req_dir, "*"))
-        if os.path.isdir(d)
+        # skip empty folder as git artefacts, and resolving Will's special issue
+        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0
     ]
     if not requires:
         return None

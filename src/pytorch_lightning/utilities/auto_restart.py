@@ -29,11 +29,11 @@ from torch.utils.data.dataloader import (
 from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _Stateful
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
-from pytorch_lightning.utilities.types import _Stateful
 
 
 class _IteratorStateDict(TypedDict):
@@ -62,7 +62,7 @@ class FastForwardSampler(Sampler):
     samples seen in the last iterations (for the current worker).
     """
 
-    def __init__(self, sampler: Iterator, attr_name: Optional[str] = None) -> None:
+    def __init__(self, sampler: Union[Sampler, Iterable], attr_name: Optional[str] = None) -> None:
         super().__init__(data_source=None)
         self._sampler = sampler
         self.restarting: bool = False

@@ -8,7 +8,7 @@ from types import FrameType
 from typing import Any, Callable, Dict, List, Set, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.environments import SLURMEnvironment
+from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _IS_WINDOWS
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
@@ -42,7 +42,7 @@ class SignalConnector:
     def register_signal_handlers(self) -> None:
         self._original_handlers = self._get_current_signal_handlers()
 
-        sigusr1_handlers: List[_HANDLER] = []
+        sigusr_handlers: List[_HANDLER] = []
         sigterm_handlers: List[_HANDLER] = []
 
         if _fault_tolerant_training():
@@ -51,30 +51,40 @@ class SignalConnector:
         environment = self.trainer._accelerator_connector.cluster_environment
         if isinstance(environment, SLURMEnvironment) and environment.auto_requeue:
             log.info("SLURM auto-requeueing enabled. Setting signal handlers.")
-            sigusr1_handlers.append(self.slurm_sigusr1_handler_fn)
+            sigusr_handlers.append(self.slurm_sigusr_handler_fn)
             sigterm_handlers.append(self.sigterm_handler_fn)
 
-        # signal.SIGUSR1 doesn't seem available on windows
+        # Windows seems to have signal incompatibilities
         if not self._is_on_windows():
-            if sigusr1_handlers and not self._has_already_handler(signal.SIGUSR1):
-                self._register_signal(signal.SIGUSR1, HandlersCompose(sigusr1_handlers))
+            sigusr = environment.requeue_signal if isinstance(environment, SLURMEnvironment) else signal.SIGUSR1
+
+            assert sigusr is not None
+
+            if sigusr_handlers and not self._has_already_handler(sigusr):
+                self._register_signal(sigusr, HandlersCompose(sigusr_handlers))
 
             if sigterm_handlers and not self._has_already_handler(signal.SIGTERM):
                 self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
-    def slurm_sigusr1_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
-        rank_zero_info("handling SIGUSR1")
+    def slurm_sigusr_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
+        rank_zero_info("handling auto-requeue signal")
 
         # save logger to make sure we get all the metrics
         for logger in self.trainer.loggers:
             logger.finalize("finished")
-        # TODO: in v1.8 change this to use self.trainer.default_root_dir
-        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer._weights_save_path_internal)
+
+        hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.default_root_dir)
         self.trainer.save_checkpoint(hpc_save_path)
 
         if self.trainer.is_global_zero:
             # find job id
-            job_id = os.environ["SLURM_JOB_ID"]
+            array_job_id = os.getenv("SLURM_ARRAY_JOB_ID")
+            if array_job_id is not None:
+                array_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
+                job_id = f"{array_job_id}_{array_task_id}"
+            else:
+                job_id = os.environ["SLURM_JOB_ID"]
+
             cmd = ["scontrol", "requeue", job_id]
 
             # requeue job

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import inspect
-import logging
 import os
 import pathlib
 import subprocess
@@ -11,11 +10,12 @@ from typing import Callable, TextIO
 
 from lightning_app.frontend.frontend import Frontend
 from lightning_app.frontend.utils import _get_frontend_environment
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
 
-_logger = logging.getLogger("PanelFrontend")
+_logger = Logger(__name__)
 
 
 def has_panel_autoreload() -> bool:
@@ -95,7 +95,7 @@ class PanelFrontend(Frontend):
         self._log_files: dict[str, TextIO] = {}
         _logger.debug("PanelFrontend Frontend with %s is initialized.", entry_point)
 
-    def start_server(self, host: str, port: int) -> None:
+    def start_server(self, host: str, port: int, root_path: str = "") -> None:
         _logger.debug("PanelFrontend starting server on %s:%s", host, port)
 
         # 1: Prepare environment variables and arguments.

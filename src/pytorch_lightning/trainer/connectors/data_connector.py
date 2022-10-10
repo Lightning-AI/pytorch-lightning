@@ -18,30 +18,26 @@ from typing import Any, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
+from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper, UnrepeatedDistributedSamplerWrapper
+from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
-from pytorch_lightning.utilities.data import (
-    _auto_add_worker_init_fn,
-    _is_dataloader_shuffled,
-    _replace_dunder_methods,
-    _update_dataloader,
-    has_iterable_dataset,
-    has_len_all_ranks,
-)
+from pytorch_lightning.utilities.data import _is_dataloader_shuffled, _update_dataloader, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 warning_cache = WarningCache()
 
@@ -61,23 +57,17 @@ class DataConnector:
     def _should_reload_train_dl(self) -> bool:
         """Check if train dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (
-            self.trainer._last_train_dl_reload_epoch is None
-            or self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
-        )
+        return n_epochs and self.trainer.current_epoch - self.trainer._last_train_dl_reload_epoch >= n_epochs
 
     @property
     def _should_reload_val_dl(self) -> bool:
         """Check if validation dataloader should be reloaded."""
         n_epochs = self.trainer.reload_dataloaders_every_n_epochs
-        return n_epochs and (
-            self.trainer._last_val_dl_reload_epoch is None
-            or self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
-        )
+        return n_epochs and self.trainer.current_epoch - self.trainer._last_val_dl_reload_epoch >= n_epochs
 
     def on_trainer_init(
         self,
-        val_check_interval: Union[int, float],
+        val_check_interval: Optional[Union[int, float]],
         reload_dataloaders_every_n_epochs: int,
         check_val_every_n_epoch: Optional[int],
     ) -> None:
@@ -144,13 +134,22 @@ class DataConnector:
             predict_dataloaders=predict_dataloaders,
         )
         self.attach_datamodule(model, datamodule=datamodule)
+
+        # Validate that the required data sources are available
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            _check_dataloader_none(train_dataloaders, self._train_dataloader_source, self.trainer.state.fn)
+        elif self.trainer.state.fn == TrainerFn.VALIDATING:
+            _check_dataloader_none(val_dataloaders, self._val_dataloader_source, self.trainer.state.fn)
+        elif self.trainer.state.fn == TrainerFn.TESTING:
+            _check_dataloader_none(test_dataloaders, self._test_dataloader_source, self.trainer.state.fn)
+        elif self.trainer.state.fn == TrainerFn.PREDICTING:
+            _check_dataloader_none(predict_dataloaders, self._predict_dataloader_source, self.trainer.state.fn)
+
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
     def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
         model.trainer = proxy(self.trainer)
-        # Remove setting use_amp in v1.8
-        model._use_amp = self.trainer.amp_backend is not None
         model.precision = self.trainer.precision
 
     def attach_dataloaders(
@@ -342,7 +341,7 @@ class DataConnector:
 
     def _reset_eval_dataloader(
         self, mode: RunningStage, model: Optional["pl.LightningModule"] = None
-    ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
+    ) -> Tuple[List[Union[float, int]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -382,7 +381,7 @@ class DataConnector:
             dataloaders, dtype=DataLoader, function=_auto_add_worker_init_fn, rank=self.trainer.global_rank
         )
 
-        loader_num_batches = []
+        loader_num_batches: List[Union[int, float]] = []
 
         # determine number of batches
         module = model or self.trainer.lightning_module or self.datamodule
@@ -393,6 +392,7 @@ class DataConnector:
                 )
 
                 if orig_num_batches == 0:
+                    assert isinstance(orig_num_batches, int)
                     loader_num_batches.append(orig_num_batches)
                     continue
 
@@ -585,3 +585,18 @@ class _DataHookSelector:
                 " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
             )
         return self.model
+
+
+def _check_dataloader_none(
+    dataloader: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]],
+    dataloader_source: _DataLoaderSource,
+    trainer_fn: TrainerFn,
+) -> None:
+    # A prefix in the message to disambiguate between the train- and (optional) val dataloader that .fit() accepts
+    prefix = "train_" if trainer_fn == TrainerFn.FITTING else ""
+    if dataloader is None and not dataloader_source.is_defined():
+        raise ValueError(
+            f"An invalid dataloader was passed to `Trainer.{trainer_fn}({prefix}dataloaders=...)`."
+            f" Either pass the dataloader to the `.{trainer_fn}()` method OR implement"
+            f" `def {dataloader_source.name}(self):` in your LightningModule/LightningDataModule."
+        )

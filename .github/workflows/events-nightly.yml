@@ -10,7 +10,7 @@ on:
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
   pypi-release:
-    if: ${{ github.repository_owner == 'Lightning-AI' }}
+    if: ${{ github.repository == 'Lightning-AI/lightning' }}  # skip for forks
     runs-on: ubuntu-20.04
 
     steps:
@@ -26,7 +26,7 @@ jobs:
 
       - name: Build packages
         run: |
-          pip install -q fire
+          pip install -q -r .actions/requirements.txt
           python .actions/assistant.py prepare-nightly-version
           python setup.py sdist bdist_wheel
           ls -lh dist/
