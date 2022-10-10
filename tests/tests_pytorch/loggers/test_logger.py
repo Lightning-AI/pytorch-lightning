@@ -326,14 +326,14 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
 @patch("pytorch_lightning.callbacks.ModelCheckpoint")
 def test_scan_checkpoints(checkpoint_callback_mock, tmpdir, save_top_k: int):
     """Checks if the expected number of checkpoints is returned."""
-
     # Test first condition of _scan_checkpoints: if c[1] not in logged_model_time.keys()
     # Test if the returned list of checkpoints has length save_top_k
-    checkpoint_callback_mock.best_k_models = dict()
+    best_k_models = {}
     for i in range(save_top_k):
-        filename = f"e{i}_v{i}.ckpt"
-        checkpoint_callback_mock.best_k_models[tmpdir / filename] = i
-        tmpdir.join(filename).write("")
+        ckpt_path = tmpdir / f"{i}.ckpt"
+        ckpt_path.write("")
+        best_k_models[ckpt_path] = i
+    checkpoint_callback_mock.best_k_models = best_k_models
 
     logged_model_time = {}
     checkpoints = _scan_checkpoints(checkpoint_callback_mock, logged_model_time)
