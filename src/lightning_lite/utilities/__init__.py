@@ -14,7 +14,6 @@
 """General utilities."""
 
 from lightning_lite.utilities.apply_func import move_data_to_device  # noqa: F401
-from lightning_lite.utilities.distributed import AllGatherGrad  # noqa: F401
 from lightning_lite.utilities.enums import _AcceleratorType, _StrategyType, AMPType, LightningEnum  # noqa: F401
 
 # TODO(lite): Avoid importing protected attributes in `__init__.py` files
