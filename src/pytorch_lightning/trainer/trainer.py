@@ -390,7 +390,8 @@ class Trainer:
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
 
-            eval_inference_mode: Control whether to use inference mode or no grad mode during evaluation.
+            eval_inference_mode: Control whether to use inference mode or no grad mode during
+                evaluation (validate/test/predict).
         """
         super().__init__()
         Trainer._log_api_event("init")
