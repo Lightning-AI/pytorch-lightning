@@ -1550,7 +1550,7 @@ With :meth:`~torch.inference_mode` disabled, you can enable the grad of your mod
 
             with torch.enable_grad():
                 grad_preds = preds.requires_grad_()
-                preds2 = self.layer2(batch)
+                preds2 = self.layer2(grad_preds)
 
 
     model = LitModel()
