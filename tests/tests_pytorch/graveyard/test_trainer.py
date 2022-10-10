@@ -11,13 +11,67 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import pytest
 
 from pytorch_lightning import Trainer
 
 
-def test_v2_0_0_deprecated_run_stage():
+@pytest.mark.parametrize(
+    "attribute",
+    [
+        "gpus",
+        "num_gpus",
+        "root_gpu",
+        "devices",
+        "tpu_cores",
+        "ipus",
+        "use_amp",
+        "weights_save_path",
+        "lightning_optimizers",
+        "should_rank_save_checkpoint",
+        "validated_ckpt_path",
+        "tested_ckpt_path",
+        "predicted_ckpt_path",
+        "verbose_evaluate",
+    ],
+)
+def test_v2_0_0_unsupported_getters(attribute):
     trainer = Trainer()
-    with pytest.raises(NotImplementedError,
-                       match="`Trainer.run_stage` was deprecated in v1.6 and is no longer supported as of v1.8."):
+    with pytest.raises(
+        AttributeError, match=f"`Trainer.{attribute}` was deprecated in v1.6 and is no longer accessible as of v1.8."
+    ):
+        getattr(trainer, attribute)
+
+
+@pytest.mark.parametrize(
+    "attribute",
+    [
+        "validated_ckpt_path",
+        "tested_ckpt_path",
+        "predicted_ckpt_path",
+        "verbose_evaluate",
+    ],
+)
+def test_v2_0_0_unsupported_setters(attribute):
+    trainer = Trainer()
+    with pytest.raises(
+        AttributeError, match=f"`Trainer.{attribute}` was deprecated in v1.6 and is no longer accessible as of v1.8."
+    ):
+        setattr(trainer, attribute, None)
+
+
+def test_v2_0_0_unsupported_run_stage():
+    trainer = Trainer()
+    with pytest.raises(
+        NotImplementedError, match="`Trainer.run_stage` was deprecated in v1.6 and is no longer supported as of v1.8."
+    ):
         trainer.run_stage()
+
+
+def test_v2_0_0_unsupported_call_hook():
+    trainer = Trainer()
+    with pytest.raises(
+        NotImplementedError, match="`Trainer.call_hook` was deprecated in v1.6 and is no longer supported as of v1.8."
+    ):
+        trainer.call_hook("test_hook")

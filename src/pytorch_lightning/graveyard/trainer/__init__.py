@@ -137,9 +137,7 @@ def _run_stage(_: Trainer) -> None:
 
 
 def _call_hook(_: Trainer, *__: Any, **___: Any) -> Any:
-    raise NotImplementedError(
-        "`Trainer.call_hook` was deprecated in v1.6 and is no longer supported as of v1.8."
-    )
+    raise NotImplementedError("`Trainer.call_hook` was deprecated in v1.6 and is no longer supported as of v1.8.")
 
 
 # Properties/Attributes
