@@ -47,7 +47,7 @@ def test_v2_0_0_unsupported_update_agg_funcs(tmpdir):
 
     with pytest.raises(
         RuntimeError,
-        match="`AggregationOverrideLogger.update_agg_funcs` was deprecated in v1.6 and is no longer supported",
+        match="`UpdateAggFuncsLogger.update_agg_funcs` was deprecated in v1.6 and is no longer supported",
     ):
         trainer.fit(model)
 
