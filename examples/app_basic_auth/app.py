@@ -7,9 +7,6 @@ class Flow(LightningFlow):
     def run(self):
         pass
 
-    # def handler(self, x_lightning_user_id = Header(None)):
-    #     return x_lightning_user_id
-
     def handler(self, user: User):
         return user.user_id
 
