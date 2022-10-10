@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
+
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
@@ -219,6 +221,16 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
             rank_zero_deprecation(
                 "The `on_before_accelerator_backend_setup` callback hook was deprecated in"
                 " v1.6 and will be removed in v1.8. Use `setup()` instead."
+            )
+
+        has_legacy_argument = "callback_state" in inspect.signature(callback.on_load_checkpoint).parameters
+        if is_overridden(method_name="on_load_checkpoint", instance=callback) and has_legacy_argument:
+            raise TypeError(
+                f"`{callback.__class__.__name__}.on_load_checkpoint` has changed its signature and behavior in v1.8."
+                " If you wish to load the state of the callback, use `load_state_dict` instead."
+                " As of 1.8, `on_load_checkpoint(..., checkpoint)` receives the entire loaded"
+                " checkpoint dictionary instead of the callback state. To continue using this hook and avoid this error"
+                " message, rename the `callback_state` argument to `checkpoint`."
             )
 
         for hook, alternative_hook in (
