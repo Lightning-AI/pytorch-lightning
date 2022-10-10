@@ -491,7 +491,7 @@ class Trainer:
         )
         self.track_grad_norm: float = float(track_grad_norm)
 
-        self._inference_mode: str = inference_mode
+        self._inference_mode: bool = inference_mode
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
