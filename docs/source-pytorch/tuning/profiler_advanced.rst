@@ -82,9 +82,9 @@ Find bottlenecks in your code on HPU (advanced)
 
 ----
 
-**************************
+******************
 Profile HPU models
-**************************
+******************
 To understand the cost of each PyTorch operation, use the :class:`~pytorch_lightning.profilers.hpu.HPUProfiler` built on top of the `PyTorch profiler <https://pytorch.org/docs/1.12/profiler.html#torch-profiler>`__.
 
 .. code-block:: python
