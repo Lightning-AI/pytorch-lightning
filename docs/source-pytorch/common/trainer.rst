@@ -1527,7 +1527,7 @@ Whether to enable or disable the model summarization. Defaults to True.
 
 
 inference_mode
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 Whether to use :meth:`~torch.inference_mode` or :meth:`~torch.no_grad` mode during evaluation
 
