@@ -226,8 +226,7 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    with pytest.deprecated_call(match="was deprecated in"):
-        trainer.fit(model)
+    trainer.fit(model)
 
     not_supported.update(
         {
@@ -238,8 +237,7 @@ def test_fx_validator_integration(tmpdir):
             "on_test_end": "You can't",
         }
     )
-    with pytest.deprecated_call(match="was deprecated in"):
-        trainer.test(model, verbose=False)
+    trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
@@ -255,8 +253,7 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "result collection is not registered yet",
         }
     )
-    with pytest.deprecated_call(match="was deprecated in"):
-        trainer.predict(model)
+    trainer.predict(model)
 
 
 @RunIf(min_cuda_gpus=2)
