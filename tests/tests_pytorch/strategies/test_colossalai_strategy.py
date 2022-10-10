@@ -47,16 +47,16 @@ def test_invalid_colosalai(monkeypatch):
 
 
 @RunIf(colossalai=True)
-def test_colossalai_strategy_with_trainer_by_instance(tmpdir):
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, precision=16, strategy=ColossalAIStrategy())
+def test_colossalai_strategy_with_trainer_by_instance():
+    trainer = Trainer(precision=16, strategy=ColossalAIStrategy())
 
     assert isinstance(trainer.strategy, ColossalAIStrategy)
     assert isinstance(trainer.strategy.precision_plugin, ColossalAIPrecisionPlugin)
 
 
 @RunIf(colossalai=True)
-def test_colossalai_strategy_with_trainer_by_string(tmpdir):
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, precision=16, strategy="colossalai")
+def test_colossalai_strategy_with_trainer_by_string():
+    trainer = Trainer(precision=16, strategy="colossalai")
 
     assert isinstance(trainer.strategy, ColossalAIStrategy)
     assert isinstance(trainer.strategy.precision_plugin, ColossalAIPrecisionPlugin)
