@@ -30,10 +30,10 @@ PASSED_OBJECT = mock.Mock()
 @pytest.fixture(autouse=True)
 def check_destroy_group():
     with mock.patch(
-        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
+        "lightning_lite.plugins.collectives.torch_.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
     ) as mock_new, mock.patch(
-        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.destroy_group",
+        "lightning_lite.plugins.collectives.torch_.TorchCollective.destroy_group",
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield

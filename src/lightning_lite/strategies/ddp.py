@@ -21,7 +21,7 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
+from lightning_lite.plugins.collectives.torch_ import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision

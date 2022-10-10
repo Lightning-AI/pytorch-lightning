@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
-from lightning_lite.plugins.io.torch_checkpoint_io import TorchCheckpointIO
+from lightning_lite.plugins.io.torch_ import TorchCheckpointIO
 from lightning_lite.plugins.io.xla import XLACheckpointIO
 
 __all__ = ["CheckpointIO", "TorchCheckpointIO", "XLACheckpointIO"]

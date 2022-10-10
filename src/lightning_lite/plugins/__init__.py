@@ -13,7 +13,7 @@
 # limitations under the License.
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
-from lightning_lite.plugins.io.torch_checkpoint_io import TorchCheckpointIO
+from lightning_lite.plugins.io.torch_ import TorchCheckpointIO
 from lightning_lite.plugins.io.xla import XLACheckpointIO
 from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning_lite.plugins.precision.double import DoublePrecision

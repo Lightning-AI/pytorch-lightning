@@ -25,7 +25,7 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
+from lightning_lite.plugins.collectives.torch_ import default_pg_timeout
 from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
