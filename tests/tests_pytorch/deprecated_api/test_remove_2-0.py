@@ -136,3 +136,12 @@ def test_v2_0_0_callback_on_save_checkpoint_hook(tmpdir):
 
     trainer.callbacks = [TestCallbackSaveHookOverride()]
     trainer.save_checkpoint(tmpdir + "/pathok.ckpt")
+
+
+@pytest.mark.parametrize("attribute", ["gpus", "num_gpus", "root_gpu", "devices", "tpu_cores", "ipus"])
+def test_v2_0_0_trainer_unsupported_device_attributes(attribute, monkeypatch):
+    trainer = Trainer()
+    with pytest.raises(
+        AttributeError, match=f"`Trainer.{attribute}` was deprecated in v1.6 and is no longer accessible as of v1.8."
+    ):
+        getattr(trainer, attribute)
