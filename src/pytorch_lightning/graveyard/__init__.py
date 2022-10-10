@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytorch_lightning.graveyard.core  # noqa: F401
+import pytorch_lightning.graveyard.core
 import pytorch_lightning.graveyard.trainer  # noqa: F401
