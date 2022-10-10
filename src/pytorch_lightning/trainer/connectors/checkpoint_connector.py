@@ -23,7 +23,7 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment
+from lightning_lite.plugins.environments.slurm import SLURMEnvironment
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import ModelCheckpoint

@@ -20,7 +20,7 @@ from torch import Tensor
 from torch.nn import Module
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy, TBroadcast
 from lightning_lite.utilities.types import _DEVICE

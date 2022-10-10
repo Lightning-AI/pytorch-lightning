@@ -24,7 +24,7 @@ from typing_extensions import Literal
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy

@@ -22,7 +22,7 @@ from torch.nn import Module
 import lightning_lite as lite
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy
 from lightning_lite.utilities.distributed import all_gather_ddp_if_available
