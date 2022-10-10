@@ -23,7 +23,7 @@ class EmptyLite(LightningLite):
         pass
 
 
-def test_lite_convert_pl_strategies_and_plugins(cuda_count_2):
+def test_lite_convert_pl_plugins(cuda_count_2):
     """Tests a few examples of passing PL-accelerators/strategies/plugins to the soon deprecated PL version of
     Lightning Lite for backward compatibility.
 
@@ -33,13 +33,13 @@ def test_lite_convert_pl_strategies_and_plugins(cuda_count_2):
     # defaults
     lite = EmptyLite()
     assert isinstance(lite._accelerator, LiteCPUAccelerator)
-    assert isinstance(lite._precision_plugin, LitePrecision)
+    assert isinstance(lite._precision, LitePrecision)
     assert isinstance(lite._strategy, LiteSingleDeviceStrategy)
 
     # accelerator and strategy passed separately
     lite = EmptyLite(accelerator=PLCUDAAccelerator(), strategy=PLDDPStrategy())
     assert isinstance(lite._accelerator, PLCUDAAccelerator)
-    assert isinstance(lite._precision_plugin, LitePrecision)
+    assert isinstance(lite._precision, LitePrecision)
     assert isinstance(lite._strategy, LiteDDPStrategy)
 
     # accelerator passed to strategy
@@ -54,20 +54,20 @@ def test_lite_convert_pl_strategies_and_plugins(cuda_count_2):
 
     # plugins = instance
     lite = EmptyLite(plugins=PLDoublePrecisionPlugin())
-    assert isinstance(lite._precision_plugin, LiteDoublePrecision)
+    assert isinstance(lite._precision, LiteDoublePrecision)
 
     # plugins = list
     lite = EmptyLite(plugins=[PLDoublePrecisionPlugin(), SLURMEnvironment()], devices=2)
-    assert isinstance(lite._precision_plugin, LiteDoublePrecision)
+    assert isinstance(lite._precision, LiteDoublePrecision)
     assert isinstance(lite._strategy.cluster_environment, SLURMEnvironment)
 
 
-def test_lite_convert_custom_plugin():
-    class CustomPrecisionPlugin(PLPrecisionPlugin):
+def test_lite_convert_custom_precision():
+    class CustomPrecision(PLPrecisionPlugin):
         pass
 
     with pytest.raises(TypeError, match=escape("You passed an unsupported plugin as input to Lite(plugins=...)")):
-        EmptyLite(plugins=CustomPrecisionPlugin())
+        EmptyLite(plugins=CustomPrecision())
 
 
 @RunIf(deepspeed=True)

@@ -1101,8 +1101,6 @@ def test_on_exception_hook(tmpdir):
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
@@ -1131,8 +1129,6 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
@@ -1756,7 +1752,6 @@ class TestDummyModelForCheckpoint(BoringModel):
 @RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
-    tutils.set_random_main_port()
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(

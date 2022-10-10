@@ -321,7 +321,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
-    def on_pretrain_routine_end(self, trainer, pl_module):
+    def on_fit_start(self, trainer, pl_module):
         self.callbacks = deepcopy(trainer.callbacks)
 
 
@@ -347,15 +347,13 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     # initial training
     trainer = Trainer(**get_trainer_args())
-    with pytest.deprecated_call(match="`Callback.on_pretrain_routine_end` hook has been deprecated in v1.6"):
-        trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
 
     callbacks_before_resume = deepcopy(trainer.callbacks)
 
     # resumed training
     trainer = Trainer(**get_trainer_args())
-    with pytest.deprecated_call(match="`Callback.on_pretrain_routine_end` hook has been deprecated in v1.6"):
-        trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
+    trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
     assert len(callbacks_before_resume) == len(callback_capture.callbacks)
 
@@ -403,9 +401,6 @@ def test_callbacks_references_fit_ckpt_path(tmpdir):
 @RunIf(min_cuda_gpus=2)
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
-
-    tutils.set_random_main_port()
-
     dm = ClassifDataModule()
     model = CustomClassificationModelDP(lr=0.1)
 
@@ -452,7 +447,6 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 @RunIf(min_cuda_gpus=2)
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
-    tutils.set_random_main_port()
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -500,7 +494,6 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
-    tutils.reset_seed()
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -539,7 +532,6 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 @pytest.mark.parametrize("model_template", [ValTestLossBoringModel, GenericValTestLossBoringModel])
 def test_load_model_from_checkpoint(tmpdir, model_template):
     """Verify test() on pretrained model."""
-    tutils.reset_seed()
     model = model_template()
 
     trainer_options = dict(

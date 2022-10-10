@@ -415,10 +415,10 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     lite = EmptyLite()
-    lite._precision_plugin = Mock(spec=Precision)
+    lite._precision = Mock(spec=Precision)
     loss = Mock()
     lite.backward(loss, "arg", keyword="kwarg")
-    lite._precision_plugin.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    lite._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True)
@@ -446,9 +446,9 @@ def test_backward_model_input_required():
 def test_autocast():
     """Test that the Lite autocast context manager lets the precision plugin handle casting."""
     lite = EmptyLite()
-    lite._precision_plugin.forward_context = MagicMock()
+    lite._precision.forward_context = MagicMock()
 
-    lite._precision_plugin.forward_context().__enter__.assert_not_called()
+    lite._precision.forward_context().__enter__.assert_not_called()
     with lite.autocast():
-        lite._precision_plugin.forward_context().__enter__.assert_called()
-    lite._precision_plugin.forward_context().__exit__.assert_called()
+        lite._precision.forward_context().__enter__.assert_called()
+    lite._precision.forward_context().__exit__.assert_called()
