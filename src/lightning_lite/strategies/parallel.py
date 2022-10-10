@@ -25,7 +25,8 @@ from lightning_lite.plugins.environments.cluster_environment import ClusterEnvir
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy
-from lightning_lite.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from lightning_lite.utilities.distributed import all_gather_ddp_if_available
+from lightning_lite.utilities.types import ReduceOp
 
 
 class ParallelStrategy(Strategy, ABC):
@@ -37,9 +38,9 @@ class ParallelStrategy(Strategy, ABC):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ):
-        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
         self.parallel_devices = parallel_devices
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
 

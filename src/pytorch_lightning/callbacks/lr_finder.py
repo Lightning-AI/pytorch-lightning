@@ -22,7 +22,7 @@ from typing import Optional
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
-from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.seed import isolate_rng
 
 
@@ -48,6 +48,23 @@ class LearningRateFinder(Callback):
 
         update_attr: Whether to update the learning rate attribute or not.
 
+    Example::
+
+        class FineTuneLearningRateFinder(LearningRateFinder):
+            def __init__(self, milestones=(5, 10), *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.milestones = milestones
+
+            def on_fit_start(self, *args, **kwargs):
+                return
+
+            def on_train_epoch_start(self, trainer, pl_module):
+                if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                    self.lr_find(trainer, pl_module)
+
+        trainer = Trainer(callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))])
+        trainer.fit(...)
+
     Raises:
         MisconfigurationException:
             If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
@@ -67,7 +84,7 @@ class LearningRateFinder(Callback):
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
-            raise MisconfigurationException(f"`mode` should be either of {self.SUPPORTED_MODES}")
+            raise ValueError(f"`mode` should be either of {self.SUPPORTED_MODES}")
 
         self._min_lr = min_lr
         self._max_lr = max_lr
