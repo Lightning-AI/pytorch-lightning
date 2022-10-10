@@ -15,26 +15,30 @@ from functools import partial
 from typing import Any, Callable
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import Steppable
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
+from lightning_lite.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _XLA_AVAILABLE:
-    import torch_xla.core.xla_model as xm
 
 
 class TPUPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for TPU integration."""
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        super().__init__(*args, **kwargs)
+
     def optimizer_step(  # type: ignore[override]
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
+        import torch_xla.core.xla_model as xm
+
         closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": closure, **kwargs})
         skipped_backward = closure_result is None
