@@ -498,8 +498,6 @@ class _Connector:
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
 
-        from lightning_lite.utilities.imports import _IS_INTERACTIVE
-
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise RuntimeError(
                 f"`Lite(strategy={self._strategy_flag!r})` is not compatible with an interactive"
