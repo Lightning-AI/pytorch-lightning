@@ -32,13 +32,12 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
-import lightning_lite
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -62,19 +61,14 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
-from tests_pytorch.conftest import mock_cuda_count
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 def test_trainer_error_when_input_not_lightning_module():
@@ -1126,7 +1120,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            torch_test_assert_close(grad_norm, torch.tensor(0.05, device=self.device))
+            torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1157,7 +1151,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            torch_test_assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
+            torch.testing.assert_close(grad_max.abs(), torch.tensor(1e-10, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -2215,10 +2209,9 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     if trainer_kwargs.get("accelerator") in ("cuda", "gpu"):
         mock_cuda_count(monkeypatch, 4)
     elif trainer_kwargs.get("accelerator") in ("mps", "gpu"):
-        monkeypatch.setattr(lightning_lite.utilities.device_parser, "_get_all_available_mps_gpus", lambda: [0])
-        monkeypatch.setattr(MPSAccelerator, "is_available", lambda *_: True)
+        mock_mps_count(monkeypatch, 1)
     elif trainer_kwargs.get("accelerator") == "ipu":
-        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
         monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
 
     trainer = Trainer(**trainer_kwargs)

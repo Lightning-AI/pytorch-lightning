@@ -20,10 +20,12 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from lightning_lite.accelerators import TPUAccelerator
+from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10, _TPU_AVAILABLE
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
 
 class RunIf:
@@ -73,7 +75,7 @@ class RunIf:
         reasons = []
 
         if min_cuda_gpus:
-            conditions.append(torch.cuda.device_count() < min_cuda_gpus)
+            conditions.append(num_cuda_devices() < min_cuda_gpus)
             reasons.append(f"GPUs>={min_cuda_gpus}")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["min_cuda_gpus"] = True
@@ -112,7 +114,7 @@ class RunIf:
             reasons.append("unimplemented on Windows")
 
         if tpu:
-            conditions.append(not _TPU_AVAILABLE)
+            conditions.append(not TPUAccelerator.is_available())
             reasons.append("TPU")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True

@@ -26,7 +26,7 @@ import lightning_lite
 import pytorch_lightning
 from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.imports import _IS_WINDOWS
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -72,17 +72,6 @@ def restore_env_variables():
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        # set by XLA
-        "TF2_BEHAVIOR",
-        "XRT_MESH_SERVICE_ADDRESS",
-        "XRT_TORCH_DIST_ROOT",
-        "XRT_MULTI_PROCESSING_DEVICE",
-        "XRT_SHARD_WORLD_SIZE",
-        "XRT_LOCAL_WORKER",
-        "XRT_HOST_WORLD_SIZE",
-        "XRT_SHARD_ORDINAL",
-        "XRT_SHARD_LOCAL_ORDINAL",
-        "TF_CPP_MIN_LOG_LEVEL",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -147,6 +136,9 @@ def cuda_count_4(monkeypatch):
 
 
 def mock_mps_count(monkeypatch, n: int) -> None:
+    if n > 0 and not _TORCH_GREATER_EQUAL_1_12:
+        # torch doesn't allow creation of mps devices on older versions
+        monkeypatch.setattr("torch.device", lambda *_: "mps")
     monkeypatch.setattr(lightning_lite.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
     monkeypatch.setattr(lightning_lite.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 
@@ -159,6 +151,36 @@ def mps_count_0(monkeypatch):
 @pytest.fixture(scope="function")
 def mps_count_1(monkeypatch):
     mock_mps_count(monkeypatch, 1)
+
+
+@pytest.fixture(scope="function")
+def mps_count_2(monkeypatch):
+    mock_mps_count(monkeypatch, 2)
+
+
+@pytest.fixture(scope="function")
+def mps_count_4(monkeypatch):
+    mock_mps_count(monkeypatch, 4)
+
+
+@pytest.fixture(scope="function")
+def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.tpu_spawn, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.single_tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.plugins.precision.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.io.xla_plugin, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+
+
+@pytest.fixture(scope="function")
+def tpu_available(xla_available, monkeypatch) -> None:
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
 
 
 @pytest.fixture

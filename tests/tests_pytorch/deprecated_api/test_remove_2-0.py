@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 
 import pytorch_lightning
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
 from tests_pytorch.helpers.runif import RunIf
@@ -34,9 +34,7 @@ def test_v2_0_0_deprecated_gpus(cuda_count_4):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
-def test_v2_0_0_deprecated_tpu_cores(*_):
+def test_v2_0_0_deprecated_tpu_cores(tpu_available):
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(tpu_cores=8)
 
@@ -48,7 +46,7 @@ def test_v2_0_0_deprecated_ipus(_, monkeypatch):
         _ = Trainer(ipus=4)
 
 
-def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
+def test_v2_0_0_resume_from_checkpoint_trainer_constructor(tmpdir):
     # test resume_from_checkpoint still works until v2.0 deprecation
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
@@ -86,3 +84,55 @@ def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
         trainer = Trainer(resume_from_checkpoint="trainer_arg_path")
     with pytest.raises(FileNotFoundError, match="Checkpoint at fit_arg_ckpt_path not found. Aborting training."):
         trainer.fit(model, ckpt_path="fit_arg_ckpt_path")
+
+
+def test_v2_0_0_callback_on_load_checkpoint_hook(tmpdir):
+    class TestCallbackLoadHook(Callback):
+        def on_load_checkpoint(self, trainer, pl_module, callback_state):
+            print("overriding on_load_checkpoint")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallbackLoadHook()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.raises(
+        RuntimeError, match="`TestCallbackLoadHook.on_load_checkpoint` has changed its signature and behavior in v1.8."
+    ):
+        trainer.fit(model)
+
+
+def test_v2_0_0_callback_on_save_checkpoint_hook(tmpdir):
+    class TestCallbackSaveHookReturn(Callback):
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            return {"returning": "on_save_checkpoint"}
+
+    class TestCallbackSaveHookOverride(Callback):
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            print("overriding without returning")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallbackSaveHookReturn()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    trainer.fit(model)
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Returning a value from `TestCallbackSaveHookReturn.on_save_checkpoint` was deprecated in v1.6 and is"
+            " no longer supported as of v1.8"
+        ),
+    ):
+        trainer.save_checkpoint(tmpdir + "/path.ckpt")
+
+    trainer.callbacks = [TestCallbackSaveHookOverride()]
+    trainer.save_checkpoint(tmpdir + "/pathok.ckpt")

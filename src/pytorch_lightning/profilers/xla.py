@@ -14,12 +14,8 @@
 import logging
 from typing import Dict
 
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from pytorch_lightning.profilers.profiler import Profiler
-from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _TPU_AVAILABLE:
-    import torch_xla.debug.profiler as xp
 
 log = logging.getLogger(__name__)
 
@@ -43,8 +39,8 @@ class XLAProfiler(Profiler):
             port: the port to start the profiler server on. An exception is
                 raised if the provided port is invalid or busy.
         """
-        if not _TPU_AVAILABLE:
-            raise MisconfigurationException("`XLAProfiler` is only supported on TPUs")
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(dirpath=None, filename=None)
         self.port = port
         self._recording_map: Dict = {}
@@ -52,6 +48,8 @@ class XLAProfiler(Profiler):
         self._start_trace: bool = False
 
     def start(self, action_name: str) -> None:
+        import torch_xla.debug.profiler as xp
+
         if action_name in self.RECORD_FUNCTIONS:
             if not self._start_trace:
                 self.server = xp.start_server(self.port)

@@ -35,12 +35,6 @@ _HIVEMIND_AVAILABLE = package_available("hivemind")
 _HOROVOD_AVAILABLE = module_available("horovod.torch")
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
-_XLA_AVAILABLE: bool = package_available("torch_xla")
-
-
-from lightning_lite.utilities.xla_device import XLADeviceUtils  # noqa: E402
-
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if _POPTORCH_AVAILABLE:
     import poptorch
