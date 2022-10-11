@@ -16,6 +16,7 @@ from pytorch_lightning import LightningModule
 
 
 def _use_amp(_: LightningModule) -> None:
+    # Remove in v2.0.0
     raise AttributeError(
         "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.amp_backend`.",
@@ -23,6 +24,7 @@ def _use_amp(_: LightningModule) -> None:
 
 
 def _use_amp_setter(_: LightningModule, __: bool) -> None:
+    # Remove in v2.0.0
     raise AttributeError(
         "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.amp_backend`.",
