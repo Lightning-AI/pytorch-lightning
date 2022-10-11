@@ -1,10 +1,13 @@
 import os
 from unittest import mock
 from unittest.mock import MagicMock
+from json import dumps
 
 import pytest
+from click import Group, ClickException
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
+from urllib3 import HTTPResponse
 
 from lightning_app import __version__
 from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
@@ -12,6 +15,8 @@ from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
 from lightning_app.cli.lightning_cli_list import get_list, list_apps, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.exception_handlers import ApiExceptionHandler
+from lightning_cloud.openapi.rest import ApiException
 
 
 @pytest.mark.parametrize(
@@ -187,3 +192,7 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
 def test_lightning_cli_version():
     res = os.popen("python -m lightning --version").read()
     assert __version__ in res
+
+
+def test_main_catches_api_exceptions():
+    assert isinstance(_main, ApiExceptionHandler)

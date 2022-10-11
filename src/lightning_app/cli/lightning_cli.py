@@ -31,6 +31,7 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
+from lightning_app.utilities.exception_handlers import ApiExceptionHandler
 from lightning_app.utilities.exceptions import LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI, _LightningLogsSocketAPI
@@ -79,7 +80,7 @@ def main() -> None:
             _main()
 
 
-@click.group()
+@click.group(cls=ApiExceptionHandler)
 @click.version_option(ver)
 def _main() -> None:
     pass

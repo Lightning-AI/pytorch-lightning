@@ -18,6 +18,7 @@ from lightning_cloud.openapi import (
     V1InstanceSpec,
     V1KubernetesClusterDriver,
 )
+from lightning_cloud.openapi.rest import ApiException
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
