@@ -22,9 +22,9 @@ from pytorch_lightning.profilers.xla import XLAProfiler
 __all__ = [
     "Profiler",
     "AdvancedProfiler",
+    "HPUProfiler",
     "PassThroughProfiler",
     "PyTorchProfiler",
     "SimpleProfiler",
     "XLAProfiler",
-    "HPUProfiler",
 ]
