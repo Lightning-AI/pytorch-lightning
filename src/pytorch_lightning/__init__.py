@@ -37,7 +37,7 @@ from pytorch_lightning.core import LightningDataModule, LightningModule  # noqa:
 from pytorch_lightning.trainer import Trainer  # noqa: E402
 
 # this import needs to go last as it will patch other modules
-import pytorch_lightning.graveyard  # noqa: E402, F401  # isort: skip
+import pytorch_lightning._graveyard  # noqa: E402, F401  # isort: skip
 
 __all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "seed_everything"]
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 from lightning_lite.strategies.registry import _StrategyRegistry
 from pytorch_lightning.strategies.bagua import BaguaStrategy  # noqa: F401
+from pytorch_lightning.strategies.colossalai import ColossalAIStrategy  # noqa: F401
 from pytorch_lightning.strategies.ddp import DDPStrategy  # noqa: F401
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
 from pytorch_lightning.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401

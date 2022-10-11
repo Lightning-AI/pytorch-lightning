@@ -41,7 +41,11 @@ RUN \
     fi && \
     # otherwise there is collision with folder name ans pkg name on Pypi
     cd lightning && \
-    pip install .["extra","loggers","strategies"] --no-cache-dir && \
+    SHOULD_INSTALL_COLOSSAL=$(python -c "import torch; print(1 if int(torch.__version__.split('.')[1]) > 9 else 0)") && \
+    if [[ "$SHOULD_INSTALL_COLOSSAL" = "0" ]]; then \
+        python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    fi && \
+    pip install .["extra","loggers","strategies"] --no-cache-dir --find-links https://release.colossalai.org && \
     cd .. && \
     rm -rf lightning
 
