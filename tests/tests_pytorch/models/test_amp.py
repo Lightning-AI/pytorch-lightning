@@ -179,6 +179,7 @@ def test_amp_without_apex(bwd_mock, tmpdir):
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
 def test_amp_with_apex(bwd_mock, tmpdir):
     """Check calling apex scaling in training."""
+    import apex
 
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -198,7 +199,10 @@ def test_amp_with_apex(bwd_mock, tmpdir):
         default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", accelerator="gpu", devices=1
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
-    trainer.fit(model)
+
+    with pytest.warns(apex.DeprecatedFeatureWarning, match="apex.amp is deprecated"):
+        trainer.fit(model)
+
     # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
     # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
     assert bwd_mock.call_count == 6
@@ -209,6 +213,8 @@ def test_amp_with_apex(bwd_mock, tmpdir):
 
 @RunIf(min_cuda_gpus=1, amp_apex=True)
 def test_amp_with_apex_reload(tmpdir):
+    import apex
+
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -219,13 +225,15 @@ def test_amp_with_apex_reload(tmpdir):
         accelerator="gpu",
         devices=1,
     )
-    trainer.fit(model)
-    trainer.fit_loop.max_steps = 2
 
-    with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
-        trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
+    with pytest.warns(apex.DeprecatedFeatureWarning, match="apex.amp is deprecated"):
+        trainer.fit(model)
+        trainer.fit_loop.max_steps = 2
 
-    trainer.test(model, ckpt_path="best")
+        with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
+            trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
+
+        trainer.test(model, ckpt_path="best")
 
 
 @RunIf(min_torch="1.10")

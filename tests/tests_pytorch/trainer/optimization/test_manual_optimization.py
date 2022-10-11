@@ -135,7 +135,16 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         scaler_step = scaler_step_patch.start()
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
-        trainer.fit(model)
+        if kwargs.get("amp_backend") == "apex":
+            import apex
+
+            with pytest.warns(
+                apex.DeprecatedFeatureWarning,
+                match="apex.amp is deprecated and will be removed by the end of February 2023",
+            ):
+                trainer.fit(model)
+        else:
+            trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
 
     if kwargs.get("amp_backend") == "native":

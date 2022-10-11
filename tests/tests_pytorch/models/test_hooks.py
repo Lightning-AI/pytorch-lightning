@@ -496,7 +496,18 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         track_grad_norm=1,
         **kwargs,
     )
-    trainer.fit(model)
+
+    if kwargs.get("amp_backend") == "apex":
+        import apex
+
+        with pytest.warns(
+            apex.DeprecatedFeatureWarning,
+            match="apex.amp is deprecated and will be removed by the end of February 2023",
+        ):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
+
     saved_ckpt = {
         "callbacks": ANY,
         "epoch": 0,
