@@ -289,7 +289,7 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     for item in items:
         item.add_marker(deprecation_error)
 
-    apex_deprecation = pytest.mark.filterwarnings("ignore::apex.DeprecatedFeatureWarning")
+    apex_deprecation = pytest.mark.filterwarnings("ignore:apex.amp is deprecated:FutureWarning")
     for item in items:
         if any(marker.name == "skipif" and marker.kwargs.get("amp_apex", False) for marker in item.own_markers):
             item.add_marker(apex_deprecation)
