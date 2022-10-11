@@ -259,6 +259,8 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
 
 def _check_unsupported_datamodule_hooks(trainer: "pl.Trainer") -> None:
     datahook_selector = trainer._data_connector._datahook_selector
+    assert datahook_selector is not None
+
     if is_overridden("on_save_checkpoint", datahook_selector.datamodule):
         raise NotImplementedError(
             "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8."
