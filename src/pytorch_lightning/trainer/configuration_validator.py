@@ -57,6 +57,8 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_pretrain_routine(model)
     # TODO: Delete this check in v2.0
     _check_deprecated_logger_methods(trainer)
+    # TODO: Delete this check in v2.0
+    _check_unsupported_datamodule_hooks(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -278,3 +280,19 @@ def _check_deprecated_logger_methods(trainer: "pl.Trainer") -> None:
                 f"`{type(logger).__name__}.agg_and_log_metrics` was deprecated in v1.6 and is no longer supported as of"
                 " v1.8."
             )
+
+
+def _check_unsupported_datamodule_hooks(trainer: "pl.Trainer") -> None:
+    datahook_selector = trainer._data_connector._datahook_selector
+    assert datahook_selector is not None
+
+    if is_overridden("on_save_checkpoint", datahook_selector.datamodule):
+        raise NotImplementedError(
+            "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            " Use `state_dict` instead."
+        )
+    if is_overridden("on_load_checkpoint", datahook_selector.datamodule):
+        raise NotImplementedError(
+            "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            " Use `load_state_dict` instead."
+        )
