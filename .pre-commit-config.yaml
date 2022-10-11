@@ -69,7 +69,7 @@ repos:
         exclude: |
             (?x)^(
                 src/pytorch_lightning/_graveyard
-                
+
             )$
 
   - repo: https://github.com/PyCQA/isort
