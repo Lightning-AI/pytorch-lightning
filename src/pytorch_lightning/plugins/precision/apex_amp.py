@@ -27,14 +27,6 @@ if _APEX_AVAILABLE:
     import apex
     from apex import amp
 
-    # TODO: Remove with deprecation of Apex integration #14416
-    if hasattr(apex, "DeprecatedFeatureWarning"):
-        warnings.filterwarnings(
-            "ignore",
-            category=apex.DeprecatedFeatureWarning,
-            message="apex.amp is deprecated and will be removed by the end of February 2023",
-        )
-
 
 class ApexMixedPrecisionPlugin(PrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
@@ -51,6 +43,14 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         self.amp_level = amp_level
         self._connected = False
         self._state_dict_loaded = False
+
+        # TODO: Remove with deprecation of Apex integration #14416
+        if hasattr(apex, "DeprecatedFeatureWarning"):
+            warnings.filterwarnings(
+                "ignore",
+                category=apex.DeprecatedFeatureWarning,
+                message="apex.amp is deprecated and will be removed by the end of February 2023",
+            )
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
