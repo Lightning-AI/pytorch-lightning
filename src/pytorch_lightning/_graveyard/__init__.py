@@ -14,4 +14,4 @@
 
 import pytorch_lightning._graveyard.callbacks
 import pytorch_lightning._graveyard.trainer
-import pytorch_lightning._graveyard.training_type
+import pytorch_lightning._graveyard.training_type  # noqa: F401
