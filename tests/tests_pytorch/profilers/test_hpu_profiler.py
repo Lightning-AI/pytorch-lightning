@@ -47,18 +47,16 @@ class TestHPUProfiler:
     def test_hpu_simple_profiler_instances(self, tmpdir, get_device_count):
         model = BoringModel()
         trainer = Trainer(
-            profiler="simple", accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir
+            profiler="simple", accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
         )
         assert isinstance(trainer.profiler, SimpleProfiler)
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     @RunIf(hpu=True)
     def test_hpu_simple_profiler_trainer_stages(self, tmpdir, get_device_count):
         model = BoringModel()
         profiler = SimpleProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
         trainer = Trainer(
-            profiler=profiler, accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir
+            profiler=profiler, accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
         )
 
         trainer.fit(model)
@@ -76,18 +74,16 @@ class TestHPUProfiler:
     def test_hpu_advanced_profiler_instances(self, tmpdir, get_device_count):
         model = BoringModel()
         trainer = Trainer(
-            profiler="advanced", accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir
+            profiler="advanced", accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
         )
         assert isinstance(trainer.profiler, AdvancedProfiler)
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     @RunIf(hpu=True)
     def test_hpu_advanced_profiler_trainer_stages(self, tmpdir, get_device_count):
         model = BoringModel()
         profiler = AdvancedProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
         trainer = Trainer(
-            profiler=profiler, accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir
+            profiler=profiler, accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
         )
 
         trainer.fit(model)
@@ -105,17 +101,15 @@ class TestHPUProfiler:
     def test_hpu_pytorch_profiler_instances(tmpdir):
         model = BoringModel()
 
-        trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1, max_epochs=1)
+        trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1, max_epochs=1, fast_dev_run=True)
         assert isinstance(trainer.profiler, HPUProfiler)
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     @RunIf(hpu=True)
     def test_hpu_trace_event_cpu_op(tmpdir):
         # Run model and prep json
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(), fast_dev_run=True)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -144,7 +138,7 @@ class TestHPUProfiler:
         # Run model and prep json
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(), fast_dev_run=True)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -172,7 +166,7 @@ class TestHPUProfiler:
         # Run model and prep json
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(), fast_dev_run=True)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
