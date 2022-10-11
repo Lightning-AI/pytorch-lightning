@@ -34,7 +34,7 @@ def _ttp_constructor(self: Any, *_: Any, **__: Any) -> None:
 
 def _patch_plugin_classes() -> None:
     self = sys.modules[__name__]
-    for _name in (
+    for name in (
         "DDP",
         "DDP2",
         "DDPSpawn",
@@ -51,11 +51,11 @@ def _patch_plugin_classes() -> None:
         "TPUSpawn",
         "TrainingType",
     ):
-        _plugin_name = _name + "Plugin"
-        _plugin_cls = type(_plugin_name, (object,), {"__init__": _ttp_constructor, "_name": _name})
-        setattr(self, _plugin_name, _plugin_cls)
+        plugin_name = _name + "Plugin"
+        plugin_cls = type(plugin_name, (object,), {"__init__": _ttp_constructor, "_name": name})
+        setattr(self, plugin_name, plugin_cls)
         # do not overwrite sys.modules as `pl.plugins` still exists. manually patch instead
-        setattr(pl.plugins, _plugin_name, _plugin_cls)
+        setattr(pl.plugins, plugin_name, plugin_cls)
 
 
 def on_colab_kaggle() -> None:
