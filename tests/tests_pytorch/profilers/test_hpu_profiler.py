@@ -45,7 +45,6 @@ class TestHPUProfiler:
 
     @RunIf(hpu=True)
     def test_hpu_simple_profiler_instances(self, tmpdir, get_device_count):
-        model = BoringModel()
         trainer = Trainer(
             profiler="simple",
             accelerator="hpu",
@@ -82,7 +81,6 @@ class TestHPUProfiler:
 
     @RunIf(hpu=True)
     def test_hpu_advanced_profiler_instances(self, tmpdir, get_device_count):
-        model = BoringModel()
         trainer = Trainer(
             profiler="advanced",
             accelerator="hpu",
@@ -119,7 +117,6 @@ class TestHPUProfiler:
 
     @RunIf(hpu=True)
     def test_hpu_pytorch_profiler_instances(tmpdir):
-        model = BoringModel()
 
         trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1, max_epochs=1, fast_dev_run=True)
         assert isinstance(trainer.profiler, HPUProfiler)
