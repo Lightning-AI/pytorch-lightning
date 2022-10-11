@@ -24,7 +24,7 @@ def _patch_sys_modules() -> None:
 
 
 class TrainerDataLoadingMixin:
-    # todo: Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     def __init__(self) -> None:
         raise NotImplementedError(
             "The `TrainerDataLoadingMixin` class was deprecated in v1.6 and is no longer supported as of v1.8."
@@ -32,7 +32,7 @@ class TrainerDataLoadingMixin:
 
 
 class TrainerOptimizersMixin:
-    # todo: Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     def __init__(self) -> None:
         raise NotImplementedError(
             "The `TrainerOptimizersMixin` class was deprecated in v1.6 and is no longer supported as of v1.8."
