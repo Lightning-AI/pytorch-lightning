@@ -28,11 +28,12 @@ if _APEX_AVAILABLE:
     from apex import amp
 
     # TODO: Remove with deprecation of Apex integration #14416
-    warnings.filterwarnings(
-        "ignore",
-        category=apex.DeprecatedFeatureWarning,
-        message="apex.amp is deprecated and will be removed by the end of February 2023",
-    )
+    if hasattr(apex, "DeprecatedFeatureWarning"):
+        warnings.filterwarnings(
+            "ignore",
+            category=apex.DeprecatedFeatureWarning,
+            message="apex.amp is deprecated and will be removed by the end of February 2023",
+        )
 
 
 class ApexMixedPrecisionPlugin(PrecisionPlugin):
