@@ -85,7 +85,7 @@ Find bottlenecks in your code on HPU (advanced)
 ******************
 Profile HPU models
 ******************
-To understand the cost of each PyTorch operation, use the :class:`~pytorch_lightning.profilers.hpu.HPUProfiler` built on top of the `PyTorch profiler <https://pytorch.org/docs/1.12/profiler.html#torch-profiler>`__.
+To understand the cost of each PyTorch operation, use the :class:`~pytorch_lightning.profilers.hpu.HPUProfiler` built on top of the :class:`~pytorch_lightning.profilers.pytorch.PyTorchProfiler`.
 
 .. code-block:: python
 
@@ -94,7 +94,7 @@ To understand the cost of each PyTorch operation, use the :class:`~pytorch_light
     trainer = Trainer(profiler=HPUProfiler())
 
 The profiler will dump a trace file for each profiler step, ``training_step``, ``backward``, ``validation_step``, ``test_step``, and ``predict_step`` by default.
-The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the scope of profiled functions.
+The user can provide ``HPUProfiler(record_functions={...})`` to extend the scope of profiled functions.
 The profiler will generate an output like this:
 
 .. code-block::
@@ -132,7 +132,7 @@ The profiler will generate an output like this:
     Since HPUProfiler extends PyTorch Profiler, when using the HPUProfiler, wall clock time will not be representative of the true wall clock time.
     This is due to forcing profiled operations to be measured synchronously, when many HPU ops happen asynchronously.
     It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use
-    the ``SimpleProfiler``.
+    the :class:`~pytorch_lightning.profilers.simple.SimpleProfiler`.
 
 ----
 

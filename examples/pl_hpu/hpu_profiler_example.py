@@ -74,26 +74,26 @@ if __name__ == "__main__":
     model = SimpleMNISTModel()
 
     if _KINETO_AVAILABLE:
-        _profiler = HPUProfiler(
+        profiler = HPUProfiler(
             record_shapes=True,
             profile_memory=True,
             with_stack=True,
             with_flops=True,
             with_modules=True,
         )
-        _accelerator = "hpu"
+        accelerator = "hpu"
     else:
-        _profiler = PyTorchProfiler()
-        _accelerator = "cpu"
+        profiler = PyTorchProfiler()
+        accelerator = "cpu"
         warnings.warn(
             f"""_KINETO_AVAILABLE is {_KINETO_AVAILABLE}. Continuing with
                       profiler="PyTorchProfiler"
-                      accelerator="{_accelerator}" """
+                      accelerator="{accelerator}" """
         )
 
     trainer = Trainer(
-        profiler=_profiler,
-        accelerator=_accelerator,
+        profiler=profiler,
+        accelerator=accelerator,
         devices=1,
         max_epochs=1,
         limit_train_batches=16,

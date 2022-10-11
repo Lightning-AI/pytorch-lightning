@@ -72,7 +72,7 @@ class HPUProfiler(PyTorchProfiler):
 
             record_module_names: Whether to add module names while recording autograd operation.
 
-            profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
+            \**profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
         Raises:
             MisconfigurationException:
