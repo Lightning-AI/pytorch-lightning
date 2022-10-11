@@ -19,23 +19,23 @@ from pytorch_lightning.loggers import Logger
 
 
 class LoggerCollection:
-    # Remove in v2.0.0
+    # todo: Remove in v2.0.0
     def __init__(self, _: Any):
         raise RuntimeError(
             "`LoggerCollection` was deprecated in v1.6 and removed in v1.8. Directly pass a list of loggers"
-            " to the Trainer and access the list via the `trainer.loggers` attribute."
+            " to the `Trainer` and access the list via the `trainer.loggers` attribute."
         )
 
 
 def _update_agg_funcs(logger: Logger, *__: Any, **___: Any) -> None:
-    # Remove in v2.0.0
+    # todo: Remove in v2.0.0
     raise NotImplementedError(
         f"`{type(logger).__name__}.update_agg_funcs` was deprecated in v1.6 and is no longer supported as of v1.8."
     )
 
 
 def _agg_and_log_metrics(logger: Logger, *__: Any, **___: Any) -> None:
-    # Remove in v2.0.0
+    # todo: Remove in v2.0.0
     raise NotImplementedError(
         f"`{type(logger).__name__}.update_agg_funcs` was deprecated in v1.6 and is no longer supported as of v1.8."
     )
