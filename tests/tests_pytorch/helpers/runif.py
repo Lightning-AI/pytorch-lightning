@@ -26,6 +26,7 @@ from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
+from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
@@ -86,6 +87,7 @@ class RunIf:
         omegaconf: bool = False,
         slow: bool = False,
         bagua: bool = False,
+        colossalai: bool = False,
         psutil: bool = False,
         hivemind: bool = False,
         **kwargs,
@@ -153,6 +155,7 @@ class RunIf:
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
+            kwargs["amp_apex"] = amp_apex
 
         if bf16_cuda:
             try:
@@ -241,6 +244,10 @@ class RunIf:
         if bagua:
             conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
+
+        if colossalai:
+            conditions.append(not _COLOSSALAI_AVAILABLE)
+            reasons.append("ColossalAI")
 
         if psutil:
             conditions.append(not _PSUTIL_AVAILABLE)
