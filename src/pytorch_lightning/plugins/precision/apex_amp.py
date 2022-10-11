@@ -24,14 +24,15 @@ from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _APEX_AVAILABLE:
+    import apex
     from apex import amp
 
-
-# TODO: Remove with deprecation of Apex integration #14416
-warnings.filterwarnings(
-    "ignore",
-    message="apex.amp is deprecated and will be removed by the end of February 2023",
-)
+    # TODO: Remove with deprecation of Apex integration #14416
+    warnings.filterwarnings(
+        "ignore",
+        category=apex.DeprecatedFeatureWarning,
+        message="apex.amp is deprecated and will be removed by the end of February 2023",
+    )
 
 
 class ApexMixedPrecisionPlugin(PrecisionPlugin):
