@@ -164,7 +164,7 @@ or after it has already been trained.
 
 .. code-block:: python
 
-    trainer.validate(dataloaders=val_dataloaders)
+    trainer.validate(model=model, dataloaders=val_dataloaders)
 
 ------------
 
