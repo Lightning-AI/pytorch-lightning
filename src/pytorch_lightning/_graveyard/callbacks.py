@@ -12,7 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytorch_lightning._graveyard.callbacks
-import pytorch_lightning._graveyard.loggers
-import pytorch_lightning._graveyard.trainer
-import pytorch_lightning._graveyard.training_type  # noqa: F401
+from typing import Any
+
+from pytorch_lightning.callbacks import ModelCheckpoint
+
+
+def _save_checkpoint(_: ModelCheckpoint, __: Any) -> None:
+    # Remove in v2.0.0
+    raise NotImplementedError(
+        f"`{ModelCheckpoint.__name__}.save_checkpoint()` was deprecated in v1.6 and is no longer supported"
+        f" as of 1.8. Please use `trainer.save_checkpoint()` to manually save a checkpoint. This method will be"
+        f" removed completely in v2.0."
+    )
+
+
+# Methods
+ModelCheckpoint.save_checkpoint = _save_checkpoint

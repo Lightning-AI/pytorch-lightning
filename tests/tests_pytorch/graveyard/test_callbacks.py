@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytorch_lightning._graveyard.callbacks
-import pytorch_lightning._graveyard.loggers
-import pytorch_lightning._graveyard.trainer
-import pytorch_lightning._graveyard.training_type  # noqa: F401
+import pytest
+
+from pytorch_lightning.callbacks import ModelCheckpoint
+
+
+def test_v2_0_0_deprecated_mc_save_checkpoint():
+    mc = ModelCheckpoint()
+    with pytest.raises(
+        NotImplementedError,
+        match=r"ModelCheckpoint.save_checkpoint\(\)` was deprecated in v1.6 and is no longer supported as of 1.8.",
+    ):
+        mc.save_checkpoint(None)
