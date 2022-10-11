@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
@@ -24,6 +25,13 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _APEX_AVAILABLE:
     from apex import amp
+
+
+# TODO: Remove with deprecation of Apex integration #14416
+warnings.filterwarnings(
+    "ignore",
+    message="apex.amp is deprecated and will be removed by the end of February 2023",
+)
 
 
 class ApexMixedPrecisionPlugin(PrecisionPlugin):
