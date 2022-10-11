@@ -87,7 +87,6 @@ class LightningModule(
             "loggers",
             "automatic_optimization",
             "truncated_bptt_steps",
-            "use_amp",
             "trainer",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
@@ -269,22 +268,6 @@ class LightningModule(
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
-
-    @property
-    def use_amp(self) -> None:
-        # Remove in v2.0.0
-        raise RuntimeError(
-            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
-            " Please use `Trainer.amp_backend`.",
-        )
-
-    @use_amp.setter
-    def use_amp(self, _: bool) -> None:
-        # Remove in v2.0.0
-        raise RuntimeError(
-            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
-            " Please use `Trainer.amp_backend`.",
-        )
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
