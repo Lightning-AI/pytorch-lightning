@@ -3,24 +3,26 @@ from typing import Any
 
 import pytorch_lightning as pl
 
-self = sys.modules[__name__]
-sys.modules["pytorch_lightning.plugins.training_type"] = self
-sys.modules["pytorch_lightning.plugins.training_type.ddp"] = self
-sys.modules["pytorch_lightning.plugins.training_type.ddp2"] = self
-sys.modules["pytorch_lightning.plugins.training_type.ddp_spawn"] = self
-sys.modules["pytorch_lightning.plugins.training_type.deepspeed"] = self
-sys.modules["pytorch_lightning.plugins.training_type.dp"] = self
-sys.modules["pytorch_lightning.plugins.training_type.fully_sharded"] = self
-sys.modules["pytorch_lightning.plugins.training_type.horovod"] = self
-sys.modules["pytorch_lightning.plugins.training_type.ipu"] = self
-sys.modules["pytorch_lightning.plugins.training_type.parallel"] = self
-sys.modules["pytorch_lightning.plugins.training_type.sharded"] = self
-sys.modules["pytorch_lightning.plugins.training_type.sharded_spawn"] = self
-sys.modules["pytorch_lightning.plugins.training_type.single_device"] = self
-sys.modules["pytorch_lightning.plugins.training_type.single_tpu"] = self
-sys.modules["pytorch_lightning.plugins.training_type.tpu_spawn"] = self
-sys.modules["pytorch_lightning.plugins.training_type.training_type_plugin"] = self
-sys.modules["pytorch_lightning.plugins.training_type.utils"] = self
+
+def _patch_sys_modules():
+    self = sys.modules[__name__]
+    sys.modules["pytorch_lightning.plugins.training_type"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.ddp"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.ddp2"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.ddp_spawn"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.deepspeed"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.dp"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.fully_sharded"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.horovod"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.ipu"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.parallel"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.sharded"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.sharded_spawn"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.single_device"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.single_tpu"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.tpu_spawn"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.training_type_plugin"] = self
+    sys.modules["pytorch_lightning.plugins.training_type.utils"] = self
 
 
 def _ttp_constructor(self: Any, *_: Any, **__: Any) -> None:
@@ -28,6 +30,9 @@ def _ttp_constructor(self: Any, *_: Any, **__: Any) -> None:
         f"The `pl.plugins.{self._name}Plugin` class was removed in v1.8. Use `pl.strategies.{self._name}Strategy`"
         " instead."
     )
+
+
+_patch_sys_modules()
 
 
 for _name in (
