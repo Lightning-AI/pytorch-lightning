@@ -363,7 +363,7 @@ You can also customize the :class:`~pytorch_lightning.callbacks.lr_finder.Learni
 
 
     class FineTuneLearningRateFinder(LearningRateFinder):
-        def __init__(self, milestones=(5, 10), *args, **kwargs):
+        def __init__(self, milestones, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.milestones = milestones
 
