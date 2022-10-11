@@ -13,4 +13,4 @@
 # limitations under the License.
 
 import pytorch_lightning._graveyard.trainer  # noqa: F401
-import pytorch_lightning._graveyard.training_type
+import pytorch_lightning._graveyard.training_type  # noqa: F401
