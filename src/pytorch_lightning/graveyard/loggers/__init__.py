@@ -11,21 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 
-# self = sys.modules[__name__]
-# sys.modules["pytorch_lightning.loggers"] = self
-# sys.modules["pytorch_lightning.loggers.logger"] = self
-# sys.modules["pytorch_lightning.loggers.base"] = self
 from typing import Any
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import Logger
-
-#
-# from pytorch_lightning.loggers import *
-# from pytorch_lightning.loggers.base import *
-# from pytorch_lightning.loggers.logger import *
 
 
 class LoggerCollection:
