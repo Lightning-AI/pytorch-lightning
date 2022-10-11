@@ -32,31 +32,34 @@ def _ttp_constructor(self: Any, *_: Any, **__: Any) -> None:
     )
 
 
+def _patch_plugin_classes():
+    self = sys.modules[__name__]
+    for _name in (
+        "DDP",
+        "DDP2",
+        "DDPSpawn",
+        "DeepSpeed",
+        "DataParallel",
+        "DDPFullySharded",
+        "Horovod",
+        "IPU",
+        "Parallel",
+        "DDPSharded",
+        "DDPSpawnSharded",
+        "SingleDevice",
+        "SingleTPU",
+        "TPUSpawn",
+        "TrainingType",
+    ):
+        _plugin_name = _name + "Plugin"
+        _plugin_cls = type(_plugin_name, (object,), {"__init__": _ttp_constructor, "_name": _name})
+        setattr(self, _plugin_name, _plugin_cls)
+        # do not overwrite sys.modules as `pl.plugins` still exists. manually patch instead
+        setattr(pl.plugins, _plugin_name, _plugin_cls)
+
+
 _patch_sys_modules()
-
-
-for _name in (
-    "DDP",
-    "DDP2",
-    "DDPSpawn",
-    "DeepSpeed",
-    "DataParallel",
-    "DDPFullySharded",
-    "Horovod",
-    "IPU",
-    "Parallel",
-    "DDPSharded",
-    "DDPSpawnSharded",
-    "SingleDevice",
-    "SingleTPU",
-    "TPUSpawn",
-    "TrainingType",
-):
-    _plugin_name = _name + "Plugin"
-    _plugin_cls = type(_plugin_name, (object,), {"__init__": _ttp_constructor, "_name": _name})
-    setattr(self, _plugin_name, _plugin_cls)
-    # do not overwrite sys.modules as `pl.plugins` still exists. manually patch instead
-    setattr(pl.plugins, _plugin_name, _plugin_cls)
+_patch_plugin_classes()
 
 
 def on_colab_kaggle() -> None:
