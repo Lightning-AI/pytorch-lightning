@@ -47,7 +47,12 @@ class TestHPUProfiler:
     def test_hpu_simple_profiler_instances(self, tmpdir, get_device_count):
         model = BoringModel()
         trainer = Trainer(
-            profiler="simple", accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
+            profiler="simple",
+            accelerator="hpu",
+            devices=get_device_count,
+            max_epochs=1,
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
         )
         assert isinstance(trainer.profiler, SimpleProfiler)
 
@@ -56,7 +61,12 @@ class TestHPUProfiler:
         model = BoringModel()
         profiler = SimpleProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
         trainer = Trainer(
-            profiler=profiler, accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
+            profiler=profiler,
+            accelerator="hpu",
+            devices=get_device_count,
+            max_epochs=1,
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
         )
 
         trainer.fit(model)
@@ -74,7 +84,12 @@ class TestHPUProfiler:
     def test_hpu_advanced_profiler_instances(self, tmpdir, get_device_count):
         model = BoringModel()
         trainer = Trainer(
-            profiler="advanced", accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
+            profiler="advanced",
+            accelerator="hpu",
+            devices=get_device_count,
+            max_epochs=1,
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
         )
         assert isinstance(trainer.profiler, AdvancedProfiler)
 
@@ -83,7 +98,12 @@ class TestHPUProfiler:
         model = BoringModel()
         profiler = AdvancedProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
         trainer = Trainer(
-            profiler=profiler, accelerator="hpu", devices=get_device_count, max_epochs=1, default_root_dir=tmpdir, fast_dev_run=True
+            profiler=profiler,
+            accelerator="hpu",
+            devices=get_device_count,
+            max_epochs=1,
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
         )
 
         trainer.fit(model)
