@@ -99,6 +99,8 @@ class MultiProcessRuntime(Runtime):
             # Connect the runtime to the application.
             self.app.connect(self)
 
+            if self.checkpoint:
+                self.app.load_state_dict_from_checkpoint_filepath(self.checkpoint)
             # Once the bootstrapping is done, running the rank 0
             # app with all the components inactive
             self.app._run()

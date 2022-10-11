@@ -15,9 +15,11 @@ class AppConfig:
 
     Args:
         name: Optional name of the application. If not provided, auto-generates a new name.
+        checkpoint: Optional checkpoint to load the application from.
     """
 
     name: str = field(default_factory=get_unique_name)
+    checkpoint: Optional[str] = None
 
     def save_to_file(self, path: Union[str, pathlib.Path]) -> None:
         """Save the configuration to the given file in YAML format."""

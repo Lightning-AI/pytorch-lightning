@@ -103,6 +103,9 @@ class CloudRuntime(Runtime):
             # Override the name if provided by the CLI
             app_config.name = name
 
+        if self.checkpoint:
+            app_config.checkpoint = self.checkpoint
+
         app_config.save_to_dir(root)
 
         print(f"The name of the app is: {app_config.name}")

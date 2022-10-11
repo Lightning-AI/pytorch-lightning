@@ -30,6 +30,7 @@ def dispatch(
     env_vars: Dict[str, str] = None,
     secrets: Dict[str, str] = None,
     cluster_id: str = None,
+    checkpoint: str = None,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -46,6 +47,7 @@ def dispatch(
         env_vars: Dict of env variables to be set on the app
         secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
+        checkpoint: the checkpoint to load and start the app from
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
@@ -70,6 +72,7 @@ def dispatch(
         port=port,
         env_vars=env_vars,
         secrets=secrets,
+        checkpoint=checkpoint,
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
@@ -90,6 +93,7 @@ class Runtime:
     backend: Optional[Union[str, Backend]] = "multiprocessing"
     env_vars: Dict[str, str] = field(default_factory=dict)
     secrets: Dict[str, str] = field(default_factory=dict)
+    checkpoint: str = None
 
     def __post_init__(self):
         if isinstance(self.backend, str):

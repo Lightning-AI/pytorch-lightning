@@ -396,6 +396,9 @@ class LightningApp:
         if self.checkpointing and self._should_snapshot():
             self._dump_checkpoint()
 
+        if self.root.should_save_checkpoint():
+            self._save_checkpoint()
+
         if self.stage == AppStage.BLOCKING:
             return done
 
@@ -521,6 +524,10 @@ class LightningApp:
     def load_state_dict(self, state: t.Dict) -> None:
         self.set_state(state)
 
+    def load_state_dict_from_checkpoint_filepath(self, checkpoint_filepath: str) -> None:
+        state = pickle.load(open(checkpoint_filepath, "rb"))
+        self.load_state_dict(state)
+
     def load_state_dict_from_checkpoint_dir(
         self,
         checkpoints_dir: str,
@@ -546,6 +553,7 @@ class LightningApp:
         self.load_state_dict(state)
 
     def _dump_checkpoint(self) -> t.Optional[str]:
+        # TODO: revisit this logic.
         checkpoints_dir = self.checkpoint_dir
         # TODO: Add supports to remotely saving checkpoints.
         if checkpoints_dir.startswith("s3:"):
@@ -564,6 +572,27 @@ class LightningApp:
             previous_version = -1
 
         checkpoint_path = os.path.join(checkpoints_dir, f"v_{previous_version + 1}_{time()}.json")
+
+        with open(checkpoint_path, "wb") as f:
+            pickle.dump(self.state_dict(), f)
+        return checkpoint_path
+
+    def _save_checkpoint(self, checkpoint_name: str = "") -> t.Optional[str]:
+        """
+        Save the current state of the app in a checkpoint.
+
+        If the app is running locally, the checkpoint will be saved in the local directory.
+        If the app is running on the cloud, the checkpoint will be saved in the cloud storage.
+
+        :param checkpoint_name: The name of the checkpoint, if not defined, the checkpoint will be saved with the
+        current timestamp.
+
+        """
+
+        if not checkpoint_name:
+            checkpoint_name = f"{time()}"
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
+        checkpoint_path = os.path.join(self.checkpoint_dir, f"{checkpoint_name}.json")
 
         with open(checkpoint_path, "wb") as f:
             pickle.dump(self.state_dict(), f)
