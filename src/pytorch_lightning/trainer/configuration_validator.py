@@ -214,6 +214,14 @@ def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
+        if callable(getattr(callback, "on_init_start", None)):
+            raise RuntimeError(
+                "The `on_init_start` callback hook was deprecated in v1.6 and is no longer supported as of v1.8."
+            )
+        if callable(getattr(callback, "on_init_end", None)):
+            raise RuntimeError(
+                "The `on_init_end` callback hook was deprecated in v1.6 and is no longer supported as of v1.8."
+            )
         if callable(getattr(callback, "on_configure_sharded_model", None)):
             raise RuntimeError(
                 "The `on_configure_sharded_model` callback hook was removed in v1.8. Use `setup()` instead."
