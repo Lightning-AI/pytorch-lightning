@@ -51,7 +51,7 @@ def _patch_plugin_classes() -> None:
         "TPUSpawn",
         "TrainingType",
     ):
-        plugin_name = _name + "Plugin"
+        plugin_name = name + "Plugin"
         plugin_cls = type(plugin_name, (object,), {"__init__": _ttp_constructor, "_name": name})
         setattr(self, plugin_name, plugin_cls)
         # do not overwrite sys.modules as `pl.plugins` still exists. manually patch instead
