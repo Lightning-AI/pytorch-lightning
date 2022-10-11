@@ -41,6 +41,7 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     CheckpointIO,
+    ColossalAIPrecisionPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
@@ -57,6 +58,7 @@ from pytorch_lightning.plugins.environments import BaguaEnvironment
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
+    ColossalAIStrategy,
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -687,6 +689,9 @@ class AcceleratorConnector:
                         " is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
+
+        if isinstance(self.strategy, ColossalAIStrategy):
+            return ColossalAIPrecisionPlugin(self._precision_flag)
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
