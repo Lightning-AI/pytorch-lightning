@@ -155,6 +155,7 @@ class RunIf:
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
+            kwargs["amp_apex"] = amp_apex
 
         if bf16_cuda:
             try:
