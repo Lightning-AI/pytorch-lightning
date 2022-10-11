@@ -766,5 +766,7 @@ class LightningFlow:
 
     def should_save_checkpoint(self):
         """Whether the flow should save a checkpoint.
-        Override this method to customize the checkpointing behavior."""
+
+        Override this method to customize the checkpointing behavior.
+        """
         return False
