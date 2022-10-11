@@ -22,6 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.tests_pytorch.models.test_amp import _suppress_apex_deprecation
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -218,8 +219,10 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = CustomBoringModel()
-    trainer.fit(model)
-    trainer.test(model)
+
+    with _suppress_apex_deprecation():
+        trainer.fit(model)
+        trainer.test(model)
 
 
 @RunIf(min_cuda_gpus=2, amp_apex=True)
