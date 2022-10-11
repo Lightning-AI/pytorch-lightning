@@ -4,7 +4,7 @@ from typing import Any
 import pytorch_lightning as pl
 
 
-def _patch_sys_modules():
+def _patch_sys_modules() -> None:
     self = sys.modules[__name__]
     sys.modules["pytorch_lightning.plugins.training_type"] = self
     sys.modules["pytorch_lightning.plugins.training_type.ddp"] = self
@@ -32,7 +32,7 @@ def _ttp_constructor(self: Any, *_: Any, **__: Any) -> None:
     )
 
 
-def _patch_plugin_classes():
+def _patch_plugin_classes() -> None:
     self = sys.modules[__name__]
     for _name in (
         "DDP",
@@ -58,10 +58,6 @@ def _patch_plugin_classes():
         setattr(pl.plugins, _plugin_name, _plugin_cls)
 
 
-_patch_sys_modules()
-_patch_plugin_classes()
-
-
 def on_colab_kaggle() -> None:
     raise RuntimeError(
         "`pl.plugins.training_type.utils.on_colab_kaggle` was removed in v1.8."
@@ -73,4 +69,6 @@ def _training_type_plugin(_: pl.Trainer) -> None:
     raise RuntimeError("`Trainer.training_type_plugin` was removed in v1.8. Use `Trainer.strategy` instead.")
 
 
+_patch_sys_modules()
+_patch_plugin_classes()
 pl.Trainer.training_type_plugin = property(_training_type_plugin)
