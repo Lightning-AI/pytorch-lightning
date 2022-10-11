@@ -68,6 +68,7 @@ class AMPTestModel(BoringModel):
 
 
 @RunIf(min_torch="1.10")
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     ("strategy", "precision", "devices"),
     (
