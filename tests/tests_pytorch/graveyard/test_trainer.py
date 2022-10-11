@@ -75,3 +75,54 @@ def test_v2_0_0_unsupported_call_hook():
         NotImplementedError, match="`Trainer.call_hook` was deprecated in v1.6 and is no longer supported as of v1.8."
     ):
         trainer.call_hook("test_hook")
+
+
+def test_v2_0_0_unsupported_data_loading_mixin():
+    from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
+
+    class CustomTrainerDataLoadingMixin(TrainerDataLoadingMixin):
+        pass
+
+    with pytest.raises(
+        NotImplementedError,
+        match="`TrainerDataLoadingMixin` class was deprecated in v1.6 and is no longer supported as of v1.8",
+    ):
+        CustomTrainerDataLoadingMixin()
+
+    trainer = Trainer()
+    with pytest.raises(
+        NotImplementedError,
+        match="`Trainer.prepare_dataloader` was deprecated in v1.6 and is no longer supported as of v1.8.",
+    ):
+        trainer.prepare_dataloader(None)
+    with pytest.raises(
+        NotImplementedError,
+        match="`Trainer.request_dataloader` was deprecated in v1.6 and is no longer supported as of v1.8.",
+    ):
+        trainer.request_dataloader(None)
+
+
+def test_v2_0_0_trainer_optimizers_mixin():
+    from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+
+    class CustomTrainerOptimizersMixin(TrainerOptimizersMixin):
+        pass
+
+    with pytest.raises(
+        NotImplementedError,
+        match="`TrainerOptimizersMixin` class was deprecated in v1.6 and is no longer supported as of v1.8",
+    ):
+        CustomTrainerOptimizersMixin()
+
+    trainer = Trainer()
+    with pytest.raises(
+        NotImplementedError,
+        match="`Trainer.init_optimizers` was deprecated in v1.6 and is no longer supported as of v1.8.",
+    ):
+        trainer.init_optimizers(None)
+
+    with pytest.raises(
+        NotImplementedError,
+        match="`Trainer.convert_to_lightning_optimizers` was deprecated in v1.6 and is no longer supported as of v1.8.",
+    ):
+        trainer.convert_to_lightning_optimizers()

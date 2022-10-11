@@ -11,10 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import sys
 from typing import Any, Optional
 
 from pytorch_lightning import Trainer
+
+
+def _patch_sys_modules() -> None:
+    self = sys.modules[__name__]
+    sys.modules["pytorch_lightning.trainer.data_loading"] = self
+    sys.modules["pytorch_lightning.trainer.optimizers"] = self
+
+
+class TrainerDataLoadingMixin:
+    # TODO: Remove in v2.0.0
+    def __init__(self) -> None:
+        raise NotImplementedError(
+            "The `TrainerDataLoadingMixin` class was deprecated in v1.6 and is no longer supported as of v1.8."
+        )
+
+
+class TrainerOptimizersMixin:
+    # TODO: Remove in v2.0.0
+    def __init__(self) -> None:
+        raise NotImplementedError(
+            "The `TrainerOptimizersMixin` class was deprecated in v1.6 and is no longer supported as of v1.8."
+        )
 
 
 def _gpus(_: Trainer) -> None:
@@ -169,6 +191,30 @@ def _call_hook(_: Trainer, *__: Any, **___: Any) -> Any:
     raise NotImplementedError("`Trainer.call_hook` was deprecated in v1.6 and is no longer supported as of v1.8.")
 
 
+def _prepare_dataloader(_: Trainer, *__: Any, **___: Any) -> None:
+    raise NotImplementedError(
+        "`Trainer.prepare_dataloader` was deprecated in v1.6 and is no longer supported as of v1.8."
+    )
+
+
+def _request_dataloader(_: Trainer, *__: Any, **___: Any) -> None:
+    raise NotImplementedError(
+        "`Trainer.request_dataloader` was deprecated in v1.6 and is no longer supported as of v1.8."
+    )
+
+
+def _init_optimizers(_: Trainer, *__: Any, **___: Any) -> None:
+    raise NotImplementedError("`Trainer.init_optimizers` was deprecated in v1.6 and is no longer supported as of v1.8.")
+
+
+def _convert_to_lightning_optimizers(_: Trainer) -> None:
+    raise NotImplementedError(
+        "`Trainer.convert_to_lightning_optimizers` was deprecated in v1.6 and is no longer supported as of v1.8."
+    )
+
+
+_patch_sys_modules()
+
 # Properties/Attributes
 Trainer.gpus = property(_gpus)
 Trainer.root_gpu = property(_root_gpu)
@@ -189,3 +235,7 @@ Trainer.verbose_evaluate = property(fget=_verbose_evaluate, fset=_verbose_evalua
 # Methods
 Trainer.run_stage = _run_stage
 Trainer.call_hook = _call_hook
+Trainer.prepare_dataloader = _prepare_dataloader
+Trainer.request_dataloader = _request_dataloader
+Trainer.init_optimizers = _init_optimizers
+Trainer.convert_to_lightning_optimizers = _convert_to_lightning_optimizers
