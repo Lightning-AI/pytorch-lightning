@@ -18,7 +18,7 @@ from pytorch_lightning import Trainer
 
 
 def _gpus(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.gpus` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
@@ -26,7 +26,7 @@ def _gpus(_: Trainer) -> None:
 
 
 def _root_gpu(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.root_gpu` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.strategy.root_device.index` instead."
@@ -34,7 +34,7 @@ def _root_gpu(_: Trainer) -> None:
 
 
 def _tpu_cores(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.tpu_cores` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -42,7 +42,7 @@ def _tpu_cores(_: Trainer) -> None:
 
 
 def _ipus(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.ipus` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -50,7 +50,7 @@ def _ipus(_: Trainer) -> None:
 
 
 def _num_gpus(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.num_gpus` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -58,7 +58,7 @@ def _num_gpus(_: Trainer) -> None:
 
 
 def _devices(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.devices` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
@@ -66,7 +66,7 @@ def _devices(_: Trainer) -> None:
 
 
 def _use_amp(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.amp_backend`.",
@@ -74,26 +74,26 @@ def _use_amp(_: Trainer) -> None:
 
 
 def _weights_save_path(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError("`Trainer.weights_save_path` was deprecated in v1.6 and is no longer accessible as of v1.8.")
 
 
 def _lightning_optimizers(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.lightning_optimizers` was deprecated in v1.6 and is no longer accessible as of v1.8."
     )
 
 
 def _should_rank_save_checkpoint(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "`Trainer.should_rank_save_checkpoint` was deprecated in v1.6 and is no longer accessible as of v1.8.",
     )
 
 
 def _validated_ckpt_path(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.validated_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.ckpt_path` instead."
@@ -101,7 +101,7 @@ def _validated_ckpt_path(_: Trainer) -> None:
 
 
 def _validated_ckpt_path_setter(_: Trainer, __: Optional[str]) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.validated_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.ckpt_path` instead."
@@ -109,7 +109,7 @@ def _validated_ckpt_path_setter(_: Trainer, __: Optional[str]) -> None:
 
 
 def _tested_ckpt_path(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.tested_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.ckpt_path` instead."
@@ -117,7 +117,7 @@ def _tested_ckpt_path(_: Trainer) -> None:
 
 
 def _tested_ckpt_path_setter(_: Trainer, __: Optional[str]) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.tested_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.ckpt_path` instead."
@@ -125,7 +125,7 @@ def _tested_ckpt_path_setter(_: Trainer, __: Optional[str]) -> None:
 
 
 def _predicted_ckpt_path(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.predicted_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.ckpt_path` instead."
@@ -133,7 +133,7 @@ def _predicted_ckpt_path(_: Trainer) -> None:
 
 
 def _predicted_ckpt_path_setter(_: Trainer, __: Optional[str]) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.predicted_ckpt_path` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `Trainer.ckpt_path` instead."
@@ -141,7 +141,7 @@ def _predicted_ckpt_path_setter(_: Trainer, __: Optional[str]) -> None:
 
 
 def _verbose_evaluate(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.verbose_evaluate` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `trainer.{validate,test}_loop.verbose` instead.",
@@ -149,7 +149,7 @@ def _verbose_evaluate(_: Trainer) -> None:
 
 
 def _verbose_evaluate_setter(_: Trainer, __: bool) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise AttributeError(
         "The `Trainer.verbose_evaluate` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Please use `trainer.{validate,test}_loop.verbose` instead.",
@@ -157,7 +157,7 @@ def _verbose_evaluate_setter(_: Trainer, __: bool) -> None:
 
 
 def _run_stage(_: Trainer) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise NotImplementedError(
         "`Trainer.run_stage` was deprecated in v1.6 and is no longer supported as of v1.8."
         " Please use `Trainer.{fit,validate,test,predict}` instead."
@@ -165,7 +165,7 @@ def _run_stage(_: Trainer) -> None:
 
 
 def _call_hook(_: Trainer, *__: Any, **___: Any) -> Any:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise NotImplementedError("`Trainer.call_hook` was deprecated in v1.6 and is no longer supported as of v1.8.")
 
 

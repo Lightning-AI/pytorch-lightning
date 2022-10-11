@@ -13,27 +13,11 @@
 # limitations under the License.
 from typing import Any
 
-from pytorch_lightning import LightningDataModule, LightningModule
-
-
-def _use_amp(_: LightningModule) -> None:
-    # todo: Remove in v2.0.0
-    raise AttributeError(
-        "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
-        " Please use `Trainer.amp_backend`.",
-    )
-
-
-def _use_amp_setter(_: LightningModule, __: bool) -> None:
-    # todo: Remove in v2.0.0
-    raise AttributeError(
-        "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
-        " Please use `Trainer.amp_backend`.",
-    )
+from pytorch_lightning import LightningDataModule
 
 
 def _on_save_checkpoint(_: LightningDataModule, __: Any) -> None:
-    # todo: Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise NotImplementedError(
         "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8."
         " Use `state_dict` instead."
@@ -41,15 +25,12 @@ def _on_save_checkpoint(_: LightningDataModule, __: Any) -> None:
 
 
 def _on_load_checkpoint(_: LightningDataModule, __: Any) -> None:
-    # todo: Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise NotImplementedError(
         "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and removed in v1.8."
         " Use `load_state_dict` instead."
     )
 
-
-# Properties/Attributes
-LightningModule.use_amp = property(fget=_use_amp, fset=_use_amp_setter)
 
 # Methods
 LightningDataModule.on_save_checkpoint = _on_save_checkpoint
