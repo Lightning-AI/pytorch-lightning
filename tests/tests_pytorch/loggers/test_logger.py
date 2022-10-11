@@ -26,8 +26,9 @@ from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from tests_pytorch.helpers.runif import RunIf
 
 
 class CustomLogger(Logger):
@@ -320,3 +321,29 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)
+
+
+@RunIf(min_python="3.8")
+@pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
+@patch("pytorch_lightning.callbacks.ModelCheckpoint")
+def test_scan_checkpoints(checkpoint_callback_mock, tmpdir, save_top_k: int):
+    """Checks if the expected number of checkpoints is returned."""
+    # Test first condition of _scan_checkpoints: if c[1] not in logged_model_time.keys()
+    # Test if the returned list of checkpoints has length save_top_k
+    best_k_models = {}
+    for i in range(save_top_k):
+        ckpt_path = tmpdir / f"{i}.ckpt"
+        ckpt_path.write("")
+        best_k_models[ckpt_path] = i
+    checkpoint_callback_mock.best_k_models = best_k_models
+
+    logged_model_time = {}
+    checkpoints = _scan_checkpoints(checkpoint_callback_mock, logged_model_time)
+    assert len(checkpoints) == save_top_k
+
+    # Test second condition of _scan_checkpoints: or logged_model_time[c[1]] < c[0]]
+    # Test if the returned list of checkpoints has still size 0
+    for c in checkpoints:
+        logged_model_time[c[1]] = c[0] + 1000
+    checkpoints = _scan_checkpoints(checkpoint_callback_mock, logged_model_time)
+    assert len(checkpoints) == 0

@@ -52,7 +52,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
@@ -63,7 +63,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
         )
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
