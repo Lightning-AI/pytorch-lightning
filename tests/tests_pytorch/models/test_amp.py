@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import contextmanager
 from unittest import mock
 
 import pytest
@@ -24,6 +25,22 @@ from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
+
+
+@contextmanager
+def _suppress_apex_deprecation():
+    if not _APEX_AVAILABLE:
+        yield
+        return
+
+    import apex
+
+    if not hasattr(apex, "DeprecatedFeatureWarning"):
+        yield
+        return
+
+    with pytest.warns(apex.DeprecatedFeatureWarning, match="apex.amp is deprecated"):
+        yield
 
 
 class AMPTestModel(BoringModel):
@@ -179,7 +196,6 @@ def test_amp_without_apex(bwd_mock, tmpdir):
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
 def test_amp_with_apex(bwd_mock, tmpdir):
     """Check calling apex scaling in training."""
-    import apex
 
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -200,7 +216,7 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
 
-    with pytest.warns(apex.DeprecatedFeatureWarning, match="apex.amp is deprecated"):
+    with _suppress_apex_deprecation():
         trainer.fit(model)
 
     # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
@@ -213,8 +229,6 @@ def test_amp_with_apex(bwd_mock, tmpdir):
 
 @RunIf(min_cuda_gpus=1, amp_apex=True)
 def test_amp_with_apex_reload(tmpdir):
-    import apex
-
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -226,7 +240,7 @@ def test_amp_with_apex_reload(tmpdir):
         devices=1,
     )
 
-    with pytest.warns(apex.DeprecatedFeatureWarning, match="apex.amp is deprecated"):
+    with _suppress_apex_deprecation():
         trainer.fit(model)
         trainer.fit_loop.max_steps = 2
 

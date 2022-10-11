@@ -26,6 +26,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.strategies import Strategy
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.models.test_amp import _suppress_apex_deprecation
 
 
 class ManualOptModel(BoringModel):
@@ -136,12 +137,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
         if kwargs.get("amp_backend") == "apex":
-            import apex
-
-            with pytest.warns(
-                apex.DeprecatedFeatureWarning,
-                match="apex.amp is deprecated and will be removed by the end of February 2023",
-            ):
+            with _suppress_apex_deprecation():
                 trainer.fit(model)
         else:
             trainer.fit(model)

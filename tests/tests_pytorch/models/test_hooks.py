@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.models.test_amp import _suppress_apex_deprecation
 
 
 class HookedDataModule(BoringDataModule):
@@ -498,12 +499,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     )
 
     if kwargs.get("amp_backend") == "apex":
-        import apex
-
-        with pytest.warns(
-            apex.DeprecatedFeatureWarning,
-            match="apex.amp is deprecated and will be removed by the end of February 2023",
-        ):
+        with _suppress_apex_deprecation():
             trainer.fit(model)
     else:
         trainer.fit(model)
