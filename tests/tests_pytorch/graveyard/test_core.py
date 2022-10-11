@@ -19,13 +19,13 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 def test_v2_0_0_lightning_module_unsupported_use_amp():
     model = BoringModel()
     with pytest.raises(
-        AttributeError,
+        RuntimeError,
         match="`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8.",
     ):
         _ = model.use_amp
 
     with pytest.raises(
-        AttributeError,
+        RuntimeError,
         match="`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8.",
     ):
         model.use_amp = False
