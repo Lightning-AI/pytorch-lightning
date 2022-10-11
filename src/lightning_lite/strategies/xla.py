@@ -47,14 +47,14 @@ class XLAStrategy(DDPSpawnStrategy):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             start_method="fork",
         )
         self._checkpoint_io: Optional[CheckpointIO]

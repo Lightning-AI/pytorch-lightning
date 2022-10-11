@@ -13,6 +13,9 @@ To run a Lightning App on any machine, simply ssh to the machine and run the app
 
 .. code:: bash
 
+    # Copy over credentials from your local machine to your cloud machine
+    scp ~/.lightning/credentials.json your_name@your_cloud_machine:~/.lightning
+
     # log into your cloud machine
     ssh your_name@your_cloud_machine
 
