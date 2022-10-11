@@ -43,5 +43,5 @@ Logger.update_agg_funcs = _update_agg_funcs
 Logger.agg_and_log_metrics = _agg_and_log_metrics
 
 # Classes
-setattr(pl.loggers.logger, "LoggerCollection", LoggerCollection)
-setattr(pl.loggers.base, "LoggerCollection", LoggerCollection)
+pl.loggers.logger.LoggerCollection = LoggerCollection
+pl.loggers.base.LoggerCollection = LoggerCollection
