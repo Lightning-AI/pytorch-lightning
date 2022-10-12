@@ -64,3 +64,7 @@ ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
 
 DEBUG: bool = lightning_cloud.env.DEBUG
 DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
+
+LIGHTNING_CHECKPOINT_FILENAME_REGEX = r"lightningapp_checkpoint_([0-9]{10}).json"
+
+ENABLE_APP_CHECKPOINT = bool(int(os.getenv("ENABLE_APP_CHECKPOINT", "0")))

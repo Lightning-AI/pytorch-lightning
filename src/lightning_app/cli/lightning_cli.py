@@ -379,7 +379,7 @@ def run() -> None:
     "--no-cache",
     is_flag=True,
     default=False,
-    help="Disable caching of packages " "installed from requirements.txt",
+    help="Disable caching of packages installed from requirements.txt",
 )
 @click.option("--blocking", "blocking", type=bool, default=False)
 @click.option(
@@ -395,7 +395,7 @@ def run() -> None:
     "--checkpoint",
     type=str,
     default=None,
-    help="Run Lightning App from a specific saved checkpoint (App State) - experimental feature.",
+    help="Run Lightning App from a specific saved checkpoint - (experimental feature)",
 )
 def run_app(
     file: str,

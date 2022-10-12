@@ -19,7 +19,7 @@ class AppConfig:
     """
 
     name: str = field(default_factory=get_unique_name)
-    checkpoint: Optional[str] = None
+    checkpoint: Optional[str] = None  # TODO: might be moved to appspec.
 
     def save_to_file(self, path: Union[str, pathlib.Path]) -> None:
         """Save the configuration to the given file in YAML format."""

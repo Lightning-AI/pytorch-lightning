@@ -1,9 +1,10 @@
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.frontend import StaticWebFrontend, StreamlitFrontend
 from lightning_app.runners import MultiProcessRuntime
+from lightning_app.testing.helpers import EmptyFlow
 from lightning_app.utilities.component import _get_context
 
 
@@ -81,3 +82,15 @@ class ContxtFlow(LightningFlow):
 def test_multiprocess_runtime_sets_context():
     """Test that the runtime sets the global variable COMPONENT_CONTEXT in Flow and Work."""
     MultiProcessRuntime(LightningApp(ContxtFlow())).dispatch()
+
+
+@mock.patch("lightning_app.runners.multiprocess.constants", MagicMock(ENABLE_APP_CHECKPOINT=True))
+def test_dispatch_loads_app_from_checkpoint():
+
+    app = LightningApp(EmptyFlow())
+    mp_runtime = MultiProcessRuntime(app, checkpoint="test_checkpoint")
+    app.load_app_state_from_checkpoint = Mock()
+    app._run = Mock()
+
+    mp_runtime.dispatch()
+    app.load_app_state_from_checkpoint.assert_called_once_with("test_checkpoint")

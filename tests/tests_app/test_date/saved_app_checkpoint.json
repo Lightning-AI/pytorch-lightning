@@ -1,0 +1,15 @@
+{
+  "vars": {
+    "text": "Hello World!",
+    "_paths": {},
+    "_layout": []
+  },
+  "calls": {},
+  "flows": {},
+  "works": {},
+  "structures": {},
+  "changes": {},
+  "app_state": {
+    "stage": "running"
+  }
+}

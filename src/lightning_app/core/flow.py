@@ -764,7 +764,11 @@ class LightningFlow:
             elif strict:
                 raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")
 
-    def should_save_checkpoint(self):
+    def should_save_checkpoint(self) -> bool:
         """Whether the flow should save a checkpoint.
-        Override this method to customize the checkpointing behavior."""
+        Override this method to customize the checkpointing behavior. This method wil be called as part of the
+        ``run`` method by default.
+
+        Returns: True if the flow should save a checkpoint. False otherwise.
+        """
         return False

@@ -33,6 +33,7 @@ from lightning_cloud.openapi import (
 from lightning_app import LightningApp, LightningWork
 from lightning_app.runners import backends, cloud
 from lightning_app.storage import Drive
+from lightning_app.testing.helpers import EmptyFlow
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 
@@ -702,3 +703,25 @@ def test_project_has_sufficient_credits():
     for balance, result in credits_and_test_value:
         project = V1Membership(name="test-project1", project_id="test-project-id1", balance=balance)
         assert cloud_runtime._project_has_sufficient_credits(project) is result
+
+
+@mock.patch("lightning_app.runners.cloud.constants", MagicMock(ENABLE_APP_CHECKPOINT=True))
+@mock.patch("lightning_app.runners.cloud.AppConfig")
+@mock.patch("lightning_app.runners.cloud._get_project", MagicMock())
+@mock.patch("lightning_app.runners.cloud.LocalSourceCodeDir", MagicMock())
+def test_dispatch_loads_app_from_checkpoint(app_config_mock):
+
+    app = LightningApp(EmptyFlow())
+    mocked_backend = mock.MagicMock()
+    mocked_backend.client.lightningapp_instance_service_list_lightningapp_instances.return_value = mock.MagicMock(
+        lightningapps=0
+    )
+    cloud_runtime = cloud.CloudRuntime(
+        app, checkpoint="test_checkpoint", entrypoint_file="entrypoint.py", backend=mocked_backend
+    )
+    cloud_runtime._project_has_sufficient_credits = MagicMock(return_value=True)
+    app.load_app_state_from_checkpoint = mock.Mock()
+    app._run = mock.Mock()
+
+    cloud_runtime.dispatch()
+    assert app_config_mock.return_value.checkpoint == "test_checkpoint"

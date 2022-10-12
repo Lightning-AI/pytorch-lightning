@@ -5,6 +5,7 @@ from typing import Any, Callable, Optional, Union
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
 from lightning_app.core.api import start_server
+from lightning_app.core import constants
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
@@ -99,8 +100,8 @@ class MultiProcessRuntime(Runtime):
             # Connect the runtime to the application.
             self.app.connect(self)
 
-            if self.checkpoint:
-                self.app.load_state_dict_from_checkpoint_filepath(self.checkpoint)
+            if constants.ENABLE_APP_CHECKPOINT and self.checkpoint:
+                self.app.load_app_state_from_checkpoint(self.checkpoint)
             # Once the bootstrapping is done, running the rank 0
             # app with all the components inactive
             self.app._run()

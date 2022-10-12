@@ -131,3 +131,20 @@ def test_lightning_run_app_secrets(monkeypatch):
             env=(),
             secret=("FOO=my-secret"),
         )
+
+
+@mock.patch("lightning_app.cli.lightning_cli.dispatch")
+def test_lightning_run_app_with_checkpoint(dispatch_mock):
+    """validates checkpoint is passed to the app"""
+    runner = CliRunner()
+    result = runner.invoke(
+        run_app,
+        [
+            os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+            "--checkpoint",
+            "test_checkpoint",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert dispatch_mock.call_args[1]["checkpoint"] == "test_checkpoint"

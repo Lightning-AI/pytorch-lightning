@@ -7,7 +7,8 @@ import typing as t
 import warnings
 from copy import deepcopy
 from time import time
-
+import json
+import re
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
@@ -20,6 +21,7 @@ from lightning_app.core.constants import (
     FLOW_DURATION_THRESHOLD,
     FRONTEND_DIR,
     STATE_ACCUMULATE_WAIT,
+    LIGHTNING_CHECKPOINT_FILENAME_REGEX,
 )
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
@@ -28,8 +30,8 @@ from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
 from lightning_app.utilities.commands.base import _process_requests
-from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
-from lightning_app.utilities.enum import AppStage, CacheCallsKeys
+from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow, _context
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys, ComponentContext
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.layout import _collect_layout
 from lightning_app.utilities.proxies import ComponentDelta
@@ -212,7 +214,7 @@ class LightningApp:
 
     @property
     def checkpoint_dir(self) -> str:
-        return os.path.join(storage_root_dir(), "checkpoints")
+        return "checkpoints"
 
     def remove_changes_(self, state):
         for _, child in state["flows"].items():
@@ -396,9 +398,6 @@ class LightningApp:
         if self.checkpointing and self._should_snapshot():
             self._dump_checkpoint()
 
-        if self.root.should_save_checkpoint():
-            self._save_checkpoint()
-
         if self.stage == AppStage.BLOCKING:
             return done
 
@@ -424,6 +423,9 @@ class LightningApp:
             self.stage = AppStage.STOPPING
 
         self._last_run_time = time() - t0
+
+        if self.root.should_save_checkpoint():
+            self._save_checkpoint()
 
         self.on_run_once_end()
         return done
@@ -524,8 +526,81 @@ class LightningApp:
     def load_state_dict(self, state: t.Dict) -> None:
         self.set_state(state)
 
-    def load_state_dict_from_checkpoint_filepath(self, checkpoint_filepath: str) -> None:
-        state = pickle.load(open(checkpoint_filepath, "rb"))
+    @classmethod
+    def _load_checkpoint_from_json_file(cls, path: str) -> None:
+        checkpoint_dict = json.load(open(path, "r"))
+        # TODO: Checkpoint versioning and compatibility checks
+        return checkpoint_dict
+
+    def _get_checkpoint_if_available_locally(self, checkpoint: str) -> t.Optional[dict]:
+        checkpoint_dict = None
+        if os.path.exists(checkpoint):
+            checkpoint_dict = self._load_checkpoint_from_json_file(checkpoint)
+        if os.path.exists(os.path.join(self.checkpoint_dir, checkpoint)):
+            checkpoint_dict = self._load_checkpoint_from_json_file(os.path.join(self.checkpoint_dir, checkpoint))
+
+        return checkpoint_dict
+
+    def _get_checkpoint_if_available_on_drive(self, checkpoint: str) -> t.Optional[dict]:
+        drive = Drive("lit://checkpoints", component_name="root")
+
+        with _context(ComponentContext.WORK):
+            found_checkpoints = drive.list(self.checkpoint_dir)
+            logger.debug("Found checkpoints: %s", found_checkpoints)
+
+        checkpoint_drive_path = ""
+
+        if checkpoint == "latest":
+
+            r = re.compile(LIGHTNING_CHECKPOINT_FILENAME_REGEX)
+            filtered_list = list(filter(r.search, found_checkpoints))
+            checkpoint_drive_path = max(filtered_list, key=lambda i: int(r.search(i).group(1))) if filtered_list else ""
+        else:
+            for cp in found_checkpoints:
+                if checkpoint in cp:
+                    checkpoint_drive_path = cp
+                    break
+
+        # Cannot file the checkpoint on the drive
+        if not checkpoint_drive_path:
+            return None
+
+        logger.debug("Downloading checkpoint from drive %s", checkpoint_drive_path)
+
+        # download the checkpoint from the drive
+        with _context(ComponentContext.WORK):
+            drive.get(checkpoint_drive_path)
+
+        if os.path.exists(checkpoint_drive_path):
+            checkpoint_dict = self._load_checkpoint_from_json_file(checkpoint_drive_path)
+        elif os.path.exists(os.path.join(self.checkpoint_dir, checkpoint_drive_path)):
+            checkpoint_dict = self._load_checkpoint_from_json_file(
+                os.path.join(self.checkpoint_dir, checkpoint_drive_path)
+            )
+        else:
+            raise FileNotFoundError(
+                f"Could not read checkpoint file: {checkpoint_drive_path} although it was found on the drive."
+            )
+
+        return checkpoint_dict
+
+    def load_app_state_from_checkpoint(self, checkpoint: str) -> None:
+        """Load the app state from a checkpoint.
+
+        Args:
+            checkpoint: The checkpoint to load the state from. Can be either:
+                - a path to a checkpoint file
+                - checkpoint file name in the .checkpoints dir in the drive
+                - 'latest' to load the latest saved checkpoint.
+        """
+        logger.info("Loading app state from checkpoint %s", checkpoint)
+
+        state = self._get_checkpoint_if_available_locally(checkpoint)
+        if not state:
+            state = self._get_checkpoint_if_available_on_drive(checkpoint)
+
+        if not state:
+            raise FileNotFoundError(f"Could not find checkpoint: {checkpoint}")
         self.load_state_dict(state)
 
     def load_state_dict_from_checkpoint_dir(
@@ -590,12 +665,16 @@ class LightningApp:
         """
 
         if not checkpoint_name:
-            checkpoint_name = f"{time()}"
+            checkpoint_name = f"lightningapp_checkpoint_{int(time())}"
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         checkpoint_path = os.path.join(self.checkpoint_dir, f"{checkpoint_name}.json")
 
-        with open(checkpoint_path, "wb") as f:
-            pickle.dump(self.state_dict(), f)
+        with open(checkpoint_path, "w") as f:
+            json.dump(self.state_dict(), f)
+
+        drive = Drive("lit://checkpoints", component_name="root", allow_duplicates=True)
+        with _context(ComponentContext.WORK):
+            drive.put(checkpoint_path)
         return checkpoint_path
 
     def connect(self, runtime: "lightning_app.runners.runtime.Runtime") -> None:
