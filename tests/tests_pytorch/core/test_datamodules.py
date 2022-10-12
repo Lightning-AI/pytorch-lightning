@@ -180,7 +180,6 @@ def test_train_val_loop_only(tmpdir):
     # fit model
     trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.callback_metrics["train_loss"] < 1.0
 
 
 def test_dm_checkpoint_save_and_load(tmpdir):
