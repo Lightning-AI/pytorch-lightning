@@ -140,8 +140,9 @@ Route the UI in the root component
 The final step, is to tell the Root component in which tab to render this component's UI.
 In this case, we render the ``HelloComponent`` UI in the ``home`` tab of the application.
 
-.. code:: bash
+.. code:: python
     :emphasize-lines: 18, 19
+
     # app.py
     import lightning as L
     import lightning.app.frontend as frontend
