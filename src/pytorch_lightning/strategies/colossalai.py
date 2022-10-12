@@ -468,12 +468,12 @@ class ColossalAIStrategy(DDPStrategy):
         if isinstance(obj, Tensor):
             return broadcast(obj, src=src, parallel_mode=ParallelMode.GLOBAL)
         else:
-            obj = [obj]
+            obj_list = [obj]
             local_rank = gpc.get_local_rank(ParallelMode.GLOBAL)
             if local_rank != src:
-                obj = [None]  # type: ignore[list-item]
-            torch.distributed.broadcast_object_list(obj, src, group=gpc.get_group(ParallelMode.GLOBAL))
-            return obj[0]
+                obj_list = [None]
+            torch.distributed.broadcast_object_list(obj_list, src, group=gpc.get_group(ParallelMode.GLOBAL))
+            return obj_list[0]
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
