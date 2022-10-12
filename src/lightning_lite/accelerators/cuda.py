@@ -103,7 +103,7 @@ def num_cuda_devices() -> int:
     if the platform allows it.
     """
     if _TORCH_GREATER_EQUAL_1_14:
-        # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in pytorch_lightning.__init__.py
+        # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning_lite.__init__.py
         return torch.cuda.device_count()
 
     # Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879
