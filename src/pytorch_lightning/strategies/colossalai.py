@@ -29,6 +29,7 @@ from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _Light
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -451,6 +452,28 @@ class ColossalAIStrategy(DDPStrategy):
 
         tensor = reduce(tensor, dst=0, parallel_mode=ParallelMode.GLOBAL, op=reduce_op)
         return tensor
+
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        """Broadcasts an object to all processes.
+
+        Args:
+            obj: the object to broadcast
+            src: source rank
+        """
+        with _patch_cuda_is_available():
+            from colossalai.communication.collective import broadcast
+            from colossalai.context import ParallelMode
+            from colossalai.core import global_context as gpc
+
+        if isinstance(obj, Tensor):
+            return broadcast(obj, src=src, parallel_mode=ParallelMode.GLOBAL)
+        else:
+            obj = [obj]
+            local_rank = gpc.get_local_rank(ParallelMode.GLOBAL)
+            if local_rank != src:
+                obj = [None]  # type: ignore[list-item]
+            torch.distributed.broadcast_object_list(obj, src, group=gpc.get_group(ParallelMode.GLOBAL))
+            return obj[0]
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
