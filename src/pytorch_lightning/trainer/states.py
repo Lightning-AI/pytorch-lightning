@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 
 
-class _DeprecatedEnumMeta(EnumMeta):
+class _DeprecationManagingEnumMeta(EnumMeta):
     """Enum that calls `deprecate()` whenever a member is accessed.
 
     Adapted from: https://stackoverflow.com/a/62309159/208880
@@ -59,7 +59,7 @@ class TrainerStatus(LightningEnum):
         return self in (self.FINISHED, self.INTERRUPTED)
 
 
-class TrainerFn(LightningEnum, metaclass=_DeprecatedEnumMeta):
+class TrainerFn(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
     """
     Enum for the user-facing functions of the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     such as :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and
