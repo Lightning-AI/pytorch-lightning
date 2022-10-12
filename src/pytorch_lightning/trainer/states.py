@@ -79,7 +79,7 @@ class TrainerFn(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
             )
 
 
-class RunningStage(LightningEnum, metaclass=_DeprecatedEnumMeta):
+class RunningStage(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
     """Enum for the current running stage.
 
     This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
