@@ -165,11 +165,13 @@ class AssistantCLI:
                 shutil.copytree(py_dir, py_dir2)
 
     @staticmethod
-    def copy_replace_imports(source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None) -> None:
+    def copy_replace_imports(
+        source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
+    ) -> None:
         """Recursively replace imports in given folder."""
         ls = glob.glob(os.path.join(source_dir, "**", "*.py"), recursive=True)
         for fp in ls:
-            with open(fp, "r") as fo:
+            with open(fp) as fo:
                 py = fo.readlines()
             for i, ln in enumerate(py):
                 ln_ = ln.lstrip()
