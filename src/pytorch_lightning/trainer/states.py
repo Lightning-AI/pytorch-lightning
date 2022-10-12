@@ -36,13 +36,11 @@ class _DeprecatedEnumMeta(EnumMeta):
 
     def __getitem__(cls, name: str) -> Any:
         member: _DeprecatedEnumMeta = super().__getitem__(name)
-        breakpoint()
         member.deprecate()
         return member
 
     def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         obj = super().__call__(*args, **kwargs)
-        breakpoint()
         if isinstance(obj, Enum):
             obj.deprecate()
         return obj
