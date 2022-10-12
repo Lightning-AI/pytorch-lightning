@@ -17,7 +17,6 @@ from urllib.request import Request, urlopen
 import fire
 import pkg_resources
 from packaging.version import parse as version_parse
-from tqdm import tqdm
 
 REQUIREMENT_FILES = {
     "app": ("requirements/app/base.txt",),
@@ -169,7 +168,7 @@ class AssistantCLI:
     def copy_replace_imports(source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None) -> None:
         """Recursively replace imports in given folder."""
         ls = glob.glob(os.path.join(source_dir, "**", "*.py"), recursive=True)
-        for fp in tqdm(ls):
+        for fp in ls:
             with open(fp, "r") as fo:
                 py = fo.readlines()
             for i, ln in enumerate(py):
