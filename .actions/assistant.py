@@ -19,16 +19,14 @@ import pkg_resources
 from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
-    "app": (
-        "requirements/app/base.txt",
-    ),
+    "app": ("requirements/app/base.txt",),
     "pytorch": (
         "requirements/pytorch/base.txt",
         "requirements/pytorch/extra.txt",
         "requirements/pytorch/loggers.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
-    )
+    ),
 }
 REQUIREMENT_FILES_ALL = tuple(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
