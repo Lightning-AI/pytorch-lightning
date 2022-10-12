@@ -5,6 +5,7 @@ import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from typing import Dict, List, Mapping, Optional
@@ -22,7 +23,12 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import HttpMethod
 from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import CLOUD_QUEUE_TYPE, ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
+from lightning_app.core.constants import (
+    CLOUD_QUEUE_TYPE,
+    ENABLE_STATE_WEBSOCKET,
+    FRONTEND_DIR,
+    UPLOAD_FILENAME_SEPARATOR,
+)
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
@@ -247,7 +253,9 @@ async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
             allow_duplicates=True,
             root_folder=tmp,
         )
-        tmp_file = os.path.join(tmp, filename)
+        filename = filename.replace(UPLOAD_FILENAME_SEPARATOR, "/")
+        tmp_file = Path(os.path.join(tmp, filename)).resolve()
+        tmp_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(tmp_file, "wb") as f:
             done = False

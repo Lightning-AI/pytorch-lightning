@@ -1,1 +1,1 @@
-version = "YYYY.-M.-D"
+version = "2022.10.12"

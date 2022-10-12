@@ -64,3 +64,4 @@ ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
 
 DEBUG: bool = lightning_cloud.env.DEBUG
 DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
+UPLOAD_FILENAME_SEPARATOR = "---"
