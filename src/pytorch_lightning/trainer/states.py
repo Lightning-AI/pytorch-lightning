@@ -35,7 +35,7 @@ class _DeprecationManagingEnumMeta(EnumMeta):
         return obj
 
     def __getitem__(cls, name: str) -> Any:
-        member: _DeprecatedEnumMeta = super().__getitem__(name)
+        member: _DeprecationManagingEnumMeta = super().__getitem__(name)
         member.deprecate()
         return member
 
