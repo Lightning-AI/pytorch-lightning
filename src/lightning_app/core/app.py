@@ -1,14 +1,15 @@
+import json
 import logging
 import os
 import pickle
 import queue
+import re
 import threading
 import typing as t
 import warnings
 from copy import deepcopy
 from time import time
-import json
-import re
+
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
@@ -20,8 +21,8 @@ from lightning_app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
     FRONTEND_DIR,
-    STATE_ACCUMULATE_WAIT,
     LIGHTNING_CHECKPOINT_FILENAME_REGEX,
+    STATE_ACCUMULATE_WAIT,
 )
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
@@ -30,7 +31,7 @@ from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
 from lightning_app.utilities.commands.base import _process_requests
-from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow, _context
+from lightning_app.utilities.component import _context, _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys, ComponentContext
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.layout import _collect_layout
@@ -528,7 +529,7 @@ class LightningApp:
 
     @classmethod
     def _load_checkpoint_from_json_file(cls, path: str) -> None:
-        checkpoint_dict = json.load(open(path, "r"))
+        checkpoint_dict = json.load(open(path))
         # TODO: Checkpoint versioning and compatibility checks
         return checkpoint_dict
 

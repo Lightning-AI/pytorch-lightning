@@ -135,7 +135,7 @@ def test_lightning_run_app_secrets(monkeypatch):
 
 @mock.patch("lightning_app.cli.lightning_cli.dispatch")
 def test_lightning_run_app_with_checkpoint(dispatch_mock):
-    """validates checkpoint is passed to the app"""
+    """validates checkpoint is passed to the app."""
     runner = CliRunner()
     result = runner.invoke(
         run_app,
