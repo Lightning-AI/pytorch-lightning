@@ -11,7 +11,15 @@ from lightning_app.utilities.commands import ClientCommand
 
 class UploadArtifactsCommand(ClientCommand):
 
-    """This command enables to upload artifacts to the Shared Drive of the App."""
+    """This command enables to upload artifacts to the Shared Drive of the App.
+
+    Example::
+
+        from lightning_app.storage import Drive
+
+        drive = Drive("lit://uploaded_files")
+        drive.list() # Returns all the uploaded files
+    """
 
     def run(self) -> None:
         parser = argparse.ArgumentParser()
