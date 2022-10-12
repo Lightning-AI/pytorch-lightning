@@ -232,7 +232,6 @@ Keep Learning
    Run an App on the cloud <workflows/run_app_on_cloud/index>
    Run Apps on your cloud account (BYOC) <workflows/byoc/index>
    Run work in parallel <workflows/run_work_in_parallel>
-   Save files <glossary/storage/drive.rst>
    Share an app  <workflows/share_app>
    Share files between components <workflows/share_files_between_components>
 
