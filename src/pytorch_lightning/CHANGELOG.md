@@ -99,7 +99,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated support for passing the `rank_zero_warn` warning category positionally ([#14470](https://github.com/Lightning-AI/lightning/pull/14470))
 - Removed the legacy and unused `Trainer.get_deprecated_arg_names()` ([#14415](https://github.com/Lightning-AI/lightning/pull/14415))
 - Removed the deprecated `on_train_batch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#14373](https://github.com/Lightning-AI/lightning/pull/14373))
-- Removed the deprecated  `training_epoch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#14373](https://github.com/Lightning-AI/lightning/pull/14373))
+- Removed the deprecated `training_epoch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#14373](https://github.com/Lightning-AI/lightning/pull/14373))
 - Removed the experimental `pytorch_lightning.utiltiies.meta` functions in favor of built-in https://github.com/pytorch/torchdistx support ([#13868](https://github.com/Lightning-AI/lightning/pull/13868))
 - Removed the deprecated `LoggerCollection`; `Trainer.logger` and `LightningModule.logger` now returns the first logger when more than one gets passed to the Trainer ([#14283](https://github.com/Lightning-AI/lightning/pull/14283))
 - Removed the deprecated the `trainer.lr_schedulers` ([#14408](https://github.com/Lightning-AI/lightning/pull/14408))
