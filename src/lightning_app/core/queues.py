@@ -1,12 +1,18 @@
 import multiprocessing
 import pickle
 import queue
+import time
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
 
 from lightning_app.core.constants import (
+    HTTP_QUEUE_REFRESH_INTERVAL,
+    HTTP_QUEUE_URL,
+    LIGHTNING_DIR,
+    QUEUE_DEBUG_ENABLED,
     REDIS_HOST,
     REDIS_PASSWORD,
     REDIS_PORT,
@@ -16,6 +22,7 @@ from lightning_app.core.constants import (
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
+from lightning_app.utilities.network import HTTPClient
 
 if _is_redis_available():
     import redis
@@ -43,12 +50,15 @@ class QueuingSystem(Enum):
     SINGLEPROCESS = "singleprocess"
     MULTIPROCESS = "multiprocess"
     REDIS = "redis"
+    HTTP = "http"
 
     def get_queue(self, queue_name: str) -> "BaseQueue":
         if self == QueuingSystem.MULTIPROCESS:
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         elif self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
+        elif self == QueuingSystem.HTTP:
+            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         else:
             return SingleProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
@@ -291,3 +301,98 @@ class RedisQueue(BaseQueue):
             return self.redis.ping()
         except redis.exceptions.ConnectionError:
             return False
+
+
+class HTTPQueue(BaseQueue):
+    def __init__(self, name: str, default_timeout: float):
+        """
+        Parameters
+        ----------
+        name:
+            The name of the Queue to use. In the current implementation, we expect the name to be of the format
+            `appID_queueName`. Based on this assumption, we try to fetch the app id and the queue name by splitting
+            the `name` argument.
+        default_timeout:
+            Default timeout for redis read
+        """
+        if name is None:
+            raise ValueError("You must specify a name for the queue")
+        self.app_id, self.name = self._split_app_id_and_queue_name(name)
+        self._original_name = name  # keeping the name for debugging
+        self.default_timeout = default_timeout
+        self.client = HTTPClient(base_url=HTTP_QUEUE_URL, log_callback=debug_log_callback)
+
+    def get(self, timeout: int = None) -> Any:
+        if not self.app_id:
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+
+        # it's a blocking call, we need to loop and call the backend to mimic this behavior
+        if timeout is None:
+            while True:
+                try:
+                    return self._get()
+                except queue.Empty:
+                    time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
+
+        # make one request and return the result
+        if timeout == 0:
+            return self._get()
+
+        # timeout is some value - loop until the timeout is reached
+        start_time = time.time()
+        timeout += 0.1  # add 0.1 seconds as a safe margin
+        while (time.time() - start_time) < timeout:
+            try:
+                return self._get()
+            except queue.Empty:
+                time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
+
+    def _get(self):
+        resp = self.client.post(f"v1/{self.app_id}/{self.name}", query_params={"action": "pop"})
+        if resp.status_code == 204:
+            raise queue.Empty
+        return pickle.loads(resp.content)
+
+    def put(self, item: Any) -> None:
+        if not self.app_id:
+            raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self._original_name}")
+
+        value = pickle.dumps(item)
+        queue_len = self.length()
+        if queue_len >= WARNING_QUEUE_SIZE:
+            warnings.warn(
+                f"The Queue {self.name} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
+                f"Found {queue_len}. This might cause your application to crash, please investigate this."
+            )
+        resp = self.client.post(f"v1/{self.app_id}/{self.name}", data=value, query_params={"action": "push"})
+        if resp.status_code != 201:
+            raise RuntimeError(f"Failed to push to queue: {self.name}")
+
+    def length(self):
+        if not self.app_id:
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+
+        val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
+        return int(val.text)
+
+    @property
+    def is_running(self) -> bool:
+        resp = self.client.get("/healthz")
+        return resp.status_code == 200
+
+    @staticmethod
+    def _split_app_id_and_queue_name(queue_name):
+        """This splits the app id and the queue name into two parts.
+
+        This can be brittle, as if the queue name creation logic changes, the response values from here wouldn't be
+        accurate. Remove this eventually and let the Queue class take app id and name of the queue as arguments
+        """
+        if "_" not in queue_name:
+            return "", queue_name
+        app_id, queue_name = queue_name.split("_", 1)
+        return app_id, queue_name
+
+
+def debug_log_callback(message: str, *args: Any, **kwargs: Any) -> None:
+    if QUEUE_DEBUG_ENABLED or (Path(LIGHTNING_DIR) / "QUEUE_DEBUG_ENABLED").exists():
+        logger.info(message, *args, **kwargs)
