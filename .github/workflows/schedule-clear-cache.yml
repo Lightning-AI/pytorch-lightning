@@ -7,7 +7,7 @@ on:
 
 jobs:
   clear-cache:
-    if: ${{ github.repository_owner == 'Lightning-AI' }}
+    if: github.repository_owner == 'Lightning-AI'
     uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@main
     with:
       pattern: 'latest|docs'

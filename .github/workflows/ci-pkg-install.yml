@@ -87,7 +87,7 @@ jobs:
 
       - run: mkdir -p pypi
       - uses: actions/download-artifact@v3
-        if: ${{ matrix.pkg != '' }}
+        if: matrix.pkg != ''
         with:
           name: ci-packages-${{ github.sha }}
           path: pypi
