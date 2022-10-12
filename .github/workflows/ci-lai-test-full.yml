@@ -96,9 +96,6 @@ jobs:
       env:
         FREEZE_REQUIREMENTS: 1
       run: |
-        # adjust PyTorch versions in requirements files
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
         # install PL and optional dependencies for testing
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
