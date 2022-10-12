@@ -99,7 +99,11 @@ jobs:
         # install PL and optional dependencies for testing
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e . -r requirements/pytorch/test.txt -r ./requirements/pytorch/extra.txt $pre_option -f ${url}
+        pip install -e . \
+          -r ./requirements/app/devel.txt \
+          -r ./requirements/lite/devel.txt \
+          -r ./requirements/pytorch/devel.txt \
+          $pre_option -f ${url}
         pip list
       shell: bash
 
