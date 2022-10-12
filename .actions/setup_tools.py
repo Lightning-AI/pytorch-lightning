@@ -403,6 +403,10 @@ def prune_duplicate_lines(body):
     return body_
 
 
+def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
+    # TODO
+
+
 def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
     """Parse the real python package and for each module create a mirroe version with repalcing all function and
     class implementations by cross-imports to the true package.

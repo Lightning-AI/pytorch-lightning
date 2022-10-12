@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     for lit_name, pkg_name in _PACKAGE_MAPPING.items():
         # fixme: if we run creation of meta pkg against stable we shall pull the source
-        _SETUP_TOOLS.create_meta_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
+        _SETUP_TOOLS.create_mirror_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
 
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
     _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
