@@ -23,7 +23,6 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Generator, List, Optional, Set, Union
-from weakref import ReferenceType
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -452,7 +451,7 @@ class NeptuneLogger(Logger):
         )
 
     @rank_zero_only
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -500,7 +499,7 @@ class NeptuneLogger(Logger):
             )
 
     @staticmethod
-    def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[Checkpoint]") -> str:
+    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
             expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"

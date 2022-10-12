@@ -55,7 +55,7 @@ from lightning_lite.strategies import (
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE
+from lightning_lite.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
@@ -63,8 +63,7 @@ _PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
 
 class _Connector:
-    """The Connector parses several Lite arguments and instantiates the Strategy including other components such as
-    the Accelerator and Precision plugins.
+    """The Connector parses several Lite arguments and instantiates the Strategy including its owned components.
 
         A. accelerator flag could be:
             1. accelerator class
@@ -110,11 +109,11 @@ class _Connector:
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
+        # For devices: Assign gpus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[_PRECISION_INPUT] = None
-        self._precision_plugin_flag: Optional[Precision] = None
+        self._precision_input: Optional[_PRECISION_INPUT] = None
+        self._precision_instance: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self.checkpoint_io: Optional[CheckpointIO] = None
@@ -147,7 +146,7 @@ class _Connector:
         self._init_strategy()
 
         # 5. Instantiate Precision Plugin
-        self.precision_plugin = self._check_and_init_precision()
+        self.precision = self._check_and_init_precision()
 
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
@@ -204,13 +203,13 @@ class _Connector:
                 raise ValueError(
                     f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
-            self._precision_flag = precision
+            self._precision_input = precision
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
             for plugin in plugins:
                 if isinstance(plugin, Precision):
-                    self._precision_plugin_flag = plugin
+                    self._precision_instance = plugin
                     plugins_flags_types[Precision.__name__] += 1
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
@@ -240,12 +239,12 @@ class _Connector:
                     raise ValueError("accelerator set through both strategy class and accelerator flag, choose one")
                 else:
                     self._accelerator_flag = self._strategy_flag._accelerator
-            if self._strategy_flag._precision_plugin:
+            if self._strategy_flag._precision:
                 # [RFC] handle precision plugin set up conflict?
-                if self._precision_plugin_flag:
+                if self._precision_instance:
                     raise ValueError("precision set through both strategy class and plugins, choose one")
                 else:
-                    self._precision_plugin_flag = self._strategy_flag._precision_plugin
+                    self._precision_instance = self._strategy_flag._precision
             if self._strategy_flag._checkpoint_io:
                 if self.checkpoint_io:
                     raise ValueError("checkpoint_io set through both strategy class and plugins, choose one")
@@ -303,10 +302,6 @@ class _Connector:
         if self._accelerator_flag == "auto":
             if TPUAccelerator.is_available():
                 return "tpu"
-            if _IPU_AVAILABLE:
-                return "ipu"
-            if _HPU_AVAILABLE:
-                return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
             if CUDAAccelerator.is_available():
@@ -425,68 +420,66 @@ class _Connector:
 
     def _check_and_init_precision(self) -> Precision:
         self._validate_precision_choice()
-        if isinstance(self._precision_plugin_flag, Precision):
-            return self._precision_plugin_flag
+        if isinstance(self._precision_instance, Precision):
+            return self._precision_instance
 
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == 32:
+            if self._precision_input == 32:
                 return TPUPrecision()
-            elif self._precision_flag in (16, "bf16"):
-                if self._precision_flag == 16:
+            elif self._precision_input in (16, "bf16"):
+                if self._precision_input == 16:
                     rank_zero_warn(
                         "You passed `Lite(accelerator='tpu', precision=16)` but AMP"
                         " is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecision(self._precision_flag, amp_type="native", amp_level=None)  # type: ignore
+            return DeepSpeedPrecision(self._precision_input, amp_type="native", amp_level=None)  # type: ignore
 
-        if self._precision_flag == 32:
+        if self._precision_input == 32:
             return Precision()
-        if self._precision_flag == 64:
+        if self._precision_input == 64:
             return DoublePrecision()
 
-        if self._precision_flag == 16 and self._accelerator_flag == "cpu":
+        if self._precision_input == 16 and self._accelerator_flag == "cpu":
             rank_zero_warn(
                 "You passed `Lite(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
-            self._precision_flag = "bf16"
+            self._precision_input = "bf16"
 
-        if self._precision_flag in (16, "bf16"):
+        if self._precision_input in (16, "bf16"):
             rank_zero_info(
                 "Using 16-bit Automatic Mixed Precision (AMP)"
-                if self._precision_flag == 16
+                if self._precision_input == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
 
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-            return NativeMixedPrecision(self._precision_flag, device)
+            return NativeMixedPrecision(self._precision_input, device)
 
         raise RuntimeError("No precision set")
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == 64:
+            if self._precision_input == 64:
                 raise NotImplementedError(
                     "`Lite(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
-            if self._precision_plugin_flag and not isinstance(
-                self._precision_plugin_flag, (TPUPrecision, TPUBf16Precision)
-            ):
+            if self._precision_instance and not isinstance(self._precision_instance, (TPUPrecision, TPUBf16Precision)):
                 raise ValueError(
                     f"The `TPUAccelerator` can only be used with a `TPUPrecision` plugin,"
-                    f" found: {self._precision_plugin_flag}."
+                    f" found: {self._precision_instance}."
                 )
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
         self.strategy.accelerator = self.accelerator
-        if self.precision_plugin:
-            self.strategy.precision_plugin = self.precision_plugin
+        if self.precision:
+            self.strategy.precision = self.precision
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
@@ -501,8 +494,6 @@ class _Connector:
         if hasattr(self.strategy, "set_world_ranks"):
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
-
-        from lightning_lite.utilities import _IS_INTERACTIVE
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise RuntimeError(

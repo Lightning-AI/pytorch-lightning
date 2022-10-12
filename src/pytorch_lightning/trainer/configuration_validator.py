@@ -11,14 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
+
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
@@ -46,11 +49,16 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_eval_loop_configuration(trainer, model, "predict")
 
     __verify_batch_transfer_support(trainer)
+    # TODO: Delete this check in v2.0
     _check_deprecated_callback_hooks(trainer)
-    # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
+    # TODO: Delete this check in v2.0
     _check_on_epoch_start_end(model)
-    # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
+    # TODO: Delete this check in v2.0
     _check_on_pretrain_routine(model)
+    # TODO: Delete this check in v2.0
+    _check_deprecated_logger_methods(trainer)
+    # TODO: Delete this check in v2.0
+    _check_unsupported_datamodule_hooks(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -183,7 +191,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
             )
 
 
-# TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
 def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     hooks = (
         ("on_epoch_start", "on_<train/validation/test>_epoch_start"),
@@ -191,64 +198,101 @@ def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     )
 
     for hook, alternative_hook in hooks:
-        if is_overridden(hook, model):
-            rank_zero_deprecation(
-                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
-                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
+        if callable(getattr(model, hook, None)):
+            raise RuntimeError(
+                f"The `LightningModule.{hook}` hook was removed in v1.8. Please use"
+                f" `LightningModule.{alternative_hook}` instead."
             )
 
 
 def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
     hooks = (("on_pretrain_routine_start", "on_fit_start"), ("on_pretrain_routine_end", "on_fit_start"))
     for hook, alternative_hook in hooks:
-        if is_overridden(hook, model):
-            rank_zero_deprecation(
-                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
-                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
+        if callable(getattr(model, hook, None)):
+            raise RuntimeError(
+                f"The `LightningModule.{hook}` hook was removed in v1.8. Please use"
+                f" `LightningModule.{alternative_hook}` instead."
             )
 
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_configure_sharded_model", instance=callback):
-            rank_zero_deprecation(
-                "The `on_configure_sharded_model` callback hook was deprecated in"
-                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+        if callable(getattr(callback, "on_init_start", None)):
+            raise RuntimeError(
+                "The `on_init_start` callback hook was deprecated in v1.6 and is no longer supported as of v1.8."
             )
-        if is_overridden(method_name="on_before_accelerator_backend_setup", instance=callback):
-            rank_zero_deprecation(
-                "The `on_before_accelerator_backend_setup` callback hook was deprecated in"
-                " v1.6 and will be removed in v1.8. Use `setup()` instead."
+        if callable(getattr(callback, "on_init_end", None)):
+            raise RuntimeError(
+                "The `on_init_end` callback hook was deprecated in v1.6 and is no longer supported as of v1.8."
             )
-        if is_overridden(method_name="on_load_checkpoint", instance=callback):
-            rank_zero_deprecation(
-                f"`{callback.__class__.__name__}.on_load_checkpoint` will change its signature and behavior in v1.8."
+        if callable(getattr(callback, "on_configure_sharded_model", None)):
+            raise RuntimeError(
+                "The `on_configure_sharded_model` callback hook was removed in v1.8. Use `setup()` instead."
+            )
+        if callable(getattr(callback, "on_before_accelerator_backend_setup", None)):
+            raise RuntimeError(
+                "The `on_before_accelerator_backend_setup` callback hook was removed in v1.8. Use `setup()` instead."
+            )
+
+        has_legacy_argument = "callback_state" in inspect.signature(callback.on_load_checkpoint).parameters
+        if is_overridden(method_name="on_load_checkpoint", instance=callback) and has_legacy_argument:
+            # TODO: Remove this error message in v2.0
+            raise RuntimeError(
+                f"`{callback.__class__.__name__}.on_load_checkpoint` has changed its signature and behavior in v1.8."
                 " If you wish to load the state of the callback, use `load_state_dict` instead."
-                " In v1.8 `on_load_checkpoint(..., checkpoint)` will receive the entire loaded"
-                " checkpoint dictionary instead of callback state."
+                " As of 1.8, `on_load_checkpoint(..., checkpoint)` receives the entire loaded"
+                " checkpoint dictionary instead of the callback state. To continue using this hook and avoid this error"
+                " message, rename the `callback_state` argument to `checkpoint`."
             )
 
         for hook, alternative_hook in (
             ["on_batch_start", "on_train_batch_start"],
             ["on_batch_end", "on_train_batch_end"],
         ):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
-                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+            if callable(getattr(callback, hook, None)):
+                raise RuntimeError(
+                    f"The `Callback.{hook}` hook was removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
         for hook, alternative_hook in (
             ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
             ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
         ):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook was deprecated in v1.6 and"
-                    f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+            if callable(getattr(callback, hook, None)):
+                raise RuntimeError(
+                    f"The `Callback.{hook}` hook was removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
         for hook in ("on_pretrain_routine_start", "on_pretrain_routine_end"):
-            if is_overridden(method_name=hook, instance=callback):
-                rank_zero_deprecation(
-                    f"The `Callback.{hook}` hook has been deprecated in v1.6 and"
-                    " will be removed in v1.8. Please use `Callback.on_fit_start` instead."
+            if callable(getattr(callback, hook, None)):
+                raise RuntimeError(
+                    f"The `Callback.{hook}` hook was removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
+
+
+def _check_deprecated_logger_methods(trainer: "pl.Trainer") -> None:
+    for logger in trainer.loggers:
+        if is_overridden(method_name="update_agg_funcs", instance=logger, parent=Logger):
+            raise RuntimeError(
+                f"`{type(logger).__name__}.update_agg_funcs` was deprecated in v1.6 and is no longer supported as of"
+                " v1.8."
+            )
+        if is_overridden(method_name="agg_and_log_metrics", instance=logger, parent=Logger):
+            raise RuntimeError(
+                f"`{type(logger).__name__}.agg_and_log_metrics` was deprecated in v1.6 and is no longer supported as of"
+                " v1.8."
+            )
+
+
+def _check_unsupported_datamodule_hooks(trainer: "pl.Trainer") -> None:
+    datahook_selector = trainer._data_connector._datahook_selector
+    assert datahook_selector is not None
+
+    if is_overridden("on_save_checkpoint", datahook_selector.datamodule):
+        raise NotImplementedError(
+            "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            " Use `state_dict` instead."
+        )
+    if is_overridden("on_load_checkpoint", datahook_selector.datamodule):
+        raise NotImplementedError(
+            "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            " Use `load_state_dict` instead."
+        )
