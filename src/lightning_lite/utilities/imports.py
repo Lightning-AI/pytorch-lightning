@@ -16,7 +16,7 @@ import operator
 import platform
 import sys
 
-from lightning_utilities.core.imports import compare_version, module_available, package_available
+from lightning_utilities.core.imports import compare_version
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
@@ -28,24 +28,3 @@ _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
 _TORCH_GREATER_EQUAL_1_11 = compare_version("torch", operator.ge, "1.11.0")
 _TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0")
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
-
-_APEX_AVAILABLE = module_available("apex.amp")
-_HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
-_HIVEMIND_AVAILABLE = package_available("hivemind")
-_HOROVOD_AVAILABLE = module_available("horovod.torch")
-_OMEGACONF_AVAILABLE = package_available("omegaconf")
-_POPTORCH_AVAILABLE = package_available("poptorch")
-
-if _POPTORCH_AVAILABLE:
-    import poptorch
-
-    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
-else:
-    _IPU_AVAILABLE = False
-
-if _HABANA_FRAMEWORK_AVAILABLE:
-    from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
-
-    _HPU_AVAILABLE = is_habana_avaialble()
-else:
-    _HPU_AVAILABLE = False

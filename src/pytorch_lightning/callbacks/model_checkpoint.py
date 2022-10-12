@@ -351,13 +351,6 @@ class ModelCheckpoint(Checkpoint):
 
         self.best_model_path = state_dict["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer") -> None:
-        raise NotImplementedError(
-            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and is no longer supported"
-            f" as of 1.8. Please use `trainer.save_checkpoint()` to manually save a checkpoint. This method will be"
-            f" removed completely in v2.0."
-        )
-
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
             return

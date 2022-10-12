@@ -82,7 +82,7 @@ def _get_all_available_cuda_gpus() -> List[int]:
 def _patch_cuda_is_available() -> Generator:
     """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
     possible."""
-    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_1_13:
+    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0:
         # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
         # otherwise, patching is_available could lead to attribute errors or infinite recursion
         orig_check = torch.cuda.is_available

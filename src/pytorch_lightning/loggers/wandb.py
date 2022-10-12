@@ -19,7 +19,6 @@ import os
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Union
-from weakref import ReferenceType
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -27,7 +26,13 @@ from lightning_utilities.core.imports import RequirementCache
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
+from pytorch_lightning.utilities.logger import (
+    _add_prefix,
+    _convert_params,
+    _flatten_dict,
+    _sanitize_callable_params,
+    _scan_checkpoints,
+)
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
@@ -260,12 +265,12 @@ class WandbLogger(Logger):
         id: Same as version.
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
-        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
             as W&B artifacts. `latest` and `best` aliases are automatically set.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
-              :paramref:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.save_top_k` ``== -1``
+              :paramref:`~pytorch_lightning.callbacks.ModelCheckpoint.save_top_k` ``== -1``
               which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
 
@@ -324,7 +329,7 @@ class WandbLogger(Logger):
         self._prefix = prefix
         self._experiment = experiment
         self._logged_model_time: Dict[str, float] = {}
-        self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
+        self._checkpoint_callback: Optional[Checkpoint] = None
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
             name=name,
@@ -499,7 +504,7 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         # log checkpoints as artifacts
         if (
             self._log_model == "all"
@@ -559,25 +564,9 @@ class WandbLogger(Logger):
         if self._checkpoint_callback and self._experiment is not None:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: Checkpoint) -> None:
         # get checkpoints to be saved with associated score
-        checkpoints = dict()
-        if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):
-            checkpoints[checkpoint_callback.last_model_path] = (checkpoint_callback.current_score, "latest")
-
-        if hasattr(checkpoint_callback, "best_model_path") and hasattr(checkpoint_callback, "best_model_score"):
-            checkpoints[checkpoint_callback.best_model_path] = (checkpoint_callback.best_model_score, "best")
-
-        if hasattr(checkpoint_callback, "best_k_models"):
-            for key, value in checkpoint_callback.best_k_models.items():
-                checkpoints[key] = (value, "best_k")
-
-        checkpoints = sorted(
-            (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
-        )
-        checkpoints = [
-            c for c in checkpoints if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]
-        ]
+        checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 
         # log iteratively all new checkpoints
         for t, p, s, tag in checkpoints:
