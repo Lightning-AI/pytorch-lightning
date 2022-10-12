@@ -60,8 +60,14 @@ class BatchSizeFinder(Callback):
 
     Example::
 
+        # 1. Customize the BatchSizeFinder callback to run at different epochs. This feature is
+        # useful while fine-tuning models since you can't always use the same batch size after
+        # unfreezing the backbone.
+        from pytorch_lightning.callbacks import BatchSizeFinder
+
+
         class FineTuneBatchSizeFinder(BatchSizeFinder):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, milestones, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self.milestones = milestones
 
@@ -75,6 +81,26 @@ class BatchSizeFinder(Callback):
 
         trainer = Trainer(callbacks=[FineTuneBatchSizeFinder(milestones=(5, 10))])
         trainer.fit(...)
+
+    Example::
+
+        # 2. Run batch size finder for validate/test/predict.
+        from pytorch_lightning.callbacks import BatchSizeFinder
+
+
+        class EvalBatchSizeFinder(BatchSizeFinder):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+            def on_fit_start(self, *args, **kwargs):
+                return
+
+            def on_test_start(self, trainer, pl_module):
+                self.scale_batch_size(trainer, pl_module)
+
+
+        trainer = Trainer(callbacks=[EvalBatchSizeFinder()])
+        trainer.test(...)
     """
 
     SUPPORTED_MODES = ("power", "binsearch")
