@@ -653,15 +653,13 @@ class LightningApp:
         return checkpoint_path
 
     def _save_checkpoint(self, checkpoint_name: str = "") -> t.Optional[str]:
-        """
-        Save the current state of the app in a checkpoint.
+        """Save the current state of the app in a checkpoint.
 
         If the app is running locally, the checkpoint will be saved in the local directory.
         If the app is running on the cloud, the checkpoint will be saved in the cloud storage.
 
         :param checkpoint_name: The name of the checkpoint, if not defined, the checkpoint will be saved with the
         current timestamp.
-
         """
 
         if not checkpoint_name:
