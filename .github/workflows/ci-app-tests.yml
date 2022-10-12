@@ -37,14 +37,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # TODO: use replace_oldest_ver() instead
       - name: Set min. dependencies
         if: matrix.requires == 'oldest'
         run: |
-          for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
-              req = open(fpath).read().replace('>=', '==')
-              open(fpath, 'w').write(req)
-        shell: python
+          python .actions/assistant.py replace-oldest-ver
 
       - name: Get pip cache
         id: pip-cache
@@ -64,13 +60,6 @@ jobs:
           pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
         shell: bash
-
-#      - name: Start Redis
-#        if: runner.os == 'Linux'
-#        uses: supercharge/redis-github-action@1.4.0
-#        with:
-#          redis-version: 6
-#          redis-port: 6379
 
       - name: Setup Node.js
         uses: actions/setup-node@v3

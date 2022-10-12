@@ -19,6 +19,9 @@ import pkg_resources
 from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
+    "app": (
+        "requirements/app/base.txt",
+    ),
     "pytorch": (
         "requirements/pytorch/base.txt",
         "requirements/pytorch/extra.txt",
