@@ -95,7 +95,7 @@ jobs:
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
-    - name: Install dependencies
+    - name: Install package & dependencies
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1

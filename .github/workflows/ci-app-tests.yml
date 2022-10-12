@@ -65,6 +65,8 @@ jobs:
         run: npm install -g yarn
 
       - name: Install package & dependencies
+        env:
+          PACKAGE_NAME: app
         run: |
           pip --version
           pip install -e . -r requirements/app/devel.txt --quiet \
