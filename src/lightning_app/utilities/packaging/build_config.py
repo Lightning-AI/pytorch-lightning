@@ -25,7 +25,11 @@ def load_requirements(
         requirements = load_requirements(path_req)
         print(requirements)  # ['numpy...', 'torch...', ...]
     """
-    with open(os.path.join(path_dir, file_name)) as file:
+    path = os.path.join(path_dir, file_name)
+    if not os.path.isfile(path):
+        return []
+
+    with open(path) as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []
     for ln in lines:

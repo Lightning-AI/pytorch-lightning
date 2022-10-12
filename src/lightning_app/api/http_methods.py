@@ -29,56 +29,77 @@ class HttpMethod:
             timeout: The time in seconds taken before raising a timeout exception.
         """
         self.route = route
-        self.component_name = method.__self__.name
+        self.attached_to_flow = hasattr(method, "__self__")
         self.method_name = method_name or method.__name__
         self.method_annotations = method.__annotations__
         # TODO: Validate the signature contains only pydantic models.
         self.method_signature = inspect.signature(method)
+        if not self.attached_to_flow:
+            self.component_name = method.__name__
+            self.method = method
+        else:
+            self.component_name = method.__self__.name
+
         self.timeout = timeout
         self.kwargs = kwargs
 
     def add_route(self, app: FastAPI, request_queue: Queue, responses_store: Dict[str, Any]) -> None:
-        # 1: Create a proxy function with the signature of the wrapped method.
-        fn = deepcopy(_signature_proxy_function)
-        fn.__annotations__ = self.method_annotations
-        fn.__name__ = self.method_name
-        setattr(fn, "__signature__", self.method_signature)
-
-        # 2: Get the route associated with the http method.
+        # 1: Get the route associated with the http method.
         route = getattr(app, self.__class__.__name__.lower())
 
-        request_cls = CommandRequest if self.route.startswith("/command/") else APIRequest
+        if not self.attached_to_flow:
+            fn = deepcopy(_signature_proxy_function)
+            fn.__annotations__ = self.method_annotations
+            fn.__name__ = self.method_name
+            setattr(fn, "__signature__", self.method_signature)
 
-        # 3: Define the request handler.
-        @wraps(_signature_proxy_function)
-        async def _handle_request(*args, **kwargs):
-            async def fn(*args, **kwargs):
-                request_id = str(uuid4()).split("-")[0]
-                logger.debug(f"Processing request {request_id} for route: {self.route}")
-                request_queue.put(
-                    request_cls(
-                        name=self.component_name,
-                        method_name=self.method_name,
-                        args=args,
-                        kwargs=kwargs,
-                        id=request_id,
+            request_cls = CommandRequest if self.route.startswith("/command/") else APIRequest
+
+            # 3: Define the request handler.
+            @wraps(_signature_proxy_function)
+            async def handle_request_method(*args, **kwargs):
+                return self.method(*args, **kwargs)
+
+            route(self.route, **self.kwargs)(handle_request_method)
+        else:
+            # 1: Create a proxy function with the signature of the wrapped method.
+            fn = deepcopy(_signature_proxy_function)
+            fn.__annotations__ = self.method_annotations
+            fn.__name__ = self.method_name
+            setattr(fn, "__signature__", self.method_signature)
+
+            request_cls = CommandRequest if self.route.startswith("/command/") else APIRequest
+
+            # 3: Define the request handler.
+            @wraps(_signature_proxy_function)
+            async def _handle_request(*args, **kwargs):
+                async def fn(*args, **kwargs):
+                    request_id = str(uuid4()).split("-")[0]
+                    logger.debug(f"Processing request {request_id} for route: {self.route}")
+                    request_queue.put(
+                        request_cls(
+                            name=self.component_name,
+                            method_name=self.method_name,
+                            args=args,
+                            kwargs=kwargs,
+                            id=request_id,
+                        )
                     )
-                )
 
-                t0 = time.time()
-                while request_id not in responses_store:
-                    await asyncio.sleep(0.1)
-                    if (time.time() - t0) > self.timeout:
-                        raise Exception("The response was never received.")
+                    t0 = time.time()
+                    while request_id not in responses_store:
+                        await asyncio.sleep(0.1)
+                        if (time.time() - t0) > self.timeout:
+                            raise Exception("The response was never received.")
 
-                logger.debug(f"Processed request {request_id} for route: {self.route}")
+                    logger.debug(f"Processed request {request_id} for route: {self.route}")
 
-                return responses_store.pop(request_id)
+                    return responses_store.pop(request_id)
 
-            return await asyncio.create_task(fn(*args, **kwargs))
+                return await asyncio.create_task(fn(*args, **kwargs))
 
-        # 4: Register the user provided route to the Rest API.
-        route(self.route, **self.kwargs)(_handle_request)
+            # 4: Register the user provided route to the Rest API.
+            route(self.route, **self.kwargs)(_handle_request)
 
 
 class Post(HttpMethod):
