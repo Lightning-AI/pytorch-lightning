@@ -130,7 +130,7 @@ class IPUStrategy(ParallelStrategy):
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
         trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer_fn == TrainerFn.FITTING:
             # Create model for training and validation which will run on fit
             training_opts = self.training_opts
             inference_opts = self.inference_opts

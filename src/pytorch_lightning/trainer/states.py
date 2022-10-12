@@ -74,20 +74,11 @@ class TrainerFn(LightningEnum, metaclass=_DeprecatedEnumMeta):
     PREDICTING = "predict"
     TUNING = "tune"
 
-    @property
-    def _setup_fn(self) -> "TrainerFn":
-        """``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
-
-        This is used for the ``setup()`` and ``teardown()`` hooks
-        """
-        return TrainerFn.FITTING if self == TrainerFn.TUNING else self
-
     def deprecate(self) -> None:
-        return
-        rank_zero_deprecation(
-            "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            f" Use the string value `{self.value!r}` instead."
-        )
+        if self == self.TUNING:
+            rank_zero_deprecation(
+                f"`TrainerFn.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+            )
 
 
 class RunningStage(LightningEnum, metaclass=_DeprecatedEnumMeta):
@@ -116,18 +107,17 @@ class RunningStage(LightningEnum, metaclass=_DeprecatedEnumMeta):
 
     @property
     def dataloader_prefix(self) -> Optional[str]:
-        if self in (self.SANITY_CHECKING, self.TUNING):
+        if self == self.SANITY_CHECKING:
             return None
         if self == self.VALIDATING:
             return "val"
         return self.value
 
     def deprecate(self) -> None:
-        return
-        rank_zero_deprecation(
-            "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            f" Use the string value `{self.value!r}` instead."
-        )
+        if self == self.TUNING:
+            rank_zero_deprecation(
+                f"`RunningStage.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+            )
 
 
 @dataclass

@@ -183,39 +183,28 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
                 for actual, expected in zip(self.state_dict(), state_dict["state_dict"])
             )
 
-        def _test_on_val_test_predict_tune_start(self):
+        def _test_on_val_test_predict_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"]
             assert self.trainer.global_step == state_dict["global_step"]
             assert self._check_model_state_dict()
 
-            # no optimizes and schedulers are loaded otherwise
-            if self.trainer.state.fn != TrainerFn.TUNING:
-                return
-
-            assert not self._check_optimizers()
-            assert not self._check_schedulers()
-
         def on_train_start(self):
-            if self.trainer.state.fn == TrainerFn.TUNING:
-                self._test_on_val_test_predict_tune_start()
-            else:
-                assert self.trainer.current_epoch == state_dict["epoch"] + 1
-                assert self.trainer.global_step == state_dict["global_step"]
-                assert self._check_model_state_dict()
-                assert self._check_optimizers()
-                assert self._check_schedulers()
+            assert self.trainer.current_epoch == state_dict["epoch"] + 1
+            assert self.trainer.global_step == state_dict["global_step"]
+            assert self._check_model_state_dict()
+            assert self._check_optimizers()
+            assert self._check_schedulers()
 
         def on_validation_start(self):
             if self.trainer.state.fn == TrainerFn.VALIDATING:
-                self._test_on_val_test_predict_tune_start()
+                self._test_on_val_test_predict_start()
 
         def on_test_start(self):
-            self._test_on_val_test_predict_tune_start()
+            self._test_on_val_test_predict_start()
 
     for fn in ("fit", "validate", "test", "predict"):
         model = CustomClassifModel()
         dm = ClassifDataModule()
-        trainer_args["auto_scale_batch_size"] = (fn == "tune",)
         trainer = Trainer(**trainer_args)
         trainer_fn = getattr(trainer, fn)
         trainer_fn(model, datamodule=dm, ckpt_path=resume_ckpt)

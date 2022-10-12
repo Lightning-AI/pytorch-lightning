@@ -35,6 +35,7 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,
@@ -297,3 +298,29 @@ def test_lite_convert_deprecated_tpus_argument(tpu_available):
 def test_lightningCLI_save_config_init_params_deprecation_warning(name, value):
     with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(match=f".*{name!r} init parameter is deprecated.*"):
         LightningCLI(BoringModel, run=False, **{name: value})
+
+
+def test_tuning_enum():
+    with pytest.deprecated_call(
+        match="`TrainerFn.TUNING` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    ):
+        TrainerFn.TUNING
+
+    with pytest.deprecated_call(
+        match="`RunningStage.TUNING` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    ):
+        RunningStage.TUNING
+
+
+def test_tuning_trainer_property():
+    trainer = Trainer()
+
+    with pytest.deprecated_call(
+        match="`trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    ):
+        trainer.tuning
+
+    with pytest.deprecated_call(
+        match="Setting `trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    ):
+        trainer.tuning = True

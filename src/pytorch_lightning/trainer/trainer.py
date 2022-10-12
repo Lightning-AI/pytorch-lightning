@@ -955,7 +955,7 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
             )
@@ -1225,7 +1225,7 @@ class Trainer:
 
     def _call_setup_hook(self) -> None:
         assert self.state.fn is not None
-        fn = self.state.fn._setup_fn
+        fn = self.state.fn
 
         self.strategy.barrier("pre_setup")
 
@@ -1248,7 +1248,7 @@ class Trainer:
 
     def _call_teardown_hook(self) -> None:
         assert self.state.fn is not None
-        fn = self.state.fn._setup_fn
+        fn = self.state.fn
 
         if self.datamodule is not None:
             self._call_lightning_datamodule_hook("teardown", stage=fn)
@@ -1441,7 +1441,7 @@ class Trainer:
         assert self.state.fn is not None
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
-        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+        self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
 
     """
     Data loading methods
@@ -1957,10 +1957,15 @@ class Trainer:
 
     @property
     def tuning(self) -> bool:
+        rank_zero_deprecation("`trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0.")
         return self.state.stage == RunningStage.TUNING
 
     @tuning.setter
     def tuning(self, val: bool) -> None:
+        rank_zero_deprecation(
+            "Setting `trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0."
+        )
+
         if val:
             self.state.stage = RunningStage.TUNING
         elif self.tuning:
@@ -2089,7 +2094,7 @@ class Trainer:
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:
-        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if self.state.fn == TrainerFn.FITTING:
             return self.fit_loop.epoch_loop.val_loop
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validate_loop

@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.datamodule import LightningDataModule
 from tests_pytorch.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
 
-_SKLEARN_AVAILABLE = RequirementCache("sklearn")
+_SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
 
 class MNISTDataModule(LightningDataModule):

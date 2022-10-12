@@ -20,7 +20,7 @@ from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
+from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -77,9 +77,7 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.trainer.state.fn = TrainerFn.TUNING
             self.trainer.state.status = TrainerStatus.RUNNING
-            self.tuning = True
 
             # TODO: Remove this once LRFinder is converted to a Callback
             # if a datamodule comes in as the second arg, then fix it for the user
@@ -112,7 +110,6 @@ class Tuner:
         self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
         self.trainer.training = True
         self.trainer._run(*args, **kwargs)
-        self.trainer.tuning = True
 
     def scale_batch_size(
         self,
@@ -170,10 +167,6 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
-        # TODO: Remove TrainerFn.TUNING since we are now calling fit/validate/test/predict methods directly
-        self.trainer.state.fn = TrainerFn.TUNING
-        self.tuning = True
-
         _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
 
         batch_size_finder: Callback = BatchSizeFinder(
@@ -254,9 +247,6 @@ class Tuner:
                 If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
                 or if you are using more than one optimizer.
         """
-        self.trainer.state.fn = TrainerFn.TUNING
-        self.tuning = True
-
         if method != "fit":
             raise MisconfigurationException("method='fit' is an invalid configuration to run lr finder.")
 
