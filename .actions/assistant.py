@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 import fire
 import pkg_resources
 from packaging.version import parse as version_parse
+from tqdm import tqdm
 
 REQUIREMENT_FILES = {
     "app": ("requirements/app/base.txt",),
@@ -163,6 +164,25 @@ class AssistantCLI:
                 py_dir2 = os.path.join(src_folder, dir_name)
                 shutil.rmtree(py_dir2, ignore_errors=True)
                 shutil.copytree(py_dir, py_dir2)
+
+    @staticmethod
+    def copy_replace_imports(source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None) -> None:
+        """Recursively replace imports in given folder."""
+        ls = glob.glob(os.path.join(source_dir, "**", "*.py"), recursive=True)
+        for fp in tqdm(ls):
+            with open(fp, "r") as fo:
+                py = fo.readlines()
+            for i, ln in enumerate(py):
+                ln_ = ln.lstrip()
+                if ln_.startswith("#"):
+                    continue
+                if not ln_.startswith("import ") and not re.search(r"from [\w_\.\d]+ import ", ln_):
+                    continue
+                py[i] = ln.replace(source_import, target_import)
+            if target_dir:
+                fp = fp.replace(source_dir, target_dir)
+            with open(fp, "w") as fo:
+                fo.writelines(py)
 
 
 if __name__ == "__main__":

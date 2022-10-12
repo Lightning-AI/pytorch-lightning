@@ -69,8 +69,7 @@ jobs:
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
-      run: |
-        python .actions/assistant.py replace-oldest-ver
+      run: python .actions/assistant.py replace-oldest-ver
 
     - name: Get pip cache dir
       id: pip-cache
@@ -87,7 +86,11 @@ jobs:
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
-    # TODO: install all dev
+    - name: Replace imports in test dirs
+      run: |
+        python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
+        python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
+        python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
     - name: Install dependencies
       env:
