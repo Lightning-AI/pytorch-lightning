@@ -53,9 +53,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: basic setup
-      run: |
-        pip --version
-        pip install -q -r .actions/requirements.txt
+      run: pip install -q -r .actions/requirements.txt
 
     - name: Setup macOS
       if: runner.os == 'macOS'
