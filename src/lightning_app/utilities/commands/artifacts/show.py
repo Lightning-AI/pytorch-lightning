@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from typing import Dict, List
 
 import rich
@@ -82,26 +83,11 @@ def show_paths(paths: List[str]) -> None:
 
 class ShowArtifactsConfig(BaseModel):
     components: List[str]
+    replace: bool = True
 
 
-class ShowArtifactsConfigResponse(BaseModel):
-    components: List[str]
+class ShowArtifactsResponse(BaseModel):
     paths: List[str]
-
-
-def collect_artifact_paths(config: ShowArtifactsConfig, replace: bool = True) -> List[str]:
-    """This function is responsible to collecting the files from the shared filesystem."""
-    fs = filesystem()
-    paths = []
-
-    shared_storage = shared_storage_path()
-    for root_dir, _, files in fs.walk(shared_storage):
-        if replace:
-            root_dir = str(root_dir).replace(str(shared_storage), "").replace("/artifacts/drive", "")
-        for f in files:
-            paths.append(os.path.join(str(root_dir), f))
-
-    return paths
 
 
 class ShowArtifactsCommand(ClientCommand):
@@ -109,26 +95,31 @@ class ShowArtifactsCommand(ClientCommand):
         parser = argparse.ArgumentParser()
         parser.add_argument("--components", nargs="+", default=[], help="Provide a list of component names.")
         hparams = parser.parse_args()
-
-        response = ShowArtifactsConfigResponse(
+        response = ShowArtifactsResponse(
             **self.invoke_handler(config=ShowArtifactsConfig(components=hparams.components))
         )
-
         show_paths(response.paths)
 
 
-def show_artifacts(config: ShowArtifactsConfig) -> List[str]:
+def show_artifacts(config: ShowArtifactsConfig) -> ShowArtifactsResponse:
     """This function is responsible to collecting the files from the shared filesystem."""
     fs = filesystem()
     paths = []
+    include = None
+
+    if config.components:
+        include = re.compile("|".join(config.components))
 
     shared_storage = shared_storage_path()
     for root_dir, _, files in fs.walk(shared_storage):
-        root_dir = str(root_dir).replace(str(shared_storage), "").replace("/artifacts/drive", "")
+        if config.replace:
+            root_dir = str(root_dir).replace(str(shared_storage), "").replace("/artifacts", "")
         for f in files:
-            paths.append(os.path.join(str(root_dir), f))
+            path = os.path.join(str(root_dir), f)
+            if include is None or include.match(path):
+                paths.append(path)
 
-    return paths
+    return ShowArtifactsResponse(paths=paths)
 
 
 SHOW_ARTIFACT = {"show artifacts": ShowArtifactsCommand(show_artifacts)}
