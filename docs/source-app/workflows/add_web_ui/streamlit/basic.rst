@@ -36,6 +36,7 @@ In the next few sections we'll build an app step-by-step.
 First **create a file named app.py** with the app content:
 
 .. code:: python
+
     # app.py
     import lightning as L
     import lightning.app.frontend as frontend
