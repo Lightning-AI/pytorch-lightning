@@ -162,6 +162,7 @@ class Trainer:
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
+        inference_mode: bool = True,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -388,6 +389,9 @@ class Trainer:
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
+
+            inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
+                evaluation (``validate``/``test``/``predict``).
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -486,6 +490,8 @@ class Trainer:
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
+
+        self._inference_mode: bool = inference_mode
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
@@ -981,7 +987,6 @@ class Trainer:
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self._call_callback_hooks("on_before_accelerator_backend_setup")
         log.detail(f"{self.__class__.__name__}: setting up strategy environment")
         self.strategy.setup_environment()
         self.__setup_profiler()
@@ -1135,15 +1140,6 @@ class Trainer:
         # register signals
         self._signal_connector.register_signal_handlers()
 
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        self._call_callback_hooks("on_pretrain_routine_start")
-        self._call_lightning_module_hook("on_pretrain_routine_start")
-
-        self._call_callback_hooks("on_pretrain_routine_end")
-        self._call_lightning_module_hook("on_pretrain_routine_end")
-
     def _run_train(self) -> None:
         self._pre_training_routine()
 
@@ -1169,7 +1165,9 @@ class Trainer:
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator):
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(
+            self.accelerator, self._inference_mode
+        ):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1185,7 +1183,7 @@ class Trainer:
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context(self.accelerator):
+        with _evaluation_context(self.accelerator, self._inference_mode):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -1255,7 +1253,6 @@ class Trainer:
                 materialize_module(self.lightning_module)
 
             self._call_lightning_module_hook("configure_sharded_model")
-            self._call_callback_hooks("on_configure_sharded_model")
 
     def _call_teardown_hook(self) -> None:
         assert self.state.fn is not None
@@ -2221,12 +2218,13 @@ class Trainer:
 
 
 @contextmanager
-def _evaluation_context(accelerator: Accelerator) -> Generator:
+def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
     context_manager_class = (
         torch.inference_mode
-        if not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
+        if inference_mode
+        and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
         and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad

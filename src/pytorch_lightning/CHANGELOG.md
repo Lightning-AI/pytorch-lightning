@@ -70,7 +70,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a more descriptive error message when attempting to fork processes with pre-initialized CUDA context ([#14709](https://github.com/Lightning-AI/lightning/issues/14709))
 
 
-- Added support for custom parameters in subclasses of `SaveConfigCallback` ([#14998](https://github.com/Lightning-AI/lightning/pull/14998)
+- Added support for custom parameters in subclasses of `SaveConfigCallback` ([#14998](https://github.com/Lightning-AI/lightning/pull/14998))
+
+
+- Added `inference_mode` flag to Trainer to let users enable/disable inference mode during evaluation ([#15034](https://github.com/Lightning-AI/lightning/pull/15034))
 
 
 ### Changed
@@ -253,6 +256,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed the deprecated way to set the distributed backend via the environment variable `PL_TORCH_DISTRIBUTED_BACKEND`, in favor of setting the `process_group_backend` in the strategy constructor ([#14693](https://github.com/Lightning-AI/lightning/pull/14693))
+
+
+- Removed deprecated callback hooks ([#14834](https://github.com/Lightning-AI/lightning/pull/14834))
+  * `Callback.on_configure_sharded_model` in favor of `Callback.setup`
+  * `Callback.on_before_accelerator_backend_setup` in favor of `Callback.setup`
+  * `Callback.on_batch_start` in favor of `Callback.on_train_batch_start`
+  * `Callback.on_batch_end` in favor of `Callback.on_train_batch_end`
+  * `Callback.on_epoch_start` in favor of `Callback.on_{train,validation,test}_epoch_start`
+  * `Callback.on_epoch_end` in favor of `Callback.on_{train,validation,test}_epoch_end`
+  * `Callback.on_pretrain_routine_{start,end}` in favor of `Callback.on_fit_start`
 
 
 - Removed the deprecated device attributes `Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}` in favor of the accelerator-agnostic `Trainer.num_devices` ([#14829](https://github.com/Lightning-AI/lightning/pull/14829))
