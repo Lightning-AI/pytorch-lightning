@@ -1,21 +1,11 @@
 import os
-from functools import partial
 from typing import List, Optional, Type, Union
 
 from fastapi import FastAPI
 from uvicorn import run
 
 from lightning import BuildConfig, LightningWork
-from lightning_app.components.database.client import DatabaseClient
-from lightning_app.components.database.utilities import (
-    create_database,
-    delete_database,
-    general_delete,
-    general_insert,
-    general_select_all,
-    general_update,
-    reset_database,
-)
+from lightning_app.components.database.utilities import create_database, Delete, Insert, SelectAll, Update
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_sqlmodel_available
 
@@ -33,6 +23,7 @@ class Database(LightningWork):
         models: Union[Type["SQLModel"], List[Type["SQLModel"]]],
         db_filename: str = "database.db",
         debug: bool = False,
+        token: Optional[str] = None,
     ) -> None:
         """The Database Component enables to interact with an SQLite database to store some structured information
         about your application.
@@ -44,6 +35,7 @@ class Database(LightningWork):
             db_filename: The name of the SQLite database.
             debug: Whether to run the database in debug mode.
             mode: Whether the database should be running within the flow or dedicated work.
+            token: Token used to protect the database access. Ensure you don't expose it through the App State.
 
         Example:
 
@@ -103,19 +95,20 @@ class Database(LightningWork):
         self.db_filename = db_filename
         self.debug = debug
         self._models = models if isinstance(models, list) else [models]
-        self._client = None
+        self.token = token
 
     def run(self) -> None:
         app = FastAPI()
 
         create_database(self.db_filename, self._models, self.debug)
         models = {m.__name__: m for m in self._models}
-        app.post("/select_all/")(partial(general_select_all, models=models))
-        app.post("/insert/")(partial(general_insert, models=models))
-        app.post("/update/")(partial(general_update, models=models))
-        app.post("/delete/")(partial(general_delete, models=models))
-        app.post("/delete_database/")(partial(delete_database, self.db_filename, self._models))
-        app.post("/reset_database/")(partial(reset_database, self.db_filename, self._models))
+        app.post("/select_all/")(SelectAll(models, self.token))
+        app.post("/insert/")(Insert(models, self.token))
+        app.post("/update/")(Update(models, self.token))
+        app.post("/delete/")(Delete(models, self.token))
+
+        # Forget the token from the state
+        self.token = None
 
         run(app, host=self.host, port=self.port, log_level="error")
 
@@ -131,8 +124,3 @@ class Database(LightningWork):
         if self.internal_ip != "":
             return f"http://{self.internal_ip}:{self.port}"
         return self.internal_ip
-
-    @property
-    def client(self) -> Optional[DatabaseClient]:
-        if self.db_url:
-            return DatabaseClient(self.db_url)

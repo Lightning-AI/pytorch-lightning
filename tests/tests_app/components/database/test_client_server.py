@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from time import sleep
 from typing import Optional
+from uuid import uuid4
 
 import pytest
 
@@ -42,14 +43,15 @@ def test_client_server():
     if database_path.exists():
         os.remove(database_path)
 
-    general = GeneralModel.from_obj(TestConfig(name="name"))
+    general = GeneralModel.from_obj(TestConfig(name="name"), token="a")
     assert general.cls_name == "TestConfig"
     assert general.data == '{"id": null, "name": "name"}'
 
     class Flow(LightningFlow):
         def __init__(self):
             super().__init__()
-            self.db = Database(models=[TestConfig])
+            self._token = str(uuid4())
+            self.db = Database(models=[TestConfig], token=self._token)
             self._client = None
             self.tracker = None
             self.work = Work()
@@ -61,7 +63,7 @@ def test_client_server():
                 return
 
             if not self._client:
-                self._client = DatabaseClient(model=TestConfig, db_url=self.db.url)
+                self._client = DatabaseClient(model=TestConfig, db_url=self.db.url, token=self._token)
 
             assert self._client
 
@@ -92,14 +94,11 @@ def test_client_server():
                 self._client.insert(TestConfig(name="name"))
 
                 assert self._client.select_all(TestConfig)
-
-                self._client.reset_database()
-                assert len(self._client.select_all(TestConfig)) == 0
-
-                self._client.delete_database()
                 self._exit()
 
     app = LightningApp(Flow())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    assert not database_path.exists()
+    database_path = Path("database.db").resolve()
+    if database_path.exists():
+        os.remove(database_path)

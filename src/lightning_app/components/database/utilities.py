@@ -1,6 +1,5 @@
 import functools
 import json
-import os
 import pathlib
 from typing import Any, Dict, Generic, List, Type, TypeVar
 
@@ -124,78 +123,106 @@ def get_primary_key(model_type: Type[SQLModel]) -> str:
 class GeneralModel(BaseModel):
     cls_name: str
     data: str
+    token: str
 
     def convert_to_model(self, models: Dict[str, BaseModel]):
         return models[self.cls_name].parse_raw(self.data)
 
     @classmethod
-    def from_obj(cls, obj):
+    def from_obj(cls, obj, token):
         return cls(
             **{
                 "cls_name": obj.__class__.__name__,
                 "data": obj.json(),
+                "token": token,
             }
         )
 
     @classmethod
-    def from_cls(cls, obj_cls):
+    def from_cls(cls, obj_cls, token):
         return cls(
             **{
                 "cls_name": obj_cls.__name__,
                 "data": "",
+                "token": token,
             }
         )
 
 
-def general_select_all(data: Dict, models=None):
-    assert models
-    with Session(engine) as session:
-        cls: Type[SQLModel] = models[data["cls_name"]]
-        statement = select(cls)
-        results = session.exec(statement)
-        return results.all()
+class SelectAll:
+    def __init__(self, models, token):
+        print(models, token)
+        self.models = models
+        self.token = token
+
+    def __call__(self, data: Dict):
+        if self.token and data["token"] != self.token:
+            raise Exception("The request doesn't have the correct token !")
+        with Session(engine) as session:
+            cls: Type[SQLModel] = self.models[data["cls_name"]]
+            statement = select(cls)
+            results = session.exec(statement)
+            return results.all()
 
 
-def general_insert(data: Dict, models=None):
-    assert models
-    with Session(engine) as session:
-        ele: SQLModel = models[data["cls_name"]].parse_raw(data["data"])
-        session.add(ele)
-        session.commit()
-        session.refresh(ele)
-        return ele
+class Insert:
+    def __init__(self, models, token):
+        self.models = models
+        self.token = token
+
+    def __call__(self, data: Dict):
+        if self.token and data["token"] != self.token:
+            raise Exception("The request doesn't have the correct token !")
+        with Session(engine) as session:
+            ele: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
+            session.add(ele)
+            session.commit()
+            session.refresh(ele)
+            return ele
 
 
-def general_update(data: Dict, models=None):
-    assert models
-    with Session(engine) as session:
-        update_data: SQLModel = models[data["cls_name"]].parse_raw(data["data"])
-        primary_key = get_primary_key(update_data.__class__)
-        identifier = getattr(update_data.__class__, primary_key, None)
-        statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
-        results = session.exec(statement)
-        result = results.one()
-        for k, v in vars(update_data).items():
-            if k in ("id", "_sa_instance_state"):
-                continue
-            if getattr(result, k) != v:
-                setattr(result, k, v)
-        session.add(result)
-        session.commit()
-        session.refresh(result)
+class Update:
+    def __init__(self, models, token):
+        self.models = models
+        self.token = token
+
+    def __call__(self, data: Dict):
+        if self.token and data["token"] != self.token:
+            raise Exception("The request doesn't have the correct token !")
+        with Session(engine) as session:
+            update_data: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
+            primary_key = get_primary_key(update_data.__class__)
+            identifier = getattr(update_data.__class__, primary_key, None)
+            statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
+            results = session.exec(statement)
+            result = results.one()
+            for k, v in vars(update_data).items():
+                if k in ("id", "_sa_instance_state"):
+                    continue
+                if getattr(result, k) != v:
+                    setattr(result, k, v)
+            session.add(result)
+            session.commit()
+            session.refresh(result)
 
 
-def general_delete(data: Dict, models=None):
-    assert models
-    with Session(engine) as session:
-        update_data: SQLModel = models[data["cls_name"]].parse_raw(data["data"])
-        primary_key = get_primary_key(update_data.__class__)
-        identifier = getattr(update_data.__class__, primary_key, None)
-        statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
-        results = session.exec(statement)
-        result = results.one()
-        session.delete(result)
-        session.commit()
+class Delete:
+    def __init__(self, models, token):
+        self.models = models
+        self.token = token
+
+    def __call__(self, data: Dict):
+        if self.token and data["token"] != self.token:
+            raise Exception("The request doesn't have the correct token !")
+        with Session(engine) as session:
+            update_data: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
+            primary_key = get_primary_key(update_data.__class__)
+            identifier = getattr(update_data.__class__, primary_key, None)
+            statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
+            results = session.exec(statement)
+            result = results.one()
+            session.delete(result)
+            session.commit()
 
 
 def create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool = False):
@@ -210,15 +237,3 @@ def create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool
         SQLModel.metadata.create_all(engine)
     except Exception as e:
         logger.debug(e)
-
-
-def delete_database(db_filename: str, models: List[Type["SQLModel"]]) -> None:
-
-    database_path = str(pathlib.Path(db_filename).resolve())
-    if os.path.exists(database_path):
-        os.remove(database_path)
-
-
-def reset_database(db_filename: str, models: List[Type["SQLModel"]]) -> None:
-    delete_database(db_filename, models)
-    create_database(db_filename, models)
