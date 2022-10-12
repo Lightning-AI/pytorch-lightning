@@ -130,7 +130,7 @@ class ColossalAIStrategy(DDPStrategy):
         chunk_search_range: int = 64 * 1024**2,
         chunk_search_n_grids: int = 1024,
         min_chunk_size: Optional[int] = None,
-        initial_scale: float = 2**32,
+        initial_scale: float = 2**16,
         min_scale: float = 1,
         growth_factor: float = 2,
         backoff_factor: float = 0.5,
