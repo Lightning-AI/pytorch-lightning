@@ -33,13 +33,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # TODO: oldest is not much feasible at this time as PL and App hase different min versions requirements for fsspec
-          #  Cannot install -r requirements/app/./base.txt (line 6), fsspec<=2022.7.1 and ==2022.5.0, fsspec[http]==2021.6.1 and lightning==2022.10.12 because these package versions have conflicting dependencies.
-          # - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.12"}
-          # - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "macos-11", python-version: "3.10", pytorch-version: "1.12"}
-          # - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
           # TODO: re-enable RC testing
           # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
