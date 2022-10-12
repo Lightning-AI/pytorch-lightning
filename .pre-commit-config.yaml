@@ -66,6 +66,10 @@ repos:
     hooks:
       - id: yesqa
         name: Unused noqa
+        exclude: |
+            (?x)^(
+                src/pytorch_lightning/_graveyard
+            )$
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.10.1

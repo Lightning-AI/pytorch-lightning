@@ -4,72 +4,22 @@
 Encrypted Secrets
 #################
 
-Is your App using data or values (for example: API keys or access credentials) that you don't want to expose in your App code? If the answer is yes, you'll want to use Secrets. Secrets are encrypted values that are stored in the Lightning.ai database and are decrypted at runtime.
+Encrypted Secrets allow you to pass private data to your apps, like API keys, access tokens, database passwords, or other credentials, in a secure way without exposing them in your code.
+Secrets provide you with a secure way to store this data in a way that is accessible to Apps so that they can authenticate third-party services/solutions.
 
 .. tip::
 	For non-sensitive configuration values, we recommend using :ref:`plain-text Environment Variables <environment_variables>`.
 
-***************
-What did we do?
-***************
+************
+Add a secret
+************
 
-When a Lightning App (App) **runs in the cloud**, a Secret can be exposed to the App using environment variables.
-The value of the Secret is encrypted in the Lightning.ai database, and is only decrypted and accessible to
-LightningFlow (Flow) or LightningWork (Work) processes in the cloud (when you use the ``--cloud`` option running your App).
+Add the secret to your profile on lightning.ai.
+Log in to your lightning.ai account > **Profile** > **Secrets** tab > click the **+New** button.
+Provide a name and value to your secret, for example, name could be "github_api_token".
 
-----
-
-**********************
-What were we thinking?
-**********************
-
-Many Apps require access to private data like API keys, access tokens, database passwords, or other credentials. You need to protect this data.
-We developed this feature to provide you with a secure way to store this data in a way that is accessible to Apps so that they can authenticate third-party services/solutions.
-
-----
-
-*********************
-Use Encrypted Secrets
-*********************
-
-To use Encrypted Secrets:
-
-#. Log in to your lightning.ai account, go to **Secrets**, and create the Secret (provide a name and value for the secret).
-
-    .. note:: Once you create a Secret, you can bind it to any of your Apps. You do not need to create a new Secret for each App if the Secret value is the same.
-
-#. Prepare an environment variable to use with the Secret in your App.
-
-#. Use the following command to add the Secret to your App:
-
-.. code:: bash
-
-    lightning run app app.py --cloud --secret <environment-variable>=<secret-name>
-
-The environment variables are available in all Flows and Works, and can be accessed as follows:
-
-.. code:: python
-
-    import os
-
-    print(os.environ["<environment-variable>"])
-
-The ``--secret`` option can be used for multiple Secrets, and alongside the ``--env`` option.
-
-Here's an example:
-
-.. code:: bash
-
-    lightning run app app.py --cloud --env FOO=bar --secret MY_APP_SECRET=my-secret --secret ANOTHER_SECRET=another-secret
-
-----
-
-Example
-^^^^^^^
-
-The best way to show you how to use Encrypted Secrets is with an example.
-
-First, log in to your `lightning.ai account <https://lightning.ai/>`_ and create a Secret.
+.. note::
+    Secret names must start with a letter and can only contain letters, numbers, dashes, and periods. The Secret names must comply with `RFC1123 naming conventions <https://www.rfc-editor.org/rfc/rfc1123>`_. The Secret value has no restrictions.
 
 .. raw:: html
 
@@ -80,23 +30,46 @@ First, log in to your `lightning.ai account <https://lightning.ai/>`_ and create
     <br />
     <br />
 
-.. note::
-    Secret names must start with a letter and can only contain letters, numbers, dashes, and periods. The Secret names must comply with `RFC1123 naming conventions <https://www.rfc-editor.org/rfc/rfc1123>`_. The Secret value has no restrictions.
+************
+Use a secret
+************
 
-After creating a Secret named ``my-secret`` with the value ``some-secret-value`` we'll bind it to the environment variable ``MY_APP_SECRET`` within our App. The binding is accomplished by using the ``--secret`` option when running the App from the Lightning CLI.
-
-The ``--secret``` option works similar to ``--env``, but instead of providing a value, you provide the name of the Secret that is replaced with with the value that you want to bind to the environment variable:
-
-.. code:: bash
-
-    lightning run app app.py --cloud --secret MY_APP_SECRET=my-secret
-
-The environment variables are available in all Flows and Works, and can be accessed as follows:
+1. Add an environment variable to your app to read the secret. For example, add an "api_token" environment variable:
 
 .. code:: python
 
     import os
 
-    print(os.environ["MY_APP_SECRET"])
+    component.connect(api_token=os.environ["api_token"])
 
-This code prints out ``some-secret-value``.
+2. Pass the secret to your app run with the following command:
+
+.. code:: bash
+
+    lightning run app app.py --cloud --secret <environment-variable>=<secret-name>
+
+In this example, the command would be:
+
+.. code:: bash
+
+    lightning run app app.py --cloud --secret api_token=github_api_token
+
+
+The ``--secret`` option can be used for multiple Secrets, and alongside the ``--env`` option.
+
+Here's an example:
+
+.. code:: bash
+
+    lightning run app app.py --cloud --env FOO=bar --secret MY_APP_SECRET=my-secret --secret ANOTHER_SECRET=another-secret
+
+
+----
+
+******************
+How does this work
+******************
+
+When a Lightning App (App) **runs in the cloud**, a Secret can be exposed to the App using environment variables.
+The value of the Secret is encrypted in the Lightning.ai database, and is only decrypted and accessible to
+LightningFlow (Flow) or LightningWork (Work) processes in the cloud (when you use the ``--cloud`` option running your App).
