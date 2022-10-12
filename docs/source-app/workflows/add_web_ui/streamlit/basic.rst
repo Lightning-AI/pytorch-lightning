@@ -61,7 +61,7 @@ First **create a file named app.py** with the app content:
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
 
-    app = L.LightningApp(LitApp())`
+    app = L.LightningApp(LitApp())
 
 add "streamlit" to a requirements.txt file:
 
