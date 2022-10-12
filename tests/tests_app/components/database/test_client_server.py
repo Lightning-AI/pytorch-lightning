@@ -51,13 +51,13 @@ def test_client_server():
         def __init__(self):
             super().__init__()
             self._token = str(uuid4())
-            self.db = Database(models=[TestConfig], token=self._token)
+            self.db = Database(models=[TestConfig])
             self._client = None
             self.tracker = None
             self.work = Work()
 
         def run(self):
-            self.db.run()
+            self.db.run(token=self._token)
 
             if not self.db.alive():
                 return

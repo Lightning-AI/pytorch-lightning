@@ -3,6 +3,7 @@ import json
 import pathlib
 from typing import Any, Dict, Generic, List, Type, TypeVar
 
+from fastapi import Response, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, parse_obj_as
 from pydantic.main import ModelMetaclass
@@ -155,9 +156,11 @@ class SelectAll:
         self.models = models
         self.token = token
 
-    def __call__(self, data: Dict):
+    def __call__(self, data: Dict, response: Response):
         if self.token and data["token"] != self.token:
-            raise Exception("The request doesn't have the correct token !")
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return {"status": "failure", "reason": "Unauthorized request to the database."}
+
         with Session(engine) as session:
             cls: Type[SQLModel] = self.models[data["cls_name"]]
             statement = select(cls)
@@ -170,9 +173,11 @@ class Insert:
         self.models = models
         self.token = token
 
-    def __call__(self, data: Dict):
+    def __call__(self, data: Dict, response: Response):
         if self.token and data["token"] != self.token:
-            raise Exception("The request doesn't have the correct token !")
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return {"status": "failure", "reason": "Unauthorized request to the database."}
+
         with Session(engine) as session:
             ele: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
             session.add(ele)
@@ -186,9 +191,11 @@ class Update:
         self.models = models
         self.token = token
 
-    def __call__(self, data: Dict):
+    def __call__(self, data: Dict, response: Response):
         if self.token and data["token"] != self.token:
-            raise Exception("The request doesn't have the correct token !")
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return {"status": "failure", "reason": "Unauthorized request to the database."}
+
         with Session(engine) as session:
             update_data: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
             primary_key = get_primary_key(update_data.__class__)
@@ -211,9 +218,11 @@ class Delete:
         self.models = models
         self.token = token
 
-    def __call__(self, data: Dict):
+    def __call__(self, data: Dict, response: Response):
         if self.token and data["token"] != self.token:
-            raise Exception("The request doesn't have the correct token !")
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return {"status": "failure", "reason": "Unauthorized request to the database."}
+
         with Session(engine) as session:
             update_data: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
             primary_key = get_primary_key(update_data.__class__)

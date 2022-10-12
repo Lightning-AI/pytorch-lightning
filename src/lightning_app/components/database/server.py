@@ -23,7 +23,6 @@ class Database(LightningWork):
         models: Union[Type["SQLModel"], List[Type["SQLModel"]]],
         db_filename: str = "database.db",
         debug: bool = False,
-        token: Optional[str] = None,
     ) -> None:
         """The Database Component enables to interact with an SQLite database to store some structured information
         about your application.
@@ -95,20 +94,20 @@ class Database(LightningWork):
         self.db_filename = db_filename
         self.debug = debug
         self._models = models if isinstance(models, list) else [models]
-        self.token = token
 
-    def run(self) -> None:
+    def run(self, token: Optional[str] = None) -> None:
+        """
+        Arguments:
+            token: Token used to protect the database access. Ensure you don't expose it through the App State.
+        """
         app = FastAPI()
 
         create_database(self.db_filename, self._models, self.debug)
         models = {m.__name__: m for m in self._models}
-        app.post("/select_all/")(SelectAll(models, self.token))
-        app.post("/insert/")(Insert(models, self.token))
-        app.post("/update/")(Update(models, self.token))
-        app.post("/delete/")(Delete(models, self.token))
-
-        # Forget the token from the state
-        self.token = None
+        app.post("/select_all/")(SelectAll(models, token))
+        app.post("/insert/")(Insert(models, token))
+        app.post("/update/")(Update(models, token))
+        app.post("/delete/")(Delete(models, token))
 
         run(app, host=self.host, port=self.port, log_level="error")
 
