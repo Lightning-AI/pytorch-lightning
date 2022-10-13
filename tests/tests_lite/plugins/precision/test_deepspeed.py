@@ -57,7 +57,7 @@ def test_deepspeed_engine_is_steppable():
     """
     from deepspeed import DeepSpeedEngine
 
-    engine = DeepSpeedEngine(Mock(), Mock())
+    engine = DeepSpeedEngine(Mock(), Mock(named_modules=lambda : [(Mock(), Mock())], named_parameters=lambda: [(Mock(), Mock())]))
     assert isinstance(engine, Steppable)
 
 
