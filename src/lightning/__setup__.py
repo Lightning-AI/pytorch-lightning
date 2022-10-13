@@ -30,21 +30,16 @@ def _adjust_manifest(**kwargs: Any) -> None:
     assert os.path.isfile(manifest_path)
     with open(manifest_path) as fp:
         lines = [ln.rstrip() for ln in fp.readlines()]
-    if kwargs["pkg_name"] == "lightning":
-        lines += [
-            "recursive-include src/lightning *.md",
-            "include requirements/base.txt",
-            # fixme: this is strange, this shall work with setup find package - include
-            "prune src/lightning_app",
-            "prune src/pytorch_lightning",
-        ]
-    else:
-        lines += [
-            "recursive-include src *.md",
-            "recursive-include requirements *.txt",
-            "recursive-include src/lightning_app/ui *",
-            "recursive-include src/lightning_app/cli/*-template *",  # Add templates as build-in
-        ]
+    lines += [
+        "recursive-include src/lightning *.md",
+        "recursive-include requirements *.txt",
+        "recursive-include src/lightning/ui *",
+        "recursive-include src/lightning/cli/*-template *",  # Add templates as build-in
+        # fixme: this is strange, this shall work with setup find package - include
+        "prune src/lightning_app",
+        "prune src/lightning_lite",
+        "prune src/pytorch_lightning",
+    ]
     with open(manifest_path, "w") as fp:
         fp.writelines([ln + os.linesep for ln in lines])
 

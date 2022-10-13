@@ -179,7 +179,7 @@ def parse_version_from_file(pkg_root: str) -> str:
     return ver
 
 
-def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
+def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str) -> None:
     """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
     py_files = glob.glob(os.path.join(package_dir, "**", "*.py"), recursive=True)
@@ -198,6 +198,12 @@ def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", 
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
             fo.writelines(py)
+
+
+def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch") -> None:
+    """Recursively replace imports in given folder."""
+    copy_adjusted_modules(src_folder, pkg_name, lit_name)
+    # TODO: copy also UI and other required files
 
 
 def set_version_today(fpath: str) -> None:
