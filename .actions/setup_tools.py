@@ -193,7 +193,7 @@ def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str) -> None
                 continue
             if not ln_.startswith("import ") and not re.search(r"from [\w_\.\d]+ import ", ln_):
                 continue
-            py[i] = ln.replace(pkg_name, lit_name)
+            py[i] = ln.replace(pkg_name, f'lightning.{lit_name}')
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
