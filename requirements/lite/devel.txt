@@ -1,2 +1,5 @@
 # install all mandatory dependencies
 -r ./base.txt
+
+# install all test utilities
+-r ../test-utils.txt
