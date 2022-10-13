@@ -24,7 +24,7 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
-        pkg: ["app", "lite", "pytorch", "lightning"]
+        pkg: ["app", "lite", "pytorch", ""]
         python-version: [3.8]  # , 3.9
 
     steps:
@@ -48,5 +48,5 @@ jobs:
       - uses: ./.github/actions/pkg-install
 
       - name: Run CLI
-        if: matrix.pkg == 'lightning'
+        if: matrix.pkg == ''
         run: python -m lightning --version
