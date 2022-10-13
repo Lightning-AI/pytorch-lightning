@@ -187,16 +187,16 @@ class AssistantCLI:
             with open(fp, encoding="utf-8") as fo:
                 py = fo.readlines()
             for i, ln in enumerate(py):
-                ln_ = ln.lstrip()
-                should_replace = False
-                if ln_.startswith("import"):
-                    should_replace = True
-                elif re.search(r"from [\w_\.\d]+ import ", ln_):
-                    should_replace = True
-                elif "sys.modules[" in ln_:
-                    should_replace = True
-                elif "importlib" in ln_:
-                    should_replace = True
+                # ln_ = ln.lstrip()
+                should_replace = True
+                # if ln_.startswith("import"):
+                #     should_replace = True
+                # elif re.search(r"from [\w_\.\d]+ import ", ln_):
+                #     should_replace = True
+                # elif "sys.modules[" in ln_:
+                #     should_replace = True
+                # elif "importlib" in ln_:
+                #     should_replace = True
 
                 if should_replace:
                     py[i] = ln.replace(source_import, target_import)
