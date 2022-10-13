@@ -118,7 +118,7 @@ class TestHPUProfiler:
     @RunIf(hpu=True)
     def test_hpu_pytorch_profiler_instances(tmpdir):
 
-        trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1, max_epochs=1, fast_dev_run=True)
+        trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1)
         assert isinstance(trainer.profiler, HPUProfiler)
 
     @RunIf(hpu=True)
