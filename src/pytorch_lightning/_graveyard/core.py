@@ -33,12 +33,13 @@ def _on_load_checkpoint(_: LightningDataModule, __: Any) -> None:
 
 
 def _use_amp(_: LightningModule) -> None:
-    # Remove in v2.0.0
-    # cannot use `AttributeError` as it messes up with `nn.Module.__getattr__`
-    raise RuntimeError(
-        "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
-        " Please use `Trainer.amp_backend`.",
-    )
+    # Remove in v2.0.0 and the skip in `__jit_unused_properties__`
+    if not LightningModule._jit_is_scripting:
+        # cannot use `AttributeError` as it messes up with `nn.Module.__getattr__`
+        raise RuntimeError(
+            "`LightningModule.use_amp` was deprecated in v1.6 and is no longer accessible as of v1.8."
+            " Please use `Trainer.amp_backend`.",
+        )
 
 
 def _use_amp_setter(_: LightningModule, __: bool) -> None:
