@@ -10,4 +10,3 @@ pytest-forked <=1.4.0
 pytest-rerunfailures>=10.2
 pre-commit>=1.0
 mypy==0.971
-
