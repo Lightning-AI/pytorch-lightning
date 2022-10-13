@@ -114,8 +114,8 @@ def load_requirements(
     """Loading requirements from a file.
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
-    >>> load_requirements(path_req, unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ['pytorch_lightning...', 'lightning_app...']
+    >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ['sphinx>=4.0, <6.0  # strict', ...]
     """
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
