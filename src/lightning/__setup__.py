@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from setuptools import find_packages
 
-_PROJECT_ROOT = "."
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning")
 _PATH_REQUIREMENTS = os.path.join("requirements")

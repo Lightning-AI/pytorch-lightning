@@ -77,7 +77,7 @@ class LightningApp:
         .. doctest::
 
             >>> from lightning import LightningFlow, LightningApp
-            >>> from lightning.app.runners import MultiProcessRuntime
+            >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
             ...         print("Hello World!")

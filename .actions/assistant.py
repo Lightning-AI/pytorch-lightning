@@ -19,13 +19,18 @@ import pkg_resources
 from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
+    "app": (
+        "requirements/app/base.txt",
+        "requirements/app/cloud.txt",
+        "requirements/app/ui.txt",
+    ),
     "pytorch": (
         "requirements/pytorch/base.txt",
         "requirements/pytorch/extra.txt",
         "requirements/pytorch/loggers.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
-    )
+    ),
 }
 REQUIREMENT_FILES_ALL = tuple(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
@@ -68,10 +73,10 @@ class AssistantCLI:
         now_date = now.strftime("%Y%m%d")
 
         print(f"prepare init '{path_info}' - replace version by {now_date}")
-        with open(path_info) as fp:
+        with open(path_info, encoding="utf-8") as fp:
             init = fp.read()
         init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
-        with open(path_info, "w") as fp:
+        with open(path_info, "w", encoding="utf-8") as fp:
             fp.write(init)
 
     @staticmethod
@@ -88,14 +93,23 @@ class AssistantCLI:
         path = Path(req_file)
         assert path.exists()
         text = path.read_text()
-        final = [str(req) for req in pkg_resources.parse_requirements(text) if req.name not in packages]
+        lines = text.splitlines()
+        final = []
+        for line in lines:
+            ln_ = line.strip()
+            if not ln_ or ln_.startswith("#"):
+                final.append(line)
+                continue
+            req = list(pkg_resources.parse_requirements(ln_))[0]
+            if req.name not in packages:
+                final.append(line)
         pprint(final)
         path.write_text("\n".join(final))
 
     @staticmethod
     def _replace_min(fname: str) -> None:
-        req = open(fname).read().replace(">=", "==")
-        open(fname, "w").write(req)
+        req = open(fname, encoding="utf-8").read().replace(">=", "==")
+        open(fname, "w", encoding="utf-8").write(req)
 
     @staticmethod
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
@@ -162,6 +176,34 @@ class AssistantCLI:
                 py_dir2 = os.path.join(src_folder, dir_name)
                 shutil.rmtree(py_dir2, ignore_errors=True)
                 shutil.copytree(py_dir, py_dir2)
+
+    @staticmethod
+    def copy_replace_imports(
+        source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
+    ) -> None:
+        """Recursively replace imports in given folder."""
+        ls = glob.glob(os.path.join(source_dir, "**", "*.py"), recursive=True)
+        for fp in ls:
+            with open(fp, encoding="utf-8") as fo:
+                py = fo.readlines()
+            for i, ln in enumerate(py):
+                ln_ = ln.lstrip()
+                should_replace = False
+                if ln_.startswith("import"):
+                    should_replace = True
+                elif re.search(r"from [\w_\.\d]+ import ", ln_):
+                    should_replace = True
+                elif "sys.modules[" in ln_:
+                    should_replace = True
+                elif "importlib" in ln_:
+                    should_replace = True
+
+                if should_replace:
+                    py[i] = ln.replace(source_import, target_import)
+            if target_dir:
+                fp = fp.replace(source_dir, target_dir)
+            with open(fp, "w", encoding="utf-8") as fo:
+                fo.writelines(py)
 
 
 if __name__ == "__main__":

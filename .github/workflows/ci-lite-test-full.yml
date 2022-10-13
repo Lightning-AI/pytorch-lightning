@@ -74,7 +74,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Install dependencies
+    - name: Install package & dependencies
       env:
         PACKAGE_NAME: pytorch  # TODO(lite) does this need to say lite?
         FREEZE_REQUIREMENTS: 1
