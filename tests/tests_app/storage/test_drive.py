@@ -232,8 +232,9 @@ def test_drive_deepcopy(drive_id):
     assert new_drive.component_name == drive.component_name
 
 
-def test_drive_root_folder_pass():
-    Drive("s3://drive/", root_folder="a")
+def test_s3_drive_raises_error_telling_users_to_use_mounts():
+    with pytest.raises(ValueError, match="Using S3 buckets in a Drive is no longer supported."):
+        Drive("s3://foo/")
 
 
 def test_drive_root_folder_breaks():

@@ -34,6 +34,12 @@ class Drive:
                 When not provided, it is automatically inferred by Lightning.
             root_folder: This is the folder from where the Drive perceives the data (e.g this acts as a mount dir).
         """
+        if id.startswith("s3://"):
+            raise ValueError(
+                "Using S3 buckets in a Drive is no longer supported. Please pass an S3 `Mount` to "
+                "a Work's CloudCompute config in order to mount an s3 bucket as a filesystem in a work."
+            )
+
         self.id = None
         self.protocol = None
         for protocol in self.__PROTOCOLS__:
