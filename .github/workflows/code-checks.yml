@@ -39,4 +39,6 @@ jobs:
         pip list
 
     - name: Check typing
-      run: mypy
+      run: |
+        mkdir .mypy_cache
+        mypy
