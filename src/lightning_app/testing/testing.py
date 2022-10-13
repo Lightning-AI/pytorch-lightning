@@ -458,7 +458,7 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             sleep(2)
 
 
-def delete_cloud_lightning_apps():
+def delete_cloud_lapps():
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.

@@ -8,11 +8,7 @@ from packaging.version import Version
 
 from lightning_app import LightningFlow, LightningWork
 from lightning_app.core.queues import BaseQueue
-from lightning_app.utilities.imports import (
-    _CLOUD_TEST_RUN,
-    _is_lightning_flash_available,
-    _is_pytorch_lightning_available,
-)
+from lightning_app.utilities.imports import _CLOUD_TEST_RUN, _is_lightning_flash_available, _is_pl_available
 
 
 def call_script(
@@ -96,7 +92,7 @@ class RunIf:
             reasons.append("unimplemented on MacOS")
 
         if pytorch_lightning:
-            conditions.append(not _is_pytorch_lightning_available())
+            conditions.append(not _is_pl_available())
             reasons.append("PyTorch Lightning is required.")
 
         if flash:
