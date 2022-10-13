@@ -4,11 +4,8 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-from click import ClickException, Group
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
-from lightning_cloud.openapi.rest import ApiException
-from urllib3 import HTTPResponse
 
 from lightning_app import __version__
 from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run

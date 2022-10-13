@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from click import ClickException, group
 from click.testing import CliRunner
 from lightning_cloud.openapi.rest import ApiException
-from pytest import fixture, raises
+from pytest import fixture
 from urllib3 import HTTPResponse
 
 from lightning_app.utilities.exception_handlers import ApiExceptionHandler
