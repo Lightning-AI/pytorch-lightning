@@ -11,7 +11,6 @@ from time import time
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
-import lightning_app
 from lightning_app import _console
 from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
 from lightning_app.core.constants import (
@@ -38,6 +37,7 @@ from lightning_app.utilities.tree import breadth_first
 from lightning_app.utilities.warnings import LightningFlowWarning
 
 if t.TYPE_CHECKING:
+    import lightning_app
     from lightning_app.runners.backends.backend import Backend, WorkManager
 
 logger = Logger(__name__)
