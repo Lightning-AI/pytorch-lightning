@@ -33,7 +33,7 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -162,7 +162,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, TPUAccelerator) else 0
-    rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
+    rank_zero_info(f"TPU available: {TPUAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
     num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
     rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
@@ -178,7 +178,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
             category=PossibleUserWarning,
         )
 
-    if _TPU_AVAILABLE and not isinstance(trainer.accelerator, TPUAccelerator):
+    if TPUAccelerator.is_available() and not isinstance(trainer.accelerator, TPUAccelerator):
         rank_zero_warn(
             "TPU available but not used. Set `accelerator` and `devices` using"
             f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."

@@ -5,6 +5,12 @@ import lightning_cloud.env
 
 import lightning_app
 
+
+def get_lightning_cloud_url() -> str:
+    # DO NOT CHANGE!
+    return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
+
+
 SUPPORTED_PRIMITIVE_TYPES = (type(None), str, int, float, bool)
 STATE_UPDATE_TIMEOUT = 0.001
 STATE_ACCUMULATE_WAIT = 0.05
@@ -17,11 +23,20 @@ FLOW_DURATION_SAMPLES = 5
 APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
 APP_SERVER_PORT = 7501
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
+
+CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
+WARNING_QUEUE_SIZE = 1000
+# different flag because queue debug can be very noisy, and almost always not useful unless debugging the queue itself.
+QUEUE_DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_QUEUE_DEBUG_ENABLED", "0")))
+
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
 REDIS_QUEUES_READ_DEFAULT_TIMEOUT = 0.005
-REDIS_WARNING_QUEUE_SIZE = 1000
+
+HTTP_QUEUE_URL = os.getenv("LIGHTNING_HTTP_QUEUE_URL", "http://localhost:9801")
+HTTP_QUEUE_REFRESH_INTERVAL = float(os.getenv("LIGHTNING_HTTP_QUEUE_REFRESH_INTERVAL", "0.1"))
+
 USER_ID = os.getenv("USER_ID", "1234")
 FRONTEND_DIR = os.path.join(os.path.dirname(lightning_app.__file__), "ui")
 PACKAGE_LIGHTNING = os.getenv("PACKAGE_LIGHTNING", None)
@@ -30,16 +45,22 @@ DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
 # Project under which the resources need to run in cloud. If this env is not set,
 # cloud runner will try to get the default project from the cloud
 LIGHTNING_CLOUD_PROJECT_ID = os.getenv("LIGHTNING_CLOUD_PROJECT_ID")
-LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path.home() / ".lightning" / "credentials.json"))
+LIGHTNING_DIR = os.getenv("LIGHTNING_DIR", str(Path.home() / ".lightning"))
+LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path(LIGHTNING_DIR) / "credentials.json"))
 DOT_IGNORE_FILENAME = ".lightningignore"
-DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 LIGHTNING_COMPONENT_PUBLIC_REGISTRY = "https://lightning.ai/v1/components"
 LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 
+# EXPERIMENTAL: ENV VARIABLES TO ENABLE MULTIPLE WORKS IN THE SAME MACHINE
+DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "50"))
+ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(
+    int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0"))
+)  # Note: This is disabled for the time being.
+ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
+    int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", "0"))
+)  # This isn't used in the cloud yet.
+
+
 DEBUG: bool = lightning_cloud.env.DEBUG
-
-
-def get_lightning_cloud_url() -> str:
-    # DO NOT CHANGE!
-    return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
+DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))

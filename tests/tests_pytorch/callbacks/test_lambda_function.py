@@ -13,8 +13,6 @@
 # limitations under the License.
 from functools import partial
 
-import pytest
-
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -36,7 +34,6 @@ def test_lambda_call(tmpdir):
 
     hooks = get_members(Callback) - {"state_dict", "load_state_dict"}
     hooks_args = {h: partial(call, h) for h in hooks}
-    hooks_args["on_save_checkpoint"] = lambda *_: [checker.add("on_save_checkpoint")]
 
     model = CustomModel()
 
@@ -48,10 +45,7 @@ def test_lambda_call(tmpdir):
         limit_val_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.fit(model)
+    trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     # raises KeyboardInterrupt and loads from checkpoint
@@ -64,17 +58,8 @@ def test_lambda_call(tmpdir):
         limit_predict_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.fit(model, ckpt_path=ckpt_path)
-    with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.test(model)
-    with pytest.deprecated_call(
-        match="`on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8"
-    ):
-        trainer.predict(model)
+    trainer.fit(model, ckpt_path=ckpt_path)
+    trainer.test(model)
+    trainer.predict(model)
 
     assert checker == hooks

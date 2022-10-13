@@ -72,8 +72,8 @@ def test_attributes_from_environment_variables():
 
 def test_detect(monkeypatch):
     """Test the detection of a xla environment configuration."""
-    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_TPU_AVAILABLE", False)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: False)
     assert not XLAEnvironment.detect()
 
-    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_TPU_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
     assert XLAEnvironment.detect()

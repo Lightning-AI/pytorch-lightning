@@ -27,18 +27,15 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Reset caching
-        run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
-
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-test-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-
+            ${{ runner.os }}-docs-test-pip-
 
       - name: Install dependencies
         env:

@@ -27,25 +27,25 @@ def test_invalid_precision_with_deepspeed_precision():
 
 
 def test_deepspeed_precision_apex_not_installed(monkeypatch):
-    import lightning_lite.plugins.precision.deepspeed as deepspeed_apex
+    import lightning_lite.plugins.precision.deepspeed as deepspeed
 
-    monkeypatch.setattr(deepspeed_apex, "_APEX_AVAILABLE", False)
+    monkeypatch.setattr(deepspeed, "_APEX_AVAILABLE", False)
     with pytest.raises(ImportError, match="You have asked for Apex AMP but `apex` is not installed."):
         DeepSpeedPrecision(precision=16, amp_type="apex")
 
 
 @mock.patch("lightning_lite.plugins.precision.deepspeed._APEX_AVAILABLE", return_value=True)
 def test_deepspeed_precision_apex_default_level(_):
-    precision_plugin = DeepSpeedPrecision(precision=16, amp_type="apex")
-    assert isinstance(precision_plugin, DeepSpeedPrecision)
-    assert precision_plugin.amp_level == "O2"
+    precision = DeepSpeedPrecision(precision=16, amp_type="apex")
+    assert isinstance(precision, DeepSpeedPrecision)
+    assert precision.amp_level == "O2"
 
 
 def test_deepspeed_precision_backward():
-    precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
+    precision = DeepSpeedPrecision(precision=32, amp_type="native")
     tensor = Mock()
     model = Mock()
-    precision_plugin.backward(tensor, model, "positional-arg", keyword="arg")
+    precision.backward(tensor, model, "positional-arg", keyword="arg")
     model.backward.assert_called_once_with(tensor, "positional-arg", keyword="arg")
 
 
@@ -62,7 +62,7 @@ def test_deepspeed_engine_is_steppable():
 
 
 def test_deepspeed_precision_optimizer_step():
-    precision_plugin = DeepSpeedPrecision(precision=32, amp_type="native")
+    precision = DeepSpeedPrecision(precision=32, amp_type="native")
     optimizer = model = Mock()
-    precision_plugin.optimizer_step(optimizer, lr_kwargs=dict())
+    precision.optimizer_step(optimizer, lr_kwargs=dict())
     model.step.assert_called_once_with(lr_kwargs=dict())

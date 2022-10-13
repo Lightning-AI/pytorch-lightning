@@ -65,7 +65,7 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
 
-For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`__.
+For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch/PyTorch_Mixed_Precision/PT_Mixed_Precision.html>`__.
 
 ----
 

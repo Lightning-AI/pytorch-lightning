@@ -17,12 +17,14 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import torch
 from lightning_utilities.core.imports import module_available
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.utilities.enums import PrecisionType
@@ -48,7 +50,7 @@ class DDPShardedStrategy(DDPStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
@@ -58,7 +60,7 @@ class DDPShardedStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
@@ -76,7 +78,7 @@ class DDPShardedStrategy(DDPStrategy):
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision, self.num_nodes)
         for optimizer in optimizers:
             # This forces buckets to be rebuilt on the first forward pass
             # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
@@ -124,7 +126,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
@@ -134,7 +136,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
@@ -152,7 +154,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision, self.num_nodes)
         for optimizer in optimizers:
             # This forces buckets to be rebuilt on the first forward pass
             # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
@@ -189,14 +191,12 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         )
 
 
-def _reinit_optimizers_with_oss(
-    optimizers: List[Optimizer], precision_plugin: Precision, num_nodes: int
-) -> List["OSS"]:
+def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precision, num_nodes: int) -> List["OSS"]:
     for x, optimizer in enumerate(optimizers):
         if not isinstance(optimizer, OSS):
             optim_class = type(optimizer)
             zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-            is_fp16 = precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
+            is_fp16 = precision.precision in (PrecisionType.MIXED, PrecisionType.HALF)
             # For multi-node training, compressing the model shards in fp16 before broadcasting
             # improves performance. When using PyTorch AMP, it will not degrade
             # the model performance.
