@@ -47,8 +47,7 @@ jobs:
           - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.10"}
           - {os: "windows-2022", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
-          # TODO: re-enable RC testing
-          # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
+          - {os: ubuntu-22.04, python-version: "3.10", pytorch-version: "1.13", release: "pre"}
 
     timeout-minutes: 40
 
