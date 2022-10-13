@@ -195,6 +195,7 @@ def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", 
                 continue
             py[i] = ln.replace(pkg_name, lit_name)
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
+        os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
             fo.writelines(py)
 
