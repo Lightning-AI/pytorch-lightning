@@ -167,7 +167,7 @@ jobs:
       run: python requirements/pytorch/check-avail-extras.py
 
     - name: DocTests PyTorch
-      if: matrix.scope == 'pytorch
+      if: matrix.scope == 'pytorch'
       working-directory: ./src
       run: pytest lightning.pytorch --cov=lightning
 
