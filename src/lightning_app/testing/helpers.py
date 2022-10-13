@@ -50,7 +50,7 @@ class RunIf:
     def __new__(
         self,
         *args,
-        pytorch_lightning: bool = False,
+        pl: bool = False,
         flash: bool = False,
         min_python: Optional[str] = None,
         skip_windows: bool = False,
@@ -91,7 +91,7 @@ class RunIf:
             conditions.append(sys.platform == "darwin")
             reasons.append("unimplemented on MacOS")
 
-        if pytorch_lightning:
+        if pl:
             conditions.append(not _is_pl_available())
             reasons.append("PyTorch Lightning is required.")
 

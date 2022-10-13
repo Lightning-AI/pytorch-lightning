@@ -34,7 +34,7 @@ from lightning_app.utilities.warnings import LightningFlowWarning
 logger = logging.getLogger()
 
 
-def test_lightning_app_requires_root_run_method():
+def test_lapp_requires_root_run_method():
     """Test that a useful exception is raised if the root flow does not override the run method."""
 
     with pytest.raises(
