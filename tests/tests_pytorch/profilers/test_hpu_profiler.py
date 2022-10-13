@@ -149,7 +149,7 @@ class TestHPUProfiler:
         # Run model and prep json
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=2, profiler=HPUProfiler(), fast_dev_run=1)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -177,7 +177,7 @@ class TestHPUProfiler:
         # Run model and prep json
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=2, profiler=HPUProfiler(), fast_dev_run=1)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -205,7 +205,7 @@ class TestHPUProfiler:
     def test_hpu_trace_event_kernel(tmpdir):
         # Run model and prep json
         model = BoringModel()
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=2, profiler=HPUProfiler(), fast_dev_run=1)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
         # get trace path
