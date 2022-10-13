@@ -478,6 +478,8 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
+        import lightning_app
+
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 
