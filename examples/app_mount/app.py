@@ -9,8 +9,8 @@ class Work(L.LightningWork):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def run(self, drive_path):
-        for file in os.listdir(drive_path):
+    def run(self):
+        for file in os.listdir("/content/esRedditJson/1/"):
             print(file)
 
 
@@ -21,14 +21,14 @@ class Flow(L.LightningFlow):
             cloud_compute=CloudCompute(
                 mount=Mount(
                     source="s3://ryft-public-sample-data/esRedditJson/",
-                    root_dir="/content/esRedditJson",
+                    root_dir="/content/esRedditJson/1/",
                 ),
             )
         )
 
     def run(self):
         # Pass the drive to both works.
-        self.work_1.run("/content/esRedditJson")
+        self.work_1.run()
         self._exit("Application End!")
 
 
