@@ -1,5 +1,4 @@
 import os
-from json import dumps
 from unittest import mock
 from unittest.mock import MagicMock
 
