@@ -4,9 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lightning_app.components.python import TracerPythonScript
 from lightning_app.storage import Path
-from lightning_app.utilities.packaging.build_config import BuildConfig
+from lightning_app.utilities.packaging.build_config import BuildConfig, load_requirements
 from lightning_app.utilities.tracer import Tracer
-from lightning_app.utilities.packaging.build_config import load_requirements
 
 
 class ScriptRunner(TracerPythonScript):
