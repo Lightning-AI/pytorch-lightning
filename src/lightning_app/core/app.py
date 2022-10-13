@@ -96,9 +96,6 @@ class LightningApp:
         self._root = root
         self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()
 
-        if self.flow_cloud_compute.preemptible:
-            raise Exception("The default Cloud Compute can't be preemptible.")
-
         # queues definition.
         self.delta_queue: t.Optional[BaseQueue] = None
         self.readiness_queue: t.Optional[BaseQueue] = None
