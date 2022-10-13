@@ -27,6 +27,7 @@ from lightning_lite.plugins.collectives.torch_collective import default_pg_timeo
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision import Precision
+from lightning_lite.strategies.ddp import _DDPBackwardSyncControl
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
@@ -43,7 +44,7 @@ _DDP_FORK_ALIASES = (
 )
 
 
-class DDPSpawnStrategy(ParallelStrategy, _BackwardSyncControl):
+class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
     finishes."""
 
@@ -69,6 +70,7 @@ class DDPSpawnStrategy(ParallelStrategy, _BackwardSyncControl):
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
+        self._backward_sync_control = _DDPBackwardSyncControl()
         self._start_method = start_method
         self._ddp_kwargs = kwargs
         self._local_rank = 0
@@ -151,19 +153,6 @@ class DDPSpawnStrategy(ParallelStrategy, _BackwardSyncControl):
             obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks gradient synchronization inside the
-        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
-        if not isinstance(module, DistributedDataParallel):
-            raise TypeError(
-                "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `DistributedDataParallel`."
-                f" Got: {module.__class__.__name__}."
-            )
-        with module.no_sync():
-            yield None
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

@@ -27,6 +27,7 @@ from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
+from lightning_lite.strategies.strategy import _BackwardSyncControl
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _IS_WINDOWS
 
@@ -141,6 +142,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             timeout=timeout,
             **kwargs,
         )
+        self._backward_sync_control = _ShardedBackwardSyncControl()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -162,19 +164,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
-        wrapper."""
-        if not isinstance(module, ShardedDataParallel):
-            raise TypeError(
-                "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `ShardedDataParallel`."
-                f" Got: {module.__class__.__name__}."
-            )
-        with module.no_sync():
-            yield None
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -204,3 +193,18 @@ def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precisio
             optimizers[x] = zero_optimizer
             del optimizer
     return optimizers
+
+
+class _ShardedBackwardSyncControl(_BackwardSyncControl):
+    @contextmanager
+    def block_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
+        wrapper."""
+        if not isinstance(module, ShardedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `ShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():
+            yield None

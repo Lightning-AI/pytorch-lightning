@@ -40,7 +40,6 @@ class ParallelStrategy(Strategy, ABC):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
         self.parallel_devices = parallel_devices
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
-        self._sync_control:
 
     @property
     @abstractmethod

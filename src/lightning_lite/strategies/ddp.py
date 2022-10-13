@@ -60,6 +60,7 @@ class DDPStrategy(ParallelStrategy):
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
+        self._backward_sync_control = _DDPBackwardSyncControl()
         self._ddp_kwargs = kwargs
 
     @property
@@ -143,19 +144,6 @@ class DDPStrategy(ParallelStrategy):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks gradient synchronization inside the
-        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
-        if not isinstance(module, DistributedDataParallel):
-            raise TypeError(
-                "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `DistributedDataParallel`."
-                f" Got: {module.__class__.__name__}."
-            )
-        with module.no_sync():
-            yield None
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -192,3 +180,18 @@ class DDPStrategy(ParallelStrategy):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
+
+
+class _DDPBackwardSyncControl(_BackwardSyncControl):
+    @contextmanager
+    def block_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the
+        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
+        if not isinstance(module, DistributedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `DistributedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():
+            yield None
