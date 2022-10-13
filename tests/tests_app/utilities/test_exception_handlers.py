@@ -64,12 +64,15 @@ class TestApiExceptionHandler:
         assert api_error_msg == str(result.exception)
 
     def test_original_thrown_if_cannot_decode_body(self, mock_api_handled_group, mock_subcommand):
-        mock_subcommand.invoke = MagicMock(side_effect=ApiException(
-            http_resp=HTTPResponse(
-                status=400,
-                reason="Bad Request",
-                body="message from server is not json encoded!",
-        )))
+        mock_subcommand.invoke = MagicMock(
+            side_effect=ApiException(
+                http_resp=HTTPResponse(
+                    status=400,
+                    reason="Bad Request",
+                    body="message from server is not json encoded!",
+                )
+            )
+        )
 
         runner = CliRunner()
         result = runner.invoke(
