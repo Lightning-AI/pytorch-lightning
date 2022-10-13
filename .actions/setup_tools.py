@@ -179,7 +179,7 @@ def parse_version_from_file(pkg_root: str) -> str:
     return ver
 
 
-def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str) -> None:
+def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch") -> None:
     """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
     py_files = glob.glob(os.path.join(package_dir, "**", "*.py"), recursive=True)
@@ -193,12 +193,6 @@ def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str) -> None
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
             fo.writelines(py)
-
-
-def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch") -> None:
-    """Recursively replace imports in given folder."""
-    copy_adjusted_modules(src_folder, pkg_name, lit_name)
-    # TODO: copy also UI and other required files
 
 
 def set_version_today(fpath: str) -> None:
@@ -215,12 +209,12 @@ def set_version_today(fpath: str) -> None:
         fp.writelines(lines)
 
 
-def _download_frontend(root: str = _PROJECT_ROOT):
+def _download_frontend(pkg_path: str):
     """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
     directory."""
 
     try:
-        frontend_dir = pathlib.Path(root, "src", "lightning_app", "ui")
+        frontend_dir = pathlib.Path(pkg_path, "ui")
         download_dir = tempfile.mkdtemp()
 
         shutil.rmtree(frontend_dir, ignore_errors=True)
