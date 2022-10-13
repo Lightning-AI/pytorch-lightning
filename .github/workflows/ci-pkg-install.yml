@@ -76,7 +76,6 @@ jobs:
       # max-parallel: 1
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
-        pkg: ["", "lightning"]
         python-version: [3.8]  # , 3.9
 
     steps:
@@ -95,7 +94,7 @@ jobs:
 
       - uses: ./.github/actions/pkg-check
         with:
-          pkg-name: ${{ matrix.pkg }}
+          pkg-name: "lightning"
 
       - uses: ./.github/actions/pkg-install
         with:
