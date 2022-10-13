@@ -1,11 +1,15 @@
+import asyncio
 import os
+import sys
 from typing import List, Optional, Type, Union
 
+import uvicorn
 from fastapi import FastAPI
 from uvicorn import run
 
 from lightning import BuildConfig, LightningWork
 from lightning_app.components.database.utilities import create_database, Delete, Insert, SelectAll, Update
+from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_sqlmodel_available
 
@@ -15,6 +19,22 @@ if _is_sqlmodel_available():
 
 logger = Logger(__name__)
 engine = None
+
+
+# Required to avoid Uvicorn Server overriding Lightning App signal handlers.
+# Discussions: https://github.com/encode/uvicorn/discussions/1708
+class DatabaseUvicornServer(uvicorn.Server):
+
+    has_started_queue = None
+
+    def run(self, sockets=None):
+        self.config.setup_event_loop()
+        loop = asyncio.get_event_loop()
+        asyncio.ensure_future(self.serve(sockets=sockets))
+        loop.run_forever()
+
+    def install_signal_handlers(self):
+        """Ignore Uvicorn Signal Handlers."""
 
 
 class Database(LightningWork):
@@ -94,12 +114,17 @@ class Database(LightningWork):
         self.db_filename = db_filename
         self.debug = debug
         self._models = models if isinstance(models, list) else [models]
+        self.drive = Drive("lit://database")
 
     def run(self, token: Optional[str] = None) -> None:
         """
         Arguments:
             token: Token used to protect the database access. Ensure you don't expose it through the App State.
         """
+        if self.drive.list():
+            self.drive.get(self.db_filename)
+            print("Retrieved the database from Drive.")
+
         app = FastAPI()
 
         create_database(self.db_filename, self._models, self.debug)
@@ -108,6 +133,8 @@ class Database(LightningWork):
         app.post("/insert/")(Insert(models, token))
         app.post("/update/")(Update(models, token))
         app.post("/delete/")(Delete(models, token))
+
+        sys.modules["uvicorn.main"].Server = DatabaseUvicornServer
 
         run(app, host=self.host, port=self.port, log_level="error")
 
@@ -123,3 +150,7 @@ class Database(LightningWork):
         if self.internal_ip != "":
             return f"http://{self.internal_ip}:{self.port}"
         return self.internal_ip
+
+    def on_exit(self):
+        self.drive.put(self.db_filename)
+        print("Stored the database to the Drive.")
