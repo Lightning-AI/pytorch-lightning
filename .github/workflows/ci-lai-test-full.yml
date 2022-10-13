@@ -164,6 +164,7 @@ jobs:
         key: pl-dataset
 
     - name: Sanity check
+      if: matrix.scope == 'pytorch'
       run: python requirements/pytorch/check-avail-extras.py
 
     - name: DocTests PyTorch
@@ -210,6 +211,7 @@ jobs:
       run: coverage run --source lightning -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --durations=0
 
     - name: Run Examples
+      if: matrix.scope == 'pytorch'
       working-directory: ./examples
       run: python -m pytest test_pl_examples.py -v --durations=10
 
