@@ -24,6 +24,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+env:
+  FREEZE_REQUIREMENTS: 1
+
 jobs:
 
   lai-cpu:
@@ -90,57 +93,10 @@ jobs:
         # python .actions/assistant.py copy-replace-imports --source_dir="./src" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
         # python .actions/assistant.py copy-replace-imports --source_dir="./src" --source_import="lightning_app" --target_import="lightning.app"
 
-    - name: Install Dev Dependencies PyTorch
-      if: matrix.scope == 'pytorch'
-      env:
-        FREEZE_REQUIREMENTS: 1
+    - name: Install Package & Dependencies
       run: |
-        # Install dev dependencies pytorch
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -r ./requirements/pytorch/devel.txt \
-          $pre_option -f ${url}
-        pip list
-      shell: bash
-
-    - name: Install Dev Dependencies lite
-      if: matrix.scope == 'lite'
-      env:
-        FREEZE_REQUIREMENTS: 1
-      run: |
-        # Install dev dependencies lite
-        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -r ./requirements/lite/devel.txt \
-          $pre_option -f ${url}
-        pip list
-      shell: bash
-
-    - name: Install Dev Dependencies App
-      if: matrix.scope == 'app'
-      env:
-        FREEZE_REQUIREMENTS: 1
-      run: |
-        # Install dev dependencies app
-        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -r ./requirements/app/devel.txt \
-          $pre_option -f ${url}
-        pip list
-      shell: bash
-
-    - name: Install base dependencies
-      env:
-        FREEZE_REQUIREMENTS: 1
-      run: |
-        # install lightning and base dependencies
-        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e . \
-          -r ./requirements/app/base.txt \
-          -r ./requirements/lite/base.txt \
-          -r ./requirements/pytorch/base.txt \
-          $pre_option -f ${url}
+        pip install -e . -r ./requirements/${{ matrix.scope }}/devel.txt $pre_option -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
       shell: bash
 
