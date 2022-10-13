@@ -374,13 +374,13 @@ class LightningLite(ABC):
                 "You need to set up the model first before you can call `self.block_backward_sync()`:"
                 " `self.setup(model, ...)`"
             )
-        if not isinstance(self._strategy, _BackwardSyncControl):
+        if self._strategy._backward_sync_control is None:
             raise TypeError(
                 f"The`{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
                 f" Remove `.skip_backward_sync()` from your code or choose a differnt strategy."
             )
         if enabled:
-            with self._strategy.block_backward_sync(module):
+            with self._strategy._backward_sync_control.block_backward_sync(module):
                 yield
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:

@@ -50,6 +50,7 @@ class Strategy(ABC):
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision: Optional[Precision] = precision
         self._launcher: Optional[_Launcher] = None
+        self._backward_sync_control: Optional[_BackwardSyncControl] = None
 
     @property
     @abstractmethod

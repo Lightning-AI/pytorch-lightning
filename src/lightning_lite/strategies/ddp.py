@@ -36,7 +36,7 @@ from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 
 
-class DDPStrategy(ParallelStrategy, _BackwardSyncControl):
+class DDPStrategy(ParallelStrategy):
     """Strategy for multi-process single-device training on one or multiple nodes."""
 
     def __init__(
