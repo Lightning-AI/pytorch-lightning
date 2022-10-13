@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from enum import Enum, EnumMeta
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
@@ -79,7 +79,7 @@ class TrainerFn(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
             )
 
     @classmethod
-    def _without_tune(cls):
+    def _without_tune(cls) -> List["TrainerFn"]:
         fns = [fn for fn in cls if fn != "tune"]
         return fns
 
@@ -123,7 +123,7 @@ class RunningStage(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
             )
 
     @classmethod
-    def _without_tune(cls):
+    def _without_tune(cls) -> List["RunningStage"]:
         fns = [fn for fn in cls if fn != "tune"]
         return fns
 
