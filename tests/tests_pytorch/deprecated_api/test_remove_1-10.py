@@ -315,12 +315,10 @@ def test_tuning_enum():
 def test_tuning_trainer_property():
     trainer = Trainer()
 
-    with pytest.deprecated_call(
-        match="`trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0."
-    ):
+    with pytest.deprecated_call(match="`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0."):
         trainer.tuning
 
     with pytest.deprecated_call(
-        match="Setting `trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0."
+        match="Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0."
     ):
         trainer.tuning = True

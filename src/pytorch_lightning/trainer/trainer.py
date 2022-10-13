@@ -1965,14 +1965,12 @@ class Trainer:
 
     @property
     def tuning(self) -> bool:
-        rank_zero_deprecation("`trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0.")
+        rank_zero_deprecation("`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
         return self.state.stage == RunningStage.TUNING
 
     @tuning.setter
     def tuning(self, val: bool) -> None:
-        rank_zero_deprecation(
-            "Setting `trainer.tuning` property has been deprecated in v1.8.0 and will be removed in v1.10.0."
-        )
+        rank_zero_deprecation("Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
 
         if val:
             self.state.stage = RunningStage.TUNING

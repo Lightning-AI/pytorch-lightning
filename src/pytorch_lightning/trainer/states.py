@@ -78,6 +78,11 @@ class TrainerFn(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
                 f"`TrainerFn.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
             )
 
+    @classmethod
+    def _without_tune(cls):
+        fns = [fn for fn in cls if fn != "tune"]
+        return fns
+
 
 class RunningStage(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
     """Enum for the current running stage.
@@ -116,6 +121,11 @@ class RunningStage(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
             rank_zero_deprecation(
                 f"`RunningStage.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
             )
+
+    @classmethod
+    def _without_tune(cls):
+        fns = [fn for fn in cls if fn != "tune"]
+        return fns
 
 
 @dataclass

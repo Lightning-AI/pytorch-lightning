@@ -123,7 +123,7 @@ def test_loops_restore(tmpdir):
     trainer = Trainer(**trainer_args)
     trainer.strategy.connect(model)
 
-    trainer_fns = [fn for fn in TrainerFn if fn != "tune"]
+    trainer_fns = [fn for fn in TrainerFn._without_tune()]
 
     for fn in trainer_fns:
         trainer_fn = getattr(trainer, f"{fn}_loop")
