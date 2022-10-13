@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import glob
-import logging
 import os
 import pathlib
 import re
@@ -23,7 +22,7 @@ import urllib.request
 from datetime import datetime
 from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
-from itertools import chain, groupby
+from itertools import chain
 from types import ModuleType
 from typing import List, Sequence
 
@@ -179,7 +178,7 @@ def parse_version_from_file(pkg_root: str) -> str:
     return ver
 
 
-def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch") -> None:
+def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
     """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
     py_files = glob.glob(os.path.join(package_dir, "**", "*.py"), recursive=True)
@@ -187,12 +186,25 @@ def create_mirror_package(src_folder: str, pkg_name: str = "pytorch_lightning", 
         local_path = py_file.replace(package_dir + os.path.sep, "")
         with open(py_file, encoding="utf-8") as fo:
             py = fo.readlines()
-        for i, ln in enumerate(py):
-            py[i] = re.sub(rf"(?!_){pkg_name}(?!_)", f"lightning.{lit_name}", ln)
+        for n2, n1 in pkg_lut.items():
+            for i, ln in enumerate(py):
+                py[i] = re.sub(rf"(?!_){n1}(?!_)", f"lightning.{n2}", ln)
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
             fo.writelines(py)
+
+
+def create_mirror_package(src_folder: str, lit_pkg_mapping: dict) -> None:
+    """Recursively replace imports in given folder.
+
+    >>> create_mirror_package(
+    ...     os.path.join(_PROJECT_ROOT, "src"),
+    ...     {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
+    ... )
+    """
+    for lit_name, pkg_name in lit_pkg_mapping.items():
+        copy_adjusted_modules(src_folder, pkg_name, lit_name, lit_pkg_mapping)
 
 
 def set_version_today(fpath: str) -> None:
