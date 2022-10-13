@@ -620,7 +620,7 @@ class CheckpointFlow(LightningFlow):
             self.flow.run()
 
 
-def test_lightning_app_checkpointing_with_nested_flows():
+def test_lapp_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
     app.checkpointing = True
@@ -824,7 +824,7 @@ class FlowExit(LightningFlow):
         self.work.run()
 
 
-def test_lightning_app_exit():
+def test_lapp_exit():
     app = LightningApp(FlowExit())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.status.stage == WorkStageStatus.STOPPED
@@ -1039,7 +1039,7 @@ class TestLightningHasUpdatedApp(LightningApp):
         return res
 
 
-def test_lightning_app_has_updated():
+def test_lapp_has_updated():
     app = TestLightningHasUpdatedApp(FlowPath())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
