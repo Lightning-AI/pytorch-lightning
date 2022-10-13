@@ -57,9 +57,9 @@ class LightningApp:
         created by other users.
 
         The Lightning App alternatively run an event loop triggered by delta changes sent from
-        either :class:`~lightning.app.core.work.LightningWork` or from the Lightning UI.
+        either :class:`~lightning_app.core.work.LightningWork` or from the Lightning UI.
         Once deltas are received, the Lightning App runs
-        the :class:`~lightning.app.core.flow.LightningFlow` provided.
+        the :class:`~lightning_app.core.flow.LightningFlow` provided.
 
         Arguments:
             root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
