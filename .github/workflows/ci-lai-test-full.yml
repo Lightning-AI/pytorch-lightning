@@ -20,6 +20,9 @@ on:
       - "tests/tests_lite/**"
       - "requirements/lite/**"
 
+env:
+  FREEZE_REQUIREMENTS: 1
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
@@ -91,8 +94,6 @@ jobs:
 
     - name: Install Dev Dependencies PyTorch
       if: matrix.scope == 'pytorch'
-      env:
-        FREEZE_REQUIREMENTS: 1
       run: |
         # Install dev dependencies pytorch
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
@@ -104,8 +105,6 @@ jobs:
 
     - name: Install Dev Dependencies lite
       if: matrix.scope == 'lite'
-      env:
-        FREEZE_REQUIREMENTS: 1
       run: |
         # Install dev dependencies lite
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
@@ -117,8 +116,6 @@ jobs:
 
     - name: Install Dev Dependencies App
       if: matrix.scope == 'app'
-      env:
-        FREEZE_REQUIREMENTS: 1
       run: |
         # Install dev dependencies app
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
@@ -129,8 +126,6 @@ jobs:
       shell: bash
 
     - name: Install base dependencies
-      env:
-        FREEZE_REQUIREMENTS: 1
       run: |
         # install lightning and base dependencies
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
