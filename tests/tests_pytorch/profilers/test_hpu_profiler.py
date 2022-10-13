@@ -120,7 +120,7 @@ class TestHPUProfiler:
         # Run model and prep json
         model = BoringModel()
 
-        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler())
+        trainer = Trainer(accelerator="hpu", devices=1, max_epochs=1, profiler=HPUProfiler(), fast_dev_run=True)
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
