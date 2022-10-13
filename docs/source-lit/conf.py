@@ -398,13 +398,13 @@ import lightning as L
 from typing import Optional
 
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.utilities import (
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.utilities import (
     _APEX_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,

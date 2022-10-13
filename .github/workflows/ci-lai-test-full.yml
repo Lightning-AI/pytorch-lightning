@@ -51,7 +51,7 @@ jobs:
       run: pip install -q -r .actions/requirements.txt
 
     - name: Setup macOS
-      if: runner.os == 'macOS'
+      if: runner.os == 'macOS' && matrix.scope == 'pytorch'
       run: |
         brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
 
@@ -85,27 +85,62 @@ jobs:
         python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
         python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
-    - name: Install dependencies
+    - name: Install Dev Dependencies PyTorch
+      if: matrix.scope == 'pytorch'
       env:
         FREEZE_REQUIREMENTS: 1
-      run: |
-        # install PL and optional dependencies for testing
+      run: |        
+        # Install dev dependencies pytorch
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e . \
-          -r ./requirements/app/devel.txt \
-          -r ./requirements/lite/devel.txt \
-          -r ./requirements/pytorch/devel.txt \
+        pip install -r ./requirements/pytorch/devel.txt \
           $pre_option -f ${url}
         pip list
       shell: bash
 
-    - name: DocTests PL
-      working-directory: ./src
-      run: pytest lightning --cov=lightning
+    - name: Install Dev Dependencies lite
+      if: matrix.scope == 'lite'
+      env:
+        FREEZE_REQUIREMENTS: 1
+      run: |
+        # Install dev dependencies lite
+        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
+        pip install -r ./requirements/lite/devel.txt \
+          $pre_option -f ${url}
+        pip list
+      shell: bash
+
+    - name: Install Dev Dependencies App
+      if: matrix.scope == 'app'
+      env:
+        FREEZE_REQUIREMENTS: 1
+      run: |
+        # Install dev dependencies app
+        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
+        pip install -r ./requirements/app/devel.txt \
+          $pre_option -f ${url}
+        pip list
+      shell: bash
+
+    - name: Install base dependencies
+      env:
+        FREEZE_REQUIREMENTS: 1
+      run: |
+        # install lightning and base dependencies
+        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
+        pip install -e . \
+          -r ./requirements/app/base.txt \
+          -r ./requirements/lite/base.txt \
+          -r ./requirements/pytorch/base.txt \
+          $pre_option -f ${url}
+        pip list
+      shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
+      if: runner.os != 'windows' && matrix.scope == 'pytorch'
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1
@@ -130,6 +165,21 @@ jobs:
 
     - name: Sanity check
       run: python requirements/pytorch/check-avail-extras.py
+
+    - name: DocTests PyTorch
+      if: matrix.scope == 'pytorch
+      working-directory: ./src
+      run: pytest lightning.pytorch --cov=lightning
+
+    - name: DocTests Lite
+      if: matrix.scope == 'lite'
+      working-directory: ./src
+      run: pytest lightning.lite --cov=lightning
+
+    - name: DocTests App
+      if: matrix.scope == 'app'
+      working-directory: ./src
+      run: pytest lightning.app --cov=lightning
 
     - name: Testing Warnings
       # the stack-level can only be set on >=3.7
