@@ -188,7 +188,7 @@ def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str) -> None
         with open(py_file, encoding="utf-8") as fo:
             py = fo.readlines()
         for i, ln in enumerate(py):
-            py[i] = ln.replace(pkg_name, f"lightning.{lit_name}")
+            py[i] = re.sub(rf"(?!_){pkg_name}(?!_)", f"lightning.{lit_name}", ln)
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
