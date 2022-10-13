@@ -32,15 +32,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "macos-11", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
-          # TODO: re-enable RC testing
-          # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
+        os: [ubuntu-20.04, macOS-11, windows-2022]
+        python-version: [3.8]
+        requires: ["oldest", "latest"]
+        scope: ["lite", "pytorch", "app"]
 
     timeout-minutes: 40
 
@@ -134,30 +129,29 @@ jobs:
         key: pl-dataset
 
     - name: Sanity check
-      run: |
-        python -c "import torch; assert torch.__version__.startswith('${{ matrix.pytorch-version }}')"
-        python requirements/pytorch/check-avail-extras.py
+      run: python requirements/pytorch/check-avail-extras.py
 
     - name: Testing Warnings
-      # the stacklevel can only be set on >=3.7
+      # the stack-level can only be set on >=3.7
       if: matrix.python-version != '3.7'
       working-directory: tests/tests_pytorch
-      # needs to run outside of `pytest`
+      # needs to run outside `pytest`
       run: python utilities/test_warnings.py
 
-    # TODO: replace paths
-
     - name: Testing Lite
+      if: matrix.scope == 'lite'
       working-directory: ./tests
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source lightning -m pytest tests_lite -v --durations=50
 
     - name: Testing PyTorch
+      if: matrix.scope == 'pytorch'
       working-directory: ./tests
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source lightning -m pytest tests_pytorch -v --durations=50
 
     - name: Testing App
+      if: matrix.scope == 'app'
       working-directory: ./tests
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -183,7 +177,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/tests_pytorch/coverage.xml
-        flags: cpu,pytest,python${{ matrix.python-version }}
+        file: tests/coverage.xml
+        flags: cpu,pytest,python${{ matrix.python-version }},${{ matrix.scope }}
         name: CPU-coverage
         fail_ci_if_error: false
