@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.colossalai import ColossalAIPrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
@@ -26,6 +27,7 @@ from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 
 __all__ = [
     "ApexMixedPrecisionPlugin",
+    "ColossalAIPrecisionPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "FullyShardedNativeNativeMixedPrecisionPlugin",

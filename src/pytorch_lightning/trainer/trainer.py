@@ -162,6 +162,7 @@ class Trainer:
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
+        inference_mode: bool = True,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -388,6 +389,9 @@ class Trainer:
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
+
+            inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
+                evaluation (``validate``/``test``/``predict``).
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -486,6 +490,8 @@ class Trainer:
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
+
+        self._inference_mode: bool = inference_mode
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
@@ -955,7 +961,7 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
             )
@@ -1159,7 +1165,9 @@ class Trainer:
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator):
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(
+            self.accelerator, self._inference_mode
+        ):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1175,7 +1183,7 @@ class Trainer:
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context(self.accelerator):
+        with _evaluation_context(self.accelerator, self._inference_mode):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -1225,7 +1233,7 @@ class Trainer:
 
     def _call_setup_hook(self) -> None:
         assert self.state.fn is not None
-        fn = self.state.fn._setup_fn
+        fn = self.state.fn
 
         self.strategy.barrier("pre_setup")
 
@@ -1248,7 +1256,7 @@ class Trainer:
 
     def _call_teardown_hook(self) -> None:
         assert self.state.fn is not None
-        fn = self.state.fn._setup_fn
+        fn = self.state.fn
 
         if self.datamodule is not None:
             self._call_lightning_datamodule_hook("teardown", stage=fn)
@@ -1441,7 +1449,7 @@ class Trainer:
         assert self.state.fn is not None
         local_rank = self.local_rank if self.world_size > 1 else None
         self.profiler._lightning_module = proxy(self.lightning_module)
-        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
+        self.profiler.setup(stage=self.state.fn, local_rank=local_rank, log_dir=self.log_dir)
 
     """
     Data loading methods
@@ -1957,10 +1965,13 @@ class Trainer:
 
     @property
     def tuning(self) -> bool:
+        rank_zero_deprecation("`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
         return self.state.stage == RunningStage.TUNING
 
     @tuning.setter
     def tuning(self, val: bool) -> None:
+        rank_zero_deprecation("Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
+
         if val:
             self.state.stage = RunningStage.TUNING
         elif self.tuning:
@@ -2089,7 +2100,7 @@ class Trainer:
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:
-        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if self.state.fn == TrainerFn.FITTING:
             return self.fit_loop.epoch_loop.val_loop
         if self.state.fn == TrainerFn.VALIDATING:
             return self.validate_loop
@@ -2210,12 +2221,13 @@ class Trainer:
 
 
 @contextmanager
-def _evaluation_context(accelerator: Accelerator) -> Generator:
+def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
     # and HPU & TPU accelerators.
     context_manager_class = (
         torch.inference_mode
-        if not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
+        if inference_mode
+        and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
         and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
