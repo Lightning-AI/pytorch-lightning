@@ -2,10 +2,10 @@ import sys
 import traceback
 from typing import Any, Dict, List, Optional, Tuple
 
-from lightning.app.components.python import TracerPythonScript
-from lightning.app.storage import Path
-from lightning.app.utilities.packaging.build_config import BuildConfig
-from lightning.app.utilities.tracer import Tracer
+from lightning_app.components.python import TracerPythonScript
+from lightning_app.storage import Path
+from lightning_app.utilities.packaging.build_config import BuildConfig
+from lightning_app.utilities.tracer import Tracer
 from lightning_app.utilities.packaging.build_config import load_requirements
 
 

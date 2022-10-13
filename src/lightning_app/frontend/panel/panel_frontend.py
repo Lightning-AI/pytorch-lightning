@@ -50,7 +50,7 @@ class PanelFrontend(Frontend):
     .. code-block:: python
 
         import lightning as L
-        from lightning.app.frontend.panel import PanelFrontend
+        from lightning_app.frontend.panel import PanelFrontend
 
 
         class LitPanel(L.LightningFlow):
