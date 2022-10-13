@@ -371,7 +371,7 @@ class LightningLite(ABC):
 
         if not isinstance(module, _LiteModule):
             raise TypeError(
-                "You need to set up the model first before you can call `self.block_backward_sync()`:"
+                "You need to set up the model first before you can call `self.skip_backward_sync()`:"
                 " `self.setup(model, ...)`"
             )
         if self._strategy._backward_sync_control is None:
@@ -380,7 +380,7 @@ class LightningLite(ABC):
                 f" Remove `.skip_backward_sync()` from your code or choose a differnt strategy."
             )
         if enabled:
-            with self._strategy._backward_sync_control.block_backward_sync(module):
+            with self._strategy._backward_sync_control.skip_backward_sync(module):
                 yield
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:

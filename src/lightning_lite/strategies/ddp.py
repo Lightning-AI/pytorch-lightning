@@ -184,13 +184,13 @@ class DDPStrategy(ParallelStrategy):
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
     @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
+    def skip_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the
         :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
         if not isinstance(module, DistributedDataParallel):
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.block_backward_sync` is wrapped in `DistributedDataParallel`."
+                f" `{self.__class__.__name__}.skip_backward_sync` is wrapped in `DistributedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
         with module.no_sync():

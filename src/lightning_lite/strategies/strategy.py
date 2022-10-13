@@ -309,7 +309,7 @@ class _BackwardSyncControl(ABC):
 
     @contextmanager
     @abstractmethod
-    def block_backward_sync(self, module: Module) -> Generator:
+    def skip_backward_sync(self, module: Module) -> Generator:
         """Blocks the synchronization of gradients during the backward pass.
 
         This is a context manager. It is only effective if it wraps a call to `.backward()`.
