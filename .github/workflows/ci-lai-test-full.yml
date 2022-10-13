@@ -167,20 +167,21 @@ jobs:
       if: matrix.scope == 'pytorch'
       run: python requirements/pytorch/check-avail-extras.py
 
-    - name: DocTests PyTorch
-      if: matrix.scope == 'pytorch'
-      working-directory: ./src
-      run: pytest lightning/pytorch --cov=lightning
-
-    - name: DocTests Lite
-      if: matrix.scope == 'lite'
-      working-directory: ./src
-      run: pytest lightning/lite --cov=lightning
-
-    - name: DocTests App
-      if: matrix.scope == 'app'
-      working-directory: ./src
-      run: pytest lightning/app --cov=lightning
+# TODO: add back when package is fully mirrored
+#    - name: DocTests PyTorch
+#      if: matrix.scope == 'pytorch'
+#      working-directory: ./src
+#      run: pytest lightning/pytorch --cov=lightning
+#
+#    - name: DocTests Lite
+#      if: matrix.scope == 'lite'
+#      working-directory: ./src
+#      run: pytest lightning/lite --cov=lightning
+#
+#    - name: DocTests App
+#      if: matrix.scope == 'app'
+#      working-directory: ./src
+#      run: pytest lightning/app --cov=lightning
 
     - name: Testing Warnings
       # the stack-level can only be set on >=3.7
