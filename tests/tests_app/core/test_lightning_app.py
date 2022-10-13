@@ -426,7 +426,7 @@ class EmptyFlow(LightningFlow):
         (0, 100),
     ],
 )
-def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
+def test_lapp_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
 
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
