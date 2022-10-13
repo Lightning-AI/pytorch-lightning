@@ -50,8 +50,13 @@ class LearningRateFinder(Callback):
 
     Example::
 
+        # Customize LearningRateFinder callback to run at different epochs.
+        # This feature is useful while fine-tuning models.
+        from pytorch_lightning.callbacks import LearningRateFinder
+
+
         class FineTuneLearningRateFinder(LearningRateFinder):
-            def __init__(self, milestones=(5, 10), *args, **kwargs):
+            def __init__(self, milestones, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self.milestones = milestones
 
@@ -61,6 +66,7 @@ class LearningRateFinder(Callback):
             def on_train_epoch_start(self, trainer, pl_module):
                 if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
                     self.lr_find(trainer, pl_module)
+
 
         trainer = Trainer(callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))])
         trainer.fit(...)
