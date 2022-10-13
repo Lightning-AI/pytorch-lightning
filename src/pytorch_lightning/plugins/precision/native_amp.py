@@ -51,7 +51,7 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
                 "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
             )
         if scaler is None and precision == 16:
-            with _patch_cuda_is_available():
+            with _patch_cuda_is_available():  # TODO: Remove once minimum supported PyTorch version is 1.14
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
                 scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
