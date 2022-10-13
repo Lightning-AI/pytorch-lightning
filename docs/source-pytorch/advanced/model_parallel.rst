@@ -63,8 +63,8 @@ Colossalai
 
 :class:`~pytorch_lightning.strategies.colossalai.ColossalAIStrategy` implements ZeRO-DP with chunk-based memory management.
 With this chunk mechanism, really large models can be trained with restricted computation devices.
-It supprts larger trainable model size and batch size via reducing CUDA memory fragments and CPU memory consumption.
-Also it speeds up this kind of heterogeneous training by fully utilize all kinds of resources.
+It supports large trainable model size and batch size by reducing CUDA memory fragments and CPU memory consumption.
+Also, it speeds up this kind of heterogeneous training by fully utilizing all kinds of resources.
 
 When enabling chunk mechanism, a set of consecutive parameters are stored in a chunk, and then the chunk is sharded across different processes.
 This can reduce communication and data transmission frequency and fully utilize communication and PCI-E bandwidth, which makes training faster.
