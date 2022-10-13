@@ -38,10 +38,6 @@ runs:
       # python setup.py clean
     shell: bash
 
-  - name: copy/export pkg
-    run: cp dist/* pypi/
-    shell: bash
-
   - name: Unzip packages
     if: ${{ inputs.pkg-name != '' }}
     working-directory: dist
