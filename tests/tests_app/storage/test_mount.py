@@ -7,6 +7,7 @@ def test_create_s3_mount_successfully():
     mount = Mount(source="s3://foo/bar/", root_dir="./foo")
     assert mount.source == "s3://foo/bar/"
     assert mount.root_dir == "./foo"
+    assert mount.protocol == "s3://"
 
 
 def test_create_non_s3_mount_fails():

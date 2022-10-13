@@ -45,3 +45,11 @@ class Mount:
                 f"Please set this value to indicate the directory where the external data source should "
                 f"be mounted in the Work filesystem at runtime."
             )
+
+    @property
+    def protocol(self) -> str:
+        """The backing storage protocol indicated by this drive source."""
+        for protocol in __MOUNT_PROTOCOLS__:
+            if self.source.startswith(protocol):
+                return protocol
+        return ""

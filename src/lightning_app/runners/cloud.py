@@ -52,7 +52,7 @@ from lightning_app.core.constants import (
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
-from lightning_app.storage import Drive
+from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
@@ -148,9 +148,6 @@ class CloudRuntime(Runtime):
                     if drive.protocol == "lit://":
                         drive_type = V1DriveType.NO_MOUNT_S3
                         source_type = V1SourceType.S3
-                    elif drive.protocol == "s3://":
-                        drive_type = V1DriveType.INDEXED_S3
-                        source_type = V1SourceType.S3
                     else:
                         raise RuntimeError(
                             f"unknown drive protocol `{drive.protocol}`. Please verify this "
@@ -173,6 +170,26 @@ class CloudRuntime(Runtime):
                             mount_location=str(drive.root_folder),
                         ),
                     )
+
+                # this should really be part of the work.cloud_compute struct, but to save
+                # time we are not going to modify the backend in this set of PRs & instead
+                # use the same s3 drives API which we used before.
+                if work.cloud_compute.mount is not None:
+                    if isinstance(work.cloud_compute.mount, Mount):
+                        drive_specs.append(
+                            _create_mount_drive_spec(
+                                work_name=work.name,
+                                mount=work.cloud_compute.mount,
+                            )
+                        )
+                    else:
+                        for mount in work.cloud_compute.mount:
+                            drive_specs.append(
+                                _create_mount_drive_spec(
+                                    work_name=work.name,
+                                    mount=mount,
+                                )
+                            )
 
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
@@ -398,3 +415,29 @@ class CloudRuntime(Runtime):
             balance = 0  # value is missing in some tests
 
         return balance >= 1
+
+
+def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
+    if mount.protocol == "s3://":
+        drive_type = V1DriveType.INDEXED_S3
+        source_type = V1SourceType.S3
+    else:
+        raise RuntimeError(
+            f"unknown mount protocol `{mount.protocol}`. Please verify this "
+            f"drive type has been configured for use in the cloud dispatcher."
+        )
+
+    return V1LightningworkDrives(
+        drive=V1Drive(
+            metadata=V1Metadata(
+                name=work_name,
+            ),
+            spec=V1DriveSpec(
+                drive_type=drive_type,
+                source_type=source_type,
+                source=mount.source,
+            ),
+            status=V1DriveStatus(),
+        ),
+        mount_location=str(mount.root_dir),
+    )
