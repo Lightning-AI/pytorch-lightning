@@ -16,7 +16,7 @@ logging.detail = _detail
 logging.Logger.detail = _detail
 
 _root_logger = logging.getLogger()
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("pytorch_lightning")
 _logger.setLevel(logging.INFO)
 
 _console = logging.StreamHandler()
