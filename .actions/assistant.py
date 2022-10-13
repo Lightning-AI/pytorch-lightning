@@ -19,7 +19,11 @@ import pkg_resources
 from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
-    "app": ("requirements/app/base.txt",),
+    "app": (
+        "requirements/app/base.txt",
+        "requirements/app/cloud.txt",
+        "requirements/app/ui.txt",
+    ),
     "pytorch": (
         "requirements/pytorch/base.txt",
         "requirements/pytorch/extra.txt",
@@ -175,11 +179,18 @@ class AssistantCLI:
                 py = fo.readlines()
             for i, ln in enumerate(py):
                 ln_ = ln.lstrip()
-                if ln_.startswith("#"):
-                    continue
-                if not ln_.startswith("import ") and not re.search(r"from [\w_\.\d]+ import ", ln_):
-                    continue
-                py[i] = ln.replace(source_import, target_import)
+                should_replace = False
+                if ln_.startswith("import"):
+                    should_replace = True
+                elif re.search(r"from [\w_\.\d]+ import ", ln_):
+                    should_replace = True
+                elif "sys.modules[" in ln_:
+                    should_replace = True
+                elif "importlib" in ln_:
+                    should_replace = True
+
+                if should_replace:
+                    py[i] = ln.replace(source_import, target_import)
             if target_dir:
                 fp = fp.replace(source_dir, target_dir)
             with open(fp, "w", encoding="utf-8") as fo:
