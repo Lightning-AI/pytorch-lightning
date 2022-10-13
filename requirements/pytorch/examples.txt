@@ -2,5 +2,5 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 torchvision>=0.10.*, <=0.13.0
-gym[classic_control]>=0.17.0, <0.24.2
+gym[classic_control]>=0.17.0, <0.25.2
 ipython[all] <8.5.1

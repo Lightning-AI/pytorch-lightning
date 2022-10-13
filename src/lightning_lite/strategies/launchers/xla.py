@@ -17,14 +17,9 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from torch.multiprocessing import get_context
 
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
-from lightning_lite.utilities import _TPU_AVAILABLE
 from lightning_lite.utilities.apply_func import move_data_to_device
-
-if _TPU_AVAILABLE:
-    import torch_xla.distributed.xla_multiprocessing as xmp
-else:
-    xmp = None
 
 if TYPE_CHECKING:
     from lightning_lite.strategies import XLAStrategy
@@ -47,6 +42,8 @@ class _XLALauncher(_MultiProcessingLauncher):
     """
 
     def __init__(self, strategy: "XLAStrategy") -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
@@ -66,6 +63,8 @@ class _XLALauncher(_MultiProcessingLauncher):
         """
         context = get_context(self._start_method)
         return_queue = context.SimpleQueue()
+        import torch_xla.distributed.xla_multiprocessing as xmp
+
         xmp.spawn(
             self._wrapping_function,
             args=(function, args, kwargs, return_queue),

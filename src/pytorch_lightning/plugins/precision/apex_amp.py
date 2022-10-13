@@ -17,7 +17,7 @@ from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import _PARAMETERS, Steppable
+from lightning_lite.utilities.types import _PARAMETERS, Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -58,7 +58,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
-        optimizer: Optional[Steppable],
+        optimizer: Optional[Optimizable],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -78,7 +78,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(  # type: ignore[override]
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],

@@ -50,7 +50,7 @@ class PanelFrontend(Frontend):
     .. code-block:: python
 
         import lightning as L
-        from lightning.app.frontend.panel import PanelFrontend
+        from lightning_app.frontend.panel import PanelFrontend
 
 
         class LitPanel(L.LightningFlow):
@@ -95,7 +95,7 @@ class PanelFrontend(Frontend):
         self._log_files: dict[str, TextIO] = {}
         _logger.debug("PanelFrontend Frontend with %s is initialized.", entry_point)
 
-    def start_server(self, host: str, port: int) -> None:
+    def start_server(self, host: str, port: int, root_path: str = "") -> None:
         _logger.debug("PanelFrontend starting server on %s:%s", host, port)
 
         # 1: Prepare environment variables and arguments.

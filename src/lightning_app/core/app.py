@@ -51,6 +51,7 @@ class LightningApp:
         flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         debug: bool = False,
         info: frontend.AppInfo = None,
+        root_path: str = "",
     ):
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
         applications. There are two kinds of components: :class:`~lightning_app.core.flow.LightningFlow` and
@@ -58,9 +59,9 @@ class LightningApp:
         created by other users.
 
         The Lightning App alternatively run an event loop triggered by delta changes sent from
-        either :class:`~lightning.app.core.work.LightningWork` or from the Lightning UI.
+        either :class:`~lightning_app.core.work.LightningWork` or from the Lightning UI.
         Once deltas are received, the Lightning App runs
-        the :class:`~lightning.app.core.flow.LightningFlow` provided.
+        the :class:`~lightning_app.core.flow.LightningFlow` provided.
 
         Arguments:
             root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
@@ -70,11 +71,16 @@ class LightningApp:
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
                 description and image meta tags and specify any additional tags as list of html strings.
+            root_path: Set this to `/path` if you want to run your app behind a proxy at `/path` leave empty for "/".
+                For instance, if you want to run your app at `https://customdomain.com/myapp`,
+                set `root_path` to `/myapp`.
+                You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
+
 
         .. doctest::
 
             >>> from lightning import LightningFlow, LightningApp
-            >>> from lightning.app.runners import MultiProcessRuntime
+            >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
             ...         print("Hello World!")
@@ -85,6 +91,7 @@ class LightningApp:
             Hello World!
         """
 
+        self.root_path = root_path  # when running behind a proxy
         _validate_root_flow(root)
         self._root = root
         self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()
@@ -147,7 +154,7 @@ class LightningApp:
 
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
-        frontend.update_index_file_with_info(FRONTEND_DIR, info=info)
+        frontend.update_index_file(FRONTEND_DIR, info=info, root_path=root_path)
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""

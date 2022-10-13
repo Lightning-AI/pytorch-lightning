@@ -59,7 +59,7 @@ RUN pip uninstall pytorch-lightning -y
 
 WORKDIR /azp
 
-COPY ./dockers/ci-runner-hpu/start.sh /usr/local/bin/
+COPY ./.azure/start.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/start.sh
 
 ENTRYPOINT ["/usr/local/bin/start.sh"]

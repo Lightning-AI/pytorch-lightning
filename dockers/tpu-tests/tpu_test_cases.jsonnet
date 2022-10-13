@@ -39,6 +39,11 @@ local tputests = base.BaseTest {
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
 
+      echo "--- Sanity check TPU availability ---"
+      python -c "from lightning_lite.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
+      python -c "from pytorch_lightning.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
+      echo "Sanity check passed!"
+
       echo "--- Running Lite tests ---"
       cd tests/tests_lite
       PL_RUN_TPU_TESTS=1 coverage run --source=lightning_lite -m pytest -vv --durations=0 ./

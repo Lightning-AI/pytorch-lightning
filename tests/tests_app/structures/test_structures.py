@@ -45,6 +45,17 @@ def test_dict():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "clusters": None,
+                "preemptible": False,
+                "wait_timeout": None,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for k in ("a", "b", "c", "d")
     )
@@ -68,6 +79,17 @@ def test_dict():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "clusters": None,
+                "preemptible": False,
+                "wait_timeout": None,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for k in ("a", "b", "c", "d")
     )
@@ -91,6 +113,17 @@ def test_dict():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "clusters": None,
+                "preemptible": False,
+                "wait_timeout": None,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for k in ("a", "b", "c", "d")
     )
@@ -166,6 +199,17 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "clusters": None,
+                "preemptible": False,
+                "wait_timeout": None,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for i in range(4)
     )
@@ -189,6 +233,17 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "clusters": None,
+                "preemptible": False,
+                "wait_timeout": None,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for i in range(4)
     )
@@ -207,6 +262,17 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "clusters": None,
+                "preemptible": False,
+                "wait_timeout": None,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for i in range(4)
     )
