@@ -93,12 +93,9 @@ jobs:
       - run: ls -lh pypi/
 
       - uses: ./.github/actions/pkg-check
-        with:
-          pkg-name: "lightning"
 
       - uses: ./.github/actions/pkg-install
         with:
-          pkg-name: "lightning"
           pip-flags: "-U --pre --find-links ../pypi/"
 
       - name: Run CLI
