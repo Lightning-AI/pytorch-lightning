@@ -63,7 +63,7 @@ Colossalai
 
 :class:`~pytorch_lightning.strategies.colossalai.ColossalAIStrategy` implements ZeRO-DP with chunk-based memory management.
 With this chunk mechanism, really large models can be trained with restricted computation devices.
-It supports large trainable model size and batch size by reducing CUDA memory fragments and CPU memory consumption.
+It supports larger trainable model size and batch size than usual heterogeneous training by reducing CUDA memory fragments and CPU memory consumption.
 Also, it speeds up this kind of heterogeneous training by fully utilizing all kinds of resources.
 
 When enabling chunk mechanism, a set of consecutive parameters are stored in a chunk, and then the chunk is sharded across different processes.
@@ -74,7 +74,8 @@ During the first training step, the warmup phase will sample the maximum non-mod
 In later training, it will use the collected memory usage information to evict chunks dynamically.
 Gemini allows you to fit much larger models with limited GPU memory.
 
-According to our `benchmark <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning/tree/main/benchmark/gpt>`_ results, we can train models with up to 24 billion parameters in 1 GPU.
+According to our benchmark results, we can train models with up to 24 billion parameters in 1 GPU.
+You can run this benchmark in `Colossalai-PL/gpt <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning/tree/main/benchmark/gpt>`_.
 
 Here is an example showing how to use ColossalAI:
 
@@ -101,7 +102,7 @@ Here is an example showing how to use ColossalAI:
     trainer = Trainer(accelerator="gpu", devices=1, precision=16, strategy="colossalai")
     trainer.fit(model)
 
-You can find more examples `here <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning>`_.
+You can find more examples in the `Colossalai-PL <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning>`_ repository.
 
 .. note::
 
