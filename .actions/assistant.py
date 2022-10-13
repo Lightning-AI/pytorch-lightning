@@ -93,7 +93,16 @@ class AssistantCLI:
         path = Path(req_file)
         assert path.exists()
         text = path.read_text()
-        final = [str(req) for req in pkg_resources.parse_requirements(text) if req.name not in packages]
+        lines = text.splitlines()
+        final = []
+        for line in lines:
+            ln_ = line.strip()
+            if not ln_ or ln_.startswith("#"):
+                final.append(line)
+                continue
+            req = list(pkg_resources.parse_requirements(ln_))[0]
+            if req.name not in packages:
+                final.append(line)
         pprint(final)
         path.write_text("\n".join(final))
 
