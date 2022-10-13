@@ -288,11 +288,11 @@ def _check_unsupported_datamodule_hooks(trainer: "pl.Trainer") -> None:
 
     if is_overridden("on_save_checkpoint", datahook_selector.datamodule):
         raise NotImplementedError(
-            "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and is no longer supported in v1.8."
             " Use `state_dict` instead."
         )
     if is_overridden("on_load_checkpoint", datahook_selector.datamodule):
         raise NotImplementedError(
-            "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and is no longer supported in v1.8."
             " Use `load_state_dict` instead."
         )

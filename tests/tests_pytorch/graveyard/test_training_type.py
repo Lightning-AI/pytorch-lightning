@@ -7,7 +7,7 @@ from pytorch_lightning import Trainer
 
 def test_removed_training_type_plugin_property():
     trainer = Trainer()
-    with pytest.raises(RuntimeError, match="training_type_plugin` was removed"):
+    with pytest.raises(AttributeError, match="training_type_plugin`.*no longer accessible in v1.8"):
         trainer.training_type_plugin
 
 
@@ -35,7 +35,7 @@ def test_removed_training_type_plugin_property():
 def test_removed_training_type_plugin_classes(name, import_path):
     module = import_module(import_path)
     cls = getattr(module, name)
-    with pytest.raises(RuntimeError, match=f"{name}` class was removed"):
+    with pytest.raises(NotImplementedError, match=f"{name}`.*no longer supported in v1.8"):
         cls()
 
 
@@ -56,38 +56,38 @@ def test_removed_training_type_plugin_classes_inner_import():
     from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
     from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 
-    with pytest.raises(RuntimeError, match="DDPPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DDPPlugin`.*no longer supported in v1.8"):
         DDPPlugin()
-    with pytest.raises(RuntimeError, match="DDP2Plugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DDP2Plugin`.*no longer supported in v1.8"):
         DDP2Plugin()
-    with pytest.raises(RuntimeError, match="DDPSpawnPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DDPSpawnPlugin`.*no longer supported in v1.8"):
         DDPSpawnPlugin()
-    with pytest.raises(RuntimeError, match="DeepSpeedPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DeepSpeedPlugin`.*no longer supported in v1.8"):
         DeepSpeedPlugin()
-    with pytest.raises(RuntimeError, match="DataParallelPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DataParallelPlugin`.*no longer supported in v1.8"):
         DataParallelPlugin()
-    with pytest.raises(RuntimeError, match="DDPFullyShardedPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DDPFullyShardedPlugin`.*no longer supported in v1.8"):
         DDPFullyShardedPlugin()
-    with pytest.raises(RuntimeError, match="HorovodPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="HorovodPlugin`.*no longer supported in v1.8"):
         HorovodPlugin()
-    with pytest.raises(RuntimeError, match="IPUPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="IPUPlugin`.*no longer supported in v1.8"):
         IPUPlugin()
-    with pytest.raises(RuntimeError, match="ParallelPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="ParallelPlugin`.*no longer supported in v1.8"):
         ParallelPlugin()
-    with pytest.raises(RuntimeError, match="DDPShardedPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DDPShardedPlugin`.*no longer supported in v1.8"):
         DDPShardedPlugin()
-    with pytest.raises(RuntimeError, match="DDPSpawnShardedPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="DDPSpawnShardedPlugin`.*no longer supported in v1.8"):
         DDPSpawnShardedPlugin()
-    with pytest.raises(RuntimeError, match="SingleDevicePlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="SingleDevicePlugin`.*no longer supported in v1.8"):
         SingleDevicePlugin()
-    with pytest.raises(RuntimeError, match="SingleTPUPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="SingleTPUPlugin`.*no longer supported in v1.8"):
         SingleTPUPlugin()
-    with pytest.raises(RuntimeError, match="TPUSpawnPlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="TPUSpawnPlugin`.*no longer supported in v1.8"):
         TPUSpawnPlugin()
-    with pytest.raises(RuntimeError, match="TrainingTypePlugin` class was removed"):
+    with pytest.raises(NotImplementedError, match="TrainingTypePlugin`.*no longer supported in v1.8"):
         TrainingTypePlugin()
 
     from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 
-    with pytest.raises(RuntimeError, match="on_colab_kaggle` was removed"):
+    with pytest.raises(NotImplementedError, match="on_colab_kaggle`.*no longer supported in v1.8"):
         on_colab_kaggle()

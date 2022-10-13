@@ -37,7 +37,7 @@ def _update_agg_funcs(logger: Logger, *__: Any, **___: Any) -> None:
 def _agg_and_log_metrics(logger: Logger, *__: Any, **___: Any) -> None:
     # TODO: Remove in v2.0.0
     raise NotImplementedError(
-        f"`{type(logger).__name__}.update_agg_funcs` was deprecated in v1.6 and is no longer supported as of v1.8."
+        f"`{type(logger).__name__}.agg_and_log_metrics` was deprecated in v1.6 and is no longer supported as of v1.8."
     )
 
 
