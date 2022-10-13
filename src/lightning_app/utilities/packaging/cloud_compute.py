@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Union
 from uuid import uuid4
 
 from lightning_app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
+from lightning_app.storage.mount import Mount
 
 __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
 
@@ -77,6 +78,8 @@ class CloudCompute:
 
         shm_size: Shared memory size in MiB, backed by RAM. min 512, max 8192, it will auto update in steps of 512.
             For example 1100 will become 1024. If set to zero (the default) will get the default 64MiB inside docker.
+
+        mount: External data sources which should be mounted into a work as a filesystem at runtime.
     """
 
     name: str = "default"
@@ -86,6 +89,7 @@ class CloudCompute:
     wait_timeout: Optional[int] = None
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = 0
+    mount: Optional[Union[Mount, List[Mount]]] = None
     _internal_id: Optional[str] = None
 
     def __post_init__(self):
@@ -104,8 +108,15 @@ class CloudCompute:
         return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict):
         assert d.pop("type") == __CLOUD_COMPUTE_IDENTIFIER__
+        mounts = d.pop("mount", None)
+        if isinstance(mounts, dict):
+            d["mount"] = Mount(**mounts)
+        elif isinstance(mounts, (list, tuple, set)):
+            d["mount"] = []
+            for mount in mounts:
+                d["mount"].append(Mount(**mount))
         return cls(**d)
 
     @property
