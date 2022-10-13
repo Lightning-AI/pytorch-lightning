@@ -103,9 +103,7 @@ if __name__ == "__main__":
     if _PACKAGE_NAME not in _PACKAGE_MAPPING:
         _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
 
-    for lit_name, pkg_name in _PACKAGE_MAPPING.items():
-        # fixme: if we run creation of meta pkg against stable we shall pull the source
-        _SETUP_TOOLS.create_mirror_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
+    _SETUP_TOOLS.create_mirror_package(os.path.join(_PATH_ROOT, "src"), _PACKAGE_MAPPING)
 
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
     _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
