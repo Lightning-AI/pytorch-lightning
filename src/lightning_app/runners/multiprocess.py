@@ -5,6 +5,7 @@ from typing import Any, Callable, Optional, Union
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
 from lightning_app.core.api import start_server
+from lightning_app.core.constants import ADD_DEFAULT_COMMANDS
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
@@ -65,7 +66,7 @@ class MultiProcessRuntime(Runtime):
                 self.app.should_publish_changes_to_api = True
                 has_started_queue = self.backend.queues.get_has_server_started_queue()
 
-                apis = get_default_commands()
+                apis = get_default_commands() if ADD_DEFAULT_COMMANDS else []
                 if is_overridden("configure_api", self.app.root):
                     apis = self.app.root.configure_api()
                     _validate_api(apis)
