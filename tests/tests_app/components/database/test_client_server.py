@@ -102,3 +102,48 @@ def test_client_server():
     database_path = Path("database.db").resolve()
     if database_path.exists():
         os.remove(database_path)
+
+
+@pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
+def test_work_database_restart():
+
+    id = str(uuid4()).split("-")[0]
+
+    class Flow(LightningFlow):
+        def __init__(self, restart=False):
+            super().__init__()
+            self.db = Database(db_filename=id, models=[TestConfig])
+            self._client = None
+            self.restart = restart
+
+        def run(self):
+            self.db.run()
+
+            if not self.db.alive():
+                return
+            elif not self._client:
+                self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
+
+            if not self.restart:
+                self._client.insert(TestConfig(name="echo"))
+                self._exit()
+            else:
+                assert os.path.exists(id)
+                assert len(self._client.select_all()) == 1
+                self._exit()
+
+    app = LightningApp(Flow())
+    MultiProcessRuntime(app).dispatch()
+
+    # Note: Waiting for SIGTERM signal to be handled
+    sleep(2)
+
+    os.remove(id)
+
+    app = LightningApp(Flow(restart=True))
+    MultiProcessRuntime(app).dispatch()
+
+    # Note: Waiting for SIGTERM signal to be handled
+    sleep(2)
+
+    os.remove(id)

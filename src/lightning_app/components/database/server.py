@@ -114,14 +114,15 @@ class Database(LightningWork):
         self.db_filename = db_filename
         self.debug = debug
         self._models = models if isinstance(models, list) else [models]
-        self.drive = Drive("lit://database")
+        self.drive = None
 
     def run(self, token: Optional[str] = None) -> None:
         """
         Arguments:
             token: Token used to protect the database access. Ensure you don't expose it through the App State.
         """
-        if self.drive.list():
+        self.drive = Drive("lit://database")
+        if self.drive.list(component_name=self.name):
             self.drive.get(self.db_filename)
             print("Retrieved the database from Drive.")
 

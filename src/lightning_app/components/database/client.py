@@ -33,15 +33,14 @@ T = TypeVar("T")
 
 
 class DatabaseClient:
-    def __init__(self, db_url: str, token: str, model: Optional[T] = None) -> None:
+    def __init__(self, db_url: str, token: Optional[str] = None, model: Optional[T] = None) -> None:
         self.db_url = db_url
         self.model = model
-        self.token = token
+        self.token = token or ""
         self._session = None
 
     def select_all(self, model: Optional[Type[T]] = None) -> List[T]:
         cls = model if model else self.model
-        assert cls
         resp = self.session.post(self.db_url + "/select_all/", data=GeneralModel.from_cls(cls, token=self.token).json())
         assert resp.status_code == 200
         return [cls(**data) for data in resp.json()]
