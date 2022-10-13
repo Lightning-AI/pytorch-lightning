@@ -50,7 +50,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     _long_description = _SETUP_TOOLS.load_readme_description(
         _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
     )
-    _include_pkgs = ["lightning", "lightning.*"] if kwargs["pkg_name"] == "lightning" else ["*"]
+    _include_pkgs = ["lightning", "lightning.*"]
 
     # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
