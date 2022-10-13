@@ -469,9 +469,6 @@ class ColossalAIStrategy(DDPStrategy):
             return broadcast(obj, src=src, parallel_mode=ParallelMode.GLOBAL)
         else:
             obj_list = [obj]
-            local_rank = gpc.get_local_rank(ParallelMode.GLOBAL)
-            if local_rank != src:
-                obj_list = [None]  # type: ignore[list-item]
             torch.distributed.broadcast_object_list(obj_list, src, group=gpc.get_group(ParallelMode.GLOBAL))
             return obj_list[0]
 
