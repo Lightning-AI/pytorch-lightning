@@ -93,7 +93,7 @@ To understand the cost of each PyTorch operation, use the :class:`~pytorch_light
 
     trainer = Trainer(profiler=HPUProfiler())
 
-The profiler will dump a trace file for each profiler step, ``training_step``, ``backward``, ``validation_step``, ``test_step``, and ``predict_step`` by default.
+By default, the profiler will dump a trace file for each profiler step, ``training_step``, ``validation_step``, ``test_step``, and ``predict_step``.
 The user can provide ``HPUProfiler(record_functions={...})`` to extend the scope of profiled functions.
 The profiler will generate an output like this:
 
@@ -181,5 +181,5 @@ Or load it in chrome tracer:
 Using Simple and Advanced Profilers
 ************************************
 
-Simple and advanced profilers are compatible with HPU. Please refer to `Find Bottlenecks in your code (Basic) <https://pytorch-lightning.readthedocs.io/en/stable/tuning/profiler_basic.html>`__ for more information on how to use them.
+Simple and advanced profilers are compatible with HPU. Please refer to :ref:`this profiler document <profiler_basic>` for more information on how to use them.
 Note that these profilers will not profile the HPU activity. Please use HPUProfiler instead.

@@ -49,9 +49,6 @@ class TestHPUProfiler:
             profiler="simple",
             accelerator="hpu",
             devices=get_device_count,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
         )
         assert isinstance(trainer.profiler, SimpleProfiler)
 
@@ -85,9 +82,6 @@ class TestHPUProfiler:
             profiler="advanced",
             accelerator="hpu",
             devices=get_device_count,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
         )
         assert isinstance(trainer.profiler, AdvancedProfiler)
 

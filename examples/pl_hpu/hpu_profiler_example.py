@@ -15,7 +15,7 @@
 visualized in 2 ways:
 
 * With Chrome:
-    1. Open Chrome and copy/paste this url: `chrome://tracing/`.
+    1. Open Chrome and copy/paste this URL: `chrome://tracing/`.
     2. Once tracing opens, click on `Load` at the top-right and load one of the generated traces.
 * With PyTorch Tensorboard Profiler (Instructions are here: https://github.com/pytorch/kineto/tree/master/tb_plugin)
     1. pip install tensorboard torch-tb-profiler
