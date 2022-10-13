@@ -21,6 +21,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+env:
+  PACKAGE_NAME: pytorch
+  FREEZE_REQUIREMENTS: 1
+
 jobs:
 
   pl-cpu:
@@ -47,7 +51,7 @@ jobs:
           - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.10"}
           - {os: "windows-2022", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: ubuntu-22.04, python-version: "3.10", pytorch-version: "1.13", release: "pre"}
+          - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
 
     timeout-minutes: 40
 
@@ -99,11 +103,10 @@ jobs:
       run: |
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
+        cat requirements/pytorch/base.txt
+      shell: bash
 
-    - name: Install dependencies
-      env:
-        PACKAGE_NAME: pytorch
-        FREEZE_REQUIREMENTS: 1
+    - name: Install package & dependencies
       run: |
         # install PL and optional dependencies for testing
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
