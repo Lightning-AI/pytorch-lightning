@@ -57,12 +57,12 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 
 .. _colossalai:
 
-**********
-Colossalai
-**********
+***********
+Colossal-AI
+***********
 
 :class:`~pytorch_lightning.strategies.colossalai.ColossalAIStrategy` implements ZeRO-DP with chunk-based memory management.
-With this chunk mechanism, really large models can be trained with restricted computation devices.
+With this chunk mechanism, really large models can be trained with a small number of GPUs.
 It supports larger trainable model size and batch size than usual heterogeneous training by reducing CUDA memory fragments and CPU memory consumption.
 Also, it speeds up this kind of heterogeneous training by fully utilizing all kinds of resources.
 
@@ -75,7 +75,8 @@ In later training, it will use the collected memory usage information to evict c
 Gemini allows you to fit much larger models with limited GPU memory.
 
 According to our benchmark results, we can train models with up to 24 billion parameters in 1 GPU.
-You can run this benchmark in `Colossalai-PL/gpt <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning/tree/main/benchmark/gpt>`_.
+You can install colossalai by consulting `how to download colossalai <https://colossalai.org/download>`_.
+Then, run this benchmark in `Colossalai-PL/gpt <https://github.com/hpcaitech/ColossalAI-Pytorch-lightning/tree/main/benchmark/gpt>`_.
 
 Here is an example showing how to use ColossalAI:
 
