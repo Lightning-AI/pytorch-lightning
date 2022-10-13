@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, TYPE_CHECKING
 
-import lightning_app
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.utilities.proxies import ProxyWorkRun, unwrap
+
+if TYPE_CHECKING:
+    import lightning_app
 
 
 class Backend(ABC):

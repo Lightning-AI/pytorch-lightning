@@ -1,9 +1,11 @@
 from time import time
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
-import lightning_app
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.backends.backend import Backend
+
+if TYPE_CHECKING:
+    import lightning_app
 
 
 class DockerBackend(Backend):

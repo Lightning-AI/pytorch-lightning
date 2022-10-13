@@ -1,12 +1,14 @@
 import multiprocessing
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
-import lightning_app
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.backends.backend import Backend, WorkManager
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.network import _check_service_url_is_ready
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
+
+if TYPE_CHECKING:
+    import lightning_app
 
 
 class MultiProcessWorkManager(WorkManager):

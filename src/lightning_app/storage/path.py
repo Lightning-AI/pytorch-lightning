@@ -10,7 +10,6 @@ from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
 
-import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
 from lightning_app.utilities.app_helpers import Logger
@@ -23,6 +22,7 @@ if _is_s3fs_available():
 PathlibPath = type(pathlib.Path())  # PosixPath or a WindowsPath depending on the platform
 
 if TYPE_CHECKING:
+    import lightning_app
     from lightning_app.core.work import LightningWork
 
 num_workers = 8
