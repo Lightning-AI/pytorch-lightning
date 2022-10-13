@@ -21,8 +21,8 @@ from pytorch_lightning.loggers import Logger
 class LoggerCollection:
     # TODO: Remove in v2.0.0
     def __init__(self, _: Any):
-        raise RuntimeError(
-            "`LoggerCollection` was deprecated in v1.6 and removed in v1.8. Directly pass a list of loggers"
+        raise NotImplementedError(
+            "`LoggerCollection` was deprecated in v1.6 and removed as of v1.8. Directly pass a list of loggers"
             " to the `Trainer` and access the list via the `trainer.loggers` attribute."
         )
 

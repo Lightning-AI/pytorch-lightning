@@ -65,10 +65,10 @@ def test_v2_0_0_unsupported_update_agg_funcs(tmpdir):
 def test_v2_0_0_unsupported_logger_collection_class():
     from pytorch_lightning.loggers.base import LoggerCollection
 
-    with pytest.raises(RuntimeError, match="`LoggerCollection` was deprecated in v1.6 and removed in v1.8."):
+    with pytest.raises(NotImplementedError, match="`LoggerCollection` was deprecated in v1.6 and removed as of v1.8."):
         LoggerCollection(None)
 
     from pytorch_lightning.loggers.logger import LoggerCollection
 
-    with pytest.raises(RuntimeError, match="`LoggerCollection` was deprecated in v1.6 and removed in v1.8."):
+    with pytest.raises(RuntimeError, match="`LoggerCollection` was deprecated in v1.6 and removed as of v1.8."):
         LoggerCollection(None)

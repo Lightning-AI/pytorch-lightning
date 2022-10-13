@@ -19,7 +19,7 @@ from pytorch_lightning import LightningDataModule, LightningModule
 def _on_save_checkpoint(_: LightningDataModule, __: Any) -> None:
     # TODO: Remove in v2.0.0
     raise NotImplementedError(
-        "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and is no longer supported in v1.8."
+        "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and is no longer supported as of v1.8."
         " Use `state_dict` instead."
     )
 
@@ -27,7 +27,7 @@ def _on_save_checkpoint(_: LightningDataModule, __: Any) -> None:
 def _on_load_checkpoint(_: LightningDataModule, __: Any) -> None:
     # TODO: Remove in v2.0.0
     raise NotImplementedError(
-        "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and is no longer supported in v1.8."
+        "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and is no longer supported as of v1.8."
         " Use `load_state_dict` instead."
     )
 

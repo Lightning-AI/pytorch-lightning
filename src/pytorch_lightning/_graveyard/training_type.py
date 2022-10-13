@@ -43,7 +43,7 @@ def _patch_sys_modules() -> None:
 def _ttp_constructor(self: Any, *_: Any, **__: Any) -> None:
     # TODO: Remove in v2.0.0
     raise NotImplementedError(
-        f"The `pl.plugins.{self._name}Plugin` class was deprecated in v1.6 and is no longer supported in v1.8."
+        f"The `pl.plugins.{self._name}Plugin` class was deprecated in v1.6 and is no longer supported as of v1.8."
         f" Use `pl.strategies.{self._name}Strategy` instead."
     )
 
@@ -78,7 +78,7 @@ def _patch_plugin_classes() -> None:
 def on_colab_kaggle() -> None:
     # TODO: Remove in v2.0.0
     raise NotImplementedError(
-        "`pl.plugins.training_type.utils.on_colab_kaggle` was deprecated in v1.6 and is no longer supported in v1.8."
+        "`pl.plugins.training_type.utils.on_colab_kaggle` was deprecated in v1.6 and is no longer supported as of v1.8."
         " Use `pl.strategies.utils.on_colab_kaggle` instead."
     )
 
@@ -86,7 +86,7 @@ def on_colab_kaggle() -> None:
 def _training_type_plugin(_: pl.Trainer) -> None:
     # TODO: Remove in v2.0.0
     raise AttributeError(
-        "`Trainer.training_type_plugin` was deprecated in v1.6 and is no longer accessible in v1.8."
+        "`Trainer.training_type_plugin` was deprecated in v1.6 and is no longer accessible as of v1.8."
         " Use `Trainer.strategy` instead."
     )
 

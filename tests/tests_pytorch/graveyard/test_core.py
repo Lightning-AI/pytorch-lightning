@@ -21,13 +21,13 @@ def test_v2_0_0_unsupported_datamodule_on_save_load_checkpoint():
     datamodule = LightningDataModule()
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_save_checkpoint`.*no longer supported in v1.8",
+        match="`LightningDataModule.on_save_checkpoint`.*no longer supported as of v1.8",
     ):
         datamodule.on_save_checkpoint({})
 
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_load_checkpoint.*no longer supported in v1.8",
+        match="`LightningDataModule.on_load_checkpoint.*no longer supported as of v1.8",
     ):
         datamodule.on_load_checkpoint({})
 
@@ -44,13 +44,13 @@ def test_v2_0_0_unsupported_datamodule_on_save_load_checkpoint():
 
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_save_checkpoint`.*no longer supported in v1.8.",
+        match="`LightningDataModule.on_save_checkpoint`.*no longer supported as of v1.8.",
     ):
         trainer.fit(model, OnSaveDataModule())
 
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_load_checkpoint`.*no longer supported in v1.8.",
+        match="`LightningDataModule.on_load_checkpoint`.*no longer supported as of v1.8.",
     ):
         trainer.fit(model, OnLoadDataModule())
 
