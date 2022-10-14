@@ -39,7 +39,8 @@ jobs:
           pip list
         shell: bash
 
-      - uses: ./.github/actions/pip-list
+      # TODO: re-enable after the external usage is resolved, see #51
+      # - uses: ./.github/actions/pip-list
 
       - name: Make Documentation
         run: |

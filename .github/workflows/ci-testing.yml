@@ -44,7 +44,8 @@ jobs:
         pip --version
         pip list
 
-    - uses: ./.github/actions/pip-list
+    # TODO: re-enable after the external usage is resolved, see #51
+    # - uses: ./.github/actions/pip-list
 
     - uses: ./.github/actions/unittesting
       with:
