@@ -18,11 +18,10 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 def _save_checkpoint(_: ModelCheckpoint, __: Any) -> None:
-    # Remove in v2.0.0
+    # TODO: Remove in v2.0.0
     raise NotImplementedError(
         f"`{ModelCheckpoint.__name__}.save_checkpoint()` was deprecated in v1.6 and is no longer supported"
-        f" as of 1.8. Please use `trainer.save_checkpoint()` to manually save a checkpoint. This method will be"
-        f" removed completely in v2.0."
+        f" as of 1.8. Please use `trainer.save_checkpoint()` to manually save a checkpoint."
     )
 
 

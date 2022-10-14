@@ -18,6 +18,7 @@ from pytorch_lightning import Trainer
 
 
 def _patch_sys_modules() -> None:
+    # TODO: Remove in v2.0.0
     self = sys.modules[__name__]
     sys.modules["pytorch_lightning.trainer.data_loading"] = self
     sys.modules["pytorch_lightning.trainer.optimizers"] = self
@@ -192,22 +193,26 @@ def _call_hook(_: Trainer, *__: Any, **___: Any) -> Any:
 
 
 def _prepare_dataloader(_: Trainer, *__: Any, **___: Any) -> None:
+    # TODO: Remove in v2.0.0
     raise NotImplementedError(
         "`Trainer.prepare_dataloader` was deprecated in v1.6 and is no longer supported as of v1.8."
     )
 
 
 def _request_dataloader(_: Trainer, *__: Any, **___: Any) -> None:
+    # TODO: Remove in v2.0.0
     raise NotImplementedError(
         "`Trainer.request_dataloader` was deprecated in v1.6 and is no longer supported as of v1.8."
     )
 
 
 def _init_optimizers(_: Trainer, *__: Any, **___: Any) -> None:
+    # TODO: Remove in v2.0.0
     raise NotImplementedError("`Trainer.init_optimizers` was deprecated in v1.6 and is no longer supported as of v1.8.")
 
 
 def _convert_to_lightning_optimizers(_: Trainer) -> None:
+    # TODO: Remove in v2.0.0
     raise NotImplementedError(
         "`Trainer.convert_to_lightning_optimizers` was deprecated in v1.6 and is no longer supported as of v1.8."
     )

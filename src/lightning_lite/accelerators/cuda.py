@@ -20,7 +20,7 @@ from typing import Dict, Generator, List, Optional, Set, Union
 import torch
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_14
 
 
 class CUDAAccelerator(Accelerator):
@@ -102,11 +102,12 @@ def num_cuda_devices() -> int:
     Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
     """
-    if _TORCH_GREATER_EQUAL_1_13:
+    if _TORCH_GREATER_EQUAL_1_14:
+        # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning_lite.__init__.py
         return torch.cuda.device_count()
 
     # Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879
-    # TODO: Remove once minimum supported PyTorch version is 1.13
+    # TODO: Remove once minimum supported PyTorch version is 1.14
     nvml_count = _device_count_nvml()
     return torch.cuda.device_count() if nvml_count < 0 else nvml_count
 

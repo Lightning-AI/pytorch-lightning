@@ -123,22 +123,22 @@ def test_loops_restore(tmpdir):
     trainer = Trainer(**trainer_args)
     trainer.strategy.connect(model)
 
-    for fn in TrainerFn:
-        if fn != TrainerFn.TUNING:
-            trainer_fn = getattr(trainer, f"{fn}_loop")
-            trainer_fn.load_state_dict = mock.Mock()
+    trainer_fns = [fn for fn in TrainerFn._without_tune()]
 
-    for fn in TrainerFn:
-        if fn != TrainerFn.TUNING:
-            trainer.state.fn = fn
-            trainer._checkpoint_connector.resume_start(ckpt_path)
-            trainer._checkpoint_connector.restore_loops()
+    for fn in trainer_fns:
+        trainer_fn = getattr(trainer, f"{fn}_loop")
+        trainer_fn.load_state_dict = mock.Mock()
 
-            trainer_loop = getattr(trainer, f"{fn}_loop")
-            trainer_loop.load_state_dict.assert_called()
-            trainer_loop.load_state_dict.reset_mock()
+    for fn in trainer_fns:
+        trainer.state.fn = fn
+        trainer._checkpoint_connector.resume_start(ckpt_path)
+        trainer._checkpoint_connector.restore_loops()
 
-        for fn2 in TrainerFn:
-            if fn2 not in (fn, TrainerFn.TUNING):
+        trainer_loop = getattr(trainer, f"{fn}_loop")
+        trainer_loop.load_state_dict.assert_called()
+        trainer_loop.load_state_dict.reset_mock()
+
+        for fn2 in trainer_fns:
+            if fn2 != fn:
                 trainer_loop2 = getattr(trainer, f"{fn2}_loop")
                 trainer_loop2.load_state_dict.assert_not_called()
