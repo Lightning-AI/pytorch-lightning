@@ -11,10 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import MagicMock, Mock
+
 import pytest
 import torch
+from torch.nn.parallel import DistributedDataParallel
 
 from lightning_lite.strategies import DDPStrategy
+from lightning_lite.strategies.ddp import _DDPBackwardSyncControl
 
 
 @pytest.mark.parametrize(
@@ -40,3 +44,20 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
 
     strategy = MockDDPStrategy(process_group_backend=process_group_backend, root_device=torch.device(device_str))
     assert strategy._get_process_group_backend() == expected_process_group_backend
+
+
+def test_ddp_skip_backward_sync():
+    strategy = DDPStrategy()
+    assert isinstance(strategy._backward_sync_control, _DDPBackwardSyncControl)
+
+    with pytest.raises(
+        TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
+    ):
+        with strategy._backward_sync_control.skip_backward_sync(Mock()):
+            pass
+
+    module = MagicMock(spec=DistributedDataParallel)
+    with strategy._backward_sync_control.skip_backward_sync(module):
+        pass
+
+    module.no_sync.assert_called_once()

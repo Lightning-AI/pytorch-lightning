@@ -471,11 +471,12 @@ def test_skip_backward_sync():
     # pretend that the strategy supports skipping backward sync
     lite._strategy = Mock(_backward_sync_control=MagicMock())
 
+    # disabling the context manager makes it a no-op
     with lite.skip_backward_sync(model, enabled=False):
         pass
     lite._strategy._backward_sync_control.skip_backward_sync.assert_not_called()
 
+    # when enabld, the wrapped module gets passed down
     with lite.skip_backward_sync(model):
         pass
-
     lite._strategy._backward_sync_control.skip_backward_sync.assert_called_once_with(model._forward_module)
