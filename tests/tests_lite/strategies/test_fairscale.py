@@ -81,7 +81,8 @@ def test_fairscale_custom_kwargs_reduce_buffer_size(_, kwargs, expected_buffer_s
 @RunIf(fairscale=True)
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_fairscale_skip_backward_sync(cls):
-    """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in ShardedDataParallel."""
+    """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
+    ShardedDataParallel."""
 
     strategy = cls()
     assert isinstance(strategy._backward_sync_control, _FairscaleBackwardSyncControl)
