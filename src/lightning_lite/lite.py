@@ -347,7 +347,7 @@ class LightningLite(ABC):
 
     @contextmanager
     def skip_backward_sync(self, module: _LiteModule, enabled: bool = True) -> Generator:
-        """Skip gradient synchrionization during backward to avoid redundant communication overhead.
+        """Skip gradient synchronization during backward to avoid redundant communication overhead.
 
         Use this context manager when performing gradient accumulation to speed up training with multiple devices.
 
