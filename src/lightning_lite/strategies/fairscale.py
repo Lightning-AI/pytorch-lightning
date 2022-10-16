@@ -66,6 +66,7 @@ class DDPShardedStrategy(DDPStrategy):
             timeout=timeout,
             **kwargs,
         )
+        self._backward_sync_control = _FairscaleBackwardSyncControl()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -87,19 +88,6 @@ class DDPShardedStrategy(DDPStrategy):
             optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
-
-    @contextmanager
-    def skip_backward_sync(self, module: Module) -> Generator:
-        """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
-        wrapper."""
-        if not isinstance(module, ShardedDataParallel):
-            raise TypeError(
-                "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.skip_backward_sync` is wrapped in `ShardedDataParallel`."
-                f" Got: {module.__class__.__name__}."
-            )
-        with module.no_sync():
-            yield None
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
