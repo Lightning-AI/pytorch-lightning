@@ -77,7 +77,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for training collaboratively on local machines or unreliable GPUs across the internet. :ref:`Learn more. <strategies/hivemind:Training on unreliable mixed GPUs across the internet>`
    * - colossalai
      - :class:`~pytorch_lightning.strategies.ColossalAIStrategy`
-     - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.or/>`__
+     - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
    * - fsdp_native
      - :class:`~pytorch_lightning.strategies.DDPFullyShardedNativeStrategy`
      - Strategy for Fully Sharded Data Parallel provided by PyTorch. :ref:`Learn more. <advanced/model_parallel:PyTorch Fully Sharded Training>`
