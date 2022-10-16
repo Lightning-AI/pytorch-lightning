@@ -47,6 +47,7 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
 
 
 def test_ddp_skip_backward_sync():
+    """Test that the backward sync control calls `.no_sync()`, and only on a DDP-wrapped module."""
     strategy = DDPStrategy()
     assert isinstance(strategy._backward_sync_control, _DDPBackwardSyncControl)
 
