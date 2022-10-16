@@ -1,0 +1,1 @@
+../../source-pytorch/accelerators/mps.rst

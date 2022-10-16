@@ -1,0 +1,14 @@
+# install all mandatory dependencies
+-r ./base.txt
+
+# extended list of dependencies for development and run lint and tests
+-r ./test.txt
+
+# extended list of dependencies for Cloud
+-r ./cloud.txt
+
+# extended list of dependencies for PL
+# -r ./quick_start_app.txt
+
+# extended list of dependencies for UI
+-r ./ui.txt

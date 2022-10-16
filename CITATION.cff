@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you want to cite the framework, feel free to use this (but only if you loved it 😊)"
+title: "PyTorch Lightning"
+abstract: "The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate."
+date-released: 2019-03-30
+authors:
+  - family-names: "Falcon"
+    given-names: "William"
+  - name: "The PyTorch Lightning team"
+version: 1.4
+doi: 10.5281/zenodo.3828935
+license: "Apache-2.0"
+url: "https://www.pytorchlightning.ai"
+repository-code: "https://github.com/Lightning-AI/lightning"
+keywords:
+  - machine learning
+  - deep learning
+  - artificial intelligence

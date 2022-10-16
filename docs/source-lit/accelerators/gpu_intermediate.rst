@@ -1,0 +1,1 @@
+../../source-pytorch/accelerators/gpu_intermediate.rst

@@ -1,0 +1,10 @@
+lightning_logs
+*.pt
+.storage/
+.shared/
+data
+*.ckpt
+redis-stable
+node_modules
+*.rdb
+boring_file.txt

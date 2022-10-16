@@ -1,0 +1,1 @@
+../../source-app/examples/hands_on_example.rst

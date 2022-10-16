@@ -1,0 +1,64 @@
+name: Create and check package
+description: building, checking the package
+
+inputs:
+  pkg-name:
+    description: package name inside lightning.*
+    required: true
+  nb-dirs:
+    description: nb of packages in the wrap/distribution
+    required: false
+    default: "1"
+
+runs:
+  using: "composite"
+  steps:
+
+  - name: install dev. env
+    run: pip install "twine==4.0.1" setuptools wheel flake8
+    shell: bash
+
+  - name: Source check
+    env:
+      PACKAGE_NAME: ${{ inputs.pkg-name }}
+    run: |
+      python setup.py check --metadata --strict
+      # TODO: fix reimporting (F811) which is aftefact after rplacing var assigne with import in meta package
+      flake8 src/lightning/ --ignore E402,F401,E501,W391,E303,F811
+    shell: bash
+
+  - name: Create package
+    env:
+      PACKAGE_NAME: ${{ inputs.pkg-name }}
+    run: python setup.py sdist bdist_wheel
+    shell: bash
+
+  - name: Check package
+    run: |
+      ls -l dist/
+      twine check dist/*
+      # python setup.py clean
+    shell: bash
+
+  - name: copy/export pkg
+    run: cp dist/* pypi/
+    shell: bash
+
+  - name: Unzip packages
+    if: ${{ inputs.pkg-name != '' }}
+    working-directory: dist
+    run: for file in `ls *.gz`; do tar -xzf $file; done
+    shell: bash
+
+  - name: Check single pkg/folder
+    if: ${{ inputs.pkg-name != '' }}
+    working-directory: dist
+    run: |
+      import os, glob, pathlib, shutil
+      # list folders without ending .egg-info
+      dirs = [d for d in glob.glob(os.path.join("*", "src", "*")) if not d.endswith(".egg-info")]
+      print(dirs)
+      assert len(dirs) == ${{ inputs.nb-dirs }}
+      # cleaning
+      shutil.rmtree(pathlib.Path(dirs[0]).parent.parent)
+    shell: python

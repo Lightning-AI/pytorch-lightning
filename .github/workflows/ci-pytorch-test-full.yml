@@ -1,0 +1,186 @@
+name: Test PyTorch full
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    paths:
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "setup.cfg"  # includes pytest config
+      - ".github/workflows/ci-pytorch-test-full.yml"
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+jobs:
+
+  pl-cpu:
+    runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.9"}  # ex-conda
+          - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.10"}  # ex-conda
+          - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.11"}  # ex-conda
+          - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.12"}  # ex-conda
+          - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.12"}
+          - {os: "macos-11", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "macos-11", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "macos-11", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.12"}
+          - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "windows-2022", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
+          # TODO: re-enable RC testing
+          # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
+
+    timeout-minutes: 40
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: basic setup
+      run: |
+        pip --version
+        pip install -q -r .actions/requirements.txt
+
+    - name: Setup macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
+
+    - name: Setup Windows
+      if: runner.os == 'windows'
+      run: |
+        python .actions/assistant.py requirements_prune_pkgs horovod
+
+    - name: Set min. dependencies
+      if: matrix.requires == 'oldest'
+      run: |
+        python .actions/assistant.py replace_oldest_ver
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
+
+    - name: pip cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+
+    - name: Pull legacy checkpoints
+      run: bash .actions/pull_legacy_checkpoints.sh
+
+    - name: Install dependencies
+      env:
+        PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
+      run: |
+        # adjust PyTorch versions in requirements files
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
+        # install PL and optional dependencies for testing
+        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
+        pip install -e . -r requirements/pytorch/test.txt -r ./requirements/pytorch/extra.txt $pre_option -f ${url}
+        pip list
+      shell: bash
+
+    - name: DocTests PL
+      working-directory: ./src
+      run: pytest pytorch_lightning --cov=pytorch_lightning
+
+    - name: Reinstall Horovod if necessary
+      if: runner.os != 'windows'
+      env:
+        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+        HOROVOD_WITHOUT_MXNET: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
+      run: |
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
+        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
+          pip uninstall -y horovod
+          grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
+          pip install --no-cache-dir -r requirements/pytorch/horovod.txt
+        fi
+        horovodrun --check-build
+        python -c "import horovod.torch"
+        pip list
+      shell: bash
+
+    - name: Cache datasets
+      uses: actions/cache@v3
+      with:
+        path: Datasets
+        key: pl-dataset
+
+    - name: Sanity check
+      run: |
+        python -c "import torch; assert torch.__version__.startswith('${{ matrix.pytorch-version }}')"
+        python requirements/pytorch/check-avail-extras.py
+
+    - name: Testing Warnings
+      # the stacklevel can only be set on >=3.7
+      if: matrix.python-version != '3.7'
+      working-directory: tests/tests_pytorch
+      # needs to run outside of `pytest`
+      run: python utilities/test_warnings.py
+
+    - name: Testing PyTorch
+      working-directory: tests/tests_pytorch
+      # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+
+    - name: Upload pytest results
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
+        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+
+    - name: Run Examples
+      working-directory: ./examples
+      run: python -m pytest test_pl_examples.py -v --durations=10
+
+    - name: Statistics
+      if: success()
+      working-directory: tests/tests_pytorch
+      run: |
+        coverage report
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: tests/tests_pytorch/coverage.xml
+        flags: cpu,pytest,python${{ matrix.python-version }}
+        name: CPU-coverage
+        fail_ci_if_error: false
