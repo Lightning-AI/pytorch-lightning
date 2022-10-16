@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
@@ -379,9 +379,14 @@ class LightningLite(ABC):
                 f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
                 f" Remove `.skip_backward_sync()` from your code or choose a differnt strategy."
             )
-        if enabled:
-            with self._strategy._backward_sync_control.skip_backward_sync(module):
-                yield
+
+        context = (
+            self._strategy._backward_sync_control.skip_backward_sync(module._forward_module)
+            if enabled
+            else nullcontext()
+        )
+        with context:
+            yield
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
         """Save checkpoint contents to a file.

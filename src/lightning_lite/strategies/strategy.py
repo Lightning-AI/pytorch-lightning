@@ -300,7 +300,7 @@ class Strategy(ABC):
 
 
 class _BackwardSyncControl(ABC):
-    """Mixin-interface for any :class:`Strategy` that wants to offer a functionality to enable or disable gradient
+    """Interface for any :class:`Strategy` that wants to offer a functionality to enable or disable gradient
     synchronization during/after back-propagation.
 
     The most common use-case is gradient accumulation. If a :class:`Strategy` implements this interface, the user can
