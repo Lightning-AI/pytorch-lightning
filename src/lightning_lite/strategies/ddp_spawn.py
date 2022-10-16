@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -30,7 +29,7 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp import _DDPBackwardSyncControl
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
-from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
+from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
