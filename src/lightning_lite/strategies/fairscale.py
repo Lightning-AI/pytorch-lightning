@@ -142,7 +142,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             timeout=timeout,
             **kwargs,
         )
-        self._backward_sync_control = _ShardedBackwardSyncControl()
+        self._backward_sync_control = _FairscaleBackwardSyncControl()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -195,7 +195,7 @@ def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precisio
     return optimizers
 
 
-class _ShardedBackwardSyncControl(_BackwardSyncControl):
+class _FairscaleBackwardSyncControl(_BackwardSyncControl):
     @contextmanager
     def skip_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
