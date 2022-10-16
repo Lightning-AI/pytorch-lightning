@@ -452,3 +452,26 @@ def test_autocast():
     with lite.autocast():
         lite._precision.forward_context().__enter__.assert_called()
     lite._precision.forward_context().__exit__.assert_called()
+
+
+def test_skip_backward_sync():
+    """Test that `Lite.skip_backward_sync()` validates the strategy and model is compatible."""
+    lite = EmptyLite()
+    model = nn.Linear(3, 3)
+    with pytest.raises(TypeError, match="You need to set up the model first"):
+        with lite.skip_backward_sync(model):
+            pass
+
+    model = lite.setup(model)
+
+    with pytest.raises(TypeError, match="The `SingleDeviceStrategy` does not support skipping the"):
+        with lite.skip_backward_sync(model):
+            pass
+
+    # pretend that the strategy supports skipping backward sync
+    lite._strategy = Mock(_backward_sync_control=MagicMock())
+
+    with lite.skip_backward_sync(model):
+        pass
+
+    lite._strategy._backward_sync_control.skip_backward_sync.assert_called_once()
