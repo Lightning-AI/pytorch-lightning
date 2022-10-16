@@ -137,7 +137,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple[Module, List[Optimizer]]:
+    ) -> Tuple["ShardedDataParallel", List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
 
         Return:

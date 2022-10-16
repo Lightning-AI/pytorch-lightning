@@ -28,15 +28,6 @@ from lightning_lite.strategies.fairscale import (
 
 
 @RunIf(fairscale=True)
-def test_block_backward_sync():
-    strategy = DDPShardedStrategy()
-    model = mock.MagicMock(spec=ShardedDataParallel)
-    with strategy.block_backward_sync(model):
-        pass
-    model.no_sync.assert_called_once()
-
-
-@RunIf(fairscale=True)
 @mock.patch("lightning_lite.strategies.fairscale._reinit_optimizers_with_oss", autospec=True)
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_fairscale_custom_kwargs(_, cls):

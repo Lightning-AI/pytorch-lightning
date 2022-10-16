@@ -193,5 +193,5 @@ class _DDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.skip_backward_sync` is wrapped in `DistributedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():
+        with module.no_sync():  # type: ignore[operator]
             yield None
