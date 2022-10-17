@@ -26,7 +26,6 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class TestHPUProfiler:
-
     @pytest.fixture
     def get_device_count(self, pytestconfig):
         hpus = int(pytestconfig.getoption("hpus"))
