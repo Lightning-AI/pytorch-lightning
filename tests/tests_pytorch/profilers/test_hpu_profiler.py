@@ -25,230 +25,238 @@ from pytorch_lightning.profilers import AdvancedProfiler, HPUProfiler, SimplePro
 from tests_pytorch.helpers.runif import RunIf
 
 
-class TestHPUProfiler:
-    @pytest.fixture
-    def get_device_count(self, pytestconfig):
-        hpus = int(pytestconfig.getoption("hpus"))
-        if not hpus:
-            assert HPUAccelerator.auto_device_count() >= 1
-            return 1
-        assert hpus <= HPUAccelerator.auto_device_count(), "More hpu devices asked than present"
-        assert hpus == 1 or hpus % 8 == 0
-        return hpus
+@pytest.fixture
+def get_device_count(self, pytestconfig):
+    hpus = int(pytestconfig.getoption("hpus"))
+    if not hpus:
+        assert HPUAccelerator.auto_device_count() >= 1
+        return 1
+    assert hpus <= HPUAccelerator.auto_device_count(), "More hpu devices asked than present"
+    assert hpus == 1 or hpus % 8 == 0
+    return hpus
 
-    @RunIf(hpu=True)
-    def test_hpu_simple_profiler_instances(self, tmpdir, get_device_count):
-        trainer = Trainer(
-            profiler="simple",
-            accelerator="hpu",
-            devices=get_device_count,
-        )
-        assert isinstance(trainer.profiler, SimpleProfiler)
 
-    @RunIf(hpu=True)
-    def test_hpu_simple_profiler_trainer_stages(self, tmpdir, get_device_count):
-        model = BoringModel()
-        profiler = SimpleProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
-        trainer = Trainer(
-            profiler=profiler,
-            accelerator="hpu",
-            devices=get_device_count,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-        )
+@RunIf(hpu=True)
+def test_hpu_simple_profiler_instances(self, tmpdir, get_device_count):
+    trainer = Trainer(
+        profiler="simple",
+        accelerator="hpu",
+        devices=get_device_count,
+    )
+    assert isinstance(trainer.profiler, SimpleProfiler)
 
-        trainer.fit(model)
-        trainer.validate(model)
-        trainer.test(model)
-        trainer.predict(model)
 
-        actual = set(os.listdir(profiler.dirpath))
-        expected = {f"{stage}-profiler.txt" for stage in ("fit", "validate", "test", "predict")}
-        assert actual == expected
-        for file in list(os.listdir(profiler.dirpath)):
-            assert os.path.getsize(os.path.join(profiler.dirpath, file)) > 0
+@RunIf(hpu=True)
+def test_hpu_simple_profiler_trainer_stages(self, tmpdir, get_device_count):
+    model = BoringModel()
+    profiler = SimpleProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
+    trainer = Trainer(
+        profiler=profiler,
+        accelerator="hpu",
+        devices=get_device_count,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+    )
 
-    @RunIf(hpu=True)
-    def test_hpu_advanced_profiler_instances(self, tmpdir, get_device_count):
-        trainer = Trainer(
-            profiler="advanced",
-            accelerator="hpu",
-            devices=get_device_count,
-        )
-        assert isinstance(trainer.profiler, AdvancedProfiler)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
 
-    @RunIf(hpu=True)
-    def test_hpu_advanced_profiler_trainer_stages(self, tmpdir, get_device_count):
-        model = BoringModel()
-        profiler = AdvancedProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
-        trainer = Trainer(
-            profiler=profiler,
-            accelerator="hpu",
-            devices=get_device_count,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-        )
+    actual = set(os.listdir(profiler.dirpath))
+    expected = {f"{stage}-profiler.txt" for stage in ("fit", "validate", "test", "predict")}
+    assert actual == expected
+    for file in list(os.listdir(profiler.dirpath)):
+        assert os.path.getsize(os.path.join(profiler.dirpath, file)) > 0
 
-        trainer.fit(model)
-        trainer.validate(model)
-        trainer.test(model)
-        trainer.predict(model)
 
-        actual = set(os.listdir(profiler.dirpath))
-        expected = {f"{stage}-profiler.txt" for stage in ("fit", "validate", "test", "predict")}
-        assert actual == expected
-        for file in list(os.listdir(profiler.dirpath)):
-            assert os.path.getsize(os.path.join(profiler.dirpath, file)) > 0
+@RunIf(hpu=True)
+def test_hpu_advanced_profiler_instances(self, tmpdir, get_device_count):
+    trainer = Trainer(
+        profiler="advanced",
+        accelerator="hpu",
+        devices=get_device_count,
+    )
+    assert isinstance(trainer.profiler, AdvancedProfiler)
 
-    @RunIf(hpu=True)
-    def test_hpu_pytorch_profiler_instances(self, tmpdir):
 
-        trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1)
-        assert isinstance(trainer.profiler, HPUProfiler)
+@RunIf(hpu=True)
+def test_hpu_advanced_profiler_trainer_stages(self, tmpdir, get_device_count):
+    model = BoringModel()
+    profiler = AdvancedProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
+    trainer = Trainer(
+        profiler=profiler,
+        accelerator="hpu",
+        devices=get_device_count,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+    )
 
-    @RunIf(hpu=True)
-    def test_hpu_trace_event_cpu_op(self, tmpdir):
-        # Run model and prep json
-        model = BoringModel()
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
 
-        trainer = Trainer(
-            accelerator="hpu",
-            devices=1,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            profiler=HPUProfiler(dirpath=tmpdir),
-            limit_train_batches=2,
-            limit_val_batches=0,
-        )
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
+    actual = set(os.listdir(profiler.dirpath))
+    expected = {f"{stage}-profiler.txt" for stage in ("fit", "validate", "test", "predict")}
+    assert actual == expected
+    for file in list(os.listdir(profiler.dirpath)):
+        assert os.path.getsize(os.path.join(profiler.dirpath, file)) > 0
 
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
 
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            event_duration_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "cpu_op":
-                        event_duration_arr.append(event["dur"])
-                except KeyError:
-                    pass
-            if len(event_duration_arr) == 0:
-                raise Exception("Could not find event cpu_op in trace")
-            for event_duration in event_duration_arr:
-                assert event_duration >= 0
+@RunIf(hpu=True)
+def test_hpu_pytorch_profiler_instances(self, tmpdir):
 
-    @RunIf(hpu=True)
-    def test_hpu_trace_event_hpu_op(self, tmpdir):
-        # Run model and prep json
-        model = BoringModel()
+    trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1)
+    assert isinstance(trainer.profiler, HPUProfiler)
 
-        trainer = Trainer(
-            accelerator="hpu",
-            devices=1,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            profiler=HPUProfiler(dirpath=tmpdir),
-            limit_train_batches=2,
-            limit_val_batches=0,
-        )
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            event_duration_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "hpu_op":
-                        event_duration_arr.append(event["dur"])
-                except KeyError:
-                    pass
-            if len(event_duration_arr) == 0:
-                raise Exception("Could not find event hpu_op in trace")
-            for event_duration in event_duration_arr:
-                assert event_duration >= 0
+@RunIf(hpu=True)
+def test_hpu_trace_event_cpu_op(self, tmpdir):
+    # Run model and prep json
+    model = BoringModel()
 
-    @RunIf(hpu=True)
-    def test_hpu_trace_event_hpu_meta_op(self, tmpdir):
-        # Run model and prep json
-        model = BoringModel()
+    trainer = Trainer(
+        accelerator="hpu",
+        devices=1,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        profiler=HPUProfiler(dirpath=tmpdir),
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-        trainer = Trainer(
-            accelerator="hpu",
-            devices=1,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            profiler=HPUProfiler(dirpath=tmpdir),
-            limit_train_batches=2,
-            limit_val_batches=0,
-        )
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
+    # get trace path
+    TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
 
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
+    # Check json dumped
+    assert os.path.isfile(TRACE_PATH)
+    with open(TRACE_PATH) as file:
+        data = json.load(file)
+        assert "traceEvents" in data
+        event_duration_arr = []
+        for event in data["traceEvents"]:
+            try:
+                if event["cat"] == "cpu_op":
+                    event_duration_arr.append(event["dur"])
+            except KeyError:
+                pass
+        if len(event_duration_arr) == 0:
+            raise Exception("Could not find event cpu_op in trace")
+        for event_duration in event_duration_arr:
+            assert event_duration >= 0
 
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            event_duration_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "hpu_meta_op":
-                        event_duration_arr.append(event["dur"])
-                except KeyError:
-                    pass
-            if len(event_duration_arr) == 0:
-                raise Exception("Could not find event hpu_meta_op in trace")
-            for event_duration in event_duration_arr:
-                assert event_duration >= 0
 
-    @RunIf(hpu=True)
-    def test_hpu_trace_event_kernel(self, tmpdir):
-        # Run model and prep json
-        model = BoringModel()
-        trainer = Trainer(
-            accelerator="hpu",
-            devices=1,
-            max_epochs=1,
-            default_root_dir=tmpdir,
-            profiler=HPUProfiler(dirpath=tmpdir),
-            limit_train_batches=2,
-            limit_val_batches=0,
-        )
-        trainer.fit(model)
-        assert trainer.state.finished, f"Training failed with {trainer.state}"
-        # get trace path
-        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
+@RunIf(hpu=True)
+def test_hpu_trace_event_hpu_op(self, tmpdir):
+    # Run model and prep json
+    model = BoringModel()
 
-        # Check json dumped
-        assert os.path.isfile(TRACE_PATH)
-        with open(TRACE_PATH) as file:
-            data = json.load(file)
-            assert "traceEvents" in data
-            event_duration_arr = []
-            for event in data["traceEvents"]:
-                try:
-                    if event["cat"] == "kernel":
-                        event_duration_arr.append(event["dur"])
-                except KeyError:
-                    pass
-            if len(event_duration_arr) == 0:
-                raise Exception("Could not find event kernel in trace")
-            for event_duration in event_duration_arr:
-                assert event_duration >= 0
+    trainer = Trainer(
+        accelerator="hpu",
+        devices=1,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        profiler=HPUProfiler(dirpath=tmpdir),
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+    # get trace path
+    TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
+    # Check json dumped
+    assert os.path.isfile(TRACE_PATH)
+    with open(TRACE_PATH) as file:
+        data = json.load(file)
+        assert "traceEvents" in data
+        event_duration_arr = []
+        for event in data["traceEvents"]:
+            try:
+                if event["cat"] == "hpu_op":
+                    event_duration_arr.append(event["dur"])
+            except KeyError:
+                pass
+        if len(event_duration_arr) == 0:
+            raise Exception("Could not find event hpu_op in trace")
+        for event_duration in event_duration_arr:
+            assert event_duration >= 0
+
+
+@RunIf(hpu=True)
+def test_hpu_trace_event_hpu_meta_op(self, tmpdir):
+    # Run model and prep json
+    model = BoringModel()
+
+    trainer = Trainer(
+        accelerator="hpu",
+        devices=1,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        profiler=HPUProfiler(dirpath=tmpdir),
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+    # get trace path
+    TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
+
+    # Check json dumped
+    assert os.path.isfile(TRACE_PATH)
+    with open(TRACE_PATH) as file:
+        data = json.load(file)
+        assert "traceEvents" in data
+        event_duration_arr = []
+        for event in data["traceEvents"]:
+            try:
+                if event["cat"] == "hpu_meta_op":
+                    event_duration_arr.append(event["dur"])
+            except KeyError:
+                pass
+        if len(event_duration_arr) == 0:
+            raise Exception("Could not find event hpu_meta_op in trace")
+        for event_duration in event_duration_arr:
+            assert event_duration >= 0
+
+
+@RunIf(hpu=True)
+def test_hpu_trace_event_kernel(self, tmpdir):
+    # Run model and prep json
+    model = BoringModel()
+    trainer = Trainer(
+        accelerator="hpu",
+        devices=1,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        profiler=HPUProfiler(dirpath=tmpdir),
+        limit_train_batches=2,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    # get trace path
+    TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
+
+    # Check json dumped
+    assert os.path.isfile(TRACE_PATH)
+    with open(TRACE_PATH) as file:
+        data = json.load(file)
+        assert "traceEvents" in data
+        event_duration_arr = []
+        for event in data["traceEvents"]:
+            try:
+                if event["cat"] == "kernel":
+                    event_duration_arr.append(event["dur"])
+            except KeyError:
+                pass
+        if len(event_duration_arr) == 0:
+            raise Exception("Could not find event kernel in trace")
+        for event_duration in event_duration_arr:
+            assert event_duration >= 0
