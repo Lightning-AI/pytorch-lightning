@@ -15,7 +15,6 @@
 import glob
 import json
 import os
-import shutil
 
 import pytest
 
@@ -27,11 +26,6 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class TestHPUProfiler:
-    def setup_method(self):
-        shutil.rmtree("profiler_logs", ignore_errors=True)
-
-    def teardown_method(self):
-        shutil.rmtree("profiler_logs", ignore_errors=True)
 
     @pytest.fixture
     def get_device_count(self, pytestconfig):
