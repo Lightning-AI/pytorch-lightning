@@ -124,7 +124,7 @@ class TestHPUProfiler:
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            default_root_dir=tmpdir
+            default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
@@ -161,7 +161,7 @@ class TestHPUProfiler:
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            default_root_dir=tmpdir
+            default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
@@ -197,7 +197,7 @@ class TestHPUProfiler:
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            default_root_dir=tmpdir
+            default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
@@ -233,7 +233,7 @@ class TestHPUProfiler:
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            default_root_dir=tmpdir
+            default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
