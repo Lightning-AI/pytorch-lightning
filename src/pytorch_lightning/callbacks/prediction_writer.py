@@ -17,7 +17,9 @@ BasePredictionWriter
 
 Aids in saving predictions
 """
-from typing import Any, Literal, Optional, Sequence
+from typing import Any, Optional, Sequence
+
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
