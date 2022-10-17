@@ -137,7 +137,7 @@ def test_srun_available_and_not_used(monkeypatch):
         assert not SLURMEnvironment.detect()
 
 
-def test_srun_incorrect_ntasks():
+def test_srun_variable_validation():
     """Test that we raise useful errors when `srun` variables are misconfigured."""
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "1"}):
         SLURMEnvironment()
