@@ -26,7 +26,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.fixture
-def get_device_count(self, pytestconfig):
+def get_device_count(pytestconfig):
     hpus = int(pytestconfig.getoption("hpus"))
     if not hpus:
         assert HPUAccelerator.auto_device_count() >= 1
@@ -37,7 +37,7 @@ def get_device_count(self, pytestconfig):
 
 
 @RunIf(hpu=True)
-def test_hpu_simple_profiler_instances(self, tmpdir, get_device_count):
+def test_hpu_simple_profiler_instances(get_device_count):
     trainer = Trainer(
         profiler="simple",
         accelerator="hpu",
@@ -47,14 +47,13 @@ def test_hpu_simple_profiler_instances(self, tmpdir, get_device_count):
 
 
 @RunIf(hpu=True)
-def test_hpu_simple_profiler_trainer_stages(self, tmpdir, get_device_count):
+def test_hpu_simple_profiler_trainer_stages(tmpdir, get_device_count):
     model = BoringModel()
     profiler = SimpleProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
     trainer = Trainer(
         profiler=profiler,
         accelerator="hpu",
         devices=get_device_count,
-        max_epochs=1,
         default_root_dir=tmpdir,
         fast_dev_run=True,
     )
@@ -72,7 +71,7 @@ def test_hpu_simple_profiler_trainer_stages(self, tmpdir, get_device_count):
 
 
 @RunIf(hpu=True)
-def test_hpu_advanced_profiler_instances(self, tmpdir, get_device_count):
+def test_hpu_advanced_profiler_instances(get_device_count):
     trainer = Trainer(
         profiler="advanced",
         accelerator="hpu",
@@ -82,14 +81,13 @@ def test_hpu_advanced_profiler_instances(self, tmpdir, get_device_count):
 
 
 @RunIf(hpu=True)
-def test_hpu_advanced_profiler_trainer_stages(self, tmpdir, get_device_count):
+def test_hpu_advanced_profiler_trainer_stages(tmpdir, get_device_count):
     model = BoringModel()
     profiler = AdvancedProfiler(dirpath=os.path.join(tmpdir, "profiler_logs"), filename="profiler")
     trainer = Trainer(
         profiler=profiler,
         accelerator="hpu",
         devices=get_device_count,
-        max_epochs=1,
         default_root_dir=tmpdir,
         fast_dev_run=True,
     )
@@ -107,14 +105,14 @@ def test_hpu_advanced_profiler_trainer_stages(self, tmpdir, get_device_count):
 
 
 @RunIf(hpu=True)
-def test_hpu_pytorch_profiler_instances(self, tmpdir):
+def test_hpu_pytorch_profiler_instances():
 
     trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1)
     assert isinstance(trainer.profiler, HPUProfiler)
 
 
 @RunIf(hpu=True)
-def test_hpu_trace_event_cpu_op(self, tmpdir):
+def test_hpu_trace_event_cpu_op(tmpdir):
     # Run model and prep json
     model = BoringModel()
 
@@ -152,7 +150,7 @@ def test_hpu_trace_event_cpu_op(self, tmpdir):
 
 
 @RunIf(hpu=True)
-def test_hpu_trace_event_hpu_op(self, tmpdir):
+def test_hpu_trace_event_hpu_op(tmpdir):
     # Run model and prep json
     model = BoringModel()
 
@@ -189,7 +187,7 @@ def test_hpu_trace_event_hpu_op(self, tmpdir):
 
 
 @RunIf(hpu=True)
-def test_hpu_trace_event_hpu_meta_op(self, tmpdir):
+def test_hpu_trace_event_hpu_meta_op(tmpdir):
     # Run model and prep json
     model = BoringModel()
 
@@ -227,7 +225,7 @@ def test_hpu_trace_event_hpu_meta_op(self, tmpdir):
 
 
 @RunIf(hpu=True)
-def test_hpu_trace_event_kernel(self, tmpdir):
+def test_hpu_trace_event_kernel(tmpdir):
     # Run model and prep json
     model = BoringModel()
     trainer = Trainer(
