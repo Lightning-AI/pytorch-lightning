@@ -127,7 +127,7 @@ class TestHPUProfiler:
             default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
-            limit_val_batches=2,
+            limit_val_batches=0,
         )
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -164,7 +164,7 @@ class TestHPUProfiler:
             default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
-            limit_val_batches=2,
+            limit_val_batches=0,
         )
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -200,7 +200,7 @@ class TestHPUProfiler:
             default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
-            limit_val_batches=2,
+            limit_val_batches=0,
         )
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -236,7 +236,7 @@ class TestHPUProfiler:
             default_root_dir=tmpdir,
             profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
-            limit_val_batches=2,
+            limit_val_batches=0,
         )
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
