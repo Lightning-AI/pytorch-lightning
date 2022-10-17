@@ -1,5 +1,48 @@
 from dataclasses import asdict, dataclass
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
+from uuid import uuid4
+
+from lightning_app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
+
+__CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
+
+
+@dataclass
+class _CloudComputeStore:
+    id: str
+    component_names: List[str]
+
+    def add_component_name(self, new_component_name: str) -> None:
+        found_index = None
+        # When the work is being named by the flow, pop its previous names
+        for index, component_name in enumerate(self.component_names):
+            if new_component_name.endswith(component_name.replace("root.", "")):
+                found_index = index
+
+        if found_index is not None:
+            self.component_names[found_index] = new_component_name
+        else:
+            if (
+                len(self.component_names) == 1
+                and not ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
+                and self.id != "default"
+            ):
+                raise Exception(
+                    f"A Cloud Compute can be assigned only to a single Work. Attached to {self.component_names[0]}"
+                )
+            self.component_names.append(new_component_name)
+
+    def remove(self, new_component_name: str) -> None:
+        found_index = None
+        for index, component_name in enumerate(self.component_names):
+            if new_component_name == component_name:
+                found_index = index
+
+        if found_index is not None:
+            del self.component_names[found_index]
+
+
+_CLOUD_COMPUTE_STORE = {}
 
 
 @dataclass
@@ -43,6 +86,7 @@ class CloudCompute:
     wait_timeout: Optional[int] = None
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = 0
+    _internal_id: Optional[str] = None
 
     def __post_init__(self):
         if self.clusters:
@@ -52,9 +96,28 @@ class CloudCompute:
 
         self.name = self.name.lower()
 
+        # All `default` CloudCompute are identified in the same way.
+        if self._internal_id is None:
+            self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
+
     def to_dict(self):
-        return {"__cloud_compute__": asdict(self)}
+        return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
 
     @classmethod
     def from_dict(cls, d):
-        return cls(**d["__cloud_compute__"])
+        assert d.pop("type") == __CLOUD_COMPUTE_IDENTIFIER__
+        return cls(**d)
+
+    @property
+    def id(self) -> Optional[str]:
+        return self._internal_id
+
+    def is_default(self) -> bool:
+        return self.name == "default"
+
+
+def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
+    if state and __CLOUD_COMPUTE_IDENTIFIER__ == state.get("type", None):
+        cloud_compute = CloudCompute.from_dict(state)
+        return cloud_compute
+    return state

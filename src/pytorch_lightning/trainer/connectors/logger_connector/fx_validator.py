@@ -26,8 +26,6 @@ class _FxValidator:
         default_on_epoch: bool
 
     functions = {
-        "on_before_accelerator_backend_setup": None,
-        "on_configure_sharded_model": None,
         "on_before_backward": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
@@ -75,8 +73,6 @@ class _FxValidator:
         "on_test_end": None,
         "on_predict_start": None,
         "on_predict_end": None,
-        "on_pretrain_routine_start": None,
-        "on_pretrain_routine_end": None,
         "on_train_epoch_start": _LogOptions(
             allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
         ),
@@ -97,21 +93,9 @@ class _FxValidator:
         ),
         "on_predict_epoch_start": None,
         "on_predict_epoch_end": None,
-        "on_epoch_start": _LogOptions(
-            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
-        ),
-        "on_epoch_end": _LogOptions(
-            allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
-        ),
         "on_before_batch_transfer": None,
         "transfer_batch_to_device": None,
         "on_after_batch_transfer": None,
-        "on_batch_start": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
-        ),
-        "on_batch_end": _LogOptions(
-            allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
-        ),
         "on_train_batch_start": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),

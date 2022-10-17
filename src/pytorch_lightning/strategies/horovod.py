@@ -23,7 +23,7 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO
 from lightning_lite.utilities.distributed import distributed_available
 from lightning_lite.utilities.distributed import group as dist_group
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy

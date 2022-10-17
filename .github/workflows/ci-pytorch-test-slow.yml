@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        # same config as '.azure-pipelines/gpu-tests.yml'
+        # same config as '.azure-pipelines/gpu-tests-pytorch.yml'
         python-version: ["3.7"]
         pytorch-version: ["1.11"]
 
@@ -41,9 +41,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Reset caching
-      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
-
     - name: Get pip cache
       id: pip-cache
       run: |
@@ -53,9 +50,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ hashFiles('requirements/pytorch/base.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ hashFiles('requirements/pytorch/base.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-
 
     - name: Install dependencies
       env:

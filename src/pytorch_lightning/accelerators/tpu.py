@@ -15,14 +15,19 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.accelerators.tpu import parse_tpu_cores
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE, parse_tpu_cores
+from lightning_lite.accelerators.tpu import TPUAccelerator as LiteTPUAccelerator
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 
 
 class TPUAccelerator(Accelerator):
     """Accelerator for TPU devices."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        super().__init__(*args, **kwargs)
 
     def setup_device(self, device: torch.device) -> None:
         pass
@@ -69,12 +74,12 @@ class TPUAccelerator(Accelerator):
 
     @staticmethod
     def is_available() -> bool:
-        return _TPU_AVAILABLE
+        return LiteTPUAccelerator.is_available()
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
         accelerator_registry.register(
             "tpu",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
