@@ -787,3 +787,11 @@ def test_accelerator_specific_checkpoint_io(*_):
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         Trainer(strategy=strategy)
+
+
+@pytest.mark.parametrize(
+    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
+)
+def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
+    trainer = Trainer(strategy=strategy)
+    assert isinstance(trainer.strategy, strategy_cls)

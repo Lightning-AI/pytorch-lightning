@@ -78,9 +78,6 @@ class LightningArgumentParser(ArgumentParser):
                 f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}. Try `pip install -U 'jsonargparse[signatures]'`."
             )
         super().__init__(*args, **kwargs)
-        self.add_argument(
-            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
-        )
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
@@ -390,7 +387,11 @@ class LightningCLI:
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
         kwargs.setdefault("dump_header", [f"pytorch_lightning=={pl.__version__}"])
-        return LightningArgumentParser(**kwargs)
+        parser = LightningArgumentParser(**kwargs)
+        parser.add_argument(
+            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
+        )
+        return parser
 
     def setup_parser(
         self, add_subcommands: bool, main_kwargs: Dict[str, Any], subparser_kwargs: Dict[str, Any]

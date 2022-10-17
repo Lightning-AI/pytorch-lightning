@@ -22,14 +22,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class MyNativeAMP(NativeMixedPrecisionPlugin):
@@ -104,13 +98,13 @@ class TestPrecisionModel(BoringModel):
         grads = [p.grad for p in self.parameters()]
         assert len(grads) == len(self.original_grads)
         for actual, expected in zip(grads, self.original_grads):
-            torch_test_assert_close(actual, expected, equal_nan=True)
+            torch.testing.assert_close(actual, expected, equal_nan=True)
 
     def check_grads_clipped(self):
         parameters = list(self.parameters())
         assert len(parameters) == len(self.clipped_parameters)
         for actual, expected in zip(parameters, self.clipped_parameters):
-            torch_test_assert_close(actual.grad, expected.grad, equal_nan=True)
+            torch.testing.assert_close(actual.grad, expected.grad, equal_nan=True)
 
     def on_before_optimizer_step(self, optimizer, *_):
         self.check_grads_unscaled(optimizer)

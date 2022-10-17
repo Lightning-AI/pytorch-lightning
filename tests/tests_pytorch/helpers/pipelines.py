@@ -16,14 +16,12 @@ from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
+from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint
 
 
 def run_model_test_without_loggers(
     trainer_options: dict, model: LightningModule, data: LightningDataModule = None, min_acc: float = 0.50
 ):
-    reset_seed()
-
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model, datamodule=data)
@@ -51,7 +49,6 @@ def run_model_test(
     with_hpc: bool = True,
     min_acc: float = 0.25,
 ):
-    reset_seed()
     save_dir = trainer_options["default_root_dir"]
 
     # logger file to get meta

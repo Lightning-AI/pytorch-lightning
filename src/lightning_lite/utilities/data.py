@@ -175,11 +175,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
-    re-instantiation.
-
-    If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
-    automatically, since `poptorch.DataLoader` will try to increase the batch_size
-    """
+    re-instantiation."""
     batch_sampler = getattr(dataloader, "batch_sampler")
 
     if batch_sampler is not None:

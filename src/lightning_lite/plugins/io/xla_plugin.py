@@ -15,15 +15,12 @@ import os
 from typing import Any, Dict, Optional
 
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
 from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning_lite.utilities.types import _PATH
-
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 class XLACheckpointIO(TorchCheckpointIO):
@@ -54,9 +51,10 @@ class XLACheckpointIO(TorchCheckpointIO):
             )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
-        # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        # Ref: https://github.com/pytorch/xla/issues/2773
-        if _OMEGACONF_AVAILABLE:
+        if RequirementCache("omegaconf"):
+            # workaround for https://github.com/pytorch/xla/issues/2773
+            from omegaconf import DictConfig, ListConfig, OmegaConf
+
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         import torch_xla.core.xla_model as xm
 
