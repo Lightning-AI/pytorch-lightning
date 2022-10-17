@@ -110,13 +110,13 @@ class TestHPUProfiler:
             assert os.path.getsize(os.path.join(profiler.dirpath, file)) > 0
 
     @RunIf(hpu=True)
-    def test_hpu_pytorch_profiler_instances(tmpdir):
+    def test_hpu_pytorch_profiler_instances(self, tmpdir):
 
         trainer = Trainer(profiler="hpu", accelerator="hpu", devices=1)
         assert isinstance(trainer.profiler, HPUProfiler)
 
     @RunIf(hpu=True)
-    def test_hpu_trace_event_cpu_op(tmpdir):
+    def test_hpu_trace_event_cpu_op(self, tmpdir):
         # Run model and prep json
         model = BoringModel()
 
@@ -124,7 +124,8 @@ class TestHPUProfiler:
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            profiler=HPUProfiler(),
+            default_root_dir=tmpdir
+            profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
         )
@@ -132,7 +133,7 @@ class TestHPUProfiler:
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
         # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
+        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
 
         # Check json dumped
         assert os.path.isfile(TRACE_PATH)
@@ -152,7 +153,7 @@ class TestHPUProfiler:
                 assert event_duration >= 0
 
     @RunIf(hpu=True)
-    def test_hpu_trace_event_hpu_op(tmpdir):
+    def test_hpu_trace_event_hpu_op(self, tmpdir):
         # Run model and prep json
         model = BoringModel()
 
@@ -160,7 +161,8 @@ class TestHPUProfiler:
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            profiler=HPUProfiler(),
+            default_root_dir=tmpdir
+            profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
         )
@@ -168,7 +170,7 @@ class TestHPUProfiler:
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
         # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
+        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
         # Check json dumped
         assert os.path.isfile(TRACE_PATH)
         with open(TRACE_PATH) as file:
@@ -187,7 +189,7 @@ class TestHPUProfiler:
                 assert event_duration >= 0
 
     @RunIf(hpu=True)
-    def test_hpu_trace_event_hpu_meta_op(tmpdir):
+    def test_hpu_trace_event_hpu_meta_op(self, tmpdir):
         # Run model and prep json
         model = BoringModel()
 
@@ -195,7 +197,8 @@ class TestHPUProfiler:
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            profiler=HPUProfiler(),
+            default_root_dir=tmpdir
+            profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
         )
@@ -203,7 +206,7 @@ class TestHPUProfiler:
         assert trainer.state.finished, f"Training failed with {trainer.state}"
 
         # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
+        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
 
         # Check json dumped
         assert os.path.isfile(TRACE_PATH)
@@ -223,21 +226,22 @@ class TestHPUProfiler:
                 assert event_duration >= 0
 
     @RunIf(hpu=True)
-    def test_hpu_trace_event_kernel(tmpdir):
+    def test_hpu_trace_event_kernel(self, tmpdir):
         # Run model and prep json
         model = BoringModel()
         trainer = Trainer(
             accelerator="hpu",
             devices=1,
             max_epochs=1,
-            profiler=HPUProfiler(),
+            default_root_dir=tmpdir
+            profiler=HPUProfiler(dirpath=tmpdir),
             limit_train_batches=2,
             limit_val_batches=2,
         )
         trainer.fit(model)
         assert trainer.state.finished, f"Training failed with {trainer.state}"
         # get trace path
-        TRACE_PATH = glob.glob(os.path.join("lightning_logs", "version_0", "fit*training_step*.json"))[0]
+        TRACE_PATH = glob.glob(os.path.join(tmpdir, "fit*training_step*.json"))[0]
 
         # Check json dumped
         assert os.path.isfile(TRACE_PATH)
