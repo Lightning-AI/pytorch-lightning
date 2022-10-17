@@ -154,9 +154,9 @@ class SLURMEnvironment(ClusterEnvironment):
     def _validate_srun_execution() -> None:
         """Checks if the `srun` command is available and used.
 
-        Parallel jobs (multi-GPU, multi-node) in SLURM are launched by prepending `srun` in front of the
-        Python command. Not doing so will result in processes hanging, which is a frequent user error. Lightning will
-        emit a warning if `srun` is found but not used.
+        Parallel jobs (multi-GPU, multi-node) in SLURM are launched by prepending `srun` in front of the Python command.
+        Not doing so will result in processes hanging, which is a frequent user error. Lightning will emit a warning if
+        `srun` is found but not used.
         """
         srun_exists = subprocess.call(["which", "srun"]) == 0
         srun_used = "SLURM_NTASKS" in os.environ
