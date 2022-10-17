@@ -13,11 +13,14 @@
 # limitations under the License.
 import logging
 import os
+import sys
 from unittest import mock
 
 import pytest
+from tests_lite.helpers.utils import no_warning_call
 
 from lightning_lite.plugins.environments import SLURMEnvironment
+from lightning_lite.utilities.warnings import PossibleUserWarning
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -47,6 +50,7 @@ def test_default_attributes():
         "SLURM_NODELIST": "1.1.1.1, 1.1.1.2",
         "SLURM_JOB_ID": "0001234",
         "SLURM_NTASKS": "20",
+        "SLURM_NTASKS_PER_NODE": "10",
         "SLURM_LOCALID": "2",
         "SLURM_PROCID": "1",
         "SLURM_NODEID": "3",
@@ -111,6 +115,25 @@ def test_detect():
         assert SLURMEnvironment.detect()
 
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "bash"}):
+        assert not SLURMEnvironment.detect()
+
+
+def test_srun_available_and_not_used(monkeypatch):
+    """Test that a warning is emitted if Lightning suspects the user forgot to run their script with `srun`."""
+    monkeypatch.setattr(sys, "argv", ["train.py", "--lr", "0.01"])
+    expected = "`srun` .* available .* but is not used. HINT: .* srun python train.py --lr 0.01"
+
+    # pretend `srun` is available
+    with mock.patch("lightning_lite.plugins.environments.slurm_environment.subprocess.call", return_value=0):
+        with pytest.warns(PossibleUserWarning, match=expected):
+            SLURMEnvironment()
+
+        with pytest.warns(PossibleUserWarning, match=expected):
+            SLURMEnvironment.detect()
+
+    # no warning if `srun` is unavailable
+    with no_warning_call(PossibleUserWarning, match=expected):
+        SLURMEnvironment()
         assert not SLURMEnvironment.detect()
 
 

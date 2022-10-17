@@ -96,6 +96,7 @@ class SLURMEnvironment(ClusterEnvironment):
         This will then avoid the detection of ``SLURMEnvironment`` and another environment can be detected
         automatically.
         """
+        SLURMEnvironment._validate_srun_execution()
         return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
 
     @staticmethod
@@ -158,7 +159,7 @@ class SLURMEnvironment(ClusterEnvironment):
         emit a warning if `srun` is found but not used.
         """
         srun_exists = subprocess.call(["which", "srun"]) == 0
-        srun_used = SLURMEnvironment.detect()
+        srun_used = "SLURM_NTASKS" in os.environ
         hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
         if srun_exists and not srun_used:
             rank_zero_warn(
@@ -176,8 +177,8 @@ class SLURMEnvironment(ClusterEnvironment):
         <https://slurm.schedmd.com/srun.html>`_ for a complete list of supported srun variables.
         """
         ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
-        if ntasks > 1:
+        if ntasks > 1 and "SLURM_NTASKS_PER_NODE" not in os.environ:
             raise RuntimeError(
-                f"You set `--ntasks={ntasks}` in your SLURM bash script, but this variable is not supported. Please use"
-                f" `--ntasks-per-node={ntasks}` instead."
+                f"You set `--ntasks={ntasks}` in your SLURM bash script, but this variable is not supported."
+                f" HINT: Use `--ntasks-per-node={ntasks}` instead."
             )
