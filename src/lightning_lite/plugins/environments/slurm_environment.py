@@ -16,10 +16,16 @@ import logging
 import os
 import re
 import signal
+import subprocess
+import sys
+import warnings
 from typing import Optional
+
+from lightning_utilities.core.rank_zero import rank_zero_warn
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _IS_WINDOWS
+from lightning_lite.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 
@@ -90,7 +96,16 @@ class SLURMEnvironment(ClusterEnvironment):
         This will then avoid the detection of ``SLURMEnvironment`` and another environment can be detected
         automatically.
         """
-        return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
+        srun_exists = subprocess.call(["which", "srun"]) == 0
+        srun_used = "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
+        hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
+        if srun_exists and not srun_used:
+            rank_zero_warn(
+                "The `srun` command is available on your system but is not used. HINT: If your intention is to run"
+                f" Lightning on SLURM, prepend your python command with `srun`: {hint} ...",
+                category=PossibleUserWarning,
+            )
+        return srun_used
 
     @staticmethod
     def job_name() -> Optional[str]:
