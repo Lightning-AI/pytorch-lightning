@@ -17,7 +17,6 @@ from typing import Dict
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from pytorch_lightning.profilers.profiler import Profiler
 
-
 log = logging.getLogger(__name__)
 
 

@@ -25,7 +25,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException, _ValueError
+from pytorch_lightning.utilities.exceptions import _ValueError, MisconfigurationException
 from pytorch_lightning.utilities.logger import (
     _add_prefix,
     _convert_params,
