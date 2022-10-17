@@ -45,7 +45,7 @@ class SLURMEnvironment(ClusterEnvironment):
         if requeue_signal is None and not _IS_WINDOWS:
             requeue_signal = signal.SIGUSR1
         self.requeue_signal = requeue_signal
-        self._validate_srun_execution()
+        self._validate_srun_used()
         self._validate_srun_variables()
 
     @property
@@ -96,7 +96,7 @@ class SLURMEnvironment(ClusterEnvironment):
         This will then avoid the detection of ``SLURMEnvironment`` and another environment can be detected
         automatically.
         """
-        SLURMEnvironment._validate_srun_execution()
+        SLURMEnvironment._validate_srun_used()
         return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
 
     @staticmethod
@@ -151,7 +151,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return nodes.split(" ")[0].split(",")[0]
 
     @staticmethod
-    def _validate_srun_execution() -> None:
+    def _validate_srun_used() -> None:
         """Checks if the `srun` command is available and used.
 
         Parallel jobs (multi-GPU, multi-node) in SLURM are launched by prepending `srun` in front of the
