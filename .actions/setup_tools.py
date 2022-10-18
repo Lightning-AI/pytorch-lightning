@@ -181,7 +181,7 @@ def parse_version_from_file(pkg_root: str) -> str:
 def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
     """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
-    py_files = glob.glob(os.path.join(package_dir, "**", "*.py"), recursive=True)
+    py_files = glob.glob(os.path.join(package_dir, "**", "*.*"), recursive=True)
     for py_file in py_files:
         local_path = py_file.replace(package_dir + os.path.sep, "")
         with open(py_file, encoding="utf-8") as fo:
