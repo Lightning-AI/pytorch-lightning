@@ -19,32 +19,42 @@ from pytorch_lightning.loggers import CSVLogger
 
 
 def test_v2_0_0_unsupported_agg_and_log_metrics(tmpdir):
+    logger = CSVLogger(tmpdir)
+    with pytest.raises(
+        RuntimeError,
+        match="CSVLogger.agg_and_log_metrics`.*no longer supported as of v1.8",
+    ):
+        logger.agg_and_log_metrics()
+
     class AggAndLogMetricsLogger(CSVLogger):
         def agg_and_log_metrics(self, metrics, step):
             pass
 
-    model = BoringModel()
     logger = AggAndLogMetricsLogger(tmpdir)
-
+    model = BoringModel()
     trainer = Trainer(logger=logger)
-
     with pytest.raises(
         RuntimeError,
-        match="`AggAndLogMetricsLogger.agg_and_log_metrics` was deprecated in v1.6 and is no longer supported",
+        match="`AggAndLogMetricsLogger.agg_and_log_metrics`.*no longer supported as of v1.8",
     ):
         trainer.fit(model)
 
 
 def test_v2_0_0_unsupported_update_agg_funcs(tmpdir):
+    logger = CSVLogger(tmpdir)
+    with pytest.raises(
+        RuntimeError,
+        match="CSVLogger.update_agg_funcs`.*no longer supported as of v1.8",
+    ):
+        logger.update_agg_funcs()
+
     class UpdateAggFuncsLogger(CSVLogger):
         def update_agg_funcs(self, metrics, step):
             pass
 
     model = BoringModel()
     logger = UpdateAggFuncsLogger(tmpdir)
-
     trainer = Trainer(logger=logger)
-
     with pytest.raises(
         RuntimeError,
         match="`UpdateAggFuncsLogger.update_agg_funcs` was deprecated in v1.6 and is no longer supported",
@@ -55,10 +65,10 @@ def test_v2_0_0_unsupported_update_agg_funcs(tmpdir):
 def test_v2_0_0_unsupported_logger_collection_class():
     from pytorch_lightning.loggers.base import LoggerCollection
 
-    with pytest.raises(RuntimeError, match="`LoggerCollection` was deprecated in v1.6 and removed in v1.8."):
+    with pytest.raises(NotImplementedError, match="`LoggerCollection` was deprecated in v1.6 and removed as of v1.8."):
         LoggerCollection(None)
 
     from pytorch_lightning.loggers.logger import LoggerCollection
 
-    with pytest.raises(RuntimeError, match="`LoggerCollection` was deprecated in v1.6 and removed in v1.8."):
+    with pytest.raises(RuntimeError, match="`LoggerCollection` was deprecated in v1.6 and removed as of v1.8."):
         LoggerCollection(None)
