@@ -8,7 +8,7 @@ from typing_extensions import Self
 
 from lightning_lite.plugins.collectives.collective import Collective
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
-from lightning_lite.utilities.types import CollectibleGroup, ReduceOp
+from lightning_lite.utilities.types import _TORCH_REDUCE_OP, CollectibleGroup
 
 if dist.is_available():
     from torch.distributed.constants import default_pg_timeout
@@ -34,12 +34,12 @@ class TorchCollective(Collective):
         dist.broadcast(tensor, src, group=self.group)
         return tensor
 
-    def all_reduce(self, tensor: torch.Tensor, op: Union[str, ReduceOp] = "sum") -> torch.Tensor:
+    def all_reduce(self, tensor: torch.Tensor, op: Union[str, _TORCH_REDUCE_OP] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
-    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, ReduceOp] = "sum") -> torch.Tensor:
+    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, _TORCH_REDUCE_OP] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
@@ -57,7 +57,7 @@ class TorchCollective(Collective):
         return tensor
 
     def reduce_scatter(
-        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, ReduceOp] = "sum"
+        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, _TORCH_REDUCE_OP] = "sum"
     ) -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
@@ -155,13 +155,13 @@ class TorchCollective(Collective):
         dist.destroy_process_group(group)
 
     @classmethod
-    def _convert_to_native_op(cls, op: Union[str, ReduceOp]) -> ReduceOp:
-        if isinstance(op, ReduceOp):
+    def _convert_to_native_op(cls, op: Union[str, _TORCH_REDUCE_OP]) -> _TORCH_REDUCE_OP:
+        if isinstance(op, _TORCH_REDUCE_OP):
             return op
         if not isinstance(op, str):
-            raise ValueError(f"op {op!r} should be a `str` or `ReduceOp`")
+            raise ValueError(f"op {op!r} should be a `str` or `{_TORCH_REDUCE_OP.__name__}`")
         op = op.upper()
-        value = getattr(ReduceOp, op, None)
+        value = getattr(_TORCH_REDUCE_OP, op, None)
         if value is None:
-            raise ValueError(f"op {op!r} is not a member of `ReduceOp`")
+            raise ValueError(f"op {op!r} is not a member of `{_TORCH_REDUCE_OP.__name__}`")
         return value
