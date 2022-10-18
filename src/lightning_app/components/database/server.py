@@ -75,12 +75,12 @@ class Database(LightningWork):
                 def __init__(self):
                     super().__init__()
                     self._private_token = uuid4().hex
-                    self.db = Database(models=[CounterModel], token=self._private_token)
+                    self.db = Database(models=[CounterModel])
                     self._client = None
                     self.counter = 0
 
                 def run(self):
-                    self.db.run()
+                    self.db.run(token=self._private_token)
 
                     if not self.db.alive():
                         return
