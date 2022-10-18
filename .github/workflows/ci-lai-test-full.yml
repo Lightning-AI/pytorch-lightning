@@ -100,11 +100,6 @@ jobs:
         pip list
       shell: bash
 
-    - name: Compile itself
-      run: |
-        python -m compileall src/lightning
-      shell: bash
-
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows' && matrix.scope == 'pytorch'
       env:
