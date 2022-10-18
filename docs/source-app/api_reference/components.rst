@@ -18,9 +18,9 @@ ___________________
     :nosignatures:
     :template: classtemplate.rst
 
-    ~database.server.Database
-    ~training.LightningTrainingComponent
-    ~serve.serve.ModelInferenceAPI
     ~python.popen.PopenPythonScript
     ~python.tracer.TracerPythonScript
+    ~training.LightningTrainingComponent
     ~serve.gradio.ServeGradio
+    ~serve.serve.ModelInferenceAPI
+    ~database.server.Database
