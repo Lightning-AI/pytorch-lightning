@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import Strategy, DDPStrategy
+from lightning_lite.strategies import DDPStrategy, Strategy
 from lightning_lite.strategies.strategy import _Sharded
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
@@ -456,7 +456,8 @@ def test_autocast():
 
 
 def test_module_sharding_context():
-    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
+    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
+    otherwise."""
     lite = EmptyLite()
     lite._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with lite.create_sharded_model():
