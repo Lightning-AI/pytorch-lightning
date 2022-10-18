@@ -185,7 +185,9 @@ class AssistantCLI:
 
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
-        assert len(source_imports) == len(target_imports), f"source and target imports must have the same length, source: {len(source_import)}, target: {len(target_import)}"
+        assert len(source_imports) == len(
+            target_imports
+        ), f"source and target imports must have the same length, source: {len(source_import)}, target: {len(target_import)}"
 
         # TODO: properly retrieve files
         ls = glob.glob(os.path.join(source_dir, "**", "*.*"), recursive=True)
@@ -193,7 +195,7 @@ class AssistantCLI:
         for fp in ls:
             if not os.path.isfile(fp):
                 continue
-            if not fp.endswith('.py'):
+            if not fp.endswith(".py"):
                 if not fp.endswith(".pyc"):
                     fp_new = fp.replace(source_dir, target_dir)
                     os.makedirs(os.path.dirname(fp_new), exist_ok=True)
