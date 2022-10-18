@@ -289,13 +289,14 @@ class Strategy(ABC):
 
 
 class _Sharded(ABC):
+    """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model parameters."""
+
     @abstractmethod
     @contextmanager
     def module_sharded_context(self) -> Generator:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
+        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding of
+        parameters on creation.
 
-        Returns: Model parallel context.
+        By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
         """
         yield

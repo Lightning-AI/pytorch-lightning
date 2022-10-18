@@ -345,6 +345,7 @@ class LightningLite(ABC):
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)
 
+    # TODO: Find intuitive name
     @contextmanager
     def create_sharded_model(self) -> Generator:
         context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
