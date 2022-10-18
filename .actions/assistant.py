@@ -32,7 +32,7 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/examples.txt",
     ),
 }
-REQUIREMENT_FILES_ALL = tuple(chain(*REQUIREMENT_FILES.values()))
+REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
 
 
