@@ -117,6 +117,10 @@ jobs:
         pip list
       shell: bash
 
+    - name: Testing package
+      working-directory: ./src
+      run: python -m pytest lightning -v --durations=50
+
     - name: Cache datasets
       uses: actions/cache@v3
       with:
