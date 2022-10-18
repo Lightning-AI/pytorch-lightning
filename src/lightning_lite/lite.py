@@ -397,7 +397,7 @@ class LightningLite(ABC):
     def _run_with_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self._strategy.module_sharded_context(), _replace_dunder_methods(
+        with self.create_sharded_model(), _replace_dunder_methods(
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)
