@@ -348,6 +348,18 @@ class LightningLite(ABC):
     # TODO: Find intuitive name
     @contextmanager
     def create_sharded_model(self) -> Generator:
+        """Shard the parameters of the model instantly when instantiating the layers.
+
+        Use this context manager with strategies that support sharding the model parameters to save peak memory usage.
+
+        Example::
+
+            # Accumulate gradient 8 batches at a time
+            with self.create_sharded_model():
+                model = MyModel()
+
+        The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
+        """
         context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
         with context:
             yield
