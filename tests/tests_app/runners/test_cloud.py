@@ -221,11 +221,9 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        lightning_app_instance = MagicMock()
-        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
-        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
-            return_value=lightning_app_instance
-        )
+        lapp_instance = MagicMock()
+        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lapp_instance)
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(return_value=lapp_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -320,11 +318,9 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        lightning_app_instance = MagicMock()
-        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
-        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
-            return_value=lightning_app_instance
-        )
+        lapp_instance = MagicMock()
+        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lapp_instance)
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(return_value=lapp_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -447,11 +443,9 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        lightning_app_instance = MagicMock()
-        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
-        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
-            return_value=lightning_app_instance
-        )
+        lapp_instance = MagicMock()
+        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lapp_instance)
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(return_value=lapp_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
