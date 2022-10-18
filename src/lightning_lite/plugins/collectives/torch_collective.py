@@ -7,7 +7,7 @@ import torch.distributed as dist
 from typing_extensions import Self
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_13
 from lightning_lite.utilities.types import CollectibleGroup, ReduceOp
 
 if dist.is_available():
@@ -156,7 +156,8 @@ class TorchCollective(Collective):
 
     @classmethod
     def _convert_to_native_op(cls, op: Union[str, ReduceOp]) -> ReduceOp:
-        if isinstance(op, ReduceOp):
+        op_types = (ReduceOp, ReduceOp.RedOpType) if _TORCH_GREATER_EQUAL_1_13 else (ReduceOp,)
+        if isinstance(op, op_types):
             return op
         if not isinstance(op, str):
             raise ValueError(f"op {op!r} should be a `str` or `ReduceOp`")
