@@ -354,7 +354,6 @@ class LightningLite(ABC):
 
         Example::
 
-            # Accumulate gradient 8 batches at a time
             with self.create_sharded_model():
                 model = MyModel()
 
