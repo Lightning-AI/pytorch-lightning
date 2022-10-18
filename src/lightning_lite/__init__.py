@@ -5,7 +5,7 @@ from lightning_lite.__about__ import *  # noqa: F401, F403
 from lightning_lite.__version__ import version as __version__  # noqa: F401
 
 _root_logger = logging.getLogger()
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("lightning_lite")
 _logger.setLevel(logging.INFO)
 
 if not _root_logger.hasHandlers():
