@@ -56,11 +56,12 @@ class Database(LightningWork):
             mode: Whether the database should be running within the flow or dedicated work.
             token: Token used to protect the database access. Ensure you don't expose it through the App State.
 
-        Example:
+        Example::
 
             from sqlmodel import SQLModel, Field
             from lightning import LightningFlow, LightningApp
             from lightning_app.components.database import Database, DatabaseClient
+            from uuid import uuid4
 
             class CounterModel(SQLModel, table=True):
                 __table_args__ = {"extend_existing": True}
@@ -73,7 +74,8 @@ class Database(LightningWork):
 
                 def __init__(self):
                     super().__init__()
-                    self.db = Database(models=[CounterModel])
+                    self._private_token = uuid4().hex
+                    self.db = Database(models=[CounterModel], token=self._private_token)
                     self._client = None
                     self.counter = 0
 
@@ -84,10 +86,11 @@ class Database(LightningWork):
                         return
 
                     if self.counter == 0:
-                        self._client = DatabaseClient(model=CounterModel, db_url=self.db.url)
-                        self._client.reset_database()
-
-                    assert self._client
+                        self._client = DatabaseClient(
+                            model=CounterModel,
+                            db_url=self.db.url,
+                            token=self._private_token,
+                        )
 
                     rows = self._client.select_all()
 
@@ -103,7 +106,6 @@ class Database(LightningWork):
                     if self.counter >= 100:
                         row: CounterModel = rows[0]
                         self._client.delete(row)
-                        self._client.delete_database()
                         self._exit()
 
                     self.counter += 1
