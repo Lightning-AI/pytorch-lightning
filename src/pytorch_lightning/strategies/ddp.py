@@ -474,7 +474,13 @@ class DDPStrategy(ParallelStrategy):
 
         for pid in self._pids:
             if pid != os.getpid():
-                os.kill(pid, signal.SIGKILL)
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError as e:
+                    log.warning(
+                        f"[rank {self.global_rank}] Received exception and"
+                        f" trying to kill {pid}, but ran into: {e}"
+                    )
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
