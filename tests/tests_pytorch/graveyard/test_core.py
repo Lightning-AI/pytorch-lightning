@@ -13,21 +13,21 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 
 
 def test_v2_0_0_unsupported_datamodule_on_save_load_checkpoint():
-    datamodule = BoringDataModule()
+    datamodule = LightningDataModule()
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8.",
+        match="`LightningDataModule.on_save_checkpoint`.*no longer supported as of v1.8",
     ):
         datamodule.on_save_checkpoint({})
 
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and removed in v1.8.",
+        match="`LightningDataModule.on_load_checkpoint.*no longer supported as of v1.8",
     ):
         datamodule.on_load_checkpoint({})
 
@@ -44,12 +44,27 @@ def test_v2_0_0_unsupported_datamodule_on_save_load_checkpoint():
 
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8.",
+        match="`LightningDataModule.on_save_checkpoint`.*no longer supported as of v1.8.",
     ):
         trainer.fit(model, OnSaveDataModule())
 
     with pytest.raises(
         NotImplementedError,
-        match="`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and removed in v1.8.",
+        match="`LightningDataModule.on_load_checkpoint`.*no longer supported as of v1.8.",
     ):
         trainer.fit(model, OnLoadDataModule())
+
+
+def test_v2_0_0_lightning_module_unsupported_use_amp():
+    model = BoringModel()
+    with pytest.raises(
+        RuntimeError,
+        match="`LightningModule.use_amp`.*no longer accessible as of v1.8.",
+    ):
+        model.use_amp
+
+    with pytest.raises(
+        RuntimeError,
+        match="`LightningModule.use_amp`.*no longer accessible as of v1.8.",
+    ):
+        model.use_amp = False

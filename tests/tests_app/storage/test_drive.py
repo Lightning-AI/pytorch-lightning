@@ -267,3 +267,12 @@ def test_drive_deepcopy(drive_id):
     new_drive = deepcopy(drive)
     assert new_drive.id == drive.id
     assert new_drive.component_name == drive.component_name
+
+
+def test_drive_root_folder_pass():
+    Drive("s3://drive/", root_folder="a")
+
+
+def test_drive_root_folder_breaks():
+    with pytest.raises(Exception, match="The provided root_folder isn't a directory: a"):
+        Drive("lit://drive", root_folder="a")

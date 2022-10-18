@@ -1,49 +1,28 @@
 :orphan:
 
-**************************
-What are Lightning Drives?
-**************************
 
-Lightning Drives are shared app storage that allow you to share files between `LightningWork (Work) <../../core_api/lightning_work/index.html>`_ components, so that you distributed components can share files when running on the cloud. Using drives, you can run your Lightning App both locally and in the cloud without changing the code.
+************
+About Drives
+************
+
+Lightning Drive storage makes it easy to share files between LightningWorks so you can run your Lightning App both locally and in the cloud without changing the code.
 
 The Drive object provides a central place for your components to share data.
 
-The Drive acts as an isolated folder and any component can access it by knowing its name.
+The Drive acts as an isolate folder and any component can access it by knowing its name.
 
-We currently support two types of Drives: Lightning-managed (``lit://``) and S3 (``s3://``).
-
-+-----------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| Lightning-managed (``lit://``)    | Allows read-write operations and are accessible through the Drive API from a Work.                                            |
-|                                   |                                                                                                                               |
-|                                   | They allow your components to put, list, get, and delete files from and to the Drive (except LightningFlows).                 |
-+-----------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
-| S3 (``s3://``)                    | S3 is AWS S3 storage mounted at a filesystem mount point. S3 is read-only (for now) and its primary purpose is                |
-|                                   | to give you a permanent location to access your training data.                                                                |
-|                                   |                                                                                                                               |
-|                                   | They allow your components to list and get files located on the Drive.                                                        |
-+-----------------------------------+-------------------------------------------------------------------------------------------------------------------------------+
+Your components can put, list, get, and delete files from and to the Drive (except LightningFlows).
 
 ----
 
-**********************
-What Drives do for you
-**********************
+***********************
+What Drive does for you
+***********************
 
 Think of every instance of the Drive object acting like a Google Drive or like Dropbox.
 
 By sharing the Drive between components through the LightningFlow,
-several components can have a shared place to read (S3 Drives) or read and write (Lightning-managed Drives) files from.
-
-S3 Drive Limitations
-^^^^^^^^^^^^^^^^^^^^
-
-These limitations only apply to S3 Drives:
-
-* There is no top level “shareable” S3 drive object. Each S3 Drive is owned by a particular Work.  However, it’s possible to create a Drive with the same location across multiple Works.
-
-* S3 buckets cannot be mounted as Drives once a Work has been instantiated. The `Drive` object must be initialized passed to a Work at creation time.
-
-* Whenever a Drive is mounted to a Work, an indexing process will be done again for the provided S3 bucket. This may lead to performance issues with particularly large S3 buckets. For context, 1M files with 2-3 levels of nesting takes less than 1 second to index.
+several components can have a shared place to read and write files from.
 
 ----
 
@@ -51,9 +30,7 @@ These limitations only apply to S3 Drives:
 Create a Drive
 **************
 
-In order to create a Drive, you simply need to pass its name with the prefix ``lit://`` or ``s3://``.
-
-.. note:: We do not support mounting single objects for S3 buckets, so there must be a trailing `/` in the s3:// URL. For example: ``s3://foo/bar/``.
+In order to create a Drive, you simply need to pass its name with the prefix ``lit://`` as follows:
 
 .. code-block:: python
 
@@ -65,9 +42,9 @@ In order to create a Drive, you simply need to pass its name with the prefix ``l
     drive_1 = Drive("lit://drive_1")
 
     # The identifier of this Drive is ``drive_2``
-    drive_2 = Drive("s3://drive_2/")
+    drive_2 = Drive("lit://drive_2")
 
-Any component can create a drive object for ``lit://`` Drives.
+Any components can create a drive object.
 
 .. code-block:: python
 
@@ -98,9 +75,7 @@ Any component can create a drive object for ``lit://`` Drives.
 Supported actions with Drives
 *****************************
 
-A Lightning-managed Drive supports put, list, get, and delete actions.
-
-An S3 Drive supports list and get actions (for now).
+A Drive supports put, list, get, and delete actions.
 
 .. code-block:: python
 
@@ -130,7 +105,7 @@ An S3 Drive supports list and get actions (for now).
 Component interactions with Drives
 **********************************
 
-Here is an illustrated code example on how to create drives within Works.
+Here is an illustrated code example on how to create drives within works.
 
 .. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/drive_2.png
 
@@ -193,15 +168,16 @@ Here is an illustrated code example on how to create drives within Works.
 
 ----
 
-*************************
+*****************************
 Transfer files with Drive
-*************************
+*****************************
 
-In the example below, the Drive is created by the Flow and passed to its Works.
+In the example below, the Drive is created by the flow and passed to its LightningWork's.
 
 The ``Work_1`` put a file **a.txt** in the **Drive("lit://this_drive_id")** and the ``Work_2`` can list and get the **a.txt** file from it.
 
 .. literalinclude:: ../../../examples/app_drive/app.py
+
 
 ----
 
