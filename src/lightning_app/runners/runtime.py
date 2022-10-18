@@ -5,7 +5,7 @@ from pathlib import Path
 from threading import Thread
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
-from lightning_app import LightningApp
+from lightning_app import LightningApp, LightningFlow
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
 from lightning_app.utilities.app_helpers import Logger
@@ -97,7 +97,7 @@ class Runtime:
         if isinstance(self.backend, str):
             self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
 
-        lightning_app.LightningFlow._attach_backend(self.app.root, self.backend)
+        LightningFlow._attach_backend(self.app.root, self.backend)
 
     def terminate(self) -> None:
         """This method is used to terminate all the objects (threads, processes, etc..) created by the app."""
