@@ -84,14 +84,14 @@ jobs:
 
     - name: Replace imports in test dirs
       run: |
-        python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
-        python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
-        python .actions/assistant.py copy-replace-imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
         # TODO add back when splitting
-        # python .actions/assistant.py copy-replace-imports --source_dir="./src" --source_import="lightning_lite" --target_import="lightning.lite"
-        # python .actions/assistant.py copy-replace-imports --source_dir="./src" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
-        # python .actions/assistant.py copy-replace-imports --source_dir="./src" --source_import="lightning_app" --target_import="lightning.app"
+        # python .actions/assistant.py copy_replace_imports --source_dir="./src" --source_import="lightning_lite" --target_import="lightning.lite"
+        # python .actions/assistant.py copy_replace_imports --source_dir="./src" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
+        # python .actions/assistant.py copy_replace_imports --source_dir="./src" --source_import="lightning_app" --target_import="lightning.app"
 
     - name: Install Package & Dependencies
       run: |
