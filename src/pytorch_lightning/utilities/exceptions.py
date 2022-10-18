@@ -18,12 +18,10 @@ from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 
 def _add_repr(exception) -> Any:
-    """
-    Add __repr__ method for custom exceptions.
+    """Add __repr__ method for custom exceptions.
 
-    For example, rather than _ValueError(...).__repr__() returning
-    '_ValueError(...)', it will return 'ValueError(*args, **kwargs)' (assuming
-    it inherited from ValueError).
+    For example, rather than _ValueError(...).__repr__() returning '_ValueError(...)', it will return 'ValueError(*args,
+    **kwargs)' (assuming it inherited from ValueError).
     """
 
     def new_repr(self) -> str:
