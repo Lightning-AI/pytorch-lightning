@@ -12,51 +12,90 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_lite.utilities.exceptions import MisconfigurationException
+from typing import Any, Type
+
+from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 
-class _ExceptionReprMixin:
-    """Mixin for custom Lightning Exceptions implementing `__repr__` method."""
+def _add_repr(exception) -> Any:
+    """
+    Add __repr__ method for custom exceptions.
 
-    def __init_subclass__(cls) -> None:
-        cls.__repr__ = _ExceptionReprMixin.__repr__
+    For example, rather than _ValueError(...).__repr__() returning
+    '_ValueError(...)', it will return 'ValueError(*args, **kwargs)' (assuming
+    it inherited from ValueError).
+    """
 
-    def __repr__(self) -> str:
-        str_repr = super().__repr__()
-        if str_repr.startswith("_"):
-            str_repr = str_repr[1:]
-        return str_repr
+    def new_repr(self) -> str:
+        return self.__class__.mro()[1](*self.args).__repr__()
+
+    exception.__repr__ = new_repr
+    return exception
 
 
-class _ValueError(ValueError, MisconfigurationException, _ExceptionReprMixin):
+class _DeprecatedException(type):
+    def __instancecheck__(cls: Type, instance: object) -> bool:
+        # https://peps.python.org/pep-3119/
+        return any(cls.__subclasscheck__(c, stacklevel=7) for c in {type(instance), instance.__class__})
+
+    def __subclasscheck__(cls, subclass: Type, stacklevel: int = 5) -> bool:
+        mro = subclass.mro()
+        real = mro[1]
+        if cls is not subclass and cls is real:
+            raise TypeError(f"`{subclass.__name__}` should not be used for checks.")
+        if cls is MisconfigurationException:
+            rank_zero_deprecation(
+                f"`{MisconfigurationException.__name__}` is deprecated. Please check with `{real.__name__}` instead.",
+                stacklevel=stacklevel,
+            )
+        return cls in mro
+
+
+class MisconfigurationException(Exception, metaclass=_DeprecatedException):
+    """Exception used to inform users of misuse with PyTorch Lightning."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        rank_zero_deprecation(f"Using `{type(self).__name__}` is deprecated.", stacklevel=5)
+        super().__init__(*args, **kwargs)
+
+
+@_add_repr
+class _ValueError(ValueError, MisconfigurationException):
     """Lightning ValueError."""
 
 
-class _RuntimeError(RuntimeError, MisconfigurationException, _ExceptionReprMixin):
+@_add_repr
+class _RuntimeError(RuntimeError, MisconfigurationException):
     """Lighting RuntimeError."""
 
 
-class _AttributeError(AttributeError, MisconfigurationException, _ExceptionReprMixin):
+@_add_repr
+class _AttributeError(AttributeError, MisconfigurationException):
     """Lightning AttributeError."""
 
 
-class _TypeError(TypeError, MisconfigurationException, _ExceptionReprMixin):
+@_add_repr
+class _TypeError(TypeError, MisconfigurationException):
     """Lightning TypeError."""
 
 
-class _NotImplementedError(NotImplementedError, MisconfigurationException, _ExceptionReprMixin):
+@_add_repr
+class _NotImplementedError(NotImplementedError, MisconfigurationException):
     """Lightning NotImplementedError."""
 
 
-class _KeyError(KeyError, MisconfigurationException, _ExceptionReprMixin):
+@_add_repr
+class _KeyError(KeyError, MisconfigurationException):
     """Lightning KeyError."""
 
 
-class _OSError(OSError, MisconfigurationException, _ExceptionReprMixin):
+@_add_repr
+class _OSError(OSError, MisconfigurationException):
     """Lightning OSError."""
 
 
-class _ModuleNotFoundError(ModuleNotFoundError, MisconfigurationException, _ExceptionReprMixin):
+@_add_repr
+class _ModuleNotFoundError(ModuleNotFoundError, MisconfigurationException):
     """Lightning ModuleNotFoundError."""
 
 
