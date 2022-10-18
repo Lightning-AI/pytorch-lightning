@@ -202,6 +202,7 @@ class AssistantCLI:
                     py[i] = ln.replace(source_import, target_import)
             if target_dir:
                 fp = fp.replace(source_dir, target_dir)
+                os.makedirs(os.path.dirname(fp), exist_ok=True)
             with open(fp, "w", encoding="utf-8") as fo:
                 fo.writelines(py)
 
