@@ -182,4 +182,4 @@ Using Simple and Advanced Profilers
 ************************************
 
 Simple and advanced profilers are compatible with HPU. Please refer to :ref:`this profiler document <profiler_basic>` for more information on how to use them.
-Note that these profilers will not profile the HPU activity. Please use HPUProfiler instead.
+Note that these profilers will not profile the HPU activity. To profile HPU operations, please use :class:`~pytorch_lightning.profilers.hpu.HPUProfiler` instead.
