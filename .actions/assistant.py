@@ -203,7 +203,7 @@ class AssistantCLI:
                 if not fp.endswith(".pyc"):
                     fp_new = fp.replace(source_dir, target_dir)
                     os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                    if os.abspath(fp) != os.abspath(fp_new):
+                    if os.path.abspath(fp) != os.path.abspath(fp_new):
                         shutil.copy2(fp, fp_new)
                 continue
 
