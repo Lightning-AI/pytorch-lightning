@@ -27,7 +27,7 @@ def test_deepspeed_precision_choice(precision, tmpdir):
     DeepSpeed handles precision via custom DeepSpeedPrecision.
     """
     connector = _Connector(
-        accelerator="gpu",
+        accelerator="auto",
         strategy="deepspeed",
         precision=precision,
     )

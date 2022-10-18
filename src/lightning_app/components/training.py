@@ -126,8 +126,8 @@ class LightningTrainingComponent(LightningFlow):
         Example::
 
             from lightning import LightningApp
-            from lightning.app.components.training import LightningTrainingComponent
-            from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+            from lightning_app.components.training import LightningTrainingComponent
+            from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
             app = LightningApp(
                 LightningTrainingComponent(
