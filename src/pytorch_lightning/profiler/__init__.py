@@ -14,7 +14,6 @@
 from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler
 from pytorch_lightning.profilers.advanced import AdvancedProfiler
 from pytorch_lightning.profilers.base import PassThroughProfiler
-from pytorch_lightning.profilers.hpu import HPUProfiler
 from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler
 from pytorch_lightning.profilers.simple import SimpleProfiler
@@ -29,5 +28,4 @@ __all__ = [
     "PyTorchProfiler",
     "SimpleProfiler",
     "XLAProfiler",
-    "HPUProfiler",
 ]
