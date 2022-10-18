@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
@@ -30,7 +30,7 @@ from lightning_lite.plugins import Precision  # avoid circular imports: # isort:
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
-from lightning_lite.strategies.strategy import TBroadcast
+from lightning_lite.strategies.strategy import TBroadcast, _Sharded
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.data import (
@@ -344,6 +344,12 @@ class LightningLite(ABC):
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)
+
+    @contextmanager
+    def create_sharded_model(self) -> Generator:
+        context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
+        with context:
+            yield
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
         """Save checkpoint contents to a file.

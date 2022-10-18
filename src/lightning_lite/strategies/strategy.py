@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import logging
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
@@ -147,16 +147,6 @@ class Strategy(ABC):
         """
         device = device or self.root_device
         return move_data_to_device(batch, device)
-
-    @contextlib.contextmanager
-    def module_sharded_context(self) -> Generator:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
-
-        Returns: Model parallel context.
-        """
-        yield
 
     def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
@@ -296,3 +286,17 @@ class Strategy(ABC):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
+
+
+class _Sharded(ABC):
+
+    @abstractmethod
+    @contextmanager
+    def module_sharded_context(self) -> Generator:
+        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        yield
