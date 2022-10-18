@@ -289,13 +289,14 @@ class Strategy(ABC):
 
 
 class _Sharded(ABC):
-    """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model parameters."""
+    """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model
+    parameters."""
 
     @abstractmethod
     @contextmanager
     def module_sharded_context(self) -> Generator:
-        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding of
-        parameters on creation.
+        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
+        of parameters on creation.
 
         By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
         """
