@@ -120,7 +120,7 @@ jobs:
 
     - name: Testing package
       working-directory: ./src
-      run: python -m pytest lightning -v --durations=50
+      run: python -m pytest lightning -v --durations=50 --ignore-glob='**/cli/*-template/**'
 
     - name: Cache datasets
       uses: actions/cache@v3
