@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import platform
-from contextlib import nullcontext, contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 

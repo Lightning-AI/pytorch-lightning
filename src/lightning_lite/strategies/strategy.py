@@ -289,7 +289,6 @@ class Strategy(ABC):
 
 
 class _Sharded(ABC):
-
     @abstractmethod
     @contextmanager
     def module_sharded_context(self) -> Generator:

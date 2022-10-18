@@ -30,7 +30,7 @@ from lightning_lite.plugins import Precision  # avoid circular imports: # isort:
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
-from lightning_lite.strategies.strategy import TBroadcast, _Sharded
+from lightning_lite.strategies.strategy import _Sharded, TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.data import (
@@ -397,9 +397,9 @@ class LightningLite(ABC):
     def _run_with_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self.create_sharded_model(), _replace_dunder_methods(
-            DataLoader, "dataset"
-        ), _replace_dunder_methods(BatchSampler):
+        with self.create_sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
+            BatchSampler
+        ):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
