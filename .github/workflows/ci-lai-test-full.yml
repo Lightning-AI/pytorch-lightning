@@ -65,7 +65,7 @@ jobs:
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
-      run: python .actions/assistant.py replace-oldest-ver
+      run: python .actions/assistant.py replace_oldest_ver
 
     - name: Get pip cache dir
       id: pip-cache

@@ -185,9 +185,13 @@ class AssistantCLI:
 
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
-        assert len(source_imports) == len(
-            target_imports
-        ), f"source and target imports must have the same length, source: {len(source_import)}, target: {len(target_import)}"
+        assert len(source_imports) == len(target_imports), (
+            "source and target imports must have the same length, "
+            f"source: {len(source_import)}, target: {len(target_import)}"
+        )
+
+        if target_dir is None:
+            target_dir = source_dir
 
         # TODO: properly retrieve files
         ls = glob.glob(os.path.join(source_dir, "**", "*.*"), recursive=True)
