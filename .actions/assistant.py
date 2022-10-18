@@ -14,7 +14,7 @@ from typing import List, Optional, Sequence
 from urllib import request
 from urllib.request import Request, urlopen
 
-import fire
+import jsonargparse
 import pkg_resources
 from packaging.version import parse as version_parse
 
@@ -182,30 +182,52 @@ class AssistantCLI:
         source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
     ) -> None:
         """Recursively replace imports in given folder."""
-        ls = glob.glob(os.path.join(source_dir, "**", "*.py"), recursive=True)
+
+        source_imports = source_import.strip().split(",")
+        target_imports = target_import.strip().split(",")
+        assert len(source_imports) == len(target_imports), f"source and target imports must have the same length, source: {len(source_import)}, target: {len(target_import)}"
+
+        # TODO: properly retrieve files
+        ls = glob.glob(os.path.join(source_dir, "**", "*.*"), recursive=True)
+
         for fp in ls:
+            if not os.path.isfile(fp):
+                continue
+            if not fp.endswith('.py'):
+                if not fp.endswith(".pyc"):
+                    fp_new = fp.replace(source_dir, target_dir)
+                    os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+                    shutil.copy2(fp, fp_new)
+                continue
+
             with open(fp, encoding="utf-8") as fo:
                 py = fo.readlines()
-            for i, ln in enumerate(py):
-                # ln_ = ln.lstrip()
-                should_replace = True
-                # if ln_.startswith("import"):
-                #     should_replace = True
-                # elif re.search(r"from [\w_\.\d]+ import ", ln_):
-                #     should_replace = True
-                # elif "sys.modules[" in ln_:
-                #     should_replace = True
-                # elif "importlib" in ln_:
-                #     should_replace = True
 
-                if should_replace:
-                    py[i] = ln.replace(source_import, target_import)
+            for _source_import, _target_import in zip(source_imports, target_imports):
+                for i, ln in enumerate(py):
+                    # ln_ = ln.lstrip()
+                    should_replace = True
+                    # if ln_.startswith("import"):
+                    #     should_replace = True
+                    # elif re.search(r"from [\w_\.\d]+ import ", ln_):
+                    #     should_replace = True
+                    # elif "sys.modules[" in ln_:
+                    #     should_replace = True
+                    # elif "importlib" in ln_:
+                    #     should_replace = True
+
+                    if should_replace:
+                        py[i] = ln.replace(_source_import, _target_import)
             if target_dir:
-                fp = fp.replace(source_dir, target_dir)
-                os.makedirs(os.path.dirname(fp), exist_ok=True)
-            with open(fp, "w", encoding="utf-8") as fo:
+                fp_new = fp.replace(source_dir, target_dir)
+                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+            else:
+                fp_new = fp
+
+            print(fp_new, fp)
+            with open(fp_new, "w", encoding="utf-8") as fo:
                 fo.writelines(py)
 
 
 if __name__ == "__main__":
-    fire.Fire(AssistantCLI)
+    jsonargparse.CLI(AssistantCLI, as_positional=False)
