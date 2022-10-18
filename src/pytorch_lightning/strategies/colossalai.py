@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
 if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
-    # TODO: Remove `_patch_cuda_is_available` usage for this strategy once minimum supported PyTorch version is 1.14
     with _patch_cuda_is_available():
         from colossalai.utils.model.colo_init_context import ColoInitContext
 else:
