@@ -1,5 +1,6 @@
 """Root package info."""
 import logging
+import os
 from typing import Any
 
 _DETAIL = 15  # between logging.INFO and logging.DEBUG, used for logging in production use cases
@@ -42,6 +43,10 @@ from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
 from lightning.pytorch.utilities.seed import seed_everything  # noqa: E402
+
+import lightning_app._PROJECT_ROOT  # isort: skip # noqa: E402
+
+lightning_app._PROJECT_ROOT = os.path.dirname(lightning_app._PROJECT_ROOT)
 
 __all__ = [
     "LightningApp",

@@ -7,7 +7,7 @@ import click
 import pytest
 import requests
 
-from lightning_app import _PACKAGE_ROOT
+from lightning_app import _PROJECT_ROOT
 from lightning_app.cli.commands.connection import (
     _list_app_commands,
     _resolve_command_path,
@@ -30,7 +30,7 @@ def test_connect_disconnect_local(monkeypatch):
         data = json.load(f)
 
     data["paths"]["/command/command_with_client"]["post"]["cls_path"] = os.path.join(
-        os.path.dirname(os.path.dirname(_PACKAGE_ROOT)),
+        _PROJECT_ROOT,
         data["paths"]["/command/command_with_client"]["post"]["cls_path"],
     )
 
@@ -100,7 +100,7 @@ def test_connect_disconnect_cloud(monkeypatch):
         data = json.load(f)
 
     data["paths"]["/command/command_with_client"]["post"]["cls_path"] = os.path.join(
-        os.path.dirname(os.path.dirname(_PACKAGE_ROOT)),
+        _PROJECT_ROOT,
         data["paths"]["/command/command_with_client"]["post"]["cls_path"],
     )
 
