@@ -7,7 +7,7 @@ from multiprocessing import Queue
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException
 
 from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
 from lightning_app.utilities.app_helpers import Logger
@@ -31,16 +31,9 @@ class HttpMethod:
         self.route = route
         self.component_name = method.__self__.name
         self.method_name = method_name or method.__name__
-        method.__annotations__.update({"_internal_response": Response})
-
         self.method_annotations = method.__annotations__
         # TODO: Validate the signature contains only pydantic models.
         self.method_signature = inspect.signature(method)
-        # params = {k: v for k, v in self.method_signature.parameters.items()}
-        # params["_internal_response"] = inspect.Parameter(
-        #     name="_internal_response", kind=inspect._ParameterKind.POSITIONAL_OR_KEYWORD, default=Response()
-        # )
-        # self.method_signature._parameters = params
         self.timeout = timeout
         self.kwargs = kwargs
 
