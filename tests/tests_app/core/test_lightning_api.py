@@ -1,14 +1,18 @@
+import asyncio
 import logging
 import multiprocessing as mp
 import os
+import sys
 from copy import deepcopy
 from multiprocessing import Process
-from time import sleep
+from time import sleep, time
 from unittest import mock
 
+import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
+from fastapi import HTTPException
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -400,6 +404,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
 
 
 class InputRequestModel(BaseModel):
+    index: int
     name: str
 
 
@@ -412,14 +417,17 @@ class FlowAPI(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
+        self.should_stop = False
 
     def run(self):
-        if self.counter == 2:
-            sleep(0.5)
+        if self.counter == 500:
+            sleep(3)
             self._exit()
 
     def request(self, config: InputRequestModel) -> OutputRequestModel:
         self.counter += 1
+        if config.index % 5 == 0:
+            raise HTTPException(status_code=400, detail="HERE")
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
@@ -431,6 +439,13 @@ def target():
     MultiProcessRuntime(app).dispatch()
 
 
+async def async_request(url: str, data: InputRequestModel):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=data.dict()) as result:
+            return await result.json()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Issue with Windows")
 def test_configure_api():
 
     process = Process(target=target)
@@ -444,14 +459,28 @@ def test_configure_api():
             sleep(0.1)
             time_left -= 0.1
 
-    response = requests.post(
-        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
-    )
-    assert response.json() == {"name": "hello", "counter": 1}
-    response = requests.post(
-        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
-    )
-    assert response.json() == {"name": "hello", "counter": 2}
+    # Test Upload File
+    files = {"uploaded_file": open(__file__, "rb")}
+
+    response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
+    assert response.json() == "Successfully uploaded 'test' to the Drive"
+
+    url = f"http://localhost:{APP_SERVER_PORT}/api/v1/request"
+
+    N = 500
+    coros = []
+    for index in range(N):
+        coros.append(async_request(url, InputRequestModel(index=index, name="hello")))
+
+    t0 = time()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    results = loop.run_until_complete(asyncio.gather(*coros))
+    assert time() - t0 < 4.5
+    assert len(results) == N
+    assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
+
+    # Teardown
     time_left = 15
     while time_left > 0:
         if process.exitcode == 0:
