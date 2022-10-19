@@ -5,7 +5,7 @@ from requests import Session
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from lightning_app.components.database.utilities import GeneralModel
+from lightning_app.components.database.utilities import _GeneralModel
 
 _CONNECTION_RETRY_TOTAL = 5
 _CONNECTION_RETRY_BACKOFF_FACTOR = 1
@@ -41,28 +41,30 @@ class DatabaseClient:
 
     def select_all(self, model: Optional[Type[T]] = None) -> List[T]:
         cls = model if model else self.model
-        resp = self.session.post(self.db_url + "/select_all/", data=GeneralModel.from_cls(cls, token=self.token).json())
+        resp = self.session.post(
+            self.db_url + "/select_all/", data=_GeneralModel.from_cls(cls, token=self.token).json()
+        )
         assert resp.status_code == 200
         return [cls(**data) for data in resp.json()]
 
     def insert(self, model: T) -> None:
         resp = self.session.post(
             self.db_url + "/insert/",
-            data=GeneralModel.from_obj(model, token=self.token).json(),
+            data=_GeneralModel.from_obj(model, token=self.token).json(),
         )
         assert resp.status_code == 200
 
     def update(self, model: T) -> None:
         resp = self.session.post(
             self.db_url + "/update/",
-            data=GeneralModel.from_obj(model, token=self.token).json(),
+            data=_GeneralModel.from_obj(model, token=self.token).json(),
         )
         assert resp.status_code == 200
 
     def delete(self, model: T) -> None:
         resp = self.session.post(
             self.db_url + "/delete/",
-            data=GeneralModel.from_obj(model, token=self.token).json(),
+            data=_GeneralModel.from_obj(model, token=self.token).json(),
         )
         assert resp.status_code == 200
 

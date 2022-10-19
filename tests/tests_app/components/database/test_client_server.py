@@ -2,25 +2,31 @@ import os
 import sys
 from pathlib import Path
 from time import sleep
-from typing import Optional
+from typing import List, Optional
 from uuid import uuid4
 
 import pytest
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.components.database import Database, DatabaseClient
-from lightning_app.components.database.utilities import GeneralModel
+from lightning_app.components.database.utilities import _GeneralModel, pydantic_column_type
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.utilities.imports import _is_sqlmodel_available
 
 if _is_sqlmodel_available():
+    from sqlalchemy import Column
     from sqlmodel import Field, SQLModel
+
+    class Secret(SQLModel):
+        name: str
+        value: str
 
     class TestConfig(SQLModel, table=True):
         __table_args__ = {"extend_existing": True}
 
         id: Optional[int] = Field(default=None, primary_key=True)
         name: str
+        secrets: List[Secret] = Field(..., sa_column=Column(pydantic_column_type(List[Secret])))
 
 
 class Work(LightningWork):
@@ -44,9 +50,11 @@ def test_client_server():
     if database_path.exists():
         os.remove(database_path)
 
-    general = GeneralModel.from_obj(TestConfig(name="name"), token="a")
+    secrets = [Secret(name="example", value="secret")]
+
+    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")
     assert general.cls_name == "TestConfig"
-    assert general.data == '{"id": null, "name": "name"}'
+    assert general.data == '{"id": null, "name": "name", "secrets": [{"name": "example", "value": "secret"}]}'
 
     class Flow(LightningFlow):
         def __init__(self):
@@ -71,10 +79,13 @@ def test_client_server():
             self.work.run(self._client)
 
             if self.tracker is None:
-                self._client.insert(TestConfig(name="name"))
+                self._client.insert(TestConfig(name="name", secrets=secrets))
                 elem = self._client.select_all(TestConfig)[0]
                 assert elem.name == "name"
                 self.tracker = "update"
+                assert isinstance(elem.secrets[0], Secret)
+                assert elem.secrets[0].name == "example"
+                assert elem.secrets[0].value == "secret"
 
             elif self.tracker == "update":
                 elem = self._client.select_all(TestConfig)[0]
@@ -92,7 +103,7 @@ def test_client_server():
                 elem = self._client.delete(elem)
 
                 assert not self._client.select_all(TestConfig)
-                self._client.insert(TestConfig(name="name"))
+                self._client.insert(TestConfig(name="name", secrets=secrets))
 
                 assert self._client.select_all(TestConfig)
                 self._exit()
@@ -127,7 +138,7 @@ def test_work_database_restart():
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if not self.restart:
-                self._client.insert(TestConfig(name="echo"))
+                self._client.insert(TestConfig(name="echo", secrets=[Secret(name="example", value="secret")]))
                 self._exit()
             else:
                 assert os.path.exists(id)

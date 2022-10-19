@@ -121,7 +121,7 @@ def get_primary_key(model_type: Type[SQLModel]) -> str:
     return primary_keys[0].name
 
 
-class GeneralModel(BaseModel):
+class _GeneralModel(BaseModel):
     cls_name: str
     data: str
     token: str
@@ -150,7 +150,7 @@ class GeneralModel(BaseModel):
         )
 
 
-class SelectAll:
+class _SelectAll:
     def __init__(self, models, token):
         print(models, token)
         self.models = models
@@ -168,7 +168,7 @@ class SelectAll:
             return results.all()
 
 
-class Insert:
+class _Insert:
     def __init__(self, models, token):
         self.models = models
         self.token = token
@@ -186,7 +186,7 @@ class Insert:
             return ele
 
 
-class Update:
+class _Update:
     def __init__(self, models, token):
         self.models = models
         self.token = token
@@ -213,7 +213,7 @@ class Update:
             session.refresh(result)
 
 
-class Delete:
+class _Delete:
     def __init__(self, models, token):
         self.models = models
         self.token = token
@@ -234,7 +234,7 @@ class Delete:
             session.commit()
 
 
-def create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool = False):
+def _create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool = False):
     global engine
 
     from sqlmodel import create_engine, SQLModel

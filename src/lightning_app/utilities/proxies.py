@@ -30,7 +30,6 @@ from lightning_app.utilities.enum import (
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import CacheMissException, LightningSigtermStateException
-from lightning_app.utilities.serializable import Hashable
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
@@ -191,6 +190,7 @@ class ProxyWorkRun:
         Returns:
             The positional and keyword arguments in the same order they were passed in.
         """
+        from lightning_app.utilities.types import Hashable
 
         def sanitize(obj: Hashable) -> Union[Path, Dict]:
             return obj.to_dict()

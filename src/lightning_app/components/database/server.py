@@ -8,17 +8,12 @@ from fastapi import FastAPI
 from uvicorn import run
 
 from lightning import BuildConfig, LightningWork
-from lightning_app.components.database.utilities import create_database, Delete, Insert, SelectAll, Update
+from lightning_app.components.database.utilities import _create_database, _Delete, _Insert, _SelectAll, _Update
 from lightning_app.storage import Drive
-from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_sqlmodel_available
 
 if _is_sqlmodel_available():
     from sqlmodel import SQLModel
-
-
-logger = Logger(__name__)
-engine = None
 
 
 # Required to avoid Uvicorn Server overriding Lightning App signal handlers.
@@ -53,21 +48,30 @@ class Database(LightningWork):
             models: A SQLModel or a list of SQLModels table to be added to the database.
             db_filename: The name of the SQLite database.
             debug: Whether to run the database in debug mode.
-            mode: Whether the database should be running within the flow or dedicated work.
-            token: Token used to protect the database access. Ensure you don't expose it through the App State.
 
         Example::
 
+            from typing import List
             from sqlmodel import SQLModel, Field
+            from uuid import uuid4
+            from sqlalchemy import Column
+
             from lightning import LightningFlow, LightningApp
             from lightning_app.components.database import Database, DatabaseClient
-            from uuid import uuid4
+            from lightning_app.components.database.utilities import pydantic_column_type
+
+            class KeyValuePair(SQLModel):
+                name: str
+                value: str
 
             class CounterModel(SQLModel, table=True):
                 __table_args__ = {"extend_existing": True}
 
                 id: int = Field(default=None, primary_key=True)
                 count: int
+
+                # Added to show how to nest SQLModels.
+                secrets: List[KeyValuePair] = Field(..., sa_column=Column(pydantic_column_type(List[KeyValuePair])))
 
 
             class Flow(LightningFlow):
@@ -97,7 +101,7 @@ class Database(LightningWork):
                     print(f"{self.counter}: {rows}")
 
                     if not rows:
-                        self._client.insert(CounterModel(count=0))
+                        self._client.insert(CounterModel(count=0, secrets=["example", "demo"]))
                     else:
                         row: CounterModel = rows[0]
                         row.count += 1
@@ -130,12 +134,12 @@ class Database(LightningWork):
 
         app = FastAPI()
 
-        create_database(self.db_filename, self._models, self.debug)
+        _create_database(self.db_filename, self._models, self.debug)
         models = {m.__name__: m for m in self._models}
-        app.post("/select_all/")(SelectAll(models, token))
-        app.post("/insert/")(Insert(models, token))
-        app.post("/update/")(Update(models, token))
-        app.post("/delete/")(Delete(models, token))
+        app.post("/select_all/")(_SelectAll(models, token))
+        app.post("/insert/")(_Insert(models, token))
+        app.post("/update/")(_Update(models, token))
+        app.post("/delete/")(_Delete(models, token))
 
         sys.modules["uvicorn.main"].Server = DatabaseUvicornServer
 
