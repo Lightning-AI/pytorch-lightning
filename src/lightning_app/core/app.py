@@ -29,7 +29,13 @@ from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities import frontend
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
+from lightning_app.utilities.app_helpers import (
+    _delta_to_app_state_delta,
+    _LightningAppRef,
+    Logger,
+    _load_state_dict,
+    _state_dict,
+)
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _context, _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys, ComponentContext
@@ -602,7 +608,7 @@ class LightningApp:
 
         if not state:
             raise FileNotFoundError(f"Could not find checkpoint: {checkpoint}")
-        self.load_state_dict(state)
+        self.root.load_state_dict(state, {**state["flows"], **state["works"]}, strict=True)
 
     def load_state_dict_from_checkpoint_dir(
         self,

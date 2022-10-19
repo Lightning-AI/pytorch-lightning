@@ -753,12 +753,7 @@ class LightningFlow:
         for child_name, state in direct_children_states.items():
             child = getattr(self, child_name, None)
             if isinstance(child, LightningFlow):
-                lower_children_states = {
-                    k.replace(child_name + ".", ""): v
-                    for k, v in children_states.items()
-                    if k.startswith(child_name) and k != child_name
-                }
-                child.load_state_dict(state, lower_children_states, strict=strict)
+                child.load_state_dict(state, {**state["flows"], **state["works"]}, strict=strict)
             elif isinstance(child, LightningWork):
                 child.set_state(state)
             elif strict:

@@ -1,0 +1,88 @@
+{
+  "vars": {
+    "_layout": [
+      {
+        "name": "flow_level_1",
+        "content": "root.flow_level_1"
+      }
+    ],
+    "text": "Hello Root Flow !",
+    "_paths": {}
+  },
+  "calls": {},
+  "flows": {
+    "flow_level_1": {
+      "vars": {
+        "_layout": [
+          {
+            "name": "flow_level_2",
+            "content": "root.flow_level_1.flow_level_2"
+          }
+        ],
+        "text": "Hello Flow Level 1!",
+        "_paths": {}
+      },
+      "calls": {},
+      "flows": {
+        "flow_level_2": {
+          "vars": {
+            "_layout": [],
+            "text": "Hello Flow Level 2!",
+            "_paths": {}
+          },
+          "calls": {},
+          "flows": {},
+          "works": {
+            "work_level_3": {
+              "vars": {
+                "_internal_ip": "127.0.0.1",
+                "_port": null,
+                "text": "Hello Work Level 3!",
+                "_paths": {},
+                "_cloud_compute": {
+                  "type": "__cloud_compute__",
+                  "name": "default",
+                  "disk_size": 0,
+                  "clusters": null,
+                  "preemptible": false,
+                  "wait_timeout": null,
+                  "idle_timeout": null,
+                  "shm_size": 0,
+                  "_internal_id": "default"
+                },
+                "_future_url": "",
+                "_host": "127.0.0.1",
+                "_url": "",
+                "_restarting": false
+              },
+              "calls": {
+                "latest_call_hash": "fe3fa0f",
+                "fe3fa0f": {
+                  "statuses": [
+                    {
+                      "stage": "succeeded",
+                      "timestamp": 1666210597
+                    }
+                  ],
+                  "ret": null
+                }
+              },
+              "changes": {}
+            }
+          },
+          "structures": {},
+          "changes": {}
+        }
+      },
+      "works": {},
+      "structures": {},
+      "changes": {}
+    }
+  },
+  "works": {},
+  "structures": {},
+  "changes": {},
+  "app_state": {
+    "stage": "running"
+  }
+}
