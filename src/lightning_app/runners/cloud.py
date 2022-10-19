@@ -44,8 +44,8 @@ from utilities.exceptions import LightningSourceDirectorySizeException
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
     CLOUD_QUEUE_TYPE,
+    CLOUD_UPLOAD_FAIL_SIZE,
     CLOUD_UPLOAD_WARNING_SIZE,
-    CLOUD_UPLOAD_FAIL_SIZE
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
