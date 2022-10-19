@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 from lightning_lite.strategies import XLAStrategy
 from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.utilities.distributed import ReduceOp
-from pytorch_lightning.accelerators import TPUAccelerator
+from lightning_lite.accelerators import TPUAccelerator
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
