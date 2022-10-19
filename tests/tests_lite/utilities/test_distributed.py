@@ -4,11 +4,11 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
+from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_lite.plugins.environments import LightningEnvironment
+from lightning_lite.strategies import DDPSpawnStrategy
+from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.utilities.distributed import gather_all_tensors
-from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
-from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers import _MultiProcessingLauncher
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
