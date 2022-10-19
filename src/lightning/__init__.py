@@ -16,7 +16,7 @@ logging.addLevelName(_DETAIL, "DETAIL")
 logging.detail = _detail
 logging.Logger.detail = _detail
 
-_root_logger = logging.getLogger()
+# explicitly don't handle root logger propagation here and let each subpackage handle it on its own!
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
@@ -25,11 +25,8 @@ _console.setLevel(logging.INFO)
 
 formatter = logging.Formatter("%(levelname)s: %(message)s")
 _console.setFormatter(formatter)
+_logger.addHandler(_console)
 
-# if root logger has handlers, propagate messages up and let root logger process them
-if not _root_logger.hasHandlers():
-    _logger.addHandler(_console)
-    _logger.propagate = False
 
 from lightning.__about__ import *  # noqa: E402, F401, F403
 from lightning.__version__ import version as __version__  # noqa: E402, F401
