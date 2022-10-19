@@ -22,7 +22,6 @@ class DeltaRequest(BaseRequest):
 class CommandRequest(BaseRequest):
     id: str
     name: str
-    timestamp: float
     method_name: str
     args: Any
     kwargs: Any
@@ -32,7 +31,6 @@ class CommandRequest(BaseRequest):
 class APIRequest(BaseRequest):
     id: str
     name: str
-    timestamp: float
     method_name: str
     args: Any
     kwargs: Any

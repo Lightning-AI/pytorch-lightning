@@ -59,7 +59,6 @@ class HttpMethod:
                     request_cls(
                         name=self.component_name,
                         method_name=self.method_name,
-                        timestamp=time.time(),
                         args=args,
                         kwargs=kwargs,
                         id=request_id,
