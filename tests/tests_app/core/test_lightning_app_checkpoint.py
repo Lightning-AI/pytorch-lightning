@@ -1,9 +1,9 @@
 import json
-
-from tests_app import _PROJECT_ROOT
-from unittest import mock
 import os
+from unittest import mock
+
 import pytest
+from tests_app import _PROJECT_ROOT
 
 from lightning_app import LightningApp, LightningFlow, LightningWork  # F401
 

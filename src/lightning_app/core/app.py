@@ -32,9 +32,9 @@ from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
     _LightningAppRef,
-    Logger,
     _load_state_dict,
     _state_dict,
+    Logger,
 )
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _context, _convert_paths_after_init, _validate_root_flow
