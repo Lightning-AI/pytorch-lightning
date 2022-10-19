@@ -144,9 +144,8 @@ class FSDPStrategy(ParallelStrategy):
     def mixed_precision_config(self) -> Optional["MixedPrecision"]:
         if self.mixed_precision:
             return self.mixed_precision
-        plugin = self.precision_plugin
-        if isinstance(plugin, FSDPPrecision):
-            return plugin.mixed_precision_config
+        if isinstance(self.precision, FSDPPrecision):
+            return self.precision.mixed_precision_config
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
