@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Optional
 
 from deepdiff import Delta
 
@@ -22,6 +22,7 @@ class DeltaRequest(BaseRequest):
 class CommandRequest(BaseRequest):
     id: str
     name: str
+    timestamp: float
     method_name: str
     args: Any
     kwargs: Any
@@ -31,6 +32,13 @@ class CommandRequest(BaseRequest):
 class APIRequest(BaseRequest):
     id: str
     name: str
+    timestamp: float
     method_name: str
     args: Any
     kwargs: Any
+
+
+@dataclass
+class RequestResponse(BaseRequest):
+    status_code: int
+    content: Optional[str] = None

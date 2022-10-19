@@ -13,11 +13,13 @@ import requests
 from pydantic import BaseModel
 
 from lightning_app.api.http_methods import Post
-from lightning_app.api.request_types import APIRequest, CommandRequest
-from lightning_app.utilities.app_helpers import is_overridden
+from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
+from lightning_app.utilities.app_helpers import is_overridden, Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import AppState
+
+logger = Logger(__name__)
 
 
 def makedirs(path: str):
@@ -193,7 +195,11 @@ def _prepare_commands(app) -> List:
 def _process_api_request(app, request: APIRequest) -> None:
     flow = app.get_component_by_name(request.name)
     method = getattr(flow, request.method_name)
-    response = method(*request.args, **request.kwargs)
+    try:
+        response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+    except Exception as e:
+        logger.error(e)
+        response = RequestResponse(status_code=500)
     app.api_response_queue.put({"response": response, "id": request.id})
 
 
@@ -204,7 +210,11 @@ def _process_command_requests(app, request: CommandRequest) -> None:
             if request.method_name == command_name:
                 # 2.1: Evaluate the method associated to a specific command.
                 # Validation is done on the CLI side.
-                response = method(*request.args, **request.kwargs)
+                try:
+                    response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+                except Exception as e:
+                    logger.error(e)
+                    response = RequestResponse(status_code=500)
                 app.api_response_queue.put({"response": response, "id": request.id})
 
 

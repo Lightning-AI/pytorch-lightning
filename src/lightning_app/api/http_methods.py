@@ -7,9 +7,9 @@ from multiprocessing import Queue
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 
-from lightning_app.api.request_types import APIRequest, CommandRequest
+from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
@@ -31,9 +31,16 @@ class HttpMethod:
         self.route = route
         self.component_name = method.__self__.name
         self.method_name = method_name or method.__name__
+        method.__annotations__.update({"_internal_response": Response})
+
         self.method_annotations = method.__annotations__
         # TODO: Validate the signature contains only pydantic models.
         self.method_signature = inspect.signature(method)
+        params = {k: v for k, v in self.method_signature.parameters.items()}
+        params["_internal_response"] = inspect.Parameter(
+            name="_internal_response", kind=inspect._ParameterKind.POSITIONAL_OR_KEYWORD, default=Response()
+        )
+        self.method_signature._parameters = params
         self.timeout = timeout
         self.kwargs = kwargs
 
@@ -51,7 +58,7 @@ class HttpMethod:
 
         # 3: Define the request handler.
         @wraps(_signature_proxy_function)
-        async def _handle_request(*args, **kwargs):
+        async def _handle_request(*args, _internal_response: Response, **kwargs):
             async def fn(*args, **kwargs):
                 request_id = str(uuid4()).split("-")[0]
                 logger.debug(f"Processing request {request_id} for route: {self.route}")
@@ -59,6 +66,7 @@ class HttpMethod:
                     request_cls(
                         name=self.component_name,
                         method_name=self.method_name,
+                        timestamp=time.time(),
                         args=args,
                         kwargs=kwargs,
                         id=request_id,
@@ -67,15 +75,23 @@ class HttpMethod:
 
                 t0 = time.time()
                 while request_id not in responses_store:
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.01)
                     if (time.time() - t0) > self.timeout:
                         raise Exception("The response was never received.")
 
                 logger.debug(f"Processed request {request_id} for route: {self.route}")
 
-                return responses_store.pop(request_id)
+                response: RequestResponse = responses_store.pop(request_id)
 
-            return await asyncio.create_task(fn(*args, **kwargs))
+                return response
+
+            response: RequestResponse = await asyncio.create_task(fn(*args, **kwargs))
+
+            if response.status_code == 500:
+                _internal_response.status_code = response.status_code
+                return {"status": "failure", "reason": "Internal Server Error"}
+
+            return response.content
 
         # 4: Register the user provided route to the Rest API.
         route(self.route, **self.kwargs)(_handle_request)
