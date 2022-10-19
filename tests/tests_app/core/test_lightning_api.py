@@ -421,7 +421,7 @@ class FlowAPI(LightningFlow):
 
     def run(self):
         if self.counter == 500:
-            sleep(1)
+            sleep(3)
             self._exit()
 
     def request(self, config: InputRequestModel) -> OutputRequestModel:
@@ -472,7 +472,9 @@ def test_configure_api():
         coros.append(async_request(url, InputRequestModel(index=index, name="hello")))
 
     t0 = time()
-    results = asyncio.get_event_loop().run_until_complete(asyncio.gather(*coros))
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    results = loop.run_until_complete(asyncio.gather(*coros))
     assert time() - t0 < 4.5
     assert len(results) == N
     assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
