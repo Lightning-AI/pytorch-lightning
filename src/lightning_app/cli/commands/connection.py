@@ -50,8 +50,8 @@ def connect(app_name_or_id: str, yes: bool = False):
         commands_folder = os.path.join(lightning_folder, "commands")
         if not os.path.exists(commands_folder):
             os.makedirs(commands_folder)
-            
-         _write_commands_metadata(retriever.api_commands)
+
+        _write_commands_metadata(retriever.api_commands)
 
         with open(os.path.join(commands_folder, "openapi.json"), "w") as f:
             json.dump(retriever.openapi, f)
@@ -104,7 +104,7 @@ def connect(app_name_or_id: str, yes: bool = False):
             commands_folder = os.path.join(lightning_folder, "commands")
             if not os.path.exists(commands_folder):
                 os.makedirs(commands_folder)
-                
+
             _write_commands_metadata(retriever.api_commands)
 
             for command_name, metadata in retriever.api_commands.items():
