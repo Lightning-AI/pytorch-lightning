@@ -25,7 +25,8 @@ def _add_repr(exception) -> Any:
     """
 
     def new_repr(self) -> str:
-        return self.__class__.mro()[1](*self.args).__repr__()
+        str_repr = self.__repr__()
+        return str_repr[1:] if str_repr.startswith("_") else str_repr
 
     exception.__repr__ = new_repr
     return exception
