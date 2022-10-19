@@ -170,6 +170,7 @@ jobs:
       run: python -m pytest test_pl_examples.py -v --durations=10
 
     - name: Statistics
+      if: success()
       working-directory: tests/tests_pytorch
       run: |
         coverage report
