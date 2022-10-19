@@ -95,14 +95,14 @@ jobs:
       run: python -m pytest lightning_lite
 
     - name: Testing Warnings
-      # the stack-level can only be set on >=3.7
+      # the stacklevel can only be set on >=3.7
       if: matrix.python-version != '3.7'
-      working-directory: ./tests/tests_lite
+      working-directory: tests/tests_lite
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
     - name: Testing Lite
-      working-directory: ./tests/tests_lite
+      working-directory: tests/tests_lite
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source lightning_lite -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
@@ -115,7 +115,7 @@ jobs:
 
     - name: Statistics
       if: success()
-      working-directory: ./tests/tests_lite
+      working-directory: tests/tests_lite
       run: |
         coverage report
         coverage xml
@@ -126,7 +126,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./tests/tests_lite/coverage.xml
+        file: tests/tests_lite/coverage.xml
         flags: cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false

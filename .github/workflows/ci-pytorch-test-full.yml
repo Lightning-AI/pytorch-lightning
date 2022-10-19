@@ -103,8 +103,6 @@ jobs:
       run: |
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
-        cat requirements/pytorch/base.txt
-      shell: bash
 
     - name: Install package & dependencies
       run: |
@@ -112,7 +110,7 @@ jobs:
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         # install PL and optional dependencies for testing
         url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e . -r requirements/pytorch/test.txt -r ./requirements/pytorch/extra.txt -f ${url}  # $pre_option
+        pip install -e .[test,extra] -f ${url}  # $pre_option
         pip list
       shell: bash
 
