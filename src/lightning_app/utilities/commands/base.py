@@ -32,7 +32,7 @@ def makedirs(path: str):
 class ClientCommand:
 
     description: str = ""
-    requirements: Optional[List[str]] = None
+    requirements: List[str] = []
 
     def __init__(self, method: Callable):
         self.method = method

@@ -10,14 +10,15 @@ from lightning_app.cli.commands.connection import _resolve_command_path
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
+from lightning_app.utilities.log import get_logfile
 
 
 def _install_missing_requirements(retriever: _LightningAppOpenAPIRetriever):
     requirements = set()
-    for api_command in retriever.api_commands.values():
-        reqs = api_command.get("requirements", []) or []
-        for req in reqs:
-            requirements.add(req)
+    for metadata in retriever.api_commands.values():
+        if metadata["tag"] == OpenAPITags.APP_CLIENT_COMMAND:
+            for req in metadata.get("requirements", []):
+                requirements.add(req)
 
     if requirements:
         missing_requirements = []
@@ -28,7 +29,10 @@ def _install_missing_requirements(retriever: _LightningAppOpenAPIRetriever):
         if missing_requirements:
             print(f"Installing missing requirements: {missing_requirements}")
             missing_requirements = " ".join(missing_requirements)
-            Popen(f"pip install {missing_requirements}", shell=True, stderr=sys.stderr).wait()
+            std_out_out = get_logfile("output.log")
+            with open(std_out_out, "wb") as stdout:
+                Popen(f"pip install {missing_requirements}", shell=True, stdout=stdout, stderr=sys.stderr).wait()
+            print()
 
 
 def _run_app_command(app_name: str, app_id: Optional[str]):
