@@ -303,6 +303,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
+
         return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
 
     def teardown(self) -> None:
