@@ -7,4 +7,5 @@ pytest-rerunfailures>=10.2
 pre-commit>=1.0
 mypy==0.971
 
-torchmetrics>=0.7.0
+torchmetrics>=0.7.0, <=0.10.0
+tqdm>=4.57.0, <4.65.0
