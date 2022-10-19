@@ -835,6 +835,8 @@ class Trainer:
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
+
+        See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
