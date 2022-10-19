@@ -226,8 +226,8 @@ def test_collectives_distributed(n):
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
-    left_collective.create_group(ranks=[0, 1])
-    right_collective.create_group(ranks=[1, 2])
+    left_collective.create_group(ranks=[0, 1], backend='gloo')
+    right_collective.create_group(ranks=[1, 2], backend='gloo')
 
     if strategy.global_rank in (0, 1):
         tensor = torch.tensor(strategy.global_rank)
