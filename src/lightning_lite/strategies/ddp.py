@@ -194,4 +194,4 @@ class _DDPBackwardSyncControl(_BackwardSyncControl):
                 f" Got: {module.__class__.__name__}."
             )
         with module.no_sync():  # type: ignore[operator]
-            yield None
+            yield
