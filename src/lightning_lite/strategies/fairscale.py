@@ -87,6 +87,12 @@ class DDPShardedStrategy(DDPStrategy):
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
+    def setup_module(self, module: Module) -> Module:
+        raise RuntimeError("not supported")  # TODO: proper error message
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        raise RuntimeError("not supported")  # TODO: proper error message
+
     @contextmanager
     def block_backward_sync(self, module: Module) -> Generator:
         """Blocks syncing gradients behaviour on backwards pass.
@@ -162,6 +168,12 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
+
+    def setup_module(self, module: Module) -> Module:
+        raise RuntimeError("not supported")  # TODO: proper error message
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        raise RuntimeError("not supported")  # TODO: proper error message
 
     @contextmanager
     def block_backward_sync(self, module: Module) -> Generator:
