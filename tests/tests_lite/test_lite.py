@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import Strategy
+from lightning_lite.strategies import Strategy, ParallelStrategy, SingleDeviceStrategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
@@ -464,18 +464,24 @@ def test_no_backward_sync():
 
     model = lite.setup(model)
 
-    with pytest.raises(TypeError, match="The `SingleDeviceStrategy` does not support skipping the"):
+    # pretend that the strategy does not support skipping backward sync
+    lite._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
+    with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
         with lite.no_backward_sync(model):
             pass
 
+    # for single-device strategies, it becomes a no-op without warning
+    lite._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
+    with lite.no_backward_sync(model):
+        pass
+    lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+
     # pretend that the strategy supports skipping backward sync
     lite._strategy = Mock(_backward_sync_control=MagicMock())
-
     # disabling the context manager makes it a no-op
     with lite.no_backward_sync(model, enabled=False):
         pass
     lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
-
     # when enabld, the wrapped module gets passed down
     with lite.no_backward_sync(model):
         pass

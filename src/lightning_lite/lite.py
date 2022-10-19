@@ -29,7 +29,7 @@ from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 from lightning_lite.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
+from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy, SingleDeviceStrategy
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
@@ -360,8 +360,8 @@ class LightningLite(ABC):
                 self.backward(loss)
                 ...
 
-        Not all strategies support it. Both the model's `.forward()` and the `self.backward()` call need to run under
-        this context.
+        For those strategies that don't support it, a warning is emitted. For single-device strategies, it is a no-op.
+        Both the model's `.forward()` and the `self.backward()` call need to run under this context.
 
         Args:
             module: The module for which to control the gradient synchronization.
@@ -372,17 +372,20 @@ class LightningLite(ABC):
         if not isinstance(module, _LiteModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
-                " `self.setup(model, ...)`"
+                " `model = self.setup(model, ...)`"
             )
-        if self._strategy._backward_sync_control is None:
-            raise TypeError(
+        if not enabled or isinstance(self._strategy, SingleDeviceStrategy):
+            context = nullcontext()
+        elif self._strategy._backward_sync_control is None:
+            rank_zero_warn(
                 f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
-                f" Remove `.no_backward_sync()` from your code or choose a different strategy."
+                f" Remove `.no_backward_sync()` from your code or choose a different strategy.",
+                category=PossibleUserWarning,
             )
+            context = nullcontext()
+        else:
+            context = self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
 
-        context = (
-            self._strategy._backward_sync_control.no_backward_sync(module._forward_module) if enabled else nullcontext()
-        )
         with context:
             yield
 
