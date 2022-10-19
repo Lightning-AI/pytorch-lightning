@@ -21,9 +21,9 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
+from lightning_lite.plugins.collectives.torch_ import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
