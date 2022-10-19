@@ -158,6 +158,8 @@ class SLURMEnvironment(ClusterEnvironment):
         Not doing so will result in processes hanging, which is a frequent user error. Lightning will emit a warning if
         `srun` is found but not used.
         """
+        if _IS_WINDOWS:
+            return
         srun_exists = subprocess.call(["which", "srun"]) == 0
         if srun_exists and not _is_srun_used():
             hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
