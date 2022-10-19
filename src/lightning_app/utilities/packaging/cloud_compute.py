@@ -92,7 +92,7 @@ class CloudCompute:
     mount: Optional[Union[Mount, List[Mount]]] = None
     _internal_id: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         _verify_mount_root_dirs_are_unique(self.mount)
 
         if self.clusters:
@@ -106,12 +106,12 @@ class CloudCompute:
         if self._internal_id is None:
             self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         _verify_mount_root_dirs_are_unique(self.mount)
         return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
 
     @classmethod
-    def from_dict(cls, d: dict):
+    def from_dict(cls, d: dict) -> "CloudCompute":
         assert d.pop("type") == __CLOUD_COMPUTE_IDENTIFIER__
         mounts = d.pop("mount", None)
         if isinstance(mounts, dict):
@@ -131,7 +131,7 @@ class CloudCompute:
         return self.name == "default"
 
 
-def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], Tuple[Mount]]):
+def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], Tuple[Mount]]) -> None:
     if isinstance(mounts, (list, tuple, set)):
         root_dirs = [mount.root_dir for mount in mounts]
         if len(set(root_dirs)) != len(root_dirs):
