@@ -54,24 +54,15 @@ class Database(LightningWork):
             from typing import List
             from sqlmodel import SQLModel, Field
             from uuid import uuid4
-            from sqlalchemy import Column
 
             from lightning import LightningFlow, LightningApp
             from lightning_app.components.database import Database, DatabaseClient
-            from lightning_app.components.database.utilities import pydantic_column_type
-
-            class KeyValuePair(SQLModel):
-                name: str
-                value: str
 
             class CounterModel(SQLModel, table=True):
                 __table_args__ = {"extend_existing": True}
 
                 id: int = Field(default=None, primary_key=True)
                 count: int
-
-                # Added to show how to nest SQLModels.
-                secrets: List[KeyValuePair] = Field(..., sa_column=Column(pydantic_column_type(List[KeyValuePair])))
 
 
             class Flow(LightningFlow):
@@ -101,7 +92,7 @@ class Database(LightningWork):
                     print(f"{self.counter}: {rows}")
 
                     if not rows:
-                        self._client.insert(CounterModel(count=0, secrets=["example", "demo"]))
+                        self._client.insert(CounterModel(count=0))
                     else:
                         row: CounterModel = rows[0]
                         row.count += 1
@@ -115,6 +106,28 @@ class Database(LightningWork):
                     self.counter += 1
 
             app = LightningApp(Flow())
+
+        If you want to use nested SQLModels, we provide a utility to do so as follows:
+
+        Example::
+
+            from typing import List
+            from sqlmodel import SQLModel, Field
+            from sqlalchemy import Column
+
+            from lightning_app.components.database.utilities import pydantic_column_type
+
+            class KeyValuePair(SQLModel):
+                name: str
+                value: str
+
+            class CounterModel(SQLModel, table=True):
+                __table_args__ = {"extend_existing": True}
+
+                name: int = Field(default=None, primary_key=True)
+
+                # RIGHT THERE ! You need to use Field and Column with the `pydantic_column_type` utility.
+                kv: List[KeyValuePair] = Field(..., sa_column=Column(pydantic_column_type(List[KeyValuePair])))
         """
         super().__init__(parallel=True, cloud_build_config=BuildConfig(["sqlmodel"]))
         self.db_filename = db_filename
