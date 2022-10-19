@@ -381,9 +381,7 @@ class LightningLite(ABC):
             )
 
         context = (
-            self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
-            if enabled
-            else nullcontext()
+            self._strategy._backward_sync_control.no_backward_sync(module._forward_module) if enabled else nullcontext()
         )
         with context:
             yield
