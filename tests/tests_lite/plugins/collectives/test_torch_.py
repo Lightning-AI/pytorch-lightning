@@ -231,13 +231,16 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
     if strategy.global_rank in (0, 1):
         tensor = torch.tensor(strategy.global_rank)
-        left_collective.all_reduce(tensor)
+        tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
-    right_collective.barrier()
+
     if right_collective.rank >= 0:
         tensor = torch.tensor(strategy.global_rank)
-        right_collective.all_reduce(tensor)
+        tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
+
+    left_collective.teardown()
+    right_collective.teardown()
 
 
 @skip_distributed_unavailable
