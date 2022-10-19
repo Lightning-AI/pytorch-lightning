@@ -115,7 +115,7 @@ jobs:
 
     - name: DocTests PL
       working-directory: ./src
-      run: pytest pytorch_lightning --cov=pytorch_lightning
+      run: python -m pytest pytorch_lightning
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
@@ -170,7 +170,6 @@ jobs:
       run: python -m pytest test_pl_examples.py -v --durations=10
 
     - name: Statistics
-      if: success()
       working-directory: tests/tests_pytorch
       run: |
         coverage report
@@ -178,7 +177,6 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: always()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:

@@ -86,17 +86,21 @@ jobs:
         pip list
       shell: bash
 
+    - name: DocTests Lite
+      working-directory: ./src
+      run: python -m pytest lightning_lite
+
     - name: Testing Warnings
-      # the stacklevel can only be set on >=3.7
+      # the stack-level can only be set on >=3.7
       if: matrix.python-version != '3.7'
-      working-directory: tests/tests_lite
-      # needs to run outside of `pytest`
+      working-directory: ./tests/tests_lite
+      # needs to run outside `pytest`
       run: python utilities/test_warnings.py
 
     - name: Testing Lite
-      working-directory: tests/tests_lite
+      working-directory: ./tests
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source lightning_lite -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source lightning_lite -m pytest tests_lite -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()
@@ -107,19 +111,18 @@ jobs:
 
     - name: Statistics
       if: success()
-      working-directory: tests/tests_lite
+      working-directory: ./tests
       run: |
         coverage report
         coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: always()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/tests_lite/coverage.xml
+        file: ./tests/coverage.xml
         flags: cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false
