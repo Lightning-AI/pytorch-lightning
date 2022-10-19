@@ -18,6 +18,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+env:
+  PACKAGE_NAME: lite
+  FREEZE_REQUIREMENTS: 1
+
 jobs:
 
   lite-cpu:
@@ -75,9 +79,6 @@ jobs:
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Install dependencies
-      env:
-        PACKAGE_NAME: lite
-        FREEZE_REQUIREMENTS: 1
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
