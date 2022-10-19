@@ -26,7 +26,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import Strategy, ParallelStrategy, SingleDeviceStrategy
+from lightning_lite.strategies import ParallelStrategy, SingleDeviceStrategy, Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
