@@ -81,6 +81,7 @@ if __name__ == "__main__":
         requirements_path, torch_version = sys.argv[1:]
     else:
         requirements_path, torch_version = sys.argv[1], None
+    print(f"requirements_path='{requirements_path}' with torch_version='{torch_version}'")
 
     with open(requirements_path) as fp:
         requirements = fp.read()

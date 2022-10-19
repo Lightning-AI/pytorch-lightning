@@ -44,6 +44,42 @@ jobs:
           pkg-name: ${{ matrix.pkg }}
           nb-dirs: ${{ env.NB_DIRS }}
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+
+      - uses: ./.github/actions/pkg-install
+
+  install-meta-src:
+    needs: install-standalone
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
+        pkg: ["", "lightning"]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: mkdir -p pypi
+      - uses: actions/download-artifact@v3
+        if: matrix.pkg != ''
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - run: ls -lh pypi/
+
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ matrix.pkg }}
+
       - uses: ./.github/actions/pkg-install
 
       - name: Run CLI
