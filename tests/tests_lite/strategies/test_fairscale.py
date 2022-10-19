@@ -71,7 +71,7 @@ def test_fairscale_custom_kwargs_reduce_buffer_size(_, kwargs, expected_buffer_s
 
 @RunIf(fairscale=True)
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_fairscale_skip_backward_sync(cls):
+def test_fairscale_no_backward_sync(cls):
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     ShardedDataParallel."""
 
@@ -81,11 +81,11 @@ def test_fairscale_skip_backward_sync(cls):
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `ShardedDataParallel`"
     ):
-        with strategy._backward_sync_control.skip_backward_sync(Mock()):
+        with strategy._backward_sync_control.no_backward_sync(Mock()):
             pass
 
     module = MagicMock(spec=ShardedDataParallel)
-    with strategy._backward_sync_control.skip_backward_sync(module):
+    with strategy._backward_sync_control.no_backward_sync(module):
         pass
 
     module.no_sync.assert_called_once()

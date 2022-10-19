@@ -46,7 +46,7 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
     assert strategy._get_process_group_backend() == expected_process_group_backend
 
 
-def test_ddp_skip_backward_sync():
+def test_ddp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a DDP-wrapped module."""
     strategy = DDPStrategy()
     assert isinstance(strategy._backward_sync_control, _DDPBackwardSyncControl)
@@ -54,11 +54,11 @@ def test_ddp_skip_backward_sync():
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
     ):
-        with strategy._backward_sync_control.skip_backward_sync(Mock()):
+        with strategy._backward_sync_control.no_backward_sync(Mock()):
             pass
 
     module = MagicMock(spec=DistributedDataParallel)
-    with strategy._backward_sync_control.skip_backward_sync(module):
+    with strategy._backward_sync_control.no_backward_sync(module):
         pass
 
     module.no_sync.assert_called_once()

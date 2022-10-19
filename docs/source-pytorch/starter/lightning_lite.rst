@@ -727,8 +727,8 @@ the data is written to disk.
     # All processes are allowed to read the data now
 
 
-skip_backward_sync
-==================
+no_backward_sync
+================
 
 Use this context manager when performing gradient accumulation and using a distributed strategy (e.g., DDP).
 It will speed up your training loop by cutting redundant communication between processes during the accumulation phase.
@@ -738,7 +738,7 @@ It will speed up your training loop by cutting redundant communication between p
     # Accumulate gradient 8 batches at a time
     is_accumulating = batch_idx % 8 != 0
 
-    with self.skip_backward_sync(model, enabled=is_accumulating):
+    with self.no_backward_sync(model, enabled=is_accumulating):
         output = model(input)
         loss = ...
         self.backward(loss)

@@ -346,7 +346,7 @@ class LightningLite(ABC):
         return self._strategy.broadcast(obj, src=src)
 
     @contextmanager
-    def skip_backward_sync(self, module: _LiteModule, enabled: bool = True) -> Generator:
+    def no_backward_sync(self, module: _LiteModule, enabled: bool = True) -> Generator:
         """Skip gradient synchronization during backward to avoid redundant communication overhead.
 
         Use this context manager when performing gradient accumulation to speed up training with multiple devices.
@@ -354,7 +354,7 @@ class LightningLite(ABC):
         Example::
 
             # Accumulate gradient 8 batches at a time
-            with self.skip_backward_sync(model, enabled=(batch_idx % 8 != 0)):
+            with self.no_backward_sync(model, enabled=(batch_idx % 8 != 0)):
                 output = model(input)
                 loss = ...
                 self.backward(loss)
@@ -371,17 +371,17 @@ class LightningLite(ABC):
 
         if not isinstance(module, _LiteModule):
             raise TypeError(
-                "You need to set up the model first before you can call `self.skip_backward_sync()`:"
+                "You need to set up the model first before you can call `self.no_backward_sync()`:"
                 " `self.setup(model, ...)`"
             )
         if self._strategy._backward_sync_control is None:
             raise TypeError(
                 f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
-                f" Remove `.skip_backward_sync()` from your code or choose a different strategy."
+                f" Remove `.no_backward_sync()` from your code or choose a different strategy."
             )
 
         context = (
-            self._strategy._backward_sync_control.skip_backward_sync(module._forward_module)
+            self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
             if enabled
             else nullcontext()
         )

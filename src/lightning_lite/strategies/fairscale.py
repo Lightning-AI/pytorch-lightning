@@ -185,13 +185,13 @@ def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precisio
 
 class _FairscaleBackwardSyncControl(_BackwardSyncControl):
     @contextmanager
-    def skip_backward_sync(self, module: Module) -> Generator:
+    def no_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
         wrapper."""
         if not isinstance(module, ShardedDataParallel):
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
-                f" `{self.__class__.__name__}.skip_backward_sync` is wrapped in `ShardedDataParallel`."
+                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `ShardedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
         with module.no_sync():
