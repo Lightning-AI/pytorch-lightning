@@ -14,11 +14,14 @@
 """Utilities for loggers."""
 
 from argparse import Namespace
-from typing import Any, Dict, Generator, List, Mapping, MutableMapping, Optional, Union
+from pathlib import Path
+from typing import Any, Dict, Generator, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from torch import Tensor
+
+from pytorch_lightning.callbacks import Checkpoint
 
 
 def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
@@ -157,3 +160,30 @@ def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     else:
         # Concatenate versions together, removing duplicates and preserving order
         return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
+
+
+def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
+    """Return the checkpoints to be logged.
+
+    Args:
+        checkpoint_callback: Checkpoint callback reference.
+        logged_model_time: dictionary containing the logged model times.
+    """
+
+    # get checkpoints to be saved with associated score
+    checkpoints = dict()
+    if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):
+        checkpoints[checkpoint_callback.last_model_path] = (checkpoint_callback.current_score, "latest")
+
+    if hasattr(checkpoint_callback, "best_model_path") and hasattr(checkpoint_callback, "best_model_score"):
+        checkpoints[checkpoint_callback.best_model_path] = (checkpoint_callback.best_model_score, "best")
+
+    if hasattr(checkpoint_callback, "best_k_models"):
+        for key, value in checkpoint_callback.best_k_models.items():
+            checkpoints[key] = (value, "best_k")
+
+    checkpoints = sorted(
+        (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
+    )
+    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time.keys() or logged_model_time[c[1]] < c[0]]
+    return checkpoints

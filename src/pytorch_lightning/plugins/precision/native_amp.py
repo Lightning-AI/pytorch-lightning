@@ -19,6 +19,7 @@ from torch import Tensor
 from torch.optim import LBFGS
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.cuda import _patch_cuda_is_available
 from lightning_lite.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
@@ -50,7 +51,9 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
                 "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
             )
         if scaler is None and precision == 16:
-            scaler = torch.cuda.amp.GradScaler()
+            with _patch_cuda_is_available():
+                # if possible, we defer CUDA initialization to support strategies that will attempt forks
+                scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
             raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.precision = precision

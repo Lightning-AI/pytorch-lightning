@@ -31,9 +31,8 @@ from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
-from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH, ReduceOp
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -48,14 +47,14 @@ class XLAStrategy(DDPSpawnStrategy):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             start_method="fork",
         )
         self._checkpoint_io: Optional[CheckpointIO]
