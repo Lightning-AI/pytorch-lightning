@@ -81,6 +81,9 @@ def test_load_app_from_local_checkpoint():
 
 def test_load_dynamic_app_from_local_checkpoint():
     app = LightningApp(SavedDynamicAppExample())
+
+    # This is the checkpoint file that was saved from the SavedDynamicAppExample app and contains the state of the
+    # dynamic components flow and work and the state contains updated value of the text attribute of each component.
     app.load_app_state_from_checkpoint(
         os.path.join(_PROJECT_ROOT, "tests/tests_app/test_date/saved_dynamic_app_checkpoint.json")
     )
