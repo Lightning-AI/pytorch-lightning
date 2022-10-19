@@ -12,8 +12,8 @@ from lightning_app.testing.helpers import run_script, RunIf
 @pytest.mark.parametrize(
     "file",
     [
-        pytest.param("component_popen.py"),
         pytest.param("component_tracer.py"),
+        pytest.param("component_popen.py"),
     ],
 )
 def test_scripts(file):
