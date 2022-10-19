@@ -331,7 +331,7 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
-    def on_before_run(*args, **kwargs) -> None:
+    def on_before_run(*args: Any, **kwargs: Any) -> None:
         if open_ui and not without_server:
             click.launch(get_app_url(runtime_type, *args))
 
@@ -373,12 +373,7 @@ def run() -> None:
     "--no-cache", is_flag=True, default=False, help="Disable caching of packages " "installed from requirements.txt"
 )
 @click.option("--blocking", "blocking", type=bool, default=False)
-@click.option(
-    "--open-ui",
-    type=bool,
-    default=True,
-    help="Decide whether to launch the app UI in a web browser"
-)
+@click.option("--open-ui", type=bool, default=True, help="Decide whether to launch the app UI in a web browser")
 @click.option("--env", type=str, default=[], multiple=True, help="Environment variables to be set for the app.")
 @click.option("--secret", type=str, default=[], multiple=True, help="Secret variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")

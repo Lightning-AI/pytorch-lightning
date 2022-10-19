@@ -10,12 +10,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Add `--secret` option to CLI to allow binding Secrets to app environment variables when running in the cloud ([#14612](https://github.com/Lightning-AI/lightning/pull/14612))
 - Added support for adding descriptions to commands either through a docstring or the `DESCRIPTION` attribute ([#15193](https://github.com/Lightning-AI/lightning/pull/15193)
-
-
-## [0.6.3] - 2022-10-07
-
-### Added
-
 - Added option to add custom meta tags to the UI container ([#14915](https://github.com/Lightning-AI/lightning/pull/14915))
 
 ### Changed
