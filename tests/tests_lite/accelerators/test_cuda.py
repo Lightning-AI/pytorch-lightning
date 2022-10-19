@@ -71,7 +71,5 @@ def test_num_cuda_devices_without_nvml(*_):
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_force_nvml_based_cuda_check():
     """Test that we force PyTorch to use the NVML-based CUDA checks."""
-
-    importlib.reload(lightning_lite)
-
+    importlib.reload(lightning_lite)  # reload module to run top-level code
     assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"
