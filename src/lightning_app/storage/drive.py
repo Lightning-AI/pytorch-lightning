@@ -37,7 +37,8 @@ class Drive:
         if id.startswith("s3://"):
             raise ValueError(
                 "Using S3 buckets in a Drive is no longer supported. Please pass an S3 `Mount` to "
-                "a Work's CloudCompute config in order to mount an s3 bucket as a filesystem in a work."
+                "a Work's CloudCompute config in order to mount an s3 bucket as a filesystem in a work.\n"
+                f"`CloudCompute(mount=Mount({id}), ...)`"
             )
 
         self.id = None

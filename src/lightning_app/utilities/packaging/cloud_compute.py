@@ -79,7 +79,7 @@ class CloudCompute:
         shm_size: Shared memory size in MiB, backed by RAM. min 512, max 8192, it will auto update in steps of 512.
             For example 1100 will become 1024. If set to zero (the default) will get the default 64MiB inside docker.
 
-        mount: External data sources which should be mounted into a work as a filesystem at runtime.
+        mounts: External data sources which should be mounted into a work as a filesystem at runtime.
     """
 
     name: str = "default"
@@ -89,11 +89,11 @@ class CloudCompute:
     wait_timeout: Optional[int] = None
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = 0
-    mount: Optional[Union[Mount, List[Mount]]] = None
+    mounts: Optional[Union[Mount, List[Mount]]] = None
     _internal_id: Optional[str] = None
 
     def __post_init__(self) -> None:
-        _verify_mount_root_dirs_are_unique(self.mount)
+        _verify_mount_root_dirs_are_unique(self.mounts)
 
         if self.clusters:
             raise ValueError("Clusters are't supported yet. Coming soon.")
@@ -107,20 +107,27 @@ class CloudCompute:
             self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
 
     def to_dict(self) -> dict:
-        _verify_mount_root_dirs_are_unique(self.mount)
+        _verify_mount_root_dirs_are_unique(self.mounts)
         return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
 
     @classmethod
     def from_dict(cls, d: dict) -> "CloudCompute":
         assert d.pop("type") == __CLOUD_COMPUTE_IDENTIFIER__
-        mounts = d.pop("mount", None)
-        if isinstance(mounts, dict):
-            d["mount"] = Mount(**mounts)
-        elif isinstance(mounts, (list, tuple, set)):
-            d["mount"] = []
+        mounts = d.pop("mounts", None)
+        if mounts is None:
+            pass
+        elif isinstance(mounts, dict):
+            d["mounts"] = Mount(**mounts)
+        elif isinstance(mounts, (list)):
+            d["mounts"] = []
             for mount in mounts:
-                d["mount"].append(Mount(**mount))
-        _verify_mount_root_dirs_are_unique(d.get("mount", None))
+                d["mounts"].append(Mount(**mount))
+        else:
+            raise TypeError(
+                f"mounts argument must be one of [None, Mount, List[Mount]], "
+                f"received {mounts} of type {type(mounts)}"
+            )
+        _verify_mount_root_dirs_are_unique(d.get("mounts", None))
         return cls(**d)
 
     @property

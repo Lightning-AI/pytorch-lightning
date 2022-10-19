@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
 __MOUNT_IDENTIFIER__: str = "__mount__"
@@ -14,8 +15,9 @@ class Mount:
             `s3` style identifier pointing to a bucket and (optionally) prefix to mount. For
             example: `s3://foo/bar/`.
 
-        root_dir: A fully qualified directory path in the work where external data source should
-            be mounted as a filesystem.
+        root_dir: An absolute directory path in the work where external data source should
+            be mounted as a filesystem. This path should not already exist in your codebase.
+            If not included, then the root_dir will be set to `/data/<last folder name in the bucket>`
     """
 
     source: str = ""
@@ -40,11 +42,7 @@ class Mount:
             )
 
         if self.root_dir == "":
-            raise ValueError(
-                f"The mount for `source` `{self.source}` does not set the required `root_dir` argument. "
-                f"Please set this value to indicate the directory where the external data source should "
-                f"be mounted in the Work filesystem at runtime."
-            )
+            self.root_dir = f"/data/{Path(self.source).stem}"
 
     @property
     def protocol(self) -> str:

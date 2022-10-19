@@ -29,9 +29,7 @@ class Flow(L.LightningFlow):
         )
 
     def run(self):
-        # Pass the drive to both works.
         self.work_1.run()
-        self._exit("Application End!")
 
 
 app = L.LightningApp(Flow(), debug=True)

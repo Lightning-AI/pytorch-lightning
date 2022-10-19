@@ -171,11 +171,9 @@ class CloudRuntime(Runtime):
                         ),
                     )
 
-                # this should really be part of the work.cloud_compute struct, but to save
-                # time we are not going to modify the backend in this set of PRs & instead
-                # use the same s3 drives API which we used before.
-                if work.cloud_compute.mount is not None:
-                    mounts = work.cloud_compute.mount
+                # TODO: Move this to the CloudCompute class and update backend
+                if work.cloud_compute.mounts is not None:
+                    mounts = work.cloud_compute.mounts
                     if isinstance(mounts, Mount):
                         mounts = [mounts]
                     for mount in mounts:

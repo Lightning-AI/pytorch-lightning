@@ -29,6 +29,9 @@ def test_create_s3_mount_without_directory_prefix_fails():
         Mount(source="s3://foo", root_dir="./foo")
 
 
-def test_create_mount_without_root_dir_argument_fails():
-    with pytest.raises(ValueError, match="The mount for `source` `s3://foo/` does not set the required `root_dir`"):
-        Mount(source="s3://foo/", root_dir="")
+def test_create_mount_without_root_dir_argument():
+    m = Mount(source="s3://foo/")
+    assert m.root_dir == "/data/foo"
+
+    m = Mount(source="s3://foo/bar/")
+    assert m.root_dir == "/data/bar"
