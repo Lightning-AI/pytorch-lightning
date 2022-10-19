@@ -2,14 +2,20 @@ from functools import partial
 
 import pytest
 import torch
+from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.utilities.distributed import gather_all_tensors
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers import _MultiProcessingLauncher
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.models.test_tpu import wrap_launch_function
+
+
+def wrap_launch_function(fn, strategy, *args, **kwargs):
+    # the launcher does not manage this automatically. explanation available in:
+    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    strategy.setup_environment()
+    return fn(*args, **kwargs)
 
 
 def spawn_launch(fn, parallel_devices):
