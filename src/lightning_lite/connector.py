@@ -464,11 +464,10 @@ class _Connector:
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-            return NativeMixedPrecision(self._precision_input, device)
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_flag, device=device)
-            return NativeMixedPrecision(precision=self._precision_flag, device=device)
+                return FSDPPrecision(precision=self._precision_input, device=device)
+            return NativeMixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")
 
