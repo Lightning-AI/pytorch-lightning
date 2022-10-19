@@ -668,7 +668,8 @@ class LightningApp:
         checkpoint_path = os.path.join(self.checkpoint_dir, f"{checkpoint_name}.json")
 
         with open(checkpoint_path, "w") as f:
-            json.dump(self.state_dict(), f)
+            state = apply_to_collection(self.state, (Path, Drive), lambda x: x.to_dict())
+            json.dump(state, f)
 
         drive = Drive("lit://checkpoints", component_name="root", allow_duplicates=True)
         with _context(ComponentContext.WORK):
