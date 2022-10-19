@@ -14,8 +14,8 @@
 from typing import Dict, Optional
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
+from lightning_lite.plugins.io.xla import XLACheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.single_device import SingleDeviceStrategy
 
