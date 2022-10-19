@@ -97,7 +97,7 @@ class SLURMEnvironment(ClusterEnvironment):
         automatically.
         """
         SLURMEnvironment._validate_srun_used()
-        return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
+        return _is_srun_used()
 
     @staticmethod
     def job_name() -> Optional[str]:
@@ -159,9 +159,8 @@ class SLURMEnvironment(ClusterEnvironment):
         `srun` is found but not used.
         """
         srun_exists = subprocess.call(["which", "srun"]) == 0
-        srun_used = "SLURM_NTASKS" in os.environ
         hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
-        if srun_exists and not srun_used:
+        if srun_exists and not _is_srun_used():
             rank_zero_warn(
                 "The `srun` command is available on your system but is not used. HINT: If your intention is to run"
                 f" Lightning on SLURM, prepend your python command with `srun` like so: {hint} ...",
@@ -182,3 +181,7 @@ class SLURMEnvironment(ClusterEnvironment):
                 f"You set `--ntasks={ntasks}` in your SLURM bash script, but this variable is not supported."
                 f" HINT: Use `--ntasks-per-node={ntasks}` instead."
             )
+
+
+def _is_srun_used() -> bool:
+    return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
