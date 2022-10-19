@@ -13,6 +13,8 @@ class RunNotebookConfig(BaseModel):
 
 class RunNotebook(ClientCommand):
 
+    DESCRIPTION = "Run a Notebook."
+
     def run(self):
         # 1. Define your own argument parser. You can use argparse, click, etc...
         parser = ArgumentParser(description='Run Notebook Parser')
