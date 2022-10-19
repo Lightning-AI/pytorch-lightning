@@ -30,19 +30,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}  # PT is set for sanity check
           - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.12"}
           - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.9"}  # ex-conda
           - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.10"}  # ex-conda
           - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.11"}  # ex-conda
           - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.12"}  # ex-conda
           - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}  # PT is set for sanity check
           - {os: "macos-11", python-version: "3.7", pytorch-version: "1.12"}
           - {os: "macos-11", python-version: "3.8", pytorch-version: "1.10"}
           - {os: "macos-11", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "macos-11", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}  # PT is set for sanity check
           - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.12"}
           - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.10"}
           - {os: "windows-2022", python-version: "3.9", pytorch-version: "1.11"}
@@ -59,9 +59,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Reset caching
-      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
     - name: basic setup
       run: |
@@ -91,21 +88,24 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
+
+    - name: Adjust PyTorch versions in requirements files
+      if: matrix.requires != 'oldest'
+      run: |
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
 
     - name: Install dependencies
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
       run: |
-        # adjust PyTorch versions in requirements files
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
         # install PL and optional dependencies for testing
         pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)

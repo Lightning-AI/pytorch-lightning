@@ -42,12 +42,6 @@ _PSUTIL_AVAILABLE = package_available("psutil")
 _RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
-_XLA_AVAILABLE: bool = package_available("torch_xla")
-
-
-from lightning_lite.utilities.xla_device import XLADeviceUtils  # noqa: E402
-
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if _POPTORCH_AVAILABLE:
     import poptorch

@@ -24,7 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -112,12 +112,3 @@ class DeviceStatsMonitor(Callback):
 
 def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
     return {prefix + separator + k: v for k, v in metrics_dict.items()}
-
-
-def prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str) -> Dict[str, float]:
-    rank_zero_deprecation(
-        "`pytorch_lightning.callbacks.device_stats_monitor.prefix_metrics`"
-        " is deprecated in v1.6 and will be removed in v1.8."
-    )
-    sep = ""
-    return _prefix_metric_keys(metrics_dict, prefix, sep)
