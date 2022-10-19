@@ -17,6 +17,7 @@ import sys
 from unittest import mock
 
 import pytest
+from tests_lite.helpers.runif import RunIf
 from tests_lite.helpers.utils import no_warning_call
 
 from lightning_lite.plugins.environments import SLURMEnvironment
@@ -118,6 +119,7 @@ def test_detect():
         assert not SLURMEnvironment.detect()
 
 
+@RunIf(skip_windows=True)
 def test_srun_available_and_not_used(monkeypatch):
     """Test that a warning is emitted if Lightning suspects the user forgot to run their script with `srun`."""
     monkeypatch.setattr(sys, "argv", ["train.py", "--lr", "0.01"])
