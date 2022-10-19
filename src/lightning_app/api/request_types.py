@@ -1,5 +1,4 @@
 from dataclasses import asdict, dataclass
-from http.client import HTTPException
 from typing import Any, Optional
 
 from deepdiff import Delta
@@ -43,7 +42,3 @@ class APIRequest(BaseRequest):
 class RequestResponse(BaseRequest):
     status_code: int
     content: Optional[str] = None
-
-
-class HTTPException(HTTPException):
-    status_code: int

@@ -74,9 +74,7 @@ class HttpMethod:
 
                 logger.debug(f"Processed request {request_id} for route: {self.route}")
 
-                response: RequestResponse = responses_store.pop(request_id)
-
-                return response
+                return responses_store.pop(request_id)
 
             response: RequestResponse = await asyncio.create_task(fn(*args, **kwargs))
 
