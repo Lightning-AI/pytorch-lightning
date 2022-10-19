@@ -33,7 +33,7 @@ jobs:
     if: github.event.pull_request.draft == false
     env:
       PYTHON_VER: 3.7
-    timeout-minutes: 100  # should match the timeout in `tpu_test_cases.jsonnet`
+    #timeout-minutes: 100  # should match the timeout in `tpu_test_cases.jsonnet`
 
     steps:
     - uses: actions/checkout@v3
@@ -107,6 +107,9 @@ jobs:
         cat xx01
         exit $status_code
       shell: bash
+
+    - name: Setup upterm session
+      uses: lhotari/action-upterm@v1
 
     - name: Statistics
       if: success()
