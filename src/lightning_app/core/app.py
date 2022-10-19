@@ -21,20 +21,16 @@ from lightning_app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
     FRONTEND_DIR,
-    LIGHTNING_CHECKPOINT_FILENAME_REGEX,
     STATE_ACCUMULATE_WAIT,
 )
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
-from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
     _LightningAppRef,
     Logger,
-    _load_state_dict,
-    _state_dict,
 )
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _context, _convert_paths_after_init, _validate_root_flow
@@ -558,8 +554,8 @@ class LightningApp:
         checkpoint_drive_path = ""
 
         if checkpoint == "latest":
-
-            r = re.compile(LIGHTNING_CHECKPOINT_FILENAME_REGEX)
+            checkpoint_filenames_regex = r"lightningapp_checkpoint_([0-9]{10}).json"
+            r = re.compile(checkpoint_filenames_regex)
             filtered_list = list(filter(r.search, found_checkpoints))
             checkpoint_drive_path = max(filtered_list, key=lambda i: int(r.search(i).group(1))) if filtered_list else ""
         else:
