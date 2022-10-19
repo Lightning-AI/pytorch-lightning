@@ -377,7 +377,7 @@ class LightningLite(ABC):
         if self._strategy._backward_sync_control is None:
             raise TypeError(
                 f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
-                f" Remove `.skip_backward_sync()` from your code or choose a differnt strategy."
+                f" Remove `.skip_backward_sync()` from your code or choose a different strategy."
             )
 
         context = (
