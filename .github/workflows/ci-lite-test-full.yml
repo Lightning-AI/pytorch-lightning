@@ -91,7 +91,7 @@ jobs:
       shell: bash
 
     - name: DocTests Lite
-      working-directory: ./src
+      working-directory: src
       run: python -m pytest lightning_lite
 
     - name: Testing Warnings
