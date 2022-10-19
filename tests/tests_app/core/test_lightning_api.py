@@ -420,7 +420,8 @@ class FlowAPI(LightningFlow):
         self.should_stop = False
 
     def run(self):
-        if self.should_stop:
+        if self.counter == 500:
+            sleep(1)
             self._exit()
 
     def request(self, config: InputRequestModel) -> OutputRequestModel:
@@ -429,11 +430,8 @@ class FlowAPI(LightningFlow):
             raise HTTPException(status_code=400, detail="HERE")
         return OutputRequestModel(name=config.name, counter=self.counter)
 
-    def stop(self):
-        self.should_stop = True
-
     def configure_api(self):
-        return [Post("/api/v1/request", self.request), Post("/api/v1/stop", self.stop)]
+        return [Post("/api/v1/request", self.request)]
 
 
 def target():
@@ -478,7 +476,6 @@ def test_configure_api():
     assert time() - t0 < 4.5
     assert len(results) == N
     assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
-    response = requests.post(f"http://localhost:{APP_SERVER_PORT}/api/v1/stop")
 
     # Teardown
     time_left = 15
