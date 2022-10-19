@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import os
 from functools import partial
@@ -27,7 +28,7 @@ PASSED_TENSOR = mock.Mock()
 PASSED_OBJECT = mock.Mock()
 
 
-@pytest.fixture(autouse=True)
+@contextlib.contextmanager
 def check_destroy_group():
     with mock.patch(
         "lightning_lite.plugins.collectives.torch_.TorchCollective.new_group",
@@ -37,11 +38,17 @@ def check_destroy_group():
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield
-        assert (
-            mock_new.call_count == mock_destroy.call_count
-        ), "new_group and destroy_group should be called the same number of times"
+    assert (
+        mock_new.call_count == mock_destroy.call_count
+    ), f"new_group={mock_new.call_count} != destroy_group{mock_destroy.call_count}"
     if TorchCollective.is_available():
         assert not TorchCollective.is_initialized()
+
+
+@pytest.fixture(autouse=True)
+def check_destroy_group_fixture():
+    with check_destroy_group():
+        yield
 
 
 @pytest.mark.parametrize(
@@ -195,28 +202,31 @@ def wrap_launch_function(fn, strategy, collective, *args, **kwargs):
 
 
 def _test_distributed_collectives_fn(strategy, collective):
-    collective.create_group()
+    with check_destroy_group():  # the fixture does not work inside the launched function, use it manually
+        collective.create_group()
 
-    # all_gather
-    tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
-    this = torch.arange(2, dtype=torch.long) + 2 * strategy.global_rank
-    out = collective.all_gather(tensor_list, this)
-    expected = torch.arange(2 * strategy.num_processes).split(2)
-    torch.testing.assert_close(tuple(out), expected)
+        # all_gather
+        tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
+        this = torch.arange(2, dtype=torch.long) + 2 * strategy.global_rank
+        out = collective.all_gather(tensor_list, this)
+        expected = torch.arange(2 * strategy.num_processes).split(2)
+        torch.testing.assert_close(tuple(out), expected)
 
-    # reduce
-    this = torch.tensor(strategy.global_rank + 1)
-    out = collective.reduce(this, dst=0, op="max")
-    expected = torch.tensor(strategy.num_processes) if strategy.global_rank == 0 else this
-    torch.testing.assert_close(out, expected)
+        # reduce
+        this = torch.tensor(strategy.global_rank + 1)
+        out = collective.reduce(this, dst=0, op="max")
+        expected = torch.tensor(strategy.num_processes) if strategy.global_rank == 0 else this
+        torch.testing.assert_close(out, expected)
 
-    # all_reduce
-    this = torch.tensor(strategy.global_rank + 1)
-    out = collective.all_reduce(this, op="min")
-    expected = torch.tensor(1)
-    torch.testing.assert_close(out, expected)
+        # all_reduce
+        this = torch.tensor(strategy.global_rank + 1)
+        out = collective.all_reduce(this, op="min")
+        expected = torch.tensor(1)
+        torch.testing.assert_close(out, expected)
 
-    collective.teardown()
+        collective.teardown()
+        # FIXME: why is this required?
+        torch.distributed.destroy_process_group()  # teardown world
 
 
 @skip_distributed_unavailable
@@ -226,18 +236,25 @@ def test_collectives_distributed(n):
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
-    left_collective.create_group(ranks=[0, 1])
-    right_collective.create_group(ranks=[1, 2])
+    with check_destroy_group():  # the fixture does not work inside the launched function, use it manually
+        left_collective.create_group(ranks=[0, 1])
+        right_collective.create_group(ranks=[1, 2])
 
-    if strategy.global_rank in (0, 1):
         tensor = torch.tensor(strategy.global_rank)
-        left_collective.all_reduce(tensor)
-        assert tensor == 1
-    right_collective.barrier()
-    if right_collective.rank >= 0:
-        tensor = torch.tensor(strategy.global_rank)
-        right_collective.all_reduce(tensor)
-        assert tensor == 3
+        if strategy.global_rank in (0, 1):
+            tensor = left_collective.all_reduce(tensor)
+            assert tensor == 1
+        if strategy.global_rank in (1, 2):
+            # FIXME: if the barrier isn't inside the `if`, then we get
+            # UserWarning: Running barrier on global rank 0 which does not belong to the given group.
+            right_collective.barrier()  # avoids deadlock for global rank 1
+            tensor = right_collective.all_reduce(tensor)
+            assert tensor == 3
+
+        left_collective.teardown()
+        right_collective.teardown()
+        # FIXME: why is this required?
+        torch.distributed.destroy_process_group()  # teardown world
 
 
 @skip_distributed_unavailable

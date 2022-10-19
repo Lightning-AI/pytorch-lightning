@@ -131,9 +131,6 @@ class TorchCollective(Collective):
             os.environ.pop("MASTER_PORT", None)
         return self
 
-    def teardown(self) -> Self:  # type: ignore[valid-type]
-        super().teardown()
-
     @classmethod
     def is_available(cls) -> bool:
         return dist.is_available()
