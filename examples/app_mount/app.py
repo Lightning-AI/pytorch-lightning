@@ -10,8 +10,10 @@ class Work(L.LightningWork):
         super().__init__(*args, **kwargs)
 
     def run(self):
-        for file in os.listdir("/content/esRedditJson/1/"):
+        files = os.listdir("/content/esRedditJson/")
+        for file in files:
             print(file)
+        assert "esRedditJson1" in files
 
 
 class Flow(L.LightningFlow):
@@ -21,7 +23,7 @@ class Flow(L.LightningFlow):
             cloud_compute=CloudCompute(
                 mount=Mount(
                     source="s3://ryft-public-sample-data/esRedditJson/",
-                    root_dir="/content/esRedditJson/1/",
+                    root_dir="/content/esRedditJson/",
                 ),
             )
         )

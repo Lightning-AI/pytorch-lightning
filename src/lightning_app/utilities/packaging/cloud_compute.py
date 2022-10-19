@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from lightning_app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
@@ -104,7 +104,10 @@ class CloudCompute:
         if self._internal_id is None:
             self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
 
+        _verify_mount_root_dirs_are_unique(self.mount)
+
     def to_dict(self):
+        _verify_mount_root_dirs_are_unique(self.mount)
         return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
 
     @classmethod
@@ -117,6 +120,7 @@ class CloudCompute:
             d["mount"] = []
             for mount in mounts:
                 d["mount"].append(Mount(**mount))
+        _verify_mount_root_dirs_are_unique(d["mount"])
         return cls(**d)
 
     @property
@@ -125,6 +129,13 @@ class CloudCompute:
 
     def is_default(self) -> bool:
         return self.name == "default"
+
+
+def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], Tuple[Mount]]):
+    if isinstance(mounts, (list, tuple, set)):
+        root_dirs = [mount.root_dir for mount in mounts]
+        if len(set(root_dirs)) != len(root_dirs):
+            raise ValueError("Every Mount attached to a work must have a unique 'root_dir' argument.")
 
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:

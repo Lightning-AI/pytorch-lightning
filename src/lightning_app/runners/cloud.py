@@ -175,21 +175,16 @@ class CloudRuntime(Runtime):
                 # time we are not going to modify the backend in this set of PRs & instead
                 # use the same s3 drives API which we used before.
                 if work.cloud_compute.mount is not None:
-                    if isinstance(work.cloud_compute.mount, Mount):
+                    mounts = work.cloud_compute.mount
+                    if isinstance(mounts, Mount):
+                        mounts = [mounts]
+                    for mount in mounts:
                         drive_specs.append(
                             _create_mount_drive_spec(
                                 work_name=work.name,
-                                mount=work.cloud_compute.mount,
+                                mount=mount,
                             )
                         )
-                    else:
-                        for mount in work.cloud_compute.mount:
-                            drive_specs.append(
-                                _create_mount_drive_spec(
-                                    work_name=work.name,
-                                    mount=mount,
-                                )
-                            )
 
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
