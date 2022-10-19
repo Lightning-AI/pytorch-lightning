@@ -35,7 +35,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a more descriptive error message when attempting to fork processes with pre-initialized CUDA context ([#14709](https://github.com/Lightning-AI/lightning/pull/14709))
 - Added support for custom parameters in subclasses of `SaveConfigCallback` ([#14998](https://github.com/Lightning-AI/lightning/pull/14998))
 - Added `inference_mode` flag to Trainer to let users enable/disable inference mode during evaluation ([#15034](https://github.com/Lightning-AI/lightning/pull/15034))
-- Added fix to auto_select_gpus to make it choose gpu's without any memory allocated to them. ([#15173](https://github.com/Lightning-AI/lightning/pull/15173))
 
 
 ### Changed
@@ -61,6 +60,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - It is no longer needed to call `model.double()` when using `precision=64` in Lightning Lite ([#14827](https://github.com/Lightning-AI/lightning/pull/14827))
 - HPC checkpoints are now loaded automatically only in slurm environment when no specific value for `ckpt_path` has been set ([#14911](https://github.com/Lightning-AI/lightning/pull/14911))
 - The `Callback.on_load_checkpoint` now gets the full checkpoint dictionary and the `callback_state` argument was renamed `checkpoint` ([#14835](https://github.com/Lightning-AI/lightning/pull/14835))
+- Added fix to auto_select_gpus to make it choose gpu's without any memory allocated to them. ([#15173](https://github.com/Lightning-AI/lightning/pull/15173))
 
 
 - From PyTorch 1.14 and higher, Lightning will configure PyTorch to use a NVML-based check for `torch.cuda.is_available` and `torch.cuda.device_count` to avoid issues with forking processes ([#15110](https://github.com/Lightning-AI/lightning/pull/15110))
