@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 
 import click
 
-from lightning_app.utilities.cli_helpers import LightningAppOpenAPIRetriever
+from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 
@@ -42,7 +42,7 @@ def connect(app_name_or_id: str, yes: bool = False):
         if app_name_or_id != "localhost":
             raise Exception("You need to pass localhost to connect to the local Lightning App.")
 
-        retriever = LightningAppOpenAPIRetriever(None)
+        retriever = _LightningAppOpenAPIRetriever(None)
 
         if retriever.api_commands is None:
             raise Exception(f"The commands weren't found. Is your app {app_name_or_id} running ?")
@@ -79,7 +79,7 @@ def connect(app_name_or_id: str, yes: bool = False):
         click.echo("You are connected to the local Lightning App.")
     else:
 
-        retriever = LightningAppOpenAPIRetriever(app_name_or_id)
+        retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
 
         if not retriever.api_commands:
             client = LightningClient()

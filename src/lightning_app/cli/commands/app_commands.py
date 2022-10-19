@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import requests
 
 from lightning_app.cli.commands.connection import _resolve_command_path
-from lightning_app.utilities.cli_helpers import LightningAppOpenAPIRetriever
+from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
 
@@ -15,7 +15,7 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     # 1: Collect the url and comments from the running application
     running_help = sys.argv[-1] == "--help"
 
-    retriever = LightningAppOpenAPIRetriever(app_id, use_cache=running_help)
+    retriever = _LightningAppOpenAPIRetriever(app_id, use_cache=running_help)
 
     if not running_help and (retriever.url is None or retriever.api_commands is None):
         if app_name == "localhost":
