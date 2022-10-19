@@ -35,6 +35,8 @@ class ClientCommand:
 
     def __init__(self, method: Callable, requirements: Optional[List[str]] = None) -> None:
         self.method = method
+        if not self.DESCRIPTION:
+            self.DESCRIPTION = self.method.__doc__ or ""
         flow = getattr(method, "__self__", None)
         self.owner = flow.name if flow else None
         self.requirements = requirements
