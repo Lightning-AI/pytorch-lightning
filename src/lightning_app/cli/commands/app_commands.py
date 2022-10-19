@@ -1,13 +1,34 @@
 import os
 import sys
+from subprocess import Popen
 from typing import Dict, Optional
 
 import requests
+from lightning_utilities.core.imports import package_available
 
 from lightning_app.cli.commands.connection import _resolve_command_path
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
+
+
+def _install_missing_requirements(retriever: _LightningAppOpenAPIRetriever):
+    requirements = set()
+    for api_command in retriever.api_commands.values():
+        reqs = api_command.get("requirements", []) or []
+        for req in reqs:
+            requirements.add(req)
+
+    if requirements:
+        missing_requirements = []
+        for req in requirements:
+            if not package_available(req):
+                missing_requirements.append(req)
+
+        if missing_requirements:
+            print(f"Installing missing requirements: {missing_requirements}")
+            missing_requirements = " ".join(missing_requirements)
+            Popen(f"pip install {missing_requirements}", shell=True, stderr=sys.stderr).wait()
 
 
 def _run_app_command(app_name: str, app_id: Optional[str]):
@@ -37,6 +58,8 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
 
     if not has_found:
         raise Exception(f"The provided command isn't available in {list(retriever.api_commands)}")
+
+    _install_missing_requirements(retriever)
 
     # 2: Send the command from the user
     metadata = retriever.api_commands[command]
