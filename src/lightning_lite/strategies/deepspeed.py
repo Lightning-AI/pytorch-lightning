@@ -300,7 +300,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self._deepspeed_engine
 
     def setup_module_and_optimizers(
-        self, model: Module, optimizers: List[Optimizer]
+        self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
@@ -316,9 +316,16 @@ class DeepSpeedStrategy(DDPStrategy):
                 f" Got {len(optimizers)} optimizers instead."
             )
 
-        self._deepspeed_engine, optimizer = self._setup_module_and_optimizer(model, optimizers[0])
+        self._deepspeed_engine, optimizer = self._initialize_engine(module, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
+
+    def setup_module(self, module: Module) -> "deepspeed.DeepSpeedEngine":
+        self._deepspeed_engine, _ = self._initialize_engine(module)
+        return self._deepspeed_engine
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        raise RuntimeError("not supported")  # TODO: proper error message
 
     @contextlib.contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
@@ -396,11 +403,10 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer_device="nvme",
         )
 
-    def _setup_module_and_optimizer(
+    def _initialize_engine(
         self,
         model: Module,
-        optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
+        optimizer: Optional[Optimizer] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -413,7 +419,6 @@ class DeepSpeedStrategy(DDPStrategy):
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
             dist_init_required=False,
         )
         return deepspeed_engine, deepspeed_optimizer
