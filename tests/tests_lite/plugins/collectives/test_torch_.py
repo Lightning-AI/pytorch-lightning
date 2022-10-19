@@ -226,15 +226,15 @@ def test_collectives_distributed(n):
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
-    left_collective.create_group(ranks=[0, 1], backend="gloo")
-    right_collective.create_group(ranks=[1, 2], backend="gloo")
+    left_collective.create_group(ranks=[0, 1])
+    right_collective.create_group(ranks=[1, 2])
 
     if strategy.global_rank in (0, 1):
         tensor = torch.tensor(strategy.global_rank)
         tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
 
-    if right_collective.rank >= 0:
+    if strategy.global_rank >= 1:
         tensor = torch.tensor(strategy.global_rank)
         tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
