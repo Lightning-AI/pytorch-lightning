@@ -13,12 +13,13 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Generator, List, Optional, TYPE_CHECKING, Union, Tuple
 
 import torch
 from torch import Tensor
 from torch.distributed import default_pg_timeout
 from torch.nn import Module
+from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
@@ -156,6 +157,11 @@ class FSDPStrategy(ParallelStrategy):
         self._setup_distributed()
         super().setup_environment()
 
+    def setup_module_and_optimizers(
+        self, module: Module, optimizers: List[Optimizer]
+    ) -> Tuple[Module, List[Optimizer]]:
+        raise RuntimeError("not supported")  # TODO: proper error msg
+
     def setup_module(self, module: Module) -> "FullyShardedDataParallel":
         """Wraps the model into a
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
@@ -175,6 +181,10 @@ class FSDPStrategy(ParallelStrategy):
             device_id=self.root_device.index,
             **self._ddp_kwargs,
         )
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        # TODO: some validation here
+        return optimizer
 
     def module_to_device(self, module: Module) -> None:
         pass

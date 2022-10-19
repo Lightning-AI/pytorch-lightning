@@ -15,17 +15,49 @@ import tempfile
 
 import pytest
 import torch
-from tests_lite.helpers.models import BoringLite
 from tests_lite.helpers.runif import RunIf
 from torch.distributed.fsdp import FullyShardedDataParallel
 from torch.distributed.fsdp.wrap import wrap
+from torch.utils.data import DataLoader
 
+from lightning_lite import LightningLite
 from lightning_lite.plugins import FSDPPrecision
 from lightning_lite.strategies import FSDPStrategy
+from tests_lite.helpers.models import RandomDataset
 
 
-class FSDPLite(BoringLite):
+class FSDPLite(LightningLite):
     manual_wrapping = False
+
+    def run(self):
+        model = self.get_model()
+
+        dataloader = DataLoader(RandomDataset(32, 64))
+
+        # model needs to be set up first in FSDP
+        model = self.setup(model)
+
+        # get parameters on the wrapped model
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
+        # optimizer nees to be set up independently
+        optimizer = self.setup(None, optimizer)
+
+        dataloader = self.setup_dataloaders(dataloader)
+        model.train()
+
+        data_iter = iter(dataloader)
+        batch = next(data_iter)
+        loss = self.step(model, batch)
+        self.backward(loss)
+        optimizer.step()
+        optimizer.zero_grad()
+
+        with tempfile.TemporaryFile() as ckpt_path:
+            ckpt_path = self.broadcast(str(ckpt_path))
+            self._strategy.save_checkpoint(model.state_dict(), ckpt_path)
+
+        self._assert_save_equality(model, ckpt_path)
 
     def get_model(self):
         model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
@@ -55,18 +87,12 @@ class FSDPLite(BoringLite):
             assert original_module[layer_num].mixed_precision.reduce_dtype == precision
             assert original_module[layer_num].mixed_precision.buffer_dtype == precision
 
-        return super().step(model, batch)
+        output = model(batch)
+        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
+        return loss
 
-    def run(self):
-        super().run()
-        with tempfile.TemporaryFile() as ckpt_path:
-            ckpt_path = self.broadcast(str(ckpt_path))
-            self._strategy.save_checkpoint(self.model.state_dict(), ckpt_path)
-
-        self._assert_save_equality(ckpt_path)
-
-    def _assert_save_equality(self, ckpt_path):
-        current_state_dict = self._strategy.get_module_state_dict(self.model)
+    def _assert_save_equality(self, model, ckpt_path):
+        current_state_dict = self._strategy.get_module_state_dict(model)
 
         checkpoint = self.load(ckpt_path)
         loaded_model = self.get_model()
