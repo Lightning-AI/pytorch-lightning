@@ -1,3 +1,5 @@
+import json
+import os
 import re
 from typing import Dict, Optional
 
@@ -77,30 +79,51 @@ def _extract_command_from_openapi(openapi_resp: Dict) -> Dict[str, Dict[str, str
     return {p.replace("/command/", ""): _get_metadata_from_openapi(openapi_resp["paths"], p) for p in command_paths}
 
 
-def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Optional[str]):
-    """This function is used to retrieve the current url associated with an id."""
+class LightningAppOpenAPIRetriever:
+    def __init__(self, app_id_or_name_or_url: Optional[str], use_cache: bool = True):
+        self.app_id_or_name_or_url = app_id_or_name_or_url
+        self.url = None
+        self.openapi = None
+        self.api_commands = None
+        self.app_id = None
+        home = os.path.expanduser("~")
+        if use_cache:
+            cache_openapi = os.path.join(home, ".lightning", "lightning_connection", "commands", "openapi.json")
+            if os.path.exists(cache_openapi):
+                with open(cache_openapi) as f:
+                    self.openapi = json.load(f)
+                self.api_commands = _extract_command_from_openapi(self.openapi)
+        else:
+            self._collect_open_api_json()
+            if self.openapi:
+                self.api_commands = _extract_command_from_openapi(self.openapi)
 
-    if _is_url(app_id_or_name_or_url):
-        url = app_id_or_name_or_url
-        assert url
-        resp = requests.get(url + "/openapi.json")
-        if resp.status_code != 200:
-            raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-        return url, _extract_command_from_openapi(resp.json()), None
+    def is_alive(self) -> bool:
+        if self.url is None:
+            self._find_url()
+        if self.url is None:
+            return False
+        resp = requests.get(self.url)
+        return resp.status_code == 200
 
-    # 2: If no identifier has been provided, evaluate the local application
-    if app_id_or_name_or_url is None:
-        try:
+    def _find_url(self):
+        if _is_url(self.app_id_or_name_or_url):
+            self.url = self.app_id_or_name_or_url
+            assert self.url
+            return
+
+        if self.app_id_or_name_or_url is None:
             url = f"http://localhost:{APP_SERVER_PORT}"
-            resp = requests.get(f"{url}/openapi.json")
-            if resp.status_code != 200:
-                raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-            return url, _extract_command_from_openapi(resp.json()), None
-        except requests.exceptions.ConnectionError:
-            pass
+            resp = requests.get(f"{self.url}/openapi.json")
+            if resp.status_code == 200:
+                self.url = url
+                return
 
-    # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
-    else:
+        lightningapp = self._find_matching_app()
+        if lightningapp:
+            self.url = lightningapp.status.url
+
+    def _find_matching_app(self):
         client = LightningClient()
         project = _get_project(client)
         list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
@@ -109,20 +132,63 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
 
         lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
 
-        if not app_id_or_name_or_url:
+        if not self.app_id_or_name_or_url:
             raise Exception(f"Provide an application name, id or url with --app_id=X. Found {lightningapp_names}")
 
         for lightningapp in list_lightningapps.lightningapps:
-            if lightningapp.id == app_id_or_name_or_url or lightningapp.name == app_id_or_name_or_url:
+            if lightningapp.id == self.app_id_or_name_or_url or lightningapp.name == self.app_id_or_name_or_url:
                 if lightningapp.status.url == "":
                     raise Exception("The application is starting. Try in a few moments.")
-                resp = requests.get(lightningapp.status.url + "/openapi.json")
+                return lightningapp
+
+    def _collect_open_api_json(self):
+        """This function is used to retrieve the current url associated with an id."""
+
+        if _is_url(self.app_id_or_name_or_url):
+            self.url = self.app_id_or_name_or_url
+            assert self.url
+            resp = requests.get(self.url + "/openapi.json")
+            if resp.status_code != 200:
+                raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
+            self.openapi = resp.json()
+            return
+
+        # 2: If no identifier has been provided, evaluate the local application
+        if self.app_id_or_name_or_url is None:
+            try:
+                self.url = f"http://localhost:{APP_SERVER_PORT}"
+                resp = requests.get(f"{self.url}/openapi.json")
                 if resp.status_code != 200:
-                    raise Exception(
-                        "The server didn't process the request properly. " "Try once your application is ready."
-                    )
-                return lightningapp.status.url, _extract_command_from_openapi(resp.json()), lightningapp.id
-    return None, None, None
+                    raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
+                self.openapi = resp.json()
+            except requests.exceptions.ConnectionError:
+                pass
+
+        # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
+        else:
+            client = LightningClient()
+            project = _get_project(client)
+            list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            )
+
+            lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
+
+            if not self.app_id_or_name_or_url:
+                raise Exception(f"Provide an application name, id or url with --app_id=X. Found {lightningapp_names}")
+
+            for lightningapp in list_lightningapps.lightningapps:
+                if lightningapp.id == self.app_id_or_name_or_url or lightningapp.name == self.app_id_or_name_or_url:
+                    if lightningapp.status.url == "":
+                        raise Exception("The application is starting. Try in a few moments.")
+                    resp = requests.get(lightningapp.status.url + "/openapi.json")
+                    if resp.status_code != 200:
+                        raise Exception(
+                            "The server didn't process the request properly. " "Try once your application is ready."
+                        )
+                    self.url = lightningapp.status.url
+                    self.openapi = resp.json()
+                    self.app_id = lightningapp.id
 
 
 def _arrow_time_callback(

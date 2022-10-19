@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import requests
 
 from lightning_app.cli.commands.connection import _resolve_command_path
-from lightning_app.utilities.cli_helpers import _retrieve_application_url_and_available_commands
+from lightning_app.utilities.cli_helpers import LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
 
@@ -13,32 +13,39 @@ from lightning_app.utilities.enum import OpenAPITags
 def _run_app_command(app_name: str, app_id: Optional[str]):
     """Execute a function in a running App from its name."""
     # 1: Collect the url and comments from the running application
-    url, api_commands, _ = _retrieve_application_url_and_available_commands(app_id)
-    if url is None or api_commands is None:
-        raise Exception("We couldn't find any matching running App.")
+    running_help = sys.argv[-1] == "--help"
 
-    if not api_commands:
+    retriever = LightningAppOpenAPIRetriever(app_id, use_cache=running_help)
+
+    if not running_help and (retriever.url is None or retriever.api_commands is None):
+        if app_name == "localhost":
+            print("The command couldn't be executed as your local Lightning App isn't running.")
+        else:
+            print(f"The command couldn't be executed as your cloud Lightning App `{app_name}` isn't running.")
+        sys.exit(0)
+
+    if not retriever.api_commands:
         raise Exception("This application doesn't expose any commands yet.")
 
     full_command = "_".join(sys.argv)
 
     has_found = False
-    for command in list(api_commands):
+    for command in list(retriever.api_commands):
         if command in full_command:
             has_found = True
             break
 
     if not has_found:
-        raise Exception(f"The provided command isn't available in {list(api_commands)}")
+        raise Exception(f"The provided command isn't available in {list(retriever.api_commands)}")
 
     # 2: Send the command from the user
-    metadata = api_commands[command]
+    metadata = retriever.api_commands[command]
 
     # 3: Execute the command
     if metadata["tag"] == OpenAPITags.APP_COMMAND:
-        _handle_command_without_client(command, metadata, url)
+        _handle_command_without_client(command, metadata, retriever.url)
     else:
-        _handle_command_with_client(command, metadata, app_name, app_id, url)
+        _handle_command_with_client(command, metadata, app_name, app_id, retriever.url)
 
     if sys.argv[-1] != "--help":
         print("Your command execution was successful.")
