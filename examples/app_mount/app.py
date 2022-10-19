@@ -21,7 +21,7 @@ class Flow(L.LightningFlow):
         super().__init__()
         self.work_1 = Work(
             cloud_compute=CloudCompute(
-                mount=Mount(
+                mounts=Mount(
                     source="s3://ryft-public-sample-data/esRedditJson/",
                     root_dir="/content/esRedditJson/",
                 ),

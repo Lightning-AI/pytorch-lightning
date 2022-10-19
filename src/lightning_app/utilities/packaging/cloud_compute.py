@@ -48,7 +48,8 @@ _CLOUD_COMPUTE_STORE = {}
 
 @dataclass
 class CloudCompute:
-    """
+    """Configure the cloud runtime for a lightning work or flow.
+
     Arguments:
         name: The name of the hardware to use. A full list of supported options can be found in
             :doc:`/core_api/lightning_work/compute`. If you have a request for more hardware options, please contact

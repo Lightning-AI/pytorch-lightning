@@ -8,7 +8,8 @@ __MOUNT_PROTOCOLS__: List[str] = ["s3://"]
 
 @dataclass
 class Mount:
-    """
+    """Allows you to mount the contents of an AWS S3 bucket on disk when running an app on the cloud.
+
     Arguments:
         source: The location which contains the external data which should be mounted in the
             running work. At the moment, only AWS S3 mounts are supported. This must be a full
