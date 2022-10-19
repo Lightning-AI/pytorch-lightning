@@ -38,6 +38,8 @@ class ClientCommand:
 
     def __init__(self, method: Callable, requirements: Optional[List[str]] = None) -> None:
         self.method = method
+        if not self.DESCRIPTION:
+            self.DESCRIPTION = self.method.__doc__ or ""
         flow = getattr(method, "__self__", None)
         self.owner = flow.name if flow else None
         self.requirements = requirements
@@ -240,10 +242,13 @@ def _process_requests(app, request: Union[APIRequest, CommandRequest]) -> None:
 
 def _collect_open_api_extras(command) -> Dict:
     if not isinstance(command, ClientCommand):
+        if command.__doc__ is not None:
+            return {"description": command.__doc__}
         return {}
     return {
         "cls_path": inspect.getfile(command.__class__),
         "cls_name": command.__class__.__name__,
+        "description": command.DESCRIPTION,
     }
 
 
