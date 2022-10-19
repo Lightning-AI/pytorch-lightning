@@ -135,7 +135,7 @@ class LightningLite(ABC):
 
     def setup(
         self,
-        model: nn.Module,
+        model: Optional[nn.Module] = None,
         *optimizers: Optimizer,
         move_to_device: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
@@ -151,26 +151,26 @@ class LightningLite(ABC):
             The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
         """
         self._validate_setup(model, optimizers)
-        original_model = model
 
-        model = self._precision.convert_module(model)
+        if model and not optimizers:
+            # set up a model without optimizers (e.g., for inference)
+            model = self._setup_model(model, move_to_device=move_to_device)
+        elif not model and optimizers:
+            # set up one or more optimizers separately from the model; some strategies don't support that
+            optimizers = self._setup_optimizers(*optimizers)
+        elif model and optimizers:
+            # set up model and optimizers jointly; some strategies require this
+            model, optimizers = self._setup_model_and_optimizers(model, *optimizers, move_to_device=move_to_device)
 
-        if move_to_device:
-            model = self._move_model_to_device(model=model, optimizers=list(optimizers))
-
-        # Let accelerator/plugin wrap and connect the models and optimizers
-        model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision, original_module=original_model)
-
-        # Update the _DeviceDtypeModuleMixin's device parameter
-        model.to(self.device if move_to_device else next(model.parameters()).device)
-
-        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
-        self._models_setup += 1
+        outputs = []
+        if model:
+            outputs.append(model)
         if optimizers:
             # join both types in a list for API convenience
-            return [model] + optimizers  # type: ignore
-        return model
+            outputs.extend(optimizers)  # type: ignore
+        if len(outputs) == 1:
+            return outputs[0]
+        return outputs
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -396,6 +396,53 @@ class LightningLite(ABC):
         ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)
 
+    def _setup_model_and_optimizers(
+        self,
+        model: nn.Module,
+        *optimizers: Optimizer,
+        move_to_device: bool = True,
+    ) -> Tuple[_LiteModule, List[_LiteOptimizer]]:
+        original_model = model
+
+        model = self._precision.convert_module(model)
+
+        if move_to_device:
+            model = self._move_model_to_device(model=model, optimizers=list(optimizers))
+
+        # Let strategy wrap and connect the models and optimizers
+        model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
+        model = _LiteModule(model, self._precision, original_module=original_model)
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        model.to(self.device if move_to_device else next(model.parameters()).device)
+
+        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        self._models_setup += 1
+        return model, optimizers
+
+    def _setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
+        original_model = model
+
+        model = self._precision.convert_module(model)
+
+        if move_to_device:
+            model = self._move_model_to_device(model=model, optimizers=[])
+
+        # Let strategy wrap and connect the model alone
+        model = self._strategy.setup_module(model)
+        model = _LiteModule(model, self._precision, original_module=original_model)
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        model.to(self.device if move_to_device else next(model.parameters()).device)
+
+        self._models_setup += 1
+        return model
+
+    def _setup_optimizers(self, *optimizers: Optimizer) -> List[_LiteOptimizer]:
+        optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
+        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        return optimizers
+
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters()).device
         if any(param.device != initial_device for param in model.parameters()):
@@ -436,12 +483,15 @@ class LightningLite(ABC):
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     @staticmethod
-    def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+    def _validate_setup(model: Optional[nn.Module], optimizers: Sequence[Optimizer]) -> None:
         if isinstance(model, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
+
+        if model is None and not optimizers:
+            raise ValueError("`setup` requires at least a model or an optimizer.")
 
     @staticmethod
     def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
