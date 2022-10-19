@@ -93,6 +93,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_pytorch/coverage.xml
-        flags: cpu,pytest,torch${{ matrix.pytorch-version }}
+        flags: cpu,pytest-slow,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
