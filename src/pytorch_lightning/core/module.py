@@ -88,6 +88,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
+            "use_amp",  # from graveyard
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__

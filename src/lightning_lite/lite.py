@@ -89,7 +89,7 @@ class LightningLite(ABC):
         )
         self._strategy: Strategy = self._connector.strategy
         self._accelerator: Accelerator = self._connector.accelerator
-        self._precision_plugin: Precision = self._strategy.precision_plugin
+        self._precision: Precision = self._strategy.precision
         self._models_setup: int = 0
 
         self._prepare_run_method()
@@ -157,14 +157,14 @@ class LightningLite(ABC):
         self._validate_setup(model, optimizers)
         original_model = model
 
-        model = self._precision_plugin.convert_module(model)
+        model = self._precision.convert_module(model)
 
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision_plugin, original_module=original_model)
+        model = _LiteModule(model, self._precision, original_module=original_model)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         model.to(self.device if move_to_device else next(model.parameters()).device)
@@ -261,7 +261,7 @@ class LightningLite(ABC):
                 # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._precision_plugin.backward(tensor, module, *args, **kwargs)
+        self._precision.backward(tensor, module, *args, **kwargs)
 
     @contextmanager
     def autocast(self) -> Generator[None, None, None]:
@@ -270,7 +270,7 @@ class LightningLite(ABC):
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
         chosen precision setting.
         """
-        with self._precision_plugin.forward_context():
+        with self._precision.forward_context():
             yield
 
     @overload
