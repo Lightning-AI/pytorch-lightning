@@ -50,7 +50,7 @@ class DDPShardedStrategy(DDPStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
@@ -60,7 +60,7 @@ class DDPShardedStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
@@ -78,7 +78,7 @@ class DDPShardedStrategy(DDPStrategy):
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision, self.num_nodes)
         for optimizer in optimizers:
             # This forces buckets to be rebuilt on the first forward pass
             # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
@@ -126,7 +126,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
@@ -136,7 +136,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
@@ -154,7 +154,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision, self.num_nodes)
         for optimizer in optimizers:
             # This forces buckets to be rebuilt on the first forward pass
             # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
@@ -191,14 +191,12 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         )
 
 
-def _reinit_optimizers_with_oss(
-    optimizers: List[Optimizer], precision_plugin: Precision, num_nodes: int
-) -> List["OSS"]:
+def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precision, num_nodes: int) -> List["OSS"]:
     for x, optimizer in enumerate(optimizers):
         if not isinstance(optimizer, OSS):
             optim_class = type(optimizer)
             zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-            is_fp16 = precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
+            is_fp16 = precision.precision in (PrecisionType.MIXED, PrecisionType.HALF)
             # For multi-node training, compressing the model shards in fp16 before broadcasting
             # improves performance. When using PyTorch AMP, it will not degrade
             # the model performance.

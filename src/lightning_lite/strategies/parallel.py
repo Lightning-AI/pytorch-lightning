@@ -38,9 +38,9 @@ class ParallelStrategy(Strategy, ABC):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ):
-        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
         self.parallel_devices = parallel_devices
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
 

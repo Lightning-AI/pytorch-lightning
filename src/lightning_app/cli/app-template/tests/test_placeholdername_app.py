@@ -10,7 +10,7 @@ import io
 import os
 from contextlib import redirect_stdout
 
-from lightning.app.testing.testing import application_testing, LightningTestApp
+from lightning_app.testing.testing import application_testing, LightningTestApp
 
 
 class LightningAppTestInt(LightningTestApp):
