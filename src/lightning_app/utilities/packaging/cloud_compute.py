@@ -93,6 +93,8 @@ class CloudCompute:
     _internal_id: Optional[str] = None
 
     def __post_init__(self):
+        _verify_mount_root_dirs_are_unique(self.mount)
+
         if self.clusters:
             raise ValueError("Clusters are't supported yet. Coming soon.")
         if self.wait_timeout:
@@ -103,8 +105,6 @@ class CloudCompute:
         # All `default` CloudCompute are identified in the same way.
         if self._internal_id is None:
             self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
-
-        _verify_mount_root_dirs_are_unique(self.mount)
 
     def to_dict(self):
         _verify_mount_root_dirs_are_unique(self.mount)
@@ -120,7 +120,7 @@ class CloudCompute:
             d["mount"] = []
             for mount in mounts:
                 d["mount"].append(Mount(**mount))
-        _verify_mount_root_dirs_are_unique(d["mount"])
+        _verify_mount_root_dirs_are_unique(d.get("mount", default=None))
         return cls(**d)
 
     @property
