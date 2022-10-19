@@ -2,6 +2,7 @@ import asyncio
 import logging
 import multiprocessing as mp
 import os
+import sys
 from copy import deepcopy
 from multiprocessing import Process
 from time import sleep, time
@@ -445,6 +446,7 @@ async def async_request(url: str, data: InputRequestModel):
             return await result.json()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Issue with Windows")
 def test_configure_api():
     # Setup
     process = Process(target=target)
