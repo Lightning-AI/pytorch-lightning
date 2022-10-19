@@ -94,7 +94,7 @@ jobs:
       # the stack-level can only be set on >=3.7
       if: matrix.python-version != '3.7'
       working-directory: ./tests/tests_lite
-      # needs to run outside `pytest`
+      # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
     - name: Testing Lite
