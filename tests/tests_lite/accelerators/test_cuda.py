@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
+import os
 from unittest import mock
 
 import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
+import lightning_lite
 from lightning_lite.accelerators.cuda import CUDAAccelerator, is_cuda_available, num_cuda_devices
 
 
@@ -65,11 +68,10 @@ def test_num_cuda_devices_without_nvml(*_):
     num_cuda_devices.cache_clear()
 
 
-# TODO: This test does not work when rewriting the imports. Need to figure out, how to do it properly.
-# @mock.patch.dict(os.environ, {}, clear=True)
-# def test_force_nvml_based_cuda_check(monkeypatch):
-#     """Test that we force PyTorch to use the NVML-based CUDA checks."""
-#     monkeypatch.delitem(sys.modules, "lightning_lite")  # 'un-import' lightning_lite
-#     import lightning_lite
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_force_nvml_based_cuda_check():
+    """Test that we force PyTorch to use the NVML-based CUDA checks."""
 
-#     assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"
+    importlib.reload(lightning_lite)
+
+    assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"
