@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import contextlib
 import logging
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
@@ -23,8 +23,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
+from lightning_lite.plugins.io.torch_ import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
@@ -50,6 +50,7 @@ class Strategy(ABC):
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision: Optional[Precision] = precision
         self._launcher: Optional[_Launcher] = None
+        self._backward_sync_control: Optional[_BackwardSyncControl] = None
 
     @property
     @abstractmethod
@@ -148,7 +149,7 @@ class Strategy(ABC):
         device = device or self.root_device
         return move_data_to_device(batch, device)
 
-    @contextlib.contextmanager
+    @contextmanager
     def module_sharded_context(self) -> Generator:
         """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
@@ -296,3 +297,20 @@ class Strategy(ABC):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
+
+
+class _BackwardSyncControl(ABC):
+    """Interface for any :class:`Strategy` that wants to offer a functionality to enable or disable gradient
+    synchronization during/after back-propagation.
+
+    The most common use-case is gradient accumulation. If a :class:`Strategy` implements this interface, the user can
+    implement their gradient accumulation loop very efficiently by disabling redundant gradient synchronization.
+    """
+
+    @contextmanager
+    @abstractmethod
+    def no_backward_sync(self, module: Module) -> Generator:
+        """Blocks the synchronization of gradients during the backward pass.
+
+        This is a context manager. It is only effective if it wraps a call to `.backward()`.
+        """

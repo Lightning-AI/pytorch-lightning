@@ -54,7 +54,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert not connector._loaded_checkpoint
 
 
-@mock.patch("lightning_lite.plugins.environments.slurm_environment.SLURMEnvironment.detect", return_value=True)
+@mock.patch("lightning_lite.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
 def test_hpc_restore_attempt(_, tmpdir):
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()

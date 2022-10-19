@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch.nn as nn
@@ -19,16 +20,11 @@ import torch.optim
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.strategies import DDPShardedStrategy
-from lightning_lite.strategies.fairscale import DDPSpawnShardedStrategy, ShardedDataParallel
-
-
-@RunIf(fairscale=True)
-def test_block_backward_sync():
-    strategy = DDPShardedStrategy()
-    model = mock.MagicMock(spec=ShardedDataParallel)
-    with strategy.block_backward_sync(model):
-        pass
-    model.no_sync.assert_called_once()
+from lightning_lite.strategies.fairscale import (
+    _FairscaleBackwardSyncControl,
+    DDPSpawnShardedStrategy,
+    ShardedDataParallel,
+)
 
 
 @RunIf(fairscale=True)
@@ -71,3 +67,25 @@ def test_fairscale_custom_kwargs_reduce_buffer_size(_, kwargs, expected_buffer_s
         assert kwargs["reduce_buffer_size"] == DDPShardedStrategy._REDUCE_BUFFER_SIZE_DEFAULT
     else:
         assert kwargs["reduce_buffer_size"] == expected_buffer_size
+
+
+@RunIf(fairscale=True)
+@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
+def test_fairscale_no_backward_sync(cls):
+    """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
+    ShardedDataParallel."""
+
+    strategy = cls()
+    assert isinstance(strategy._backward_sync_control, _FairscaleBackwardSyncControl)
+
+    with pytest.raises(
+        TypeError, match="is only possible if the module passed to .* is wrapped in `ShardedDataParallel`"
+    ):
+        with strategy._backward_sync_control.no_backward_sync(Mock()):
+            pass
+
+    module = MagicMock(spec=ShardedDataParallel)
+    with strategy._backward_sync_control.no_backward_sync(module):
+        pass
+
+    module.no_sync.assert_called_once()
