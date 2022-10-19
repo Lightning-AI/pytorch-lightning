@@ -6,7 +6,3 @@ pytest-forked <=1.4.0
 pytest-rerunfailures>=10.2
 pre-commit>=1.0
 mypy==0.971
-
-torchmetrics>=0.7.0, <=0.10.0
-tqdm>=4.57.0, <4.65.0
-tensorboard>=2.9.1, <2.11.0

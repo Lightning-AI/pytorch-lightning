@@ -1,9 +1,29 @@
+from functools import partial
+
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
 
+from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.utilities.distributed import gather_all_tensors
-from tests_pytorch.core.test_results import spawn_launch
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from pytorch_lightning.strategies import DDPSpawnStrategy
+from pytorch_lightning.strategies.launchers import _MultiProcessingLauncher
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.models.test_tpu import wrap_launch_function
+
+
+def spawn_launch(fn, parallel_devices):
+    """Copied from ``tests_pytorch.core.test_results.spawn_launch``"""
+    # TODO: the accelerator and cluster_environment should be optional to just launch processes, but this requires lazy
+    # initialization to be implemented
+    device_to_accelerator = {"cuda": CUDAAccelerator, "mps": MPSAccelerator, "cpu": CPUAccelerator}
+    accelerator_cls = device_to_accelerator[parallel_devices[0].type]
+    strategy = DDPSpawnStrategy(
+        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+    )
+    launcher = _MultiProcessingLauncher(strategy=strategy)
+    wrapped = partial(wrap_launch_function, fn, strategy)
+    return launcher.launch(wrapped, strategy)
 
 
 def _test_all_gather_uneven_tensors(strategy):

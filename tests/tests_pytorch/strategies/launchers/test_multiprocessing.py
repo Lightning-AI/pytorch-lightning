@@ -16,9 +16,9 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from tests_lite.helpers.runif import RunIf
 
 from pytorch_lightning.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
-from tests_pytorch.helpers.runif import RunIf
 
 
 @mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
