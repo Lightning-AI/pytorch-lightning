@@ -71,6 +71,17 @@ class SavedDynamicAppExample(LightningFlow):
         super().load_state_dict(flow_state, children_states, strict=strict)
 
 
+class SavedDynamicAppExampleInvalid(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.text = ""
+
+    def run(self):
+        if not getattr(self, "flow_level_1", None):
+            self.flow_level_1 = DynamicFlowLevel1()
+        self.flow_level_1.run()
+
+
 def test_load_app_from_local_checkpoint():
     app = LightningApp(SavedAppExample())
     app.load_app_state_from_checkpoint(
@@ -91,6 +102,17 @@ def test_load_dynamic_app_from_local_checkpoint():
     assert app.root.flow_level_1.text == "Hello Flow Level 1!"
     assert app.root.flow_level_1.flow_level_2.text == "Hello Flow Level 2!"
     assert app.root.flow_level_1.flow_level_2.work_level_3.text == "Hello Work Level 3!"
+
+
+def test_load_dynamic_app_from_local_checkpoint_invalid_app():
+    # Here we are missing the load_state_dict method in SavedDynamicAppExampleInvalid that loads the dynamic components
+    # and does state migration if needed. see LightningFlow.load_state_dict() for more details.
+    app = LightningApp(SavedDynamicAppExampleInvalid())
+
+    with pytest.raises(ValueError, match="The component flow_level_1 wasn't instantiated for the component root"):
+        app.load_app_state_from_checkpoint(
+            os.path.join(_PROJECT_ROOT, "tests/tests_app/test_date/saved_dynamic_app_checkpoint.json")
+        )
 
 
 @pytest.mark.parametrize(

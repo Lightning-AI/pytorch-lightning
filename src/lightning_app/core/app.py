@@ -560,7 +560,7 @@ class LightningApp:
                     checkpoint_drive_path = cp
                     break
 
-        # Cannot file the checkpoint on the drive
+        # Cannot find the checkpoint on the drive
         if not checkpoint_drive_path:
             return None
 
