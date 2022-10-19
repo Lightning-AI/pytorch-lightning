@@ -50,6 +50,8 @@ def connect(app_name_or_id: str, yes: bool = False):
         commands_folder = os.path.join(lightning_folder, "commands")
         if not os.path.exists(commands_folder):
             os.makedirs(commands_folder)
+            
+         _write_commands_metadata(retriever.api_commands)
 
         with open(os.path.join(commands_folder, "openapi.json"), "w") as f:
             json.dump(retriever.openapi, f)
@@ -102,6 +104,8 @@ def connect(app_name_or_id: str, yes: bool = False):
             commands_folder = os.path.join(lightning_folder, "commands")
             if not os.path.exists(commands_folder):
                 os.makedirs(commands_folder)
+                
+            _write_commands_metadata(retriever.api_commands)
 
             for command_name, metadata in retriever.api_commands.items():
                 if "cls_path" in metadata:
@@ -178,16 +182,28 @@ def _get_commands_folder() -> str:
     return os.path.join(lightning_folder, "commands")
 
 
+def _write_commands_metadata(api_commands):
+    metadata = {command_name: metadata for command_name, metadata in api_commands.items()}
+    metadata_path = os.path.join(_get_commands_folder(), ".meta.json")
+    with open(metadata_path, "w") as f:
+        json.dump(metadata, f)
+
+
+def _get_commands_metadata():
+    metadata_path = os.path.join(_get_commands_folder(), ".meta.json")
+    with open(metadata_path) as f:
+        return json.load(f)
+
+
 def _resolve_command_path(command: str) -> str:
     return os.path.join(_get_commands_folder(), f"{command}.py")
 
 
 def _list_app_commands() -> List[str]:
-    command_names = sorted(
-        n.replace(".py", "").replace(".txt", "").replace("_", " ")
-        for n in os.listdir(_get_commands_folder())
-        if n != "__pycache__"
-    )
+    metadata = _get_commands_metadata()
+    metadata = {key.replace("_", " "): value for key, value in metadata.items()}
+
+    command_names = list(sorted(metadata.keys()))
     if not command_names:
         click.echo("The current Lightning App doesn't have commands.")
         return []
@@ -200,5 +216,5 @@ def _list_app_commands() -> List[str]:
     max_length = max(len(n) for n in command_names)
     for command_name in command_names:
         padding = (max_length + 1 - len(command_name)) * " "
-        click.echo(f"  {command_name}{padding}Description")
+        click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
     return command_names
