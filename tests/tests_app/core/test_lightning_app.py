@@ -423,7 +423,7 @@ class EmptyFlow(LightningFlow):
     "sleep_time, expect",
     [
         (1, 0),
-        (0, 100),
+        (0, 20),
     ],
 )
 def test_lapp_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):

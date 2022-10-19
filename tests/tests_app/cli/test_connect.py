@@ -65,9 +65,9 @@ def test_connect_disconnect_local(monkeypatch):
         "  --help     Show this message and exit.",
         "",
         "Lightning App Commands",
-        "  command with client    Description",
-        "  command without client Description",
-        "  nested command         Description",
+        "  command with client    A command with a client.",
+        "  command without client A command without a client.",
+        "  nested command         A nested command.",
     ]
     assert messages == expected
 
@@ -168,9 +168,9 @@ def test_connect_disconnect_cloud(monkeypatch):
         "  --help     Show this message and exit.",
         "",
         "Lightning App Commands",
-        "  command with client    Description",
-        "  command without client Description",
-        "  nested command         Description",
+        "  command with client    A command with a client.",
+        "  command without client A command without a client.",
+        "  nested command         A nested command.",
     ]
     assert messages == expected
 
