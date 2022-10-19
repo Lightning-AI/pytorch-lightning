@@ -82,9 +82,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        # setting pre-release flag
+        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        # determine PyTorch source
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -e .[test] --upgrade --find-links "https://download.pytorch.org/whl/${url}"  # $pre_option
         pip list
       shell: bash
 
