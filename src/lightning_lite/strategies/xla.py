@@ -168,14 +168,9 @@ class XLAStrategy(DDPSpawnStrategy):
         if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
 
-        if sync_grads:
-            import torch_xla.core.functions as xf
-
-            return xf.all_gather(tensor)
-        else:
-            import torch_xla.core.xla_model as xm
-
-            return xm.all_gather(tensor)
+        import torch_xla.core.functions as xf
+        import torch_xla.core.xla_model as xm
+        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None

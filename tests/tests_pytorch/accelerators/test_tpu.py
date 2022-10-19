@@ -327,18 +327,24 @@ def test_trainer_config_device_ids(devices, expected_device_ids):
 
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_all_gather_sync_grads(tmpdir):
+def test_all_gather(tmpdir):
+    nb_devices = 8
+    values_per_dim = 2
+    expected_tensor_dims = [nb_devices, values_per_dim, values_per_dim]
+
     class TestModel(BoringModel):
 
         training_step_called = False
 
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
-            tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
-            gathered_tensor = self.all_gather(tensor, sync_grads=True)
-            assert gathered_tensor.shape == torch.Size([8, 2, 2])
+            tensor = torch.rand(values_per_dim, values_per_dim, requires_grad=True, device=self.device)
+            tensor_with_grads = self.all_gather(tensor, sync_grads=True)
+            tensor_wo_grads = self.all_gather(tensor, sync_grads=False)
+            assert tensor_with_grads.shape == torch.Size(expected_tensor_dims)
+            assert tensor_wo_grads.shape == torch.Size(expected_tensor_dims)
 
-            loss = gathered_tensor.sum()
+            loss = tensor_with_grads.sum() + tensor_wo_grads.sum()
 
             return loss
 
@@ -347,37 +353,7 @@ def test_all_gather_sync_grads(tmpdir):
         default_root_dir=tmpdir,
         fast_dev_run=True,
         accelerator="tpu",
-        devices=8,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-    assert model.training_step_called
-
-
-@RunIf(tpu=True, standalone=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_all_gather_no_grads(tmpdir):
-    class TestModel(BoringModel):
-
-        training_step_called = False
-
-        def training_step(self, batch, batch_idx):
-            self.training_step_called = True
-            tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
-            gathered_tensor = self.all_gather(tensor, sync_grads=False)
-            assert gathered_tensor.shape == torch.Size([8, 2, 2])
-
-            loss = gathered_tensor.sum()
-
-            return loss
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        accelerator="tpu",
-        devices=8,
+        devices=nb_devices,
         enable_progress_bar=False,
         enable_model_summary=False,
     )

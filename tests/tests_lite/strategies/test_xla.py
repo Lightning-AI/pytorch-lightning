@@ -17,6 +17,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+import torch
 from tests_lite.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_lite.helpers.models import RandomDataset, RandomIterableDataset
 from tests_lite.helpers.runif import RunIf
@@ -113,3 +114,17 @@ def test_xla_validate_unsupported_iterable_dataloaders(_, dataloader, monkeypatc
 
     with pytest.raises(TypeError, match="TPUs do not currently support"):
         XLAStrategy().process_dataloader(dataloader)
+
+
+def tpu_all_gather_fn(strategy):
+    for sync_grads in [True, False]:
+        tensor = torch.tensor(1, device=strategy.root_device)
+        result = strategy.all_gather(tensor, sync_grads=sync_grads)
+        assert result.sum() == 8
+
+
+@RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+def test_tpu_all_gather():
+    """Test the all_gather operation on TPU."""
+    xla_launch(tpu_all_gather_fn)
