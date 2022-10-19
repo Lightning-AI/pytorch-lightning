@@ -7,7 +7,7 @@ from multiprocessing import Queue
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, HTTPException, Response
 
 from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
 from lightning_app.utilities.app_helpers import Logger
@@ -36,11 +36,11 @@ class HttpMethod:
         self.method_annotations = method.__annotations__
         # TODO: Validate the signature contains only pydantic models.
         self.method_signature = inspect.signature(method)
-        params = {k: v for k, v in self.method_signature.parameters.items()}
-        params["_internal_response"] = inspect.Parameter(
-            name="_internal_response", kind=inspect._ParameterKind.POSITIONAL_OR_KEYWORD, default=Response()
-        )
-        self.method_signature._parameters = params
+        # params = {k: v for k, v in self.method_signature.parameters.items()}
+        # params["_internal_response"] = inspect.Parameter(
+        #     name="_internal_response", kind=inspect._ParameterKind.POSITIONAL_OR_KEYWORD, default=Response()
+        # )
+        # self.method_signature._parameters = params
         self.timeout = timeout
         self.kwargs = kwargs
 
@@ -58,7 +58,7 @@ class HttpMethod:
 
         # 3: Define the request handler.
         @wraps(_signature_proxy_function)
-        async def _handle_request(*args, _internal_response: Response, **kwargs):
+        async def _handle_request(*args, **kwargs):
             async def fn(*args, **kwargs):
                 request_id = str(uuid4()).split("-")[0]
                 logger.debug(f"Processing request {request_id} for route: {self.route}")
@@ -87,9 +87,8 @@ class HttpMethod:
 
             response: RequestResponse = await asyncio.create_task(fn(*args, **kwargs))
 
-            if response.status_code == 500:
-                _internal_response.status_code = response.status_code
-                return {"status": "failure", "reason": "Internal Server Error"}
+            if response.status_code != 200:
+                raise HTTPException(response.status_code, detail=response.content)
 
             return response.content
 

@@ -10,6 +10,7 @@ from tempfile import gettempdir
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import requests
+from fastapi import HTTPException
 from pydantic import BaseModel
 
 from lightning_app.api.http_methods import Post
@@ -197,8 +198,11 @@ def _process_api_request(app, request: APIRequest) -> None:
     method = getattr(flow, request.method_name)
     try:
         response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+    except HTTPException as e:
+        logger.error(repr(e))
+        response = RequestResponse(status_code=e.status_code, content=e.detail)
     except Exception as e:
-        logger.error(e)
+        logger.error(repr(e))
         response = RequestResponse(status_code=500)
     app.api_response_queue.put({"response": response, "id": request.id})
 
@@ -212,8 +216,11 @@ def _process_command_requests(app, request: CommandRequest) -> None:
                 # Validation is done on the CLI side.
                 try:
                     response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+                except HTTPException as e:
+                    logger.error(repr(e))
+                    response = RequestResponse(status_code=e.status_code, content=e.detail)
                 except Exception as e:
-                    logger.error(e)
+                    logger.error(repr(e))
                     response = RequestResponse(status_code=500)
                 app.api_response_queue.put({"response": response, "id": request.id})
 

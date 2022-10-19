@@ -11,6 +11,7 @@ import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
+from fastapi import HTTPException
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -425,7 +426,7 @@ class FlowAPI(LightningFlow):
     def request(self, config: InputRequestModel) -> OutputRequestModel:
         self.counter += 1
         if config.index % 5 == 0:
-            raise Exception("HERE")
+            raise HTTPException(status_code=400, detail="HERE")
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def stop(self):
@@ -476,9 +477,7 @@ def test_configure_api():
     results = asyncio.get_event_loop().run_until_complete(asyncio.gather(*coros))
     assert time() - t0 < 4.5
     assert len(results) == N
-    assert all(
-        r.get("reason", None) == ("Internal Server Error" if i % 5 == 0 else None) for i, r in enumerate(results)
-    )
+    assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
     response = requests.post(f"http://localhost:{APP_SERVER_PORT}/api/v1/stop")
 
     # Teardown
