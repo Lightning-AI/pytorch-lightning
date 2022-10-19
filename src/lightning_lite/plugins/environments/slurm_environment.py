@@ -159,8 +159,8 @@ class SLURMEnvironment(ClusterEnvironment):
         `srun` is found but not used.
         """
         srun_exists = subprocess.call(["which", "srun"]) == 0
-        hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
         if srun_exists and not _is_srun_used():
+            hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
             rank_zero_warn(
                 "The `srun` command is available on your system but is not used. HINT: If your intention is to run"
                 f" Lightning on SLURM, prepend your python command with `srun` like so: {hint} ...",
