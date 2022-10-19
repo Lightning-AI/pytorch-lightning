@@ -74,9 +74,9 @@ class FSDPLite(LightningLite):
         forward_module = model._forward_module
         original_module = model.module
         assert isinstance(forward_module, FullyShardedDataParallel)
-        assert isinstance(self._precision_plugin, FSDPPrecision)
+        assert isinstance(self._precision, FSDPPrecision)
 
-        precision = torch.float16 if self._precision_plugin.precision == 16 else torch.bfloat16
+        precision = torch.float16 if self._precision.precision == 16 else torch.bfloat16
         assert forward_module.mixed_precision.param_dtype == precision
         assert forward_module.mixed_precision.reduce_dtype == precision
         assert forward_module.mixed_precision.buffer_dtype == precision
