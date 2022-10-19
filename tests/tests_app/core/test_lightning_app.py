@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pickle
@@ -5,7 +6,7 @@ from re import escape
 from time import sleep
 from unittest import mock
 from unittest.mock import ANY
-import json
+
 import pytest
 from deepdiff import Delta
 from pympler import asizeof
@@ -1150,7 +1151,7 @@ def test_load_app_from_checkpoint_on_drive(
 
     drive_mock.return_value.list.return_value = mocked_files_on_drive
     load_checkpoint_mock.return_value = json.load(
-        open(os.path.join(_PROJECT_ROOT, "tests/tests_app/test_date/saved_app_checkpoint.json"), "r")
+        open(os.path.join(_PROJECT_ROOT, "tests/tests_app/test_date/saved_app_checkpoint.json"))
     )
     app = LightningApp(SavedAppExample())
     state = app._get_checkpoint_if_available_on_drive(input_checkpoint)

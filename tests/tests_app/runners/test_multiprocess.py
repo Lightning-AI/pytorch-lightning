@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.frontend import StaticWebFrontend, StreamlitFrontend

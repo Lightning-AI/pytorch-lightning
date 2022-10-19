@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
-from lightning_app.core.api import start_server
 from lightning_app.core import constants
+from lightning_app.core.api import start_server
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
