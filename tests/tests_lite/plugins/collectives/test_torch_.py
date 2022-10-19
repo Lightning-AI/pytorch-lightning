@@ -133,11 +133,11 @@ def test_convert_ops():
         assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
 
     # Test invalid type
-    with pytest.raises(ValueError, match="op 1 should be a `str` or `ReduceOp`"):
+    with pytest.raises(ValueError, match="op 1 should be a `str` or `Red"):
         TorchCollective._convert_to_native_op(1)
 
     # Test invalid string
-    with pytest.raises(ValueError, match="op 'INVALID' is not a member of `ReduceOp`"):
+    with pytest.raises(ValueError, match="op 'INVALID' is not a member of `Red"):
         TorchCollective._convert_to_native_op("invalid")
 
 
