@@ -23,4 +23,3 @@ ___________________
     ~training.LightningTrainingComponent
     ~serve.gradio.ServeGradio
     ~serve.serve.ModelInferenceAPI
-    ~database.server.Database
