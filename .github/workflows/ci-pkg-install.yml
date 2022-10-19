@@ -47,7 +47,7 @@ jobs:
         working-directory: .actions/
         run: |
           grep 'pytest>' ../requirements/pytorch/test.txt | xargs -0 pip install
-          python -m pytest setup_tools.py -v --doctest-modules --color=yes
+          python -m pytest setup_tools.py
 
       - uses: actions/download-artifact@v3
         with:
