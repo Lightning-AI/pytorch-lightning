@@ -57,7 +57,7 @@ def pick_single_gpu(exclude_gpus: List[int]) -> int:
             continue
         device = torch.device(f"cuda:{i}")
         # Check if the device has memory used by another torch process
-        if torch.cuda.memory_usage(device) > 0 and torch.cuda.utilization(device):
+        if torch.cuda.memory_usage(device) > 0 and torch.cuda.utilization(device) > 0:
             continue
 
         if torch.cuda.memory_reserved(device) > 0:
