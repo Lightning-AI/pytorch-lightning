@@ -79,6 +79,7 @@ jobs:
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
 
     - name: Statistics
+      if: success()
       working-directory: tests/tests_pytorch
       run: |
         coverage report
