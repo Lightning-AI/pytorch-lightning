@@ -749,5 +749,11 @@ It will speed up your training loop by cutting redundant communication between p
         optimizer.step()
         optimizer.zero_grad()
 
-Not all strategies support it. Both the model's `.forward()` and the `self.backward()` call need to run under
-this context as shown in the example above.
+Both the model's `.forward()` and the `self.backward()` call need to run under this context as shown in the example above.
+For single-device strategies, it is a no-op. There are strategies that don't support this:
+
+- deepspeed
+- dp
+- xla
+
+For these, the context manager falls back to a no-op and emits a warning.
