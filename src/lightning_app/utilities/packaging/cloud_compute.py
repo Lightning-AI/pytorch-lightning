@@ -120,7 +120,7 @@ class CloudCompute:
             d["mount"] = []
             for mount in mounts:
                 d["mount"].append(Mount(**mount))
-        _verify_mount_root_dirs_are_unique(d.get("mount", default=None))
+        _verify_mount_root_dirs_are_unique(d.get("mount", None))
         return cls(**d)
 
     @property
