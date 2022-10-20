@@ -31,11 +31,6 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
     ),
-    "app": (
-        "requirements/app/base.txt",
-        "requirements/app/ui.txt",
-        "requirements/app/cloud.txt",
-    ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
@@ -63,6 +58,16 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
     return py
+
+
+def _retrieve_files(directory: str, *ext: str) -> List[str]:
+    all_files = []
+    for root, _, files in os.walk(directory):
+        for fname in files:
+            if not ext or any(os.path.split(fname)[1].lower().endswith(e) for e in ext):
+                all_files.append(os.path.join(root, fname))
+
+    return all_files
 
 
 class AssistantCLI:
@@ -198,48 +203,31 @@ class AssistantCLI:
         if target_dir is None:
             target_dir = source_dir
 
-        # TODO: properly retrieve files
-        ls = glob.glob(os.path.join(source_dir, "**", "*.*"), recursive=True)
+        ls = _retrieve_files(source_dir)
 
         for fp in ls:
-            if not os.path.isfile(fp):
-                continue
-            if not fp.endswith(".py"):
-                if not fp.endswith(".pyc"):
+            if fp.endswith(".py"):
+                with open(fp, encoding="utf-8") as fo:
+                    py = fo.readlines()
+
+                for source_import, target_import in zip(source_imports, target_imports):
+                    for i, ln in enumerate(py):
+                        py[i] = re.sub(rf"(?!_){source_import}(?!_)", target_import, ln)
+
+                if target_dir:
                     fp_new = fp.replace(source_dir, target_dir)
                     os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                    if os.path.abspath(fp) != os.path.abspath(fp_new):
-                        shutil.copy2(fp, fp_new)
-                continue
+                else:
+                    fp_new = fp
 
-            with open(fp, encoding="utf-8") as fo:
-                py = fo.readlines()
-
-            for _source_import, _target_import in zip(source_imports, target_imports):
-                for i, ln in enumerate(py):
-                    # ln_ = ln.lstrip()
-                    should_replace = True
-                    # if ln_.startswith("import"):
-                    #     should_replace = True
-                    # elif re.search(r"from [\w_\.\d]+ import ", ln_):
-                    #     should_replace = True
-                    # elif "sys.modules[" in ln_:
-                    #     should_replace = True
-                    # elif "importlib" in ln_:
-                    #     should_replace = True
-
-                    if should_replace:
-                        py[i] = ln.replace(_source_import, _target_import)
-            if target_dir:
+                with open(fp_new, "w", encoding="utf-8") as fo:
+                    fo.writelines(py)
+            elif not fp.endswith(".pyc"):
                 fp_new = fp.replace(source_dir, target_dir)
                 os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-            else:
-                fp_new = fp
-
-            print(fp_new, fp)
-            with open(fp_new, "w", encoding="utf-8") as fo:
-                fo.writelines(py)
+                if os.path.abspath(fp) != os.path.abspath(fp_new):
+                    shutil.copy2(fp, fp_new)
 
 
 if __name__ == "__main__":
-    jsonargparse.CLI(AssistantCLI, as_positional=False)
+    jsonargparse.CLI(AssistantCLI)
