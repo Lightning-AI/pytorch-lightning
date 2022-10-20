@@ -235,7 +235,7 @@ def _install_missing_requirements(
     requirements = set()
     for metadata in retriever.api_commands.values():
         if metadata["tag"] == OpenAPITags.APP_CLIENT_COMMAND:
-            for req in metadata.get("requirements", []):
+            for req in metadata.get("requirements", []) or []:
                 requirements.add(req)
 
     if requirements:

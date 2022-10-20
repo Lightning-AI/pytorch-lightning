@@ -4,7 +4,6 @@ import sys
 from unittest.mock import MagicMock
 
 import click
-import pytest
 import requests
 
 from lightning_app import _PACKAGE_ROOT
@@ -23,8 +22,7 @@ def test_connect_disconnect_local(monkeypatch):
 
     disconnect()
 
-    with pytest.raises(Exception, match="The commands weren't found. Is your app localhost running ?"):
-        connect("localhost", True)
+    connect("localhost", True)
 
     with open(os.path.join(os.path.dirname(__file__), "jsons/connect_1.json")) as f:
         data = json.load(f)
@@ -35,6 +33,8 @@ def test_connect_disconnect_local(monkeypatch):
     )
 
     messages = []
+
+    disconnect()
 
     def fn(msg):
         messages.append(msg)
@@ -47,8 +47,6 @@ def test_connect_disconnect_local(monkeypatch):
     monkeypatch.setattr(requests, "get", MagicMock(return_value=response))
     connect("localhost", True)
     assert _retrieve_connection_to_an_app() == ("localhost", None)
-    commands = _list_app_commands()
-    assert commands == ["command with client", "command without client", "nested command"]
     command_path = _resolve_command_path("nested_command")
     assert not os.path.exists(command_path)
     command_path = _resolve_command_path("command_with_client")
@@ -57,17 +55,9 @@ def test_connect_disconnect_local(monkeypatch):
     s = "/" if sys.platform != "win32" else "\\"
     command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}commands"
     expected = [
-        f"Storing `command_with_client` under {command_folder_path}{s}command_with_client.py",
+        f"Find the `command with client` command under {command_folder_path}{s}command_with_client.py.",
         f"You can review all the downloaded commands under {command_folder_path} folder.",
         "You are connected to the local Lightning App.",
-        "Usage: lightning [OPTIONS] COMMAND [ARGS]...",
-        "",
-        "  --help     Show this message and exit.",
-        "",
-        "Lightning App Commands",
-        "  command with client    A command with a client.",
-        "  command without client A command without a client.",
-        "  nested command         A nested command.",
     ]
     assert messages == expected
 
