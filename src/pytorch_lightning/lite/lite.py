@@ -176,7 +176,7 @@ def _convert_deprecated_device_flags(
     return deprecated_devices_specific_flag, accelerator
 
 
-def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
+def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
     """Re-instantiates a PL-Strategy as the corresponding Lite-Strategy."""
 
     if type(strategy) is PLDDPStrategy:

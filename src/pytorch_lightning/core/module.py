@@ -598,7 +598,7 @@ class LightningModule(
             Your model's output
         """
         return super().forward(*args, **kwargs)
-
+    #type:ignore
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.

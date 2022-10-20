@@ -152,7 +152,7 @@ class MLFlowLogger(Logger):
 
         self._mlflow_client = MlflowClient(tracking_uri)
 
-    @property  # type: ignore[misc]
+    @property 
     @rank_zero_experiment
     def experiment(self) -> MlflowClient:
         r"""

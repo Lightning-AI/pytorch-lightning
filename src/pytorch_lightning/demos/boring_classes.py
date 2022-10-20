@@ -95,7 +95,7 @@ class BoringModel(LightningModule):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
 
-    def forward(self, x: Tensor) -> Tensor:  # type: ignore[override]
+    def forward(self, x: Tensor) -> Tensor:
         return self.layer(x)
 
     def loss(self, batch: Tensor, preds: Tensor) -> Tensor:
@@ -107,7 +107,7 @@ class BoringModel(LightningModule):
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
-    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:  # type: ignore[override]
+    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT: 
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -119,7 +119,7 @@ class BoringModel(LightningModule):
         outputs = cast(List[Dict[str, Tensor]], outputs)
         torch.stack([x["loss"] for x in outputs]).mean()
 
-    def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:  # type: ignore[override]
+    def validation_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"x": loss}
@@ -128,7 +128,7 @@ class BoringModel(LightningModule):
         outputs = cast(List[Dict[str, Tensor]], outputs)
         torch.stack([x["x"] for x in outputs]).mean()
 
-    def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:  # type: ignore[override]
+    def test_step(self, batch: Tensor, batch_idx: int) -> Optional[STEP_OUTPUT]:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"y": loss}
@@ -194,7 +194,7 @@ class ManualOptimBoringModel(BoringModel):
         super().__init__()
         self.automatic_optimization = False
 
-    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:  # type: ignore[override]
+    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         opt = self.optimizers()
         assert isinstance(opt, (Optimizer, LightningOptimizer))
         output = self(batch)
@@ -211,10 +211,10 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
-    def forward(self, x: Tensor) -> Tensor:  # type: ignore[override]
+    def forward(self, x: Tensor) -> Tensor: 
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def training_step(self, batch: Tensor, batch_nb: int) -> STEP_OUTPUT:  # type: ignore[override]
+    def training_step(self, batch: Tensor, batch_nb: int) -> STEP_OUTPUT:
         x = batch
         x = self(x)
         loss = x.sum()

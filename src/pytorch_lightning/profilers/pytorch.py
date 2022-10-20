@@ -342,7 +342,7 @@ class PyTorchProfiler(Profiler):
         self._profiler_kwargs["with_stack"] = with_stack
 
     @property
-    def _total_steps(self) -> Union[int, float]:
+    def _total_steps(self) -> Union[int, float, None]:
         assert self._schedule is not None
         assert self._lightning_module is not None
         trainer = self._lightning_module.trainer

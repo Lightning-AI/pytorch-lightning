@@ -150,7 +150,7 @@ def _load_from_checkpoint(
     hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
-) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+) -> Union["pl.LightningModule", "pl.LightningDataModule", None]:
     if map_location is None:
         map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():

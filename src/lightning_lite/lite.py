@@ -169,7 +169,7 @@ class LightningLite(ABC):
         self._models_setup += 1
         if optimizers:
             # join both types in a list for API convenience
-            return [model] + optimizers  # type: ignore
+            return [model] + optimizers 
         return model
 
     def setup_dataloaders(
