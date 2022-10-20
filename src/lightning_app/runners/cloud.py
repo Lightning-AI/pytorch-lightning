@@ -227,10 +227,10 @@ class CloudRuntime(Runtime):
             )
             if list_apps_resp.lightningapps:
                 # There can be only one app with unique project_id<>name pair
-                lightning_app = list_apps_resp.lightningapps[0]
+                lit_app = list_apps_resp.lightningapps[0]
             else:
                 app_body = Body7(name=app_config.name, can_download_source_code=True)
-                lightning_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
+                lit_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
                     project_id=project.project_id, body=app_body
                 )
 
@@ -264,7 +264,7 @@ class CloudRuntime(Runtime):
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
-                project_id=project.project_id, app_id=lightning_app.id, body=release_body
+                project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
 
             if cluster_id is not None:
@@ -288,7 +288,7 @@ class CloudRuntime(Runtime):
 
             # right now we only allow a single instance of the app
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
-                project_id=project.project_id, app_id=lightning_app.id
+                project_id=project.project_id, app_id=lit_app.id
             )
             queue_server_type = V1QueueServerType.REDIS if CLOUD_QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
             if find_instances_resp.lightningapps:
@@ -335,12 +335,12 @@ class CloudRuntime(Runtime):
                 lightning_app_instance = (
                     self.backend.client.lightningapp_v2_service_create_lightningapp_release_instance(
                         project_id=project.project_id,
-                        app_id=lightning_app.id,
+                        app_id=lit_app.id,
                         id=lightning_app_release.id,
                         body=Body9(
                             cluster_id=cluster_id,
                             desired_state=app_release_desired_state,
-                            name=lightning_app.name,
+                            name=lit_app.name,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
                         ),
