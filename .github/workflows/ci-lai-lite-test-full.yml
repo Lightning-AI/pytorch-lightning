@@ -1,0 +1,113 @@
+name: Test lightning.lite full
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    paths:
+      - "setup.cfg"  # includes pytest config
+      - ".github/workflows/ci-lai-lite-test-full.yml"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
+      - "requirements/lite/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+env:
+  FREEZE_REQUIREMENTS: 1
+
+jobs:
+
+  lai-cpu:
+    runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, macOS-11, windows-2022]
+        python-version: [3.8]
+        requires: ["oldest", "latest"]
+
+    timeout-minutes: 40
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: basic setup
+      run: pip install -q -r .actions/requirements.txt
+
+    - name: Setup Windows
+      if: runner.os == 'windows'
+      run: |
+        python .actions/assistant.py requirements_prune_pkgs "--packages=[horovod]"
+
+    - name: Set min. dependencies
+      if: matrix.requires == 'oldest'
+      run: python .actions/assistant.py replace_oldest_ver
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
+
+    - name: pip cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+
+    - name: Pull legacy checkpoints
+      run: bash .actions/pull_legacy_checkpoints.sh
+
+    - name: Replace imports in test dirs
+      run: |
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
+
+    - name: Install Package & Dependencies
+      run: |
+        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
+        pip install -e . -r ./requirements/lite/devel.txt $pre_option -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip list
+      shell: bash
+
+    - name: Testing package
+      working-directory: ./src
+      run: python -m pytest lightning -v --durations=50 --ignore-glob='**/cli/*-template/**'
+
+# TODO: add doctests
+
+    - name: Testing Lite
+      working-directory: ./tests
+      # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+      run: |
+        coverage run --source lightning -m pytest tests_lite -v --durations=50
+
+    - name: Statistics
+      if: success()
+      working-directory: ./tests
+      run: |
+        coverage report
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: tests/coverage.xml
+        flags: cpu,pytest,python${{ matrix.python-version }},lite
+        name: CPU-coverage
+        fail_ci_if_error: false
