@@ -1,12 +1,17 @@
 import json
 import os
 import shutil
+import sys
+from subprocess import Popen
 from typing import List, Optional, Tuple
 
 import click
+from lightning_utilities.core.imports import package_available
 
-from lightning_app.utilities.cli_helpers import _retrieve_application_url_and_available_commands
+from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.enum import OpenAPITags
+from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.network import LightningClient
 
 
@@ -42,18 +47,23 @@ def connect(app_name_or_id: str, yes: bool = False):
         if app_name_or_id != "localhost":
             raise Exception("You need to pass localhost to connect to the local Lightning App.")
 
-        _, api_commands, __cached__ = _retrieve_application_url_and_available_commands(None)
+        retriever = _LightningAppOpenAPIRetriever(None)
 
-        if api_commands is None:
+        if retriever.api_commands is None:
             raise Exception(f"The commands weren't found. Is your app {app_name_or_id} running ?")
 
         commands_folder = os.path.join(lightning_folder, "commands")
         if not os.path.exists(commands_folder):
             os.makedirs(commands_folder)
 
-        _write_commands_metadata(api_commands)
+        _write_commands_metadata(retriever.api_commands)
 
-        for command_name, metadata in api_commands.items():
+        with open(os.path.join(commands_folder, "openapi.json"), "w") as f:
+            json.dump(retriever.openapi, f)
+
+        _install_missing_requirements(retriever, yes)
+
+        for command_name, metadata in retriever.api_commands.items():
             if "cls_path" in metadata:
                 target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
                 _download_command(
@@ -63,7 +73,8 @@ def connect(app_name_or_id: str, yes: bool = False):
                     None,
                     target_file=target_file,
                 )
-                click.echo(f"Storing `{command_name}` under {target_file}")
+                repr_command_name = command_name.replace("_", " ")
+                click.echo(f"Find the `{repr_command_name}` command under {target_file}.")
                 click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
             else:
                 with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
@@ -74,9 +85,10 @@ def connect(app_name_or_id: str, yes: bool = False):
 
         click.echo("You are connected to the local Lightning App.")
     else:
-        _, api_commands, lightningapp_id = _retrieve_application_url_and_available_commands(app_name_or_id)
 
-        if not api_commands:
+        retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
+
+        if not retriever.api_commands:
             client = LightningClient()
             project = _get_project(client)
             apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
@@ -86,7 +98,7 @@ def connect(app_name_or_id: str, yes: bool = False):
             )
             return
 
-        assert lightningapp_id
+        _install_missing_requirements(retriever, yes)
 
         if not yes:
             yes = click.confirm(
@@ -100,16 +112,16 @@ def connect(app_name_or_id: str, yes: bool = False):
             if not os.path.exists(commands_folder):
                 os.makedirs(commands_folder)
 
-            _write_commands_metadata(api_commands)
+            _write_commands_metadata(retriever.api_commands)
 
-            for command_name, metadata in api_commands.items():
+            for command_name, metadata in retriever.api_commands.items():
                 if "cls_path" in metadata:
                     target_file = os.path.join(commands_folder, f"{command_name}.py")
                     _download_command(
                         command_name,
                         metadata["cls_path"],
                         metadata["cls_name"],
-                        lightningapp_id,
+                        retriever.app_id,
                         target_file=target_file,
                     )
                     click.echo(f"Storing `{command_name}` under {target_file}")
@@ -121,12 +133,12 @@ def connect(app_name_or_id: str, yes: bool = False):
             click.echo(" ")
             click.echo("The client interface has been successfully installed. ")
             click.echo("You can now run the following commands:")
-            for command in api_commands:
+            for command in retriever.api_commands:
                 click.echo(f"    lightning {command}")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
-            f.write(lightningapp_id + "\n")
+            f.write(retriever.app_id + "\n")
         click.echo(" ")
         click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
 
@@ -213,3 +225,41 @@ def _list_app_commands() -> List[str]:
         padding = (max_length + 1 - len(command_name)) * " "
         click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
     return command_names
+
+
+def _install_missing_requirements(
+    retriever: _LightningAppOpenAPIRetriever,
+    yes_global: bool = False,
+    fail_if_missing: bool = False,
+):
+    requirements = set()
+    for metadata in retriever.api_commands.values():
+        if metadata["tag"] == OpenAPITags.APP_CLIENT_COMMAND:
+            for req in metadata.get("requirements", []) or []:
+                requirements.add(req)
+
+    if requirements:
+        missing_requirements = []
+        for req in requirements:
+            if not package_available(req):
+                missing_requirements.append(req)
+
+        if missing_requirements:
+            if fail_if_missing:
+                missing_requirements = " ".join(missing_requirements)
+                print(f"The command failed as you are missing the following requirements: `{missing_requirements}`.")
+                sys.exit(0)
+
+            for req in missing_requirements:
+                if not yes_global:
+                    yes = click.confirm(
+                        f"The Lightning App CLI `{retriever.app_id}` requires `{req}`. Do you want to install it ?"
+                    )
+                else:
+                    print(f"Installing missing `{req}` requirement.")
+                    yes = yes_global
+                if yes:
+                    std_out_out = get_logfile("output.log")
+                    with open(std_out_out, "wb") as stdout:
+                        Popen(f"pip install {req}", shell=True, stdout=stdout, stderr=sys.stderr).wait()
+                    print()
