@@ -343,6 +343,5 @@ class LightningTestAppWithWork(LightningTestApp):
 
 
 def test_lightning_app_with_work():
-
     app = LightningTestAppWithWork(WorkCounter())
     MultiProcessRuntime(app, start_server=False).dispatch()
