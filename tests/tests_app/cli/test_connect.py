@@ -4,7 +4,7 @@ import sys
 from unittest.mock import MagicMock
 
 import click
-import requests
+import pytest
 
 from lightning_app import _PACKAGE_ROOT
 from lightning_app.cli.commands.connection import (
@@ -22,7 +22,8 @@ def test_connect_disconnect_local(monkeypatch):
 
     disconnect()
 
-    connect("localhost", True)
+    with pytest.raises(Exception, match="The commands weren't found. Is your app localhost running ?"):
+        connect("localhost", True)
 
     with open(os.path.join(os.path.dirname(__file__), "jsons/connect_1.json")) as f:
         data = json.load(f)
@@ -44,7 +45,7 @@ def test_connect_disconnect_local(monkeypatch):
     response = MagicMock()
     response.status_code = 200
     response.json.return_value = data
-    monkeypatch.setattr(requests, "get", MagicMock(return_value=response))
+    monkeypatch.setattr(cli_helpers.requests, "get", MagicMock(return_value=response))
     connect("localhost", True)
     assert _retrieve_connection_to_an_app() == ("localhost", None)
     command_path = _resolve_command_path("nested_command")
@@ -104,7 +105,7 @@ def test_connect_disconnect_cloud(monkeypatch):
     response = MagicMock()
     response.status_code = 200
     response.json.return_value = data
-    monkeypatch.setattr(requests, "get", MagicMock(return_value=response))
+    monkeypatch.setattr(cli_helpers.requests, "get", MagicMock(return_value=response))
     project = MagicMock()
     project.project_id = "custom_project_name"
     monkeypatch.setattr(cli_helpers, "_get_project", MagicMock(return_value=project))
