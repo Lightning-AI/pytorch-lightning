@@ -34,10 +34,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
-        pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
         pkg-name: ["LAI", "pytorch"]  # the "lai" is for installing monolithic package
+        python-version: ["3.8", "3.9", "3.10"]
+        pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
         exclude:
+          - {os: "windows-2022", python-version: "3.8"}
+          - {os: "windows-2022", python-version: "3.10"}
+          - {os: "macOS-11", python-version: "3.9"}
           - {pytorch-version: "1.9", python-version: "3.9"}
           - {pytorch-version: "1.9", python-version: "3.10"}
           - {pytorch-version: "1.10", python-version: "3.10"}
@@ -49,15 +52,15 @@ jobs:
           - {pytorch-version: "1.12", python-version: "3.9"}
         include:
           # PT is set for sanity check
-          - {os: "ubuntu-20.04", pkg-name: "", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "macos-11", pkg-name: "", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "macos-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest", pkg-name: "LAI"}
+          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest", pkg-name: "pytorch"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest", pkg-name: "LAI"}
+          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest", pkg-name: "pytorch"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest", pkg-name: "LAI"}
+          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest", pkg-name: "pytorch"}
           # close FUTURE
-          - {os: "ubuntu-20.04", pkg-name: "", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
+          - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.13", release: "pre", pkg-name: "LAI"}
+          - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.13", release: "pre", pkg-name: "pytorch"}
 
     timeout-minutes: 40
 
