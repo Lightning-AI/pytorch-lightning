@@ -128,13 +128,13 @@ class LightningTestApp(LightningApp):
 
 @requires("click")
 def application_testing(
-    lightningapp_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
+    lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
 ) -> Any:
     from unittest import mock
 
     from click.testing import CliRunner
 
-    with mock.patch("lightning.LightningApp", lightningapp_cls):
+    with mock.patch("lightning.LightningApp", lightning_app_cls):
         original = sys.argv
         sys.argv = command_line
         runner = CliRunner()
@@ -458,7 +458,7 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             sleep(2)
 
 
-def delete_cloud_lightningapps():
+def delete_cloud_lightning_apps():
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.

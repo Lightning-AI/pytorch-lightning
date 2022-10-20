@@ -26,13 +26,13 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
     original_method = LightningApp._run
 
     @convert_print_to_logger_info
-    def _lightningapp_run_and_logging(self, *args, **kwargs):
+    def _lightning_app_run_and_logging(self, *args, **kwargs):
         original_method(self, *args, **kwargs)
         print("1" if open_ui else "0")
         print(self)
 
     with caplog.at_level(logging.INFO):
-        with mock.patch("lightning_app.LightningApp._run", _lightningapp_run_and_logging):
+        with mock.patch("lightning_app.LightningApp._run", _lightning_app_run_and_logging):
             runner = CliRunner()
             result = runner.invoke(
                 run_app,
