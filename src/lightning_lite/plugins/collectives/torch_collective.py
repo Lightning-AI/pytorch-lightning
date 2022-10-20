@@ -128,9 +128,8 @@ class TorchCollective(Collective):
             set_port = True
         # this will `init_group`
         super().setup(**kwargs)
-        # set as a class attribute so any instance can know whether we initialized the default process group, and tear
-        # it down consequently
-        TorchCollective._initialized = True
+        # set as a class attribute so any instance can know whether we initialized the default process group
+        TorchCollective.manages_default_group = True
         # cleanup
         if set_addr:
             os.environ.pop("MASTER_ADDR", None)
@@ -139,16 +138,16 @@ class TorchCollective(Collective):
         return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
-        super().teardown()
-        if TorchCollective._initialized:
+        if self.group == dist.GroupMember.NON_GROUP_MEMBER:
+            return self
+        super().teardown()  # will destroy its own group
+        if TorchCollective.manages_default_group:  # also destroy the default group
             default_group = dist.GroupMember.WORLD
-            # `default_group` should exist here unless something else destroyed it, however, leaving the check
-            # below as a safety guard against race conditions between two instances running this code simultaneously
             if default_group is not None:  # not destroyed already
                 group_map = dist.distributed_c10d._pg_map
                 if len(group_map) == 1 and default_group in group_map:  # only the default group is left
                     self.destroy_group(default_group)
-                    TorchCollective._initialized = False
+                    TorchCollective.manages_default_group = False
         return self
 
     @classmethod

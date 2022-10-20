@@ -177,7 +177,7 @@ def test_repeated_create_and_destroy():
 
     assert not os.environ
 
-    with pytest.raises(RuntimeError, match="TorchCollective` does not own a group to destroy"):
+    with pytest.raises(RuntimeError, match="TorchCollective` does not own a group"):
         collective.teardown()
     destroy_mock.assert_called_once_with(new_mock.return_value)
     assert collective._group is None
@@ -195,45 +195,46 @@ def collective_launch(fn, parallel_devices, num_groups=1):
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collectives = [TorchCollective() for _ in range(num_groups)]
-    wrapped = partial(wrap_launch_function, fn, strategy, collectives[0])
+    wrapped = partial(wrap_launch_function, fn, strategy, collectives)
     return launcher.launch(wrapped, strategy, *collectives)
 
 
-def wrap_launch_function(fn, strategy, collective, *args, **kwargs):
+def wrap_launch_function(fn, strategy, collectives, *args, **kwargs):
     strategy._set_world_ranks()
-    collective.setup(
+    collectives[0].setup(  # only one needs to setup
         world_size=strategy.num_processes,
         main_address="localhost",
         backend=strategy._get_process_group_backend(),
         rank=strategy.global_rank,
     )
-    return fn(*args, **kwargs)
+    with check_destroy_group():  # manually use the fixture for the assertions
+        fn(*args, **kwargs)
+        # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
+        for c in collectives:
+            c.teardown()
 
 
 def _test_distributed_collectives_fn(strategy, collective):
-    with check_destroy_group():  # the fixture does not work inside the launched function, use it manually
-        collective.create_group()
+    collective.create_group()
 
-        # all_gather
-        tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
-        this = torch.arange(2, dtype=torch.long) + 2 * strategy.global_rank
-        out = collective.all_gather(tensor_list, this)
-        expected = torch.arange(2 * strategy.num_processes).split(2)
-        torch.testing.assert_close(tuple(out), expected)
+    # all_gather
+    tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
+    this = torch.arange(2, dtype=torch.long) + 2 * strategy.global_rank
+    out = collective.all_gather(tensor_list, this)
+    expected = torch.arange(2 * strategy.num_processes).split(2)
+    torch.testing.assert_close(tuple(out), expected)
 
-        # reduce
-        this = torch.tensor(strategy.global_rank + 1)
-        out = collective.reduce(this, dst=0, op="max")
-        expected = torch.tensor(strategy.num_processes) if strategy.global_rank == 0 else this
-        torch.testing.assert_close(out, expected)
+    # reduce
+    this = torch.tensor(strategy.global_rank + 1)
+    out = collective.reduce(this, dst=0, op="max")
+    expected = torch.tensor(strategy.num_processes) if strategy.global_rank == 0 else this
+    torch.testing.assert_close(out, expected)
 
-        # all_reduce
-        this = torch.tensor(strategy.global_rank + 1)
-        out = collective.all_reduce(this, op=ReduceOp.MIN)
-        expected = torch.tensor(1)
-        torch.testing.assert_close(out, expected)
-
-        collective.teardown()
+    # all_reduce
+    this = torch.tensor(strategy.global_rank + 1)
+    out = collective.all_reduce(this, op=ReduceOp.MIN)
+    expected = torch.tensor(1)
+    torch.testing.assert_close(out, expected)
 
 
 @skip_distributed_unavailable
@@ -243,15 +244,12 @@ def test_collectives_distributed(n):
 
 
 def _test_distributed_collectives_cuda_fn(strategy, collective):
-    with check_destroy_group():  # the fixture does not work inside the launched function, use it manually
-        collective.create_group()
+    collective.create_group()
 
-        this = torch.tensor(1.5, device=strategy.root_device)
-        premul_sum = torch.distributed._make_nccl_premul_sum(2.0)
-        out = collective.all_reduce(this, op=premul_sum)
-        assert out == 3
-
-        collective.teardown()
+    this = torch.tensor(1.5, device=strategy.root_device)
+    premul_sum = torch.distributed._make_nccl_premul_sum(2.0)
+    out = collective.all_reduce(this, op=premul_sum)
+    assert out == 3
 
 
 @skip_distributed_unavailable
@@ -261,21 +259,17 @@ def test_collectives_distributed_cuda():
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
-    with check_destroy_group():  # the fixture does not work inside the launched function, use it manually
-        left_collective.create_group(ranks=[0, 1])
-        right_collective.create_group(ranks=[1, 2])
+    left_collective.create_group(ranks=[0, 1])
+    right_collective.create_group(ranks=[1, 2])
 
-        tensor = torch.tensor(strategy.global_rank)
-        if strategy.global_rank in (0, 1):
-            tensor = left_collective.all_reduce(tensor)
-            assert tensor == 1
-        right_collective.barrier()  # avoids deadlock for global rank 1
-        if strategy.global_rank in (1, 2):
-            tensor = right_collective.all_reduce(tensor)
-            assert tensor == 3
-
-        left_collective.teardown()
-        right_collective.teardown()
+    tensor = torch.tensor(strategy.global_rank)
+    if strategy.global_rank in (0, 1):
+        tensor = left_collective.all_reduce(tensor)
+        assert tensor == 1
+    right_collective.barrier()  # avoids deadlock for global rank 1
+    if strategy.global_rank in (1, 2):
+        tensor = right_collective.all_reduce(tensor)
+        assert tensor == 3
 
 
 @skip_distributed_unavailable
