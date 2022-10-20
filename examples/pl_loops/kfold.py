@@ -197,7 +197,13 @@ class KFoldLoop(Loop):
         self.fit_loop.run()
 
         self._reset_testing()  # requires to reset the tracking stage.
+        wrapped_model = self.trainer.strategy.model
+
+        # the test loop normally expects the model to be the pure LightningModule, but since we are running the
+        # test loop during fitting, we need to temporarily unpack the wrapped module
+        self.trainer.strategy.model = self.trainer.strategy.lightning_module
         self.trainer.test_loop.run()
+        self.trainer.strategy.model = wrapped_model
         self.current_fold += 1  # increment fold tracking number.
 
     def on_advance_end(self) -> None:
