@@ -92,6 +92,7 @@ def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -128,6 +129,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -195,6 +197,7 @@ def test_custom_accelerator(cuda_count_0):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -473,6 +476,7 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
         {
             "CUDA_VISIBLE_DEVICES": "0,1",
             "SLURM_NTASKS": "2",
+            "SLURM_NTASKS_PER_NODE": "1",
             "SLURM_JOB_NAME": job_name,
             "SLURM_NODEID": "0",
             "SLURM_PROCID": "1",
@@ -575,6 +579,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",

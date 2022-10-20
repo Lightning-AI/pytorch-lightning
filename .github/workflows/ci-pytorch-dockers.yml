@@ -14,6 +14,7 @@ on:
       - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - "setup.py"
+      - ".actions/**"
   schedule:
     - cron: "0 0 * * *"  # at the end of every day
 
@@ -55,7 +56,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.github/workflows/ci-pytorch-test-tpu.yml'
+        # the config used in '.github/workflows/tpu-tests.yml'
         python_version: ["3.7"]
         xla_version: ["1.12"]
     steps:

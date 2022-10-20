@@ -22,6 +22,7 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
+      - ".actions/**"
     checks:
       # Note: updates here should be applied to the lightning_lite group
       - "pl-cpu (ubuntu-20.04, 3.7, 1.9, oldest)"
@@ -104,7 +105,7 @@ subprojects:
 
   - id: "pytorch-lightning: TPU"
     paths:
-      - ".github/workflows/ci-pytorch-test-tpu.yml"
+      - ".github/workflows/tpu-tests.yml"
     checks:
       - "test-on-tpus"
 
@@ -128,6 +129,7 @@ subprojects:
       - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - "setup.py"
+      - ".actions/**"
     checks:
       - "build-cuda (3.8, 1.9, 11.1.1)"
       - "build-cuda (3.9, 1.10, 11.3.1)"
@@ -151,6 +153,7 @@ subprojects:
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
+      - ".actions/**"
     checks:
       - "lite-cpu (macOS-11, 3.10, latest, stable)"
       - "lite-cpu (macOS-11, 3.7, latest, stable)"
@@ -206,6 +209,7 @@ subprojects:
       - "tests/tests_app_examples/**"
       # the examples are used in the app CI
       - "examples/app_*"
+      - ".actions/**"
     checks:
       - "App.cloud-e2e"
       - "make-doctest (app)"
@@ -250,7 +254,7 @@ subprojects:
 
   - id: "install"
     paths:
-      - ".actions/setup_tools.py"
+      - ".actions/**"
       - ".github/workflows/ci-pkg-install.yml"
       - "setup.py"
       - "src/lightning/**"
