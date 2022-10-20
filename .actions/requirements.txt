@@ -1,4 +1,4 @@
-jsonargparse>=4.15.0
+fire
 packaging
 requests
 typing_extensions
