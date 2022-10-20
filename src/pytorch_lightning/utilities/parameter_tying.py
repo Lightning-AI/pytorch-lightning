@@ -16,7 +16,7 @@
 Reference:
     https://github.com/pytorch/fairseq/blob/1f7ef9ed1e1061f8c7f88f8b94c7186834398690/fairseq/trainer.py#L110-L118
 """
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from torch import nn
 
