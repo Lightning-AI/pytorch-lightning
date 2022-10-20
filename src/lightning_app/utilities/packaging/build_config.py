@@ -6,10 +6,10 @@ from types import FrameType
 from typing import cast, List, Optional, TYPE_CHECKING, Union
 
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
-    from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 logger = Logger(__name__)
 

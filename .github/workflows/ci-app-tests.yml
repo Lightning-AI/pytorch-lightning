@@ -103,7 +103,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
-          flags: unittests
+          flags: cpu,app,pytest
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false

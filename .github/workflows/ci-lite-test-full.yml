@@ -18,6 +18,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+env:
+  PACKAGE_NAME: lite
+  FREEZE_REQUIREMENTS: 1
+
 jobs:
 
   lite-cpu:
@@ -34,6 +38,8 @@ jobs:
           # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
           - {python-version: "3.10", requires: "oldest"}
+        include:
+          - {os: ubuntu-22.04, python-version: "3.10", release: "pre"}
 
     timeout-minutes: 40
 
@@ -75,15 +81,15 @@ jobs:
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Install package & dependencies
-      env:
-        PACKAGE_NAME: pytorch  # TODO(lite) does this need to say lite?
-        FREEZE_REQUIREMENTS: 1
       run: |
-        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -e .[test] --upgrade --find-links "https://download.pytorch.org/whl/${url}"
         pip list
       shell: bash
+
+    - name: DocTests Lite
+      working-directory: src
+      run: python -m pytest lightning_lite
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
@@ -113,7 +119,6 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: always()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
