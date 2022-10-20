@@ -62,9 +62,9 @@ def main() -> None:
                 _main()
             else:
                 if is_local_app:
-                    message = "You are connected to the local Lightning App. "
+                    message = "You are connected to the local Lightning App."
                 else:
-                    message = f"You are connected to the cloud Lightning App: {app_name}. "
+                    message = f"You are connected to the cloud Lightning App: {app_name}."
 
                 click.echo(" ")
 
@@ -74,7 +74,7 @@ def main() -> None:
                     _run_app_command(app_name, app_id)
 
                 click.echo()
-                click.echo(message + "Return to the primary CLI with `lightning disconnect`.")
+                click.echo(message + " Return to the primary CLI with `lightning disconnect`.")
         else:
             _main()
 
