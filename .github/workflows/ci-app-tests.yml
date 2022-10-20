@@ -17,6 +17,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
+env:
+  FREEZE_REQUIREMENTS: 1
+
 jobs:
   app-pytest:
     runs-on: ${{ matrix.os }}
@@ -26,6 +29,7 @@ jobs:
         os: [ubuntu-20.04, macOS-11, windows-2022]
         python-version: [3.8]
         requires: ["oldest", "latest"]
+        pkg-name: ["", "app"]  # the "" is for installing monolithic package
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -37,14 +41,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # TODO: use replace_oldest_ver() instead
+      - name: basic setup
+        run: pip install -q -r .actions/requirements.txt
+
       - name: Set min. dependencies
         if: matrix.requires == 'oldest'
-        run: |
-          for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
-              req = open(fpath).read().replace('>=', '==')
-              open(fpath, 'w').write(req)
-        shell: python
+        run: python .actions/assistant.py replace_oldest_ver
 
       - name: Get pip cache
         id: pip-cache
@@ -55,8 +57,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
+          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
       - name: Install dependencies
         run: |
@@ -64,13 +66,6 @@ jobs:
           pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
         shell: bash
-
-#      - name: Start Redis
-#        if: runner.os == 'Linux'
-#        uses: supercharge/redis-github-action@1.4.0
-#        with:
-#          redis-version: 6
-#          redis-port: 6379
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -80,8 +75,14 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Install Lightning as top-level
-        run: pip install -e . -r requirements/app/base.txt
+      - name: Install package & dependencies
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
+        run: |
+          pip --version
+          pip install -e . -r requirements/app/devel.txt --quiet \
+            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip list
         shell: bash
 
       - name: Tests
