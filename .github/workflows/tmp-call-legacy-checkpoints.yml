@@ -1,0 +1,12 @@
+name: Call create legacy checkpoints
+
+on:
+  push:
+    branches: [ci/fix-legacy-checkpoints]
+
+jobs:
+  check:
+    uses: ./.github/workflows/legacy-checkpoints.yml
+    with:
+      push_to_s3: true
+    secrets: inherit

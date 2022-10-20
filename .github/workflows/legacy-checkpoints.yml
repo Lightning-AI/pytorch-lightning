@@ -5,8 +5,31 @@ on:
     inputs:
       push_to_s3:
         description: 'Push generated checkpoints to S3'
+        default: false
         required: false
         type: boolean
+      pl_version:
+        description: 'PL version to generate a legacy checkpoint with.'
+        default: ''
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      push_to_s3:
+        description: 'Push generated checkpoints to S3'
+        default: false
+        required: false
+        type: boolean
+      pl_version:
+        description: 'PL version to generate a legacy checkpoint with.'
+        default: ''
+        required: false
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_KEY_ID:
+        required: true
 
 jobs:
   create-legacy-ckpts:
@@ -31,19 +54,18 @@ jobs:
 
     - name: Generate checkpoints
       run: |
-        bash generate_checkpoints.sh 1.0.0  # FIXME: generate all checkpoints
-        # bash generate_checkpoints.sh $(cat back-compatible-versions.txt)  # FIXME: generate all checkpoints
+        bash generate_checkpoints.sh ${{ inputs.pl_version }}
 
-    - name: Upload checkpoints as GitHub Actions' artifact
+    - name: Upload checkpoints to GitHub Actions artifact
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
         path: tests/legacy/checkpoints/
       if: always()
 
-    - name: Upload checkpoints to S3
+    - name: Upload checkpoints to S3 (FIXME remove dryrun)
       run: |
         aws s3 sync --dryrun checkpoints/ s3://pl-public-data/legacy/checkpoints/  # FIXME: remove dryrun
         zip -r checkpoints.zip checkpoints
         aws s3 cp --dryrun checkpoints.zip s3://pl-public-data/legacy/ --acl public-read  # FIXME: remove dryrun
-      if: ${{ github.event.inputs.push_to_s3 == 'true' }}
+      if: inputs.push_to_s3
