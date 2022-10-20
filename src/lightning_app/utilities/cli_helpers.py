@@ -139,28 +139,26 @@ class _LightningAppOpenAPIRetriever:
                 self.url = url
                 return
 
-        lightningapp = self._maybe_find_matching_cloud_app()
-        if lightningapp:
-            self.url = lightningapp.status.url
+        app = self._maybe_find_matching_cloud_app()
+        if app:
+            self.url = app.status.url
 
     def _maybe_find_matching_cloud_app(self):
         """Tries to resolve the app url from the provided `app_id_or_name_or_url`."""
         client = LightningClient()
         project = _get_project(client)
-        list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(
-            project_id=project.project_id
-        )
+        list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-        lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
+        app_names = [lightningapp.name for lightningapp in list_apps.lightningapps]
 
         if not self.app_id_or_name_or_url:
-            raise Exception(f"Provide an application name, id or url with --app_id=X. Found {lightningapp_names}")
+            raise Exception(f"Provide an application name, id or url with --app_id=X. Found {app_names}")
 
-        for lightningapp in list_lightningapps.lightningapps:
-            if lightningapp.id == self.app_id_or_name_or_url or lightningapp.name == self.app_id_or_name_or_url:
-                if lightningapp.status.url == "":
+        for app in list_apps.lightningapps:
+            if app.id == self.app_id_or_name_or_url or app.name == self.app_id_or_name_or_url:
+                if app.status.url == "":
                     raise Exception("The application is starting. Try in a few moments.")
-                return lightningapp
+                return app
 
     def _collect_open_api_json(self):
         """This function is used to retrieve the current url associated with an id."""
@@ -187,18 +185,18 @@ class _LightningAppOpenAPIRetriever:
 
         # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
         else:
-            lightningapp = self._maybe_find_matching_cloud_app()
-            if lightningapp:
-                if lightningapp.status.url == "":
+            app = self._maybe_find_matching_cloud_app()
+            if app:
+                if app.status.url == "":
                     raise Exception("The application is starting. Try in a few moments.")
-                resp = requests.get(lightningapp.status.url + "/openapi.json")
+                resp = requests.get(app.status.url + "/openapi.json")
                 if resp.status_code != 200:
                     raise Exception(
                         "The server didn't process the request properly. " "Try once your application is ready."
                     )
-                self.url = lightningapp.status.url
+                self.url = app.status.url
                 self.openapi = resp.json()
-                self.app_id = lightningapp.id
+                self.app_id = app.id
 
 
 def _arrow_time_callback(

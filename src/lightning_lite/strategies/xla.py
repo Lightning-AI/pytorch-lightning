@@ -58,6 +58,7 @@ class XLAStrategy(DDPSpawnStrategy):
             start_method="fork",
         )
         self._checkpoint_io: Optional[CheckpointIO]
+        self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
 
     @property

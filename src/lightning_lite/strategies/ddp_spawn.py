@@ -22,10 +22,11 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.plugins.collectives.torch_ import default_pg_timeout
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
+from lightning_lite.strategies.ddp import _DDPBackwardSyncControl
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
@@ -68,6 +69,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
+        self._backward_sync_control = _DDPBackwardSyncControl()
         self._start_method = start_method
         self._ddp_kwargs = kwargs
         self._local_rank = 0

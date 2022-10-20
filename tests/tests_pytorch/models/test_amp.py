@@ -128,6 +128,7 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
     os.environ,
     {
         "SLURM_NTASKS": "1",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",

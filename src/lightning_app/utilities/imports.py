@@ -108,4 +108,8 @@ def _is_s3fs_available() -> bool:
     return module_available("s3fs")
 
 
+def _is_sqlmodel_available() -> bool:
+    return module_available("sqlmodel")
+
+
 _CLOUD_TEST_RUN = bool(os.getenv("CLOUD", False))
