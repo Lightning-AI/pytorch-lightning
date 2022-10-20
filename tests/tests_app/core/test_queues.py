@@ -2,7 +2,6 @@ import pickle
 import queue
 import time
 from unittest import mock
-from unittest.mock import MagicMock
 
 import pytest
 import requests_mock
