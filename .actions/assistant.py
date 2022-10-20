@@ -213,29 +213,27 @@ class AssistantCLI:
         ls = _retrieve_files(source_dir)
 
         for fp in ls:
-            if not fp.endswith(".py"):
-                if not fp.endswith(".pyc"):
+            if fp.endswith(".py"):
+                with open(fp, encoding="utf-8") as fo:
+                    py = fo.readlines()
+
+                for source_import, target_import in zip(source_imports, target_imports):
+                    for i, ln in enumerate(py):
+                        py[i] = re.sub(rf"(?!_){source_import}(?!_)", target_import, ln)
+
+                if target_dir:
                     fp_new = fp.replace(source_dir, target_dir)
                     os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                    if os.path.abspath(fp) != os.path.abspath(fp_new):
-                        shutil.copy2(fp, fp_new)
-                continue
+                else:
+                    fp_new = fp
 
-            with open(fp, encoding="utf-8") as fo:
-                py = fo.readlines()
-
-            for _source_import, _target_import in zip(source_imports, target_imports):
-                for i, ln in enumerate(py):
-                    py[i] = re.sub(rf"(?!_){_source_import}(?!_)", _target_import, ln)
-
-            if target_dir:
+                with open(fp_new, "w", encoding="utf-8") as fo:
+                    fo.writelines(py)
+            elif not fp.endswith(".pyc"):
                 fp_new = fp.replace(source_dir, target_dir)
                 os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-            else:
-                fp_new = fp
-
-            with open(fp_new, "w", encoding="utf-8") as fo:
-                fo.writelines(py)
+                if os.path.abspath(fp) != os.path.abspath(fp_new):
+                    shutil.copy2(fp, fp_new)
 
 
 if __name__ == "__main__":
