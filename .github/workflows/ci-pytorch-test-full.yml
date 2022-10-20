@@ -36,7 +36,7 @@ jobs:
         os: [ubuntu-20.04, windows-2022, macOS-11]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
         pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
-        pkg-name: ["", "pytorch"]  # the "" is for installing monolithic package
+        pkg-name: ["LAI", "pytorch"]  # the "lai" is for installing monolithic package
         exclude:
           - {pytorch-version: "1.9", python-version: "3.9"}
           - {pytorch-version: "1.9", python-version: "3.10"}

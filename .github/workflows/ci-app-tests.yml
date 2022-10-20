@@ -29,7 +29,7 @@ jobs:
         os: [ubuntu-20.04, macOS-11, windows-2022]
         python-version: [3.8]
         requires: ["oldest", "latest"]
-        pkg-name: ["", "app"]  # the "" is for installing monolithic package
+        pkg-name: ["LAI", "app"]  # the "lai" is for installing monolithic package
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
