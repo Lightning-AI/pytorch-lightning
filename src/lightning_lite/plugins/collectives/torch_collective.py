@@ -17,7 +17,7 @@ else:
 
 
 class TorchCollective(Collective):
-    _initialized = False
+    manages_default_group = False
 
     def __init__(self) -> None:
         if not dist.is_available():
