@@ -246,7 +246,7 @@ def _test_distributed_collectives_cuda_fn(strategy, collective):
 
 
 @skip_distributed_unavailable
-@RunIf(min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1, min_torch="1.13")
 def test_collectives_distributed_cuda():
     collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
 
