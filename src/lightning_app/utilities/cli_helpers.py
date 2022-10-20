@@ -107,9 +107,7 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
     else:
         client = LightningClient()
         project = _get_project(client)
-        list_apps = client.lightningapp_instance_service_list_lightningapp_instances(
-            project_id=project.project_id
-        )
+        list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
         app_names = [lightningapp.name for lightningapp in list_apps.lightningapps]
 
