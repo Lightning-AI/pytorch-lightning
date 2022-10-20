@@ -39,7 +39,6 @@ def test_eval_inference_mode():
             assert torch.is_inference_mode_enabled()
             return super().on_test_epoch_start()
 
-
     trainer = Trainer(logger=False, inference_mode=False, fast_dev_run=True)
     trainer.test(BoringModelGrad())
     trainer = Trainer(logger=False, inference_mode=True, fast_dev_run=True)
