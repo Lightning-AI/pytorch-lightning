@@ -16,6 +16,7 @@ on:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -76,7 +77,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .actions/assistant.py requirements_prune_pkgs horovod
+        python .actions/assistant.py requirements_prune_pkgs "--packages=[horovod]"
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
