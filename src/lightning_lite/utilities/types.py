@@ -31,7 +31,11 @@ if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 
     if _TORCH_GREATER_EQUAL_1_13:
-        _TORCH_REDUCE_OP = ReduceOp.RedOpType
+        if hasattr(ReduceOp, "RedOpType"):
+            _TORCH_REDUCE_OP = ReduceOp.RedOpType
+        # this si a case when you have installed PyTorch from master, for example a few last NGC dockers 22.09
+        else:  # fall back if you have this version, but it is missing
+            _TORCH_REDUCE_OP = ReduceOp
     else:
         _TORCH_REDUCE_OP = ReduceOp
 else:
