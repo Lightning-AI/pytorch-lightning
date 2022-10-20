@@ -227,10 +227,10 @@ class CloudRuntime(Runtime):
             )
             if list_apps_resp.lightningapps:
                 # There can be only one app with unique project_id<>name pair
-                lightning_app = list_apps_resp.lightningapps[0]
+                lightningapp = list_apps_resp.lightningapps[0]
             else:
                 app_body = Body7(name=app_config.name, can_download_source_code=True)
-                lightning_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
+                lightningapp = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
                     project_id=project.project_id, body=app_body
                 )
 
@@ -263,18 +263,18 @@ class CloudRuntime(Runtime):
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
-            lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
-                project_id=project.project_id, app_id=lightning_app.id, body=release_body
+            lightningapp_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
+                project_id=project.project_id, app_id=lightningapp.id, body=release_body
             )
 
             if cluster_id is not None:
-                logger.info(f"running app on {lightning_app_release.cluster_id}")
+                logger.info(f"running app on {lightningapp_release.cluster_id}")
 
-            if lightning_app_release.source_upload_url == "":
+            if lightningapp_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
 
             repo.package()
-            repo.upload(url=lightning_app_release.source_upload_url)
+            repo.upload(url=lightningapp_release.source_upload_url)
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
@@ -288,7 +288,7 @@ class CloudRuntime(Runtime):
 
             # right now we only allow a single instance of the app
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
-                project_id=project.project_id, app_id=lightning_app.id
+                project_id=project.project_id, app_id=lightningapp.id
             )
             queue_server_type = V1QueueServerType.REDIS if CLOUD_QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
             if find_instances_resp.lightningapps:
@@ -312,11 +312,11 @@ class CloudRuntime(Runtime):
                     if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                         raise RuntimeError("Failed to stop the existing instance.")
 
-                lightning_app_instance = (
+                lightningapp_instance = (
                     self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
                         project_id=project.project_id,
                         id=existing_instance.id,
-                        body=Body4(release_id=lightning_app_release.id),
+                        body=Body4(release_id=lightningapp_release.id),
                     )
                 )
 
@@ -332,15 +332,15 @@ class CloudRuntime(Runtime):
                     ),
                 )
             else:
-                lightning_app_instance = (
+                lightningapp_instance = (
                     self.backend.client.lightningapp_v2_service_create_lightningapp_release_instance(
                         project_id=project.project_id,
-                        app_id=lightning_app.id,
-                        id=lightning_app_release.id,
+                        app_id=lightningapp.id,
+                        id=lightningapp_release.id,
                         body=Body9(
                             cluster_id=cluster_id,
                             desired_state=app_release_desired_state,
-                            name=lightning_app.name,
+                            name=lightningapp.name,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
                         ),
@@ -351,9 +351,9 @@ class CloudRuntime(Runtime):
             sys.exit(1)
 
         if on_before_run:
-            on_before_run(lightning_app_instance, need_credits=not has_sufficient_credits)
+            on_before_run(lightningapp_instance, need_credits=not has_sufficient_credits)
 
-        if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
+        if lightningapp_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
 
         if cleanup_handle:

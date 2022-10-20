@@ -128,13 +128,13 @@ class LightningTestApp(LightningApp):
 
 @requires("click")
 def application_testing(
-    lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
+    lightningapp_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
 ) -> Any:
     from unittest import mock
 
     from click.testing import CliRunner
 
-    with mock.patch("lightning.LightningApp", lightning_app_cls):
+    with mock.patch("lightning.LightningApp", lightningapp_cls):
         original = sys.argv
         sys.argv = command_line
         runner = CliRunner()
@@ -358,7 +358,7 @@ def run_app_in_cloud(
         client = LightningClient()
         project = _get_project(client)
 
-        lightning_apps = [
+        lightningapps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id
@@ -366,11 +366,11 @@ def run_app_in_cloud(
             if app.name == name
         ]
 
-        if not lightning_apps:
+        if not lightningapps:
             return True
 
-        assert len(lightning_apps) == 1
-        app_id = lightning_apps[0].id
+        assert len(lightningapps) == 1
+        app_id = lightningapps[0].id
 
         if debug:
             process = Process(target=print_logs, kwargs={"app_id": app_id})
@@ -386,7 +386,7 @@ def run_app_in_cloud(
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
-        lightning_apps = [
+        lightningapps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id
@@ -394,7 +394,7 @@ def run_app_in_cloud(
             if app.name == name
         ]
 
-        app_url = lightning_apps[0].status.url
+        app_url = lightningapps[0].status.url
 
         while True:
             sleep(1)
@@ -458,7 +458,7 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             sleep(2)
 
 
-def delete_cloud_lightning_apps():
+def delete_cloud_lightningapps():
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.

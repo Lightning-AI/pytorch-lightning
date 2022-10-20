@@ -41,9 +41,9 @@ logger = Logger(__name__)
 
 def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = False) -> str:
     if runtime_type == RuntimeType.CLOUD:
-        lightning_app: Externalv1LightningappInstance = args[0]
+        lightningapp: Externalv1LightningappInstance = args[0]
         action = "?action=add_credits" if need_credits else ""
-        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}{action}"
+        return f"{get_lightning_cloud_url()}/me/apps/{lightningapp.id}{action}"
     else:
         return "http://127.0.0.1:7501/view"
 
