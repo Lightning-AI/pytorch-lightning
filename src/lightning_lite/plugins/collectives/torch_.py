@@ -133,6 +133,15 @@ class TorchCollective(Collective):
             os.environ.pop("MASTER_PORT", None)
         return self
 
+    def teardown(self) -> Self:  # type: ignore[valid-type]
+        super().teardown()
+        default_group = dist.GroupMember.WORLD
+        if default_group is not None:  # ensures it hasn't been destroyed already
+            group_map = dist.distributed_c10d._pg_map
+            if len(group_map) == 1 and default_group in group_map:  # ensures that only the default group is left
+                self.destroy_group(default_group)
+        return self
+
     @classmethod
     def is_available(cls) -> bool:
         return dist.is_available()

@@ -38,17 +38,15 @@ def check_destroy_group():
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield
+    # 0 to account for tests that mock distributed
+    # -1 to account for destroying the default process group
+    expected = 0 if mock_new.call_count == 0 else mock_destroy.call_count - 1
     assert (
-        mock_new.call_count == mock_destroy.call_count
-    ), f"new_group={mock_new.call_count} != destroy_group{mock_destroy.call_count}"
+        mock_new.call_count == expected
+    ), f"new_group={mock_new.call_count} != destroy_group={mock_destroy.call_count}"
     if TorchCollective.is_available():
+        assert not torch.distributed.distributed_c10d._pg_map
         assert not TorchCollective.is_initialized()
-
-
-@pytest.fixture(autouse=True)
-def check_destroy_group_fixture():
-    with check_destroy_group():
-        yield
 
 
 @pytest.mark.parametrize(
@@ -166,6 +164,8 @@ def test_repeated_create_and_destroy():
 
     with mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective.teardown()
+    # this would be called twice if `init_process_group` wasn't patched. once for the group and once for the default
+    # group
     destroy_mock.assert_called_once()
 
     assert not os.environ
@@ -225,8 +225,6 @@ def _test_distributed_collectives_fn(strategy, collective):
         torch.testing.assert_close(out, expected)
 
         collective.teardown()
-        # FIXME: why is this required?
-        torch.distributed.destroy_process_group()  # teardown world
 
 
 @skip_distributed_unavailable
@@ -251,8 +249,6 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
         left_collective.teardown()
         right_collective.teardown()
-        # FIXME: why is this required?
-        torch.distributed.destroy_process_group()  # teardown world
 
 
 @skip_distributed_unavailable
