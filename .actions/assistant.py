@@ -61,20 +61,13 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 def _retrieve_files(directory: str, *ext: str) -> List[str]:
-    subfolders, files = [directory], []
+    all_files = []
+    for root, _, files in os.walk(directory):
+        for fname in files:
+            if not ext or any(os.path.split(fname)[1].lower().endswith(e) for e in ext):
+                all_files.append(os.path.join(root, fname))
 
-    ext = tuple(e.lower() for e in ext)
-
-    while subfolders:
-        for p in os.scandir(directory):
-            if os.path.isdir(p):
-                subfolders.append(p)
-
-            if os.path.isfile(p):
-                if not ext or any(os.path.split(p.name)[1].lower().endswith(e) for e in ext):
-                    files.append(p)
-
-    return files
+    return all_files
 
 
 class AssistantCLI:
