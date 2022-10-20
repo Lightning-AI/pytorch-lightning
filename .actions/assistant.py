@@ -225,7 +225,6 @@ class AssistantCLI:
             else:
                 fp_new = fp
 
-            print(fp_new, fp)
             with open(fp_new, "w", encoding="utf-8") as fo:
                 fo.writelines(py)
 
