@@ -26,6 +26,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
+from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
 from lightning_app.utilities.commands.base import _process_requests
@@ -213,7 +214,7 @@ class LightningApp:
 
     @property
     def checkpoint_dir(self) -> str:
-        return "checkpoints"
+        return os.path.join(storage_root_dir(), "checkpoints")
 
     def remove_changes_(self, state):
         for _, child in state["flows"].items():
