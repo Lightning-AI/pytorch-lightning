@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -16,13 +17,13 @@ class Mount:
             `s3` style identifier pointing to a bucket and (optionally) prefix to mount. For
             example: `s3://foo/bar/`.
 
-        root_dir: An absolute directory path in the work where external data source should
+        mount_path: An absolute directory path in the work where external data source should
             be mounted as a filesystem. This path should not already exist in your codebase.
             If not included, then the root_dir will be set to `/data/<last folder name in the bucket>`
     """
 
     source: str = ""
-    root_dir: str = ""
+    mount_path: str = ""
 
     def __post_init__(self) -> None:
 
@@ -42,8 +43,14 @@ class Mount:
                 f"Received: '{self.source}'. Mounting a single file is not currently supported."
             )
 
-        if self.root_dir == "":
-            self.root_dir = f"/data/{Path(self.source).stem}"
+        if self.mount_path == "":
+            self.mount_path = f"/data/{Path(self.source).stem}"
+
+        if not os.path.isabs(self.mount_path):
+            raise ValueError(
+                f"mount_path argument must be an absolute path to a "
+                f"location; received relative path {self.mount_path}"
+            )
 
     @property
     def protocol(self) -> str:
