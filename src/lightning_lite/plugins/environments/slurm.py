@@ -162,7 +162,7 @@ class SLURMEnvironment(ClusterEnvironment):
             return
         try:
             srun_exists = subprocess.call(["command", "-v", "srun"]) == 0
-        except:
+        except FileNotFoundError:
             srun_exists = False
         if srun_exists and not _is_srun_used():
             hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
