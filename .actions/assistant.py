@@ -217,7 +217,7 @@ class AssistantCLI:
 
             for _source_import, _target_import in zip(source_imports, target_imports):
                 for i, ln in enumerate(py):
-                    py[i] = ln.replace(_source_import, _target_import)
+                    py[i] = re.sub(rf"(?!_){_source_import}(?!_)", _target_import, ln)
 
             if target_dir:
                 fp_new = fp.replace(source_dir, target_dir)
