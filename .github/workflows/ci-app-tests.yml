@@ -12,6 +12,7 @@ on:
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"
+      - ".actions/assistant.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
