@@ -62,8 +62,8 @@ class LightningApp:
         the :class:`~lightning_app.core.flow.LightningFlow` provided.
 
         Arguments:
-            root: The root ``LightningFlow`` or ``LightningWork`` component, that defines all the app's nested components,
-                running infinitely. It must define a `run()` method that the app can call.
+            root: The root ``LightningFlow`` or ``LightningWork`` component, that defines all the app's nested
+                 components, running infinitely. It must define a `run()` method that the app can call.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
