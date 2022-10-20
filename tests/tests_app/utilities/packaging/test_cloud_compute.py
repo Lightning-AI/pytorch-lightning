@@ -46,5 +46,5 @@ def test_cloud_compute_with_non_unique_mount_root_dirs():
     mount_1 = Mount(source="s3://foo/", mount_path="/foo")
     mount_2 = Mount(source="s3://foo/bar/", mount_path="/foo")
 
-    with pytest.raises(ValueError, match="Every Mount attached to a work must have a unique 'root_dir' argument."):
+    with pytest.raises(ValueError, match="Every Mount attached to a work must have a unique"):
         CloudCompute("gpu", mounts=[mount_1, mount_2])
