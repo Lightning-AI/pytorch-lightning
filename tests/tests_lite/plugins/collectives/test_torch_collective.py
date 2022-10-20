@@ -41,9 +41,7 @@ def check_destroy_group():
     # 0 to account for tests that mock distributed
     # -1 to account for destroying the default process group
     expected = 0 if mock_new.call_count == 0 else mock_destroy.call_count - 1
-    assert (
-        mock_new.call_count == expected
-    ), f"new_group={mock_new.call_count} != destroy_group={mock_destroy.call_count}"
+    assert mock_new.call_count == expected, f"new_group={mock_new.call_count}, destroy_group={mock_destroy.call_count}"
     if TorchCollective.is_available():
         assert not torch.distributed.distributed_c10d._pg_map
         assert not TorchCollective.is_initialized()
