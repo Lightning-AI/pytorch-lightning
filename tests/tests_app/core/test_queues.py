@@ -2,6 +2,7 @@ import pickle
 import queue
 import time
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 import requests_mock
@@ -15,7 +16,7 @@ from lightning_app.utilities.redis import check_if_redis_running
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@pytest.mark.parametrize("queue_type", list(QueuingSystem.__members__.values()))
+@pytest.mark.parametrize("queue_type", [QueuingSystem.REDIS, QueuingSystem.MULTIPROCESS, QueuingSystem.SINGLEPROCESS])
 def test_queue_api(queue_type, monkeypatch):
     """Test the Queue API.
 
@@ -28,11 +29,12 @@ def test_queue_api(queue_type, monkeypatch):
     monkeypatch.setattr(queues.redis.Redis, "rpush", lambda *args, **kwargs: None)
     monkeypatch.setattr(queues.redis.Redis, "set", lambda *args, **kwargs: None)
     monkeypatch.setattr(queues.redis.Redis, "get", lambda *args, **kwargs: None)
-    queue = queue_type.get_readiness_queue()
-    assert queue.name == READINESS_QUEUE_CONSTANT
-    assert isinstance(queue, queues.BaseQueue)
-    queue.put("test_entry")
-    assert queue.get() == "test_entry"
+
+    test_queue = queue_type.get_readiness_queue()
+    assert test_queue.name == READINESS_QUEUE_CONSTANT
+    assert isinstance(test_queue, queues.BaseQueue)
+    test_queue.put("test_entry")
+    assert test_queue.get() == "test_entry"
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
@@ -168,25 +170,34 @@ class TestHTTPQueue:
         with pytest.raises(ValueError, match="App ID couldn't be extracted"):
             test_queue.length()
 
-    def test_http_queue_put(self):
+    def test_http_queue_put(self, monkeypatch):
+        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
         test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
         test_obj = LightningFlow()
 
         # mocking requests and responses
         adapter = requests_mock.Adapter()
         test_queue.client.session.mount("http://", adapter)
-        adapter.register_uri("GET", f"{HTTP_QUEUE_URL}/v1/test/http_queue/length", status_code=200, content=b"1")
+        adapter.register_uri(
+            "GET",
+            f"{HTTP_QUEUE_URL}/v1/test/http_queue/length",
+            request_headers={"Authorization": "test-token"},
+            status_code=200,
+            content=b"1"
+        )
         adapter.register_uri(
             "POST",
             f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=push",
             status_code=201,
             additional_matcher=lambda req: pickle.dumps(test_obj) == req._request.body,
+            request_headers={"Authorization": "test-token"},
             content=b"data pushed",
         )
 
         test_queue.put(test_obj)
 
-    def test_http_queue_get(self):
+    def test_http_queue_get(self, monkeypatch):
+        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
         test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
 
         adapter = requests_mock.Adapter()
@@ -195,6 +206,7 @@ class TestHTTPQueue:
         adapter.register_uri(
             "POST",
             f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=pop",
+            request_headers={"Authorization": "test-token"},
             status_code=200,
             content=pickle.dumps("test"),
         )
