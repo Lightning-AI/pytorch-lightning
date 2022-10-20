@@ -21,10 +21,16 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 def test_eval_inference_mode():
     """Testing overwriting trainer arguments."""
 
+    class BoringModelGrad(BoringModel):
+        def on_test_epoch_start(self) -> None:
+            assert torch.is_grad_enabled()
+            assert not torch.is_inference_mode_enabled()
+            return super().on_test_epoch_start()
+
     class BoringModelNoGrad(BoringModel):
         def on_test_epoch_start(self) -> None:
             assert not torch.is_grad_enabled()
-            assert not torch.is_inference_mode_enabled()
+            assert torch.is_inference_mode_enabled()
             return super().on_test_epoch_start()
 
     class BoringModelForInferenceMode(BoringModel):
@@ -33,6 +39,9 @@ def test_eval_inference_mode():
             assert torch.is_inference_mode_enabled()
             return super().on_test_epoch_start()
 
+
+    trainer = Trainer(logger=False, inference_mode=False, fast_dev_run=True)
+    trainer.test(BoringModelGrad())
     trainer = Trainer(logger=False, inference_mode=False, fast_dev_run=True)
     trainer.test(BoringModelNoGrad())
     trainer = Trainer(logger=False, inference_mode=True, fast_dev_run=True)
