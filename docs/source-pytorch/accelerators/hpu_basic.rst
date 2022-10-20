@@ -103,7 +103,7 @@ AWS
 ^^^
 You can either use `Gaudi-based AWS EC2 DL1 instances <https://aws.amazon.com/ec2/instance-types/dl1/>`__ or `Supermicro X12 Gaudi server <https://www.supermicro.com/en/solutions/habana-gaudi>`__ to get access to HPUs.
 
-Check out the `Get Started Guide with AWS and Habana <https://docs.habana.ai/en/latest/AWS_EC2_Getting_Started/AWS_EC2_Getting_Started.html>`__.
+Check out the `PyTorch Model on AWS DL1 Instance Quick Start <https://docs.habana.ai/en/latest/AWS_EC2_DL1_and_PyTorch_Quick_Start/AWS_EC2_DL1_and_PyTorch_Quick_Start.html>`__.
 
 ----
 
