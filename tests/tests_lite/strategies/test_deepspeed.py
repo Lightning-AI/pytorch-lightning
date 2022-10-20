@@ -72,6 +72,7 @@ def test_deepspeed_defaults():
     strategy = DeepSpeedStrategy()
     assert strategy.config is not None
     assert isinstance(strategy.config["zero_optimization"], dict)
+    assert strategy._backward_sync_control is None
 
 
 @RunIf(deepspeed=True)
