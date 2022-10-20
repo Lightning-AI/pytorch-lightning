@@ -135,7 +135,7 @@ class LightningLite(ABC):
 
     def setup(
         self,
-        model: Optional[nn.Module] = None,
+        model: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
@@ -148,7 +148,7 @@ class LightningLite(ABC):
                 and alternatively use :meth:`to_device` manually.
 
         Returns:
-            The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
+            The tuple containing wrapped model and the optimizers, in the same order they were passed in.
         """
         self._validate_setup(model, optimizers)
 
@@ -529,15 +529,12 @@ class LightningLite(ABC):
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     @staticmethod
-    def _validate_setup(model: Optional[nn.Module], optimizers: Sequence[Optimizer]) -> None:
+    def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(model, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
-
-        if model is None and not optimizers:
-            raise ValueError("`setup` requires at least a model or an optimizer.")
 
     @staticmethod
     def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
