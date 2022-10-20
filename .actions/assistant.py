@@ -14,7 +14,7 @@ from typing import List, Optional, Sequence
 from urllib import request
 from urllib.request import Request, urlopen
 
-import fire
+import jsonargparse
 import pkg_resources
 from packaging.version import parse as version_parse
 
@@ -58,6 +58,23 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
     return py
+
+
+def _retrieve_files(directory: str, *ext: str):
+    subfolders, files = [directory], []
+
+    ext = tuple(e.lower() for e in ext)
+
+    while subfolders:
+        for p in os.scandir(directory):
+            if os.path.isdir(p):
+                subfolders.append(p)
+
+            if os.path.isfile(p):
+                if not ext or os.path.split(p.name)[1].lower() in ext:
+                    files.append(p)
+
+    return files
 
 
 class AssistantCLI:
@@ -168,6 +185,52 @@ class AssistantCLI:
                 shutil.rmtree(py_dir2, ignore_errors=True)
                 shutil.copytree(py_dir, py_dir2)
 
+    @staticmethod
+    def copy_replace_imports(
+        source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
+    ) -> None:
+        """Recursively replace imports in given folder."""
+
+        source_imports = source_import.strip().split(",")
+        target_imports = target_import.strip().split(",")
+        assert len(source_imports) == len(target_imports), (
+            "source and target imports must have the same length, "
+            f"source: {len(source_import)}, target: {len(target_import)}"
+        )
+
+        if target_dir is None:
+            target_dir = source_dir
+
+        ls = _retrieve_files(source_dir)
+
+        for fp in ls:
+            if not os.path.isfile(fp):
+                continue
+            if not fp.endswith(".py"):
+                if not fp.endswith(".pyc"):
+                    fp_new = fp.replace(source_dir, target_dir)
+                    os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+                    if os.path.abspath(fp) != os.path.abspath(fp_new):
+                        shutil.copy2(fp, fp_new)
+                continue
+
+            with open(fp, encoding="utf-8") as fo:
+                py = fo.readlines()
+
+            for _source_import, _target_import in zip(source_imports, target_imports):
+                for i, ln in enumerate(py):
+                    py[i] = ln.replace(_source_import, _target_import)
+
+            if target_dir:
+                fp_new = fp.replace(source_dir, target_dir)
+                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+            else:
+                fp_new = fp
+
+            print(fp_new, fp)
+            with open(fp_new, "w", encoding="utf-8") as fo:
+                fo.writelines(py)
+
 
 if __name__ == "__main__":
-    fire.Fire(AssistantCLI)
+    jsonargparse.CLI(AssistantCLI, as_positional=True)
