@@ -17,6 +17,8 @@ else:
 
 
 class TorchCollective(Collective):
+    _initialized = False
+
     def __init__(self) -> None:
         if not dist.is_available():
             raise RuntimeError("Torch distributed is not available.")
@@ -126,6 +128,9 @@ class TorchCollective(Collective):
             set_port = True
         # this will `init_group`
         super().setup(**kwargs)
+        # set as a class attribute so any instance can know whether we initialized the default process group, and tear
+        # it down consequently
+        TorchCollective._initialized = True
         # cleanup
         if set_addr:
             os.environ.pop("MASTER_ADDR", None)
@@ -135,11 +140,15 @@ class TorchCollective(Collective):
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
         super().teardown()
-        default_group = dist.GroupMember.WORLD
-        if default_group is not None:  # ensures it hasn't been destroyed already
-            group_map = dist.distributed_c10d._pg_map
-            if len(group_map) == 1 and default_group in group_map:  # ensures that only the default group is left
-                self.destroy_group(default_group)
+        if TorchCollective._initialized:
+            default_group = dist.GroupMember.WORLD
+            # `default_group` should exist here unless something else destroyed it, however, leaving the check
+            # below as a safety guard against race conditions between two instances running this code simultaneously
+            if default_group is not None:  # not destroyed already
+                group_map = dist.distributed_c10d._pg_map
+                if len(group_map) == 1 and default_group in group_map:  # only the default group is left
+                    self.destroy_group(default_group)
+                    TorchCollective._initialized = False
         return self
 
     @classmethod
