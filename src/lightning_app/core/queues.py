@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
+    HTTP_QUEUE_TOKEN,
     HTTP_QUEUE_URL,
     LIGHTNING_DIR,
     QUEUE_DEBUG_ENABLED,
@@ -18,7 +19,7 @@ from lightning_app.core.constants import (
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
-    WARNING_QUEUE_SIZE, HTTP_QUEUE_TOKEN,
+    WARNING_QUEUE_SIZE,
 )
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_redis_available, requires
@@ -320,11 +321,7 @@ class HTTPQueue(BaseQueue):
         self.app_id, self.name = self._split_app_id_and_queue_name(name)
         self._original_name = name  # keeping the name for debugging
         self.default_timeout = default_timeout
-        self.client = HTTPClient(
-            base_url=HTTP_QUEUE_URL,
-            auth_token=HTTP_QUEUE_TOKEN,
-            log_callback=debug_log_callback
-        )
+        self.client = HTTPClient(base_url=HTTP_QUEUE_URL, auth_token=HTTP_QUEUE_TOKEN, log_callback=debug_log_callback)
 
     def get(self, timeout: int = None) -> Any:
         if not self.app_id:
