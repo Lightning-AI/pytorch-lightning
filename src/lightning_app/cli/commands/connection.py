@@ -1,12 +1,17 @@
 import json
 import os
 import shutil
+import sys
+from subprocess import Popen
 from typing import List, Optional, Tuple
 
 import click
+from lightning_utilities.core.imports import package_available
 
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.enum import OpenAPITags
+from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.network import LightningClient
 
 
@@ -56,6 +61,8 @@ def connect(app_name_or_id: str, yes: bool = False):
         with open(os.path.join(commands_folder, "openapi.json"), "w") as f:
             json.dump(retriever.openapi, f)
 
+        _install_missing_requirements(retriever, yes)
+
         for command_name, metadata in retriever.api_commands.items():
             if "cls_path" in metadata:
                 target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
@@ -90,6 +97,8 @@ def connect(app_name_or_id: str, yes: bool = False):
                 f"connected to {[app.name for app in apps.lightningapps]}."
             )
             return
+
+        _install_missing_requirements(retriever, yes)
 
         if not yes:
             yes = click.confirm(
@@ -216,3 +225,41 @@ def _list_app_commands() -> List[str]:
         padding = (max_length + 1 - len(command_name)) * " "
         click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
     return command_names
+
+
+def _install_missing_requirements(
+    retriever: _LightningAppOpenAPIRetriever,
+    yes_global: bool = False,
+    fail_if_missing: bool = False,
+):
+    requirements = set()
+    for metadata in retriever.api_commands.values():
+        if metadata["tag"] == OpenAPITags.APP_CLIENT_COMMAND:
+            for req in metadata.get("requirements", []) or []:
+                requirements.add(req)
+
+    if requirements:
+        missing_requirements = []
+        for req in requirements:
+            if not package_available(req):
+                missing_requirements.append(req)
+
+        if missing_requirements:
+            if fail_if_missing:
+                missing_requirements = " ".join(missing_requirements)
+                print(f"The command failed as you are missing the following requirements: `{missing_requirements}`.")
+                sys.exit(0)
+
+            for req in missing_requirements:
+                if not yes_global:
+                    yes = click.confirm(
+                        f"The Lightning App CLI `{retriever.app_id}` requires `{req}`. Do you want to install it ?"
+                    )
+                else:
+                    print(f"Installing missing `{req}` requirement.")
+                    yes = yes_global
+                if yes:
+                    std_out_out = get_logfile("output.log")
+                    with open(std_out_out, "wb") as stdout:
+                        Popen(f"pip install {req}", shell=True, stdout=stdout, stderr=sys.stderr).wait()
+                    print()
