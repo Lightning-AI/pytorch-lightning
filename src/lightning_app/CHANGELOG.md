@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for adding descriptions to commands either through a docstring or the `DESCRIPTION` attribute ([#15193](https://github.com/Lightning-AI/lightning/pull/15193)
 - Added a try / catch mechanism around request processing to avoid killing the flow ([#15187](https://github.com/Lightning-AI/lightning/pull/15187)
 - Added a Database Component ([#14995](https://github.com/Lightning-AI/lightning/pull/14995)
-- Added support to pass a LightningWork to the LightningApp ([#15215](https://github.com/Lightning-AI/lightning/pull/15215)
+- Added support to pass a `LightningWork` to the `LightningApp` ([#15215](https://github.com/Lightning-AI/lightning/pull/15215)
 
 ### Fixed
 
