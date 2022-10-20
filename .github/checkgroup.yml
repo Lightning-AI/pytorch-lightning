@@ -10,7 +10,6 @@ subprojects:
     paths:
       - ".circleci/**"
       - ".github/workflows/ci-circleci.yml"
-      - ".actions/**"
     checks:
       - "test-on-tpus"
 
@@ -65,7 +64,6 @@ subprojects:
   - id: "pytorch_lightning: CPU"
     paths:
       - ".github/workflows/ci-pytorch-test-full.yml"
-      - ".actions/**"
     checks:
       - "pl-cpu (ubuntu-20.04, 3.7, 1.9, oldest)"
       - "pl-cpu (ubuntu-20.04, 3.7, 1.12)"
@@ -88,7 +86,6 @@ subprojects:
   - id: "pytorch_lightning: Slow"
     paths:
       - ".github/workflows/ci-pytorch-test-slow.yml"
-      - ".actions/**"
     checks:
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
@@ -98,21 +95,18 @@ subprojects:
     paths:
       - ".azure/gpu-tests-pytorch.yml"
       - "tests/tests_pytorch/run_standalone_*.sh"
-      - ".actions/**"
     checks:
       - "pytorch-lightning (GPUs)"
 
   - id: "pytorch_lightning: Azure HPU"
     paths:
       - ".azure/hpu-tests.yml"
-      - ".actions/**"
     checks:
       - "pytorch-lightning (HPUs)"
 
   - id: "pytorch_lightning: Azure IPU"
     paths:
       - ".azure/ipu-tests.yml"
-      - ".actions/**"
     checks:
       - "pytorch-lightning (IPUs)"
 
@@ -122,7 +116,6 @@ subprojects:
       - ".github/workflows/docs-*.yml"
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
-      - ".actions/**"
     checks:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
@@ -204,7 +197,6 @@ subprojects:
     paths:
       - ".azure/gpu-tests-lite.yml"
       - "tests/tests_lite/run_standalone_*.sh"
-      - ".actions/**"
     checks:
       - "lightning-lite (GPUs)"
 
@@ -239,7 +231,6 @@ subprojects:
   - id: "lightning_app: Azure"
     paths:
       - ".azure/app-cloud-e2e.yml"
-      - ".actions/**"
     checks:
       - "App.cloud-e2e"
 
@@ -249,7 +240,6 @@ subprojects:
       - ".github/workflows/docs-*.yml"
       - "requirements/docs.txt"
       - "requirements/app/**"
-      - ".actions/**"
     checks:
       - "make-doctest (app)"
       - "make-html (app)"
