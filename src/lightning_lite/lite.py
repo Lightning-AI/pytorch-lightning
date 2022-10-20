@@ -151,16 +151,23 @@ class LightningLite(ABC):
             The tuple containing wrapped model and the optimizers, in the same order they were passed in.
         """
         self._validate_setup(model, optimizers)
+        original_model = model
 
-        if model and not optimizers:
-            # set up a model without optimizers (e.g., for inference)
-            model = self.setup_model(model, move_to_device=move_to_device)
-        elif not model and optimizers:
-            # set up one or more optimizers separately from the model; some strategies don't support that
-            optimizers = self.setup_optimizers(*optimizers)
-        elif model and optimizers:
-            # set up model and optimizers jointly; some strategies require this
-            model, optimizers = self._setup_model_and_optimizers(model, *optimizers, move_to_device=move_to_device)
+        model = self._precision.convert_module(model)
+
+        if move_to_device:
+            model = self._move_model_to_device(model=model, optimizers=list(optimizers))
+
+        # Let accelerator/plugin wrap and connect the models and optimizers
+        model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
+        model = _LiteModule(model, self._precision, original_module=original_model)
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        model.to(self.device if move_to_device else next(model.parameters()).device)
+
+        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+
+        self._models_setup += 1
 
         if optimizers:
             # join both types in a tuple for API convenience
@@ -185,10 +192,10 @@ class LightningLite(ABC):
         self._models_setup += 1
         return model
 
-    def setup_optimizers(self, *optimizers: Optimizer) -> Tuple[_LiteOptimizer]:
+    def setup_optimizers(self, *optimizers: Optimizer) -> Union[_LiteOptimizer, Tuple[_LiteOptimizer, ...]]:
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
-        optimizers = tuple(_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers)
-        return optimizers
+        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
