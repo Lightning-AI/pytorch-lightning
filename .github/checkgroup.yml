@@ -250,7 +250,6 @@ subprojects:
     paths:
       - ".github/workflows/code-checks.yml"
       - "pyproject.toml"  # includes mypy config
-      - ".actions/**"
     checks:
       - "mypy"
 
