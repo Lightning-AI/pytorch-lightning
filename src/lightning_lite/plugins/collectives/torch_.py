@@ -7,8 +7,8 @@ import torch.distributed as dist
 from typing_extensions import Self
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
-from lightning_lite.utilities.types import _TORCH_REDUCE_OP, CollectibleGroup
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_13
+from lightning_lite.utilities.types import CollectibleGroup, RedOpType, ReduceOp
 
 if dist.is_available():
     from torch.distributed.constants import default_pg_timeout
@@ -34,12 +34,12 @@ class TorchCollective(Collective):
         dist.broadcast(tensor, src, group=self.group)
         return tensor
 
-    def all_reduce(self, tensor: torch.Tensor, op: Union[str, _TORCH_REDUCE_OP] = "sum") -> torch.Tensor:
+    def all_reduce(self, tensor: torch.Tensor, op: Union[str, ReduceOp, RedOpType] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
-    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, _TORCH_REDUCE_OP] = "sum") -> torch.Tensor:
+    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
@@ -57,7 +57,7 @@ class TorchCollective(Collective):
         return tensor
 
     def reduce_scatter(
-        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, _TORCH_REDUCE_OP] = "sum"
+        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
     ) -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
@@ -155,13 +155,17 @@ class TorchCollective(Collective):
         dist.destroy_process_group(group)
 
     @classmethod
-    def _convert_to_native_op(cls, op: Union[str, _TORCH_REDUCE_OP]) -> _TORCH_REDUCE_OP:
-        if isinstance(op, _TORCH_REDUCE_OP):
+    def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
+        # in 1.13, `ReduceOp` has become an empty shell for `RedOpType`, the latter being the actually returned class.
+        # for example, `ReduceOp.SUM` returns a `RedOpType.SUM`. the only exception is `RedOpType.PREMUL_SUM` where
+        # `ReduceOp` is still the desired class, but it's created via a special `_make_nccl_premul_sum` function
+        if isinstance(op, ReduceOp) or _TORCH_GREATER_EQUAL_1_13 and isinstance(op, RedOpType):
             return op
         if not isinstance(op, str):
-            raise ValueError(f"op {op!r} should be a `str` or `{_TORCH_REDUCE_OP.__name__}`")
+            raise ValueError(f"Unsupported op {op!r} of type {type(op).__name__}")
         op = op.upper()
-        value = getattr(_TORCH_REDUCE_OP, op, None)
+        # `ReduceOp` should contain `RedOpType`'s members
+        value = getattr(ReduceOp, op, None)
         if value is None:
-            raise ValueError(f"op {op!r} is not a member of `{_TORCH_REDUCE_OP.__name__}`")
+            raise ValueError(f"op {op!r} is not a member of `ReduceOp`")
         return value

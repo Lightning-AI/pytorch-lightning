@@ -30,14 +30,11 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 
-    if _TORCH_GREATER_EQUAL_1_13:
-        _TORCH_REDUCE_OP = ReduceOp.RedOpType
-    else:
-        _TORCH_REDUCE_OP = ReduceOp
+    RedOpType = ReduceOp.RedOpType if _TORCH_GREATER_EQUAL_1_13 else object
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
     ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
-    _TORCH_REDUCE_OP = object
+    RedOpType = object
 
 
 _DictKey = TypeVar("_DictKey")
