@@ -19,8 +19,7 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.plugins import TorchCheckpointIO, XLACheckpointIO
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -90,7 +89,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir, xla_available):
     instance_path = tmpdir + "/path.ckpt"
     instance_storage_options = "my instance storage options"
 
-    with mock.patch("lightning_lite.plugins.io.torch_plugin.TorchCheckpointIO.save_checkpoint") as io_mock:
+    with mock.patch("lightning_lite.plugins.io.torch_.TorchCheckpointIO.save_checkpoint") as io_mock:
         trainer.save_checkpoint(instance_path, storage_options=instance_storage_options)
         io_mock.assert_called_with(ANY, instance_path, storage_options=instance_storage_options)
         trainer.save_checkpoint(instance_path)

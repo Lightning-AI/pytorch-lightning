@@ -19,6 +19,8 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import Protocol, runtime_checkable
 
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
 _MAP_LOCATION_TYPE = Optional[Union[_DEVICE, Callable[[_DEVICE], _DEVICE], Dict[_DEVICE, _DEVICE]]]
@@ -27,9 +29,17 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
+
+    # `ReduceOp has no attribute "RedOpType"`fall back if you have this version, but it is missing
+    # this si a case when you have installed PyTorch from master, for example a few last NGC dockers 22.09
+    if _TORCH_GREATER_EQUAL_1_13 and hasattr(ReduceOp, "RedOpType"):
+        _TORCH_REDUCE_OP = ReduceOp.RedOpType
+    else:
+        _TORCH_REDUCE_OP = ReduceOp
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
     ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
+    _TORCH_REDUCE_OP = object
 
 
 _DictKey = TypeVar("_DictKey")

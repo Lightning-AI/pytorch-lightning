@@ -71,10 +71,32 @@ When you need to add complicated pre-processing or post-processing logic to your
 ****************************
 Enable distributed inference
 ****************************
-By using the predict step in Lightning you get free distributed inference
-
+By using the predict step in Lightning you get free distributed inference using :class:`~pytorch_lightning.callbacks.prediction_writer.BasePredictionWriter`.
 
 .. code-block:: python
 
-    trainer = Trainer(devices=8, accelerator="gpu")
-    predictions = trainer.predict(model, data_loader)
+    import torch
+    from pytorch_lightning.callbacks import BasePredictionWriter
+
+
+    class CustomWriter(BasePredictionWriter):
+        def __init__(self, output_dir, write_interval):
+            super().__init__(write_interval)
+            self.output_dir = output_dir
+
+        def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
+            # this will create N (num processes) files in `output_dir` each containing
+            # the predictions of it's respective rank
+            torch.save(predictions, os.path.join(self.output_dir, f"predictions_{trainer.global_rank}.pt"))
+
+            # optionally, you can also save `batch_indices` to get the information about the data index
+            # from your prediction data
+            torch.save(batch_indices, os.path.join(self.output_dir, f"batch_indices_{trainer.global_rank}.pt"))
+
+
+    # or you can set `writer_interval="batch"` and override `write_on_batch_end` to save
+    # predictions at batch level
+    pred_writer = CustomWriter(output_dir="pred_path", write_interval="epoch")
+    trainer = Trainer(accelerator="gpu", strategy="ddp", devices=8, callbacks=[pred_writer])
+    model = BoringModel()
+    trainer.predict(model, return_predictions=False)
