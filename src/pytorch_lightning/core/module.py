@@ -599,7 +599,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -662,7 +662,6 @@ class LightningModule(
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
         """
-        # type: ignore
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:

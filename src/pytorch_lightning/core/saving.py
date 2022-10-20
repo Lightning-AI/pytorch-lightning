@@ -144,13 +144,13 @@ class ModelIO:
 
 
 def _load_from_checkpoint(
-    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"], None],
+    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint_path: Union[_PATH, IO],
     map_location: _MAP_LOCATION_TYPE = None,
     hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
-) -> Union["pl.LightningModule", "pl.LightningDataModule", None]:
+) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
         map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
@@ -177,6 +177,7 @@ def _load_from_checkpoint(
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
         return _load_state(cls, checkpoint, strict=strict, **kwargs)
+    raise NotImplementedError(f"Unsupported {cls}")
 
 
 def _load_state(

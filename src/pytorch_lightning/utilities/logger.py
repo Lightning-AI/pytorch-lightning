@@ -89,8 +89,8 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
     """
 
     def _dict_generator(
-        input_dict: Any, prefixes: List[Optional[str]] = None  # type:ignore
-    ) -> Generator[Any, Optional[List[str]], List[Any]]:
+        input_dict: Any, prefixes: List[Optional[str]] = None
+    ) -> Generator[Any, Optional[List[str]], List[Any]]:  # FIXME
         prefixes = prefixes[:] if prefixes else []
         if isinstance(input_dict, MutableMapping):
             for key, value in input_dict.items():

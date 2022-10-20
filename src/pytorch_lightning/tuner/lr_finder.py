@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
@@ -407,7 +407,6 @@ class _LinearLR(_LRScheduler):
     """
 
     last_epoch: int
-    base_lrs: Sequence
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
@@ -445,7 +444,6 @@ class _ExponentialLR(_LRScheduler):
     """
 
     last_epoch: int
-    base_lrs: Sequence
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
