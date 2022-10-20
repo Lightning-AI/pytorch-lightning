@@ -63,7 +63,7 @@ jobs:
         python .actions/assistant.py requirements_prune_pkgs "[horovod]"
 
     - name: Set min. dependencies
-      if: matrix.requires == 'oldest'
+      if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
 
@@ -95,7 +95,7 @@ jobs:
       run: python -m pytest lightning_lite
 
     - name: Adjust tests
-      if: matrix.pkg-name != 'LAI'
+      if: ${{ matrix.pkg-name != 'LAI' }}
       run: python .actions/assistant.py copy_replace_imports "./tests" "lightning_lite" "lightning.lite"
 
     - name: Testing Warnings

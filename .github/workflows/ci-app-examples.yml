@@ -42,7 +42,7 @@ jobs:
 
       # TODO: use replace_oldest_ver() instead
       - name: Set min. dependencies
-        if: matrix.requires == 'oldest'
+        if: ${{ matrix.requires == 'oldest' }}
         run: |
           for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
               req = open(fpath).read().replace('>=', '==')

@@ -45,7 +45,7 @@ jobs:
         run: pip install -q -r .actions/requirements.txt
 
       - name: Set min. dependencies
-        if: matrix.requires == 'oldest'
+        if: ${{ matrix.requires == 'oldest' }}
         run: python .actions/assistant.py replace_oldest_ver
 
       - name: Get pip cache
@@ -86,7 +86,7 @@ jobs:
         shell: bash
 
     - name: Adjust tests
-      if: matrix.pkg-name != 'LAI'
+      if: ${{ matrix.pkg-name != 'LAI' }}
       run: python .actions/assistant.py copy_replace_imports "./tests" "lightning_app" "lightning.app"
 
       - name: Tests

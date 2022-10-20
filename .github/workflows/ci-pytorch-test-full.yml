@@ -88,7 +88,7 @@ jobs:
         python .actions/assistant.py requirements_prune_pkgs horovod
 
     - name: Set min. dependencies
-      if: matrix.requires == 'oldest'
+      if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
 
@@ -108,7 +108,7 @@ jobs:
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Adjust PyTorch versions in requirements files
-      if: matrix.requires != 'oldest'
+      if: ${{ matrix.requires == 'oldest' }}
       run: |
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
@@ -156,7 +156,7 @@ jobs:
         python requirements/pytorch/check-avail-extras.py
 
     - name: Adjust tests
-      if: matrix.pkg-name != 'LAI'
+      if: ${{ matrix.pkg-name != 'LAI' }}
       run: python .actions/assistant.py copy_replace_imports "./tests" "pytorch_lightning" "lightning.pytorch"
 
     - name: Testing Warnings
