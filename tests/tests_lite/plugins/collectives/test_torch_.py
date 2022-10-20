@@ -244,10 +244,8 @@ def _test_two_groups(strategy, left_collective, right_collective):
         if strategy.global_rank in (0, 1):
             tensor = left_collective.all_reduce(tensor)
             assert tensor == 1
+        right_collective.barrier()  # avoids deadlock for global rank 1
         if strategy.global_rank in (1, 2):
-            # FIXME: if the barrier isn't inside the `if`, then we get
-            # UserWarning: Running barrier on global rank 0 which does not belong to the given group.
-            right_collective.barrier()  # avoids deadlock for global rank 1
             tensor = right_collective.all_reduce(tensor)
             assert tensor == 3
 

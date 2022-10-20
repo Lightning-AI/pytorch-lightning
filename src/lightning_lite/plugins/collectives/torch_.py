@@ -100,6 +100,8 @@ class TorchCollective(Collective):
         return scatter_object_output_list
 
     def barrier(self, device_ids: Optional[List[int]] = None) -> None:
+        if dist._rank_not_in_group(self.group):
+            return
         dist.barrier(group=self.group, device_ids=device_ids)
 
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
