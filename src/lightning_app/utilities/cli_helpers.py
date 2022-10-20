@@ -87,7 +87,7 @@ class _LightningAppOpenAPIRetriever:
     def __init__(
         self,
         app_id_or_name_or_url: Optional[str],
-        use_cache: bool = True,
+        use_cache: bool = False,
     ):
         """This class encapsulates the logic to collect the openapi.json file from the app to use the CLI Commands.
 

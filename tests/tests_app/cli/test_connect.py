@@ -1,218 +1,181 @@
 import json
 import os
-import shutil
-from typing import List, Optional, Tuple
+import sys
+from unittest.mock import MagicMock
 
 import click
+import pytest
 
-from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
-from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.network import LightningClient
+from lightning_app import _PACKAGE_ROOT
+from lightning_app.cli.commands.connection import (
+    _list_app_commands,
+    _resolve_command_path,
+    _retrieve_connection_to_an_app,
+    connect,
+    disconnect,
+)
+from lightning_app.utilities import cli_helpers
+from lightning_app.utilities.commands import base
 
 
-@click.argument("app_name_or_id", required=True)
-@click.option("-y", "--yes", required=False, is_flag=True, help="Whether to download the commands automatically.")
-def connect(app_name_or_id: str, yes: bool = False):
-    """Connect to a Lightning App."""
-    from lightning_app.utilities.commands.base import _download_command
+def test_connect_disconnect_local(monkeypatch):
 
+    disconnect()
+
+    with pytest.raises(Exception, match="The commands weren't found. Is your app localhost running ?"):
+        connect("localhost", True)
+
+    with open(os.path.join(os.path.dirname(__file__), "jsons/connect_1.json")) as f:
+        data = json.load(f)
+
+    data["paths"]["/command/command_with_client"]["post"]["cls_path"] = os.path.join(
+        os.path.dirname(os.path.dirname(_PACKAGE_ROOT)),
+        data["paths"]["/command/command_with_client"]["post"]["cls_path"],
+    )
+
+    messages = []
+
+    disconnect()
+
+    def fn(msg):
+        messages.append(msg)
+
+    monkeypatch.setattr(click, "echo", fn)
+
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = data
+    monkeypatch.setattr(cli_helpers.requests, "get", MagicMock(return_value=response))
+    connect("localhost", True)
+    assert _retrieve_connection_to_an_app() == ("localhost", None)
+    command_path = _resolve_command_path("nested_command")
+    assert not os.path.exists(command_path)
+    command_path = _resolve_command_path("command_with_client")
+    assert os.path.exists(command_path)
     home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
+    s = "/" if sys.platform != "win32" else "\\"
+    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}commands"
+    expected = [
+        f"Find the `command with client` command under {command_folder_path}{s}command_with_client.py.",
+        f"You can review all the downloaded commands under {command_folder_path} folder.",
+        "You are connected to the local Lightning App.",
+    ]
+    assert messages == expected
 
-    if not os.path.exists(lightning_folder):
-        os.makedirs(lightning_folder)
+    messages = []
+    connect("localhost", True)
+    assert messages == ["You are connected to the local Lightning App."]
 
-    connected_file = os.path.join(lightning_folder, "connect.txt")
+    messages = []
+    disconnect()
+    assert messages == ["You are disconnected from the local Lightning App."]
+    messages = []
+    disconnect()
+    assert messages == [
+        "You aren't connected to any Lightning App. Please use `lightning connect app_name_or_id` to connect to one."
+    ]
 
-    if os.path.exists(connected_file):
-        with open(connected_file) as f:
-            result = f.readlines()[0].replace("\n", "")
-
-        if result == app_name_or_id:
-            if app_name_or_id == "localhost":
-                click.echo("You are connected to the local Lightning App.")
-            else:
-                click.echo(f"You are already connected to the cloud Lightning App: {app_name_or_id}.")
-        else:
-            disconnect()
-            connect(app_name_or_id, yes)
-
-    elif app_name_or_id.startswith("localhost"):
-
-        if app_name_or_id != "localhost":
-            raise Exception("You need to pass localhost to connect to the local Lightning App.")
-
-        retriever = _LightningAppOpenAPIRetriever(None)
-
-        if retriever.api_commands is None:
-            raise Exception(f"The commands weren't found. Is your app {app_name_or_id} running ?")
-
-        commands_folder = os.path.join(lightning_folder, "commands")
-        if not os.path.exists(commands_folder):
-            os.makedirs(commands_folder)
-
-        _write_commands_metadata(retriever.api_commands)
-
-        with open(os.path.join(commands_folder, "openapi.json"), "w") as f:
-            json.dump(retriever.openapi, f)
-
-        for command_name, metadata in retriever.api_commands.items():
-            if "cls_path" in metadata:
-                target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
-                _download_command(
-                    command_name,
-                    metadata["cls_path"],
-                    metadata["cls_name"],
-                    None,
-                    target_file=target_file,
-                )
-                repr_command_name = command_name.replace("_", " ")
-                click.echo(f"Find the `{repr_command_name}` command under {target_file}.")
-                click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
-            else:
-                with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
-                    f.write(command_name)
-
-        with open(connected_file, "w") as f:
-            f.write(app_name_or_id + "\n")
-
-        click.echo("You are connected to the local Lightning App.")
-    else:
-
-        retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
-
-        if not retriever.api_commands:
-            client = LightningClient()
-            project = _get_project(client)
-            apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
-            click.echo(
-                "We didn't find a matching App. Here are the available Apps that could be "
-                f"connected to {[app.name for app in apps.lightningapps]}."
-            )
-            return
-
-        if not yes:
-            yes = click.confirm(
-                f"The Lightning App `{app_name_or_id}` provides a command-line (CLI). "
-                "Do you want to proceed and install its CLI ?"
-            )
-            click.echo(" ")
-
-        if yes:
-            commands_folder = os.path.join(lightning_folder, "commands")
-            if not os.path.exists(commands_folder):
-                os.makedirs(commands_folder)
-
-            _write_commands_metadata(retriever.api_commands)
-
-            for command_name, metadata in retriever.api_commands.items():
-                if "cls_path" in metadata:
-                    target_file = os.path.join(commands_folder, f"{command_name}.py")
-                    _download_command(
-                        command_name,
-                        metadata["cls_path"],
-                        metadata["cls_name"],
-                        retriever.app_id,
-                        target_file=target_file,
-                    )
-                    click.echo(f"Storing `{command_name}` under {target_file}")
-                    click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
-                else:
-                    with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
-                        f.write(command_name)
-
-            click.echo(" ")
-            click.echo("The client interface has been successfully installed. ")
-            click.echo("You can now run the following commands:")
-            for command in retriever.api_commands:
-                click.echo(f"    lightning {command}")
-
-        with open(connected_file, "w") as f:
-            f.write(app_name_or_id + "\n")
-            f.write(retriever.app_id + "\n")
-        click.echo(" ")
-        click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
+    assert _retrieve_connection_to_an_app() == (None, None)
 
 
-def disconnect(logout: bool = False):
-    """Disconnect from an App."""
+def test_connect_disconnect_cloud(monkeypatch):
+
+    disconnect()
+
+    target_file = _resolve_command_path("command_with_client")
+
+    if os.path.exists(target_file):
+        os.remove(target_file)
+
+    with open(os.path.join(os.path.dirname(__file__), "jsons/connect_1.json")) as f:
+        data = json.load(f)
+
+    data["paths"]["/command/command_with_client"]["post"]["cls_path"] = os.path.join(
+        os.path.dirname(os.path.dirname(_PACKAGE_ROOT)),
+        data["paths"]["/command/command_with_client"]["post"]["cls_path"],
+    )
+
+    messages = []
+
+    def fn(msg):
+        messages.append(msg)
+
+    monkeypatch.setattr(click, "echo", fn)
+
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = data
+    monkeypatch.setattr(cli_helpers.requests, "get", MagicMock(return_value=response))
+    project = MagicMock()
+    project.project_id = "custom_project_name"
+    monkeypatch.setattr(cli_helpers, "_get_project", MagicMock(return_value=project))
+    client = MagicMock()
+    lightningapps = MagicMock()
+
+    app = MagicMock()
+    app.name = "example"
+    app.id = "1234"
+
+    lightningapps.lightningapps = [app]
+    client.lightningapp_instance_service_list_lightningapp_instances.return_value = lightningapps
+    monkeypatch.setattr(cli_helpers, "LightningClient", MagicMock(return_value=client))
+
+    monkeypatch.setattr(base, "_get_project", MagicMock(return_value=project))
+
+    artifact = MagicMock()
+    artifact.filename = "commands/command_with_client.py"
+    artifacts = MagicMock()
+    artifacts.artifacts = [artifact]
+    client.lightningapp_instance_service_list_lightningapp_instance_artifacts.return_value = artifacts
+    monkeypatch.setattr(base, "LightningClient", MagicMock(return_value=client))
+
+    with open(data["paths"]["/command/command_with_client"]["post"]["cls_path"], "rb") as f:
+        response.content = f.read()
+
+    connect("example", True)
+    assert _retrieve_connection_to_an_app() == ("example", "1234")
+    commands = _list_app_commands()
+    assert commands == ["command with client", "command without client", "nested command"]
+    command_path = _resolve_command_path("nested_command")
+    assert not os.path.exists(command_path)
+    command_path = _resolve_command_path("command_with_client")
+    assert os.path.exists(command_path)
     home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-    connected_file = os.path.join(lightning_folder, "connect.txt")
-    if os.path.exists(connected_file):
-        with open(connected_file) as f:
-            result = f.readlines()[0].replace("\n", "")
+    s = "/" if sys.platform != "win32" else "\\"
+    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}commands"
+    expected = [
+        f"Storing `command_with_client` under {command_folder_path}{s}command_with_client.py",
+        f"You can review all the downloaded commands under {command_folder_path} folder.",
+        " ",
+        "The client interface has been successfully installed. ",
+        "You can now run the following commands:",
+        "    lightning command_without_client",
+        "    lightning command_with_client",
+        "    lightning nested_command",
+        " ",
+        "You are connected to the cloud Lightning App: example.",
+        "Usage: lightning [OPTIONS] COMMAND [ARGS]...",
+        "",
+        "  --help     Show this message and exit.",
+        "",
+        "Lightning App Commands",
+        "  command with client    A command with a client.",
+        "  command without client A command without a client.",
+        "  nested command         A nested command.",
+    ]
+    assert messages == expected
 
-        os.remove(connected_file)
-        commands_folder = os.path.join(lightning_folder, "commands")
-        if os.path.exists(commands_folder):
-            shutil.rmtree(commands_folder)
+    messages = []
+    connect("example", True)
+    assert messages == ["You are already connected to the cloud Lightning App: example."]
 
-        if result == "localhost":
-            click.echo("You are disconnected from the local Lightning App.")
-        else:
-            click.echo(f"You are disconnected from the cloud Lightning App: {result}.")
-    else:
-        if not logout:
-            click.echo(
-                "You aren't connected to any Lightning App. "
-                "Please use `lightning connect app_name_or_id` to connect to one."
-            )
+    messages = []
+    disconnect()
+    assert messages == ["You are disconnected from the cloud Lightning App: example."]
+    messages = []
+    disconnect()
+    assert messages == [
+        "You aren't connected to any Lightning App. Please use `lightning connect app_name_or_id` to connect to one."
+    ]
 
-
-def _retrieve_connection_to_an_app() -> Tuple[Optional[str], Optional[str]]:
-    home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-    connected_file = os.path.join(lightning_folder, "connect.txt")
-
-    if os.path.exists(connected_file):
-        with open(connected_file) as f:
-            lines = [line.replace("\n", "") for line in f.readlines()]
-            if len(lines) == 2:
-                return lines[0], lines[1]
-            return lines[0], None
-    return None, None
-
-
-def _get_commands_folder() -> str:
-    home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-    return os.path.join(lightning_folder, "commands")
-
-
-def _write_commands_metadata(api_commands):
-    metadata = {command_name: metadata for command_name, metadata in api_commands.items()}
-    metadata_path = os.path.join(_get_commands_folder(), ".meta.json")
-    with open(metadata_path, "w") as f:
-        json.dump(metadata, f)
-
-
-def _get_commands_metadata():
-    metadata_path = os.path.join(_get_commands_folder(), ".meta.json")
-    with open(metadata_path) as f:
-        return json.load(f)
-
-
-def _resolve_command_path(command: str) -> str:
-    return os.path.join(_get_commands_folder(), f"{command}.py")
-
-
-def _list_app_commands() -> List[str]:
-    metadata = _get_commands_metadata()
-    metadata = {key.replace("_", " "): value for key, value in metadata.items()}
-
-    command_names = list(sorted(metadata.keys()))
-    if not command_names:
-        click.echo("The current Lightning App doesn't have commands.")
-        return []
-
-    click.echo("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
-    click.echo("")
-    click.echo("  --help     Show this message and exit.")
-    click.echo("")
-    click.echo("Lightning App Commands")
-    max_length = max(len(n) for n in command_names)
-    for command_name in command_names:
-        padding = (max_length + 1 - len(command_name)) * " "
-        click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
-    return command_names
+    assert _retrieve_connection_to_an_app() == (None, None)
