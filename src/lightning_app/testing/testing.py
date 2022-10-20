@@ -356,7 +356,7 @@ def run_app_in_cloud(
         client = LightningClient()
         project = _get_project(client)
 
-        lapps = [
+        lit_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id
@@ -364,11 +364,11 @@ def run_app_in_cloud(
             if app.name == name
         ]
 
-        if not lapps:
+        if not lit_apps:
             return True
 
-        assert len(lapps) == 1
-        app_id = lapps[0].id
+        assert len(lit_apps) == 1
+        app_id = lit_apps[0].id
 
         if debug:
             process = Process(target=print_logs, kwargs={"app_id": app_id})
@@ -384,7 +384,7 @@ def run_app_in_cloud(
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
-        lapps = [
+        lit_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id
@@ -392,7 +392,7 @@ def run_app_in_cloud(
             if app.name == name
         ]
 
-        app_url = lapps[0].status.url
+        app_url = lit_apps[0].status.url
 
         while True:
             sleep(1)
@@ -474,19 +474,19 @@ def delete_cloud_lapps():
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
-    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
+    list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-    print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
+    print([lit_app.name for lit_app in list_apps.lightningapps])
 
-    for lightningapp in list_lightningapps.lightningapps:
-        if pr_number and app_name and not lightningapp.name.startswith(f"test-{pr_number}-{app_name}-"):
+    for lit_app in list_apps.lightningapps:
+        if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
             continue
-        print(f"Deleting {lightningapp.name}")
+        print(f"Deleting {lit_app.name}")
         try:
             res = client.lightningapp_instance_service_delete_lightningapp_instance(
                 project_id=project.project_id,
-                id=lightningapp.id,
+                id=lit_app.id,
             )
             assert res == {}
         except ApiException as e:
-            print(f"Failed to delete {lightningapp.name}. Exception {e}")
+            print(f"Failed to delete {lit_app.name}. Exception {e}")

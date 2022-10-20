@@ -63,7 +63,7 @@ class RunIf:
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
-            pytorch_lightning: Requires that PyTorch Lightning is installed.
+            pl: Requires that PyTorch Lightning is installed.
             flash: Requires that Flash is installed.
             min_python: Require that Python is greater or equal than this version.
             skip_windows: Skip for Windows platform.
@@ -92,7 +92,7 @@ class RunIf:
             reasons.append("unimplemented on MacOS")
 
         if pl:
-            conditions.append(not _is_pl_available())
+            conditions.append(not _is_pytorch_lightning_available())
             reasons.append("PyTorch Lightning is required.")
 
         if flash:
