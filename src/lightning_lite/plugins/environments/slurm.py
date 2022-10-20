@@ -16,10 +16,15 @@ import logging
 import os
 import re
 import signal
+import subprocess
+import sys
 from typing import Optional
+
+from lightning_utilities.core.rank_zero import rank_zero_warn
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _IS_WINDOWS
+from lightning_lite.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +45,8 @@ class SLURMEnvironment(ClusterEnvironment):
         if requeue_signal is None and not _IS_WINDOWS:
             requeue_signal = signal.SIGUSR1
         self.requeue_signal = requeue_signal
+        self._validate_srun_used()
+        self._validate_srun_variables()
 
     @property
     def creates_processes_externally(self) -> bool:
@@ -89,7 +96,8 @@ class SLURMEnvironment(ClusterEnvironment):
         This will then avoid the detection of ``SLURMEnvironment`` and another environment can be detected
         automatically.
         """
-        return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
+        SLURMEnvironment._validate_srun_used()
+        return _is_srun_used()
 
     @staticmethod
     def job_name() -> Optional[str]:
@@ -141,3 +149,44 @@ class SLURMEnvironment(ClusterEnvironment):
         nodes = re.sub(r"\[(.*?)[,-].*\]", "\\1", nodes)  # Take the first node of every node range
         nodes = re.sub(r"\[(.*?)\]", "\\1", nodes)  # handle special case where node range is single number
         return nodes.split(" ")[0].split(",")[0]
+
+    @staticmethod
+    def _validate_srun_used() -> None:
+        """Checks if the `srun` command is available and used.
+
+        Parallel jobs (multi-GPU, multi-node) in SLURM are launched by prepending `srun` in front of the Python command.
+        Not doing so will result in processes hanging, which is a frequent user error. Lightning will emit a warning if
+        `srun` is found but not used.
+        """
+        if _IS_WINDOWS:
+            return
+        try:
+            srun_exists = subprocess.call(["command", "-v", "srun"]) == 0
+        except FileNotFoundError:
+            srun_exists = False
+        if srun_exists and not _is_srun_used():
+            hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
+            rank_zero_warn(
+                "The `srun` command is available on your system but is not used. HINT: If your intention is to run"
+                f" Lightning on SLURM, prepend your python command with `srun` like so: {hint} ...",
+                category=PossibleUserWarning,
+            )
+
+    @staticmethod
+    def _validate_srun_variables() -> None:
+        """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error
+        message.
+
+        Right now, we only check for the most common user errors. See `the srun docs
+        <https://slurm.schedmd.com/srun.html>`_ for a complete list of supported srun variables.
+        """
+        ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
+        if ntasks > 1 and "SLURM_NTASKS_PER_NODE" not in os.environ:
+            raise RuntimeError(
+                f"You set `--ntasks={ntasks}` in your SLURM bash script, but this variable is not supported."
+                f" HINT: Use `--ntasks-per-node={ntasks}` instead."
+            )
+
+
+def _is_srun_used() -> bool:
+    return "SLURM_NTASKS" in os.environ and SLURMEnvironment.job_name() != "bash"
