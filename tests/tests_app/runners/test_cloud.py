@@ -32,7 +32,7 @@ from lightning_cloud.openapi import (
 
 from lightning_app import LightningApp, LightningWork
 from lightning_app.runners import backends, cloud
-from lightning_app.storage import Drive
+from lightning_app.storage import Drive, Mount
 from lightning_app.testing.helpers import EmptyFlow
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
@@ -55,8 +55,8 @@ class WorkWithSingleDrive(LightningWork):
 class WorkWithTwoDrives(LightningWork):
     def __init__(self):
         super().__init__()
-        self.lit_drive = None
-        self.s3_drive = None
+        self.lit_drive_1 = None
+        self.lit_drive_2 = None
 
     def run(self):
         pass
@@ -475,21 +475,10 @@ class TestAppCreationClient:
         # should be the results of the deepcopy operation (an instance of the original class)
         mocked_lit_drive.__deepcopy__.return_value = copy(mocked_lit_drive)
 
-        mocked_s3_drive = MagicMock(spec=Drive)
-        setattr(mocked_s3_drive, "id", "some-bucket/path/")
-        setattr(mocked_s3_drive, "protocol", "s3://")
-        setattr(mocked_s3_drive, "component_name", "test-work")
-        setattr(mocked_s3_drive, "allow_duplicates", False)
-        setattr(mocked_s3_drive, "root_folder", "/hello/")
-        # deepcopy on a MagicMock instance will return an empty magicmock instance. To
-        # overcome this we set the __deepcopy__ method `return_value` to equal what
-        # should be the results of the deepcopy operation (an instance of the original class)
-        mocked_s3_drive.__deepcopy__.return_value = copy(mocked_s3_drive)
-
         work = WorkWithTwoDrives()
-        monkeypatch.setattr(work, "lit_drive", mocked_lit_drive)
-        monkeypatch.setattr(work, "s3_drive", mocked_s3_drive)
-        monkeypatch.setattr(work, "_state", {"_port", "_name", "lit_drive", "s3_drive"})
+        monkeypatch.setattr(work, "lit_drive_1", mocked_lit_drive)
+        monkeypatch.setattr(work, "lit_drive_2", mocked_lit_drive)
+        monkeypatch.setattr(work, "_state", {"_port", "_name", "lit_drive_1", "lit_drive_2"})
         monkeypatch.setattr(work, "_name", "test-work")
         monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
         monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
@@ -508,24 +497,24 @@ class TestAppCreationClient:
         cloud_runtime.dispatch()
 
         if lightningapps:
-            s3_drive_spec = V1LightningworkDrives(
+            lit_drive_1_spec = V1LightningworkDrives(
                 drive=V1Drive(
                     metadata=V1Metadata(
-                        name="test-work.s3_drive",
+                        name="test-work.lit_drive_1",
                     ),
                     spec=V1DriveSpec(
-                        drive_type=V1DriveType.INDEXED_S3,
+                        drive_type=V1DriveType.NO_MOUNT_S3,
                         source_type=V1SourceType.S3,
-                        source="s3://some-bucket/path/",
+                        source="lit://foobar",
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location="/hello/",
+                mount_location=str(tmpdir),
             )
-            lit_drive_spec = V1LightningworkDrives(
+            lit_drive_2_spec = V1LightningworkDrives(
                 drive=V1Drive(
                     metadata=V1Metadata(
-                        name="test-work.lit_drive",
+                        name="test-work.lit_drive_2",
                     ),
                     spec=V1DriveSpec(
                         drive_type=V1DriveType.NO_MOUNT_S3,
@@ -563,7 +552,7 @@ class TestAppCreationClient:
                                 ),
                                 image="random_base_public_image",
                             ),
-                            drives=[lit_drive_spec, s3_drive_spec],
+                            drives=[lit_drive_2_spec, lit_drive_1_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
                                 name="default", count=1, disk_size=0, preemptible=False, shm_size=0
                             ),
@@ -596,7 +585,7 @@ class TestAppCreationClient:
                                 ),
                                 image="random_base_public_image",
                             ),
-                            drives=[s3_drive_spec, lit_drive_spec],
+                            drives=[lit_drive_1_spec, lit_drive_2_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
                                 name="default", count=1, disk_size=0, preemptible=False, shm_size=0
                             ),
@@ -619,6 +608,153 @@ class TestAppCreationClient:
                 mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
                     project_id="test-project-id", app_id=mock.ANY, body=expected_body
                 )
+
+            # running dispatch with disabled dependency cache
+            mock_client.reset_mock()
+            monkeypatch.setattr(cloud, "DISABLE_DEPENDENCY_CACHE", True)
+            expected_body.dependency_cache_key = None
+            cloud_runtime.dispatch()
+            mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
+            )
+        else:
+            mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+                project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
+            )
+
+    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
+    def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir):
+        source_code_root_dir = Path(tmpdir / "src").absolute()
+        source_code_root_dir.mkdir()
+        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
+        requirements_file = Path(source_code_root_dir / "requirements.txt")
+        Path(requirements_file).touch()
+
+        mock_client = mock.MagicMock()
+        if lightningapps:
+            lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=lightningapps)
+        )
+        lightning_app_instance = MagicMock()
+        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
+            return_value=lightning_app_instance
+        )
+        existing_instance = MagicMock()
+        existing_instance.status.phase = V1LightningappInstanceState.STOPPED
+        mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
+        app = mock.MagicMock()
+        flow = mock.MagicMock()
+
+        mocked_drive = MagicMock(spec=Drive)
+        setattr(mocked_drive, "id", "foobar")
+        setattr(mocked_drive, "protocol", "lit://")
+        setattr(mocked_drive, "component_name", "test-work")
+        setattr(mocked_drive, "allow_duplicates", False)
+        setattr(mocked_drive, "root_folder", tmpdir)
+        # deepcopy on a MagicMock instance will return an empty magicmock instance. To
+        # overcome this we set the __deepcopy__ method `return_value` to equal what
+        # should be the results of the deepcopy operation (an instance of the original class)
+        mocked_drive.__deepcopy__.return_value = copy(mocked_drive)
+
+        mocked_mount = MagicMock(spec=Mount)
+        setattr(mocked_mount, "source", "s3://foo/")
+        setattr(mocked_mount, "root_dir", "/content/")
+        setattr(mocked_mount, "protocol", "s3://")
+
+        work = WorkWithSingleDrive()
+        monkeypatch.setattr(work, "drive", mocked_drive)
+        monkeypatch.setattr(work, "_state", {"_port", "drive"})
+        monkeypatch.setattr(work, "_name", "test-work")
+        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
+        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
+        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
+        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
+        monkeypatch.setattr(work._cloud_compute, "preemptible", False)
+        monkeypatch.setattr(work._cloud_compute, "mounts", mocked_mount)
+        monkeypatch.setattr(work, "_port", 8080)
+
+        flow.works = lambda recurse: [work]
+        app.flows = [flow]
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
+        monkeypatch.setattr(
+            "lightning_app.runners.cloud._get_project",
+            lambda x: V1Membership(name="test-project", project_id="test-project-id"),
+        )
+        cloud_runtime.dispatch()
+
+        if lightningapps:
+            expected_body = Body8(
+                description=None,
+                local_source=True,
+                app_entrypoint_file="entrypoint.py",
+                enable_app_server=True,
+                flow_servers=[],
+                dependency_cache_key=get_hash(requirements_file),
+                image_spec=Gridv1ImageSpec(
+                    dependency_file_info=V1DependencyFileInfo(
+                        package_manager=V1PackageManager.PIP, path="requirements.txt"
+                    )
+                ),
+                works=[
+                    V1Work(
+                        name="test-work",
+                        spec=V1LightningworkSpec(
+                            build_spec=V1BuildSpec(
+                                commands=["echo 'start'"],
+                                python_dependencies=V1PythonDependencyInfo(
+                                    package_manager=V1PackageManager.PIP, packages="torch==1.0.0\nnumpy==1.0.0"
+                                ),
+                                image="random_base_public_image",
+                            ),
+                            drives=[
+                                V1LightningworkDrives(
+                                    drive=V1Drive(
+                                        metadata=V1Metadata(
+                                            name="test-work.drive",
+                                        ),
+                                        spec=V1DriveSpec(
+                                            drive_type=V1DriveType.NO_MOUNT_S3,
+                                            source_type=V1SourceType.S3,
+                                            source="lit://foobar",
+                                        ),
+                                        status=V1DriveStatus(),
+                                    ),
+                                    mount_location=str(tmpdir),
+                                ),
+                                V1LightningworkDrives(
+                                    drive=V1Drive(
+                                        metadata=V1Metadata(
+                                            name="test-work",
+                                        ),
+                                        spec=V1DriveSpec(
+                                            drive_type=V1DriveType.INDEXED_S3,
+                                            source_type=V1SourceType.S3,
+                                            source="s3://foo/",
+                                        ),
+                                        status=V1DriveStatus(),
+                                    ),
+                                    mount_location="/content/",
+                                ),
+                            ],
+                            user_requested_compute_config=V1UserRequestedComputeConfig(
+                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0
+                            ),
+                            network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                        ),
+                    )
+                ],
+            )
+            mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
+            )
 
             # running dispatch with disabled dependency cache
             mock_client.reset_mock()
