@@ -180,7 +180,7 @@ class TestHTTPQueue:
         adapter.register_uri(
             "GET",
             f"{HTTP_QUEUE_URL}/v1/test/http_queue/length",
-            request_headers={"Authorization": "test-token"},
+            request_headers={"Authorization": "Bearer test-token"},
             status_code=200,
             content=b"1",
         )
@@ -189,7 +189,7 @@ class TestHTTPQueue:
             f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=push",
             status_code=201,
             additional_matcher=lambda req: pickle.dumps(test_obj) == req._request.body,
-            request_headers={"Authorization": "test-token"},
+            request_headers={"Authorization": "Bearer test-token"},
             content=b"data pushed",
         )
 
@@ -205,7 +205,7 @@ class TestHTTPQueue:
         adapter.register_uri(
             "POST",
             f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=pop",
-            request_headers={"Authorization": "test-token"},
+            request_headers={"Authorization": "Bearer test-token"},
             status_code=200,
             content=pickle.dumps("test"),
         )

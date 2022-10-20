@@ -192,7 +192,7 @@ class HTTPClient:
         self.session.mount("https://", adapter)
 
         if auth_token:
-            self.session.headers.update({"Authorization": auth_token})
+            self.session.headers.update({"Authorization": f"Bearer {auth_token}"})
 
         self.log_function = log_callback or self.log_function
 
