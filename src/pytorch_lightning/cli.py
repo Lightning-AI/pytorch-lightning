@@ -476,7 +476,7 @@ class LightningCLI:
             # extract the first line description in the docstring for the subcommand help message
             description = _get_short_description(fn)
             subparser_kwargs = kwargs.get(subcommand, {})
-            subparser_kwargs["description"] = description
+            subparser_kwargs.setdefault("description", description)
             subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **subparser_kwargs)
             self._subcommand_parsers[subcommand] = subcommand_parser
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
