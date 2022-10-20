@@ -81,7 +81,7 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
 
     def prepare_data(self) -> None:
         # download the data.
-        MNIST(DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
+        MNIST(DATASETS_PATH, download=True, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
 
     def setup(self, stage: str) -> None:
         # load the data
@@ -246,7 +246,7 @@ class KFoldLoop(Loop):
 
 
 class LitImageClassifier(LightningModule):
-    def __init__(self, model, lr=1.0, gamma=0.7, batch_size=32):
+    def __init__(self, model=None, lr=1.0, gamma=0.7, batch_size=32):
         super().__init__()
         self.save_hyperparameters(ignore="model")
         self.model = model or Net()
