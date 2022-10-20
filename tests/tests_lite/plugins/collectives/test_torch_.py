@@ -7,12 +7,12 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators import CPUAccelerator
+from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning_lite.plugins.collectives import TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 
 if TorchCollective.is_available():
     from torch.distributed import ReduceOp
@@ -30,10 +30,10 @@ PASSED_OBJECT = mock.Mock()
 @pytest.fixture(autouse=True)
 def check_destroy_group():
     with mock.patch(
-        "lightning_lite.plugins.collectives.torch_.TorchCollective.new_group",
+        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
     ) as mock_new, mock.patch(
-        "lightning_lite.plugins.collectives.torch_.TorchCollective.destroy_group",
+        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.destroy_group",
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield
@@ -133,12 +133,19 @@ def test_convert_ops():
         assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
 
     # Test invalid type
-    with pytest.raises(ValueError, match="op 1 should be a `str` or `Red"):
+    with pytest.raises(ValueError, match="Unsupported op 1 of type int"):
         TorchCollective._convert_to_native_op(1)
 
     # Test invalid string
     with pytest.raises(ValueError, match="op 'INVALID' is not a member of `Red"):
         TorchCollective._convert_to_native_op("invalid")
+
+    # Test RedOpType
+    if _TORCH_GREATER_EQUAL_1_13:
+        assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.AVG
+        op = torch.distributed._make_nccl_premul_sum(2.0)  # this returns a ReduceOp
+        assert TorchCollective._convert_to_native_op(op) == ReduceOp.PREMUL_SUM
+        assert TorchCollective._convert_to_native_op("premul_sum") == ReduceOp.PREMUL_SUM
 
 
 @skip_distributed_unavailable
@@ -174,8 +181,10 @@ def test_repeated_create_and_destroy():
 
 
 def collective_launch(fn, parallel_devices, num_groups=1):
+    device_to_accelerator = {"cuda": CUDAAccelerator, "cpu": CPUAccelerator}
+    accelerator_cls = device_to_accelerator[parallel_devices[0].type]
     strategy = DDPSpawnStrategy(
-        accelerator=CPUAccelerator(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collectives = [TorchCollective() for _ in range(num_groups)]
@@ -188,7 +197,7 @@ def wrap_launch_function(fn, strategy, collective, *args, **kwargs):
     collective.setup(
         world_size=strategy.num_processes,
         main_address="localhost",
-        backend="gloo",
+        backend=strategy._get_process_group_backend(),
         rank=strategy.global_rank,
     )
     return fn(*args, **kwargs)
@@ -212,7 +221,7 @@ def _test_distributed_collectives_fn(strategy, collective):
 
     # all_reduce
     this = torch.tensor(strategy.global_rank + 1)
-    out = collective.all_reduce(this, op="min")
+    out = collective.all_reduce(this, op=ReduceOp.MIN)
     expected = torch.tensor(1)
     torch.testing.assert_close(out, expected)
 
@@ -223,6 +232,23 @@ def _test_distributed_collectives_fn(strategy, collective):
 @pytest.mark.parametrize("n", (1, 2))
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
+
+
+def _test_distributed_collectives_cuda_fn(strategy, collective):
+    collective.create_group()
+
+    this = torch.tensor(1.5, device=strategy.root_device)
+    premul_sum = torch.distributed._make_nccl_premul_sum(2.0)
+    out = collective.all_reduce(this, op=premul_sum)
+    assert out == 3
+
+    collective.teardown()
+
+
+@skip_distributed_unavailable
+@RunIf(min_cuda_gpus=1, min_torch="1.13")
+def test_collectives_distributed_cuda():
+    collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
 
 
 def _test_two_groups(strategy, left_collective, right_collective):
