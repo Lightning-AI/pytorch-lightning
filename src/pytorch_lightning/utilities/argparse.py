@@ -15,7 +15,6 @@
 
 import inspect
 import os
-from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from ast import literal_eval
 from contextlib import suppress
@@ -24,22 +23,17 @@ from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
+from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN
 
 _T = TypeVar("_T", bound=Callable[..., Any])
-
-
-class ParseArgparserDataType(ABC):
-    def __init__(self, *_: Any, **__: Any) -> None:
-        pass
-
-    @classmethod
-    def parse_argparser(cls, args: "ArgumentParser") -> Any:
-        pass
+_ARGPARSE_CLS = Union[Type["pl.LightningDataModule"], Type["pl.Trainer"]]
 
 
 def from_argparse_args(
-    cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
-) -> ParseArgparserDataType:
+    cls: _ARGPARSE_CLS,
+    args: Union[Namespace, ArgumentParser],
+    **kwargs: Any,
+) -> Union["pl.LightningDataModule", "pl.Trainer"]:
     """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
     ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
@@ -72,7 +66,7 @@ def from_argparse_args(
     return cls(**trainer_kwargs)
 
 
-def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+def parse_argparser(cls: _ARGPARSE_CLS, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
@@ -97,7 +91,7 @@ def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, N
     return Namespace(**modified_args)
 
 
-def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Examples:
@@ -127,7 +121,7 @@ def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
@@ -155,7 +149,7 @@ def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def _get_abbrev_qualified_cls_name(cls: Any) -> str:
+def _get_abbrev_qualified_cls_name(cls: _ARGPARSE_CLS) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
@@ -165,8 +159,11 @@ def _get_abbrev_qualified_cls_name(cls: Any) -> str:
 
 
 def add_argparse_args(
-    cls: Type["pl.Trainer"], parent_parser: ArgumentParser, *, use_argument_group: bool = True
-) -> Union[_ArgumentGroup, ArgumentParser]:
+    cls: _ARGPARSE_CLS,
+    parent_parser: ArgumentParser,
+    *,
+    use_argument_group: bool = True,
+) -> _ADD_ARGPARSE_RETURN:
     r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
@@ -207,22 +204,20 @@ def add_argparse_args(
         >>> args = parser.parse_args([])
     """
     if isinstance(parent_parser, _ArgumentGroup):
-        raise RuntimeError("Please only pass an ArgumentParser instance.")
+        raise RuntimeError("Please only pass an `ArgumentParser` instance.")
     if use_argument_group:
         group_name = _get_abbrev_qualified_cls_name(cls)
-        parser: Union[_ArgumentGroup, ArgumentParser] = parent_parser.add_argument_group(group_name)
+        parser: _ADD_ARGPARSE_RETURN = parent_parser.add_argument_group(group_name)
     else:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
     ignore_arg_names = ["self", "args", "kwargs"]
-    if hasattr(cls, "get_deprecated_arg_names"):
-        ignore_arg_names += cls.get_deprecated_arg_names()
 
     allowed_types = (str, int, float, bool)
 
     # Get symbols from cls or init function.
     for symbol in (cls, cls.__init__):
-        args_and_types = get_init_arguments_and_types(symbol)
+        args_and_types = get_init_arguments_and_types(symbol)  # type: ignore[arg-type]
         args_and_types = [x for x in args_and_types if x[0] not in ignore_arg_names]
         if len(args_and_types) > 0:
             break

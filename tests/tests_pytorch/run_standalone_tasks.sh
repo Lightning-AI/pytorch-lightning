@@ -15,14 +15,14 @@
 set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
 
-if nvcc --version; then
+# this environment variable allows special tests to run
+export PL_RUN_STANDALONE_TESTS=1
+
+can_run_nvprof=$(python -c "import torch; print(torch.cuda.is_available() and torch.cuda.get_device_capability()[0] < 8)")
+if [[ $can_run_nvprof == "True" ]]; then
     echo "Running profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx"
     nvprof --profile-from-start off -o trace_name.prof -- python -m coverage run --source pytorch_lightning --append -m pytest --no-header profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
-
-# needs to run outside of `pytest`
-echo "Running utilities/test_warnings.py"
-python utilities/test_warnings.py
 
 # test deadlock is properly handled with TorchElastic.
 echo "Running plugins/environments/torch_elastic_deadlock.py"
@@ -34,6 +34,10 @@ fi
 # test that a user can manually launch individual processes
 echo "Running manual ddp launch test"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-args="--trainer.accelerator gpu --trainer.devices 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python ../../examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args} &
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python ../../examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args}
+args="fit --trainer.accelerator gpu --trainer.devices 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python strategies/scripts/cli_script.py ${args} &
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python strategies/scripts/cli_script.py ${args}
+
+# test that ddp can launched as a module (-m option)
+echo "Running ddp example as module"
+python -m strategies.scripts.cli_script ${args}

@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import pathlib
 import pickle
 from abc import ABC, abstractmethod
@@ -10,9 +9,10 @@ import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.path import filesystem, Path, shared_storage_path
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 class BasePayload(ABC):

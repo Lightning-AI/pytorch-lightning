@@ -217,12 +217,14 @@ class ProgressBarBase(Callback):
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self._trainer = trainer
         if not trainer.is_global_zero:
             self.disable()
 
-    def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
+    def get_metrics(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> Dict[str, Union[int, str, float, Dict[str, float]]]:
         r"""
         Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
         Implement this to override the items displayed in the progress bar.

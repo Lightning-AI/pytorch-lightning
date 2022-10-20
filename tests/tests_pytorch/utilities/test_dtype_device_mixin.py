@@ -11,17 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
-import torch
 import torch.nn as nn
 
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
-class SubSubModule(DeviceDtypeModuleMixin):
+class SubSubModule(_DeviceDtypeModuleMixin):
     pass
 
 
@@ -44,36 +42,6 @@ class DeviceAssertCallback(Callback):
         # index = None also means first device
         assert (model.device.index is None and rank == 0) or model.device.index == rank
         assert model.device == model.module.module.device
-
-
-@pytest.mark.parametrize(
-    "dst_device_str,dst_dtype",
-    [
-        ("cpu", torch.half),
-        ("cpu", torch.float),
-        ("cpu", torch.double),
-        pytest.param("cuda:0", torch.half, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("cuda:0", torch.float, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("cuda:0", torch.double, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps:0", torch.float, marks=RunIf(mps=True)),  # double and half are not yet supported.
-    ],
-)
-@RunIf(min_cuda_gpus=1)
-def test_submodules_device_and_dtype(dst_device_str, dst_dtype):
-    """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and
-    the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule)."""
-
-    dst_device = torch.device(dst_device_str)
-
-    model = TopModule()
-    assert model.device == torch.device("cpu")
-    model = model.to(device=dst_device, dtype=dst_dtype)
-    # nn.Module does not have these attributes
-    assert not hasattr(model.module, "_device")
-    assert not hasattr(model.module, "_dtype")
-    # device and dtype change should propagate down into all children
-    assert model.device == model.module.module.device == dst_device
-    assert model.dtype == model.module.module.dtype == dst_dtype
 
 
 @RunIf(min_cuda_gpus=2)
@@ -102,23 +70,3 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
         max_steps=1,
     )
     trainer.fit(model)
-
-
-@pytest.mark.parametrize(
-    "device",
-    [
-        None,  # explicitly call without an index to see if the returning device contains an index
-        0,
-        torch.device("cuda", 0),
-    ],
-)
-@RunIf(min_cuda_gpus=1)
-def test_gpu_cuda_device(device):
-    model = TopModule()
-
-    model.cuda(device)
-
-    device = model.device
-    assert device.type == "cuda"
-    assert device.index is not None
-    assert device.index == torch.cuda.current_device()

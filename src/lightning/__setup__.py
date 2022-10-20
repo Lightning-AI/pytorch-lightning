@@ -85,7 +85,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
             ],
         },
         setup_requires=[],
-        install_requires=_SETUP_TOOLS.load_requirements(_PATH_REQUIREMENTS, unfreeze=True),
+        install_requires=_SETUP_TOOLS.load_requirements(_PATH_REQUIREMENTS, unfreeze="all"),
         extras_require={},  # todo: consider porting all other packages extras with prefix
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

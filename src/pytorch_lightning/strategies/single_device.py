@@ -19,10 +19,10 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
-from pytorch_lightning.utilities.types import _DEVICE
 
 
 class SingleDeviceStrategy(Strategy):

@@ -34,7 +34,7 @@ Run on Apple silicon gpus
 -------------------------
 Enable the following Trainer arguments to run on Apple silicon gpus (MPS devices).
 
-.. code::
+.. code-block:: python
 
    trainer = Trainer(accelerator="mps", devices=1)
 
@@ -46,3 +46,18 @@ Enable the following Trainer arguments to run on Apple silicon gpus (MPS devices
 What does MPS stand for?
 ------------------------
 MPS is short for `Metal Performance Shaders <https://developer.apple.com/metal/>`_  which is the technology used in the back for gpu communication and computing.
+
+----
+
+Troubleshooting
+---------------
+
+
+If Lightning can't detect the Apple Silicon hardware, it will raise this exception:
+
+.. code::
+
+   MisconfigurationException: `MPSAccelerator` can not run on your system since the accelerator is not available.
+
+If you are seeing this despite running on an ARM-enabled Mac, the most likely cause is that your Python is being emulated and thinks it is running on an Intel CPU.
+To solve this, re-install your python executable (and if using environment managers like conda, you have to reinstall these as well) by downloading the Apple M1/M2 build (not Intel!), for example `here <https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links>`_.

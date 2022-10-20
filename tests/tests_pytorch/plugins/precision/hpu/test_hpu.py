@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
 
 import pytest
 import torch
@@ -42,7 +41,7 @@ def test_precision_plugin(hmp_params):
 @RunIf(hpu=True)
 def test_mixed_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
-        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
             assert trainer.strategy.model.precision == "bf16"
             raise SystemExit
 

@@ -1,6 +1,5 @@
 import enum
 import json
-import logging
 import os
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -11,10 +10,10 @@ from requests.exceptions import ConnectionError
 
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.storage.drive import _maybe_create_drive
-from lightning_app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin
+from lightning_app.utilities.app_helpers import AppStatePlugin, BaseStatePlugin, Logger
 from lightning_app.utilities.network import _configure_session
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 # GLOBAL APP STATE
 _LAST_STATE = None
@@ -66,7 +65,7 @@ class AppState:
         my_affiliation: Tuple[str, ...] = None,
         plugin: Optional[BaseStatePlugin] = None,
     ) -> None:
-        """The AppState class enable streamlit user to interact their application state.
+        """The AppState class enables Frontend users to interact with their application state.
 
         When the state isn't defined, it would be pulled from the app REST API Server.
         If the state gets modified by the user, the new state would be sent to the API Server.

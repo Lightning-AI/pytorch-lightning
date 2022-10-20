@@ -13,10 +13,11 @@ def test_idle_timeout_example_cloud() -> None:
         _,
         _,
         fetch_logs,
+        _,
     ):
         has_logs = False
         while not has_logs:
-            for log in fetch_logs():
+            for log in fetch_logs(["flow"]):
                 if "Application End" in log:
                     has_logs = True
             sleep(1)

@@ -1,0 +1,1 @@
+../../source-app/glossary/scheduling.rst

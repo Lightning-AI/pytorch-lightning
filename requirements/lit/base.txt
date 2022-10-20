@@ -1,0 +1,1 @@
+# this is just compatibility placeholder for the future fused docs

@@ -13,11 +13,10 @@
 # limitations under the License.
 import logging
 import os
-import platform
 import random
 import time
 import urllib
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional, Sized, Tuple, Union
 from urllib.error import HTTPError
 from warnings import warn
 
@@ -26,7 +25,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from pytorch_lightning import LightningDataModule
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
@@ -113,13 +112,14 @@ class _MNIST(Dataset):
                 time.sleep(delta * random.random())
             else:
                 break
+        assert res is not None
         if exception is not None:
             # raise the caught exception
             raise exception
         return res
 
     @staticmethod
-    def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
+    def normalize_tensor(tensor: Tensor, mean: Union[int, float] = 0.0, std: Union[int, float] = 1.0) -> Tensor:
         mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
         std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
         return tensor.sub(mean).div(std)
@@ -171,7 +171,7 @@ class MNISTDataModule(LightningDataModule):
             batch_size: desired batch size.
         """
         super().__init__(*args, **kwargs)
-        if num_workers and platform.system() == "Windows":
+        if num_workers and _IS_WINDOWS:
             # see: https://stackoverflow.com/a/59680818
             warn(
                 f"You have requested num_workers={num_workers} on Windows,"
@@ -185,8 +185,6 @@ class MNISTDataModule(LightningDataModule):
         self.normalize = normalize
         self.seed = seed
         self.batch_size = batch_size
-        self.dataset_train = ...
-        self.dataset_val = ...
 
     @property
     def num_classes(self) -> int:
@@ -197,10 +195,11 @@ class MNISTDataModule(LightningDataModule):
         MNIST(self.data_dir, train=True, download=True)
         MNIST(self.data_dir, train=False, download=True)
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
+        assert isinstance(dataset, Sized)
         train_length = len(dataset)
         self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
 

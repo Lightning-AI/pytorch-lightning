@@ -46,4 +46,4 @@ class V0App(L.LightningFlow):
         return [tab1, tab2, tab3]
 
 
-app = L.LightningApp(V0App())
+app = L.LightningApp(V0App(), debug=True)

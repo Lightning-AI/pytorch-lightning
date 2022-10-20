@@ -30,6 +30,7 @@ from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
+from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
@@ -217,3 +218,22 @@ def test_gpu_accelerator_deprecation_warning():
         )
     ):
         GPUAccelerator()
+
+
+def test_v1_9_0_deprecated_lightning_deepspeed_module():
+    with pytest.deprecated_call(match=r"has been deprecated in v1.7.1 and will be removed in v1.9."):
+        _ = LightningDeepSpeedModule(BoringModel(), 32)
+
+
+def test_meta_utility_deprecations():
+    import pytorch_lightning.utilities.meta as meta
+
+    pytest.deprecated_call(meta.is_meta_init, match="is_meta_init.*removed in v1.9")
+    pytest.deprecated_call(meta.init_meta, Mock(), match="init_meta.*removed in v1.9")
+    pytest.deprecated_call(meta.get_all_subclasses, Mock, match="get_all_subclasses.*removed in v1.9")
+    pytest.deprecated_call(meta.recursively_setattr, Mock(), "foo", 1, match="recursively_setattr.*removed in v1.9")
+    pytest.deprecated_call(meta.materialize_module, Mock(), match="materialize_module.*removed in v1.9")
+    with pytest.deprecated_call(match="init_meta_context.*removed in v1.9"):
+        with meta.init_meta_context():
+            pass
+    pytest.deprecated_call(meta.is_on_meta_device, LightningModule(), match="is_on_meta_device.*removed in v1.9")

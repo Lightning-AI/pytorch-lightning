@@ -20,21 +20,20 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
-from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
+from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
-import torch
 import yaml
+from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.migration import pl_legacy_patch
-from pytorch_lightning.utilities.parsing import parse_class_init_keys
+from pytorch_lightning.utilities.parsing import AttributeDict, parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -58,11 +57,11 @@ class ModelIO:
     def load_from_checkpoint(
         cls,
         checkpoint_path: Union[str, IO],
-        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
@@ -143,48 +142,22 @@ class ModelIO:
             **kwargs,
         )
 
-    # -------------------------
-    # OPTIONAL HOOKS
-    # -------------------------
-    def on_hpc_save(self, checkpoint: Dict[str, Any]) -> None:
-        """Hook to do whatever you need right before Slurm manager saves the model.
-
-        Args:
-            checkpoint: A dictionary in which you can save variables to save in a checkpoint.
-                Contents need to be pickleable.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use ``LightningModule.on_save_checkpoint`` instead.
-        """
-
-    def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
-        """Hook to do whatever you need right before Slurm manager loads the model.
-
-        Args:
-            checkpoint: A dictionary with variables from the checkpoint.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use ``LightningModule.on_load_checkpoint`` instead.
-        """
-
 
 def _load_from_checkpoint(
-    cls: Union["pl.LightningModule", "pl.LightningDataModule"],
-    checkpoint_path: Union[str, IO],
-    map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-    hparams_file: Optional[str] = None,
+    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
+    checkpoint_path: Union[_PATH, IO],
+    map_location: _MAP_LOCATION_TYPE = None,
+    hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
-) -> Any:
+) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
-        map_location = lambda storage, loc: storage
+        map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     if hparams_file is not None:
-        extension = hparams_file.split(".")[-1]
+        extension = str(hparams_file).split(".")[-1]
         if extension.lower() == "csv":
             hparams = load_hparams_from_tags_csv(hparams_file)
         elif extension.lower() in ("yml", "yaml"):
@@ -202,15 +175,16 @@ def _load_from_checkpoint(
 
     if issubclass(cls, pl.LightningDataModule):
         return _load_state(cls, checkpoint, **kwargs)
-    return _load_state(cls, checkpoint, strict=strict, **kwargs)
+    if issubclass(cls, pl.LightningModule):
+        return _load_state(cls, checkpoint, strict=strict, **kwargs)
 
 
 def _load_state(
-    cls: Union["pl.LightningModule", "pl.LightningDataModule"],
+    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint: Dict[str, Any],
     strict: Optional[bool] = None,
     **cls_kwargs_new: Any,
-) -> Any:
+) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     cls_spec = inspect.getfullargspec(cls.__init__)
     cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
@@ -228,8 +202,7 @@ def _load_state(
                 cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
 
         # 2. Try to restore model hparams from checkpoint using the new key
-        _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-        cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
+        cls_kwargs_loaded.update(checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_KEY, {}))
 
         # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
         cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
@@ -249,13 +222,17 @@ def _load_state(
 
     obj = cls(**_cls_kwargs)
 
-    # give model a chance to load something
-    obj.on_load_checkpoint(checkpoint)
+    if isinstance(obj, pl.LightningModule):
+        # give model a chance to load something
+        obj.on_load_checkpoint(checkpoint)
 
     if isinstance(obj, pl.LightningDataModule):
+        if obj.__class__.__qualname__ in checkpoint:
+            obj.load_state_dict(checkpoint[obj.__class__.__qualname__])
         return obj
 
     # load the state_dict on the model automatically
+    assert strict is not None
     keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:
@@ -271,7 +248,9 @@ def _load_state(
     return obj
 
 
-def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Callable, str]] = None) -> object:
+def _convert_loaded_hparams(
+    model_args: Dict[str, Any], hparams_type: Optional[Union[Callable, str]] = None
+) -> Dict[str, Any]:
     """Convert hparams according given type in callable or string (past) format."""
     # if not hparams type define
     if not hparams_type:

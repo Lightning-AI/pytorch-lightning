@@ -16,6 +16,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, OrderedDict, Tuple, Union
 
 import torch
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.optim import Optimizer
 
@@ -32,7 +33,6 @@ from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
 
 
 @dataclass

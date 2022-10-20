@@ -83,7 +83,7 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
         # download the data.
         MNIST(DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         # load the data
         dataset = MNIST(DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
         self.train_dataset, self.test_dataset = random_split(dataset, [50000, 10000])

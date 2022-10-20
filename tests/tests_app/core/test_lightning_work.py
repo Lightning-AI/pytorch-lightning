@@ -1,11 +1,12 @@
 from queue import Empty
+from re import escape
 from unittest.mock import Mock
 
 import pytest
 
 from lightning_app import LightningApp
 from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import LightningWork, LightningWorkException
+from lightning_app.core.work import BuildConfig, LightningWork, LightningWorkException
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
@@ -13,35 +14,47 @@ from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
-def test_simple_lightning_work():
-    class Work_A(LightningWork):
+def test_lightning_work_run_method_required():
+    """Test that a helpful exception is raised when the user did not implement the `LightningWork.run()` method."""
+
+    with pytest.raises(TypeError, match=escape("The work `LightningWork` is missing the `run()` method")):
+        LightningWork()
+
+    class WorkWithoutRun(LightningWork):
         def __init__(self):
             super().__init__()
             self.started = False
 
-    with pytest.raises(TypeError, match="Work_A"):
-        Work_A()
+    with pytest.raises(TypeError, match=escape("The work `WorkWithoutRun` is missing the `run()` method")):
+        WorkWithoutRun()
 
-    class Work_B(Work_A):
+    class WorkWithRun(WorkWithoutRun):
         def run(self, *args, **kwargs):
             self.started = True
 
-    work_b = Work_B()
-    work_b.run()
-    assert work_b.started
+    work = WorkWithRun()
+    work.run()
+    assert work.started
 
-    class Work_C(LightningWork):
+
+def test_lightning_work_no_children_allowed():
+    """Test that a LightningWork can't have any children (work or flow)."""
+
+    class ChildWork(EmptyWork):
+        pass
+
+    class ParentWork(LightningWork):
         def __init__(self):
             super().__init__()
-            self.work_b = Work_B()
+            self.work_b = ChildWork()
 
         def run(self, *args, **kwargs):
             pass
 
     with pytest.raises(LightningWorkException, match="isn't allowed to take any children such as"):
-        Work_C()
+        ParentWork()
 
-    class Work_C(LightningWork):
+    class ParentWork(LightningWork):
         def __init__(self):
             super().__init__()
             self.flow = LightningFlow()
@@ -50,7 +63,7 @@ def test_simple_lightning_work():
             pass
 
     with pytest.raises(LightningWorkException, match="LightningFlow"):
-        Work_C()
+        ParentWork()
 
 
 def test_forgot_to_call_init():
@@ -280,3 +293,37 @@ def test_lightning_work_calls():
     w.run(1, [2], (3, 4), {"1": "3"})
     assert len(w._calls) == 2
     assert w._calls["0d824f7"] == {"ret": None}
+
+
+def test_work_cloud_build_config_provided():
+
+    assert isinstance(LightningWork.cloud_build_config, property)
+    assert LightningWork.cloud_build_config.fset is not None
+
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.cloud_build_config = BuildConfig(image="ghcr.io/gridai/base-images:v1.8-cpu")
+
+        def run(self, *args, **kwargs):
+            pass
+
+    w = Work()
+    w.run()
+
+
+def test_work_local_build_config_provided():
+
+    assert isinstance(LightningWork.local_build_config, property)
+    assert LightningWork.local_build_config.fset is not None
+
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.local_build_config = BuildConfig(image="ghcr.io/gridai/base-images:v1.8-cpu")
+
+        def run(self, *args, **kwargs):
+            pass
+
+    w = Work()
+    w.run()

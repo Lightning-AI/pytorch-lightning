@@ -22,7 +22,7 @@ class Dict(t.Dict[str, T]):
         .. doctest::
 
             >>> from lightning_app import LightningFlow, LightningWork
-            >>> from lightning_app.core import Dict
+            >>> from lightning_app.structures import Dict
             >>> class CounterWork(LightningWork):
             ...     def __init__(self):
             ...         super().__init__()

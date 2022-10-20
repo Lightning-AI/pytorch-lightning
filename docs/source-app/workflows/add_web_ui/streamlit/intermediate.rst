@@ -16,10 +16,11 @@ To modify the variables of a Lightning component, access the ``lightning_app_sta
 For example, here we increase the count variable of the Lightning Component every time a user presses a button:
 
 .. code:: python
-    :emphasize-lines: 7, 13
+    :emphasize-lines: 8, 14
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
     import streamlit as st
 
 
@@ -35,13 +36,16 @@ For example, here we increase the count variable of the Lightning Component ever
             self.count = 0
 
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
 
     class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
+
+        def run(self):
+            self.lit_streamlit.run()
 
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_streamlit}
@@ -61,10 +65,11 @@ parent component.
 In this example we update the value of the counter from the component:
 
 .. code:: python
-    :emphasize-lines: 6, 14
+    :emphasize-lines: 7, 15
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
     import streamlit as st
 
 
@@ -81,7 +86,7 @@ In this example we update the value of the counter from the component:
             self.count += 1
 
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
 
     class LitApp(L.LightningFlow):

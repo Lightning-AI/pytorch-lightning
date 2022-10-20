@@ -22,7 +22,7 @@ def test_main_progress_bar_with_val_check_interval_int():
         limit_train_batches=train_batches, limit_val_batches=10, val_check_interval=3, check_val_every_n_epoch=None
     )
     model = BoringModel()
-    trainer.progress_bar_callback.setup(trainer, model)
+    trainer.progress_bar_callback.setup(trainer, model, stage="fit")
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model)
     trainer.reset_train_dataloader()

@@ -48,4 +48,4 @@ class Flow(L.LightningFlow):
         self._exit("Application End!")
 
 
-app = L.LightningApp(Flow())
+app = L.LightningApp(Flow(), debug=True)

@@ -28,9 +28,10 @@ from pytorch_lightning.callbacks import (
     ProgressBarBase,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
@@ -56,7 +57,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     # no model callbacks
     model = LightningModule()
     model.configure_callbacks = lambda: []
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
@@ -72,7 +73,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model = LightningModule()
     model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
@@ -83,6 +84,25 @@ def test_checkpoint_callbacks_are_last(tmpdir):
         model_summary,
         checkpoint1,
         checkpoint2,
+    ]
+
+    # with tuner-specific callbacks that substitute ones in Trainer
+    model = LightningModule()
+    batch_size_finder = BatchSizeFinder()
+    model.configure_callbacks = lambda: [checkpoint2, early_stopping, batch_size_finder, model_summary, checkpoint1]
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor])
+    trainer.strategy._lightning_module = model
+    cb_connector = CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks()
+    assert trainer.callbacks == [
+        batch_size_finder,
+        progress_bar,
+        lr_monitor,
+        trainer.accumulation_scheduler,
+        early_stopping,
+        model_summary,
+        checkpoint2,
+        checkpoint1,
     ]
 
 
@@ -154,7 +174,7 @@ def test_attach_model_callbacks():
             enable_model_summary=False,
             callbacks=trainer_callbacks,
         )
-        trainer.model = model
+        trainer.strategy._lightning_module = model
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()
         return trainer
@@ -212,7 +232,7 @@ def test_attach_model_callbacks_override_info(caplog):
     trainer = Trainer(
         enable_checkpointing=False, callbacks=[EarlyStopping(monitor="foo"), LearningRateMonitor(), TQDMProgressBar()]
     )
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
         cb_connector._attach_model_callbacks()
@@ -265,7 +285,10 @@ def _make_entry_point_query_mock(callback_factory):
     entry_point = Mock()
     entry_point.name = "mocked"
     entry_point.load.return_value = callback_factory
-    if _PYTHON_GREATER_EQUAL_3_8_0:
+    if _PYTHON_GREATER_EQUAL_3_10_0:
+        query_mock.return_value = [entry_point]
+        import_path = "importlib.metadata.entry_points"
+    elif _PYTHON_GREATER_EQUAL_3_8_0:
         query_mock().get.return_value = [entry_point]
         import_path = "importlib.metadata.entry_points"
     else:

@@ -1,17 +1,17 @@
 import inspect
-import logging
 import os
 import re
 from dataclasses import asdict, dataclass
 from types import FrameType
 from typing import cast, List, Optional, TYPE_CHECKING, Union
 
+from lightning_app.utilities.app_helpers import Logger
+
 if TYPE_CHECKING:
     from lightning_app import LightningWork
     from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
-
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 def load_requirements(

@@ -20,9 +20,9 @@ from torch import optim
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite.plugins.environments import SLURMEnvironment
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.plugins.environments import SLURMEnvironment
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -68,35 +68,38 @@ class AMPTestModel(BoringModel):
 
 
 @RunIf(min_torch="1.10")
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
-    "strategy",
-    [
-        None,
-        pytest.param("dp", marks=pytest.mark.skip("dp + amp not supported on CPU currently")),  # TODO
-        "ddp_spawn",
-    ],
+    ("strategy", "precision", "devices"),
+    (
+        ("single_device", 16, 1),
+        ("single_device", "bf16", 1),
+        ("ddp_spawn", 16, 2),
+        ("ddp_spawn", "bf16", 2),
+    ),
 )
-@pytest.mark.parametrize("precision", [16, "bf16"])
-@pytest.mark.parametrize("devices", [1, 2])
 def test_amp_cpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="cpu",
         devices=devices,
-        max_epochs=1,
         strategy=strategy,
         precision=precision,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
     )
-
     model = AMPTestModel()
     trainer.fit(model)
     trainer.test(model)
-    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.predict(model)
 
 
 @RunIf(min_cuda_gpus=2, min_torch="1.10")
@@ -105,8 +108,6 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_gpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
-    tutils.reset_seed()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -120,8 +121,6 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(min_cuda_gpus=2)
@@ -139,8 +138,6 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
     # simulate setting slurm flags
-    tutils.set_random_main_port()
-
     model = AMPTestModel()
 
     # exp file to get meta
@@ -161,17 +158,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         logger=logger,
     )
     trainer.fit(model)
-
-    # correct result and ok accuracy
-    assert trainer.state.finished, "amp + ddp model failed to complete"
-
-    # test root model address
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
-    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
-    generated = trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
-    assert generated == "abc23"
 
 
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
@@ -185,7 +172,6 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
     assert trainer.amp_backend is None
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert not bwd_mock.called
 
 
@@ -213,10 +199,54 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
     # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
     # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
     assert bwd_mock.call_count == 6
 
     assert isinstance(trainer.lr_scheduler_configs[0].scheduler.optimizer, optim.Adam)
     assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)
+
+
+@RunIf(min_cuda_gpus=1, amp_apex=True)
+def test_amp_with_apex_reload(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        limit_test_batches=1,
+        precision=16,
+        amp_backend="apex",
+        accelerator="gpu",
+        devices=1,
+    )
+    trainer.fit(model)
+    trainer.fit_loop.max_steps = 2
+
+    with pytest.raises(RuntimeError, match="Resuming training with APEX is currently not supported."):
+        trainer.fit(model, ckpt_path=trainer.checkpoint_callback.best_model_path)
+
+    trainer.test(model, ckpt_path="best")
+
+
+@RunIf(min_torch="1.10")
+@pytest.mark.parametrize("clip_val", [0, 10])
+@mock.patch("torch.nn.utils.clip_grad_norm_")
+def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
+    """Ensure that clip gradients is only called if the value is greater than 0."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=1,
+        devices=1,
+        precision=16,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        gradient_clip_val=clip_val,
+    )
+    trainer.fit(model)
+
+    if clip_val > 0:
+        mock_clip_grad_norm.assert_called()
+    else:
+        mock_clip_grad_norm.assert_not_called()

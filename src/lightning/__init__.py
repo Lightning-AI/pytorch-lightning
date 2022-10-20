@@ -30,9 +30,9 @@ if not _root_logger.hasHandlers():
     _logger.addHandler(_console)
     _logger.propagate = False
 
-
 from lightning.__about__ import *  # noqa: E402, F401, F403
 from lightning.__version__ import version as __version__  # noqa: E402, F401
+from lightning.app import storage  # noqa: E402
 from lightning.app.core.app import LightningApp  # noqa: E402
 from lightning.app.core.flow import LightningFlow  # noqa: E402
 from lightning.app.core.work import LightningWork  # noqa: E402
@@ -54,4 +54,5 @@ __all__ = [
     "LightningModule",
     "Callback",
     "seed_everything",
+    "storage",
 ]

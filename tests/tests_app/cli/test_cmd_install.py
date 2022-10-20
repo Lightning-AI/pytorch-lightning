@@ -212,6 +212,38 @@ def test_version_arg_app(tmpdir):
     assert result.exit_code == 0
 
 
+@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning_app.cli.cmd_install._show_install_app_prompt")
+def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
+
+    app_name = "lightning/invideo"
+    runner = CliRunner()
+    with mock.patch("lightning_app.cli.cmd_install.requests.get") as get_api_mock:
+        get_api_mock.return_value.json.return_value = {
+            "apps": [
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.2",
+                    "name": "lightning/invideo",
+                },
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.4",
+                    "name": "lightning/invideo",
+                },
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.5",
+                    "name": "another_app",
+                },
+            ]
+        }
+        runner.invoke(lightning_cli.install_app, [app_name, "--yes"])  # no version specified so latest is installed
+        assert mock_show_install_app_prompt.called
+        assert mock_show_install_app_prompt.call_args[0][0]["version"] == "0.0.4"
+
+
 def test_proper_url_parsing():
 
     name = "lightning/invideo"

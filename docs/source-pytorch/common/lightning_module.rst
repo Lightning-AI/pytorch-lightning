@@ -55,7 +55,7 @@ Notice a few things.
 
         # or to init a new tensor
         new_x = torch.Tensor(2, 3)
-        new_x = new_x.type_as(x)
+        new_x = new_x.to(x)
 
 5. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
 
@@ -1343,18 +1343,6 @@ load_from_checkpoint
 ~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.load_from_checkpoint
-    :noindex:
-
-on_hpc_save
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_save
-    :noindex:
-
-on_hpc_load
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_load
     :noindex:
 
 on_train_start

@@ -19,7 +19,7 @@ import urllib.request
 from typing import Optional, Sequence, Tuple
 
 import torch
-from torch.utils.data import Dataset, IterableDataset
+from torch.utils.data import Dataset
 
 
 class MNIST(Dataset):
@@ -212,40 +212,3 @@ class SklearnDataset(Dataset):
 
     def __len__(self):
         return len(self.y)
-
-
-class RandomDictDataset(Dataset):
-    def __init__(self, size: int, length: int):
-        self.len = length
-        self.data = torch.randn(length, size)
-
-    def __getitem__(self, index):
-        a = self.data[index]
-        b = a + 2
-        return {"a": a, "b": b}
-
-    def __len__(self):
-        return self.len
-
-
-class RandomIterableDataset(IterableDataset):
-    def __init__(self, size: int, count: int):
-        self.count = count
-        self.size = size
-
-    def __iter__(self):
-        for _ in range(self.count):
-            yield torch.randn(self.size)
-
-
-class RandomIterableDatasetWithLen(IterableDataset):
-    def __init__(self, size: int, count: int):
-        self.count = count
-        self.size = size
-
-    def __iter__(self):
-        for _ in range(len(self)):
-            yield torch.randn(self.size)
-
-    def __len__(self):
-        return self.count

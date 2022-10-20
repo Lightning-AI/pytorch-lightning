@@ -3,6 +3,9 @@ name: Probot
 on:
   issues:
     types: [labeled]
+  # should use `pull_request_target` but it's blocked by
+  # https://github.com/probot/probot/issues/1635
+  # so this job will not run on forks until the above is fixed
   pull_request:
     types: [labeled, ready_for_review]
 
@@ -10,7 +13,10 @@ jobs:
   auto-cc:
     runs-on: ubuntu-latest
     if: github.event_name == 'issue' || github.event.pull_request.draft == false
+    timeout-minutes: 5
     steps:
-      - uses: carmocca/probot@v1
+      - uses: carmocca/probot@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          job: auto-cc

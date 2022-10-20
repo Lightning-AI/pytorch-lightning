@@ -21,18 +21,19 @@ import numpy as np
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.strategies.strategy import Strategy
+from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.strategies.launchers.multiprocessing import _check_bad_cuda_fork
+from lightning_lite.utilities import move_data_to_device
+from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
-from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
-from pytorch_lightning.utilities.types import _PATH
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -58,7 +59,9 @@ class _MultiProcessingLauncher(_Launcher):
             - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
+    def __init__(
+        self, strategy: "pl.strategies.DDPSpawnStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+    ) -> None:
         self._strategy = strategy
         self._start_method = start_method
         if start_method not in mp.get_all_start_methods():
@@ -87,10 +90,16 @@ class _MultiProcessingLauncher(_Launcher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
+        self._check_torchdistx_support()
+        if self._start_method in ("fork", "forkserver"):
+            _check_bad_cuda_fork()
+
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
+        assert self._strategy.cluster_environment is not None
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
+
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
 
@@ -125,13 +134,13 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
-        self._strategy._worker_setup(process_idx)
+        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, worker_output: "_WorkerOutput", trainer: "pl.Trainer") -> None:
@@ -143,7 +152,7 @@ class _MultiProcessingLauncher(_Launcher):
         # load last weights
         if worker_output.weights_path is not None:
             ckpt = self._strategy.checkpoint_io.load_checkpoint(worker_output.weights_path)
-            trainer.lightning_module.load_state_dict(ckpt)  # type: ignore[arg-type]
+            trainer.lightning_module.load_state_dict(ckpt)
             self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
 
         trainer.state = worker_output.trainer_state
@@ -177,6 +186,16 @@ class _MultiProcessingLauncher(_Launcher):
         self.add_to_queue(trainer, extra)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
+
+    def _check_torchdistx_support(self) -> None:
+        if self._start_method == "spawn":
+            from pytorch_lightning.utilities.meta import _is_deferred
+
+            if _is_deferred(self._strategy.lightning_module):
+                raise NotImplementedError(
+                    f"The `{type(self._strategy).__name__}` strategy does not support `torchdistx`'s deferred"
+                    f" initialization."
+                )
 
     def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory

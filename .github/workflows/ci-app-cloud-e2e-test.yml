@@ -1,0 +1,139 @@
+name: cloud-e2e-testing
+
+# Used to run the e2e tests on lightning.ai
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    paths:
+      - ".github/workflows/ci-app-cloud-e2e-test.yml"
+  workflow_dispatch: # TODO: add inputs for specific git_head
+
+  schedule:
+    # At the end of every day
+    - cron: "0 0 * * *"
+
+jobs:
+  app-cloud-e2e:
+    name: Cloud e2e Test
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        app_name:
+          - v0_app
+          - boring_app
+#          - quick_start  # TODO: fix this
+          - template_streamlit_ui
+          - template_react_ui
+          - template_jupyterlab
+          - idle_timeout
+          - collect_failures
+          - custom_work_dependencies
+          - drive
+          - payload
+          - commands_and_api
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Get PR ID
+        id: running
+        run: echo "::set-output name=ID::$(date +%s)"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          pip --version
+          python -m pip install -r requirements/app/devel.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+
+      - name: Cache Playwright dependencies
+        id: playwright-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ matrix.app_name }}-${{ hashFiles('requirements/app/base.txt', 'requirements/app/*.txt', 'src/lightning_app/__version__.py') }}
+          restore-keys: ${{ runner.os }}-playwright-${{ matrix.app_name }}-
+
+      - name: Install Playwright system dependencies
+        shell: bash
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps
+
+      - name: Install lightning
+        run: |
+          pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        shell: bash
+
+      #- name: Lightning Install quick-start
+      #  if: ${{ (matrix.app_name == 'quick_start') }}
+      #  shell: bash
+      #  run: |
+      #    python -m lightning install app lightning/quick-start -y
+
+      - name: Clone Template React UI Repo
+        if: ${{ (matrix.app_name == 'template_react_ui') }}
+        run: |
+          git clone https://github.com/Lightning-AI/lightning-template-react examples/app_template_react_ui
+        shell: bash
+
+      - name: Clone Template Jupyter Lab Repo
+        if: ${{ (matrix.app_name == 'template_jupyterlab') }}
+        run: |
+          git clone https://github.com/Lightning-AI/LAI-lightning-template-jupyterlab-App examples/app_template_jupyterlab
+          cp examples/app_template_jupyterlab/tests/test_template_jupyterlab.py tests/tests_app_examples/test_template_jupyterlab.py
+        shell: bash
+
+      - name: List pip dependency
+        shell: bash
+        run: pip list
+
+      - name: Run the tests
+        env:
+          LAI_USER: ${{ secrets.LAI_USER }}
+          LAI_PASS: ${{ secrets.LAI_PASS }}
+          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
+          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
+          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
+          CLOUD: "1"
+          VIDEO_LOCATION: ./artifacts/videos
+          PR_NUMBER: ${{ steps.running.outputs.ID }}
+          TEST_APP_NAME: ${{ matrix.app_name }}
+          HAR_LOCATION: ./artifacts/hars
+          SLOW_MO: 50
+        shell: bash
+        run: |
+          mkdir -p ${VIDEO_LOCATION}
+          HEADLESS=1 PACKAGE_LIGHTNING=1 python -m pytest tests/tests_app_examples/test_${{ matrix.app_name }}.py::test_${{ matrix.app_name }}_example_cloud --timeout=900 --capture=no -v --color=yes
+          # Delete the artifacts if successful
+          rm -r ${VIDEO_LOCATION}/${{ matrix.app_name }}
+
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: test-artifacts
+          path: ./artifacts/videos
+
+      - name: Clean Previous Apps
+        if: ${{ always() }}
+        env:
+          LAI_USER: ${{ secrets.LAI_USER }}
+          LAI_PASS: ${{ secrets.LAI_PASS }}
+          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
+          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
+          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
+          PR_NUMBER: ${{ steps.running.outputs.ID }}
+          TEST_APP_NAME: ${{ matrix.app_name }}
+          GRID_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
+          GRID_USER_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          GRID_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
+          _GRID_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
+        shell: bash
+        run: |
+          time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"

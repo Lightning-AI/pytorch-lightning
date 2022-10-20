@@ -16,7 +16,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning.loops.utilities import _extract_hiddens, _set_sampler_epoch, _v1_8_output_format
+from pytorch_lightning.loops.utilities import _extract_hiddens, _set_sampler_epoch
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -39,30 +39,6 @@ def test_extract_hiddens():
     # tbptt enabled, no hiddens return
     with pytest.raises(MisconfigurationException, match="enabled `truncated_bptt_steps` but did not `return"):
         _extract_hiddens(None, 1)
-
-
-def test_v1_8_output_format():
-    # old format
-    def training_epoch_end(outputs):
-        ...
-
-    assert not _v1_8_output_format(training_epoch_end)
-
-    def training_epoch_end(outputs, new_format=1):
-        ...
-
-    assert not _v1_8_output_format(training_epoch_end)
-
-    def training_epoch_end(outputs, new_format=False):
-        ...
-
-    assert not _v1_8_output_format(training_epoch_end)
-
-    # new format
-    def training_epoch_end(outputs, new_format=True):
-        ...
-
-    assert _v1_8_output_format(training_epoch_end)
 
 
 def test_set_sampler_epoch():

@@ -20,11 +20,11 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.nn as nn
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -261,6 +261,7 @@ class ModelSummary:
         trainer = self._model._trainer
 
         input_ = model.example_input_array
+        input_ = model._on_before_batch_transfer(input_)
         input_ = model._apply_batch_transfer_handler(input_)
 
         mode = model.training

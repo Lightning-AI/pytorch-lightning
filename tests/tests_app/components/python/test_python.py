@@ -55,7 +55,7 @@ def test_popen_python_script_failure():
     )
     run_work_isolated(python_script)
     assert python_script.has_failed
-    assert python_script.status.message == "1"
+    assert "Exception(self.exit_code)" in python_script.status.message
 
 
 def test_tracer_python_script_with_kwargs():
@@ -96,7 +96,7 @@ def test_tracer_component_with_code():
 
     python_script = TracerPythonScript("file.py", script_args=["--b=1"], raise_exception=False, code=code)
     run_work_isolated(python_script, params={"a": "1"}, restart_count=0)
-    assert python_script.status.message == "An error"
+    assert "An error" in python_script.status.message
 
     with open("file.py", "w") as f:
         f.write("import sys\n")
