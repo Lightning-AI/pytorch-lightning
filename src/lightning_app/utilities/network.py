@@ -166,7 +166,7 @@ class HTTPClient:
         3. Connection Refused Error (we should retry for ever in this case as well)
     """
 
-    def __init__(self, base_url: str, log_callback: Optional[Callable] = None) -> None:
+    def __init__(self, base_url: str, auth_token: str = "", log_callback: Optional[Callable] = None) -> None:
         self.base_url = base_url
         retry_strategy = Retry(
             # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
@@ -183,9 +183,15 @@ class HTTPClient:
         )
         adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
+
         self.session.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}
+
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
+
+        if auth_token:
+            self.session.headers.update({"Authorization": auth_token})
+
         self.log_function = log_callback or self.log_function
 
     @_http_method_logger_wrapper
