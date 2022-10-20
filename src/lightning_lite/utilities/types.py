@@ -30,7 +30,9 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 
-    if _TORCH_GREATER_EQUAL_1_13:
+    # `ReduceOp has no attribute "RedOpType"`fall back if you have this version, but it is missing
+    # this si a case when you have installed PyTorch from master, for example a few last NGC dockers 22.09
+    if _TORCH_GREATER_EQUAL_1_13 and hasattr(ReduceOp, "RedOpType"):
         _TORCH_REDUCE_OP = ReduceOp.RedOpType
     else:
         _TORCH_REDUCE_OP = ReduceOp

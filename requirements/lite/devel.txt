@@ -1,6 +1,7 @@
 # install all mandatory dependencies
 -r ./base.txt
 
+
 # install all test utilities
 coverage>=6.4, <=6.4.2
 codecov>=2.1, <=2.1.12
@@ -10,3 +11,5 @@ pytest-forked <=1.4.0
 pytest-rerunfailures>=10.2
 pre-commit>=1.0
 mypy==0.971
+
+-r ./test.txt
