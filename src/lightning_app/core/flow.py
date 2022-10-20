@@ -667,3 +667,15 @@ class LightningFlow:
         under the ``/docs`` route.
         """
         raise NotImplementedError
+
+
+class _RootFlow(LightningFlow):
+    def __init__(self, work):
+        super().__init__()
+        self.work = work
+
+    def run(self):
+        self.work.run()
+
+    def configure_layout(self):
+        return [{"name": "Main", "content": self.work}]
