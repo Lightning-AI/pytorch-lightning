@@ -26,7 +26,7 @@ def find_shared_parameters(module: nn.Module) -> List[str]:
     return _find_shared_parameters(module)
 
 
-def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[Dict] = None, prefix: str = "") -> List[str]:
+def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[Dict] = None, prefix: str = "") -> Union[List[str], None]:
     if tied_parameters is None:
         first_call = True
         tied_parameters = {}

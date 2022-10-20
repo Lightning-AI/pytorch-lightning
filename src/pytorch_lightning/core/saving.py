@@ -144,7 +144,7 @@ class ModelIO:
 
 
 def _load_from_checkpoint(
-    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
+    cls: Union[Type["ModelIO"], Type["pl.LightningModule"], Type["pl.LightningDataModule"], None],
     checkpoint_path: Union[_PATH, IO],
     map_location: _MAP_LOCATION_TYPE = None,
     hparams_file: Optional[_PATH] = None,

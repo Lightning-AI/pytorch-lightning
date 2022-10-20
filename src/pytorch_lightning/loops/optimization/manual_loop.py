@@ -98,7 +98,6 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             lightning_optimizer._on_before_step = self._on_before_step
             lightning_optimizer._on_after_step = self._on_after_step
 
-    # type: ignore[override]
     def advance(self, kwargs: OrderedDict) -> None:
         """Performs the training step for manual optimization.
 
