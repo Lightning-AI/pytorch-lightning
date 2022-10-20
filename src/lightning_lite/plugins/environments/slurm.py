@@ -160,7 +160,7 @@ class SLURMEnvironment(ClusterEnvironment):
         """
         if _IS_WINDOWS:
             return
-        srun_exists = subprocess.call(["which", "srun"]) == 0
+        srun_exists = subprocess.call(["command", "-v", "srun"]) == 0
         if srun_exists and not _is_srun_used():
             hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
             rank_zero_warn(
