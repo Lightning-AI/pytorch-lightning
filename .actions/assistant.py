@@ -14,7 +14,7 @@ from typing import List, Optional, Sequence
 from urllib import request
 from urllib.request import Request, urlopen
 
-import fire
+import jsonargparse
 import pkg_resources
 from packaging.version import parse as version_parse
 
@@ -230,4 +230,4 @@ class AssistantCLI:
 
 
 if __name__ == "__main__":
-    fire.Fire(AssistantCLI)
+    jsonargparse.CLI(AssistantCLI)
