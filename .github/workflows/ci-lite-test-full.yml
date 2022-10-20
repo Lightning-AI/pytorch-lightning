@@ -19,7 +19,6 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PACKAGE_NAME: lite
   FREEZE_REQUIREMENTS: 1
 
 jobs:
@@ -31,12 +30,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        python-version: ["3.7", "3.10"]  # minimum, maximum
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
         requires: ["oldest", "latest"]
+        pkg-name: ["", "lite"]  # the "" is for installing monolithic package
         release: ["stable"]
         exclude:
           # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
+          - {python-version: "3.9", requires: "oldest"}
           - {python-version: "3.10", requires: "oldest"}
         include:
           - {os: ubuntu-22.04, python-version: "3.10", release: "pre"}
@@ -80,7 +81,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Install dependencies
+    - name: Install package & dependencies
+      env:
+        PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
         pip install -e .[test] --upgrade --find-links "https://download.pytorch.org/whl/${url}"
