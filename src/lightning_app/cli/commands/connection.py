@@ -241,7 +241,7 @@ def _install_missing_requirements(
     if requirements:
         missing_requirements = []
         for req in requirements:
-            if not package_available(req.replace("-", "_")):
+            if not package_available(req):
                 missing_requirements.append(req)
 
         if missing_requirements:
