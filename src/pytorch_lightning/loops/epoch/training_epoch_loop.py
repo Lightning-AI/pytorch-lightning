@@ -156,7 +156,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._outputs = []
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None: 
+    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
         self._reload_dataloader_state_dict(data_fetcher)
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching

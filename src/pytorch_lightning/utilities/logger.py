@@ -102,7 +102,7 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
                     yield prefixes + [key, value if value is not None else str(None)]
         else:
             yield prefixes + [input_dict if input_dict is None else str(input_dict)]
-    
+
     return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
 
 

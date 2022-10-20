@@ -70,9 +70,7 @@ class EvaluationEpochLoop(Loop):
         if self.done and self.trainer.state.fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-    def on_run_start(  
-        self, data_fetcher: AbstractDataFetcher, dl_max_batches: int, kwargs: OrderedDict
-    ) -> None:
+    def on_run_start(self, data_fetcher: AbstractDataFetcher, dl_max_batches: int, kwargs: OrderedDict) -> None:
         """Adds the passed arguments to the loop's state if necessary.
 
         Args:

@@ -100,7 +100,8 @@ class _LRFinder:
 
         self.results: Dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
-    #This function does not return anything
+
+    # This function does not return anything
     def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified

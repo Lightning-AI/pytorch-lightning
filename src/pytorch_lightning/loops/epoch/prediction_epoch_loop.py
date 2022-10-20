@@ -47,7 +47,7 @@ class PredictionEpochLoop(Loop):
         self.predictions = []
         self.batch_progress.reset_on_run()
 
-    def on_run_start(  
+    def on_run_start(
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,

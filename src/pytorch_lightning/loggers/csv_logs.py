@@ -169,7 +169,7 @@ class CSVLogger(Logger):
         """
         return self._save_dir
 
-    @property 
+    @property
     @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""

@@ -107,7 +107,7 @@ class BoringModel(LightningModule):
         out = torch.nn.functional.mse_loss(x, torch.ones_like(x))
         return out
 
-    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT: 
+    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         output = self(batch)
         loss = self.loss(batch, output)
         return {"loss": loss}
@@ -211,7 +211,7 @@ class DemoModel(LightningModule):
         self.l1 = torch.nn.Linear(32, out_dim)
         self.learning_rate = learning_rate
 
-    def forward(self, x: Tensor) -> Tensor: 
+    def forward(self, x: Tensor) -> Tensor:
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
     def training_step(self, batch: Tensor, batch_nb: int) -> STEP_OUTPUT:
