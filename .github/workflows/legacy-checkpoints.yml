@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     defaults:
       run:
-        working-directory: ./legacy
+        working-directory: tests/legacy
     steps:
     - uses: actions/checkout@v3
 
@@ -38,7 +38,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
-        path: legacy/checkpoints/
+        path: tests/legacy/checkpoints/
       if: always()
 
     - name: Upload checkpoints to S3
