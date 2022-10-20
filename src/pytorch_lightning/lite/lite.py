@@ -176,10 +176,10 @@ def _convert_deprecated_device_flags(
     return deprecated_devices_specific_flag, accelerator
 
 
-def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
+def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
     """Re-instantiates a PL-Strategy as the corresponding Lite-Strategy."""
-
-    if type(strategy) is PLDDPStrategy:
+    strategy_cls = type(strategy)
+    if strategy_cls is PLDDPStrategy:
         return LiteDDPStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
@@ -191,7 +191,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             **strategy._ddp_kwargs,
         )
 
-    if type(strategy) is PLDDPSpawnStrategy:
+    if strategy_cls is PLDDPSpawnStrategy:
         return LiteDDPSpawnStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
@@ -204,7 +204,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             **strategy._ddp_kwargs,
         )
 
-    if type(strategy) is PLTPUSpawnStrategy:
+    if strategy_cls is PLTPUSpawnStrategy:
         return XLAStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
@@ -212,7 +212,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             precision=_to_lite_precision(strategy.precision_plugin),
         )
 
-    if type(strategy) is PLDeepSpeedStrategy:
+    if strategy_cls is PLDeepSpeedStrategy:
         return LiteDeepSpeedStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
@@ -229,7 +229,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             min_loss_scale=strategy.min_loss_scale,
         )
 
-    if type(strategy) is PLDataParallelStrategy:
+    if strategy_cls is PLDataParallelStrategy:
         return LiteDataParallelStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
@@ -237,7 +237,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             precision=_to_lite_precision(strategy.precision_plugin),
         )
 
-    if type(strategy) is PLDDPShardedStrategy:
+    if strategy_cls is PLDDPShardedStrategy:
         return LiteDDPShardedStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
@@ -249,7 +249,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             **strategy._ddp_kwargs,
         )
 
-    if type(strategy) is PLDDPSpawnShardedStrategy:
+    if strategy_cls is PLDDPSpawnShardedStrategy:
         return LiteDDPSpawnShardedStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
@@ -262,7 +262,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             **strategy._ddp_kwargs,
         )
 
-    if type(strategy) is PLSingleDeviceStrategy:
+    if strategy_cls is PLSingleDeviceStrategy:
         return LiteSingleDeviceStrategy(
             device=strategy.root_device,
             accelerator=strategy.accelerator,
@@ -270,13 +270,14 @@ def _to_lite_strategy(strategy: PLStrategy) -> Union[LiteStrategy, None]:
             precision=_to_lite_precision(strategy.precision_plugin),
         )
 
-    if type(strategy) is PLSingleTPUStrategy:
+    if strategy_cls is PLSingleTPUStrategy:
         return LiteSingleTPUStrategy(
             device=strategy.root_device.index,
             accelerator=strategy.accelerator,
             checkpoint_io=strategy.checkpoint_io,
             precision=_to_lite_precision(strategy.precision_plugin),
         )
+    raise NotImplementedError(f"Unsupported strategy: `{strategy_cls.__name__}`")
 
 
 def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
