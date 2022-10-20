@@ -155,6 +155,10 @@ jobs:
         python -c "import torch; assert torch.__version__.startswith('${{ matrix.pytorch-version }}')"
         python requirements/pytorch/check-avail-extras.py
 
+    - name: Adjust tests
+      if: matrix.pkg-name != 'LAI'
+      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
+
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
       if: matrix.python-version != '3.7'

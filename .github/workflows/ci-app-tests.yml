@@ -85,6 +85,10 @@ jobs:
           pip list
         shell: bash
 
+    - name: Adjust tests
+      if: matrix.pkg-name != 'LAI'
+      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+
       - name: Tests
         working-directory: ./tests
         env:
