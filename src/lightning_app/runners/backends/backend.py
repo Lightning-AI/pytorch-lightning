@@ -81,7 +81,7 @@ class Backend(ABC):
 
         work.run = partial(self._dynamic_run_wrapper, app=app, work=work, work_run=unwrap(work.run))
 
-    def _prepare_queues(self, app: LightningApp):
+    def _prepare_queues(self, app: "LightningApp"):
         kw = dict(queue_id=self.queue_id)
         app.delta_queue = self.queues.get_delta_queue(**kw)
         app.readiness_queue = self.queues.get_readiness_queue(**kw)

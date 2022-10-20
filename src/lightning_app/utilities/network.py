@@ -166,7 +166,7 @@ class HTTPClient:
         3. Connection Refused Error (we should retry for ever in this case as well)
     """
 
-    def __init__(self, base_url: str, auth_token: str = "", log_callback: Optional[Callable] = None) -> None:
+    def __init__(self, base_url: str, auth_token: Optional[str] = None, log_callback: Optional[Callable] = None) -> None:
         self.base_url = base_url
         retry_strategy = Retry(
             # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
