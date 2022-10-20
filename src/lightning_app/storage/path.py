@@ -10,7 +10,6 @@ from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
 
-import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
 from lightning_app.utilities.app_helpers import Logger
@@ -23,7 +22,7 @@ if _is_s3fs_available():
 PathlibPath = type(pathlib.Path())  # PosixPath or a WindowsPath depending on the platform
 
 if TYPE_CHECKING:
-    from lightning_app.core.work import LightningWork
+    from lightning_app import LightningWork
 
 num_workers = 8
 
@@ -251,7 +250,7 @@ class Path(PathlibPath):
                 f" from Work {response.source} to {response.destination}. See the full stacktrace above."
             ) from response.exception
 
-    def _attach_work(self, work: "lightning_app.LightningWork") -> None:
+    def _attach_work(self, work: "LightningWork") -> None:
         """Attach a LightningWork to this Path.
 
         The first work to be attached becomes the `origin`, i.e., the Work that is meant to expose the file to other
@@ -323,7 +322,7 @@ class Path(PathlibPath):
         return self.to_dict()
 
     @staticmethod
-    def _handle_exists_request(work: "lightning_app.LightningWork", request: ExistsRequest) -> ExistsResponse:
+    def _handle_exists_request(work: "LightningWork", request: ExistsRequest) -> ExistsResponse:
         return ExistsResponse(
             source=request.source,
             name=request.name,
@@ -334,7 +333,7 @@ class Path(PathlibPath):
         )
 
     @staticmethod
-    def _handle_get_request(work: "lightning_app.LightningWork", request: GetRequest) -> GetResponse:
+    def _handle_get_request(work: "LightningWork", request: GetRequest) -> GetResponse:
         from lightning_app.storage.copier import copy_files
 
         source_path = pathlib.Path(request.path)
