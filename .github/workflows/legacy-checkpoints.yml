@@ -52,6 +52,27 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-1
 
+    - name: Download the released package
+      # if: github.event_name == 'release'
+      # uses: actions/download-artifact@v3
+      # with:
+      #   name: pypi-packages-${{ github.sha }}
+      # FIXME: This is temporarily faking the released package
+      working-directory: ./
+      env:
+        PACKAGE_NAME: pytorch
+      run: |
+        pip install -U setuptools wheel
+        python setup.py sdist bdist_wheel
+        ls -lh dist/
+
+    - name: Install the released package
+      # if: github.event_name == 'release'
+      working-directory: ./
+      run: |
+        ls -lh dist/
+        pip install dist/*.whl
+
     - name: Generate checkpoints
       run: |
         bash generate_checkpoints.sh ${{ inputs.pl_version }}
