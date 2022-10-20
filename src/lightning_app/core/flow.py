@@ -763,6 +763,8 @@ class LightningFlow:
         """Whether the flow should save a checkpoint. Override this method to customize the checkpointing behavior.
         This method wil be called as part of the ``run`` method by default.
 
+        TODO: Add documentation url.
+
         Returns: True if the flow should save a checkpoint. False otherwise.
         """
         return False

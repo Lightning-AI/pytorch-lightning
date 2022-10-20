@@ -659,6 +659,7 @@ class LightningApp:
 
         :param checkpoint_name: The name of the checkpoint, if not defined, the checkpoint will be saved with the
         current timestamp.
+        :return: the path of the checkpoint file.
         """
 
         if not checkpoint_name:
