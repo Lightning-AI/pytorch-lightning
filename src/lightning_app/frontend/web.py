@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.utilities.log import get_frontend_logfile
+from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.network import find_free_network_port
 
 
@@ -38,7 +38,7 @@ class StaticWebFrontend(Frontend):
         self._process: Optional[mp.Process] = None
 
     def start_server(self, host: str, port: int, root_path: str = "") -> None:
-        log_file = str(get_frontend_logfile())
+        log_file = str(get_logfile())
         self._process = mp.Process(
             target=start_server,
             kwargs=dict(
