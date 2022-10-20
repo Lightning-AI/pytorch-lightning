@@ -204,8 +204,6 @@ class AssistantCLI:
         ls = _retrieve_files(source_dir)
 
         for fp in ls:
-            if not os.path.isfile(fp):
-                continue
             if not fp.endswith(".py"):
                 if not fp.endswith(".pyc"):
                     fp_new = fp.replace(source_dir, target_dir)
