@@ -68,8 +68,8 @@ class TestAppCreationClient:
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_new_instance_on_different_cluster_fails(self, monkeypatch):
         app_name = "test-app-name"
-        original_cluster = 'cluster-001'
-        new_cluster = 'cluster-002'
+        original_cluster = "cluster-001"
+        new_cluster = "cluster-002"
 
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -85,7 +85,7 @@ class TestAppCreationClient:
         app = mock.MagicMock()
         app.flows = []
         app.frontend = {}
-        
+
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         existing_instance.spec.cluster_id = original_cluster
