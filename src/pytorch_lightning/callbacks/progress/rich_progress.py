@@ -377,7 +377,9 @@ class RichProgressBar(ProgressBarBase):
 
         self.refresh()
 
-    def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> Union["TaskID", None]:
+    def _add_task(
+        self, total_batches: Union[int, float], description: str, visible: bool = True
+    ) -> Union["TaskID", None]:
         if self.progress is not None:
             return self.progress.add_task(
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible

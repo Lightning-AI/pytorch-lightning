@@ -358,7 +358,7 @@ class PyTorchProfiler(Profiler):
     def _should_override_schedule(self) -> bool:
         return (
             self._lightning_module is not None
-            and self._schedule is not None #type: ignore
+            and self._schedule is not None  # type: ignore
             and self._total_steps < 5
             and self._schedule._schedule == self._default_schedule()
         )

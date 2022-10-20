@@ -350,7 +350,7 @@ class NeptuneLogger(Logger):
         """
         return self.run
 
-    @property 
+    @property
     @rank_zero_experiment
     def run(self) -> Run:
         if not self._run_instance:

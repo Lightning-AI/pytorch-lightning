@@ -87,9 +87,9 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
         >>> _flatten_dict({5: {'a': 123}})
         {'5/a': 123}
     """
-    
+
     def _dict_generator(
-        input_dict: Any, prefixes: List[Optional[str]] = None #type:ignore
+        input_dict: Any, prefixes: List[Optional[str]] = None  # type:ignore
     ) -> Generator[Any, Optional[List[str]], List[Any]]:
         prefixes = prefixes[:] if prefixes else []
         if isinstance(input_dict, MutableMapping):
@@ -102,7 +102,7 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
                     yield prefixes + [key, value if value is not None else str(None)]
         else:
             yield prefixes + [input_dict if input_dict is None else str(input_dict)]
-    
+
     return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
 
 
