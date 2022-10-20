@@ -26,15 +26,15 @@ def test_cloud_compute_with_mounts():
     mount_1 = Mount(source="s3://foo/", root_dir="./foo")
     mount_2 = Mount(source="s3://foo/bar/", root_dir="./bar")
 
-    cloud_compute = CloudCompute("gpu", mount=mount_1)
-    assert cloud_compute.mount == mount_1
+    cloud_compute = CloudCompute("gpu", mounts=mount_1)
+    assert cloud_compute.mounts == mount_1
 
-    cloud_compute = CloudCompute("gpu", mount=[mount_1, mount_2])
-    assert cloud_compute.mount == [mount_1, mount_2]
+    cloud_compute = CloudCompute("gpu", mounts=[mount_1, mount_2])
+    assert cloud_compute.mounts == [mount_1, mount_2]
 
     cc_dict = cloud_compute.to_dict()
-    assert "mount" in cc_dict
-    assert cc_dict["mount"] == [
+    assert "mounts" in cc_dict
+    assert cc_dict["mounts"] == [
         {"root_dir": "./foo", "source": "s3://foo/"},
         {"root_dir": "./bar", "source": "s3://foo/bar/"},
     ]
