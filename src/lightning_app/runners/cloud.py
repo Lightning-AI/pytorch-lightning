@@ -268,13 +268,13 @@ class CloudRuntime(Runtime):
             )
 
             if cluster_id is not None:
-                logger.info(f"running app on {lapp_release.cluster_id}")
+                logger.info(f"running app on {lightning_app_release.cluster_id}")
 
-            if lapp_release.source_upload_url == "":
+            if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
 
             repo.package()
-            repo.upload(url=lapp_release.source_upload_url)
+            repo.upload(url=lightning_app_release.source_upload_url)
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
@@ -312,10 +312,12 @@ class CloudRuntime(Runtime):
                     if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                         raise RuntimeError("Failed to stop the existing instance.")
 
-                lapp_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
-                    project_id=project.project_id,
-                    id=existing_instance.id,
-                    body=Body4(release_id=lapp_release.id),
+                lightning_app_instance = (
+                    self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
+                        project_id=project.project_id,
+                        id=existing_instance.id,
+                        body=Body4(release_id=lightning_app_release.id),
+                    )
                 )
 
                 self.backend.client.lightningapp_instance_service_update_lightningapp_instance(
@@ -349,9 +351,9 @@ class CloudRuntime(Runtime):
             sys.exit(1)
 
         if on_before_run:
-            on_before_run(lapp_instance, need_credits=not has_sufficient_credits)
+            on_before_run(lightning_app_instance, need_credits=not has_sufficient_credits)
 
-        if lapp_instance.status.phase == V1LightningappInstanceState.FAILED:
+        if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
 
         if cleanup_handle:

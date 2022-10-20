@@ -34,7 +34,7 @@ from lightning_app.utilities.warnings import LightningFlowWarning
 logger = logging.getLogger()
 
 
-def test_lapp_requires_root_run_method():
+def test_lightning_app_requires_root_run_method():
     """Test that a useful exception is raised if the root flow does not override the run method."""
 
     with pytest.raises(
@@ -426,7 +426,7 @@ class EmptyFlow(LightningFlow):
         (0, 20),
     ],
 )
-def test_lapp_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
+def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
 
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
@@ -620,7 +620,7 @@ class CheckpointFlow(LightningFlow):
             self.flow.run()
 
 
-def test_lapp_checkpointing_with_nested_flows():
+def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
     app.checkpointing = True
@@ -824,7 +824,7 @@ class FlowExit(LightningFlow):
         self.work.run()
 
 
-def test_lapp_exit():
+def test_lightning_app_exit():
     app = LightningApp(FlowExit())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.status.stage == WorkStageStatus.STOPPED
@@ -1039,7 +1039,7 @@ class TestLightningHasUpdatedApp(LightningApp):
         return res
 
 
-def test_lapp_has_updated():
+def test_lightning_app_has_updated():
     app = TestLightningHasUpdatedApp(FlowPath())
     MultiProcessRuntime(app, start_server=False).dispatch()
 

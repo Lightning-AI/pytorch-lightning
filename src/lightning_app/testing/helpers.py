@@ -8,7 +8,11 @@ from packaging.version import Version
 
 from lightning_app import LightningFlow, LightningWork
 from lightning_app.core.queues import BaseQueue
-from lightning_app.utilities.imports import _CLOUD_TEST_RUN, _is_lightning_flash_available, _is_pl_available
+from lightning_app.utilities.imports import (
+    _CLOUD_TEST_RUN,
+    _is_lightning_flash_available,
+    _is_pytorch_lightning_available,
+)
 
 
 def call_script(

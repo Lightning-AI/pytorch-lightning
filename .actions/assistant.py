@@ -19,17 +19,17 @@ import pkg_resources
 from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
-    "app": (
-        "requirements/app/base.txt",
-        "requirements/app/cloud.txt",
-        "requirements/app/ui.txt",
-    ),
     "pytorch": (
         "requirements/pytorch/base.txt",
         "requirements/pytorch/extra.txt",
         "requirements/pytorch/loggers.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
+    ),
+    "app": (
+        "requirements/app/base.txt",
+        "requirements/app/ui.txt",
+        "requirements/app/cloud.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))

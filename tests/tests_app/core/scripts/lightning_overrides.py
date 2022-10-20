@@ -1,9 +1,9 @@
-from lightning_app.utilities.imports import _is_pl_available, _is_torch_available
+from lightning_app.utilities.imports import _is_pytorch_lightning_available, _is_torch_available
 
 if _is_torch_available():
     from torch.utils.data import Dataset
 
-if _is_pl_available():
+if _is_pytorch_lightning_available():
     from torchmetrics import Metric
 
     from pytorch_lightning import LightningDataModule, LightningModule, Trainer
