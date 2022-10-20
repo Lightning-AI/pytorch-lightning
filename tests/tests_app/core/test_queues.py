@@ -182,7 +182,7 @@ class TestHTTPQueue:
             f"{HTTP_QUEUE_URL}/v1/test/http_queue/length",
             request_headers={"Authorization": "test-token"},
             status_code=200,
-            content=b"1"
+            content=b"1",
         )
         adapter.register_uri(
             "POST",
