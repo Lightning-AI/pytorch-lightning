@@ -42,7 +42,7 @@ def test_eval_inference_mode():
 
     trainer = Trainer(logger=False, inference_mode=False, fast_dev_run=True)
     trainer.test(BoringModelGrad())
-    trainer = Trainer(logger=False, inference_mode=False, fast_dev_run=True)
+    trainer = Trainer(logger=False, inference_mode=True, fast_dev_run=True)
     trainer.test(BoringModelNoGrad())
     trainer = Trainer(logger=False, inference_mode=True, fast_dev_run=True)
     trainer.test(BoringModelForInferenceMode())
