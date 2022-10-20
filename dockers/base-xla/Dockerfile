@@ -97,7 +97,7 @@ RUN \
     # https://github.com/pytorch/xla/issues/1666
     pip install mkl==2021.4.0 && \
     # drop packages installed with XLA
-    python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
+    python .actions/assistant.py requirements_prune_pkgs "[torch,torchvision]" && \
     # drop unnecessary packages
     python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
     # install PL dependencies

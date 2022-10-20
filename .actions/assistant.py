@@ -32,7 +32,7 @@ REQUIREMENT_FILES = {
         "requirements/app/cloud.txt",
     ),
 }
-REQUIREMENT_FILES_ALL = tuple(chain(*REQUIREMENT_FILES.values()))
+REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
 
 
@@ -110,7 +110,16 @@ class AssistantCLI:
         path = Path(req_file)
         assert path.exists()
         text = path.read_text()
-        final = [str(req) for req in pkg_resources.parse_requirements(text) if req.name not in packages]
+        lines = text.splitlines()
+        final = []
+        for line in lines:
+            ln_ = line.strip()
+            if not ln_ or ln_.startswith("#"):
+                final.append(line)
+                continue
+            req = list(pkg_resources.parse_requirements(ln_))[0]
+            if req.name not in packages:
+                final.append(line)
         pprint(final)
         path.write_text("\n".join(final))
 
