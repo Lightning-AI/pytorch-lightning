@@ -14,7 +14,7 @@ on:
       - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - "setup.py"
-      - ".actions/assistant.py"
+      - ".actions/**"
   schedule:
     - cron: "0 0 * * *"  # at the end of every day
 

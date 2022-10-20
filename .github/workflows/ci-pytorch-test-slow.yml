@@ -16,7 +16,7 @@ on:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
-      - ".actions/assistant.py"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
