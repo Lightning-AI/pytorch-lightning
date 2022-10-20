@@ -47,7 +47,7 @@ logger = Logger(__name__)
 class LightningApp:
     def __init__(
         self,
-        root: "lightning_app.LightningFlow",
+        root: "t.Union[lightning_app.LightningFlow, lightning_app.LightningWork]",
         flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         debug: bool = False,
         info: frontend.AppInfo = None,
@@ -64,8 +64,8 @@ class LightningApp:
         the :class:`~lightning_app.core.flow.LightningFlow` provided.
 
         Arguments:
-            root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
-                It must define a `run()` method that the app can call.
+            root: The root ``LightningFlow`` or ``LightningWork`` component, that defines all the app's nested
+                 components, running infinitely. It must define a `run()` method that the app can call.
             flow_cloud_compute: The default Cloud Compute used for flow, Rest API and frontend's.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
@@ -92,6 +92,10 @@ class LightningApp:
         """
 
         self.root_path = root_path  # when running behind a proxy
+
+        if isinstance(root, lightning_app.LightningWork):
+            root = lightning_app.core.flow._RootFlow(root)
+
         _validate_root_flow(root)
         self._root = root
         self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()

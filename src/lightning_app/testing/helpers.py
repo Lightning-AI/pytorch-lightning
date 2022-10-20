@@ -54,7 +54,7 @@ class RunIf:
     def __new__(
         self,
         *args,
-        pytorch_lightning: bool = False,
+        pl: bool = False,
         flash: bool = False,
         min_python: Optional[str] = None,
         skip_windows: bool = False,
@@ -67,7 +67,7 @@ class RunIf:
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
-            pytorch_lightning: Requires that PyTorch Lightning is installed.
+            pl: Requires that PyTorch Lightning is installed.
             flash: Requires that Flash is installed.
             min_python: Require that Python is greater or equal than this version.
             skip_windows: Skip for Windows platform.
@@ -95,7 +95,7 @@ class RunIf:
             conditions.append(sys.platform == "darwin")
             reasons.append("unimplemented on MacOS")
 
-        if pytorch_lightning:
+        if pl:
             conditions.append(not _is_pytorch_lightning_available())
             reasons.append("PyTorch Lightning is required.")
 
