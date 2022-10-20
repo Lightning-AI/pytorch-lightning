@@ -1,38 +1,13 @@
 import os
 import sys
-from subprocess import Popen
 from typing import Dict, Optional
 
 import requests
-from lightning_utilities.core.imports import package_available
 
-from lightning_app.cli.commands.connection import _resolve_command_path
+from lightning_app.cli.commands.connection import _install_missing_requirements, _resolve_command_path
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
-from lightning_app.utilities.log import get_logfile
-
-
-def _install_missing_requirements(retriever: _LightningAppOpenAPIRetriever):
-    requirements = set()
-    for metadata in retriever.api_commands.values():
-        if metadata["tag"] == OpenAPITags.APP_CLIENT_COMMAND:
-            for req in metadata.get("requirements", []):
-                requirements.add(req)
-
-    if requirements:
-        missing_requirements = []
-        for req in requirements:
-            if not package_available(req):
-                missing_requirements.append(req)
-
-        if missing_requirements:
-            print(f"Installing missing requirements: {missing_requirements}")
-            missing_requirements = " ".join(missing_requirements)
-            std_out_out = get_logfile("output.log")
-            with open(std_out_out, "wb") as stdout:
-                Popen(f"pip install {missing_requirements}", shell=True, stdout=stdout, stderr=sys.stderr).wait()
-            print()
 
 
 def _run_app_command(app_name: str, app_id: Optional[str]):
@@ -63,16 +38,17 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     if not has_found:
         raise Exception(f"The provided command isn't available in {list(retriever.api_commands)}")
 
-    _install_missing_requirements(retriever)
-
     # 2: Send the command from the user
     metadata = retriever.api_commands[command]
 
-    # 3: Execute the command
-    if metadata["tag"] == OpenAPITags.APP_COMMAND:
-        _handle_command_without_client(command, metadata, retriever.url)
-    else:
-        _handle_command_with_client(command, metadata, app_name, app_id, retriever.url)
+    try:
+        # 3: Execute the command
+        if metadata["tag"] == OpenAPITags.APP_COMMAND:
+            _handle_command_without_client(command, metadata, retriever.url)
+        else:
+            _handle_command_with_client(command, metadata, app_name, app_id, retriever.url)
+    except ModuleNotFoundError:
+        _install_missing_requirements(retriever, fail_if_missing=True)
 
     if sys.argv[-1] != "--help":
         print("Your command execution was successful.")

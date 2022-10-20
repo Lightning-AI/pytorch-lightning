@@ -4,6 +4,7 @@ import os
 import os.path as osp
 import shutil
 import sys
+import traceback
 from getpass import getuser
 from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
@@ -73,7 +74,9 @@ class ClientCommand:
                 detail = str(resp.json())
             except Exception:
                 detail = "Internal Server Error"
-            raise HTTPException(status_code=resp.status_code, detail=detail)
+            print(f"Failed with status code {resp.status_code}. Detail: {detail}")
+            sys.exit(0)
+
         return resp.json()
 
     def _to_dict(self):
@@ -208,8 +211,8 @@ def _process_api_request(app, request: APIRequest) -> None:
     except HTTPException as e:
         logger.error(repr(e))
         response = RequestResponse(status_code=e.status_code, content=e.detail)
-    except Exception as e:
-        logger.error(repr(e))
+    except Exception:
+        logger.error(traceback.print_exc())
         response = RequestResponse(status_code=500)
     app.api_response_queue.put({"response": response, "id": request.id})
 
@@ -226,8 +229,8 @@ def _process_command_requests(app, request: CommandRequest) -> None:
                 except HTTPException as e:
                     logger.error(repr(e))
                     response = RequestResponse(status_code=e.status_code, content=e.detail)
-                except Exception as e:
-                    logger.error(repr(e))
+                except Exception:
+                    logger.error(traceback.print_exc())
                     response = RequestResponse(status_code=500)
                 app.api_response_queue.put({"response": response, "id": request.id})
 
