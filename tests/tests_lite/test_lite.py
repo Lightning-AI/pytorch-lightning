@@ -184,6 +184,7 @@ def test_setup_twice_fails():
         lite.setup(model, lite_optimizer)
 
 
+# TODO: extend this test with the other setup calls
 def test_setup_tracks_num_models():
     """Test that setup() tracks how many times it has setup a model."""
     lite = EmptyLite()

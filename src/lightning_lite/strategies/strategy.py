@@ -118,7 +118,7 @@ class Strategy(ABC):
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
-        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+        call :meth:`setup_model` and :meth:`_setup_optimizer` on the inputs.
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]

@@ -154,23 +154,41 @@ class LightningLite(ABC):
 
         if model and not optimizers:
             # set up a model without optimizers (e.g., for inference)
-            model = self._setup_model(model, move_to_device=move_to_device)
+            model = self.setup_model(model, move_to_device=move_to_device)
         elif not model and optimizers:
             # set up one or more optimizers separately from the model; some strategies don't support that
-            optimizers = self._setup_optimizers(*optimizers)
+            optimizers = self.setup_optimizers(*optimizers)
         elif model and optimizers:
             # set up model and optimizers jointly; some strategies require this
             model, optimizers = self._setup_model_and_optimizers(model, *optimizers, move_to_device=move_to_device)
 
-        outputs = []
-        if model:
-            outputs.append(model)
         if optimizers:
-            # join both types in a list for API convenience
-            outputs.extend(optimizers)  # type: ignore
-        if len(outputs) == 1:
-            return outputs[0]
-        return outputs
+            # join both types in a tuple for API convenience
+            return model, *optimizers
+        return model
+
+    def setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
+        original_model = model
+
+        model = self._precision.convert_module(model)
+
+        if move_to_device:
+            model = self._move_model_to_device(model=model, optimizers=[])
+
+        # Let strategy wrap and connect the model alone
+        model = self._strategy.setup_module(model)
+        model = _LiteModule(model, self._precision, original_module=original_model)
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        model.to(self.device if move_to_device else next(model.parameters()).device)
+
+        self._models_setup += 1
+        return model
+
+    def setup_optimizers(self, *optimizers: Optimizer) -> Tuple[_LiteOptimizer]:
+        optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
+        optimizers = tuple(_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers)
+        return optimizers
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -441,53 +459,6 @@ class LightningLite(ABC):
             DataLoader, "dataset"
         ), _replace_dunder_methods(BatchSampler):
             return run_method(*args, **kwargs)
-
-    def _setup_model_and_optimizers(
-        self,
-        model: nn.Module,
-        *optimizers: Optimizer,
-        move_to_device: bool = True,
-    ) -> Tuple[_LiteModule, List[_LiteOptimizer]]:
-        original_model = model
-
-        model = self._precision.convert_module(model)
-
-        if move_to_device:
-            model = self._move_model_to_device(model=model, optimizers=list(optimizers))
-
-        # Let strategy wrap and connect the models and optimizers
-        model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision, original_module=original_model)
-
-        # Update the _DeviceDtypeModuleMixin's device parameter
-        model.to(self.device if move_to_device else next(model.parameters()).device)
-
-        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
-        self._models_setup += 1
-        return model, optimizers
-
-    def _setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
-        original_model = model
-
-        model = self._precision.convert_module(model)
-
-        if move_to_device:
-            model = self._move_model_to_device(model=model, optimizers=[])
-
-        # Let strategy wrap and connect the model alone
-        model = self._strategy.setup_module(model)
-        model = _LiteModule(model, self._precision, original_module=original_model)
-
-        # Update the _DeviceDtypeModuleMixin's device parameter
-        model.to(self.device if move_to_device else next(model.parameters()).device)
-
-        self._models_setup += 1
-        return model
-
-    def _setup_optimizers(self, *optimizers: Optimizer) -> List[_LiteOptimizer]:
-        optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
-        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
-        return optimizers
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters()).device
