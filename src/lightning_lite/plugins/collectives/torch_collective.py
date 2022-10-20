@@ -100,7 +100,7 @@ class TorchCollective(Collective):
         return scatter_object_output_list
 
     def barrier(self, device_ids: Optional[List[int]] = None) -> None:
-        if dist._rank_not_in_group(self.group):  # type: ignore [arg-type]
+        if self.group == dist.GroupMember.NON_GROUP_MEMBER:
             return
         dist.barrier(group=self.group, device_ids=device_ids)
 
