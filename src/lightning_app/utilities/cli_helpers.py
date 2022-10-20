@@ -135,9 +135,9 @@ class _LightningAppOpenAPIRetriever:
                 self.url = url
                 return
 
-        lightningapp = self._maybe_find_matching_cloud_app()
-        if lightningapp:
-            self.url = lightningapp.status.url
+        app = self._maybe_find_matching_cloud_app()
+        if app:
+            self.url = app.status.url
 
     def _maybe_find_matching_cloud_app(self):
         """Tries to resolve the app url from the provided `app_id_or_name_or_url`."""
@@ -150,11 +150,11 @@ class _LightningAppOpenAPIRetriever:
         if not self.app_id_or_name_or_url:
             raise Exception(f"Provide an application name, id or url with --app_id=X. Found {app_names}")
 
-        for lightningapp in list_apps.lightningapps:
-            if lightningapp.id == self.app_id_or_name_or_url or lightningapp.name == self.app_id_or_name_or_url:
-                if lightningapp.status.url == "":
+        for app in list_apps.lightningapps:
+            if app.id == self.app_id_or_name_or_url or app.name == self.app_id_or_name_or_url:
+                if app.status.url == "":
                     raise Exception("The application is starting. Try in a few moments.")
-                return lightningapp
+                return app
 
     def _collect_open_api_json(self):
         """This function is used to retrieve the current url associated with an id."""
