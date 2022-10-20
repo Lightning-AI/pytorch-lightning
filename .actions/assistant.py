@@ -60,7 +60,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _retrieve_files(directory: str, *ext: str):
+def _retrieve_files(directory: str, *ext: str) -> List[str]:
     subfolders, files = [directory], []
 
     ext = tuple(e.lower() for e in ext)
@@ -71,7 +71,7 @@ def _retrieve_files(directory: str, *ext: str):
                 subfolders.append(p)
 
             if os.path.isfile(p):
-                if not ext or os.path.split(p.name)[1].lower() in ext:
+                if not ext or any(os.path.split(p.name)[1].lower().endswith(e) for e in ext):
                     files.append(p)
 
     return files
