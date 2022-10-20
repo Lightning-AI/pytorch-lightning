@@ -2232,7 +2232,7 @@ def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -
         and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
         and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
-        else torch.no_grad
+        else torch.enable_grad
     )
     with context_manager_class():
         yield
