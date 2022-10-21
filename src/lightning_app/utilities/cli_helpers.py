@@ -59,6 +59,7 @@ def _get_metadata_from_openapi(paths: Dict, path: str):
     cls_path = paths[path]["post"].get("cls_path", None)
     cls_name = paths[path]["post"].get("cls_name", None)
     description = paths[path]["post"].get("description", None)
+    requirements = paths[path]["post"].get("requirements", None)
 
     metadata = {"tag": tag, "parameters": {}}
 
@@ -70,6 +71,9 @@ def _get_metadata_from_openapi(paths: Dict, path: str):
 
     if description:
         metadata["description"] = description
+
+    if description:
+        metadata["requirements"] = requirements
 
     if not parameters:
         return metadata

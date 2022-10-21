@@ -4,7 +4,7 @@ from typing import Dict, Optional
 
 import requests
 
-from lightning_app.cli.commands.connection import _resolve_command_path
+from lightning_app.cli.commands.connection import _install_missing_requirements, _resolve_command_path
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
@@ -41,11 +41,14 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     # 2: Send the command from the user
     metadata = retriever.api_commands[command]
 
-    # 3: Execute the command
-    if metadata["tag"] == OpenAPITags.APP_COMMAND:
-        _handle_command_without_client(command, metadata, retriever.url)
-    else:
-        _handle_command_with_client(command, metadata, app_name, app_id, retriever.url)
+    try:
+        # 3: Execute the command
+        if metadata["tag"] == OpenAPITags.APP_COMMAND:
+            _handle_command_without_client(command, metadata, retriever.url)
+        else:
+            _handle_command_with_client(command, metadata, app_name, app_id, retriever.url)
+    except ModuleNotFoundError:
+        _install_missing_requirements(retriever, fail_if_missing=True)
 
     if sys.argv[-1] != "--help":
         print("Your command execution was successful.")
