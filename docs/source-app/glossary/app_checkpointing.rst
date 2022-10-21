@@ -1,8 +1,8 @@
 :orphan:
 
-#############
+############################
 Checkpointing (early access)
-#############
+############################
 
 Lightning app checkpointing makes it easy to start save the state of a lightning app and start it from a saved checkpoint.
 
@@ -22,13 +22,14 @@ How to save a checkpoint
 Saving a checkpoint is simple. In main flow if your lightning app, implement `should_save_checkpoint()` that returns True when you want to save a checkpoint.
 
 .. code-block:: python
-    import lightning as L
+
     class MyLightningApp(L.LightningFlow):
         def run(self):
             # do stuff
+            pass
 
-    def should_save_checkpoint(self):
-        return True
+        def should_save_checkpoint(self):
+            return True
 
 When `should_save_checkpoint()` returns True, Lightning will save the state of the app to a checkpoint file. The checkpoint file will be saved in lightning shared storage at `/checkpoints` and will be named `lightningapp_checkpoint_<timestamp>.json`.
 
@@ -43,16 +44,19 @@ To start from a checkpoint, use the `--checkpoint` argument when starting the ap
 
 
 .. code-block:: bash
+
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501626.json
 
 
 2. The name of the checkpoint file in lightning shared storage
 .. code-block:: bash
+
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501688
 
 
 3. keyword `latest` to start from the latest checkpoint file in lightning shared storage.
 .. code-block:: bash
+
     lightning run app app.py --checkpoint latest
 
 When starting from a checkpoint, Lightning will load the checkpoint file and start the app from the saved state and update all app components with the saved state.
@@ -70,8 +74,6 @@ To control how the checkpoint is loaded and create the missing components, imple
 
 
 .. code-block:: python
-
-    import lightning as L
 
     class Work(L.LightningWork):
         def __init__(self):
