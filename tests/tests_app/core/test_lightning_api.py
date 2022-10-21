@@ -74,7 +74,7 @@ class _A(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_state_api(runtime_cls):
     """This test validates the AppState can properly broadcast changes from work within its own process."""
-    app = LightningApp(_A())
+    app = LightningApp(_A(), debug=True)
     runtime_cls(app, start_server=True).dispatch()
     assert app.root.work_a.var_a == -1
     _set_work_context()
@@ -418,11 +418,9 @@ class FlowAPI(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
-        self.should_stop = False
 
     def run(self):
-        if self.counter == 500:
-            sleep(3)
+        if self.counter == 501:
             self._exit()
 
     def request(self, config: InputRequestModel) -> OutputRequestModel:
@@ -477,12 +475,20 @@ def test_configure_api():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     results = loop.run_until_complete(asyncio.gather(*coros))
-    assert time() - t0 < 10
+    response_time = time() - t0
+    print(f"RPS: {N/response_time}")
+    assert response_time < 10
     assert len(results) == N
     assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
 
+    # Stop the Application
+    try:
+        response = requests.post(url, json=InputRequestModel(index=0, name="hello").dict())
+    except Exception:
+        pass
+
     # Teardown
-    time_left = 15
+    time_left = 5
     while time_left > 0:
         if process.exitcode == 0:
             break
