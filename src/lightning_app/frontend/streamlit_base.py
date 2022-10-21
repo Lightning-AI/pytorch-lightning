@@ -10,8 +10,6 @@ from lightning_app.frontend.utils import _reduce_to_flow_scope
 from lightning_app.utilities.app_helpers import StreamLitStatePlugin
 from lightning_app.utilities.state import AppState
 
-app_state = AppState(plugin=StreamLitStatePlugin())
-
 
 def _get_render_fn_from_environment() -> Callable:
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
@@ -22,6 +20,8 @@ def _get_render_fn_from_environment() -> Callable:
 
 def main():
     """Run the render_fn with the current flow_state."""
+    app_state = AppState(plugin=StreamLitStatePlugin())
+
     # Fetch the information of which flow attaches to this streamlit instance
     flow_state = _reduce_to_flow_scope(app_state, flow=os.environ["LIGHTNING_FLOW_NAME"])
 
