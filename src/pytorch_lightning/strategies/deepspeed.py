@@ -559,7 +559,6 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
     def _initialize_deepspeed_inference(self, model: Module) -> None:
-        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
         assert isinstance(self.config, dict)
 
         # todo: this is required for DeepSpeed throughput timers
