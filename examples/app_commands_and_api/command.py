@@ -11,7 +11,7 @@ class CustomConfig(BaseModel):
 
 class CustomCommand(ClientCommand):
 
-    DESCRIPTION = "A command with a client."
+    description = "A command with a client."
 
     def run(self):
         parser = ArgumentParser()
