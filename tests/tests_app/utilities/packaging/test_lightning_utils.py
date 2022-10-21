@@ -8,19 +8,21 @@ from lightning_app.utilities.packaging import lightning_utils
 from lightning_app.utilities.packaging.lightning_utils import (
     _prepare_lightning_wheels_and_requirements,
     _verify_lightning_version,
+    get_dist_path_if_editable_install,
 )
 
 
 def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
 
-    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
-    from lightning.__version__ import version
+    if get_dist_path_if_editable_install("lightning"):
+        cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
+        from lightning.__version__ import version
 
-    tar_name = f"lightning-{version}.tar.gz"
-    assert sorted(os.listdir(tmpdir))[0] == tar_name
-    cleanup_handle()
-    assert os.listdir(tmpdir) == []
+        tar_name = f"lightning-{version}.tar.gz"
+        assert sorted(os.listdir(tmpdir))[0] == tar_name
+        cleanup_handle()
+        assert os.listdir(tmpdir) == []
 
 
 def _mocked_get_dist_path_if_editable_install(*args, **kwargs):
