@@ -55,7 +55,9 @@ jobs:
 
       - name: DocTests App
         working-directory: src
-        run: python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
+        run:
+          pip install pytest -q
+          python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
 
       - name: Get pip cache
         id: pip-cache
