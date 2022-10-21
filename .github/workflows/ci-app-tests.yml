@@ -19,7 +19,6 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 env:
-  PACKAGE_NAME: app
   FREEZE_REQUIREMENTS: 1
 
 jobs:
@@ -50,6 +49,8 @@ jobs:
         run: python .actions/assistant.py replace_oldest_ver
 
       - name: Install Lightning as top-level
+        env:
+          PACKAGE_NAME: app
         run: pip install -e .
         shell: bash
 
@@ -72,6 +73,9 @@ jobs:
           restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
 
       - name: Install dependencies
+        # TODO: drop this when we will be using regular releases for testing
+        env:
+          PACKAGE_NAME: pytorch
         run: |
           pip --version
           pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
