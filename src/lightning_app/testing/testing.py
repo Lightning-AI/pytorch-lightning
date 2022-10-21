@@ -458,11 +458,24 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             sleep(2)
 
 
+def _delete_lightning_app(client, project_id, app_id, app_name):
+    print(f"Deleting {app_name} id: {app_id}")
+    try:
+        res = client.lightningapp_instance_service_delete_lightningapp_instance(
+            project_id=project_id,
+            id=app_id,
+        )
+        assert res == {}
+    except ApiException as e:
+        print(f"Failed to delete {app_name}. Exception {e}")
+
+
 def delete_cloud_lightning_apps():
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.
     """
+    import datetime
 
     client = LightningClient()
 
@@ -483,12 +496,11 @@ def delete_cloud_lightning_apps():
     for lit_app in list_apps.lightningapps:
         if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
             continue
-        print(f"Deleting {lit_app.name}")
-        try:
-            res = client.lightningapp_instance_service_delete_lightningapp_instance(
-                project_id=project.project_id,
-                id=lit_app.id,
-            )
-            assert res == {}
-        except ApiException as e:
-            print(f"Failed to delete {lit_app.name}. Exception {e}")
+        _delete_lightning_app(client, project_id=project.project_id, app_id=lit_app.id, app_name=lit_app.name)
+
+    print(f"deleting apps that were created more than 1 hour ago.")
+
+    for lit_app in list_apps.lightningapps:
+
+        if lit_app.created_at < datetime.datetime.now(lit_app.created_at.tzinfo) - datetime.timedelta(hours=1):
+            _delete_lightning_app(client, project_id=project.project_id, app_id=lit_app.id, app_name=lit_app.name)
