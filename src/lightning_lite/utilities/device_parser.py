@@ -89,7 +89,7 @@ def parse_gpu_ids(
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
 
-    from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
+    from lightning_lite.plugins.environments.torchelastic import TorchElasticEnvironment
 
     if (
         TorchElasticEnvironment.detect()

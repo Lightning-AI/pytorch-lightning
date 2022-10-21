@@ -41,13 +41,13 @@ jobs:
     - name: Find changed packages
       id: candidate
       run: |
-        echo "::set-output name=pkgs::{include: $(python .actions/assistant.py determine-releasing-pkgs 2>&1)}"
+        echo "::set-output name=pkgs::{include: $(python .actions/assistant.py determine_releasing_pkgs 2>&1)}"
     - run: echo "${{ steps.candidate.outputs.pkgs }}"
 
     - name: Inverse packages to pull
       id: download
       run: |
-        echo "::set-output name=pkgs::{include: $(python .actions/assistant.py determine-releasing-pkgs --inverse 2>&1)}"
+        echo "::set-output name=pkgs::{include: $(python .actions/assistant.py determine_releasing_pkgs --inverse 2>&1)}"
     - run: echo "${{ steps.download.outputs.pkgs }}"
 
   # based on https://github.com/pypa/gh-action-pypi-publish
@@ -106,7 +106,7 @@ jobs:
     - name: Dowload package
       run: |
         pip install -q -r .actions/requirements.txt
-        python .actions/assistant.py download-package ${{ matrix.pkg }} --folder pypi
+        python .actions/assistant.py download_package --package ${{ matrix.pkg }} --folder pypi
 
     - uses: actions/upload-artifact@v3
       with:
@@ -148,7 +148,7 @@ jobs:
     - name: Miror source
       run: |
         pip install -q -r .actions/requirements.txt
-        python .actions/assistant.py mirror-pkg2source pypi src
+        python .actions/assistant.py mirror_pkg2source --pypi_folder pypi --src_folder src
         ls -R src/
 
     - name: Build packages

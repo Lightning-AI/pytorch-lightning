@@ -271,9 +271,9 @@ def _configure_external_callbacks() -> List[Callback]:
         from importlib.metadata import entry_points
 
         if _PYTHON_GREATER_EQUAL_3_10_0:
-            factories = entry_points(group=group)  # type: ignore[call-arg]
+            factories = entry_points(group=group)
         else:
-            factories = entry_points().get(group, {})  # type: ignore[assignment]
+            factories = entry_points().get(group, {})  # type: ignore[arg-type]
     else:
         from pkg_resources import iter_entry_points
 

@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.12.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.15.2")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -78,9 +78,6 @@ class LightningArgumentParser(ArgumentParser):
                 f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}. Try `pip install -U 'jsonargparse[signatures]'`."
             )
         super().__init__(*args, **kwargs)
-        self.add_argument(
-            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
-        )
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
@@ -390,7 +387,11 @@ class LightningCLI:
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
         kwargs.setdefault("dump_header", [f"pytorch_lightning=={pl.__version__}"])
-        return LightningArgumentParser(**kwargs)
+        parser = LightningArgumentParser(**kwargs)
+        parser.add_argument(
+            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
+        )
+        return parser
 
     def setup_parser(
         self, add_subcommands: bool, main_kwargs: Dict[str, Any], subparser_kwargs: Dict[str, Any]
@@ -471,11 +472,13 @@ class LightningCLI:
         )
         # register all subcommands in separate subcommand parsers under the main parser
         for subcommand in self.subcommands():
-            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
-            self._subcommand_parsers[subcommand] = subcommand_parser
             fn = getattr(trainer_class, subcommand)
             # extract the first line description in the docstring for the subcommand help message
             description = _get_short_description(fn)
+            subparser_kwargs = kwargs.get(subcommand, {})
+            subparser_kwargs.setdefault("description", description)
+            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **subparser_kwargs)
+            self._subcommand_parsers[subcommand] = subcommand_parser
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
     def _prepare_subcommand_parser(self, klass: Type, subcommand: str, **kwargs: Any) -> LightningArgumentParser:

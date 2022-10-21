@@ -29,6 +29,7 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
+      - ".actions/**"
     checks:
       # Note: updates here should be applied to the lightning_lite group
       - "pl-cpu (ubuntu-20.04, 3.7, 1.9, oldest)"
@@ -92,7 +93,7 @@ subprojects:
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
-      - ".azure/gpu-tests.yml"
+      - ".azure/gpu-tests-pytorch.yml"
       - "tests/tests_pytorch/run_standalone_*.sh"
     checks:
       - "pytorch-lightning (GPUs)"
@@ -129,6 +130,7 @@ subprojects:
       - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - "setup.py"
+      - ".actions/**"
     checks:
       - "build-cuda (3.8, 1.9, 11.1.1)"
       - "build-cuda (3.9, 1.10, 11.3.1)"
@@ -150,8 +152,8 @@ subprojects:
     paths:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
+      - ".actions/**"
     checks:
       - "lite-cpu (macOS-11, 3.10, latest, stable)"
       - "lite-cpu (macOS-11, 3.7, latest, stable)"
@@ -190,10 +192,26 @@ subprojects:
       - "pl-slow (windows-2022, 3.7, 1.11)"
       #- "test-on-tpus"
 
+  - id: "lightning_lite: Tests"
+    paths:
+      - "tests/tests_lite/**"
+    checks:
+      - "lite-cpu (macOS-11, 3.10, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, latest, stable)"
+      - "lite-cpu (macOS-11, 3.7, oldest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.10, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, latest, stable)"
+      - "lite-cpu (ubuntu-20.04, 3.7, oldest, stable)"
+      - "lite-cpu (windows-2022, 3.10, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, latest, stable)"
+      - "lite-cpu (windows-2022, 3.7, oldest, stable)"
+      - "lightning-lite (GPUs)"
+
   - id: "lightning_lite: Azure GPU"
     paths:
       - ".azure/gpu-tests-lite.yml"
       - "tests/tests_lite/run_standalone_*.sh"
+      - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
     checks:
       - "lightning-lite (GPUs)"
 
@@ -207,6 +225,7 @@ subprojects:
       - "tests/tests_app_examples/**"
       # the examples are used in the app CI
       - "examples/app_*"
+      - ".actions/**"
     checks:
       - "App.cloud-e2e"
       - "make-doctest (app)"
@@ -251,7 +270,7 @@ subprojects:
 
   - id: "install"
     paths:
-      - ".actions/setup_tools.py"
+      - ".actions/**"
       - ".github/workflows/ci-pkg-install.yml"
       - "setup.py"
       - "src/lightning/**"

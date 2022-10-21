@@ -228,6 +228,31 @@ def test_lightning_cli_args(tmpdir):
     assert loaded_config["trainer"] == cli_config["trainer"]
 
 
+def test_lightning_env_parse(tmpdir):
+    out = StringIO()
+    with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(BoringModel, BoringDataModule, env_parse=True)
+    out = out.getvalue()
+    assert "PL_FIT__CONFIG" in out
+    assert "PL_FIT__SEED_EVERYTHING" in out
+    assert "PL_FIT__TRAINER__LOGGER" in out
+    assert "PL_FIT__DATA__DATA_DIR" in out
+    assert "PL_FIT__CKPT_PATH" in out
+
+    env_vars = {
+        "PL_FIT__DATA__DATA_DIR": str(tmpdir),
+        "PL_FIT__TRAINER__DEFAULT_ROOT_DIR": str(tmpdir),
+        "PL_FIT__TRAINER__MAX_EPOCHS": "1",
+        "PL_FIT__TRAINER__LOGGER": "false",
+    }
+    with mock.patch.dict(os.environ, env_vars), mock.patch("sys.argv", ["", "fit"]):
+        cli = LightningCLI(BoringModel, BoringDataModule, env_parse=True)
+    assert cli.config.fit.data.data_dir == str(tmpdir)
+    assert cli.config.fit.trainer.default_root_dir == str(tmpdir)
+    assert cli.config.fit.trainer.max_epochs == 1
+    assert cli.config.fit.trainer.logger is False
+
+
 def test_lightning_cli_save_config_cases(tmpdir):
 
     config_path = tmpdir / "config.yaml"
