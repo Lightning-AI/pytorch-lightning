@@ -5,6 +5,8 @@ set -e
 
 LEGACY_PATH=$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )
 ENV_PATH=$LEGACY_PATH/vEnv
+echo LEGACY_PATH: $LEGACY_PATH
+echo ENV_PATH: $ENV_PATH
 
 # iterate over all arguments assuming that each argument is version
 for pl_ver in "$@"
@@ -17,7 +19,7 @@ do
   source $ENV_PATH/bin/activate
 
   # there are problem to load ckpt in older versions since they are saved the newer versions
-  python -m pip install pytorch_lightning==$pl_ver torch torchmetrics scikit-learn --quiet
+  python -m pip install pytorch_lightning==$pl_ver -r requirements.txt
 
   python --version
   python -m pip --version
@@ -32,3 +34,19 @@ do
   deactivate
   rm -rf $ENV_PATH
 done
+
+# use the PL installed in the environment if no PL version is specified
+if [[ -z "$@" ]]; then
+  pl_ver=$(python -c "import pytorch_lightning as pl; print(pl.__version__)")
+  python --version
+  python -m pip --version
+  python -m pip list | grep -e torch -e learn
+
+  pip install -r requirements.txt
+
+  python $LEGACY_PATH/simple_classif_training.py  # > /dev/null 2>&1
+
+  cp $LEGACY_PATH/simple_classif_training.py $LEGACY_PATH/checkpoints/$pl_ver
+  mv $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
+  rm -rf $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs
+fi

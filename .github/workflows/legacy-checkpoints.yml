@@ -65,6 +65,7 @@ jobs:
         pip install -U setuptools wheel
         python setup.py sdist bdist_wheel
         ls -lh dist/
+        pip list
 
     - name: Install the released package
       # if: github.event_name == 'release'
@@ -72,6 +73,7 @@ jobs:
       run: |
         ls -lh dist/
         pip install dist/*.whl
+        pip list
 
     - name: Generate checkpoints
       run: |
