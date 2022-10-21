@@ -3,8 +3,6 @@ from pathlib import Path
 
 import lightning_cloud.env
 
-import lightning_app
-
 
 def get_lightning_cloud_url() -> str:
     # DO NOT CHANGE!
@@ -39,7 +37,7 @@ HTTP_QUEUE_REFRESH_INTERVAL = float(os.getenv("LIGHTNING_HTTP_QUEUE_REFRESH_INTE
 HTTP_QUEUE_TOKEN = os.getenv("LIGHTNING_HTTP_QUEUE_TOKEN", None)
 
 USER_ID = os.getenv("USER_ID", "1234")
-FRONTEND_DIR = os.path.join(os.path.dirname(lightning_app.__file__), "ui")
+FRONTEND_DIR = str(Path(__file__).parent.parent / "ui")
 PACKAGE_LIGHTNING = os.getenv("PACKAGE_LIGHTNING", None)
 CLOUD_UPLOAD_WARNING = int(os.getenv("CLOUD_UPLOAD_WARNING", "2"))
 DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
