@@ -267,6 +267,8 @@ def _install_missing_requirements(
 
 
 def _clean_lightning_connection():
+    if not os.path.exists(_LIGHTNING_CONNECTION):
+        return
     for ppid in os.listdir(_LIGHTNING_CONNECTION):
         try:
             psutil.Process(int(ppid))
