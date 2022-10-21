@@ -123,8 +123,8 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
 
 
 def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
-    It will be overwritten by the loop's state if it was also saved.
+    """Set the `global_step` value for checkpoints before v1.6 without the progress tracking state. It will be
+    overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
     Commit:
@@ -142,8 +142,8 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
 
 
 def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
-    It will be overwritten by the loop's state if it was also saved.
+    """Set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state. It will be
+    overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
     Commit:
