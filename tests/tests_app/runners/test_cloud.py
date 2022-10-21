@@ -673,7 +673,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
         monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work._cloud_compute, "preemptible", False)
         monkeypatch.setattr(work._cloud_compute, "mounts", mocked_mount)
         monkeypatch.setattr(work, "_port", 8080)
 
@@ -741,7 +740,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, preemptible=False, shm_size=0
+                                name="default", count=1, disk_size=0, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                         ),
