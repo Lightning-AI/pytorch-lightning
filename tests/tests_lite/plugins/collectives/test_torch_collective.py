@@ -1,5 +1,7 @@
+import contextlib
 import datetime
 import os
+import sys
 from functools import partial
 from unittest import mock
 
@@ -7,12 +9,12 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators import CPUAccelerator
+from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning_lite.plugins.collectives import TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 
 if TorchCollective.is_available():
     from torch.distributed import ReduceOp
@@ -27,20 +29,22 @@ PASSED_TENSOR = mock.Mock()
 PASSED_OBJECT = mock.Mock()
 
 
-@pytest.fixture(autouse=True)
+@contextlib.contextmanager
 def check_destroy_group():
     with mock.patch(
-        "lightning_lite.plugins.collectives.torch_.TorchCollective.new_group",
+        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
     ) as mock_new, mock.patch(
-        "lightning_lite.plugins.collectives.torch_.TorchCollective.destroy_group",
+        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.destroy_group",
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield
-        assert (
-            mock_new.call_count == mock_destroy.call_count
-        ), "new_group and destroy_group should be called the same number of times"
+    # 0 to account for tests that mock distributed
+    # -1 to account for destroying the default process group
+    expected = 0 if mock_new.call_count == 0 else mock_destroy.call_count - 1
+    assert mock_new.call_count == expected, f"new_group={mock_new.call_count}, destroy_group={mock_destroy.call_count}"
     if TorchCollective.is_available():
+        assert not torch.distributed.distributed_c10d._pg_map
         assert not TorchCollective.is_initialized()
 
 
@@ -133,12 +137,19 @@ def test_convert_ops():
         assert TorchCollective._convert_to_native_op("avg") == ReduceOp.AVG
 
     # Test invalid type
-    with pytest.raises(ValueError, match="op 1 should be a `str` or `Red"):
+    with pytest.raises(ValueError, match="Unsupported op 1 of type int"):
         TorchCollective._convert_to_native_op(1)
 
     # Test invalid string
     with pytest.raises(ValueError, match="op 'INVALID' is not a member of `Red"):
         TorchCollective._convert_to_native_op("invalid")
+
+    # Test RedOpType
+    if _TORCH_GREATER_EQUAL_1_13:
+        assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.AVG
+        op = torch.distributed._make_nccl_premul_sum(2.0)  # this returns a ReduceOp
+        assert TorchCollective._convert_to_native_op(op) == ReduceOp.PREMUL_SUM
+        assert TorchCollective._convert_to_native_op("premul_sum") == ReduceOp.PREMUL_SUM
 
 
 @skip_distributed_unavailable
@@ -159,11 +170,13 @@ def test_repeated_create_and_destroy():
 
     with mock.patch("torch.distributed.destroy_process_group") as destroy_mock:
         collective.teardown()
+    # this would be called twice if `init_process_group` wasn't patched. once for the group and once for the default
+    # group
     destroy_mock.assert_called_once()
 
     assert not os.environ
 
-    with pytest.raises(RuntimeError, match="TorchCollective` does not own a group to destroy"):
+    with pytest.raises(RuntimeError, match="TorchCollective` does not own a group"):
         collective.teardown()
     destroy_mock.assert_called_once_with(new_mock.return_value)
     assert collective._group is None
@@ -174,24 +187,30 @@ def test_repeated_create_and_destroy():
 
 
 def collective_launch(fn, parallel_devices, num_groups=1):
+    device_to_accelerator = {"cuda": CUDAAccelerator, "cpu": CPUAccelerator}
+    accelerator_cls = device_to_accelerator[parallel_devices[0].type]
     strategy = DDPSpawnStrategy(
-        accelerator=CPUAccelerator(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collectives = [TorchCollective() for _ in range(num_groups)]
-    wrapped = partial(wrap_launch_function, fn, strategy, collectives[0])
+    wrapped = partial(wrap_launch_function, fn, strategy, collectives)
     return launcher.launch(wrapped, strategy, *collectives)
 
 
-def wrap_launch_function(fn, strategy, collective, *args, **kwargs):
+def wrap_launch_function(fn, strategy, collectives, *args, **kwargs):
     strategy._set_world_ranks()
-    collective.setup(
+    collectives[0].setup(  # only one needs to setup
         world_size=strategy.num_processes,
         main_address="localhost",
-        backend="gloo",
+        backend=strategy._get_process_group_backend(),
         rank=strategy.global_rank,
     )
-    return fn(*args, **kwargs)
+    with check_destroy_group():  # manually use the fixture for the assertions
+        fn(*args, **kwargs)
+        # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
+        for c in collectives:
+            c.teardown()
 
 
 def _test_distributed_collectives_fn(strategy, collective):
@@ -212,11 +231,9 @@ def _test_distributed_collectives_fn(strategy, collective):
 
     # all_reduce
     this = torch.tensor(strategy.global_rank + 1)
-    out = collective.all_reduce(this, op="min")
+    out = collective.all_reduce(this, op=ReduceOp.MIN)
     expected = torch.tensor(1)
     torch.testing.assert_close(out, expected)
-
-    collective.teardown()
 
 
 @skip_distributed_unavailable
@@ -225,21 +242,37 @@ def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 
 
+def _test_distributed_collectives_cuda_fn(strategy, collective):
+    collective.create_group()
+
+    this = torch.tensor(1.5, device=strategy.root_device)
+    premul_sum = torch.distributed._make_nccl_premul_sum(2.0)
+    out = collective.all_reduce(this, op=premul_sum)
+    assert out == 3
+
+
+@skip_distributed_unavailable
+@RunIf(min_cuda_gpus=1, min_torch="1.13")
+def test_collectives_distributed_cuda():
+    collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
+
+
 def _test_two_groups(strategy, left_collective, right_collective):
     left_collective.create_group(ranks=[0, 1])
     right_collective.create_group(ranks=[1, 2])
 
+    tensor = torch.tensor(strategy.global_rank)
     if strategy.global_rank in (0, 1):
-        tensor = torch.tensor(strategy.global_rank)
-        left_collective.all_reduce(tensor)
+        tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
-    right_collective.barrier()
-    if right_collective.rank >= 0:
-        tensor = torch.tensor(strategy.global_rank)
-        right_collective.all_reduce(tensor)
+    right_collective.barrier()  # avoids deadlock for global rank 1
+    if strategy.global_rank in (1, 2):
+        tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
 
 
 @skip_distributed_unavailable
 def test_two_groups():
+    if sys.platform == "win32" and (sys.version_info.major, sys.version_info.minor) == (3, 10):
+        pytest.skip("Unresolved hang")
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
