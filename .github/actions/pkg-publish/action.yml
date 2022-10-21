@@ -15,8 +15,7 @@ runs:
 
   - name: filter packages
     run: |
-      ls -l
-      cp pypi/${{ inputs.pkg-pattern }} pypi/
+      mv dist/${{ inputs.pkg-pattern }} pypi/
       ls -l pypi/
     shell: bash
 
@@ -38,7 +37,5 @@ runs:
 #      packages_dir: pypi/
 
   - name: filter packages
-    run: |
-      rm pypi/${{ inputs.pkg-pattern }}
-      rm pypi/*
+    run: rm pypi/*
     shell: bash
