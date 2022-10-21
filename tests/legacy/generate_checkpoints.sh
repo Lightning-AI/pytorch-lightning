@@ -1,6 +1,9 @@
 #!/bin/bash
-# Sample call:
-#  bash generate_checkpoints.sh 1.0.2 1.0.3 1.0.4
+# Usage:
+# 1. Generate checkpoints with one or more specified PL versions:
+#    bash generate_checkpoints.sh 1.0.2 1.0.3 1.0.4
+# 2. Generate checkpoints with the PL version installed in your environment:
+#    bash generate_checkpoints.sh
 set -e
 
 LEGACY_PATH=$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )
