@@ -15,7 +15,7 @@ runs:
 
   - name: filter packages
     run: |
-      mv pypi/${{ inputs.pkg-pattern }} pypi/
+      cp pypi/${{ inputs.pkg-pattern }} pypi/
       ls -l pypi/
     shell: bash
 
@@ -28,13 +28,16 @@ runs:
   #    repository_url: https://test.pypi.org/legacy/
   #    verbose: true
 
-  - name: Publish distribution 📦 to PyPI
-    uses: pypa/gh-action-pypi-publish@v1.5.1
-    with:
-      user: __token__
-      password: ${{ inputs.pypi-token }}
-      packages_dir: pypi/
+#FIXME
+#  - name: Publish distribution 📦 to PyPI
+#    uses: pypa/gh-action-pypi-publish@v1.5.1
+#    with:
+#      user: __token__
+#      password: ${{ inputs.pypi-token }}
+#      packages_dir: pypi/
 
   - name: filter packages
-    run: rm pypi/*
+    run: |
+      rm pypi/${{ inputs.pkg-pattern }}
+      rm pypi/*
     shell: bash
