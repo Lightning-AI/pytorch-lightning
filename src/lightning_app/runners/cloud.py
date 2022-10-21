@@ -285,8 +285,8 @@ class CloudRuntime(Runtime):
                 if existing_instance.spec.cluster_id != cluster_id:
                     raise ValueError(
                         f"Can not start app '{name}' on cluster '{cluster_id}' "
-                        f"since app already exists on '{existing_instance.spec.cluster_id}'. "
-                        "To run this app on another cluster, give it another name with the --name flag"
+                        f"since this app already exists on '{existing_instance.spec.cluster_id}'. "
+                        "To run it on another cluster, give it a new name with the --name option."
                     )
 
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
