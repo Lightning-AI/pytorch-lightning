@@ -61,7 +61,7 @@ jobs:
         name: dist-packages-${{ github.sha }}
         path: dist
 
-  upload-packagea:
+  upload-packages:
     runs-on: ubuntu-20.04
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
