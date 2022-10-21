@@ -5,8 +5,15 @@ on:
     branches: [ci/fix-legacy-checkpoints]
 
 jobs:
-  check:
+  specify-no-version:
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
-      push_to_s3: true
+      push_to_s3: false
+    secrets: inherit
+
+  specify-pl-version:
+    uses: ./.github/workflows/legacy-checkpoints.yml
+    with:
+      push_to_s3: false
+      pl_version: 1.7.2 1.1.1
     secrets: inherit
