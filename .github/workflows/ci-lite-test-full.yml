@@ -103,7 +103,7 @@ jobs:
       shell: bash
 
     - name: Adjust tests
-      if: ${{ matrix.pkg-name != '' }}
+      if: ${{ matrix.pkg-name == '' }}
       run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
 
     - name: Testing Warnings

@@ -90,7 +90,7 @@ jobs:
         run: npm install -g yarn
 
     - name: Adjust tests
-      if: ${{ matrix.pkg-name != '' }}
+      if: ${{ matrix.pkg-name == '' }}
       run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
       - name: Tests

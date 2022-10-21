@@ -163,7 +163,7 @@ jobs:
         python requirements/pytorch/check-avail-extras.py
 
     - name: Adjust tests
-      if: ${{ matrix.pkg-name != '' }}
+      if: ${{ matrix.pkg-name == '' }}
       run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
 
     - name: Testing Warnings
