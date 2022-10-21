@@ -62,6 +62,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
       - run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+        shell: bash
 
       - name: Install package
         env:
@@ -89,9 +90,9 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-    - name: Adjust tests
-      if: ${{ matrix.pkg-name == '' }}
-      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+      - name: Adjust tests
+        if: ${{ matrix.pkg-name == '' }}
+        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
       - name: Tests
         working-directory: ./tests
