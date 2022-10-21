@@ -52,7 +52,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-1
 
-    - name: Install the released package
+    - name: Install PL from source
       working-directory: ./
       env:
         PACKAGE_NAME: pytorch
