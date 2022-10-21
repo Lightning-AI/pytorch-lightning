@@ -159,7 +159,11 @@ class LightningLite(ABC):
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
-        model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
+        if optimizers:
+            model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
+        else:
+            model = self._strategy.setup_module(model)
+
         model = _LiteModule(model, self._precision, original_module=original_model)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
@@ -175,6 +179,21 @@ class LightningLite(ABC):
         return model
 
     def setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
+        """Set up a model for accelerated training or inference.
+
+        This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
+        strategies like `FSDP` that require setting up the module before the optimizer can be created and set up.
+        See also :meth:`setup_optimizers`.
+
+        Args:
+            model: A model to set up
+            move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
+                and alternatively use :meth:`to_device` manually.
+
+        Returns:
+            The wrapped model.
+        """
+        self._validate_setup_model(model)
         original_model = model
 
         model = self._precision.convert_module(model)
@@ -193,6 +212,18 @@ class LightningLite(ABC):
         return model
 
     def setup_optimizers(self, *optimizers: Optimizer) -> Union[_LiteOptimizer, Tuple[_LiteOptimizer, ...]]:
+        """Set up one or more optimizers for accelerated training.
+
+        Some strategies do not allow setting up model and optimizer independently. For them, you should call
+        ``.setup(model, optimizer, ...)`` instead to jointly set them up.
+
+        Args:
+            *optimizers: One or more optmizers to set up.
+
+        Returns:
+            The wrapped model.
+        """
+        self._validate_setup_optimizers(optimizers)
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
@@ -515,9 +546,25 @@ class LightningLite(ABC):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
     @staticmethod
+    def _validate_setup_model(model: nn.Module) -> None:
+        if isinstance(model, _LiteModule):
+            raise ValueError("A model should be passed only once to the `setup_model` method.")
+
+    @staticmethod
+    def _validate_setup_optimizers(optimizers: Sequence[Optimizer]) -> None:
+        if not optimizers:
+            raise ValueError("`setup_optimizers` requires at least one optimizer as input.")
+
+        if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
+            raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
+
+    @staticmethod
     def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
+        if not dataloaders:
+            raise ValueError("`setup_dataloaders` requires at least one dataloader as input.")
+
         if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
-            raise ValueError("A dataloader should be passed only once to the `setup_dataloaders` method")
+            raise ValueError("A dataloader should be passed only once to the `setup_dataloaders` method.")
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
