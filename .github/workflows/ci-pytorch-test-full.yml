@@ -15,7 +15,6 @@ on:
       - ".github/workflows/ci-pytorch-test-full.yml"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "tests/tests_lite/**"
       - ".actions/**"
 
 concurrency:
