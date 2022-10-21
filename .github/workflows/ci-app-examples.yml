@@ -41,14 +41,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # TODO: use replace_oldest_ver() instead
+      - name: basic setup
+        run: pip install -q -r .actions/requirements.txt
+
       - name: Set min. dependencies
-        if: matrix.requires == 'oldest'
-        run: |
-          for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
-              req = open(fpath).read().replace('>=', '==')
-              open(fpath, 'w').write(req)
-        shell: python
+        if: ${{ matrix.requires == 'oldest' }}
+        run: python .actions/assistant.py replace_oldest_ver
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -80,7 +78,7 @@ jobs:
         run: npm install -g yarn
 
       - name: Install Lightning as top-level
-        run: pip install -e . -r requirements/app/base.txt
+        run: pip install -e .
         shell: bash
 
       - name: Tests
