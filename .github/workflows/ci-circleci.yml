@@ -8,6 +8,7 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
+      - ".actions/**"
   # should use `pull_request_target` but it's blocked by
   # https://github.com/CircleCI-Public/trigger-circleci-pipeline-action/issues/27
   # so this job will not run on forks until the above is fixed or we replace CircleCI for another provider
@@ -20,6 +21,7 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
+      - ".actions/**"
 
 jobs:
   # https://github.com/marketplace/actions/trigger-circleci-pipeline
@@ -30,3 +32,5 @@ jobs:
       - uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.5
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
+        with:
+          GHA_Meta: ${{ github.event.pull_request.number }}

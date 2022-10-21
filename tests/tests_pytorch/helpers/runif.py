@@ -20,10 +20,13 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.accelerators.mps import MPSAccelerator
+from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
+from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
@@ -35,7 +38,6 @@ from pytorch_lightning.utilities.imports import (
     _PSUTIL_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
-    _TPU_AVAILABLE,
 )
 
 _HOROVOD_NCCL_AVAILABLE = False
@@ -85,6 +87,7 @@ class RunIf:
         omegaconf: bool = False,
         slow: bool = False,
         bagua: bool = False,
+        colossalai: bool = False,
         psutil: bool = False,
         hivemind: bool = False,
         **kwargs,
@@ -124,7 +127,7 @@ class RunIf:
         reasons = []
 
         if min_cuda_gpus:
-            conditions.append(torch.cuda.device_count() < min_cuda_gpus)
+            conditions.append(num_cuda_devices() < min_cuda_gpus)
             reasons.append(f"GPUs>={min_cuda_gpus}")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["min_cuda_gpus"] = True
@@ -152,6 +155,7 @@ class RunIf:
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
+            kwargs["amp_apex"] = amp_apex
 
         if bf16_cuda:
             try:
@@ -172,7 +176,7 @@ class RunIf:
             reasons.append("unimplemented on Windows")
 
         if tpu:
-            conditions.append(not _TPU_AVAILABLE)
+            conditions.append(not TPUAccelerator.is_available())
             reasons.append("TPU")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["tpu"] = True
@@ -240,6 +244,10 @@ class RunIf:
         if bagua:
             conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
+
+        if colossalai:
+            conditions.append(not _COLOSSALAI_AVAILABLE)
+            reasons.append("ColossalAI")
 
         if psutil:
             conditions.append(not _PSUTIL_AVAILABLE)

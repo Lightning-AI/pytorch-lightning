@@ -14,6 +14,7 @@ on:
       - "examples/app_*"
       - "requirements/app/**"
       - "setup.py"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -49,10 +50,6 @@ jobs:
               open(fpath, 'w').write(req)
         shell: python
 
-      - run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-        if: matrix.requires == 'latest'
-        id: times
-
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Get pip cache
@@ -64,8 +61,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-td${{ steps.times.outputs.period }}-
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
 
       - name: Install dependencies
         run: |
@@ -115,7 +112,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
-          flags: unittests
+          flags: cpu,pytest,app,examples
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false

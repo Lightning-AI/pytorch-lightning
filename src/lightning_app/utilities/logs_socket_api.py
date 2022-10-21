@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from lightning_cloud.openapi import ApiClient, AuthServiceApi, V1LoginRequest
 from websocket import WebSocketApp
 
-from lightning.app.core import constants
+from lightning_app.core import constants
 from lightning_app.utilities.login import Auth
 
 

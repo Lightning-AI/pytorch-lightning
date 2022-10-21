@@ -4,20 +4,24 @@ import os
 import os.path as osp
 import shutil
 import sys
+import traceback
 from getpass import getuser
 from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import requests
+from fastapi import HTTPException
 from pydantic import BaseModel
 
 from lightning_app.api.http_methods import Post
-from lightning_app.api.request_types import APIRequest, CommandRequest
-from lightning_app.utilities.app_helpers import is_overridden
+from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
+from lightning_app.utilities.app_helpers import is_overridden, Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import AppState
+
+logger = Logger(__name__)
 
 
 def makedirs(path: str):
@@ -31,13 +35,15 @@ def makedirs(path: str):
 
 class ClientCommand:
 
-    DESCRIPTION = ""
+    description: str = ""
+    requirements: List[str] = []
 
-    def __init__(self, method: Callable, requirements: Optional[List[str]] = None) -> None:
+    def __init__(self, method: Callable):
         self.method = method
-        flow = getattr(method, "__self__", None)
+        if not self.description:
+            self.description = self.method.__doc__ or ""
+        flow = getattr(self.method, "__self__", None)
         self.owner = flow.name if flow else None
-        self.requirements = requirements
         self.models: Optional[Dict[str, BaseModel]] = None
         self.app_url = None
         self._state = None
@@ -63,7 +69,14 @@ class ClientCommand:
     def invoke_handler(self, config: Optional[BaseModel] = None) -> Dict[str, Any]:
         command = self.command_name.replace(" ", "_")
         resp = requests.post(self.app_url + f"/command/{command}", data=config.json() if config else None)
-        assert resp.status_code == 200, resp.json()
+        if resp.status_code != 200:
+            try:
+                detail = str(resp.json())
+            except Exception:
+                detail = "Internal Server Error"
+            print(f"Failed with status code {resp.status_code}. Detail: {detail}")
+            sys.exit(0)
+
         return resp.json()
 
     def _to_dict(self):
@@ -111,7 +124,7 @@ def _download_command(
     mod = module_from_spec(spec)
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
-    command = getattr(mod, cls_name)(method=None, requirements=[])
+    command = getattr(mod, cls_name)(method=None)
     if tmpdir and os.path.exists(tmpdir):
         shutil.rmtree(tmpdir)
     return command
@@ -193,7 +206,14 @@ def _prepare_commands(app) -> List:
 def _process_api_request(app, request: APIRequest) -> None:
     flow = app.get_component_by_name(request.name)
     method = getattr(flow, request.method_name)
-    response = method(*request.args, **request.kwargs)
+    try:
+        response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+    except HTTPException as e:
+        logger.error(repr(e))
+        response = RequestResponse(status_code=e.status_code, content=e.detail)
+    except Exception:
+        logger.error(traceback.print_exc())
+        response = RequestResponse(status_code=500)
     app.api_response_queue.put({"response": response, "id": request.id})
 
 
@@ -204,7 +224,14 @@ def _process_command_requests(app, request: CommandRequest) -> None:
             if request.method_name == command_name:
                 # 2.1: Evaluate the method associated to a specific command.
                 # Validation is done on the CLI side.
-                response = method(*request.args, **request.kwargs)
+                try:
+                    response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+                except HTTPException as e:
+                    logger.error(repr(e))
+                    response = RequestResponse(status_code=e.status_code, content=e.detail)
+                except Exception:
+                    logger.error(traceback.print_exc())
+                    response = RequestResponse(status_code=500)
                 app.api_response_queue.put({"response": response, "id": request.id})
 
 
@@ -218,11 +245,18 @@ def _process_requests(app, request: Union[APIRequest, CommandRequest]) -> None:
 
 def _collect_open_api_extras(command) -> Dict:
     if not isinstance(command, ClientCommand):
+        if command.__doc__ is not None:
+            return {"description": command.__doc__}
         return {}
-    return {
+
+    extras = {
         "cls_path": inspect.getfile(command.__class__),
         "cls_name": command.__class__.__name__,
+        "description": command.description,
     }
+    if command.requirements:
+        extras.update({"requirements": command.requirements})
+    return extras
 
 
 def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) -> List:

@@ -1334,9 +1334,9 @@ def get_unique_name():
 
     Examples
     --------
-    >>> get_unique_name()
+    >>> get_unique_name()  # doctest: +SKIP
     'focused-turing-23'
-    >>> get_unique_name()
+    >>> get_unique_name()  # doctest: +SKIP
     'thirsty-allen-9200'
     """
     adjective, surname, i = choice(_adjectives), choice(_surnames), randint(0, 9999)

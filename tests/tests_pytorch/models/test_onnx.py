@@ -20,7 +20,6 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
@@ -93,8 +92,6 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
 @RunIf(min_cuda_gpus=2)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
-    tutils.set_random_main_port()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,

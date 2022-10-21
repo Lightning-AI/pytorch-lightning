@@ -18,7 +18,6 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.utils import reset_seed
 
 
 class ModelWithManualGradTracker(BoringModel):
@@ -59,8 +58,6 @@ class ModelWithManualGradTracker(BoringModel):
 @pytest.mark.parametrize("norm_type", [1.0, 1.25, 2, 3, 5, 10, "inf"])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     # rtol=5e-3 respects the 3 decimals rounding in `.grad_norms` and above
-    reset_seed()
-
     class TestModel(ModelWithManualGradTracker):
         logged_metrics = []
 

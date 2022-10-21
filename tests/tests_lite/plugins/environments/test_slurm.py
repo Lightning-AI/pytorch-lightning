@@ -13,11 +13,15 @@
 # limitations under the License.
 import logging
 import os
+import sys
 from unittest import mock
 
 import pytest
+from tests_lite.helpers.runif import RunIf
+from tests_lite.helpers.utils import no_warning_call
 
 from lightning_lite.plugins.environments import SLURMEnvironment
+from lightning_lite.utilities.warnings import PossibleUserWarning
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -47,6 +51,7 @@ def test_default_attributes():
         "SLURM_NODELIST": "1.1.1.1, 1.1.1.2",
         "SLURM_JOB_ID": "0001234",
         "SLURM_NTASKS": "20",
+        "SLURM_NTASKS_PER_NODE": "10",
         "SLURM_LOCALID": "2",
         "SLURM_PROCID": "1",
         "SLURM_NODEID": "3",
@@ -81,7 +86,19 @@ def test_attributes_from_environment_variables(caplog):
 
 @pytest.mark.parametrize(
     "slurm_node_list,expected",
-    [("alpha,beta,gamma", "alpha"), ("alpha beta gamma", "alpha"), ("1.2.3.[100-110]", "1.2.3.100")],
+    [
+        ("127.0.0.1", "127.0.0.1"),
+        ("alpha", "alpha"),
+        ("alpha,beta,gamma", "alpha"),
+        ("alpha beta gamma", "alpha"),
+        ("1.2.3.[100-110]", "1.2.3.100"),
+        ("1.2.3.[089, 100-110]", "1.2.3.089"),
+        ("host[22]", "host22"),
+        ("host[1,5-9]", "host1"),
+        ("host[5-9,1]", "host5"),
+        ("alpha, host[5-9], gamma", "alpha"),
+        ("alpha[3,1], beta", "alpha3"),
+    ],
 )
 def test_main_address_from_slurm_node_list(slurm_node_list, expected):
     """Test extracting the main node from different formats for the SLURM_NODELIST."""
@@ -100,3 +117,32 @@ def test_detect():
 
     with mock.patch.dict(os.environ, {"SLURM_JOB_NAME": "bash"}):
         assert not SLURMEnvironment.detect()
+
+
+@RunIf(skip_windows=True)
+def test_srun_available_and_not_used(monkeypatch):
+    """Test that a warning is emitted if Lightning suspects the user forgot to run their script with `srun`."""
+    monkeypatch.setattr(sys, "argv", ["train.py", "--lr", "0.01"])
+    expected = "`srun` .* available .* but is not used. HINT: .* srun python train.py --lr 0.01"
+
+    # pretend `srun` is available
+    with mock.patch("lightning_lite.plugins.environments.slurm.subprocess.call", return_value=0):
+        with pytest.warns(PossibleUserWarning, match=expected):
+            SLURMEnvironment()
+
+        with pytest.warns(PossibleUserWarning, match=expected):
+            SLURMEnvironment.detect()
+
+    # no warning if `srun` is unavailable
+    with no_warning_call(PossibleUserWarning, match=expected):
+        SLURMEnvironment()
+        assert not SLURMEnvironment.detect()
+
+
+def test_srun_variable_validation():
+    """Test that we raise useful errors when `srun` variables are misconfigured."""
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "1"}):
+        SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
+        with pytest.raises(RuntimeError, match="You set `--ntasks=2` in your SLURM"):
+            SLURMEnvironment()

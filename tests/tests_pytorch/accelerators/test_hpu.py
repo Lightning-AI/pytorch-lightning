@@ -47,7 +47,7 @@ def test_device_name():
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus():
-    with pytest.raises(MisconfigurationException, match="HPUAccelerator can not run on your system"):
+    with pytest.raises(MisconfigurationException, match="HPUAccelerator` can not run on your system"):
         Trainer(accelerator="hpu", devices=1)
 
 

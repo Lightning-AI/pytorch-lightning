@@ -22,12 +22,12 @@ from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.plugins.precision.utils import _fp_to_half
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
@@ -130,7 +130,7 @@ class IPUStrategy(ParallelStrategy):
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
         trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer_fn == TrainerFn.FITTING:
             # Create model for training and validation which will run on fit
             training_opts = self.training_opts
             inference_opts = self.inference_opts
