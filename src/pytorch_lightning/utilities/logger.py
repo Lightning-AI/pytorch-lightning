@@ -86,13 +86,12 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
         {'a/b': 123}
         >>> _flatten_dict({5: {'a': 123}})
         {'5/a': 123}
-        >>> _flatten_dict({'a': 1, 'c': {'a': 2,'b': {'x': 5, 'y' : 10}}, 'd': [1, 2, 3]}, delimiter="_")
-        {'a': 1, 'c_a': 2, 'c_b_x': 5, 'c_b_y': 10, 'd': [1, 2, 3]}
     """
-    # credit: https://stackoverflow.com/a/6027615
     result: Dict[str, Any] = {}
     for k, v in params.items():
         new_key = parent_key + delimiter + str(k) if parent_key else str(k)
+        if isinstance(v, Namespace):
+            v = vars(v)
         if isinstance(v, MutableMapping):
             result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
         else:
