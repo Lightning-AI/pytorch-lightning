@@ -1,3 +1,5 @@
+import pytest
+
 from lightning_app import CloudCompute
 from lightning_app.storage import Mount
 
