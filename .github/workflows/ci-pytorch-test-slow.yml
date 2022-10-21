@@ -15,7 +15,7 @@ on:
       - "setup.cfg"  # includes pytest config
       - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "tests/tests_lite/**"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
