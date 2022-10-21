@@ -432,5 +432,5 @@ def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDri
             ),
             status=V1DriveStatus(),
         ),
-        mount_location=str(mount.root_dir),
+        mount_location=str(mount.mount_path),
     )
