@@ -491,8 +491,6 @@ def delete_cloud_lightning_apps():
     project = _get_project(client)
     list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-    print([lit_app.name for lit_app in list_apps.lightningapps])
-
     for lit_app in list_apps.lightningapps:
         if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
             continue
