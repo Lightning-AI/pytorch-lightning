@@ -83,6 +83,7 @@ class MultiProcessRuntime(Runtime):
                     api_delta_queue=self.app.api_delta_queue,
                     has_started_queue=has_started_queue,
                     spec=extract_metadata_from_app(self.app),
+                    root_path=self.app.root_path,
                 )
                 server_proc = multiprocessing.Process(target=start_server, kwargs=kwargs)
                 self.processes["server"] = server_proc

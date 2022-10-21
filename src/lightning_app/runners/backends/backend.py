@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, TYPE_CHECKING
 
 import lightning_app
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.utilities.proxies import ProxyWorkRun, unwrap
+
+if TYPE_CHECKING:
+    from lightning_app import LightningApp
 
 
 class Backend(ABC):
@@ -78,7 +81,7 @@ class Backend(ABC):
 
         work.run = partial(self._dynamic_run_wrapper, app=app, work=work, work_run=unwrap(work.run))
 
-    def _prepare_queues(self, app):
+    def _prepare_queues(self, app: "LightningApp"):
         kw = dict(queue_id=self.queue_id)
         app.delta_queue = self.queues.get_delta_queue(**kw)
         app.readiness_queue = self.queues.get_readiness_queue(**kw)

@@ -725,3 +725,35 @@ the data is written to disk.
     self.barrier()
 
     # All processes are allowed to read the data now
+
+
+no_backward_sync
+================
+
+Use this context manager when performing gradient accumulation and using a distributed strategy (e.g., DDP).
+It will speed up your training loop by cutting redundant communication between processes during the accumulation phase.
+
+.. code-block:: python
+
+    # Accumulate gradient 8 batches at a time
+    is_accumulating = batch_idx % 8 != 0
+
+    with self.no_backward_sync(model, enabled=is_accumulating):
+        output = model(input)
+        loss = ...
+        self.backward(loss)
+        ...
+
+    # Step the optimizer every 8 batches
+    if not is_accumulating:
+        optimizer.step()
+        optimizer.zero_grad()
+
+Both the model's `.forward()` and the `self.backward()` call need to run under this context as shown in the example above.
+For single-device strategies, it is a no-op. There are strategies that don't support this:
+
+- deepspeed
+- dp
+- xla
+
+For these, the context manager falls back to a no-op and emits a warning.

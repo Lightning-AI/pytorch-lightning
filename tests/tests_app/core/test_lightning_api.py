@@ -1,14 +1,18 @@
+import asyncio
 import logging
 import multiprocessing as mp
 import os
+import sys
 from copy import deepcopy
 from multiprocessing import Process
-from time import sleep
+from time import sleep, time
 from unittest import mock
 
+import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
+from fastapi import HTTPException
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -359,6 +363,7 @@ def test_start_server_started():
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
         port=1111,
+        root_path="",
     )
 
     server_proc = mp.Process(target=start_server, kwargs=kwargs)
@@ -385,6 +390,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
         api_response_queue=api_response_queue,
+        root_path="test",
     )
 
     monkeypatch.setattr(api, "logger", logging.getLogger())
@@ -395,10 +401,11 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     assert "Your app has started. View it in your browser: http://0.0.0.1:1111/view" in caplog.text
 
     ui_refresher.assert_called_once()
-    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY)
+    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY, root_path="test")
 
 
 class InputRequestModel(BaseModel):
+    index: int
     name: str
 
 
@@ -411,14 +418,17 @@ class FlowAPI(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
+        self.should_stop = False
 
     def run(self):
-        if self.counter == 2:
-            sleep(0.5)
+        if self.counter == 500:
+            sleep(3)
             self._exit()
 
     def request(self, config: InputRequestModel) -> OutputRequestModel:
         self.counter += 1
+        if config.index % 5 == 0:
+            raise HTTPException(status_code=400, detail="HERE")
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
@@ -430,6 +440,13 @@ def target():
     MultiProcessRuntime(app).dispatch()
 
 
+async def async_request(url: str, data: InputRequestModel):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=data.dict()) as result:
+            return await result.json()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Issue with Windows")
 def test_configure_api():
     # Setup
     process = Process(target=target)
@@ -449,15 +466,20 @@ def test_configure_api():
     response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
     assert response.json() == "Successfully uploaded 'test' to the Drive"
 
-    # Test Custom Request
-    response = requests.post(
-        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
-    )
-    assert response.json() == {"name": "hello", "counter": 1}
-    response = requests.post(
-        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
-    )
-    assert response.json() == {"name": "hello", "counter": 2}
+    url = f"http://localhost:{APP_SERVER_PORT}/api/v1/request"
+
+    N = 500
+    coros = []
+    for index in range(N):
+        coros.append(async_request(url, InputRequestModel(index=index, name="hello")))
+
+    t0 = time()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    results = loop.run_until_complete(asyncio.gather(*coros))
+    assert time() - t0 < 10
+    assert len(results) == N
+    assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
 
     # Teardown
     time_left = 15

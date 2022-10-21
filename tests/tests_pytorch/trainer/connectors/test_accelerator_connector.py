@@ -92,6 +92,7 @@ def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -128,6 +129,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -195,6 +197,7 @@ def test_custom_accelerator(cuda_count_0):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -473,6 +476,7 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
         {
             "CUDA_VISIBLE_DEVICES": "0,1",
             "SLURM_NTASKS": "2",
+            "SLURM_NTASKS_PER_NODE": "1",
             "SLURM_JOB_NAME": job_name,
             "SLURM_NODEID": "0",
             "SLURM_PROCID": "1",
@@ -575,6 +579,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -787,3 +792,11 @@ def test_accelerator_specific_checkpoint_io(*_):
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         Trainer(strategy=strategy)
+
+
+@pytest.mark.parametrize(
+    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
+)
+def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
+    trainer = Trainer(strategy=strategy)
+    assert isinstance(trainer.strategy, strategy_cls)
