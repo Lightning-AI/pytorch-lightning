@@ -4,7 +4,11 @@ from typing import Dict, Optional
 
 import requests
 
-from lightning_app.cli.commands.connection import _install_missing_requirements, _resolve_command_path
+from lightning_app.cli.commands.connection import (
+    _clean_lightning_connection,
+    _install_missing_requirements,
+    _resolve_command_path,
+)
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
@@ -13,6 +17,8 @@ from lightning_app.utilities.enum import OpenAPITags
 def _run_app_command(app_name: str, app_id: Optional[str]):
     """Execute a function in a running App from its name."""
     # 1: Collect the url and comments from the running application
+    _clean_lightning_connection()
+
     running_help = sys.argv[-1] == "--help"
 
     retriever = _LightningAppOpenAPIRetriever(app_id, use_cache=running_help)
