@@ -55,7 +55,7 @@ jobs:
 
       - name: DocTests App
         working-directory: src
-        run:
+        run: |
           pip install pytest -q
           python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
 
