@@ -1,3 +1,4 @@
+:orphan:
 
 ***************************
 Customize my Flow resources
@@ -17,7 +18,7 @@ a :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute` to your
 Here is the full list of supported machine names:
 
 .. list-table:: Hardware by Accelerator Type
-   :widths: 25 25 25 25
+   :widths: 25 25 25
    :header-rows: 1
 
    * - Name
