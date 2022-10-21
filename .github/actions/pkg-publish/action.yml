@@ -15,6 +15,7 @@ runs:
 
   - name: filter packages
     run: |
+      ls -l
       cp pypi/${{ inputs.pkg-pattern }} pypi/
       ls -l pypi/
     shell: bash
