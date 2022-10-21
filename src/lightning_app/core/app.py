@@ -90,6 +90,8 @@ class LightningApp:
 
         self.root_path = root_path  # when running behind a proxy
 
+        import lightning_app
+
         if isinstance(root, lightning_app.LightningWork):
             root = lightning_app.core.flow._RootFlow(root)
 
