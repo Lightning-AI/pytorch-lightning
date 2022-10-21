@@ -91,19 +91,6 @@ jobs:
       if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
-
-    - name: Get pip cache dir
-      id: pip-cache
-      run: echo "::set-output name=dir::$(pip cache dir)"
-
-    - name: pip cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
-
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
@@ -125,8 +112,23 @@ jobs:
       shell: bash
 
     - name: DocTests PL
+      # todo: run docstest laos on mono-package
+      if: ${{ matrix.pkg-name != '' }}
       working-directory: ./src
       run: python -m pytest pytorch_lightning
+
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
+
+    - name: pip cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
+
 
     - name: Install dependencies
       run: |

@@ -48,6 +48,22 @@ jobs:
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
         run: python .actions/assistant.py replace_oldest_ver
+      - run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
+        run: |
+          pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+          pip list
+        shell: bash
+
+      - name: DocTests App
+        # todo: run docstest laos on mono-package
+        if: ${{ matrix.pkg-name != '' }}
+        working-directory: src
+        run: python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
 
       - name: Get pip cache
         id: pip-cache
@@ -61,20 +77,6 @@ jobs:
           key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
           restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
-      - run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Install package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
-        run: |
-          pip install -e . pytest --upgrade --find-links ${TORCH_URL}
-          pip list
-        shell: bash
-
-      - name: DocTests App
-        working-directory: src
-        run: python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
 
       - name: Install dependencies
         run: |
