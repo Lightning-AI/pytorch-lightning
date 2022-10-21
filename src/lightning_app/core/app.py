@@ -20,11 +20,9 @@ from lightning_app.core.constants import (
     FRONTEND_DIR,
     STATE_ACCUMULATE_WAIT,
 )
-from lightning_app.core.flow import _RootFlow, LightningFlow
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
-from lightning_app.runners.runtime import Runtime
 from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities import frontend
@@ -40,7 +38,7 @@ from lightning_app.utilities.tree import breadth_first
 from lightning_app.utilities.warnings import LightningFlowWarning
 
 if t.TYPE_CHECKING:
-    from lightning_app.runners.backends.backend import Backend, WorkManager
+    import lightning_app
 
 logger = Logger(__name__)
 
@@ -48,7 +46,7 @@ logger = Logger(__name__)
 class LightningApp:
     def __init__(
         self,
-        root: "t.Union[LightningFlow, LightningWork]",
+        root: "t.Union[lightning_app.LightningFlow, lightning_app.LightningWork]",
         debug: bool = False,
         info: frontend.AppInfo = None,
         root_path: str = "",
@@ -92,6 +90,8 @@ class LightningApp:
 
         self.root_path = root_path  # when running behind a proxy
 
+        from lightning_app.core.flow import _RootFlow
+
         if isinstance(root, LightningWork):
             root = _RootFlow(root)
 
@@ -115,9 +115,9 @@ class LightningApp:
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
-        self.backend: t.Optional[Backend] = None
+        self.backend: t.Optional["lightning_app.runners.backends.backend.Backend"] = None
         _LightningAppRef.connect(self)
-        self.processes: t.Dict[str, WorkManager] = {}
+        self.processes: t.Dict[str, "lightning_app.runners.backends.backend.WorkManager"] = {}
         self.frontends: t.Dict[str, Frontend] = {}
         self.stage = AppStage.RUNNING
         self._has_updated: bool = True
@@ -274,17 +274,17 @@ class LightningApp:
             self.stage = AppStage.FAILED
 
     @property
-    def flows(self) -> t.List["LightningFlow"]:
+    def flows(self) -> t.List["lightning_app.LightningFlow"]:
         """Returns all the flows defined within this application."""
         return [self.root] + self.root.get_all_children()
 
     @property
-    def works(self) -> t.List["LightningWork"]:
+    def works(self) -> t.List["lightning_app.LightningWork"]:
         """Returns all the works defined within this application."""
         return self.root.works(recurse=True)
 
     @property
-    def named_works(self) -> t.List[t.Tuple[str, "LightningWork"]]:
+    def named_works(self) -> t.List[t.Tuple[str, "lightning_app.LightningWork"]]:
         """Returns all the works defined within this application with their names."""
         return self.root.named_works(recurse=True)
 
@@ -577,7 +577,7 @@ class LightningApp:
             pickle.dump(self.state_dict(), f)
         return checkpoint_path
 
-    def connect(self, runtime: Runtime) -> None:
+    def connect(self, runtime: "lightning_app.runners.runtime.Runtime") -> None:
         """Override to customize your application to the runtime."""
         pass
 
