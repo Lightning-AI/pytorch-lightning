@@ -112,7 +112,7 @@ def pydantic_column_type(pydantic_type: Any) -> Any:
 
 
 @functools.lru_cache
-def get_primary_key(model_type: Type[SQLModel]) -> str:
+def get_primary_key(model_type: Type["SQLModel"]) -> str:
     primary_keys = sqlalchemy_inspect(model_type).primary_key
 
     if len(primary_keys) != 1:
@@ -162,7 +162,7 @@ class _SelectAll:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            cls: Type[SQLModel] = self.models[data["cls_name"]]
+            cls: Type["SQLModel"] = self.models[data["cls_name"]]
             statement = select(cls)
             results = session.exec(statement)
             return results.all()
@@ -179,7 +179,7 @@ class _Insert:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            ele: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
+            ele: Type["SQLModel"] = self.models[data["cls_name"]].parse_raw(data["data"])
             session.add(ele)
             session.commit()
             session.refresh(ele)
@@ -197,7 +197,7 @@ class _Update:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            update_data: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
+            update_data: Type["SQLModel"] = self.models[data["cls_name"]].parse_raw(data["data"])
             primary_key = get_primary_key(update_data.__class__)
             identifier = getattr(update_data.__class__, primary_key, None)
             statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
@@ -224,7 +224,7 @@ class _Delete:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            update_data: SQLModel = self.models[data["cls_name"]].parse_raw(data["data"])
+            update_data: Type["SQLModel"] = self.models[data["cls_name"]].parse_raw(data["data"])
             primary_key = get_primary_key(update_data.__class__)
             identifier = getattr(update_data.__class__, primary_key, None)
             statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
