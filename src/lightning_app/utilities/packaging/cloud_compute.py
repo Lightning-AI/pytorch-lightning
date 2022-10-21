@@ -1,8 +1,9 @@
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from lightning_app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
+from lightning_app.storage.mount import Mount
 
 __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
 
@@ -47,7 +48,8 @@ _CLOUD_COMPUTE_STORE = {}
 
 @dataclass
 class CloudCompute:
-    """
+    """Configure the cloud runtime for a lightning work or flow.
+
     Arguments:
         name: The name of the hardware to use. A full list of supported options can be found in
             :doc:`/core_api/lightning_work/compute`. If you have a request for more hardware options, please contact
@@ -77,6 +79,8 @@ class CloudCompute:
 
         shm_size: Shared memory size in MiB, backed by RAM. min 512, max 8192, it will auto update in steps of 512.
             For example 1100 will become 1024. If set to zero (the default) will get the default 64MiB inside docker.
+
+        mounts: External data sources which should be mounted into a work as a filesystem at runtime.
     """
 
     name: str = "default"
@@ -86,9 +90,12 @@ class CloudCompute:
     wait_timeout: Optional[int] = None
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = 0
+    mounts: Optional[Union[Mount, List[Mount]]] = None
     _internal_id: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        _verify_mount_root_dirs_are_unique(self.mounts)
+
         if self.clusters:
             raise ValueError("Clusters are't supported yet. Coming soon.")
         if self.wait_timeout:
@@ -100,12 +107,28 @@ class CloudCompute:
         if self._internal_id is None:
             self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        _verify_mount_root_dirs_are_unique(self.mounts)
         return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> "CloudCompute":
         assert d.pop("type") == __CLOUD_COMPUTE_IDENTIFIER__
+        mounts = d.pop("mounts", None)
+        if mounts is None:
+            pass
+        elif isinstance(mounts, dict):
+            d["mounts"] = Mount(**mounts)
+        elif isinstance(mounts, (list)):
+            d["mounts"] = []
+            for mount in mounts:
+                d["mounts"].append(Mount(**mount))
+        else:
+            raise TypeError(
+                f"mounts argument must be one of [None, Mount, List[Mount]], "
+                f"received {mounts} of type {type(mounts)}"
+            )
+        _verify_mount_root_dirs_are_unique(d.get("mounts", None))
         return cls(**d)
 
     @property
@@ -114,6 +137,13 @@ class CloudCompute:
 
     def is_default(self) -> bool:
         return self.name == "default"
+
+
+def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], Tuple[Mount]]) -> None:
+    if isinstance(mounts, (list, tuple, set)):
+        mount_paths = [mount.mount_path for mount in mounts]
+        if len(set(mount_paths)) != len(mount_paths):
+            raise ValueError("Every Mount attached to a work must have a unique 'mount_path' argument.")
 
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:

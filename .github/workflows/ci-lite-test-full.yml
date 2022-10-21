@@ -13,6 +13,7 @@ on:
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-test-full.yml"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -38,6 +39,8 @@ jobs:
           # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
           - {python-version: "3.10", requires: "oldest"}
+        include:
+          - {os: ubuntu-22.04, python-version: "3.10", release: "pre"}
 
     timeout-minutes: 40
 
@@ -57,7 +60,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .actions/assistant.py requirements_prune_pkgs horovod
+        python .actions/assistant.py requirements_prune_pkgs  "--packages=[horovod]"
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
@@ -80,9 +83,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -e .[test] --upgrade --find-links "https://download.pytorch.org/whl/${url}"
         pip list
       shell: bash
 
