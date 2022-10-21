@@ -15,10 +15,11 @@ def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
 
     cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
-    from lightning.__version__ import version
+    from lightning_app.__version__ import version
 
-    tar_name = f"lightning-{version}.tar.gz"
-    assert sorted(os.listdir(tmpdir))[0] == tar_name
+    tar_name = f"lightning-app-{version}.tar.gz"
+    loaded_files = sorted(os.listdir(tmpdir))
+    assert loaded_files[0] == tar_name
     cleanup_handle()
     assert os.listdir(tmpdir) == []
 

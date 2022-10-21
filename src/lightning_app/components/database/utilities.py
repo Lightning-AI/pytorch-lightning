@@ -179,7 +179,7 @@ class _Insert:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            ele: Type["SQLModel"] = self.models[data["cls_name"]].parse_raw(data["data"])
+            ele = self.models[data["cls_name"]].parse_raw(data["data"])
             session.add(ele)
             session.commit()
             session.refresh(ele)
@@ -197,7 +197,7 @@ class _Update:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            update_data: Type["SQLModel"] = self.models[data["cls_name"]].parse_raw(data["data"])
+            update_data = self.models[data["cls_name"]].parse_raw(data["data"])
             primary_key = get_primary_key(update_data.__class__)
             identifier = getattr(update_data.__class__, primary_key, None)
             statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
@@ -224,7 +224,7 @@ class _Delete:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            update_data: Type["SQLModel"] = self.models[data["cls_name"]].parse_raw(data["data"])
+            update_data = self.models[data["cls_name"]].parse_raw(data["data"])
             primary_key = get_primary_key(update_data.__class__)
             identifier = getattr(update_data.__class__, primary_key, None)
             statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
@@ -237,7 +237,7 @@ class _Delete:
 def _create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool = False):
     global engine
 
-    from sqlmodel import create_engine, SQLModel
+    from sqlmodel import create_engine
 
     engine = create_engine(f"sqlite:///{pathlib.Path(db_filename).resolve()}", echo=echo)
 

@@ -59,7 +59,7 @@ jobs:
         shell: bash
 
       - name: DocTests App
-        # todo: run docstest laos on mono-package
+        # todo: run doctest laos on mono-package
         if: ${{ matrix.pkg-name != '' }}
         working-directory: src
         run: python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
@@ -78,6 +78,8 @@ jobs:
 
 
       - name: Install dependencies
+        env:  # TODO: drop this when we will be using regular releases for testing
+            PACKAGE_NAME: pytorch
         run: |
           pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
           pip list
@@ -103,7 +105,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source lightning_app -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source lightning_app -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
