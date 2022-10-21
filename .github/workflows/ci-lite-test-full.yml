@@ -67,13 +67,12 @@ jobs:
       if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
-    - run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
-      shell: bash
 
     - name: Install package
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
+        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
         pip install -e . pytest --upgrade --find-links ${TORCH_URL}
         pip list
       shell: bash
