@@ -51,7 +51,7 @@ class StorageOrchestrator(Thread):
         self.waiting_for_response: Dict[str, str] = {}
         self._validate_queues()
         self._exit_event = threading.Event()
-        self._sleep_time = 5
+        self._sleep_time = 2
         self.fs = filesystem()
 
     def _validate_queues(self):
