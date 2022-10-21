@@ -70,12 +70,12 @@ logger = Logger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_response_queue, sleep: float = 0.1) -> None:
+    def __init__(self, api_publish_state_queue, api_response_queue, refresh_interval: float = 0.1) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
         self.api_response_queue = api_response_queue
         self._exit_event = Event()
-        self.sleep = sleep
+        self.refresh_interval = refresh_interval
 
     def run(self):
         # TODO: Create multiple threads to handle the background logic
@@ -84,7 +84,7 @@ class UIRefresher(Thread):
             while not self._exit_event.is_set():
                 self.run_once()
                 # Note: Sleep to reduce queue calls.
-                sleep(self.sleep)
+                sleep(self.refresh_interval)
         except Exception as e:
             logger.error(traceback.print_exc())
             raise e
