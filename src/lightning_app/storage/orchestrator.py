@@ -126,6 +126,7 @@ class StorageOrchestrator(Thread):
                     # The Work is running, and we can send a request to the copier for moving the file to the
                     # shared storage
                     self.copy_request_queues[request.source].put(request)
+                    # Store a destination to source mapping.
                     self.waiting_for_response[work_name] = request.source
                 else:
                     if isinstance(request, GetRequest):
@@ -151,6 +152,9 @@ class StorageOrchestrator(Thread):
                     response_queue = self.response_queues[response.destination]
                     response_queue.put(response)
 
+        # Check the current work is within the sources.
+        # It is possible to have multiple destination targeting
+        # the same source concurrently.
         if work_name in self.waiting_for_response.values():
 
             # check if the current work has responses for file transfers to other works.
