@@ -129,7 +129,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-
     - name: Install dependencies
       run: |
         pip install -r requirements/pytorch/devel.txt --upgrade --find-links ${TORCH_URL}
@@ -162,7 +161,7 @@ jobs:
 
     - name: Sanity check
       run: |
-        python -c "import torch; assert torch.__version__.startswith('${{ matrix.pytorch-version }}')"
+        python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
         python requirements/pytorch/check-avail-extras.py
 
     - name: Adjust tests

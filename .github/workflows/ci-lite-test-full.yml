@@ -41,7 +41,7 @@ jobs:
           - {python-version: "3.9", requires: "oldest"}
           - {python-version: "3.10", requires: "oldest"}
         include:
-          - {os: ubuntu-22.04, python-version: "3.10", release: "pre"}
+          - {os: ubuntu-22.04,  python-version: "3.10", release: "pre", pkg-name: "lite"}
 
     timeout-minutes: 40
 
