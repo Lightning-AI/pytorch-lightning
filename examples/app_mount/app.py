@@ -23,7 +23,7 @@ class Flow(L.LightningFlow):
             cloud_compute=CloudCompute(
                 mounts=Mount(
                     source="s3://ryft-public-sample-data/esRedditJson/",
-                    root_dir="/content/esRedditJson/",
+                    mount_path="/content/esRedditJson/",
                 ),
             )
         )

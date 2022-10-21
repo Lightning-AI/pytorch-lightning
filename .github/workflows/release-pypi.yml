@@ -106,7 +106,7 @@ jobs:
     - name: Dowload package
       run: |
         pip install -q -r .actions/requirements.txt
-        python .actions/assistant.py download_package ${{ matrix.pkg }} --folder pypi
+        python .actions/assistant.py download_package --package ${{ matrix.pkg }} --folder pypi
 
     - uses: actions/upload-artifact@v3
       with:
@@ -148,7 +148,7 @@ jobs:
     - name: Miror source
       run: |
         pip install -q -r .actions/requirements.txt
-        python .actions/assistant.py mirror_pkg2source pypi src
+        python .actions/assistant.py mirror_pkg2source --pypi_folder pypi --src_folder src
         ls -R src/
 
     - name: Build packages

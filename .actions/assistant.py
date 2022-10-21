@@ -230,4 +230,4 @@ class AssistantCLI:
 
 
 if __name__ == "__main__":
-    jsonargparse.CLI(AssistantCLI)
+    jsonargparse.CLI(AssistantCLI, as_positional=False)

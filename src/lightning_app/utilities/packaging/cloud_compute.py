@@ -141,9 +141,9 @@ class CloudCompute:
 
 def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], Tuple[Mount]]) -> None:
     if isinstance(mounts, (list, tuple, set)):
-        root_dirs = [mount.root_dir for mount in mounts]
-        if len(set(root_dirs)) != len(root_dirs):
-            raise ValueError("Every Mount attached to a work must have a unique 'root_dir' argument.")
+        mount_paths = [mount.mount_path for mount in mounts]
+        if len(set(mount_paths)) != len(mount_paths):
+            raise ValueError("Every Mount attached to a work must have a unique 'mount_path' argument.")
 
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
