@@ -8,7 +8,7 @@ import pytest
 import requests
 from pydantic import BaseModel
 
-from lightning import LightningFlow
+lit_appimport LightningFlow
 from lightning_app import LightningApp
 from lightning_app.cli.commands.connection import connect, disconnect
 from lightning_app.cli.lightning_cli import _run_app_command

@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from lightning import CloudCompute
+from lightning_app import CloudCompute
 from lightning_app import LightningFlow, structures
 from lightning_app.components.python import TracerPythonScript
 from lightning_app.storage.path import Path
@@ -125,7 +125,7 @@ class LightningTrainingComponent(LightningFlow):
 
         Example::
 
-            from lightning import LightningApp
+            from lightning_app import LightningApp
             from lightning_app.components.training import LightningTrainingComponent
             from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
