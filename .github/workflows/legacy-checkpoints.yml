@@ -62,6 +62,7 @@ jobs:
       if: inputs.pl_version == ''
 
     - name: Pull legacy checkpoints
+      working-directory: ./
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Generate checkpoints
