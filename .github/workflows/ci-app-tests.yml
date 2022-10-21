@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 env:
-  PACKAGE_NAME: lite
+  PACKAGE_NAME: app
   FREEZE_REQUIREMENTS: 1
 
 jobs:
