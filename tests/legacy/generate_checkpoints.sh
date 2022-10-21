@@ -41,6 +41,7 @@ done
 # use the PL installed in the environment if no PL version is specified
 if [[ -z "$@" ]]; then
   pl_ver=$(python -c "import pytorch_lightning as pl; print(pl.__version__)")
+	echo processing version: $pl_ver
 
   pip install -r $LEGACY_PATH/requirements.txt
 
