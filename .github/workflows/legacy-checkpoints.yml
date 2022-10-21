@@ -4,24 +4,24 @@ on:
   workflow_dispatch:
     inputs:
       push_to_s3:
-        description: 'Push generated checkpoints to S3'
+        description: 'Push generated checkpoints to S3.'
         default: false
         required: false
         type: boolean
       pl_version:
-        description: 'PL version to generate a legacy checkpoint with.'
+        description: 'PL version to generate a legacy checkpoint with. If not provided, uses PL from source.'
         default: ''
         required: false
         type: string
   workflow_call:
     inputs:
       push_to_s3:
-        description: 'Push generated checkpoints to S3'
+        description: 'Push generated checkpoints to S3.'
         default: false
         required: false
         type: boolean
       pl_version:
-        description: 'PL version to generate a legacy checkpoint with.'
+        description: 'PL version to generate a legacy checkpoint with. If not provided, uses PL from source.'
         default: ''
         required: false
         type: string
