@@ -100,7 +100,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-
     - name: Install package & dependencies
       run: |
         pip install -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
@@ -136,6 +135,7 @@ jobs:
       run: |
         coverage report
         coverage xml
+      shell: bash
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
