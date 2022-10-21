@@ -83,6 +83,8 @@ def get_dist_path_if_editable_install(project_name) -> str:
     """Is distribution an editable install - modified version from pip that
     fetches egg-info instead of egg-link"""
     for path_item in sys.path:
+        if not os.path.isdir(path_item):
+            continue
         egg_info = os.path.join(path_item, project_name + ".egg-info")
         if os.path.isdir(egg_info):
             return path_item
@@ -96,7 +98,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
     For normal users who install via PyPi or Conda, then this function does not do anything.
     """
 
-    if not get_dist_path_if_editable_install("lightning_app"):
+    if not get_dist_path_if_editable_install("lightning-app"):
         return
 
     # Packaging the Lightning codebase happens only inside the `lightning` repo.
