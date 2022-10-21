@@ -37,15 +37,6 @@ def test_single_device_ranks(device):
     assert strategy.is_global_zero
 
 
-def test_single_device_collectives():
-    """Test that collectives in the single-device strategy act as the identity."""
-    strategy = SingleDeviceStrategy()
-    tensor = Mock()
-    assert strategy.all_gather(tensor) == tensor
-    assert strategy.reduce(tensor) == tensor
-    assert strategy.broadcast(tensor) == tensor
-
-
 def test_single_device_module_to_device():
     strategy = SingleDeviceStrategy()
     strategy._root_device = Mock()
