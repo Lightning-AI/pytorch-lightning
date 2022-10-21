@@ -768,3 +768,15 @@ class LightningFlow:
         Returns: True if the flow should save a checkpoint. False otherwise.
         """
         return False
+
+
+class _RootFlow(LightningFlow):
+    def __init__(self, work):
+        super().__init__()
+        self.work = work
+
+    def run(self):
+        self.work.run()
+
+    def configure_layout(self):
+        return [{"name": "Main", "content": self.work}]

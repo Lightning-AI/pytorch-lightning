@@ -666,7 +666,7 @@ class TestAppCreationClient:
 
         mocked_mount = MagicMock(spec=Mount)
         setattr(mocked_mount, "source", "s3://foo/")
-        setattr(mocked_mount, "root_dir", "/content/")
+        setattr(mocked_mount, "mount_path", "/content/foo")
         setattr(mocked_mount, "protocol", "s3://")
 
         work = WorkWithSingleDrive()
@@ -741,7 +741,7 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location="/content/",
+                                    mount_location="/content/foo",
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
