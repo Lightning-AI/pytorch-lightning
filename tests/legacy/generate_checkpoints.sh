@@ -43,7 +43,7 @@ if [[ -z "$@" ]]; then
   pl_ver=$(python -c "import pytorch_lightning as pl; print(pl.__version__)")
 	echo processing version: $pl_ver
 
-  pip install -r $LEGACY_PATH/requirements.txt
+  python -m pip install -r $LEGACY_PATH/requirements.txt
 
   python --version
   python -m pip --version
