@@ -3,16 +3,18 @@ import pathlib
 import pickle
 from abc import ABC, abstractmethod
 from time import sleep
-from typing import Any, Optional, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 
 from lightning_app.core.queues import BaseQueue
-from lightning_app.core.work import LightningWork
 from lightning_app.storage.path import filesystem, Path, shared_storage_path
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
 
 _logger = Logger(__name__)
+
+if TYPE_CHECKING:
+    from lightning_app.core.work import LightningWork
 
 
 class BasePayload(ABC):
