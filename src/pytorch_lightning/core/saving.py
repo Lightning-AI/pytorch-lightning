@@ -31,7 +31,7 @@ from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
 from pytorch_lightning.utilities.parsing import AttributeDict, parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -156,6 +156,9 @@ def _load_from_checkpoint(
     with pl_legacy_patch():
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
+    # convert legacy checkpoints to the new format
+    checkpoint = migrate_checkpoint(checkpoint)
+
     if hparams_file is not None:
         extension = str(hparams_file).split(".")[-1]
         if extension.lower() == "csv":
@@ -168,6 +171,7 @@ def _load_from_checkpoint(
         # overwrite hparams by the given file
         checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
 
+    # TODO: make this a migration:
     # for past checkpoint need to add the new key
     checkpoint.setdefault(cls.CHECKPOINT_HYPER_PARAMS_KEY, {})
     # override the hparams with values that were passed in
@@ -197,6 +201,7 @@ def _load_state(
     if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
 
         if issubclass(cls, pl.LightningModule):
+            # TODO: make this a migration:
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
             for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
                 cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
