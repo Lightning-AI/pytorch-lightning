@@ -61,6 +61,9 @@ jobs:
         pip list
       if: inputs.pl_version == ''
 
+    - name: Pull legacy checkpoints
+      run: bash .actions/pull_legacy_checkpoints.sh
+
     - name: Generate checkpoints
       run: |
         bash generate_checkpoints.sh ${{ inputs.pl_version }}
