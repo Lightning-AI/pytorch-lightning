@@ -1,7 +1,7 @@
 import os
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from lightning import CloudCompute
+from lightning_app import CloudCompute
 from lightning_app import LightningFlow, structures
 from lightning_app.components.python import TracerPythonScript
 from lightning_app.storage.path import Path
