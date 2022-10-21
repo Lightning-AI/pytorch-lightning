@@ -82,7 +82,8 @@ jobs:
   publish-packages:
     runs-on: ubuntu-20.04
     needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+# FIXME
+#    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
