@@ -87,7 +87,8 @@ jobs:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e .[test] --upgrade --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -e . -r requirements/lite/devel.txt \
+          --upgrade --find-links "https://download.pytorch.org/whl/${url}"
         pip list
       shell: bash
 
