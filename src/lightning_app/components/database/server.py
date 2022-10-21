@@ -55,7 +55,7 @@ class Database(LightningWork):
             from sqlmodel import SQLModel, Field
             from uuid import uuid4
 
-            from lightning import LightningFlow, LightningApp
+            from lightning_app import LightningFlow, LightningApp
             from lightning_app.components.database import Database, DatabaseClient
 
             class CounterModel(SQLModel, table=True):
