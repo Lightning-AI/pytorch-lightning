@@ -17,8 +17,8 @@ from shutil import copyfile
 
 import torch
 
-from pytorch_lightning.utilities.migration.base import pl_legacy_patch
-from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
+from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration import migrate_checkpoint
 
 log = logging.getLogger(__name__)
 
