@@ -82,19 +82,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Install package & dependencies
+    - run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + 'test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" >> $GITHUB_ENV
+
+    - name: Install package
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e . -r requirements/lite/devel.txt \
-          --upgrade --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -e . pytest --upgrade --find-links ${TORCH_URL}
         pip list
       shell: bash
 
     - name: DocTests Lite
       working-directory: src
       run: python -m pytest lightning_lite
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip list
+      shell: bash
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name != '' }}

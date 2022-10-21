@@ -61,10 +61,23 @@ jobs:
           key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
           restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
+      - run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + 'test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" >> $GITHUB_ENV
+
+      - name: Install package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
+        run: |
+          pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+          pip list
+        shell: bash
+
+      - name: DocTests App
+        working-directory: src
+        run: python -m pytest lightning_app
+
       - name: Install dependencies
         run: |
-          pip --version
-          pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
           pip list
         shell: bash
 
@@ -75,16 +88,6 @@ jobs:
 
       - name: Install Yarn
         run: npm install -g yarn
-
-      - name: Install package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
-        run: |
-          pip --version
-          pip install -e . -r requirements/app/devel.txt --quiet \
-            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip list
-        shell: bash
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name != '' }}
