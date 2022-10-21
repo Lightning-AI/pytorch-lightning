@@ -73,9 +73,8 @@ jobs:
           restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
 
       - name: Install dependencies
-        # TODO: drop this when we will be using regular releases for testing
-        env:
-          PACKAGE_NAME: pytorch
+        env:  # TODO: drop this when we will be using regular releases for testing
+            PACKAGE_NAME: pytorch
         run: |
           pip --version
           pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html

@@ -63,8 +63,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
       - name: Install dependencies
-        # TODO: drop this when we will be using regular releases for testing
-        env:
+        env:  # TODO: drop this when we will be using regular releases for testing
           PACKAGE_NAME: pytorch
         run: |
           pip --version
