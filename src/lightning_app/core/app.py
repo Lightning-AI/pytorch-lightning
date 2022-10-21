@@ -305,8 +305,8 @@ class LightningApp:
         while (time() - t0) < self.state_accumulate_wait:
 
             # TODO: Fetch all available deltas at once to reduce queue calls.
-            delta: t.Optional[
-                t.Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
+            delta: Optional[
+                Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
             ] = self.get_state_changed_from_queue(self.delta_queue)
             if delta:
                 if isinstance(delta, DeltaRequest):
