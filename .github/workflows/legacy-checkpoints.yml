@@ -59,7 +59,7 @@ jobs:
       run: |
         pip install -e .
         pip list
-      # if: github.event_name == 'release'  # FIXME
+      if: inputs.pl_version == ''
 
     - name: Generate checkpoints
       run: |
