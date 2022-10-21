@@ -12,14 +12,13 @@ from lightning_app.storage.path import filesystem
 from lightning_app.storage.requests import ExistsRequest, GetRequest
 from lightning_app.utilities.app_helpers import Logger
 
-if TYPE_CHECKING:
-    import lightning_app
-
 _PathRequest = Union[GetRequest, ExistsRequest]
 
 _logger = Logger(__name__)
 
 num_workers = 8
+if TYPE_CHECKING:
+    import lightning_app
 
 
 class Copier(Thread):

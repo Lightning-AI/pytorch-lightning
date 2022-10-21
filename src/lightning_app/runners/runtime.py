@@ -13,10 +13,10 @@ from lightning_app.utilities.enum import AppStage, CacheCallsKeys, make_status, 
 from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
+logger = Logger(__name__)
+
 if TYPE_CHECKING:
     import lightning_app
-
-logger = Logger(__name__)
 
 
 def dispatch(
