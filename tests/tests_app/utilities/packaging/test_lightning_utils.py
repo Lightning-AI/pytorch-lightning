@@ -10,7 +10,6 @@ from lightning_app.utilities.packaging.lightning_utils import (
     _verify_lightning_version,
 )
 
-
 # TODO: this is very sensitive test, need to be done
 # def test_prepare_lightning_wheels_and_requirement(tmpdir):
 #     """This test ensures the lightning source gets packaged inside the lightning repo."""
