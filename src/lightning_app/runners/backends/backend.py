@@ -88,7 +88,7 @@ class Backend(ABC):
         app.api_response_queue = self.queues.get_api_response_queue(**kw)
         app.error_queue = self.queues.get_error_queue(**kw)
         app.api_publish_state_queue = self.queues.get_api_state_publish_queue(**kw)
-        app.api_delta_queue = self.queues.get_api_delta_queue(**kw)
+        app.api_delta_queue = app.delta_queue
         app.request_queues = {}
         app.response_queues = {}
         app.copy_request_queues = {}

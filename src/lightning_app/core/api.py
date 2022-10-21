@@ -98,11 +98,12 @@ class UIRefresher(Thread):
             pass
 
         try:
-            response = self.api_response_queue.get(timeout=0)
+            responses = self.api_response_queue.get(timeout=0)
             with lock:
                 # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
-                responses_store[response["id"]] = response["response"]
+                for response in responses:
+                    responses_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 

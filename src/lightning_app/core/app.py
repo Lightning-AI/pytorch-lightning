@@ -292,40 +292,36 @@ class LightningApp:
         # during the `state_accumulate_wait` time.
         # The while loop can exit sooner if both queues are empty.
 
-        keep_fetching = True
         deltas = []
+        api_or_command_request_deltas = []
         t0 = time()
 
         while (time() - t0) < self.state_accumulate_wait:
 
-            if self.delta_queue and keep_fetching:
-                # TODO: Fetch all available deltas at once to reduce queue calls.
-                delta: t.Optional[
-                    t.Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
-                ] = self.get_state_changed_from_queue(self.delta_queue)
-                if delta:
-                    if isinstance(delta, DeltaRequest):
-                        delta = delta.delta
-                        deltas.append(delta)
-                    elif isinstance(delta, ComponentDelta):
-                        logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")
+            # TODO: Fetch all available deltas at once to reduce queue calls.
+            delta: t.Optional[
+                t.Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
+            ] = self.get_state_changed_from_queue(self.delta_queue)
+            if delta:
+                if isinstance(delta, DeltaRequest):
+                    deltas.append(delta.delta)
+                elif isinstance(delta, ComponentDelta):
+                    logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")
 
-                        work = None
-                        try:
-                            work = self.get_component_by_name(delta.id)
-                        except (KeyError, AttributeError) as e:
-                            logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
+                    work = None
+                    try:
+                        work = self.get_component_by_name(delta.id)
+                    except (KeyError, AttributeError) as e:
+                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
 
-                        if work:
-                            delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
-                            deltas.append(delta)
-                    else:
+                    if work:
+                        delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
                         deltas.append(delta)
                 else:
-                    keep_fetching = False
+                    api_or_command_request_deltas.append(delta)
 
-            if keep_fetching:
-                break
+        if api_or_command_request_deltas:
+            _process_requests(self, api_or_command_request_deltas)
 
         for delta in deltas:
             # When aggregating deltas from the UI and the Works, and over the accumulation time window,
@@ -360,19 +356,11 @@ class LightningApp:
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
-        # 1: Process the API / Command Requests first as they might affect the state.
-        state_deltas = []
-        for delta in deltas:
-            if isinstance(delta, (APIRequest, CommandRequest)):
-                _process_requests(self, delta)
-            else:
-                state_deltas.append(delta)
-
         # 2: Collect the state
         state = self.state
 
         # 3: Apply the state delta
-        for delta in state_deltas:
+        for delta in deltas:
             try:
                 state += delta
             except Exception as e:
