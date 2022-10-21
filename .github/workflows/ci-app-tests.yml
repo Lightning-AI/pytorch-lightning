@@ -12,6 +12,7 @@ on:
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -113,7 +114,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
-          flags: unittests
+          flags: cpu,app,pytest
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false

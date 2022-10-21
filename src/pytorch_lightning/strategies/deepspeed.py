@@ -605,7 +605,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             trainer: the Trainer, these optimizers should be connected to
         """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer.state.fn != TrainerFn.FITTING:
             return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled

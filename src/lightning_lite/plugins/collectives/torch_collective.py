@@ -7,8 +7,8 @@ import torch.distributed as dist
 from typing_extensions import Self
 
 from lightning_lite.plugins.collectives.collective import Collective
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
-from lightning_lite.utilities.types import CollectibleGroup, ReduceOp
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_13
+from lightning_lite.utilities.types import CollectibleGroup, RedOpType, ReduceOp
 
 if dist.is_available():
     from torch.distributed.constants import default_pg_timeout
@@ -17,6 +17,8 @@ else:
 
 
 class TorchCollective(Collective):
+    manages_default_group = False
+
     def __init__(self) -> None:
         if not dist.is_available():
             raise RuntimeError("Torch distributed is not available.")
@@ -24,6 +26,7 @@ class TorchCollective(Collective):
 
     @property
     def rank(self) -> int:
+        # local rank
         return dist.get_rank(self.group)
 
     @property
@@ -34,12 +37,12 @@ class TorchCollective(Collective):
         dist.broadcast(tensor, src, group=self.group)
         return tensor
 
-    def all_reduce(self, tensor: torch.Tensor, op: Union[str, ReduceOp] = "sum") -> torch.Tensor:
+    def all_reduce(self, tensor: torch.Tensor, op: Union[str, ReduceOp, RedOpType] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
-    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, ReduceOp] = "sum") -> torch.Tensor:
+    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
@@ -57,7 +60,7 @@ class TorchCollective(Collective):
         return tensor
 
     def reduce_scatter(
-        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, ReduceOp] = "sum"
+        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
     ) -> torch.Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
@@ -100,6 +103,8 @@ class TorchCollective(Collective):
         return scatter_object_output_list
 
     def barrier(self, device_ids: Optional[List[int]] = None) -> None:
+        if self.group == dist.GroupMember.NON_GROUP_MEMBER:
+            return
         dist.barrier(group=self.group, device_ids=device_ids)
 
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
@@ -124,6 +129,8 @@ class TorchCollective(Collective):
             set_port = True
         # this will `init_group`
         super().setup(**kwargs)
+        # set as a class attribute so any instance can know whether we initialized the default process group
+        TorchCollective.manages_default_group = True
         # cleanup
         if set_addr:
             os.environ.pop("MASTER_ADDR", None)
@@ -132,7 +139,18 @@ class TorchCollective(Collective):
         return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
-        super().teardown()
+        non_group_member = self.group == dist.GroupMember.NON_GROUP_MEMBER
+        super().teardown()  # will destroy its own group
+        # try to destroy the default group. this should only be done by a group member to avoid race conditions,
+        # and only if the class is managing it
+        if not non_group_member and TorchCollective.manages_default_group:
+            default_group = dist.GroupMember.WORLD
+            if default_group is not None:  # not destroyed already
+                group_map = dist.distributed_c10d._pg_map
+                if len(group_map) == 1 and default_group in group_map:  # only the default group is left
+                    self.destroy_group(default_group)
+                    TorchCollective.manages_default_group = False
+        return self
 
     @classmethod
     def is_available(cls) -> bool:
@@ -152,15 +170,21 @@ class TorchCollective(Collective):
 
     @classmethod
     def destroy_group(cls, group: CollectibleGroup) -> None:
+        # can be called by all processes in the default group, group will be `object()` if they are not part of the
+        # current group
         dist.destroy_process_group(group)
 
     @classmethod
-    def _convert_to_native_op(cls, op: Union[str, ReduceOp]) -> ReduceOp:
-        if isinstance(op, ReduceOp):
+    def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
+        # in 1.13, `ReduceOp` has become an empty shell for `RedOpType`, the latter being the actually returned class.
+        # for example, `ReduceOp.SUM` returns a `RedOpType.SUM`. the only exception is `RedOpType.PREMUL_SUM` where
+        # `ReduceOp` is still the desired class, but it's created via a special `_make_nccl_premul_sum` function
+        if isinstance(op, ReduceOp) or _TORCH_GREATER_EQUAL_1_13 and isinstance(op, RedOpType):
             return op
         if not isinstance(op, str):
-            raise ValueError(f"op {op!r} should be a `str` or `ReduceOp`")
+            raise ValueError(f"Unsupported op {op!r} of type {type(op).__name__}")
         op = op.upper()
+        # `ReduceOp` should contain `RedOpType`'s members
         value = getattr(ReduceOp, op, None)
         if value is None:
             raise ValueError(f"op {op!r} is not a member of `ReduceOp`")

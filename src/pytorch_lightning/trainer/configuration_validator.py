@@ -37,7 +37,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
     if trainer.state.fn is None:
         raise ValueError("Unexpected: Trainer state fn must be set before validating loop configuration.")
-    if trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+    if trainer.state.fn == TrainerFn.FITTING:
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
         __check_training_step_requires_dataloader_iter(model)
@@ -288,11 +288,11 @@ def _check_unsupported_datamodule_hooks(trainer: "pl.Trainer") -> None:
 
     if is_overridden("on_save_checkpoint", datahook_selector.datamodule):
         raise NotImplementedError(
-            "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            "`LightningDataModule.on_save_checkpoint` was deprecated in v1.6 and is no longer supported as of v1.8."
             " Use `state_dict` instead."
         )
     if is_overridden("on_load_checkpoint", datahook_selector.datamodule):
         raise NotImplementedError(
-            "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and removed in v1.8."
+            "`LightningDataModule.on_load_checkpoint` was deprecated in v1.6 and is no longer supported as of v1.8."
             " Use `load_state_dict` instead."
         )

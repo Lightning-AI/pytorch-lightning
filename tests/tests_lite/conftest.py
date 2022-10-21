@@ -77,7 +77,7 @@ def reset_deterministic_algorithm():
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
 
