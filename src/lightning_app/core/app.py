@@ -292,43 +292,38 @@ class LightningApp:
         # during the `state_accumulate_wait` time.
         # The while loop can exit sooner if both queues are empty.
 
-        should_get_delta_from_api = True
-        should_get_component_output = True
+        keep_fetching = True
         deltas = []
         t0 = time()
 
         while (time() - t0) < self.state_accumulate_wait:
 
-            if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: t.Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(
-                    self.api_delta_queue
-                )  # TODO: rename
-                if delta_from_api:
-                    if isinstance(delta_from_api, DeltaRequest):
-                        delta_from_api = delta_from_api.delta
-                    deltas.append(delta_from_api)
+            if self.delta_queue and keep_fetching:
+                delta: t.Optional[
+                    t.Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
+                ] = self.get_state_changed_from_queue(self.delta_queue)
+                if delta:
+                    if isinstance(delta, DeltaRequest):
+                        delta = delta.delta
+                        deltas.append(delta)
+                    elif isinstance(delta, ComponentDelta):
+                        logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")
+
+                        work = None
+                        try:
+                            work = self.get_component_by_name(delta.id)
+                        except (KeyError, AttributeError) as e:
+                            logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
+
+                        if work:
+                            delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
+                            deltas.append(delta)
+                    else:
+                        deltas.append(delta)
                 else:
-                    should_get_delta_from_api = False
+                    keep_fetching = False
 
-            if self.delta_queue and should_get_component_output:
-                component_output: t.Optional[ComponentDelta] = self.get_state_changed_from_queue(self.delta_queue)
-                if component_output:
-                    logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
-
-                    work = None
-                    try:
-                        work = self.get_component_by_name(component_output.id)
-                    except (KeyError, AttributeError) as e:
-                        logger.error(f"The component {component_output.id} couldn't be accessed. Exception: {e}")
-
-                    if work:
-                        new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
-                        deltas.append(new_work_delta)
-                else:
-                    should_get_component_output = False
-
-            # if both queues were found empties, should break the while loop.
-            if not should_get_delta_from_api and not should_get_component_output:
+            if keep_fetching:
                 break
 
         for delta in deltas:
