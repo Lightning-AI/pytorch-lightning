@@ -5,12 +5,13 @@ import shutil
 from distutils.version import LooseVersion
 from platform import python_version
 from time import sleep
-from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, List, Optional, Sequence, Union
 
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
 
 from lightning_app.core.queues import BaseQueue
+from lightning_app.core.work import LightningWork
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
@@ -20,9 +21,6 @@ if _is_s3fs_available():
     from s3fs import S3FileSystem
 
 PathlibPath = type(pathlib.Path())  # PosixPath or a WindowsPath depending on the platform
-
-if TYPE_CHECKING:
-    from lightning_app import LightningWork
 
 num_workers = 8
 
