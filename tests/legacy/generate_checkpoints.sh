@@ -22,7 +22,7 @@ do
   source $ENV_PATH/bin/activate
 
   # there are problem to load ckpt in older versions since they are saved the newer versions
-  python -m pip install pytorch_lightning==$pl_ver -r requirements.txt
+  python -m pip install pytorch_lightning==$pl_ver -r $LEGACY_PATH/requirements.txt
 
   python --version
   python -m pip --version
@@ -41,11 +41,12 @@ done
 # use the PL installed in the environment if no PL version is specified
 if [[ -z "$@" ]]; then
   pl_ver=$(python -c "import pytorch_lightning as pl; print(pl.__version__)")
+
+  pip install -r $LEGACY_PATH/requirements.txt
+
   python --version
   python -m pip --version
   python -m pip list | grep -e torch -e learn
-
-  pip install -r requirements.txt
 
   python $LEGACY_PATH/simple_classif_training.py  # > /dev/null 2>&1
 
