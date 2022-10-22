@@ -15,7 +15,7 @@ Lightning in 15 minutes
 What is Lightning?
 ******************
 Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to develop workflows that
-`run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_.
+`run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_, using community-built components.
 
 Here are some examples of what you can build with lightning:
 
@@ -27,19 +27,39 @@ Here are some examples of what you can build with lightning:
 
 ----
 
-***********************
-Productionize Lightning
-***********************
+*****************************
+What does Lightning do for me
+*****************************
+**Packaged code:**
 
-Lightning is very easy to get started, and the code is simple but all Lightning applications are implicitly production ready
-by design where you get these features out of the box without thinking about them:
+It guarantees that python code runs in any environment. The same code will run on your laptop, or any cloud
+or private clusters. You don't have to think about the cluster or know anything about the cloud.
 
-- fault tolerance
-- observable 
-- auto-scaled
-- multi-cloud support
-- multi-accelerators
-- SOC 2
+**Modular:**
+
+Lightning allows you to incorporate multiple components together so you don't have to build each piece
+of a system yourself. It's like javascript/react components for python.
+
+**Rapid iteration:**
+
+Iterate through ideas in hours not months because you don't have to learn a million other concepts
+
+**Cost control:**
+
+Lightning makes cloud code observable, easy to monitor, measures code in real-time and is super-optimized. 
+All the optimizations we make under the hood, lower your cloud bill.
+Machines can shut down or spin up faster. 
+
+# show time spent vs yours in terms of cost saving
+
+**Built-in guard rails:**
+
+Code is built to be implicitly fault-tolerant, structured and minimizes room for error. Although it feels like you
+are writing a python script, you are actually building a system. 
+
+**Community-built components:**
+
+Build with the community
 
 ----
 
@@ -104,164 +124,168 @@ Key features
 You now know enough to build pretty powerful cloud workflows. Here are some features available
 to super-charge your work.
 
-----
+.. collapse:: Use different cloud accelerators
 
-----------------------------
-Use different cloud machines
-----------------------------
-Change the cloud machine easily using our shorthands or full AWS instance names:
+   Change the cloud machine easily using our shorthands or full AWS instance names:
 
-.. code:: python
+   .. code:: python
 
+      
+      compute = L.CloudCompute('default')          # 1 CPU
+      compute = L.CloudCompute('cpu-medium')       # 8 CPUs
+      compute = L.CloudCompute('gpu')              # 1 T4 GPU
+      compute = L.CloudCompute('gpu-fast-multi')   # 4 V100 GPU
+      compute = L.CloudCompute('p4d.24xlarge')     # AWS instance name (8 A100 GPU)
+      app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+   More machine types are available when you `run on your AWS account <??>`_.
+
+.. collapse:: Auto-stop idle machines
+
+   Turn off the machine when it's idle with **idle_timeout**:
+
+   .. code:: python
+
+      # IDLE TIME-OUT 
+
+      # turn off machine when it's idle for 10 seconds
+      compute = L.CloudCompute('gpu', idle_timeout=10)
+      app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+.. collapse:: Auto-timeout submitted work
+
+   Cloud machines are subject to availability in the cloud provider. Set a **wait_timeout** limit to how long you want to wait for a machine to start:
+
+   .. code:: python
+
+      # WAIT TIME-OUT 
+      
+      # if the machine hasn't started after 60 seconds, cancel the work
+      compute = L.CloudCompute('gpu', wait_timeout=60)
+      app = L.LightningApp(LitWorker(cloud_compute=compute)
+
+.. collapse:: Use preemptible machines (~70% discount)
+
+   Use machines at a ~70% discount with **preemptible**: Pre-emptible machines are ~90% cheaper because they can be turned off at any second without notice:
+
+   .. code:: python
+      
+      # PRE-EMPTIBLE MACHINES
+
+      # ask for a preemptible machine
+      # wait 60 seconds before auto-switching to a full-priced machine
+      compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
+      app = L.LightningApp(LitWorker(cloud_compute=compute)
+
+.. collapse:: Run on your AWS account
+
+   To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.   
+
+   Next, set up a Lightning cluster (here we name it pikachu):
+
+   .. code:: bash
+
+      # TODO: need to remove  --external-id dummy --region us-west-2
+      lightning create cluster pikachu --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc
+
+   Run your code on the pikachu cluster by passing it into CloudCompute:
+
+   .. code:: python 
+
+      compute = L.CloudCompute('gpu', clusters=['pikachu'])
+      app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+   .. warning:: 
+      
+      This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
+
+.. collapse:: Use a custom container
    
-   compute = L.CloudCompute('default')          # 1 CPU
-   compute = L.CloudCompute('cpu-small')        # 2 CPUs
-   compute = L.CloudCompute('cpu-medium')       # 8 CPUs
-   compute = L.CloudCompute('gpu')              # 1 T4 GPU
-   compute = L.CloudCompute('gpu-fast')         # 1 V100 GPU
-   compute = L.CloudCompute('gpu-fast-multi')   # 4 V100 GPU
-   compute = L.CloudCompute('p4d.24xlarge')     # 8 A100 GPU
-   app = L.LightningApp(LitWorker(cloud_compute=compute))
+   Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
 
-More machine types are available when you `run on your AWS account <??>`_.
+   # TODO: only google?
 
-----
+   .. code:: python 
+      
+      # USE A CUSTOM CONTAINER
 
-----------
-Save money
-----------
-Lightning code is optimized to use cloud resources very efficiently. Here are a few optimizations you can enable:
+      cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
+      app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
 
-Turn off the machine when it's idle with **idle_timeout**:
+.. collapse:: Work with massive datasets
 
-.. code:: python
+   A LightningWork might need a large working folder for certain workloads such as ETL pipelines, data collection, training models and processing datasets.
 
-   # IDLE TIME-OUT 
+   Attach a disk up to 64 TB with **disk_size**:
 
-   # turn off machine when it's idle for 10 seconds
-   compute = L.CloudCompute('gpu', idle_timeout=10)
-   app = L.LightningApp(LitWorker(cloud_compute=compute))
+   .. code:: python
 
+      # MODIFY DISK SIZE 
 
-Cloud machines are subject to availability in the cloud provider. Set a **wait_timeout** limit to how long you want to wait for a machine to start:
+      # use 100 GB of space on that machine (max size: 64 TB)
+      compute = L.CloudCompute('gpu', disk_size=100)
+      app = L.LightningApp(LitWorker(cloud_compute=compute)
 
-.. code:: python
+   .. note:: when the work finishes executing, the disk will be deleted.
 
-   # WAIT TIME-OUT 
-   
-   # if the machine hasn't started after 60 seconds, cancel the work
-   compute = L.CloudCompute('gpu', wait_timeout=60)
-   app = L.LightningApp(LitWorker(cloud_compute=compute)
+.. collapse:: Mount cloud storage
 
-Use machines at a ~90% discount with **preemptible**: Pre-emptible machines are ~90% cheaper because they can be turned off at any second without notice:
+   To mount an existing s3 bucket, use **Mount**:
 
-.. code:: python
-   
-   # PRE-EMPTIBLE MACHINES
+   .. code:: python
 
-   # ask for a preemptible machine
-   # wait 60 seconds before auto-switching to a full-priced machine
-   compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
-   app = L.LightningApp(LitWorker(cloud_compute=compute)
+      # TODO: create a public demo folder
+      # public bucket
+      mount = Mount(source="s3://lightning-example-public/", mount_path="/foo")
+      compute = L.CloudCompute(mounts=mount)
 
-----
+      app = L.LightningApp(LitWorker(cloud_compute=compute))
 
------------------------
-Run on your AWS account
------------------------
-To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.   
+   Read and list the files inside your LightningWork:
 
-Next, set up a Lightning cluster (here we name it pikachu):
+   .. code:: python
 
-.. code:: bash
+      # app.py
+      import lightning as L
 
-   # TODO: need to remove  --external-id dummy --region us-west-2
-   lightning create cluster pikachu --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc
+      class LitWorker(L.LightningWork):
+         def run(self):
+            os.listdir('/foo')
+            file = os.file('/foo/a.jpg')
 
-Run your code on the pikachu cluster by passing it into CloudCompute:
+      app = L.LightningApp(LitWorker())
 
-.. code:: python 
+   .. note::
 
-   compute = L.CloudCompute('gpu', clusters=['pikachu'])
-   app = L.LightningApp(LitWorker(cloud_compute=compute))
+      To attach private s3 buckets, sign up for our early access: support@lightning.ai.
 
-.. warning:: 
-   
-   This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
+.. collapse:: Use community-built LightningWorks
 
-----
-
-----------------------
-Use a custom container
-----------------------
-Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
-
-# TODO: only google?
-
-.. code:: python 
-   
-   # USE A CUSTOM CONTAINER
-
-   cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
-   app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
-
-----
-
---------------------------
-Work with massive datasets
---------------------------
-A LightningWork might need a large working folder for certain workloads such as ETL pipelines, data collection, training models and processing datasets.
-
-Attach a disk up to 64 TB with **disk_size**:
-
-.. code:: python
-
-   # MODIFY DISK SIZE 
-
-   # use 100 GB of space on that machine (max size: 64 TB)
-   compute = L.CloudCompute('gpu', disk_size=100)
-   app = L.LightningApp(LitWorker(cloud_compute=compute)
-
-.. note:: when the work finishes executing, the disk will be deleted.
-
-----
-
--------------------
-Mount cloud storage
--------------------
-To mount an existing s3 bucket, use **Mount**:
-
-.. code:: python
-
-   # TODO: create a public demo folder
-   # public bucket
-   mount = Mount(source="s3://lightning-example-public/", mount_path="/foo")
-   compute = L.CloudCompute(mounts=mount)
-
-   app = L.LightningApp(LitWorker(cloud_compute=compute))
-
-Read and list the files inside your LightningWork:
-
-.. code:: python
-
-   # app.py
-   import lightning as L
-
-   class LitWorker(L.LightningWork):
-      def run(self):
-         os.listdir('/foo')
-         file = os.file('/foo/a.jpg')
-
-   app = L.LightningApp(LitWorker())
-
-.. note::
-
-   To attach private s3 buckets, sign up for our early access: support@lightning.ai.
+   The Lightning structure allows you to use self-contained components from the Lightning community
+   so you don't have to build every piece of functionality yourself. Check out our component gallery
+   for examples
 
 ----
 
 ***************************
-Next step: Multiple Workers
+Lightning is for production
+***************************
+Lightning is built to feel simple and like you are writing scripts,
+but you are implicitly building production-ready systems where you get these
+features out-of-the-box without thinking about them:
+
+- fault tolerant
+- observable 
+- auto-scaled
+- multi-cloud support
+- multi-accelerators
+- encrypted secrets
+- SOC 2
+
+----
+
+***************************
+Next step: Build a workflow
 ***************************
 In this simple example we ran one piece of Python code. To create a complex workflow easily,
 we'll need to learn how to use multiple works together.
@@ -275,7 +299,7 @@ we'll need to learn how to use multiple works together.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Next step: Multiple workers
+   :header: Next step: Build a workflow
    :description: Run multiple LightningWorks together 
    :col_css: col-md-12
    :button_link: ../model/build_model_advanced.html#manual-optimization
