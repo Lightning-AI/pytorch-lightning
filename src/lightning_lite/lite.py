@@ -29,7 +29,14 @@ from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 from lightning_lite.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning_lite.strategies import DeepSpeedStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
+from lightning_lite.strategies import (
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DeepSpeedStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+    XLAStrategy,
+)
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
@@ -545,13 +552,26 @@ class LightningLite(ABC):
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-    @staticmethod
-    def _validate_setup_model(model: nn.Module) -> None:
+        # TODO(lite): Add validation for FSDP here
+
+    def _validate_setup_model(self, model: nn.Module) -> None:
         if isinstance(model, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup_model` method.")
 
-    @staticmethod
-    def _validate_setup_optimizers(optimizers: Sequence[Optimizer]) -> None:
+        if isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
+            raise RuntimeError(
+                f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
+                " through `.setup(model, optimizer, ...)`. For inference, choose a different strategy, for example"
+                " `ddp`."
+            )
+
+    def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
+        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy)):
+            raise RuntimeError(
+                f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
+                " through `.setup(model, optimizer, ...)`."
+            )
+
         if not optimizers:
             raise ValueError("`setup_optimizers` requires at least one optimizer as input.")
 

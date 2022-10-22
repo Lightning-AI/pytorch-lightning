@@ -298,6 +298,12 @@ class Strategy(ABC):
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
 
+    def _err_msg_joint_setup_required(self) -> str:
+        return (
+            f"The `{type(self).__name__}` does not support setting up the module and optimizer(s) independently."
+            " Please call `setup_module_and_optimizers(model, [optimizer, ...])` to jointly set them up."
+        )
+
 
 class _BackwardSyncControl(ABC):
     """Interface for any :class:`Strategy` that wants to offer a functionality to enable or disable gradient

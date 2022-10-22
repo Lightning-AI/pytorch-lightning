@@ -90,10 +90,10 @@ class DDPShardedStrategy(DDPStrategy):
         return model, optimizers
 
     def setup_module(self, module: Module) -> Module:
-        raise RuntimeError("not supported")  # TODO: proper error message
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        raise RuntimeError("not supported")  # TODO: proper error message
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

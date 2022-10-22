@@ -326,7 +326,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self._deepspeed_engine
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        raise RuntimeError("not supported")  # TODO: proper error message
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextlib.contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
