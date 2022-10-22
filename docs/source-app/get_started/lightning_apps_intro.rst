@@ -1,10 +1,10 @@
-############################
-Lightning Apps in 15 minutes
-############################
+#######################
+Lightning in 15 minutes
+#######################
 
 **Required background:** Basic Python familiarity.
 
-**Goal:** In this guide you'll learn the basic concepts to develop a Lightning App.
+**Goal:** In this guide you'll learn the basic concept to develop with Lightning.
 
 .. join_slack::
    :align: left
@@ -14,8 +14,8 @@ Lightning Apps in 15 minutes
 ******************
 What is Lightning?
 ******************
-Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to compose workflows that
-run on *your own AWS account*, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or your own hardware.
+Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to develop workflows that
+`run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_.
 
 .. note:: You don't need to know PyTorch or PyTorch Lightning to use Lightning.
 
@@ -76,9 +76,19 @@ Run on your own hardware:
 
 ----
 
-****************************
+************
+Key features
+************
+You now know enough to build pretty powerful cloud workflows. Here are some features available
+to super-charge your work. 
+
+# TODO: example of complex apps
+
+----
+
+----------------------------
 Use different cloud machines
-****************************
+----------------------------
 Change the cloud machine easily with CloudCompute:
 
 .. code:: python
@@ -92,11 +102,13 @@ Change the cloud machine easily with CloudCompute:
    compute = L.CloudCompute('gpu-fast-multi')   # 4 V100 GPU
    app = L.LightningApp(LitWorker(cloud_compute=compute))
 
+More machine types are available when you `run on your AWS account <??>`_.
+
 ----
 
-**********
+----------
 Save money
-**********
+----------
 Lightning code is optimized to use cloud resources very efficiently. Here are a few optimizations you can enable:
 
 Turn off the machine when it's idle with **idle_timeout**:
@@ -133,9 +145,9 @@ Use machines at a ~90% discount with **preemptible**: Pre-emptible machines are 
 
 ----
 
-***********************
+-----------------------
 Run on your AWS account
-***********************
+-----------------------
 To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.   
 
 Next, set up a Lightning cluster (here we name it pikachu):
@@ -158,9 +170,9 @@ Run your code on the pikachu cluster by passing it into CloudCompute:
 
 ----
 
-**********************
+----------------------
 Use a custom container
-**********************
+----------------------
 Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
 
 .. code:: python 
@@ -172,9 +184,9 @@ Run your cloud Lightning code with a custom container image by using **cloud_bui
 
 ----
 
-**************************
+--------------------------
 Work with massive datasets
-**************************
+--------------------------
 A LightningWork might need a large working folder for certain workloads such as ETL pipelines, data collection, training models and processing datasets.
 
 Attach a disk up to 64 TB with **disk_size**:
@@ -191,9 +203,9 @@ Attach a disk up to 64 TB with **disk_size**:
 
 ----
 
-*******************
+-------------------
 Mount cloud folders
-*******************
+-------------------
 To mount an s3 folder, use **Mount**:
 
 .. code:: python
@@ -246,7 +258,7 @@ In the next guide, we'll learn how to run multiple LightningWork together
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Next step: Multiple LightningWork
+   :header: Next step: Multiple workers
    :description: Run multiple LightningWorks together 
    :col_css: col-md-12
    :button_link: ../model/build_model_advanced.html#manual-optimization
