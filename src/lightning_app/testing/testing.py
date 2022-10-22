@@ -466,8 +466,8 @@ def _delete_lightning_app(client, project_id, app_id, app_name):
             id=app_id,
         )
         assert res == {}
-    except ApiException as e:
-        print(f"Failed to delete {app_name}. Exception {e}")
+    except ApiException as ex:
+        print(f"Failed to delete {app_name}. Exception {ex}")
 
 
 def delete_cloud_lightning_apps():
