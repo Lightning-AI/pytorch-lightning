@@ -14,7 +14,7 @@
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import lightning_lite.accelerators as accelerators  # avoid circular dependency
-from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
+from lightning_lite.plugins.environments.torchelastic import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
 

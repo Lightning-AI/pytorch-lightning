@@ -2,7 +2,9 @@ import os
 import signal
 import sys
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, Union
+
+from typing_extensions import TypedDict
 
 from lightning_app import LightningWork
 from lightning_app.storage.drive import Drive
