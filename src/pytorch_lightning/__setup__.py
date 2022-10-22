@@ -22,9 +22,9 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
-    _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
-    _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
+def _prepare_extras() -> Dict[str, Any]:
+    path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
+    setup_tools = _load_py_module("setup_tools", path_setup_tools)
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
@@ -32,11 +32,11 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "examples": _setup_tools.load_requirements(file_name="examples.txt", **common_args),
-        "loggers": _setup_tools.load_requirements(file_name="loggers.txt", **common_args),
-        "extra": _setup_tools.load_requirements(file_name="extra.txt", **common_args),
-        "strategies": _setup_tools.load_requirements(file_name="strategies.txt", **common_args),
-        "test": _setup_tools.load_requirements(file_name="test.txt", **common_args),
+        "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
+        "loggers": setup_tools.load_requirements(file_name="loggers.txt", **common_args),
+        "extra": setup_tools.load_requirements(file_name="extra.txt", **common_args),
+        "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
+        "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]

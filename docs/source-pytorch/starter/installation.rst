@@ -58,4 +58,4 @@ Install future patch releases from the source. Note that the patch release conta
 
 .. code-block:: bash
 
-    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/pytorch.zip -U
+    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/stable.zip -U
