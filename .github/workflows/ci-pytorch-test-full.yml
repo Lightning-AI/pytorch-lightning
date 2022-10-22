@@ -25,8 +25,11 @@ env:
   PACKAGE_NAME: pytorch
   FREEZE_REQUIREMENTS: 1
 
-jobs:
+defaults:
+  run:
+    shell: bash
 
+jobs:
   pl-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
@@ -103,7 +106,6 @@ jobs:
 
     - name: switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
-      shell: bash
 
     - name: Install package
       env:
@@ -111,7 +113,6 @@ jobs:
       run: |
         pip install -e . pytest --upgrade --find-links ${TORCH_URL}
         pip list
-      shell: bash
 
     - name: DocTests PL
       # todo: run docstest laos on mono-package
@@ -135,7 +136,6 @@ jobs:
       run: |
         pip install -r requirements/pytorch/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
-      shell: bash
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
@@ -153,7 +153,6 @@ jobs:
         horovodrun --check-build
         python -c "import horovod.torch"
         pip list
-      shell: bash
 
     - name: Cache datasets
       uses: actions/cache@v3
@@ -179,7 +178,6 @@ jobs:
 
     - name: switch coverage scope
       run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'pytorch_lightning'))" >> $GITHUB_ENV
-      shell: bash
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
@@ -211,6 +209,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_pytorch/coverage.xml
-        flags: cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
+        flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

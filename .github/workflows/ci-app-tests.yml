@@ -21,6 +21,10 @@ concurrency:
 env:
   FREEZE_REQUIREMENTS: 1
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   app-pytest:
     runs-on: ${{ matrix.os }}
@@ -51,7 +55,6 @@ jobs:
 
       - name: switch PyTorch URL
         run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
-        shell: bash
 
       - name: Install package
         env:
@@ -59,7 +62,6 @@ jobs:
         run: |
           pip install -e . pytest --upgrade --find-links ${TORCH_URL}
           pip list
-        shell: bash
 
       - name: DocTests App
         # todo: run doctest laos on mono-package
@@ -86,7 +88,6 @@ jobs:
         run: |
           pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
           pip list
-        shell: bash
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -102,7 +103,6 @@ jobs:
 
       - name: switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_app'))" >> $GITHUB_ENV
-        shell: bash
 
       - name: Tests
         working-directory: ./tests
@@ -133,7 +133,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
-          flags: cpu,app,pytest
+          flags: ${COVERAGE_SCOPE},cpu,pytest
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -149,7 +149,6 @@ jobs:
 #          path: lightning-quick-start
 #
 #      - name: Lightning Install quick-start
-#        shell: bash
 #        if: matrix.os != 'windows-2022'  # because the install doesn't work on windows
 #        run: |
 #          python -m lightning install app lightning/quick-start -y
