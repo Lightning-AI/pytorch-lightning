@@ -35,7 +35,7 @@ do
 
   python -m pip install pytorch_lightning==$pl_ver -r $LEGACY_PATH/requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
-  create_and_save_checkpoints
+  create_and_save_checkpoint
 
   deactivate
   rm -rf $ENV_PATH
@@ -48,5 +48,5 @@ if [[ -z "$@" ]]; then
 
   python -m pip install -r $LEGACY_PATH/requirements.txt
 
-  create_and_save_checkpoints
+  create_and_save_checkpoint
 fi
