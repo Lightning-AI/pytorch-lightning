@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.exceptions import _TypeError, _ValueError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.12.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.15.2")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -472,11 +472,13 @@ class LightningCLI:
         )
         # register all subcommands in separate subcommand parsers under the main parser
         for subcommand in self.subcommands():
-            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
-            self._subcommand_parsers[subcommand] = subcommand_parser
             fn = getattr(trainer_class, subcommand)
             # extract the first line description in the docstring for the subcommand help message
             description = _get_short_description(fn)
+            subparser_kwargs = kwargs.get(subcommand, {})
+            subparser_kwargs.setdefault("description", description)
+            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **subparser_kwargs)
+            self._subcommand_parsers[subcommand] = subcommand_parser
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
     def _prepare_subcommand_parser(self, klass: Type, subcommand: str, **kwargs: Any) -> LightningArgumentParser:

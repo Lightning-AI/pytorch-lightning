@@ -24,7 +24,7 @@ import torch.distributed
 
 import lightning_lite
 import pytorch_lightning
-from lightning_lite.plugins.environments.lightning_environment import find_free_network_port
+from lightning_lite.plugins.environments.lightning import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch import _PATH_DATASETS
@@ -171,8 +171,8 @@ def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pytorch_lightning.plugins.precision.tpu, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(pytorch_lightning.strategies.launchers.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.plugins.io.xla_plugin, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.io.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
 
