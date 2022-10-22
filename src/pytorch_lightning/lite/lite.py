@@ -18,6 +18,7 @@ from typing import List, Optional, Tuple, Union
 from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 from lightning_lite.connector import _PLUGIN_INPUT as _LITE_PLUGIN_INPUT
+from lightning_lite.connector import _PRECISION_INPUT
 from lightning_lite.lite import LightningLite as _NewLightningLite
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
@@ -98,7 +99,7 @@ class LightningLite(_NewLightningLite, ABC):
         strategy: Optional[Union[str, PLStrategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PL_PLUGIN_INPUT, List[_PL_PLUGIN_INPUT]]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
@@ -114,11 +115,10 @@ class LightningLite(_NewLightningLite, ABC):
 
         lite_plugins: Optional[Union[_LITE_PLUGIN_INPUT, List[_LITE_PLUGIN_INPUT]]]
         if isinstance(plugins, PLPrecisionPlugin):
-            lite_plugins = _to_lite_precision_plugin(plugins)
+            lite_plugins = _to_lite_precision(plugins)
         elif isinstance(plugins, list):
             lite_plugins = [
-                _to_lite_precision_plugin(plugin) if isinstance(plugin, PLPrecisionPlugin) else plugin
-                for plugin in plugins
+                _to_lite_precision(plugin) if isinstance(plugin, PLPrecisionPlugin) else plugin for plugin in plugins
             ]
         else:
             lite_plugins = plugins
@@ -185,7 +185,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
             process_group_backend=strategy.process_group_backend,
             timeout=strategy._timeout,
             **strategy._ddp_kwargs,
@@ -197,7 +197,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
             process_group_backend=strategy.process_group_backend,
             timeout=strategy._timeout,
             start_method=strategy._start_method,
@@ -209,7 +209,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
         )
 
     if type(strategy) is PLDeepSpeedStrategy:
@@ -217,7 +217,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
             process_group_backend=strategy.process_group_backend,
             config=strategy.config,
             remote_device=strategy.remote_device,
@@ -234,7 +234,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
         )
 
     if type(strategy) is PLDDPShardedStrategy:
@@ -243,7 +243,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
             process_group_backend=strategy.process_group_backend,
             timeout=strategy._timeout,
             **strategy._ddp_kwargs,
@@ -255,7 +255,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
             process_group_backend=strategy.process_group_backend,
             timeout=strategy._timeout,
             start_method=strategy._start_method,
@@ -267,7 +267,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             device=strategy.root_device,
             accelerator=strategy.accelerator,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
         )
 
     if type(strategy) is PLSingleTPUStrategy:
@@ -275,24 +275,28 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             device=strategy.root_device.index,
             accelerator=strategy.accelerator,
             checkpoint_io=strategy.checkpoint_io,
-            precision_plugin=_to_lite_precision_plugin(strategy.precision_plugin),
+            precision=_to_lite_precision(strategy.precision_plugin),
         )
 
 
-def _to_lite_precision_plugin(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
+def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
     """Re-instantiates a PL-PrecisionPlugin as the corresponding Lite-Precision plugin."""
 
     if type(plugin) is PLPrecisionPlugin:
         return LitePrecision()
 
     if type(plugin) is PLNativeMixedPrecisionPlugin:
-        return LiteNativeMixedPrecision(precision=plugin.precision, device=plugin.device, scaler=plugin.scaler)
+        return LiteNativeMixedPrecision(
+            precision=plugin.precision, device=plugin.device, scaler=plugin.scaler  # type: ignore[arg-type]
+        )
 
     if type(plugin) is PLDoublePrecisionPlugin:
         return LiteDoublePrecision()
 
     if type(plugin) is PLDeepSpeedPrecisionPlugin:
-        return LiteDeepSpeedPrecision(precision=plugin.precision, amp_type=plugin.amp_type, amp_level=plugin.amp_level)
+        return LiteDeepSpeedPrecision(
+            precision=plugin.precision, amp_type=plugin.amp_type, amp_level=plugin.amp_level  # type: ignore[arg-type]
+        )
 
     if type(plugin) is PLTPUPrecisionPlugin:
         return LiteTPUPrecision()

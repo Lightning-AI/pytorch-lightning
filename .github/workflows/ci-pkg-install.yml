@@ -43,6 +43,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: DocTests actions
+        working-directory: .actions/
+        run: |
+          grep 'pytest>' ../requirements/pytorch/test.txt | xargs -0 pip install
+          python -m pytest setup_tools.py
+
       - uses: actions/download-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
@@ -81,7 +87,7 @@ jobs:
 
       - run: mkdir -p pypi
       - uses: actions/download-artifact@v3
-        if: ${{ matrix.pkg != '' }}
+        if: matrix.pkg != ''
         with:
           name: ci-packages-${{ github.sha }}
           path: pypi
@@ -119,7 +125,7 @@ jobs:
         run: |
           pip install -q -r .actions/requirements.txt
           for pkg in 'app' 'pytorch' ; do
-            python .actions/assistant.py download-package "$pkg" --folder pypi
+            python .actions/assistant.py download_package --package "$pkg" --folder pypi
           done
           ls -lh pypi/
 
@@ -135,7 +141,7 @@ jobs:
       - name: Miror source
         run: |
           pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py mirror-pkg2source pypi src
+          python .actions/assistant.py mirror_pkg2source --pypi_folder pypi --src_folder src
           ls -R src/
 
       - uses: ./.github/actions/pkg-check

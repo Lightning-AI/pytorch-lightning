@@ -45,6 +45,10 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
+@pytest.mark.skipif(
+    torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8,
+    reason="Async does not support this CUDA architecture",
+)
 @RunIf(min_cuda_gpus=2, standalone=True, bagua=True)
 def test_async_algorithm(tmpdir):
     model = BoringModel()

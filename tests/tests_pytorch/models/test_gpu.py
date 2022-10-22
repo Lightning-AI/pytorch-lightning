@@ -20,7 +20,6 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from lightning_lite.plugins.environments import TorchElasticEnvironment
 from lightning_lite.utilities.device_parser import parse_gpu_ids
 from pytorch_lightning import Trainer
@@ -37,7 +36,6 @@ PRETEND_N_OF_GPUS = 16
 @RunIf(min_cuda_gpus=2)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
-    tutils.set_random_main_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -83,8 +81,7 @@ def test_single_gpu_model(tmpdir, devices):
         "-1",
     ],
 )
-@mock.patch("lightning_lite.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-def test_root_gpu_property_0_raising(_, devices):
+def test_root_gpu_property_0_raising(mps_count_0, cuda_count_0, devices):
     """Test that asking for a GPU when none are available will result in a MisconfigurationException."""
     with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
         Trainer(accelerator="gpu", devices=devices, strategy="ddp")

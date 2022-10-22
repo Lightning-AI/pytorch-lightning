@@ -72,8 +72,8 @@ are not published yet. This is the bleeding edge, so use it at your own discreti
 Install future patch releases from the source. Note that the patch release contains only the bug fixes for the recent major release.
 
 .. code-block:: bash
-
-    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/pytorch.zip -U
+    
+    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/stable.zip -U
 
 ----
 

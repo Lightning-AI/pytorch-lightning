@@ -67,6 +67,6 @@ class NativeMixedPrecisionBoringLite(BoringLite):
     ],
 )
 def test_native_mixed_precision(accelerator, precision, expected_dtype):
-    lite = NativeMixedPrecisionBoringLite(accelerator=accelerator, precision=16)
+    lite = NativeMixedPrecisionBoringLite(accelerator=accelerator, precision=precision)
     lite.expected_dtype = expected_dtype
     lite.run()

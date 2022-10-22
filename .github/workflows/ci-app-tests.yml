@@ -12,10 +12,14 @@ on:
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+env:
+  FREEZE_REQUIREMENTS: 1
 
 jobs:
   app-pytest:
@@ -37,21 +41,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # TODO: use replace_oldest_ver() instead
+      - name: basic setup
+        run: pip install -q -r .actions/requirements.txt
+
       - name: Set min. dependencies
-        if: matrix.requires == 'oldest'
+        if: ${{ matrix.requires == 'oldest' }}
+        run: python .actions/assistant.py replace_oldest_ver
+
+      - name: Install Lightning as top-level
+        env:
+          PACKAGE_NAME: app
+        run: pip install -e .
+        shell: bash
+
+      - name: DocTests App
+        working-directory: src
         run: |
-          for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
-              req = open(fpath).read().replace('>=', '==')
-              open(fpath, 'w').write(req)
-        shell: python
+          pip install pytest -q
+          python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
 
-      - run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-        if: matrix.requires == 'latest'
-        id: times
-
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Get pip cache
         id: pip-cache
         run: |
@@ -61,10 +69,12 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-td${{ steps.times.outputs.period }}-
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
 
       - name: Install dependencies
+        env:  # TODO: drop this when we will be using regular releases for testing
+            PACKAGE_NAME: pytorch
         run: |
           pip --version
           pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
@@ -86,10 +96,6 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Install Lightning as top-level
-        run: pip install -e . -r requirements/app/base.txt
-        shell: bash
-
       - name: Tests
         working-directory: ./tests
         env:
@@ -98,7 +104,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source lightning_app -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source lightning_app -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
@@ -119,7 +125,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
-          flags: unittests
+          flags: cpu,app,pytest
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false

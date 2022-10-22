@@ -17,15 +17,16 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 import torch.distributed
 from torch import Tensor
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
 from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
+from lightning_lite.strategies.ddp import _DDPBackwardSyncControl
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import TBroadcast
@@ -52,7 +53,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
@@ -63,11 +64,12 @@ class DDPSpawnStrategy(ParallelStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
         )
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
+        self._backward_sync_control = _DDPBackwardSyncControl()
         self._start_method = start_method
         self._ddp_kwargs = kwargs
         self._local_rank = 0

@@ -40,7 +40,7 @@ def test_commands_and_api_example_cloud() -> None:
         resp = requests.post(base_url + "/user/command_without_client?name=awesome")
         assert resp.status_code == 200, resp.json()
 
-        # 5: Validate the logs.
+        # 6: Validate the logs.
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
@@ -48,5 +48,5 @@ def test_commands_and_api_example_cloud() -> None:
                     has_logs = True
             sleep(1)
 
-        # 5: Disconnect from the App
+        # 7: Disconnect from the App
         Popen("lightning disconnect", shell=True).wait()

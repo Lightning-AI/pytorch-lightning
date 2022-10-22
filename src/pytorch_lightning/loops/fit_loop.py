@@ -23,7 +23,7 @@ from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -48,7 +48,7 @@ class FitLoop(Loop[None]):
 
     def __init__(
         self,
-        min_epochs: int = 0,
+        min_epochs: Optional[int] = 0,
         max_epochs: Optional[int] = None,
     ) -> None:
         super().__init__()
@@ -219,8 +219,7 @@ class FitLoop(Loop[None]):
         self.trainer._call_strategy_hook("on_train_start")
 
     def on_advance_start(self) -> None:  # type: ignore[override]
-        """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
-        ``on_train_epoch_start``"""
+        """Prepares the dataloader for training and calls the hook ``on_train_epoch_start``"""
         model = self.trainer.lightning_module
 
         # reset train dataloader
@@ -233,6 +232,7 @@ class FitLoop(Loop[None]):
         self._outputs = []
 
         if self.trainer.train_dataloader is not None:
+            assert isinstance(self.trainer.train_dataloader, CombinedLoader)
             _set_sampler_epoch(self.trainer.train_dataloader, self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler
@@ -244,9 +244,6 @@ class FitLoop(Loop[None]):
         self.epoch_progress.increment_ready()
 
         self.trainer._logger_connector.on_epoch_start()
-
-        self.trainer._call_callback_hooks("on_epoch_start")
-        self.trainer._call_lightning_module_hook("on_epoch_start")
 
         self.trainer._call_callback_hooks("on_train_epoch_start")
         self.trainer._call_lightning_module_hook("on_train_epoch_start")
@@ -298,13 +295,13 @@ class FitLoop(Loop[None]):
         self.trainer._call_callback_hooks("on_train_epoch_end")
         self.trainer._call_lightning_module_hook("on_train_epoch_end")
 
-        self.trainer._call_callback_hooks("on_epoch_end")
-        self.trainer._call_lightning_module_hook("on_epoch_end")
-
         self.trainer._logger_connector.on_epoch_end()
 
         if self.epoch_loop._num_ready_batches_reached():
-            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
+            # if we are restarting and the above condition holds, it's because we are reloading an epoch-end checkpoint.
+            # since metric-based schedulers require access to metrics and those are not currently saved in the
+            # checkpoint, the plateau schedulers shouldn't be updated
+            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=not self.restarting)
 
         # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
         # even when the batch loop has finished

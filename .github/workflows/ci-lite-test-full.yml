@@ -13,10 +13,15 @@ on:
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-test-full.yml"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+env:
+  PACKAGE_NAME: lite
+  FREEZE_REQUIREMENTS: 1
 
 jobs:
 
@@ -34,6 +39,8 @@ jobs:
           # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
           - {python-version: "3.10", requires: "oldest"}
+        include:
+          - {os: ubuntu-22.04, python-version: "3.10", release: "pre"}
 
     timeout-minutes: 40
 
@@ -45,9 +52,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Reset caching
-      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
-
     - name: basic setup
       run: |
         pip --version
@@ -56,7 +60,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .actions/assistant.py requirements_prune_pkgs horovod
+        python .actions/assistant.py requirements_prune_pkgs  "--packages=[horovod]"
 
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
@@ -73,20 +77,20 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Install dependencies
-      env:
-        PACKAGE_NAME: pytorch  # TODO(lite) does this need to say lite?
-        FREEZE_REQUIREMENTS: 1
       run: |
-        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -e .[test] --upgrade --find-links "https://download.pytorch.org/whl/${url}"
         pip list
       shell: bash
+
+    - name: DocTests Lite
+      working-directory: src
+      run: python -m pytest lightning_lite
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
@@ -116,7 +120,6 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: always()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:

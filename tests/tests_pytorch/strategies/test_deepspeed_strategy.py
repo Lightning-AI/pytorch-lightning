@@ -355,15 +355,15 @@ def test_deepspeed_custom_precision_params(tmpdir):
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
             assert trainer.strategy.config["fp16"]["loss_scale"] == 10
-            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 10
-            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 10
-            assert trainer.strategy.config["fp16"]["hysteresis"] == 10
-            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 10
+            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 11
+            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 12
+            assert trainer.strategy.config["fp16"]["hysteresis"] == 13
+            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 14
             raise SystemExit()
 
     model = BoringModel()
     ds = DeepSpeedStrategy(
-        loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10
+        loss_scale=10, initial_scale_power=11, loss_scale_window=12, hysteresis=13, min_loss_scale=14
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -468,10 +468,16 @@ def test_deepspeed_multigpu(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
+
+    with mock.patch.object(
+        model, "configure_optimizers", wraps=model.configure_optimizers
+    ) as mock_configure_optimizers:
+        trainer.test(model)
+    assert mock_configure_optimizers.call_count == 0
+
     with mock.patch("deepspeed.init_distributed", wraps=deepspeed.init_distributed) as mock_deepspeed_distributed:
         trainer.fit(model)
     mock_deepspeed_distributed.assert_called_once()
-    trainer.test(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
@@ -655,8 +661,8 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    trainer.fit(model)
     trainer.test(model)
+    trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
@@ -676,8 +682,8 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    trainer.fit(model)
     trainer.test(model)
+    trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
