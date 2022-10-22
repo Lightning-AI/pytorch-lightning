@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 
+### Fixed
+
+- Fixed an issue where `test_deepspeed_engine_is_steppable` was failing if `mpi4py` was not installed ([#15251](https://github.com/Lightning-AI/lightning/pull/15251))
+
 
 
 ## [1.8.0] - 2022-MM-DD
