@@ -25,7 +25,7 @@ do
 
   python --version
   python -m pip --version
-  python -m pip list | grep -e torch -e learn
+  python -m pip list
 
   python $LEGACY_PATH/simple_classif_training.py  # > /dev/null 2>&1
 
@@ -46,7 +46,7 @@ if [[ -z "$@" ]]; then
 
   python --version
   python -m pip --version
-  python -m pip list | grep -e torch -e learn
+  python -m pip list
 
   python $LEGACY_PATH/simple_classif_training.py  # > /dev/null 2>&1
 
