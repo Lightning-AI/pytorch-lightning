@@ -253,7 +253,8 @@ def test_setup_model_not_supported(strategy_cls):
 
 @pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
-    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers independently."""
+    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
+    independently."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
