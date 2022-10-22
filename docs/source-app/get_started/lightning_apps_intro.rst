@@ -42,7 +42,7 @@ Lightning organizes Python code. Drop any piece of code into the LightningWork c
    # app.py
    import lightning as L
 
-   class AnyPythonCode(L.LightningWork):
+   class LitWorker(L.LightningWork):
       def run(self):
          message = """
          ANY python code can run here such as:
@@ -57,7 +57,7 @@ Lightning organizes Python code. Drop any piece of code into the LightningWork c
 
    # uses 1 cloud GPU (or your own hardware)
    compute = L.CloudCompute('gpu')
-   app = L.LightningApp(AnyPythonCode(cloud_compute=compute))
+   app = L.LightningApp(LitWorker(cloud_compute=compute))
 
 
 **Lightning runs the same on the cloud and locally.**
@@ -76,6 +76,24 @@ Run on your own hardware:
 
 ----
 
+****************************
+Use different cloud machines
+****************************
+Change the cloud machine easily with CloudCompute:
+
+.. code:: python
+
+   
+   compute = L.CloudCompute('default')          # 1 CPU
+   compute = L.CloudCompute('cpu-small')        # 2 CPUs
+   compute = L.CloudCompute('cpu-medium')       # 8 CPUs
+   compute = L.CloudCompute('gpu')              # 1 T4 GPU
+   compute = L.CloudCompute('gpu-fast')         # 1 V100 GPU
+   compute = L.CloudCompute('gpu-fast-multi')   # 4 V100 GPU
+   app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+----
+
 **********
 Save money
 **********
@@ -89,7 +107,7 @@ Turn off the machine when it's idle with **idle_timeout**:
 
    # turn off machine when it's idle for 10 seconds
    compute = L.CloudCompute('gpu', idle_timeout=10)
-   app = L.LightningApp(AnyPythonCode(cloud_compute=compute))
+   app = L.LightningApp(LitWorker(cloud_compute=compute))
 
 
 Cloud machines are subject to availability in the cloud provider. Set a **wait_timeout** limit to how long you want to wait for a machine to start:
@@ -100,35 +118,27 @@ Cloud machines are subject to availability in the cloud provider. Set a **wait_t
    
    # if the machine hasn't started after 60 seconds, cancel the work
    compute = L.CloudCompute('gpu', wait_timeout=60)
-   app = L.LightningApp(AnyPythonCode(cloud_compute=compute)
+   app = L.LightningApp(LitWorker(cloud_compute=compute)
 
-Use machines at a ~90% discount with **pre-emptible**: Pre-emptible machines are ~90% cheaper because they can be turned off at any second without notice:
+Use machines at a ~90% discount with **preemptible**: Pre-emptible machines are ~90% cheaper because they can be turned off at any second without notice:
 
 .. code:: python
    
-   # PRE-EMPTIBLE INSTANCES
+   # PRE-EMPTIBLE MACHINES
 
    # ask for a preemptible machine
    # wait 60 seconds before auto-switching to a full-priced machine
    compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
-   app = L.LightningApp(AnyPythonCode(cloud_compute=compute)
-
-Don't pay for disk space you don't need. Configure it with **disk_size**
-
-.. code:: python
-
-   # MODIFY DISK SIZE 
-
-   # use 10 GB of space on that machine
-   compute = L.CloudCompute('gpu', disk_size=10)
-   app = L.LightningApp(AnyPythonCode(cloud_compute=compute)
+   app = L.LightningApp(LitWorker(cloud_compute=compute)
 
 ----
 
 ***********************
 Run on your AWS account
 ***********************
-To run on your own AWS account, set up a Lightning cluster (here we name it pikachu):
+To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.   
+
+Next, set up a Lightning cluster (here we name it pikachu):
 
 .. code:: bash
 
@@ -139,74 +149,93 @@ Run your code on the pikachu cluster by passing it into CloudCompute:
 .. code:: python 
 
    compute = L.CloudCompute('gpu', clusters=['pikachu'])
-   app = L.LightningApp(AnyPythonCode(cloud_compute=compute))
+   app = L.LightningApp(LitWorker(cloud_compute=compute))
 
-.. hint:: 
-
-   Follow `this guide <??>`_ to create your AWS arn and external-id.
-
-
+.. warning:: 
+   
+   This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
 
 ----
 
+**********************
+Use a custom container
+**********************
+Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
+
+.. code:: python 
+   
+   # USE A CUSTOM CONTAINER
+
+   cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
+   app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
+
+----
+
+**************************
+Work with massive datasets
+**************************
+A LightningWork might need a large working folder for certain workloads such as ETL pipelines, data collection, training models and processing datasets.
+
+Attach a disk up to 64 TB with **disk_size**:
+
+.. code:: python
+
+   # MODIFY DISK SIZE 
+
+   # use 100 GB of space on that machine (max size: 64 TB)
+   compute = L.CloudCompute('gpu', disk_size=100)
+   app = L.LightningApp(LitWorker(cloud_compute=compute)
+
+.. note:: when the work finishes executing, the disk will be deleted.
+
+----
 
 *******************
 Mount cloud folders
 *******************
+To mount an s3 folder, use **Mount**:
 
-disk_size
+.. code:: python
+
+   # TODO: create a public demo folder
+   # public bucket
+   mount = Mount(source="s3://lightning-example-public/", mount_path="/foo")
+   compute = L.CloudCompute(mounts=mount)
+
+   app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+Read and list the files inside your LightningWork:
+
+.. code:: python
+
+   # app.py
+   import lightning as L
+
+   class LitWorker(L.LightningWork):
+      def run(self):
+         os.listdir('/foo')
+         file = os.file('/foo/a.jpg')
+
+   app = L.LightningApp(LitWorker())
+
+.. note::
+
+   To attach private s3 buckets, sign up for our early access: support@lightning.ai.
 
 ----
 
-****************
-Own docker image
-****************
-D7F5D5
+***************************
+Next step: Multiple Workers
+***************************
+In this guide, we showed how to run a single piece of code on a toy example. Check out these 
+non-toy examples.
 
-----
+- A 
+- B
+- C
 
+In the next guide, we'll learn how to run multiple LightningWork together
 
-
-**Why should I use Lightning?**
-
-The Lightning standard has proven to be a succesful because the Lightning structure
-allows teams and solo developers to organize their Python code which:
-
-- 10x development speed 
-- structural modularity
-- standard interface
-- built-in fault-tolerance and observability
-- full flexibility
-
-These elements allow teams and solo developers to move lightning fast through project implementations.
-
-[TODO: graphic]
-
-**I don't have time to learn a new library**
-
-We built Lightning because we hate learning new frameworks. It's designed to be a very thin organizational layer for Python. 
-
-A 10 minute investment to learn the 2 core principles of Lightning will save your hundreds of hours of not having to learn:
-
-- kubernetes
-- dag-systems
-- YAML 
-- distributed programming
-- fault tolerance
-- state management
-- cross-machine communication
-- distributed file-system management
-- ... and much more 
-
-etc... 
-
-It's kind of like learning to drive a car so you don't have to learn how physics works, 
-fuild dynamics, combustion engines and how to make your own gasoline.
-
-*************
-More examples
-*************
-Build more advanced apps with the following examples.
 
 .. raw:: html
 
@@ -216,28 +245,12 @@ Build more advanced apps with the following examples.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Build an ML product
-   :description: Build an app to caption sound.
-   :col_css: col-md-4
+   :header: Next step: Multiple LightningWork
+   :description: Run multiple LightningWorks together 
+   :col_css: col-md-12
    :button_link: ../model/build_model_advanced.html#manual-optimization
    :height: 150
    :tag: beginner
-
-.. displayitem::
-   :header: Train a model continuously
-   :description: Train a model repeatedly with streaming data.
-   :col_css: col-md-4
-   :button_link: ../model/build_model_advanced.html#manual-optimization
-   :height: 150
-   :tag: beginner
-
-.. displayitem::
-   :header: Deploy a load-balanced model
-   :description: Deploy a model with a custom load-balancing rule
-   :col_css: col-md-4
-   :button_link: ../model/build_model_advanced.html#manual-optimization
-   :height: 150
-   :tag: intermediate
 
 .. raw:: html
 
