@@ -58,7 +58,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         """Resets the loop state."""
         self._outputs = []
 
-    def on_run_start(self, kwargs: OrderedDict) -> None:  # type: ignore[override]
+    def on_run_start(self, kwargs: OrderedDict) -> None:
         """Splits the data into tbptt splits.
 
         Args:
@@ -67,7 +67,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         batch = kwargs["batch"]
         self._remaining_splits = list(enumerate(self._tbptt_split_batch(batch)))
 
-    def advance(self, kwargs: OrderedDict) -> None:  # type: ignore[override]
+    def advance(self, kwargs: OrderedDict) -> None:
         """Runs the train step together with optimization (if necessary) on the current batch split.
 
         Args:

@@ -153,7 +153,7 @@ class TensorBoardLogger(Logger):
         """
         return self._sub_dir
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> SummaryWriter:
         r"""
