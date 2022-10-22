@@ -79,7 +79,7 @@ class LightningApp:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow, LightningApp
+            >>> from lightning_app import LightningFlow, LightningApp
             >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
@@ -298,44 +298,35 @@ class LightningApp:
         # during the `state_accumulate_wait` time.
         # The while loop can exit sooner if both queues are empty.
 
-        should_get_delta_from_api = True
-        should_get_component_output = True
         deltas = []
+        api_or_command_request_deltas = []
         t0 = time()
 
         while (time() - t0) < self.state_accumulate_wait:
 
-            if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(
-                    self.api_delta_queue
-                )  # TODO: rename
-                if delta_from_api:
-                    if isinstance(delta_from_api, DeltaRequest):
-                        delta_from_api = delta_from_api.delta
-                    deltas.append(delta_from_api)
-                else:
-                    should_get_delta_from_api = False
-
-            if self.delta_queue and should_get_component_output:
-                component_output: Optional[ComponentDelta] = self.get_state_changed_from_queue(self.delta_queue)
-                if component_output:
-                    logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
-
+            # TODO: Fetch all available deltas at once to reduce queue calls.
+            delta: Optional[
+                Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
+            ] = self.get_state_changed_from_queue(self.delta_queue)
+            if delta:
+                if isinstance(delta, DeltaRequest):
+                    deltas.append(delta.delta)
+                elif isinstance(delta, ComponentDelta):
+                    logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")
                     work = None
                     try:
-                        work = self.get_component_by_name(component_output.id)
+                        work = self.get_component_by_name(delta.id)
                     except (KeyError, AttributeError) as e:
-                        logger.error(f"The component {component_output.id} couldn't be accessed. Exception: {e}")
+                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
 
                     if work:
-                        new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
-                        deltas.append(new_work_delta)
+                        delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
+                        deltas.append(delta)
                 else:
-                    should_get_component_output = False
+                    api_or_command_request_deltas.append(delta)
 
-            # if both queues were found empties, should break the while loop.
-            if not should_get_delta_from_api and not should_get_component_output:
-                break
+        if api_or_command_request_deltas:
+            _process_requests(self, api_or_command_request_deltas)
 
         for delta in deltas:
             # When aggregating deltas from the UI and the Works, and over the accumulation time window,
@@ -370,19 +361,11 @@ class LightningApp:
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
-        # 1: Process the API / Command Requests first as they might affect the state.
-        state_deltas = []
-        for delta in deltas:
-            if isinstance(delta, (APIRequest, CommandRequest)):
-                _process_requests(self, delta)
-            else:
-                state_deltas.append(delta)
-
         # 2: Collect the state
         state = self.state
 
         # 3: Apply the state delta
-        for delta in state_deltas:
+        for delta in deltas:
             try:
                 state += delta
             except Exception as e:
