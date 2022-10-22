@@ -26,12 +26,29 @@ happens in simple python instead of dozens of complex YAML files.
 
 ----
 
-******************************
-Build your first Lightning app
-******************************
-In the rest of this guide, we'll walk you step-by-step to build your first Lightning App.
+***********
+The XYZ app
+***********
+The first app we'll build is a fun ML product to annotate speech.
 
-Choose an example to walk-through
+----
+
+*************************
+Step 1: Install Lightning
+*************************
+Activate your `virtual environment <install_beginner.rst>`_ and run this command:
+
+.. code:: bash
+
+    python -m pip install -U lightning
+
+
+----
+
+*************
+More examples
+*************
+Build more advanced apps with the following examples.
 
 .. raw:: html
 
