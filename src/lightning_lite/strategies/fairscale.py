@@ -18,6 +18,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 import torch
 from lightning_utilities.core.imports import module_available
 from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
@@ -89,7 +90,7 @@ class DDPShardedStrategy(DDPStrategy):
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
-    def setup_module(self, module: Module) -> Module:
+    def setup_module(self, module: Module) -> DistributedDataParallel:
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:

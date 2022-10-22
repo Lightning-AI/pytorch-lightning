@@ -167,7 +167,9 @@ class LightningLite(ABC):
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         if optimizers:
-            model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
+            model, optimizers = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
+                model, list(optimizers)
+            )
         else:
             model = self._strategy.setup_module(model)
 
