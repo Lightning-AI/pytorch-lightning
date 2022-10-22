@@ -14,7 +14,7 @@ echo ENV_PATH: $ENV_PATH
 # iterate over all arguments assuming that each argument is version
 for pl_ver in "$@"
 do
-	echo processing version: $pl_ver
+  echo processing version: $pl_ver
 
   # Don't install/update anything before activating venv
   # to avoid breaking any existing environment.
@@ -41,7 +41,7 @@ done
 # use the PL installed in the environment if no PL version is specified
 if [[ -z "$@" ]]; then
   pl_ver=$(python -c "import pytorch_lightning as pl; print(pl.__version__)")
-	echo processing version: $pl_ver
+  echo processing version: $pl_ver
 
   python -m pip install -r $LEGACY_PATH/requirements.txt
 
