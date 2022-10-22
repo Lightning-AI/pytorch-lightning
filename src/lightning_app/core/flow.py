@@ -79,7 +79,7 @@ class LightningFlow:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow
+            >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):
             ...     def __init__(self):
             ...         super().__init__()
