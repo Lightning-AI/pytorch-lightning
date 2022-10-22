@@ -11,6 +11,18 @@ ENV_PATH=$LEGACY_PATH/vEnv
 echo LEGACY_PATH: $LEGACY_PATH
 echo ENV_PATH: $ENV_PATH
 
+function create_and_save_checkpoint {
+  python --version
+  python -m pip --version
+  python -m pip list
+
+  python $LEGACY_PATH/simple_classif_training.py
+
+  cp $LEGACY_PATH/simple_classif_training.py $LEGACY_PATH/checkpoints/$pl_ver
+  mv $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
+  rm -rf $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs
+}
+
 # iterate over all arguments assuming that each argument is version
 for pl_ver in "$@"
 do
@@ -23,15 +35,7 @@ do
 
   python -m pip install pytorch_lightning==$pl_ver -r $LEGACY_PATH/requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
-  python --version
-  python -m pip --version
-  python -m pip list
-
-  python $LEGACY_PATH/simple_classif_training.py  # > /dev/null 2>&1
-
-  cp $LEGACY_PATH/simple_classif_training.py $LEGACY_PATH/checkpoints/$pl_ver
-  mv $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
-  rm -rf $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs
+  create_and_save_checkpoints
 
   deactivate
   rm -rf $ENV_PATH
@@ -44,13 +48,5 @@ if [[ -z "$@" ]]; then
 
   python -m pip install -r $LEGACY_PATH/requirements.txt
 
-  python --version
-  python -m pip --version
-  python -m pip list
-
-  python $LEGACY_PATH/simple_classif_training.py  # > /dev/null 2>&1
-
-  cp $LEGACY_PATH/simple_classif_training.py $LEGACY_PATH/checkpoints/$pl_ver
-  mv $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
-  rm -rf $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs
+  create_and_save_checkpoints
 fi
