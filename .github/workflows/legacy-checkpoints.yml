@@ -74,14 +74,12 @@ jobs:
       with:
         name: checkpoints-${{ github.sha }}
         path: tests/legacy/checkpoints/
-      if: always()
 
     - name: Upload checkpoints to S3 (dryrun)
       run: |
         aws s3 sync --dryrun checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
         aws s3 cp --dryrun checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
-      if: always()
 
     - name: Upload checkpoints to S3
       run: |
