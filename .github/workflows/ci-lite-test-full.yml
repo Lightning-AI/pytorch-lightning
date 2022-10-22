@@ -147,6 +147,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_lite/coverage.xml
-        flags: cpu,pytest,python${{ matrix.python-version }}
+        flags: ${COVERAGE_SCOPE},cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false
