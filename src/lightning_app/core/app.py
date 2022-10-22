@@ -79,7 +79,7 @@ class LightningApp:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow, LightningApp
+            >>> from lightning_app import LightningFlow, LightningApp
             >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
