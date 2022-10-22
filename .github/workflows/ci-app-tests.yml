@@ -100,6 +100,10 @@ jobs:
         if: ${{ matrix.pkg-name == 'LAI' }}
         run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
+      - name: switch coverage scope
+        run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_app'))" >> $GITHUB_ENV
+        shell: bash
+
       - name: Tests
         working-directory: ./tests
         env:
@@ -108,7 +112,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source lightning_app -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
+          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3

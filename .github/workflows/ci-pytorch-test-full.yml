@@ -177,10 +177,14 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
+    - name: switch coverage scope
+      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'pytorch_lightning'))" >> $GITHUB_ENV
+      shell: bash
+
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()
