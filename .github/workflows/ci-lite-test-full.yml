@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["", "lite"]  # the "" is for installing monolithic package
+        pkg-name: ["LAI", "lite"]  # the "LAI" is for installing monolithic package
         python-version: ["3.7", "3.10"]
         requires: ["oldest", "latest"]
         release: ["stable"]
@@ -41,9 +41,10 @@ jobs:
           - {python-version: "3.9", requires: "oldest"}
           - {python-version: "3.10", requires: "oldest"}
         include:
-          - {os: ubuntu-22.04, python-version: "3.10", release: "pre", pkg-name: "lite"}
+          - {os: ubuntu-22.04, pkg-name: "LAI", python-version: "3.10", release: "pre"}
+          - {os: ubuntu-22.04, pkg-name: "lite", python-version: "3.10", release: "pre"}
 
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
     - uses: actions/checkout@v3
@@ -82,7 +83,7 @@ jobs:
 
     - name: DocTests Lite
       # todo: run docstest laos on mono-package
-      if: ${{ matrix.pkg-name != '' }}
+      if: ${{ matrix.pkg-name != 'LAI' }}
       working-directory: src
       run: python -m pytest lightning_lite
 
@@ -107,7 +108,7 @@ jobs:
       shell: bash
 
     - name: Adjust tests
-      if: ${{ matrix.pkg-name == '' }}
+      if: ${{ matrix.pkg-name == 'LAI' }}
       run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
 
     - name: Testing Warnings
