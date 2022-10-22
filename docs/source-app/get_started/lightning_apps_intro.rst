@@ -17,7 +17,29 @@ What is Lightning?
 Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to develop workflows that
 `run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_.
 
+Here are some examples of what you can build with lightning:
+
+- a
+- b 
+- c 
+
 .. note:: You don't need to know PyTorch or PyTorch Lightning to use Lightning.
+
+----
+
+***********************
+Productionize Lightning
+***********************
+
+Lightning is very easy to get started, and the code is simple but all Lightning applications are implicitly production ready
+by design where you get these features out of the box without thinking about them:
+
+- fault tolerance
+- observable 
+- auto-scaled
+- multi-cloud support
+- multi-accelerators
+- SOC 2
 
 ----
 
@@ -80,16 +102,14 @@ Run on your own hardware:
 Key features
 ************
 You now know enough to build pretty powerful cloud workflows. Here are some features available
-to super-charge your work. 
-
-# TODO: example of complex apps
+to super-charge your work.
 
 ----
 
 ----------------------------
 Use different cloud machines
 ----------------------------
-Change the cloud machine easily with CloudCompute:
+Change the cloud machine easily using our shorthands or full AWS instance names:
 
 .. code:: python
 
@@ -100,6 +120,7 @@ Change the cloud machine easily with CloudCompute:
    compute = L.CloudCompute('gpu')              # 1 T4 GPU
    compute = L.CloudCompute('gpu-fast')         # 1 V100 GPU
    compute = L.CloudCompute('gpu-fast-multi')   # 4 V100 GPU
+   compute = L.CloudCompute('p4d.24xlarge')     # 8 A100 GPU
    app = L.LightningApp(LitWorker(cloud_compute=compute))
 
 More machine types are available when you `run on your AWS account <??>`_.
@@ -175,6 +196,8 @@ Use a custom container
 ----------------------
 Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
 
+# TODO: only google?
+
 .. code:: python 
    
    # USE A CUSTOM CONTAINER
@@ -204,9 +227,9 @@ Attach a disk up to 64 TB with **disk_size**:
 ----
 
 -------------------
-Mount cloud folders
+Mount cloud storage
 -------------------
-To mount an s3 folder, use **Mount**:
+To mount an existing s3 bucket, use **Mount**:
 
 .. code:: python
 
@@ -240,14 +263,8 @@ Read and list the files inside your LightningWork:
 ***************************
 Next step: Multiple Workers
 ***************************
-In this guide, we showed how to run a single piece of code on a toy example. Check out these 
-non-toy examples.
-
-- A 
-- B
-- C
-
-In the next guide, we'll learn how to run multiple LightningWork together
+In this simple example we ran one piece of Python code. To create a complex workflow easily,
+we'll need to learn how to use multiple works together.
 
 
 .. raw:: html
