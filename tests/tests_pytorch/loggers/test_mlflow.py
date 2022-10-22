@@ -18,6 +18,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
 from pytorch_lightning.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
@@ -277,3 +278,45 @@ def test_mlflow_logger_finalize_when_exception(*_):
     assert logger._initialized
     logger.finalize("failed")
     logger.experiment.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+@pytest.mark.parametrize("log_model", ["all", True, False])
+def test_mlflow_log_model(client, mlflow, tmpdir, log_model):
+    """Test that the logger creates the folders and files in the right place."""
+
+    # Reset mocks
+    client.return_value.log_artifact.reset_mock()
+    client.return_value.log_artifacts.reset_mock()
+    # Get model, logger, trainer and train
+    model = BoringModel()
+    logger = MLFlowLogger("test", save_dir=tmpdir, log_model=log_model)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir / "model_checkpoints")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
+    trainer.fit(model)
+
+    if log_model == "all":
+        # Checkpoint log
+        assert client.return_value.log_artifact.call_count == 2
+        # Metadata and aliases log
+        assert client.return_value.log_artifacts.call_count == 2
+
+    elif log_model is True:
+        # Checkpoint log
+        client.return_value.log_artifact.assert_called_once()
+        # Metadata and aliases log
+        client.return_value.log_artifacts.assert_called_once()
+
+    elif log_model is False:
+        # Checkpoint log
+        assert not client.return_value.log_artifact.called
+        # Metadata and aliases log
+        assert not client.return_value.log_artifacts.called
