@@ -21,7 +21,6 @@ do
   python -m venv $ENV_PATH
   source $ENV_PATH/bin/activate
 
-  # there are problem to load ckpt in older versions since they are saved the newer versions
   python -m pip install pytorch_lightning==$pl_ver -r $LEGACY_PATH/requirements.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
   python --version
