@@ -12,9 +12,118 @@ Lightning Apps in 15 minutes
 ******************
 What is Lightning?
 ******************
-Lightning is an open-source framework to develop Intelligent, distributed cloud applications. We call these applications **Lightning Apps**.
+Lightning is an open-source framework to develop workflows which can run locally or on the cloud. Lightning
+is a thin-organizational layer on top of Python which means you don't have to learn a new framework.
+
+
+**PyTorch Lightning vs Lightning**  
+
+Lightning was born out of PyTorch Lightning. You do not need to know PyTorch Lightning or anything about
+machine learning to use Lightning.
+
+**Why should I use Lightning?**
+
+The Lightning standard has proven to be a succesful because the Lightning structure
+allows teams and solo developers to organize their Python code which:
+
+- 10x development speed 
+- structural modularity
+- standard interface
+- built-in fault-tolerance and observability
+- full flexibility
+
+These elements allow teams and solo developers to move lightning fast through project implementations.
+
+[TODO: graphic]
+
+**I don't have time to learn a new library**
+
+We built Lightning because we hate learning new frameworks. It's designed to be a very thin organizational layer for Python. 
+
+A 10 minute investment to learn the 2 core principles of Lightning will save your hundreds of hours of not having to learn:
+
+- kubernetes
+- dag-systems
+- YAML 
+- distributed programming
+- fault tolerance
+- state management
+- cross-machine communication
+- distributed file-system management
+- ... and much more 
+
+etc... 
+
+It's kind of like learning to drive a car so you don't have to learn how physics works, 
+fuild dynamics, combustion engines and how to make your own gasoline.
 
 ----
+
+************
+The toy code
+************
+[video showing this]
+
+In the next 2 minutes we will run the following toy code to understand how Lightning works.
+
+.. code:: python
+
+   # app.py
+   import lightning as L
+
+   class AnyPythonCode(L.LightningWork):
+      def run(self):
+         message = """
+         ANY python code can run here such as:
+         - train a model
+         - launch a deployment server
+         - label data
+         - run a react app, dash app, streamlit app, etc...
+         - start a jupyter notebook
+         - subprocess.Popen('echo run any shell script, python scripts or non python files')
+         """
+         print(message)
+
+   # uses 1 cloud GPU (or your own hardware)
+   app = L.LightningApp(AnyPythonCode(cloud_compute=L.CloudCompute('gpu')))
+
+
+**Lightning runs the same on the cloud and locally.**
+
+Run on a GPU in your own AWS account or Lightning Cloud (fully-managed AWS):
+
+.. code:: python
+
+   lightning run app.py --cloud
+
+Run on your own hardware:
+
+.. code:: python 
+   
+   lightning run app.py
+
+----
+
+*************************
+Step 0: Install Lightning
+*************************
+
+.. code:: bash
+
+    python -m pip install -U lightning
+
+***********************************
+Step 1: Find a piece of python code
+***********************************
+Pick any arbitrary piece of python code:
+
+.. code:: python
+
+   
+
+
+
+
 
 ************************
 What is a Lightning App?
