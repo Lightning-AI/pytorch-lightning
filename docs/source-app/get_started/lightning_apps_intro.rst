@@ -140,6 +140,19 @@ to super-charge your work.
 
    More machine types are available when you `run on your AWS account <??>`_.
 
+.. collapse:: Use a custom container
+   
+   Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
+
+   # TODO: only google?
+
+   .. code:: python 
+      
+      # USE A CUSTOM CONTAINER
+
+      cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
+      app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
+
 .. collapse:: Run on your AWS account
 
    To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.   
@@ -161,19 +174,6 @@ to super-charge your work.
    .. warning:: 
       
       This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
-
-.. collapse:: Use a custom container
-   
-   Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
-
-   # TODO: only google?
-
-   .. code:: python 
-      
-      # USE A CUSTOM CONTAINER
-
-      cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
-      app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
 
 |
 
