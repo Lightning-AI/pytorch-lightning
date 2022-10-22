@@ -124,9 +124,9 @@ Key features
 You now know enough to build pretty powerful cloud workflows. Here are some features available
 to super-charge your work.
 
-.. collapse:: Use different cloud accelerators
+**Cloud and hardware agnostic:**
 
-   Change the cloud machine easily using our shorthands or full AWS instance names:
+.. collapse:: Use different cloud accelerators
 
    .. code:: python
 
@@ -139,43 +139,6 @@ to super-charge your work.
       app = L.LightningApp(LitWorker(cloud_compute=compute))
 
    More machine types are available when you `run on your AWS account <??>`_.
-
-.. collapse:: Auto-stop idle machines
-
-   Turn off the machine when it's idle with **idle_timeout**:
-
-   .. code:: python
-
-      # IDLE TIME-OUT 
-
-      # turn off machine when it's idle for 10 seconds
-      compute = L.CloudCompute('gpu', idle_timeout=10)
-      app = L.LightningApp(LitWorker(cloud_compute=compute))
-
-.. collapse:: Auto-timeout submitted work
-
-   Cloud machines are subject to availability in the cloud provider. Set a **wait_timeout** limit to how long you want to wait for a machine to start:
-
-   .. code:: python
-
-      # WAIT TIME-OUT 
-      
-      # if the machine hasn't started after 60 seconds, cancel the work
-      compute = L.CloudCompute('gpu', wait_timeout=60)
-      app = L.LightningApp(LitWorker(cloud_compute=compute)
-
-.. collapse:: Use preemptible machines (~70% discount)
-
-   Use machines at a ~70% discount with **preemptible**: Pre-emptible machines are ~90% cheaper because they can be turned off at any second without notice:
-
-   .. code:: python
-      
-      # PRE-EMPTIBLE MACHINES
-
-      # ask for a preemptible machine
-      # wait 60 seconds before auto-switching to a full-priced machine
-      compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
-      app = L.LightningApp(LitWorker(cloud_compute=compute)
 
 .. collapse:: Run on your AWS account
 
@@ -211,6 +174,51 @@ to super-charge your work.
 
       cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
       app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
+
+|
+
+**Optimized hardware management:**
+
+.. collapse:: Auto-stop idle machines
+
+   Turn off the machine when it's idle with **idle_timeout**:
+
+   .. code:: python
+
+      # IDLE TIME-OUT 
+
+      # turn off machine when it's idle for 10 seconds
+      compute = L.CloudCompute('gpu', idle_timeout=10)
+      app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+.. collapse:: Auto-timeout submitted work
+
+   Cloud machines are subject to availability in the cloud provider. Set a **wait_timeout** limit to how long you want to wait for a machine to start:
+
+   .. code:: python
+
+      # WAIT TIME-OUT 
+      
+      # if the machine hasn't started after 60 seconds, cancel the work
+      compute = L.CloudCompute('gpu', wait_timeout=60)
+      app = L.LightningApp(LitWorker(cloud_compute=compute)
+
+.. collapse:: Use preemptible machines (~70% discount)
+
+   Pre-emptible machines are ~90% cheaper because they can be turned off at any second without notice:
+
+   .. code:: python
+      
+      # PRE-EMPTIBLE MACHINES
+
+      # ask for a preemptible machine
+      # wait 60 seconds before auto-switching to a full-priced machine
+      compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
+      app = L.LightningApp(LitWorker(cloud_compute=compute)
+
+|
+
+**Optimized for massive data:**
 
 .. collapse:: Work with massive datasets
 
@@ -259,28 +267,60 @@ to super-charge your work.
 
       To attach private s3 buckets, sign up for our early access: support@lightning.ai.
 
+|
+
+**Community-driven:**
+
 .. collapse:: Use community-built LightningWorks
 
    The Lightning structure allows you to use self-contained components from the Lightning community
    so you don't have to build every piece of functionality yourself. Check out our component gallery
    for examples
 
-----
+.. collapse:: Learn and get help
 
-***************************
-Lightning is for production
-***************************
-Lightning is built to feel simple and like you are writing scripts,
-but you are implicitly building production-ready systems where you get these
-features out-of-the-box without thinking about them:
+   Over 400k people across the world build with Lightning. Join our community to learn from the best, ask any questions
+   or just hang out!
 
-- fault tolerant
-- observable 
-- auto-scaled
-- multi-cloud support
-- multi-accelerators
-- encrypted secrets
-- SOC 2
+   .. join_slack::
+      :align: center
+
+|
+
+**Production-ready:**
+
+.. collapse:: Write systems not scripts
+
+   Lightning is built to feel simple and like you are writing scripts,
+   but you are implicitly building production-ready systems.
+
+.. collapse:: fault tolerant
+
+   ABC 
+
+.. collapse:: observable
+
+   ABC 
+
+.. collapse:: auto-scaled
+
+   ABC 
+
+.. collapse:: multi-cloud support
+
+   ABC 
+
+.. collapse:: multi-accelerators
+
+   ABC 
+
+.. collapse:: encrypted secrets
+
+   ABC 
+
+.. collapse:: SOC 2
+
+   ABC 
 
 ----
 
