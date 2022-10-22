@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
@@ -101,7 +101,7 @@ class _LRFinder:
         self.results: Dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Callable[["pl.Trainer"], None]:
+    def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
@@ -233,7 +233,7 @@ def lr_find(
     lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
     # Configure optimizer and scheduler
-    lr_finder._exchange_scheduler(trainer, model)
+    lr_finder._exchange_scheduler(trainer)
 
     # Fit, lr & loss logged in callback
     _try_loop_run(trainer, params)
@@ -405,9 +405,6 @@ class _LinearLR(_LRScheduler):
         last_epoch: the index of last epoch. Default: -1.
     """
 
-    last_epoch: int
-    base_lrs: Sequence
-
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
@@ -442,9 +439,6 @@ class _ExponentialLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
-
-    last_epoch: int
-    base_lrs: Sequence
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
