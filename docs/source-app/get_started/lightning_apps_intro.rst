@@ -142,7 +142,8 @@ Next, set up a Lightning cluster (here we name it pikachu):
 
 .. code:: bash
 
-   lightning create cluster pikachu --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2
+   # TODO: need to remove  --external-id dummy --region us-west-2
+   lightning create cluster pikachu --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc
 
 Run your code on the pikachu cluster by passing it into CloudCompute:
 
