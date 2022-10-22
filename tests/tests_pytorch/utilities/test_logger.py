@@ -89,7 +89,7 @@ def test_flatten_dict():
 
     assert type(params) == dict
     assert params["params/logger"] is True
-    assert params["params/gpus"] == "None"
+    assert params["params/gpus"] is None
     assert "logger" not in params
     assert "gpus" not in params
 
@@ -118,7 +118,7 @@ def test_sanitize_callable_params():
     params = _convert_params(params)
     params = _flatten_dict(params)
     params = _sanitize_callable_params(params)
-    assert params["gpus"] == "None"
+    assert params["gpus"] is None
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"

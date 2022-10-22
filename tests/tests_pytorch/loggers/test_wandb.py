@@ -104,7 +104,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
     # log hyper parameters
     logger.log_hyperparams({"test": None, "nested": {"a": 1}, "b": [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
-        {"test": "None", "nested/a": 1, "b": [2, 3, 4]}, allow_val_change=True
+        {"test": None, "nested/a": 1, "b": [2, 3, 4]}, allow_val_change=True
     )
 
     # watch a model

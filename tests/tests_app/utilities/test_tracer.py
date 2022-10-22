@@ -7,7 +7,7 @@ from lightning_app.testing.helpers import RunIf
 from lightning_app.utilities.tracer import Tracer
 
 
-@RunIf(pytorch_lightning=True)
+@RunIf(pl=True)
 def test_tracer():
     from pytorch_lightning import Trainer
 
