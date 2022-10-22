@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -26,7 +27,15 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import ParallelStrategy, SingleDeviceStrategy, Strategy
+from lightning_lite.strategies import (
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DeepSpeedStrategy,
+    ParallelStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+    XLAStrategy,
+)
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
@@ -230,6 +239,27 @@ def test_setup_optimizers_twice_fails():
     lite_optimizer = lite.setup_optimizers(optimizer)
     with pytest.raises(ValueError, match="An optimizer should be passed only once to"):
         lite.setup_optimizers(lite_optimizer)
+
+
+@pytest.mark.parametrize("strategy_cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
+def test_setup_model_not_supported(strategy_cls):
+    """Test that `setup_model` validates the strategy supports setting up model and optimizers independently."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    lite._strategy = Mock(spec=strategy_cls)
+    with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
+        lite.setup_model(model)
+
+
+@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy])
+def test_setup_optimizers_not_supported(strategy_cls):
+    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers independently."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+    lite._strategy = Mock(spec=strategy_cls)
+    with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
+        lite.setup_optimizers(optimizer)
 
 
 def test_setup_tracks_num_models():
