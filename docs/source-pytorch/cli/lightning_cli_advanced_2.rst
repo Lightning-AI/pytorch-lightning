@@ -200,14 +200,14 @@ To enable variable interpolation, first install omegaconf:
 
     pip install omegaconf
 
-Once this is installed, 
+Once this is installed,
 
-.. code: python 
+.. code: python
     cli = LightningCLI(
         seed_everything_default=True,
         parser_kwargs={"parser_mode": "omegaconf"},
     )
-    
+
 Specify the `parser_kwargs as above` then Lightning CLI will automatically handle variables in yaml files:
 
 .. code bash:
