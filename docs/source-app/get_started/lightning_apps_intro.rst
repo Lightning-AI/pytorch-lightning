@@ -17,11 +17,46 @@ What is Lightning?
 Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to develop workflows that
 `run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_, using community-built components.
 
-Here are some examples of what you can build with lightning:
+|
 
-- a
-- b 
-- c 
+Examples of what you can build with Lightning:
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: A full SaaS product for stable diffusion
+   :description: Try any ideas using raw PyTorch without the boilerplate.
+   :col_css: col-md-4
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 250
+
+.. displayitem::
+   :header: A full SaaS product for stable diffusion
+   :description: Try any ideas using raw PyTorch without the boilerplate.
+   :col_css: col-md-4
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 250
+
+.. displayitem::
+   :header: A full SaaS product for stable diffusion
+   :description: Try any ideas using raw PyTorch without the boilerplate.
+   :col_css: col-md-4
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 250
+
+.. raw:: html
+
+        </div>
+    </div>
+
 
 .. note:: You don't need to know PyTorch or PyTorch Lightning to use Lightning.
 
