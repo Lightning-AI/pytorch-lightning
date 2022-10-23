@@ -19,7 +19,7 @@ A workflow coordinates 2 or more python scripts together. We call a workflow bui
 
 In this guide, we'll build a workflow in <5 minutes and explain how it works.
 
-.. note:: If you've used other workflow tools for Python, in `level 3 <level_3.html>`_, we'll 
+.. note:: If you've used other workflow tools for Python, in `level 4 <level_4.html>`_, we'll 
         generalize simple workflows to reactive workflows that allow you to build complex
         systems without much effort!
 
@@ -87,6 +87,7 @@ And run it locally to see that it runs on your laptop without code changes 🤯�
 
 Now you can develop distributed cloud workflows on your laptop 🤯🤯🤯🤯!
 
+
 ----
 
 ***********************
@@ -99,6 +100,11 @@ Now you're an expert in
 
     In these lines, you defined a LightningFlow which coordinates how the LightningWorks interact together.
     In engineering, we call this **orchestration**:
+
+    .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif
+        :alt: Animation showing how to convert your PyTorch code to LightningLite.
+        :width: 800
+        :align: center
 
     .. code:: python
         :emphasize-lines: 9, 16
@@ -128,7 +134,7 @@ Now you're an expert in
 
     .. hint::
 
-        If you've used other orchestration frameworks before, this should already be familiar! In `level 3 <level_3.html>`_, you'll
+        If you've used other orchestration frameworks before, this should already be familiar! In `level 4 <level_4.html>`_, you'll
         see how to generalize beyond "orchestrators" with reactive workflows that allow you to build complex
         systems without much effort!
 
@@ -234,9 +240,76 @@ Now you're an expert in
 
 ----
 
-*****************************
-Next step: Reactive Workflows
-*****************************
+***********************
+Use Python control flow
+***********************
+Lightning code is simply **organized python**. If you know python, you already know Lightning. Use for-loops, if statements, while loops, timers, etc... as you do with Python:
+
+.. code:: python
+    :emphasize-lines: 2, 13, 16, 17, 21, 22
+
+    import lightning as L
+    from datetime import datetime
+
+    class LitWorker(L.LightningWork):
+        def run(self, message):
+            print(message)
+
+    class LitWorkflow(L.LightningFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+            self._start_time = None
+
+        def run(self):
+            if self._start_time is None:
+                self._start_time = datetime.now()
+            self.work_A.run("python code A running on a CPU machine")
+
+            # start B, 5 seconds after A has finished
+            elapsed_seconds = (datetime.now() - self._start_time).seconds
+            if elapsed_seconds > 5:
+                self.work_B.run("python code B running on a GPU machine")
+
+    app = L.LightningApp(LitWorkflow())
+
+----
+
+*************
+Schedule work
+*************
+Although you can use python timers to scheduler work, Lightning has a shortcut that uses `crontab syntax <https://crontab.guru/>`_:
+
+.. code:: python
+    :emphasize-lines: 17
+
+    import lightning as L
+
+    class LitWorker(L.LightningWork):
+        def run(self, message):
+            print(message)
+
+    class LitWorkflow(L.LightningFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+
+        def run(self):
+            self.work_A.run("python code A running on a CPU machine")
+            
+            # run B every hour
+            if self.schedule("hourly"):
+                self.work_B.run("python code B running on a GPU machine")
+
+    app = L.LightningApp(LitWorkflow())
+
+----
+
+***********************************
+Next step: Communicate between works
+***********************************
 
 .. raw:: html
 
@@ -246,8 +319,8 @@ Next step: Reactive Workflows
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 3: Build a reactive workflow
-   :description: Coordinate complex logic simply.
+   :header: Level 3: Communicate between works
+   :description: Move variables and files across works.
    :col_css: col-md-12
    :button_link: level_3.html
    :height: 150

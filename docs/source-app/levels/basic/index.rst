@@ -38,24 +38,24 @@ Learn the basics of running Lightning Apps and modifying existing Lightning Apps
    :tag: basic
 
 .. displayitem::
-   :header: Level 2: Run Lightning Apps locally
-   :description: Learn to run an Lightning Apps locally
+   :header: Level 2: Build a workflow
+   :description: Learn to run multiple python scripts.
    :button_link: level_2.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Level 3: Run Lightning Apps on the cloud
-   :description: Learn to run a Lightning Apps on the cloud
+   :header: Level 3: Communicate between works
+   :description: Move variables and files across works.
    :button_link: level_3.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Level 4: Modify existing Lightning Apps
-   :description: Modify a Lightning App from the Lightning App Gallery for your use case.
+   :header: Level 4: Build reactive workflows
+   :description: Learn to easily build interactive workflows that react to complex input patterns.
    :button_link: level_4.html
    :col_css: col-md-6
    :height: 150
