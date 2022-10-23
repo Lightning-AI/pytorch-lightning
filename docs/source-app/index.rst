@@ -50,7 +50,7 @@ Get Started
    :header: Lightning in 15 minutes
    :description: Learn the key ideas of building with Lightning.
    :col_css: col-md-12
-   :button_link: get_started/lightning_apps_intro.html
+   :button_link: levels/basic/lightning_in_15_minutes.html
    :height: 160
    :tag: All users
 
@@ -171,7 +171,7 @@ Keep Learning
    :caption: Get Started
 
    installation
-   get_started/lightning_apps_intro
+   Lightning in 15 minutes <levels/basic/lightning_in_15_minutes>
 
 .. toctree::
    :maxdepth: 1

@@ -1,8 +1,7 @@
 #######################
 Lightning in 15 minutes
 #######################
-
-**Required background:** You know *basic* Python (PyTorch or PyTorch Lightning knowledge *NOT* required).
+**Prereqs:** You know *basic* Python (PyTorch or PyTorch Lightning knowledge *NOT* required).
 
 **Goal:** In this guide you'll learn the basic concept to develop with Lightning.
 

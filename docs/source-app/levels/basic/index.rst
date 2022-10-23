@@ -4,7 +4,7 @@
    :maxdepth: 1
    :hidden:
 
-   level_1
+   lightning_in_15_minutes
    level_2
    level_3
    level_4
@@ -30,9 +30,9 @@ Learn the basics of running Lightning Apps and modifying existing Lightning Apps
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 1: Clone and Run
-   :description: Learn how to get up and running in minutes
-   :button_link: level_1.html
+   :header: Level 1: LIGHTNING IN 15 MINUTES
+   :description: Learn to run python on the cloud.
+   :button_link: lightning_in_15_minutes.html
    :col_css: col-md-6
    :height: 150
    :tag: basic

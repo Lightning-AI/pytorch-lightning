@@ -1,6 +1,6 @@
-###################################
-Level 2: Run Lightning Apps locally
-###################################
+#########################
+Level 2: Build a workflow
+#########################
 **Audience:** New users who want to run a Lightning App on their machines
 
 **Prereqs:** You already have the Lightning App code on your local machine.
