@@ -257,6 +257,8 @@ to super-charge your work.
 
    More machine types are available when you `run on your AWS account <??>`_.
 
+   |
+
 .. collapse:: Use a custom container
    
    |
@@ -271,6 +273,8 @@ to super-charge your work.
 
       cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
       app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
+
+   |
 
 .. collapse:: Run on your AWS account
 
@@ -295,6 +299,8 @@ to super-charge your work.
       
       This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
 
+   |
+
 |
 
 **Optimized hardware management:**
@@ -313,6 +319,8 @@ to super-charge your work.
       compute = L.CloudCompute('gpu', idle_timeout=10)
       app = L.LightningApp(LitWorker(cloud_compute=compute))
 
+   |
+
 .. collapse:: Auto-timeout submitted work
 
    |
@@ -326,6 +334,8 @@ to super-charge your work.
       compute = L.CloudCompute('gpu', wait_timeout=60)
       app = L.LightningApp(LitWorker(cloud_compute=compute)
 
+   |
+   
 .. collapse:: Use preemptible machines (~70% discount)
 
    |
@@ -340,11 +350,15 @@ to super-charge your work.
       compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
       app = L.LightningApp(LitWorker(cloud_compute=compute)
 
+   |
+   
 |
 
 **Optimized for massive data:**
 
 .. collapse:: Work with massive datasets
+
+   |
 
    A LightningWork might need a large working folder for certain workloads such as ETL pipelines, data collection, training models and processing datasets.
 
@@ -360,7 +374,11 @@ to super-charge your work.
 
    .. note:: when the work finishes executing, the disk will be deleted.
 
+   |
+   
 .. collapse:: Mount cloud storage
+
+   |
 
    To mount an existing s3 bucket, use **Mount**:
 
@@ -391,17 +409,25 @@ to super-charge your work.
 
       To attach private s3 buckets, sign up for our early access: support@lightning.ai.
 
+   |
+   
 |
 
 **Community-driven:**
 
 .. collapse:: Use community-built LightningWorks
 
+   |
+
    The Lightning structure allows you to use self-contained components from the Lightning community
    so you don't have to build every piece of functionality yourself. Check out our component gallery
    for examples
 
+   |
+   
 .. collapse:: Learn and get help
+
+   |
 
    Over 400k people across the world build with Lightning. Join our community to learn from the best, ask any questions
    or just hang out!
@@ -409,35 +435,61 @@ to super-charge your work.
    .. join_slack::
       :align: center
 
+   |
+   
 |
 
 **Production-ready:**
 
 .. collapse:: Write systems not scripts or notebooks
 
+   |
+
    Lightning is built to feel simple and like you are writing scripts,
    but you are implicitly building production-ready systems.
 
+   |
+   
 .. collapse:: fault tolerant
 
+   |
+
    ABC 
 
+   |
+   
 .. collapse:: observable
 
+   |
+
    ABC 
 
+   |
+   
 .. collapse:: auto-scaled
 
+   |
+
    ABC 
 
+   |
+   
 .. collapse:: encrypted secrets
 
+   |
+
    ABC 
 
+   |
+   
 .. collapse:: SOC 2
 
+   |
+
    ABC 
 
+   |
+   
 ----
 
 ***************************
