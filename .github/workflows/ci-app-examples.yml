@@ -80,6 +80,8 @@ jobs:
         run: npm install -g yarn
 
       - name: Install Lightning as top-level
+        env:
+          PACKAGE_NAME: app
         run: pip install -e .
         shell: bash
 
