@@ -156,6 +156,11 @@ Step 1: Install Lightning
 ***************************
 Step 2: Run any python code
 ***************************
+
+Deploy this example:
+
+.. join_slack::
+
 [video showing this]
 
 Lightning organizes Python code. Drop any piece of code into the LightningWork class and run on the cloud or your own hardware:
