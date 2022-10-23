@@ -239,15 +239,13 @@ Lightning organizes Python code. Drop any piece of code into the LightningWork c
 
    class LitWorker(L.LightningWork):
       def run(self):
-         message = """
-         ANY python code can run here such as:
-         - train a model
-         - launch a deployment server
-         - label data
-         - run a react app, dash app, streamlit app, etc...
-         - start a jupyter notebook
-         - subprocess.Popen('echo run any shell script, python scripts or non python files')
-         """
+         message = """ANY python code can run here such as:
+                     - train a model
+                     - launch a deployment server
+                     - label data
+                     - run a react app, dash app, streamlit app, etc...
+                     - start a jupyter notebook
+                     - subprocess.Popen('echo run any shell script, python scripts or non python files')"""
          print(message)
 
    # uses 1 cloud GPU (or your own hardware)
