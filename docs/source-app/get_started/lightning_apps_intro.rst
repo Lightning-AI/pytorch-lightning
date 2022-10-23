@@ -138,6 +138,45 @@ Examples of what you can build with Lightning:
          </div>
       </div>
 
+.. collapse:: For Hobbyists/Students
+
+   .. raw:: html
+
+      <div class="display-card-container">
+         <div class="row">
+
+   .. displayitem::
+      :header: Cloud data scraper
+      :description: An internal ML system for fraud detection.
+      :col_css: col-md-4
+      :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+      :button_link: https://lightning.ai/muse
+      :height: 280
+      :tag: Hobbyist or student
+
+   .. displayitem::
+      :header: Homework assignment
+      :description: Build and monetize external products 
+      :col_css: col-md-4
+      :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+      :button_link: https://lightning.ai/muse
+      :height: 280
+      :tag: Hobbyist or student
+
+   .. displayitem::
+      :header: Cloud Jupyter Notebooks
+      :description: Share reproducible software products for clients that scale instead of jupyter notebooks that don't.
+      :col_css: col-md-4
+      :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+      :button_link: https://lightning.ai/muse
+      :height: 280
+      :tag: Hobbyist or student
+
+   .. raw:: html
+
+         </div>
+      </div>
+
 |
 
 ⚡⚡ This guide will teach you the main principles that allow you to build systems like the ones above Lightning fast ⚡⚡.
