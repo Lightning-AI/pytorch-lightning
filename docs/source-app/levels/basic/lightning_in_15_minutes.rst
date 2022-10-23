@@ -19,14 +19,14 @@ Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ frame
 .. collapse:: I don't have time to learn a new framework
 
    |
-   
+
    Lightning's key design principle is to be a minimal API because we hate learning new libraries too. A 1 hour investment
    into learning Lightning means you won't have to spend 100s of hours learning other tools like kubernetes, fault-tolerance, distributed programming,
    YAML, etc...
 
 |
 
-⚡⚡ This guide will teach you the main principles that allow you to build systems like the following ones Lightning fast ⚡⚡
+⚡ Lightning fast: ⚡ This guide will teach you key principles that allows you to build systems like the following ones - Lightning fast:
 
 .. collapse:: For Enterprises
 
