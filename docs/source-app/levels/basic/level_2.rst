@@ -12,12 +12,19 @@ What is a workflow?
 *******************
 A workflow coordinates 2 or more python scripts together. We call a workflow built with Lightning a *Lightning App*.
 
+In this guide, we'll build a workflow in <5 minutes and explain how it works.
+
 ----
 
-************************
-The Hello World workflow
-************************
-In the previous example, we defined this LightningWork that can run ⚡ *any* ⚡ piece of Python code.
+**************
+A Toy Workflow
+**************
+
+[VIDEO showing this]
+
+[BUTTON TO DEPLOY THIS EXAMPLE]
+
+In the previous example, we defined this LightningWork that can run ⚡ *any* ⚡ piece of Python code:
 
 .. code:: python 
 
@@ -33,7 +40,7 @@ In the previous example, we defined this LightningWork that can run ⚡ *any* �
     compute = L.CloudCompute('gpu')
     app = L.LightningApp(LitWorker(cloud_compute=compute))
 
-In this example, let's run two pieces of Python code in a workflow
+In this example, let's run two pieces of Python code in a workflow:
 
 .. code:: python
 
@@ -72,24 +79,3 @@ And run it locally to see that it runs on your laptop 🤯🤯
 Now you can develop distributed cloud workflows on your laptop 🤯🤯🤯🤯!
 
 ----
-
-***********
-Run locally
-***********
-Run the Lightning App on your local machine by using the following command:
-
-.. code:: bash
-
-    lightning run app app.py
-
-Now you'll see the Lightning App start up on your local machine.
-
-.. note:: At this time, you can only run one Lightning App locally at a time. **Submit a PR to unblock that!**
-
-----
-
-*************************
-Run on any remote machine
-*************************
-Remember you can always SSH into any of your cloud machines on your university or enterprise cluster and run
-Lightning App from there. However, you will be responsible for the auto-scaling of those Lightning Apps.
