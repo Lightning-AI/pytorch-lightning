@@ -195,7 +195,28 @@ Step 1: Install Lightning
 
     python -m pip install -U lightning
 
-For Mac M1/M2/M3, windows or custom installs, read the :ref:`advanced install <install>` guide.
+.. collapse:: Mac M1/M2/M3 users
+
+   |
+
+   To install on Mac, set these 2 environment variables   
+   
+   .. code-block:: bash
+
+      # needed for M1/M2/M3
+      export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
+      export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
+
+      python -m pip install -U lightning
+
+.. collapse:: Windows users
+
+   |
+
+   To install on Windows:
+
+   - setup an alias for Python: python=python3
+   - Add the root folder of Lightning to the Environment Variables to PATH
 
 ----
 
