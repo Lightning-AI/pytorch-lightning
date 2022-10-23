@@ -185,6 +185,8 @@ Step 1: Install Lightning
 
     python -m pip install -U lightning
 
+For Mac M1/M2/M3, windows or custom installs, read the :ref:`advanced install <install>` guide.
+
 ----
 
 ***************************
