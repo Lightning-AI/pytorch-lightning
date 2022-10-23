@@ -184,6 +184,7 @@ def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[
     >>> lns = ["lightning_app",
     ...        "delete_cloud_lightning_apps",
     ...        "from lightning_app import",
+    ...        "lightning_apps = []",
     ...        "lightning_app is ours",
     ...        "def _lightning_app():",
     ...        ":class:`~lightning_app.core.flow.LightningFlow`"]
@@ -192,13 +193,14 @@ def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[
     ['lightning.app',
      'delete_cloud_lightning_apps',
      'from lightning.app import',
+     'lightning_apps = []',
      'lightning.app is ours',
      'def _lightning_app():',
      ':class:`~lightning.app.core.flow.LightningFlow`']
     """
     for n2, n1 in pkg_lut.items():
         for i, ln in enumerate(lines):
-            lines[i] = re.sub(rf"([^_]|^){n1}([^_]|$)", rf"\1lightning.{n2}\2", ln)
+            lines[i] = re.sub(rf"([^_]|^){n1}([^_\w]|$)", rf"\1lightning.{n2}\2", ln)
     return lines
 
 
