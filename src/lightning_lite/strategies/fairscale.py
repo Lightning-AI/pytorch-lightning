@@ -18,15 +18,17 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 import torch
 from lightning_utilities.core.imports import module_available
 from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
+from lightning_lite.strategies.strategy import _BackwardSyncControl
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _IS_WINDOWS
 
@@ -65,6 +67,7 @@ class DDPShardedStrategy(DDPStrategy):
             timeout=timeout,
             **kwargs,
         )
+        self._backward_sync_control = _FairscaleBackwardSyncControl()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -87,24 +90,11 @@ class DDPShardedStrategy(DDPStrategy):
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
-    def setup_module(self, module: Module) -> Module:
-        raise RuntimeError("not supported")  # TODO: proper error message
+    def setup_module(self, module: Module) -> DistributedDataParallel:
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        raise RuntimeError("not supported")  # TODO: proper error message
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks syncing gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(module, ShardedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
-            yield None
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -147,13 +137,14 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             timeout=timeout,
             **kwargs,
         )
+        self._backward_sync_control = _FairscaleBackwardSyncControl()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple[Module, List[Optimizer]]:
+    ) -> Tuple["ShardedDataParallel", List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
 
         Return:
@@ -174,19 +165,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         raise RuntimeError("not supported")  # TODO: proper error message
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks syncing gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(module, ShardedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
-            yield None
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -216,3 +194,18 @@ def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precisio
             optimizers[x] = zero_optimizer
             del optimizer
     return optimizers
+
+
+class _FairscaleBackwardSyncControl(_BackwardSyncControl):
+    @contextmanager
+    def no_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
+        wrapper."""
+        if not isinstance(module, ShardedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `ShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():
+            yield None

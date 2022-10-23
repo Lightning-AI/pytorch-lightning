@@ -18,7 +18,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
+from lightning_lite.plugins.io.torch_io import TorchCheckpointIO
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 

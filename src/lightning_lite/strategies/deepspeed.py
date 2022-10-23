@@ -34,7 +34,7 @@ from lightning_lite.utilities.distributed import log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_lite.utilities.types import _PATH
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if _DEEPSPEED_AVAILABLE:
@@ -233,6 +233,7 @@ class DeepSpeedStrategy(DDPStrategy):
             precision=precision,
             process_group_backend=process_group_backend,
         )
+        self._backward_sync_control = None  # DeepSpeed handles gradient accumulation internally
 
         self.config = self._load_config(config)
         if self.config is None:
@@ -324,7 +325,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self._deepspeed_engine
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        raise RuntimeError("not supported")  # TODO: proper error message
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextlib.contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:

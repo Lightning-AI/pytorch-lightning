@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -26,7 +27,15 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import Strategy
+from lightning_lite.strategies import (
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DeepSpeedStrategy,
+    ParallelStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+    XLAStrategy,
+)
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
@@ -70,11 +79,13 @@ def test_run_input_output():
 
 
 @mock.patch("lightning_lite.strategies.ddp.DistributedDataParallel")
-def test_setup_model(ddp_mock):
+@pytest.mark.parametrize("setup_method", ["setup", "setup_model"])
+def test_setup_model(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
     lite = EmptyLite(accelerator="cpu", strategy="ddp", devices=2)
     model = nn.Linear(1, 2)
-    lite_model = lite.setup(model)
+    setup_method = getattr(lite, setup_method)
+    lite_model = setup_method(model)
     ddp_mock.assert_called_with(module=model, device_ids=ANY)
     assert lite_model.module == model
     assert lite_model.weight is model.weight
@@ -93,7 +104,8 @@ def test_setup_model(ddp_mock):
     ],
 )
 @pytest.mark.parametrize("move_to_device", [True, False])
-def test_setup_model_move_to_device(move_to_device, accelerator, initial_device, target_device):
+@pytest.mark.parametrize("setup_method", ["setup", "setup_model"])
+def test_setup_model_move_to_device(setup_method, move_to_device, accelerator, initial_device, target_device):
     """Test that `move_to_device` leads to parameters being moved to the correct device and that the device
     attributes on the wrapper are updated."""
     initial_device = torch.device(initial_device)
@@ -103,7 +115,8 @@ def test_setup_model_move_to_device(move_to_device, accelerator, initial_device,
     lite = EmptyLite(accelerator=accelerator, devices=1)
     model = nn.Linear(1, 2)
     model.to(initial_device)
-    lite_model = lite.setup(model, move_to_device=move_to_device)
+    setup_method = getattr(lite, setup_method)
+    lite_model = setup_method(model, move_to_device=move_to_device)
 
     # all parameters on the expected device
     assert all(param.device == expected_device for param in model.parameters())
@@ -115,7 +128,8 @@ def test_setup_model_move_to_device(move_to_device, accelerator, initial_device,
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("move_to_device", [True, False])
-def test_setup_model_parameters_on_different_devices(move_to_device):
+@pytest.mark.parametrize("setup_method", ["setup", "setup_model"])
+def test_setup_model_parameters_on_different_devices(setup_method, move_to_device):
     """Test that a warning is emitted when model parameters are on a different device prior to calling
     `setup()`."""
     device0 = torch.device("cpu")
@@ -127,9 +141,11 @@ def test_setup_model_parameters_on_different_devices(move_to_device):
     module1 = nn.Linear(1, 2).to(device1)
     model = nn.Sequential(module0, module1)
 
+    setup_method = getattr(lite, setup_method)
+
     if move_to_device:
         with pytest.warns(PossibleUserWarning, match="has parameters on different devices"):
-            lite_model = lite.setup(model, move_to_device=move_to_device)
+            lite_model = setup_method(model, move_to_device=move_to_device)
 
         # both have the same device now
         assert lite_model.device == device1
@@ -137,11 +153,11 @@ def test_setup_model_parameters_on_different_devices(move_to_device):
         assert module1.weight.device == module1.bias.device == device1
     else:
         with no_warning_call(expected_warning=PossibleUserWarning, match="has parameters on different devices"):
-            lite.setup(model, move_to_device=move_to_device)
+            setup_method(model, move_to_device=move_to_device)
 
 
-def test_setup_optimizers():
-    """Test that setup_optimizers can handle no optimizers, one optimizer, or multiple optimizers."""
+def test_setup_model_and_optimizers():
+    """Test that `setup()` can handle no optimizers, one optimizer, or multiple optimizers."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
@@ -169,8 +185,28 @@ def test_setup_optimizers():
     assert lite_optimizer1.optimizer is optimizer1
 
 
+def test_setup_optimizers():
+    """Test that `setup_optimizers()` can handle one or more optimizers."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
+    optimizer1 = torch.optim.Adam(model.parameters(), lr=0.1)
+
+    # single optimizer
+    lite_optimizer = lite.setup_optimizers(optimizer0)
+    assert isinstance(lite_optimizer, _LiteOptimizer)
+    assert lite_optimizer.optimizer is optimizer0
+
+    # multiple optimizers
+    lite_optimizer0, lite_optimizer1 = lite.setup_optimizers(optimizer0, optimizer1)
+    assert isinstance(lite_optimizer0, _LiteOptimizer)
+    assert isinstance(lite_optimizer1, _LiteOptimizer)
+    assert lite_optimizer0.optimizer is optimizer0
+    assert lite_optimizer1.optimizer is optimizer1
+
+
 def test_setup_twice_fails():
-    """Test that calling setup with a model or optimizer that is already wrapped fails."""
+    """Test that calling `setup` with a model or optimizer that is already wrapped fails."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
@@ -182,6 +218,49 @@ def test_setup_twice_fails():
     lite_model, lite_optimizer = lite.setup(model, optimizer)
     with pytest.raises(ValueError, match="An optimizer should be passed only once to the"):
         lite.setup(model, lite_optimizer)
+
+
+def test_setup_model_twice_fails():
+    """Test that calling `setup_model` with a model that is already wrapped fails."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+
+    lite_model = lite.setup_model(model)
+    with pytest.raises(ValueError, match="A model should be passed only once to the"):
+        lite.setup_model(lite_model)
+
+
+def test_setup_optimizers_twice_fails():
+    """Test that calling `setup_model` with a model that is already wrapped fails."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+
+    lite_optimizer = lite.setup_optimizers(optimizer)
+    with pytest.raises(ValueError, match="An optimizer should be passed only once to"):
+        lite.setup_optimizers(lite_optimizer)
+
+
+@pytest.mark.parametrize("strategy_cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
+def test_setup_model_not_supported(strategy_cls):
+    """Test that `setup_model` validates the strategy supports setting up model and optimizers independently."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    lite._strategy = Mock(spec=strategy_cls)
+    with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
+        lite.setup_model(model)
+
+
+@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy])
+def test_setup_optimizers_not_supported(strategy_cls):
+    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
+    independently."""
+    lite = EmptyLite()
+    model = nn.Linear(1, 2)
+    optimizer = torch.optim.Adam(model.parameters())
+    lite._strategy = Mock(spec=strategy_cls)
+    with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
+        lite.setup_optimizers(optimizer)
 
 
 def test_setup_tracks_num_models():
@@ -197,10 +276,15 @@ def test_setup_tracks_num_models():
     lite.setup(model, optimizer)
     assert lite._models_setup == 2
 
+    lite.setup_model(model)
+    assert lite._models_setup == 3
 
-def test_setup_dataloaders_unsupported_type():
+
+def test_setup_dataloaders_unsupported_input():
     """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
     lite = EmptyLite()
+    with pytest.raises(ValueError, match="`setup_dataloaders` requires at least one dataloader"):
+        lite.setup_dataloaders()
     with pytest.raises(TypeError, match="Only PyTorch DataLoader are currently supported"):
         lite.setup_dataloaders(range(2))  # type: ignore
 
@@ -452,3 +536,37 @@ def test_autocast():
     with lite.autocast():
         lite._precision.forward_context().__enter__.assert_called()
     lite._precision.forward_context().__exit__.assert_called()
+
+
+def test_no_backward_sync():
+    """Test that `Lite.no_backward_sync()` validates the strategy and model is compatible."""
+    lite = EmptyLite()
+    model = nn.Linear(3, 3)
+    with pytest.raises(TypeError, match="You need to set up the model first"):
+        with lite.no_backward_sync(model):
+            pass
+
+    model = lite.setup(model)
+
+    # pretend that the strategy does not support skipping backward sync
+    lite._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
+    with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
+        with lite.no_backward_sync(model):
+            pass
+
+    # for single-device strategies, it becomes a no-op without warning
+    lite._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
+    with lite.no_backward_sync(model):
+        pass
+    lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+
+    # pretend that the strategy supports skipping backward sync
+    lite._strategy = Mock(_backward_sync_control=MagicMock())
+    # disabling the context manager makes it a no-op
+    with lite.no_backward_sync(model, enabled=False):
+        pass
+    lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+    # when enabld, the wrapped module gets passed down
+    with lite.no_backward_sync(model):
+        pass
+    lite._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)

@@ -213,44 +213,7 @@ def test_lit_drive():
     os.remove("a.txt")
 
 
-def test_s3_drives():
-    drive = Drive("s3://foo/", allow_duplicates=True)
-    drive.component_name = "root.work"
-
-    with pytest.raises(
-        Exception, match="S3 based drives cannot currently add files via this API. Did you mean to use `lit://` drives?"
-    ):
-        drive.put("a.txt")
-    with pytest.raises(
-        Exception,
-        match="S3 based drives cannot currently list files via this API. Did you mean to use `lit://` drives?",
-    ):
-        drive.list("a.txt")
-    with pytest.raises(
-        Exception, match="S3 based drives cannot currently get files via this API. Did you mean to use `lit://` drives?"
-    ):
-        drive.get("a.txt")
-    with pytest.raises(
-        Exception,
-        match="S3 based drives cannot currently delete files via this API. Did you mean to use `lit://` drives?",
-    ):
-        drive.delete("a.txt")
-
-    _set_flow_context()
-    with pytest.raises(Exception, match="The flow isn't allowed to put files into a Drive."):
-        drive.put("a.txt")
-    with pytest.raises(Exception, match="The flow isn't allowed to list files from a Drive."):
-        drive.list("a.txt")
-    with pytest.raises(Exception, match="The flow isn't allowed to get files from a Drive."):
-        drive.get("a.txt")
-
-
-def test_create_s3_drive_without_trailing_slash_fails():
-    with pytest.raises(ValueError, match="S3 drives must end in a trailing slash"):
-        Drive("s3://foo")
-
-
-@pytest.mark.parametrize("drive_id", ["lit://drive", "s3://drive/"])
+@pytest.mark.parametrize("drive_id", ["lit://drive"])
 def test_maybe_create_drive(drive_id):
     drive = Drive(drive_id, allow_duplicates=False)
     drive.component_name = "root.work1"
@@ -260,7 +223,7 @@ def test_maybe_create_drive(drive_id):
     assert new_drive.component_name == drive.component_name
 
 
-@pytest.mark.parametrize("drive_id", ["lit://drive", "s3://drive/"])
+@pytest.mark.parametrize("drive_id", ["lit://drive"])
 def test_drive_deepcopy(drive_id):
     drive = Drive(drive_id, allow_duplicates=True)
     drive.component_name = "root.work1"
@@ -269,8 +232,9 @@ def test_drive_deepcopy(drive_id):
     assert new_drive.component_name == drive.component_name
 
 
-def test_drive_root_folder_pass():
-    Drive("s3://drive/", root_folder="a")
+def test_s3_drive_raises_error_telling_users_to_use_mounts():
+    with pytest.raises(ValueError, match="Using S3 buckets in a Drive is no longer supported."):
+        Drive("s3://foo/")
 
 
 def test_drive_root_folder_breaks():
