@@ -18,6 +18,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
+env:
+  FREEZE_REQUIREMENTS: 1
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   app-pytest:
     runs-on: ${{ matrix.os }}
@@ -25,11 +32,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
+        pkg-name: ["LAI", "app"]  # the "LAI" is for installing monolithic package
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v3
@@ -38,14 +46,28 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # TODO: use replace_oldest_ver() instead
+      - name: basic setup
+        run: pip install -q -r .actions/requirements.txt
+
       - name: Set min. dependencies
-        if: matrix.requires == 'oldest'
+        if: ${{ matrix.requires == 'oldest' }}
+        run: python .actions/assistant.py replace_oldest_ver
+
+      - name: switch PyTorch URL
+        run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+
+      - name: Install package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
-              req = open(fpath).read().replace('>=', '==')
-              open(fpath, 'w').write(req)
-        shell: python
+          pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+          pip list
+
+      - name: DocTests App
+        # todo: run doctest laos on mono-package
+        if: ${{ matrix.pkg-name != 'LAI' }}
+        working-directory: src
+        run: python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
 
       - name: Get pip cache
         id: pip-cache
@@ -56,22 +78,16 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
+          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
+
 
       - name: Install dependencies
+        env:  # TODO: drop this when we will be using regular releases for testing
+            PACKAGE_NAME: pytorch
         run: |
-          pip --version
-          pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
           pip list
-        shell: bash
-
-#      - name: Start Redis
-#        if: runner.os == 'Linux'
-#        uses: supercharge/redis-github-action@1.4.0
-#        with:
-#          redis-version: 6
-#          redis-port: 6379
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -81,9 +97,12 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Install Lightning as top-level
-        run: pip install -e . -r requirements/app/base.txt
-        shell: bash
+      - name: Adjust tests
+        if: ${{ matrix.pkg-name == 'LAI' }}
+        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+
+      - name: switch coverage scope
+        run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_app'))" >> $GITHUB_ENV
 
       - name: Tests
         working-directory: ./tests
@@ -93,7 +112,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source lightning_app -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
@@ -114,7 +133,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
-          flags: cpu,app,pytest
+          flags: ${COVERAGE_SCOPE},cpu,pytest
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -130,7 +149,6 @@ jobs:
 #          path: lightning-quick-start
 #
 #      - name: Lightning Install quick-start
-#        shell: bash
 #        if: matrix.os != 'windows-2022'  # because the install doesn't work on windows
 #        run: |
 #          python -m lightning install app lightning/quick-start -y
