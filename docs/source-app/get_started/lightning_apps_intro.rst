@@ -29,7 +29,7 @@ Examples of what you can build with Lightning:
 .. Add callout items below this line
 
 .. displayitem::
-   :header: A full SaaS product for stable diffusion
+   :header: ML SaaS product for generative AI
    :description: Try any ideas using raw PyTorch without the boilerplate.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
@@ -37,7 +37,7 @@ Examples of what you can build with Lightning:
    :height: 250
 
 .. displayitem::
-   :header: A full SaaS product for stable diffusion
+   :header: ML SaaS product for generative AI
    :description: Try any ideas using raw PyTorch without the boilerplate.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
@@ -45,7 +45,7 @@ Examples of what you can build with Lightning:
    :height: 250
 
 .. displayitem::
-   :header: A full SaaS product for stable diffusion
+   :header: ML SaaS product for generative AI
    :description: Try any ideas using raw PyTorch without the boilerplate.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
@@ -324,7 +324,7 @@ to super-charge your work.
 
 **Production-ready:**
 
-.. collapse:: Write systems not scripts
+.. collapse:: Write systems not scripts or notebooks
 
    Lightning is built to feel simple and like you are writing scripts,
    but you are implicitly building production-ready systems.
@@ -338,14 +338,6 @@ to super-charge your work.
    ABC 
 
 .. collapse:: auto-scaled
-
-   ABC 
-
-.. collapse:: multi-cloud support
-
-   ABC 
-
-.. collapse:: multi-accelerators
 
    ABC 
 
