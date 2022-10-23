@@ -115,6 +115,13 @@ Now you're an expert in
 
         app = L.LightningApp(LitWorkflow())
 
+    ⚡⚡ Now you're an expert at orchestration!
+
+    .. hint::
+
+        If you've used other orchestration frameworks before, this should already be familiar! In `level 3 <level_3.html>`_, you'll
+        see how to generalize beyond "orchestrators" with reactive workflows that allow you to build complex
+        systems without much effort!
 
 .. collapse:: Distributed computing
 
@@ -149,7 +156,7 @@ Now you're an expert in
 
         app = L.LightningApp(LitWorkflow())
     
-    Now you're a distributed computing wiz!
+    ⚡⚡ Now you're a distributed computing wiz!
 
 
 .. collapse:: Multi-machine communication
@@ -157,7 +164,12 @@ Now you're an expert in
     |
 
     Notice that the LightningFlow sent the variables: (**message_a** -> machine A),  (**message_b** -> machine B):
-
+    
+    .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif
+        :alt: Animation showing how to convert your PyTorch code to LightningLite.
+        :width: 800
+        :align: center
+    
     .. code:: python
         :emphasize-lines: 16, 17, 18, 19
 
@@ -183,7 +195,7 @@ Now you're an expert in
 
         app = L.LightningApp(LitWorkflow())
     
-    Now you're also an expert in networking and cross-machine communication!
+    ⚡⚡ Now you're also an expert in networking and cross-machine communication!
 
 
 .. collapse:: Multi-cloud
