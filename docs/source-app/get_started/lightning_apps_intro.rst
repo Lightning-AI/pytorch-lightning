@@ -4,9 +4,9 @@ Lightning in 15 minutes
 
 **Minimal CS background:** You know *basic* Python.
 
-**Miniam ML background:** None! (PyTorch or PyTorch Lightning knowledge is not required).
+**Minimal ML background:** None! (PyTorch or PyTorch Lightning knowledge is not required).
 
-**Goal:** In this guide you'll learn the basic concept to develop with Lightning.
+**Goal:** In this guide you'll learn the basic concepts to develop with Lightning.
 
 .. join_slack::
    :align: left
