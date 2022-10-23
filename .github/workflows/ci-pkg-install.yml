@@ -32,10 +32,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install pytest extensions
+        # TODO: for mono-package create & load requirements/test.txt
+        if: ${{ matrix.pkg != '' }}
+        run: grep 'pytest>' requirements/${{ matrix.pkg }}/test.txt | xargs -0 pip install
+
       - name: DocTests actions
         working-directory: .actions/
         run: |
-          grep 'pytest>' ../requirements/pytorch/test.txt | xargs -0 pip install
+          pip install pytest -q
           python -m pytest setup_tools.py
 
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg }}' == 'pytorch' else 1))" >> $GITHUB_ENV
@@ -47,5 +52,5 @@ jobs:
       - uses: ./.github/actions/pkg-install
 
       - name: Run CLI
-        if: matrix.pkg == ''
+        if: ${{ matrix.pkg == '' }}
         run: python -m lightning --version
