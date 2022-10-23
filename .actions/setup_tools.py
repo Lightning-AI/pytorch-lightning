@@ -24,7 +24,7 @@ from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from types import ModuleType
-from typing import List, Sequence
+from typing import Dict, List, Sequence
 
 from pkg_resources import parse_requirements
 
@@ -178,6 +178,30 @@ def parse_version_from_file(pkg_root: str) -> str:
     return ver
 
 
+def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[str]:
+    """REplace imports of standlone package to lightning.
+
+    >>> lns = ["lightning_app",
+    ...        "delete_cloud_lightning_apps",
+    ...        "from lightning_app import",
+    ...        "lightning_app is ours",
+    ...        "def _lightning_app():",
+    ...        ":class:`~lightning_app.core.flow.LightningFlow`"]
+    >>> from pprint import pprint
+    >>> pprint(_replace_imports_in_file(lns, {"app": "lightning_app"}))
+    ['lightning.app',
+     'delete_cloud_lightning_apps',
+     'from lightning.app import',
+     'lightning.app is ours',
+     'def _lightning_app():',
+     ':class:`~lightning.app.core.flow.LightningFlow`']
+    """
+    for n2, n1 in pkg_lut.items():
+        for i, ln in enumerate(lines):
+            lines[i] = re.sub(rf"([^_]|^){n1}([^_]|$)", rf"\1lightning.{n2}\2", ln)
+    return lines
+
+
 def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
     """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
@@ -193,10 +217,7 @@ def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut
 
         with open(fname, encoding="utf-8") as fo:
             py = fo.readlines()
-        for n2, n1 in pkg_lut.items():
-            for i, ln in enumerate(py):
-                py[i] = re.sub(rf"(?!_){n1}(?!_)", f"lightning.{n2}", ln)
-
+        py = _replace_imports_in_file(py, pkg_lut)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
             fo.writelines(py)
