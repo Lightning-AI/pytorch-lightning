@@ -2,7 +2,7 @@
 Lightning in 15 minutes
 #######################
 
-**Required background:** Basic Python familiarity.
+**Required background:** Basic Python familiarity. (PyTorch or PyTorch Lightning knowledge is not required.)
 
 **Goal:** In this guide you'll learn the basic concept to develop with Lightning.
 
@@ -14,8 +14,8 @@ Lightning in 15 minutes
 ******************
 What is Lightning?
 ******************
-Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to develop workflows that
-`run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_, using `community-built components <https://lightning.ai/components>`_.
+Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** that connects `community-built components <https://lightning.ai/components>`_ to develop workflows that
+`run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_.
 
 |
 
@@ -138,8 +138,9 @@ Examples of what you can build with Lightning:
          </div>
       </div>
 
+|
 
-.. note:: You don't need to know PyTorch or PyTorch Lightning to use Lightning.
+⚡⚡ This guide will teach you the main principles that allow you to build systems like the ones above Lightning fast ⚡⚡.
 
 ----
 
