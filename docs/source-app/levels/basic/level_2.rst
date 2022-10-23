@@ -1,7 +1,7 @@
 #########################
 Level 2: Build a workflow
 #########################
-**Audience:** New users who want to run a Lightning App on their machines
+**Audience:** Users who need to build workflows with multiple LightningWorks.
 
 **Prereqs:** You already have the Lightning App code on your local machine.
 

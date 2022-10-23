@@ -16,6 +16,10 @@ What is Lightning?
 Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** that connects `community-built components <#use-the-community-ecosystem>`_ to develop workflows that
 `run on your own AWS account <#key-features>`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <#key-features>`_.
 
+Lightning's key design principle is to be a minimal API because we hate learning new libraries too. A 1 hour investment
+into learning Lightning means you won't have to spend 100s of hours learning other tools like kubernetes, fault-tolerance, distributed programming,
+YAML, etc...
+
 ⚡⚡ This guide will teach you the main principles that allow you to build systems like the following ones Lightning fast ⚡⚡
 
 .. collapse:: For Enterprises
@@ -285,7 +289,7 @@ to super-charge your work.
 .. collapse:: Run on your AWS account
 
    |
-   To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.   
+   To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.
 
    Next, set up a Lightning cluster (here we name it pikachu):
 
@@ -540,7 +544,7 @@ we'll need to learn how to use multiple works together.
    :header: Next step: Build a workflow
    :description: Run multiple LightningWorks together 
    :col_css: col-md-12
-   :button_link: ../model/build_model_advanced.html#manual-optimization
+   :button_link: level_2.html
    :height: 150
    :tag: beginner
 

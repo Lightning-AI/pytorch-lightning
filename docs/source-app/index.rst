@@ -175,7 +175,7 @@ Keep Learning
 
 .. toctree::
    :maxdepth: 1
-   :caption: App Building Skills
+   :caption: Learn Lightning
 
    Basic <levels/basic/index>
    Intermediate <levels/intermediate/index>
