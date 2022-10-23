@@ -159,7 +159,11 @@ class FSDPStrategy(ParallelStrategy):
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
-        raise RuntimeError("not supported")  # TODO: proper error msg
+        raise NotImplementedError(
+            f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
+            " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
+            " call `setup_optimizer`."
+        )
 
     def setup_module(self, module: Module) -> "FullyShardedDataParallel":
         """Wraps the model into a
@@ -182,7 +186,9 @@ class FSDPStrategy(ParallelStrategy):
         )
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        # TODO: some validation here
+        # TODO: add validation
+        print("in setup optimizer")
+        print(optimizer.param_groups)
         return optimizer
 
     def module_to_device(self, module: Module) -> None:
