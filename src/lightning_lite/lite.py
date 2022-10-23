@@ -51,6 +51,8 @@ from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
+from src.lightning_lite.strategies.fsdp import FSDPStrategy
+
 
 class LightningLite(ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
@@ -546,15 +548,19 @@ class LightningLite(ABC):
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
-    @staticmethod
-    def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+    def _validate_setup(self, model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(model, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        # TODO(lite): Add validation for FSDP here
+        if isinstance(self._strategy, FSDPStrategy):
+            raise RuntimeError(
+                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
+                " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
+                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+            )
 
     def _validate_setup_model(self, model: nn.Module) -> None:
         if isinstance(model, _LiteModule):
