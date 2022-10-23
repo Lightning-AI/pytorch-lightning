@@ -230,7 +230,7 @@ Deploy this example:
 
 [video showing this]
 
-Lightning organizes Python code. Drop any piece of code into the LightningWork class and run on the cloud or your own hardware:
+Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the LightningWork class and run on the cloud or your own hardware:
 
 .. code:: python
 
