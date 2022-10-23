@@ -51,7 +51,7 @@ from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
-from src.lightning_lite.strategies.fsdp import FSDPStrategy
+from lightning_lite.strategies.fsdp import FSDPStrategy
 
 
 class LightningLite(ABC):
