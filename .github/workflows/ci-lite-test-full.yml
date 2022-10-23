@@ -83,10 +83,11 @@ jobs:
         pip list
 
     - name: DocTests Lite
-      # todo: run docstest laos on mono-package
-      if: ${{ matrix.pkg-name != 'LAI' }}
       working-directory: src
-      run: python -m pytest lightning_lite
+      run: |
+        pip install pytest -q
+        scope=$(python -c "print('lightning/lite' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_lite')")
+        python -m pytest $scope
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow

@@ -64,10 +64,11 @@ jobs:
           pip list
 
       - name: DocTests App
-        # todo: run doctest laos on mono-package
-        if: ${{ matrix.pkg-name != 'LAI' }}
         working-directory: src
-        run: python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"
+        run: |
+          pip install pytest -q
+          scope=$(python -c "print('lightning/app' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_app')")
+          python -m pytest $scope --ignore-glob="**/cli/*-template/**"
 
       - name: Get pip cache
         id: pip-cache

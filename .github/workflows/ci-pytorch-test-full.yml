@@ -111,14 +111,15 @@ jobs:
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+        pip install -e . --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: DocTests PL
-      # todo: run docstest laos on mono-package
-      if: ${{ matrix.pkg-name != 'LAI' }}
       working-directory: ./src
-      run: python -m pytest pytorch_lightning
+      run: |
+        pip install pytest -q
+        scope=$(python -c "print('lightning/pytorch' if '${{matrix.pkg-name}}' == 'LAI' else 'pytorch_lightning')")
+        python -m pytest $scope
 
     - name: Get pip cache dir
       id: pip-cache
