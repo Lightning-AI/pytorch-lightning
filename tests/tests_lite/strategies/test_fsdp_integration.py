@@ -35,15 +35,13 @@ class FSDPLite(LightningLite):
         dataloader = DataLoader(RandomDataset(32, 64))
 
         # model needs to be set up first in FSDP
-        # model = self.setup_model(model)
+        model = self.setup_model(model)
 
         # get parameters on the wrapped model
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
         # optimizer nees to be set up independently
-        # optimizer = self.setup_optimizers(optimizer)
-
-        model, optimizer = self.setup(model, optimizer)
+        optimizer = self.setup_optimizers(optimizer)
 
         dataloader = self.setup_dataloaders(dataloader)
         model.train()
