@@ -250,6 +250,7 @@ Keep Learning
    :maxdepth: 1
    :caption: Glossary
 
+   Android Lightning App <glossary/ios_and_android>
    App Components Tree <glossary/app_tree>
    Build Configuration <glossary/build_config/build_config>
    Command Line Interface (CLI) <glossary/command_lines/command_lines>
@@ -258,7 +259,8 @@ Keep Learning
    Environment Variables <glossary/environment_variables>
    Encrypted Secrets <glossary/secrets>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
-   Apple and Android mobile devices with Lighting Apps <glossary/ios_and_android>
+   iOS Lightning App <glossary/ios_and_android>
+   Lightning App <core_api/lightning_app/index.rst>
    REST API <glossary/restful_api/restful_api>
    Sharing Components <glossary/sharing_components>
    Scheduling <glossary/scheduling.rst>
