@@ -320,7 +320,7 @@ class NeptuneLogger(Logger):
         self.__dict__ = state
         self._run_instance = neptune.init(**self._neptune_init_args)
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
@@ -350,7 +350,7 @@ class NeptuneLogger(Logger):
         """
         return self.run
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def run(self) -> Run:
         if not self._run_instance:

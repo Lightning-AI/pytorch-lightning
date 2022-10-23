@@ -17,6 +17,8 @@ else:
 
 
 class TorchCollective(Collective):
+    manages_default_group = False
+
     def __init__(self) -> None:
         if not dist.is_available():
             raise RuntimeError("Torch distributed is not available.")
@@ -24,6 +26,7 @@ class TorchCollective(Collective):
 
     @property
     def rank(self) -> int:
+        # local rank
         return dist.get_rank(self.group)
 
     @property
@@ -100,6 +103,8 @@ class TorchCollective(Collective):
         return scatter_object_output_list
 
     def barrier(self, device_ids: Optional[List[int]] = None) -> None:
+        if self.group == dist.GroupMember.NON_GROUP_MEMBER:
+            return
         dist.barrier(group=self.group, device_ids=device_ids)
 
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
@@ -124,6 +129,8 @@ class TorchCollective(Collective):
             set_port = True
         # this will `init_group`
         super().setup(**kwargs)
+        # set as a class attribute so any instance can know whether we initialized the default process group
+        TorchCollective.manages_default_group = True
         # cleanup
         if set_addr:
             os.environ.pop("MASTER_ADDR", None)
@@ -132,7 +139,18 @@ class TorchCollective(Collective):
         return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
-        super().teardown()
+        non_group_member = self.group == dist.GroupMember.NON_GROUP_MEMBER
+        super().teardown()  # will destroy its own group
+        # try to destroy the default group. this should only be done by a group member to avoid race conditions,
+        # and only if the class is managing it
+        if not non_group_member and TorchCollective.manages_default_group:
+            default_group = dist.GroupMember.WORLD
+            if default_group is not None:  # not destroyed already
+                group_map = dist.distributed_c10d._pg_map
+                if len(group_map) == 1 and default_group in group_map:  # only the default group is left
+                    self.destroy_group(default_group)
+                    TorchCollective.manages_default_group = False
+        return self
 
     @classmethod
     def is_available(cls) -> bool:
@@ -152,6 +170,8 @@ class TorchCollective(Collective):
 
     @classmethod
     def destroy_group(cls, group: CollectibleGroup) -> None:
+        # can be called by all processes in the default group, group will be `object()` if they are not part of the
+        # current group
         dist.destroy_process_group(group)
 
     @classmethod
