@@ -138,6 +138,11 @@ Now you're an expert in
 
     The two pieces of independent Python code ran on *separate* 🤯🤯 machines:
 
+    .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif
+        :alt: Animation showing how to convert your PyTorch code to LightningLite.
+        :width: 800
+        :align: center
+
     .. code:: python
         :emphasize-lines: 14, 17
 
