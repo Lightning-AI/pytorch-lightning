@@ -554,8 +554,6 @@ class LightningLite(ABC):
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        # TODO(lite): Add validation for FSDP here
-
     def _validate_setup_model(self, model: nn.Module) -> None:
         if isinstance(model, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup_model` method.")
