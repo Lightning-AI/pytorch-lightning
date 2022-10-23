@@ -144,42 +144,6 @@ Examples of what you can build with Lightning:
 
 ----
 
-*****************************
-What does Lightning do for me
-*****************************
-**Packaged code:**
-
-It guarantees that python code runs in any environment. The same code will run on your laptop, or any cloud
-or private clusters. You don't have to think about the cluster or know anything about the cloud.
-
-**Modular:**
-
-Lightning allows you to incorporate multiple components together so you don't have to build each piece
-of a system yourself. It's like javascript/react components for python.
-
-**Rapid iteration:**
-
-Iterate through ideas in hours not months because you don't have to learn a million other concepts
-
-**Cost control:**
-
-Lightning makes cloud code observable, easy to monitor, measures code in real-time and is super-optimized. 
-All the optimizations we make under the hood, lower your cloud bill.
-Machines can shut down or spin up faster. 
-
-# show time spent vs yours in terms of cost saving
-
-**Built-in guard rails:**
-
-Code is built to be implicitly fault-tolerant, structured and minimizes room for error. Although it feels like you
-are writing a python script, you are actually building a system. 
-
-**Community-built components:**
-
-Build with the community
-
-----
-
 *************************
 Step 1: Install Lightning
 *************************
@@ -465,6 +429,38 @@ to super-charge your work.
 
    |
    
+----
+
+*****************************
+What does Lightning do for me
+*****************************
+**Packaged code:**
+
+It guarantees that python code runs in any environment. The same code will run on your laptop, or any cloud
+or private clusters. You don't have to think about the cluster or know anything about the cloud.
+
+**Modular:**
+
+Lightning allows you to incorporate multiple components together so you don't have to build each piece
+of a system yourself. It's like javascript/react components for python.
+
+**Rapid iteration:**
+
+Iterate through ideas in hours not months because you don't have to learn a million other concepts
+
+**Cost control:**
+
+Lightning makes cloud code observable, easy to monitor, measures code in real-time and is super-optimized. 
+All the optimizations we make under the hood, lower your cloud bill.
+Machines can shut down or spin up faster. 
+
+# show time spent vs yours in terms of cost saving
+
+**Built-in guard rails:**
+
+Code is built to be implicitly fault-tolerant, structured and minimizes room for error. Although it feels like you
+are writing a python script, you are actually building a system. 
+
 ----
 
 ***************************
