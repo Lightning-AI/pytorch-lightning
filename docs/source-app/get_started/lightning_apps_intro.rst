@@ -14,12 +14,10 @@ Lightning in 15 minutes
 ******************
 What is Lightning?
 ******************
-Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** that connects `community-built components <https://lightning.ai/components>`_ to develop workflows that
-`run on your own AWS account <#run->`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <?>`_.
+Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** that connects `community-built components <#use-the-community-ecosystem>`_ to develop workflows that
+`run on your own AWS account <#key-features>`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <#key-features>`_.
 
-|
-
-Examples of what you can build with Lightning:
+⚡⚡ This guide will teach you the main principles that allow you to build systems like the following ones Lightning fast ⚡⚡
 
 .. collapse:: For Enterprises
 
@@ -178,8 +176,6 @@ Examples of what you can build with Lightning:
       </div>
 
 |
-
-⚡⚡ This guide will teach you the main principles that allow you to build systems like the ones above Lightning fast ⚡⚡.
 
 ----
 
