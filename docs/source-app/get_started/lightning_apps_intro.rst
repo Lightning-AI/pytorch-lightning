@@ -21,6 +21,24 @@ Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ frame
 
 Examples of what you can build with Lightning:
 
+- external products 
+- internal workflows 
+- complex training workflows 
+- large-scale training (make sure )
+- researchers
+   - distributed training 
+   - multi-node training 
+
+- demo your software product (not colab or notebooks)
+   - share reproducible cloud software product
+   - collaboration
+
+- low-code no code ML platform
+- auto-scaling workflow 
+- continuous deployment 
+- continuous training 
+- production inference (API) (auto scaling, etc...)
+
 .. raw:: html
 
     <div class="display-card-container">
@@ -29,8 +47,8 @@ Examples of what you can build with Lightning:
 .. Add callout items below this line
 
 .. displayitem::
-   :header: ML SaaS product for generative AI
-   :description: Try any ideas using raw PyTorch without the boilerplate.
+   :header: Fraud detection system (No UI)
+   :description: A fraud detection system that scans real-time transactions for fraud.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
    :button_link: https://lightning.ai/muse
@@ -38,15 +56,39 @@ Examples of what you can build with Lightning:
 
 .. displayitem::
    :header: ML SaaS product for generative AI
-   :description: Try any ideas using raw PyTorch without the boilerplate.
+   :description: Launch and monetize a cloud SaaS products like this one.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
    :button_link: https://lightning.ai/muse
    :height: 250
 
 .. displayitem::
-   :header: ML SaaS product for generative AI
-   :description: Try any ideas using raw PyTorch without the boilerplate.
+   :header: LLM training
+   :description: Build hyper-customized custom ML platforms. This one trains LLMs.
+   :col_css: col-md-4
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 250
+
+.. displayitem::
+   :header: Visual demo with a public link
+   :description: Create visual websites to demo models for quick POCs and demos in <1 hour.
+   :col_css: col-md-4
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 250
+
+.. displayitem::
+   :header: ML workflows
+   :description: Product to ... 
+   :col_css: col-md-4
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 250
+
+.. displayitem::
+   :header: LLM training platform
+   :description: Build hyper-customized custom ML platforms. This one trains LLMs.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
    :button_link: https://lightning.ai/muse
