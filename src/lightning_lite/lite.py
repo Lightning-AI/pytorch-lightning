@@ -184,7 +184,7 @@ class LightningLite(ABC):
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return model, *optimizers
+            return tuple((model, *optimizers))
         return model
 
     def setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
