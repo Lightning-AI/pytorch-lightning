@@ -566,7 +566,7 @@ we'll need to learn how to use multiple works together.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Next step: Build a workflow
+   :header: Level 2: Build a workflow
    :description: Run multiple LightningWorks together 
    :col_css: col-md-12
    :button_link: level_2.html

@@ -70,7 +70,7 @@ Run the app to see both works execute on separate machines 🤯
 
     lightning run app app.py --cloud
 
-And run it locally to see that it runs on your laptop 🤯🤯
+And run it locally to see that it runs on your laptop without code changes 🤯🤯
 
 .. code:: python
 
@@ -79,3 +79,65 @@ And run it locally to see that it runs on your laptop 🤯🤯
 Now you can develop distributed cloud workflows on your laptop 🤯🤯🤯🤯!
 
 ----
+
+**************************
+Without trying, you did...
+**************************
+
+.. collapse:: Distributed computing
+
+    ABC 
+
+.. collapse:: Multi-machine communication
+
+    ABC 
+
+.. collapse:: Orchestration
+
+    ABC 
+
+.. collapse:: Multi-cloud
+
+    ABC 
+
+.. collapse:: Kubernetes
+
+    ABC 
+
+.. collapse:: reproducibility
+
+    ABC 
+
+.. collapse:: Fault-tolerance
+
+    ABC 
+
+.. collapse:: Ran in a secure environment
+
+    ABC 
+
+----
+
+*****************************
+Next step: Reactive Workflows
+*****************************
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: Level 3: Build a reactive workflow
+   :description: Coordinate complex logic simply.
+   :col_css: col-md-12
+   :button_link: level_3.html
+   :height: 150
+   :tag: beginner
+
+.. raw:: html
+
+        </div>
+    </div>
