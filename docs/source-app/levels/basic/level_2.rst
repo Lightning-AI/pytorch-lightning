@@ -279,7 +279,9 @@ Lightning code is simply **organized python**. If you know python, you already k
 *************
 Schedule work
 *************
-Although you can use python timers to scheduler work, Lightning has a shortcut that uses `crontab syntax <https://crontab.guru/>`_:
+Although you can use python timers to scheduler work, 
+Lightning has an optional shorthand API (`self.schedule <../../core_api/lightning_flow.html#lightning_app.core.flow.LightningFlow.schedule>`_) 
+that uses `crontab syntax <https://crontab.guru/>`_:
 
 .. code:: python
     :emphasize-lines: 17
@@ -298,8 +300,8 @@ Although you can use python timers to scheduler work, Lightning has a shortcut t
 
         def run(self):
             self.work_A.run("python code A running on a CPU machine")
-            
-            # run B every hour
+
+            # B runs once, and then again every hour
             if self.schedule("hourly"):
                 self.work_B.run("python code B running on a GPU machine")
 
