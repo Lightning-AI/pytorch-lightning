@@ -467,9 +467,17 @@ are writing a python script, you are actually building a system.
 Use the community ecosystem
 ***************************
 
+**Start from a component template**:
+
 The Lightning structure allows you to use self-contained components from the Lightning community
 so you don't have to build every piece of functionality yourself. Check out our component gallery
 for examples
+
+|
+
+**Start from full workflow templates**:
+
+ABC 
 
 ----   
 
