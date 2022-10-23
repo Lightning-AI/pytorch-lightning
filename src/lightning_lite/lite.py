@@ -230,7 +230,7 @@ class LightningLite(ABC):
             *optimizers: One or more optmizers to set up.
 
         Returns:
-            The wrapped model.
+            The wrapped optimizer(s).
         """
         self._validate_setup_optimizers(optimizers)
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
