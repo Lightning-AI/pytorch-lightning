@@ -5,6 +5,11 @@ Level 2: Build a workflow
 
 **Prereqs:** You `read Lightning in 15 minutes <lightning_in_15_minutes.html>`_ and ran python code inside a LightningWork.
 
+.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/workflow_intro.gif
+    :alt: Animation showing how to convert your PyTorch code to LightningLite.
+    :width: 800
+    :align: center
+
 ----
 
 *******************
@@ -13,6 +18,10 @@ What is a workflow?
 A workflow coordinates 2 or more python scripts together. We call a workflow built with Lightning a *Lightning App*.
 
 In this guide, we'll build a workflow in <5 minutes and explain how it works.
+
+.. note:: If you've used other workflow tools for Python, in `level 3 <level_3.html>`_, we'll 
+        generalize simple workflows to reactive workflows that allow you to build complex
+        systems without much effort!
 
 ----
 
