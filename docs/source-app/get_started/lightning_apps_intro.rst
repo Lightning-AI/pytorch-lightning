@@ -414,32 +414,6 @@ to super-charge your work.
    
 |
 
-**Community-driven:**
-
-.. collapse:: Use community-built LightningWorks
-
-   |
-
-   The Lightning structure allows you to use self-contained components from the Lightning community
-   so you don't have to build every piece of functionality yourself. Check out our component gallery
-   for examples
-
-   |
-   
-.. collapse:: Learn and get help
-
-   |
-
-   Over 400k people across the world build with Lightning. Join our community to learn from the best, ask any questions
-   or just hang out!
-
-   .. join_slack::
-      :align: center
-
-   |
-   
-|
-
 **Production-ready:**
 
 .. collapse:: Write systems not scripts or notebooks
@@ -492,6 +466,16 @@ to super-charge your work.
    |
    
 ----
+
+***************************
+Use the community ecosystem
+***************************
+
+The Lightning structure allows you to use self-contained components from the Lightning community
+so you don't have to build every piece of functionality yourself. Check out our component gallery
+for examples
+
+----   
 
 ***************************
 Next step: Build a workflow
