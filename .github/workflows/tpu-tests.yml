@@ -1,3 +1,5 @@
+name: PL tests on TPU
+
 on:
   push:
     branches: [master, "release/*"]
