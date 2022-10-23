@@ -80,21 +80,111 @@ Now you can develop distributed cloud workflows on your laptop 🤯🤯🤯🤯!
 
 ----
 
-**************************
-Without trying, you did...
-**************************
-
-.. collapse:: Distributed computing
-
-    ABC 
-
-.. collapse:: Multi-machine communication
-
-    ABC 
+***********************
+Now you're an expert in
+***********************
 
 .. collapse:: Orchestration
 
-    ABC 
+    |
+
+    In these lines, you defined a LightningFlow which coordinates how the LightningWorks interact together.
+    In engineering, we call this **orchestration**:
+
+    .. code:: python
+        :emphasize-lines: 9, 16
+
+        # app.py
+        # MULTIPLE WORKERS
+        import lightning as L
+
+        class LitWorker(L.LightningWork):
+            def run(self, message):
+                print(message)
+
+        class LitWorkflow(L.LightningFlow):
+            def __init__(self) -> None:
+                super().__init__()
+                self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+                self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+
+            # the run method of LightningFlow is an orchestrator
+            def run(self):
+                self.work_A.run("python code A running on a CPU machine")
+                self.work_B.run("python code B running on a GPU machine")
+
+        app = L.LightningApp(LitWorkflow())
+
+
+.. collapse:: Distributed computing
+
+    |
+
+    The two pieces of independent Python code ran on *separate* 🤯🤯 machines:
+
+    .. code:: python
+        :emphasize-lines: 14, 17
+
+        # app.py
+        # MULTIPLE WORKERS
+        import lightning as L
+
+        class LitWorker(L.LightningWork):
+            def run(self, message):
+                print(message)
+
+        class LitWorkflow(L.LightningFlow):
+            def __init__(self) -> None:
+                super().__init__()
+
+                # runs on machine 1
+                self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+
+                # runs on machine 2
+                self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+
+            def run(self):
+                self.work_A.run("python code A running on a CPU machine")
+                self.work_B.run("python code B running on a GPU machine")
+
+        app = L.LightningApp(LitWorkflow())
+    
+    Now you're a distributed computing wiz!
+
+
+.. collapse:: Multi-machine communication
+
+    |
+
+    Notice that the LightningFlow sent the variables: (**message_a** -> machine A),  (**message_b** -> machine B):
+
+    .. code:: python
+        :emphasize-lines: 16, 17, 18, 19
+
+        # app.py
+        # MULTIPLE WORKERS
+        import lightning as L
+
+        class LitWorker(L.LightningWork):
+            def run(self, message):
+                print(message)
+
+        class LitWorkflow(L.LightningFlow):
+            def __init__(self) -> None:
+                super().__init__()
+                self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+                self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+
+            def run(self):
+                message_a = "python code A running on a CPU machine"
+                message_b = "python code B running on a CPU machine"
+                self.work_A.run(message_a)
+                self.work_B.run(message_b)
+
+        app = L.LightningApp(LitWorkflow())
+    
+    Now you're also an expert in networking and cross-machine communication!
+
 
 .. collapse:: Multi-cloud
 
