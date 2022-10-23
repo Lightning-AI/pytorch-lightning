@@ -181,15 +181,22 @@ def parse_version_from_file(pkg_root: str) -> str:
 def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
     """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
-    py_files = glob.glob(os.path.join(package_dir, "**", "*.py"), recursive=True)
-    for py_file in py_files:
-        local_path = py_file.replace(package_dir + os.path.sep, "")
-        with open(py_file, encoding="utf-8") as fo:
+    all_files = glob.glob(os.path.join(package_dir, "**", "*.*"), recursive=True)
+    for fname in all_files:
+        local_path = fname.replace(package_dir + os.path.sep, "")
+        new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
+        if not fname.endswith(".py"):
+            if not fname.endswith(".pyc"):
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                shutil.copy2(fname, new_file)
+            continue
+
+        with open(fname, encoding="utf-8") as fo:
             py = fo.readlines()
         for n2, n1 in pkg_lut.items():
             for i, ln in enumerate(py):
                 py[i] = re.sub(rf"(?!_){n1}(?!_)", f"lightning.{n2}", ln)
-        new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
+
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fo:
             fo.writelines(py)
