@@ -244,9 +244,10 @@ to super-charge your work.
 
 .. collapse:: Use different cloud accelerators
 
+   |
+
    .. code:: python
 
-      
       compute = L.CloudCompute('default')          # 1 CPU
       compute = L.CloudCompute('cpu-medium')       # 8 CPUs
       compute = L.CloudCompute('gpu')              # 1 T4 GPU
@@ -258,6 +259,8 @@ to super-charge your work.
 
 .. collapse:: Use a custom container
    
+   |
+
    Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
 
    # TODO: only google?
@@ -271,6 +274,7 @@ to super-charge your work.
 
 .. collapse:: Run on your AWS account
 
+   |
    To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.   
 
    Next, set up a Lightning cluster (here we name it pikachu):
@@ -297,7 +301,9 @@ to super-charge your work.
 
 .. collapse:: Auto-stop idle machines
 
-   Turn off the machine when it's idle with **idle_timeout**:
+   |
+
+   **idle_timeout**: Turn off the machine when it's idle for n seconds.
 
    .. code:: python
 
@@ -309,7 +315,8 @@ to super-charge your work.
 
 .. collapse:: Auto-timeout submitted work
 
-   Cloud machines are subject to availability in the cloud provider. Set a **wait_timeout** limit to how long you want to wait for a machine to start:
+   |
+   **wait_timeout**: Wait n seconds for machine to be allocated by the cloud provider before cancelling the work:
 
    .. code:: python
 
@@ -321,7 +328,8 @@ to super-charge your work.
 
 .. collapse:: Use preemptible machines (~70% discount)
 
-   Pre-emptible machines are ~90% cheaper because they can be turned off at any second without notice:
+   |
+   **preemptible**: Pre-emptible machines are ~70% cheaper because they can be turned off at any second without notice:
 
    .. code:: python
       
