@@ -91,9 +91,17 @@ class DDPShardedStrategy(DDPStrategy):
         return model, optimizers
 
     def setup_module(self, module: Module) -> DistributedDataParallel:
+        """Setting up the module without optimizers in this strategy is not supported.
+
+        Please use :meth:`setup_module_and_optimizers` instead.
+        """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer(s) together.
+        """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @classmethod
@@ -161,9 +169,17 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         return model, optimizers
 
     def setup_module(self, module: Module) -> DistributedDataParallel:
+        """Setting up the module without optimizers in this strategy is not supported.
+
+        Please use :meth:`setup_module_and_optimizers` instead.
+        """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer(s) together.
+        """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @classmethod
