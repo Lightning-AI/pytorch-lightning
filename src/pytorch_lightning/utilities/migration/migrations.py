@@ -27,10 +27,9 @@ How to add a new migration?
 
    cp model.ckpt model.ckpt.backup
    python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt
-
 """
 
-from typing import Any, Dict, Callable, List
+from typing import Any, Callable, Dict, List
 
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -42,7 +41,7 @@ def migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
     """Migration functions returned here will get executed in the order they are listed."""
     return {
         "0.10.0": [_migrate_model_checkpoint_early_stopping],
-        "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking]
+        "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
     }
 
 
