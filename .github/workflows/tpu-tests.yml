@@ -1,3 +1,5 @@
+name: Test PyTorch on TPU
+
 on:
   push:
     branches: [master, "release/*"]
