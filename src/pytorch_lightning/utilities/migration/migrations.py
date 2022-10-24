@@ -19,7 +19,7 @@ see :func:`~pytorch_lightning.utilities.migration.utils.migrate_checkpoint`.
 How to add a new migration?
 
 1. Create a new function with a descriptive name and docstring that explains the details of this migration. Include
-   version informatin as well as the specific commit or PR where the breaking change happened.
+   version information as well as the specific commit or PR where the breaking change happened.
 2. Add the function to the `migration_index()` below. The key in the index is the version of Lightning in which the
    change happened. Any checkpoint with a version greater or equal to that version will apply the given function.
    Multiple migrations per version get executed in the provided list order.
