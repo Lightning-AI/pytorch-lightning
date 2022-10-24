@@ -44,14 +44,6 @@ Learn to run python code on the cloud and build workflows (Lightning Apps). Ever
    :height: 150
    :tag: basic
 
-.. displayitem::
-   :header: Level 3: Debug a workflow
-   :description: Learn to debug workflows
-   :button_link: build_a_machine_learning_workflow.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
 .. raw:: html
 
         </div>
@@ -108,7 +100,7 @@ Once you've finished the basic levels, work through the following examples:
 .. displayitem::
    :header: Example: Directed Acyclical Graph (DAG)
    :description: Learn how to build a DAG with Lightning workflows.
-   :button_link: create_a_model_demo.html
+   :button_link: build_a_dag.html
    :col_css: col-md-6
    :height: 150
    :tag: basic

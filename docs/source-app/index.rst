@@ -70,15 +70,29 @@ Current Lightning Users
 
 .. raw:: html
 
-   <br />
+   <div class="display-card-container">
+      <div class="row">
 
-Build with Template(s) from the App & Component Gallery
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. displayitem::
+   :header: Level-up your skills
+   :description: From Basics to Advanced Skills
+   :col_css: col-md-6
+   :button_link: levels/basic/index.html
+   :height: 180
 
-.. raw:: html
+.. displayitem::
+   :header: API Reference
+   :description: Detailed description of each API package
+   :col_css: col-md-6
+   :button_link: api_references.html
+   :height: 180
 
-    <div class="display-card-container">
-        <div class="row">
+.. displayitem::
+   :header: Glossary
+   :description: Discover Lightning App Concepts
+   :col_css: col-md-6
+   :button_link: glossary/index.html
+   :height: 180
 
 .. displayitem::
    :header: Start from Ready-to-Run Template Apps
@@ -94,43 +108,6 @@ Build with Template(s) from the App & Component Gallery
    :button_link: get_started/jumpstart_from_component_gallery.html
    :height: 180
 
-
-.. raw:: html
-
-      </div>
-   </div>
-   <br />
-
-
-Keep Learning
-^^^^^^^^^^^^^
-
-.. raw:: html
-
-   <div class="display-card-container">
-      <div class="row">
-
-.. displayitem::
-   :header: Level-up with PyTorch Lightning
-   :description: PyTorch Lightning Tutorials
-   :col_css: col-md-6
-   :button_link: https://pytorch-lightning.readthedocs.io/en/latest/expertise_levels.html
-   :height: 180
-
-.. displayitem::
-   :header: Level-up with Lightning Apps
-   :description: From Basics to Advanced Skills
-   :col_css: col-md-6
-   :button_link: levels/basic/index.html
-   :height: 180
-
-.. displayitem::
-   :header: API Reference
-   :description: Detailed description of each API package
-   :col_css: col-md-6
-   :button_link: api_references.html
-   :height: 180
-
 .. displayitem::
    :header: Hands-on Examples
    :description: Learn by building Apps and Components.
@@ -143,13 +120,6 @@ Keep Learning
    :description: Learn how to do ...
    :col_css: col-md-6
    :button_link: workflows/index.html
-   :height: 180
-
-.. displayitem::
-   :header: Glossary
-   :description: Discover Lightning App Concepts
-   :col_css: col-md-6
-   :button_link: glossary/index.html
    :height: 180
 
 .. raw:: html
