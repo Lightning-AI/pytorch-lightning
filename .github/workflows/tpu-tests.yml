@@ -71,7 +71,7 @@ jobs:
       shell: bash
 
     # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
-    - uses: google-github-actions/get-gke-credentials@fb08709ba27618c31c09e014e1d8364b02e5042e
+    - uses: google-github-actions/get-gke-credentials@45e9605d689a4ad17a24d232effa1a70b641502a
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
