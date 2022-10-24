@@ -294,36 +294,29 @@ class LightningApp:
 
     def _collect_deltas_from_ui_and_work_queues(self) -> List[Union[Delta, APIRequest, CommandRequest]]:
         # The aggregation would try to get as many deltas as possible
-        # from both the `api_delta_queue` and `delta_queue`
+        # from both the `delta_queue`
         # during the `state_accumulate_wait` time.
-        # The while loop can exit sooner if both queues are empty.
-
+        assert isinstance(self.delta_queue, BaseQueue)
         deltas = []
         api_or_command_request_deltas = []
-        t0 = time()
 
-        while (time() - t0) < self.state_accumulate_wait:
+        for delta in self.delta_queue.get_all(self.state_accumulate_wait):
+            if isinstance(delta, DeltaRequest):
+                deltas.append(delta.delta)
 
-            # TODO: Fetch all available deltas at once to reduce queue calls.
-            delta: Optional[
-                Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
-            ] = self.get_state_changed_from_queue(self.delta_queue)
-            if delta:
-                if isinstance(delta, DeltaRequest):
-                    deltas.append(delta.delta)
-                elif isinstance(delta, ComponentDelta):
-                    logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")
-                    work = None
-                    try:
-                        work = self.get_component_by_name(delta.id)
-                    except (KeyError, AttributeError) as e:
-                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
+            elif isinstance(delta, ComponentDelta):
+                logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")
+                work = None
+                try:
+                    work = self.get_component_by_name(delta.id)
+                except (KeyError, AttributeError) as e:
+                    logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
 
-                    if work:
-                        delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
-                        deltas.append(delta)
-                else:
-                    api_or_command_request_deltas.append(delta)
+                if work:
+                    delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
+                    deltas.append(delta)
+            else:
+                api_or_command_request_deltas.append(delta)
 
         if api_or_command_request_deltas:
             _process_requests(self, api_or_command_request_deltas)
@@ -339,7 +332,7 @@ class LightningApp:
             delta.raise_errors = False
         return deltas
 
-    def maybe_apply_changes(self) -> bool:
+    def maybe_apply_changes(self) -> None:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
 
@@ -357,7 +350,7 @@ class LightningApp:
                 # new_state = self.populate_changes(self.last_state, self.state)
                 self.set_last_state(self.state)
                 self._has_updated = True
-            return False
+            return
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 

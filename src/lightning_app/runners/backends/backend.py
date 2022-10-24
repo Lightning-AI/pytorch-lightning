@@ -86,7 +86,9 @@ class Backend(ABC):
         app.readiness_queue = self.queues.get_readiness_queue(**kw)
         app.api_response_queue = self.queues.get_api_response_queue(**kw)
         app.error_queue = self.queues.get_error_queue(**kw)
-        app.api_publish_state_queue = self.queues.get_api_state_publish_queue(**kw)
+
+        # TODO: Remove those queues (Optimization Hack)
+        app.api_publish_state_queue = app.api_response_queue
         app.api_delta_queue = app.delta_queue
         app.request_queues = {}
         app.response_queues = {}

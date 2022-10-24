@@ -20,11 +20,11 @@ from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.api.http_methods import Post
 from lightning_app.core import api
 from lightning_app.core.api import (
+    APIRefresher,
     fastapi_service,
     global_app_state_store,
     register_global_routes,
     start_server,
-    UIRefresher,
 )
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
@@ -183,7 +183,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
     publish_state_queue.put(app.state_with_changes)
 
-    thread = UIRefresher(publish_state_queue, api_response_queue)
+    thread = APIRefresher(publish_state_queue, api_response_queue)
     thread.run_once()
 
     assert global_app_state_store.get_app_state("1234") == app.state_with_changes
@@ -376,7 +376,7 @@ def test_start_server_started():
 
 
 @mock.patch("uvicorn.run")
-@mock.patch("lightning_app.core.api.UIRefresher")
+@mock.patch("lightning_app.core.api.APIRefresher")
 @pytest.mark.parametrize("host", ["http://0.0.0.1", "0.0.0.1"])
 def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatch, host):
     api_publish_state_queue = MockQueue()

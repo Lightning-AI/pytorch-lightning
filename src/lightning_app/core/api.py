@@ -1,13 +1,11 @@
 import asyncio
 import os
-import queue
 import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
-from time import sleep
 from typing import Dict, List, Mapping, Optional
 
 import uvicorn
@@ -69,13 +67,11 @@ logger = Logger(__name__)
 # in a serverless architecture
 
 
-class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_response_queue, refresh_interval: float = 0.1) -> None:
+class APIRefresher(Thread):
+    def __init__(self, api_queue) -> None:
         super().__init__(daemon=True)
-        self.api_publish_state_queue = api_publish_state_queue
-        self.api_response_queue = api_response_queue
+        self.api_queue = api_queue
         self._exit_event = Event()
-        self.refresh_interval = refresh_interval
 
     def run(self):
         # TODO: Create multiple threads to handle the background logic
@@ -83,29 +79,21 @@ class UIRefresher(Thread):
         try:
             while not self._exit_event.is_set():
                 self.run_once()
-                # Note: Sleep to reduce queue calls.
-                sleep(self.refresh_interval)
         except Exception as e:
             logger.error(traceback.print_exc())
             raise e
 
     def run_once(self):
-        try:
-            state = self.api_publish_state_queue.get(timeout=0)
+        # This queue collects the state and the server responses.
+        for item in self.api_queue.get_all(timeout=0):
             with lock:
-                global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
-        except queue.Empty:
-            pass
-
-        try:
-            responses = self.api_response_queue.get(timeout=0)
-            with lock:
-                # TODO: Abstract the responses store to support horizontal scaling.
-                global responses_store
-                for response in responses:
-                    responses_store[response["id"]] = response["response"]
-        except queue.Empty:
-            pass
+                if isinstance(item, dict):
+                    global_app_state_store.set_app_state(TEST_SESSION_UUID, item)
+                else:
+                    # TODO: Abstract the responses store to support horizontal scaling.
+                    global responses_store
+                    for response in item:
+                        responses_store[response["id"]] = response["response"]
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -359,6 +347,9 @@ def start_server(
     apis: Optional[List[HttpMethod]] = None,
     app_state_store: Optional[StateStore] = None,
 ):
+    # depreceated `api_publish_state_queue``
+    # TODO: Remove it.
+
     global api_app_delta_queue
     global global_app_state_store
     global app_spec
@@ -371,7 +362,7 @@ def start_server(
 
     global_app_state_store.add(TEST_SESSION_UUID)
 
-    refresher = UIRefresher(api_publish_state_queue, api_response_queue)
+    refresher = APIRefresher(api_response_queue)
     refresher.setDaemon(True)
     refresher.start()
 

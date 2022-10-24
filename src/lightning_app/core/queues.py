@@ -89,8 +89,9 @@ class QueuingSystem(Enum):
         )
         return self.get_queue(queue_name)
 
+    # TODO: This is hack, so we can remove this queue entirely when fully optimized.
     def get_api_state_publish_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{API_STATE_PUBLISH_QUEUE_CONSTANT}" if queue_id else API_STATE_PUBLISH_QUEUE_CONSTANT
+        queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
         return self.get_queue(queue_name)
 
     # TODO: This is hack, so we can remove this queue entirely when fully optimized.
@@ -161,6 +162,18 @@ class BaseQueue(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_all(self, timeout: float):
+        """Returns all the elements from the queue.
+
+        Parameters
+        ----------
+        timeout:
+            Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
+            A timeout of None can be used to block indefinitely.
+        """
+        pass
+
     @property
     def is_running(self) -> bool:
         """Returns True if the queue is running, False otherwise.
@@ -198,6 +211,20 @@ class MultiProcessQueue(BaseQueue):
         if timeout == 0:
             timeout = self.default_timeout
         return self.queue.get(timeout=timeout, block=(timeout is None))
+
+    def get_all(self, timeout: float = 0):
+        if timeout == 0:
+            timeout = self.default_timeout
+
+        items = []
+        t0 = time.time()
+        while (time.time() - t0) < timeout:
+            try:
+                item = self.queue.get(timeout=0, block=(timeout is None))
+                items.append(item)
+            except queue.Empty:
+                break
+        return items
 
 
 class RedisQueue(BaseQueue):
@@ -304,6 +331,10 @@ class RedisQueue(BaseQueue):
         except redis.exceptions.ConnectionError:
             return False
 
+    def get_all(self, timeout: float):
+        time.sleep(timeout)
+        return self.redis.lrange(self.name, 0, -1)
+
 
 class HTTPQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
@@ -376,6 +407,13 @@ class HTTPQueue(BaseQueue):
 
         val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
         return int(val.text)
+
+    def get_all(self, timeout: float):
+        time.sleep(timeout)
+        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "lrange"})
+        if resp.status_code == 204:
+            raise queue.Empty
+        return pickle.loads(resp.content)
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name):
