@@ -32,3 +32,9 @@ def list_apps(cluster_id: str, **kwargs: Any) -> None:
     """List your Lightning AI apps."""
     app_manager = _AppManager()
     app_manager.list(cluster_id=cluster_id)
+
+
+@get_list.command("ssh-keys")
+def list_ssh_keys() -> None:
+    """List your Lightning AI ssh-keys."""
+    pass

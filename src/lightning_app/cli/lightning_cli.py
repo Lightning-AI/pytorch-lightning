@@ -20,9 +20,11 @@ from lightning_app.cli.commands.connection import (
     connect,
     disconnect,
 )
+from lightning_app.cli.lighting_cli_add import cli_add
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
+from lightning_app.cli.lightning_cli_remove import cli_remove
 from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
@@ -426,6 +428,8 @@ def stop() -> None:
 _main.add_command(get_list)
 _main.add_command(delete)
 _main.add_command(create)
+_main.add_command(cli_add)
+_main.add_command(cli_remove)
 
 
 @_main.group()
