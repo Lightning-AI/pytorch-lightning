@@ -18,8 +18,7 @@ from distutils.version import LooseVersion
 from types import ModuleType, TracebackType
 from typing import Optional, Type, Dict, Any
 
-from pytorch_lightning.utilities.migration.migrations import _migrate_model_checkpoint_early_stopping, \
-    _migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking, migration_index
+from pytorch_lightning.utilities.migration.migrations import migration_index
 
 _CHECKPOINT = Dict[str, Any]
 
@@ -60,31 +59,31 @@ class pl_legacy_patch:
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
 
 
-def get_version(checkpoint: _CHECKPOINT) -> str:
+def _get_version(checkpoint: _CHECKPOINT) -> str:
     """Get the version of a Lightning checkpoint."""
     return checkpoint["pytorch-lightning_version"]
 
 
-def set_version(checkpoint: _CHECKPOINT, version: str) -> None:
+def _set_version(checkpoint: _CHECKPOINT, version: str) -> None:
     """Set the version of a Lightning checkpoint."""
     checkpoint["pytorch-lightning_version"] = version
 
 
-def should_upgrade(checkpoint: _CHECKPOINT, target: str) -> bool:
+def _should_upgrade(checkpoint: _CHECKPOINT, target: str) -> bool:
     """Returns whether a checkpoint qualifies for an upgrade when the version is lower than the given target."""
-    return LooseVersion(get_version(checkpoint)) < LooseVersion(target)
+    return LooseVersion(_get_version(checkpoint)) < LooseVersion(target)
 
 
 def migrate_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Applies all migrations below in order."""
+    """Applies Lightning version migrations to a checkpoint."""
     index = migration_index()
     for migration_version, migration_functions in index.items():
-        if not should_upgrade(checkpoint, migration_version):
+        if not _should_upgrade(checkpoint, migration_version):
             continue
         for migration_function in migration_functions:
             checkpoint = migration_function(checkpoint)
 
-    set_version(checkpoint, pl.__version__)
+    _set_version(checkpoint, pl.__version__)
 
     # TODO: If any migrations apply, log a message. Suggest to run upgrade_checkpoint script to convert
     #   checkpoints permanently
