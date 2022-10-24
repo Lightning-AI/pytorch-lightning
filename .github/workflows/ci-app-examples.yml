@@ -28,6 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
+        pkg-name: ["LAI", "app"]  # the "LAI" is for installing monolithic package
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
@@ -41,14 +42,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # TODO: use replace_oldest_ver() instead
+      - name: basic setup
+        run: pip install -q -r .actions/requirements.txt
+
       - name: Set min. dependencies
-        if: matrix.requires == 'oldest'
-        run: |
-          for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
-              req = open(fpath).read().replace('>=', '==')
-              open(fpath, 'w').write(req)
-        shell: python
+        if: ${{ matrix.requires == 'oldest' }}
+        run: python .actions/assistant.py replace_oldest_ver
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -61,13 +60,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-
+          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
       - name: Install dependencies
+        env:  # TODO: drop this when we will be using regular releases for testing
+          PACKAGE_NAME: pytorch
         run: |
           pip --version
-          pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
         shell: bash
 
@@ -80,8 +81,14 @@ jobs:
         run: npm install -g yarn
 
       - name: Install Lightning as top-level
-        run: pip install -e . -r requirements/app/base.txt
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
+        run: pip install -e .
         shell: bash
+
+      - name: Adjust tests
+        if: ${{ matrix.pkg-name == 'LAI' }}
+        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
       - name: Tests
         working-directory: ./tests
