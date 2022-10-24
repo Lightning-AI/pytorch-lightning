@@ -151,6 +151,7 @@ class NeptuneLogger(Logger):
     You can also pass ``neptune_run_kwargs`` to specify the run in the greater detail, like ``tags`` or ``description``:
 
     .. testcode::
+        :skipif: not _NEPTUNE_AVAILABLE
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
