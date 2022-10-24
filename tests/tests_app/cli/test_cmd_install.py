@@ -13,6 +13,7 @@ from lightning_app.testing.helpers import RunIf
 
 @mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
+    """Valid organization name."""
     runner = CliRunner()
 
     # assert a bad app name should fail
