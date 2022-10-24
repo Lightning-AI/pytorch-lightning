@@ -31,7 +31,8 @@ from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 from pytorch_lightning.utilities.parsing import AttributeDict, parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -157,7 +158,7 @@ def _load_from_checkpoint(
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     # convert legacy checkpoints to the new format
-    checkpoint, _ = migrate_checkpoint(checkpoint)
+    checkpoint = _pl_migrate_checkpoint(checkpoint)
 
     if hparams_file is not None:
         extension = str(hparams_file).split(".")[-1]

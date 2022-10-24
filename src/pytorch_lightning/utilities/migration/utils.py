@@ -14,11 +14,13 @@
 import logging
 import sys
 from distutils.version import LooseVersion
+from pathlib import Path
 from types import ModuleType, TracebackType
 from typing import Any, Dict, Optional, Type, Tuple, List
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.migration.migrations import migration_index
+from lightning_lite.utilities.types import _PATH
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
@@ -76,18 +78,32 @@ class pl_legacy_patch:
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
 
 
-def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user."""
+def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:
+    """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user.
+
+    This function is used by the Lightning Trainer when resuming from a checkpoint.
+    """
     old_version = _get_version(checkpoint)
     checkpoint, migrations = migrate_checkpoint(checkpoint)
     new_version = _get_version(checkpoint)
-    if migrations:
-        _log.info(
-            f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
-            " To apply the upgrade to your files permanently, run"
-            " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
-            " where `model.ckpt` is your checkpoint file."
-        )
+    if not migrations:
+        # the checkpoint was already a new one, no migrations were needed
+        return checkpoint
+
+    # include the full command including the checkpoint path to the checkpoint in the error message,
+    # so user can copy-paste if they want
+    path_hint = Path(checkpoint_path if checkpoint_path is not None else "model.ckpt")
+    path_hint = path_hint.relative_to(Path.cwd())
+
+    msg = (
+        f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
+        " To apply the upgrade to your files permanently, run"
+        f" `python -m pytorch_lightning.utilities.upgrade_checkpoint --file {str(path_hint)}`"
+    )
+    if checkpoint_path:
+        msg += f" where `{path_hint}` is your checkpoint file."
+
+    _log.info(msg)
     return checkpoint
 
 
