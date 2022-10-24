@@ -32,11 +32,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install pytest extensions
-        # TODO: for mono-package create & load requirements/test.txt
-        if: ${{ matrix.pkg != '' }}
-        run: grep 'pytest>' requirements/${{ matrix.pkg }}/test.txt | xargs -0 pip install
-
       - name: DocTests actions
         working-directory: .actions/
         run: |
