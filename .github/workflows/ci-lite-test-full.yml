@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["LAI", "lite"]  # the "LAI" is for installing monolithic package
+        pkg-name: ["lightning", "lite"]  # the "lightning" is for installing monolithic package
         python-version: ["3.7", "3.10"]
         requires: ["oldest", "latest"]
         release: ["stable"]
@@ -44,7 +44,7 @@ jobs:
           - {python-version: "3.9", requires: "oldest"}
           - {python-version: "3.10", requires: "oldest"}
         include:
-          - {os: ubuntu-22.04, pkg-name: "LAI", python-version: "3.10", release: "pre"}
+          - {os: ubuntu-22.04, pkg-name: "lightning", python-version: "3.10", release: "pre"}
           - {os: ubuntu-22.04, pkg-name: "lite", python-version: "3.10", release: "pre"}
 
     timeout-minutes: 45
@@ -86,7 +86,7 @@ jobs:
       working-directory: src
       run: |
         pip install pytest -q
-        scope=$(python -c "print('lightning/lite' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_lite')")
+        scope=$(python -c "print('lightning/lite' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_lite')")
         python -m pytest $scope
 
     # Note: This uses an internal pip API and may not always work
@@ -109,7 +109,7 @@ jobs:
         pip list
 
     - name: Adjust tests
-      if: ${{ matrix.pkg-name == 'LAI' }}
+      if: ${{ matrix.pkg-name == 'lightning' }}
       run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
 
     - name: Testing Warnings
@@ -120,7 +120,7 @@ jobs:
       run: python utilities/test_warnings.py
 
     - name: switch coverage scope
-      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_lite'))" >> $GITHUB_ENV
+      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_lite'))" >> $GITHUB_ENV
 
     - name: Testing Lite
       working-directory: tests/tests_lite
