@@ -43,6 +43,13 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     for command in list(retriever.api_commands):
         if command in full_command:
             has_found = True
+            for value in sys.argv:
+                if value == command:
+                    print(
+                        f"The command `{value}` was provided with an underscore and it isn't allowed."
+                        f"Instead, use `lightning {value.replace('_', ' ')}`."
+                    )
+                    sys.exit(0)
             break
 
     if not has_found:
