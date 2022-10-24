@@ -20,6 +20,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   app-examples:
     if: github.event.pull_request.draft == false
@@ -60,8 +64,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
+          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
       - name: Install dependencies
         env:  # TODO: drop this when we will be using regular releases for testing
@@ -70,7 +74,6 @@ jobs:
           pip --version
           pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
-        shell: bash
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -84,11 +87,13 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: pip install -e .
-        shell: bash
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'LAI' }}
         run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+
+      - name: switch coverage scope
+        run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_app'))" >> $GITHUB_ENV
 
       - name: Tests
         working-directory: ./tests
@@ -98,7 +103,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source lightning_app -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
