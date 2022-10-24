@@ -292,7 +292,7 @@ The full workflow (which we call a Lightning App), can easily be moved across cl
             # run on cluster-A  OR  cluster-B
             cloud = 'cluster-A'
             comp_A = L.CloudCompute('cpu', clouds=[cloud])
-            comp_B = L.CloudCompute('cpu', clouds=[cloud])
+            comp_B = L.CloudCompute('gpu', clouds=[cloud])
             self.work_A = LitWorker(cloud_compute=comp_A)
             self.work_B = LitWorker(cloud_compute=comp_B)
 
@@ -308,6 +308,7 @@ The full workflow (which we call a Lightning App), can easily be moved across cl
         </div>
         </div>
     </div>
+
 ⚡⚡ Now your workflows are multi-cloud!
 
 .. collapse:: Create a cluster on your AWS account
@@ -331,25 +332,27 @@ The full workflow (which we call a Lightning App), can easily be moved across cl
 
    .. warning:: 
       
-      This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
+      This feature is available only under early-access. Request access by emailing support@lightning.ai.
 
 ----
 
-.. collapse:: Kubernetes
+----------
+Kubernetes
+----------
+Under the hood, Lightning works with Kubernetes to manage the infrastructure on your behalf. 
+This means you don't have to learn kubernetes to run cloud workflows anymore.
 
-    ABC 
+Lightning also plays well with current Kubernetes clusters and even lets you 
+`create the clusters yourself with terraform <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_.
 
-.. collapse:: reproducibility
+----
 
-    ABC 
+-------------------
+Secure environments
+-------------------
+When you build clusters with Lightning, we ensure everything is configured securily which includes abiding by SOC-2 (type 1) guidelines.
 
-.. collapse:: Fault-tolerance
-
-    ABC 
-
-.. collapse:: Ran in a secure environment
-
-    ABC 
+For startups or enterprises who want to learn more, please contact support@lightning.ai.
 
 ----
 
@@ -425,6 +428,12 @@ that uses `crontab syntax <https://crontab.guru/>`_:
 *************************
 Next step: A real example
 *************************
+You now know enough to build pretty powerful cloud workflows!
+
+Choose an example to walk through step-by-step.
+
+Once you feel comfortable with these examples, move to the intermediate guide, where we'll learn about reactive
+workflows which will allow you build full-stack AI applications.
 
 .. raw:: html
 
@@ -434,7 +443,7 @@ Next step: A real example
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 3: Communicate between works
+   :header: Example: 
    :description: Move variables and files across works.
    :col_css: col-md-3
    :button_link: level_3.html

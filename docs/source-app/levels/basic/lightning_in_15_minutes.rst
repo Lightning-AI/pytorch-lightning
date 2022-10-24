@@ -344,7 +344,7 @@ to super-charge your work.
 
    .. warning:: 
       
-      This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
+      This feature is available only under early-access. Request access by emailing support@lightning.ai.
 
    |
 

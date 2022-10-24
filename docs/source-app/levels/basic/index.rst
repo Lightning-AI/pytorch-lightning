@@ -15,7 +15,7 @@
 ############
 Basic skills
 ############
-Learn the basics of running Lightning Apps and modifying existing Lightning Apps. Researchers and machine learning engineers should start here.
+Learn to run python code on the cloud and build workflows (Lightning Apps). Every new user should start here.
 
 .. join_slack::
    :align: left
@@ -30,8 +30,8 @@ Learn the basics of running Lightning Apps and modifying existing Lightning Apps
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 1: LIGHTNING IN 15 MINUTES
-   :description: Learn to run python on the cloud.
+   :header: Level 1: Lightning in 15 minutes
+   :description: Learn to run python on the cloud by implementing a LightningWork component
    :button_link: lightning_in_15_minutes.html
    :col_css: col-md-6
    :height: 150
@@ -39,49 +39,61 @@ Learn the basics of running Lightning Apps and modifying existing Lightning Apps
 
 .. displayitem::
    :header: Level 2: Build a workflow
-   :description: Learn to run multiple python scripts.
+   :description: Learn to run multiple python functions.
    :button_link: level_2.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
+.. raw:: html
+
+        </div>
+    </div>
+
+
+----
+
+**************
+Basic Examples
+**************
+Once you've finished levels 1 and 2, try to build the following examples:
+
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
 .. displayitem::
-   :header: Level 3: Communicate between works
-   :description: Move variables and files across works.
+   :header: Example: Train PyTorch on the cloud
+   :description: Train a PyTorch model in single or multi-node on the cloud
    :button_link: level_3.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Level 4: Build reactive workflows
-   :description: Learn to easily build interactive workflows that react to complex input patterns.
+   :header: Example: Deploy a model API
+   :description: Deploy a model behind a load-balanced API.
    :button_link: level_4.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Level 5: Share your Lightning App
-   :description: Learn how to share your Lightning App with colleagues
+   :header: Example: Develop a Jupyter Notebook component
+   :description: Develop a LightningWork that runs a notebook on the cloud.
    :button_link: level_5.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Level 6: Publish your Lightning App
-   :description: Learn how to submit your Lightning App to the Lightning App Gallery
+   :header: Example: Create a model demo
+   :description: Demo POCs and MVPs which can be shared with a public web user interface.
    :button_link: level_6.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-
-.. displayitem::
-   :header: Level 7: Run on your cloud account
-   :description: Learn how to run a Lightning App on your own cloud account.
-   :button_link: level_7.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
