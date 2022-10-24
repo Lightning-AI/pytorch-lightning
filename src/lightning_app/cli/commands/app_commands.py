@@ -44,7 +44,7 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
         if command in full_command:
             has_found = True
             for value in sys.argv:
-                if value == command:
+                if value == command and "_" in value:
                     print(
                         f"The command `{value}` was provided with an underscore and it isn't allowed."
                         f"Instead, use `lightning {value.replace('_', ' ')}`."
