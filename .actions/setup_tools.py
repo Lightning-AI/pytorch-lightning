@@ -204,6 +204,7 @@ def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[
     return lines
 
 
+# TODO: unify usage with assistant function, such that import this function in there
 def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
     """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
