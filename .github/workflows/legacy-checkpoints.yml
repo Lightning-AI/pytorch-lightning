@@ -13,6 +13,11 @@ on:
         default: ''
         required: false
         type: string
+      create_pr:
+        description: 'Create a PR to enable testing PL with a new checkpoint.'
+        default: false
+        required: false
+        type: boolean
   workflow_call:
     inputs:
       push_to_s3:
@@ -25,6 +30,11 @@ on:
         default: ''
         required: false
         type: string
+      create_pr:
+        description: 'Create a PR to enable testing PL with a new checkpoint.'
+        default: false
+        required: false
+        type: boolean
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -34,6 +44,8 @@ on:
 jobs:
   create-legacy-ckpts:
     runs-on: ubuntu-20.04
+    outputs:
+      pl-version: ${{ steps.decide-pl-version.outputs.pl-version }}
     defaults:
       run:
         working-directory: tests/legacy
@@ -65,6 +77,11 @@ jobs:
       working-directory: ./
       run: bash .actions/pull_legacy_checkpoints.sh
 
+    - name: Decide PL version to create a PR with
+      id: decide-pl-version
+      run: |
+        python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
+
     - name: Generate checkpoints
       run: |
         bash generate_checkpoints.sh ${{ inputs.pl_version }}
@@ -87,3 +104,24 @@ jobs:
         zip -r checkpoints.zip checkpoints
         aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
       if: inputs.push_to_s3
+
+  enable-ckpt-test:
+    runs-on: ubuntu-20.04
+    if: inputs.create_pr
+    needs: create-legacy-ckpts
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: master
+
+    - name: Append a new version to legacy checkpoint list
+      run: echo ${{ needs.create-legacy-ckpts.outputs.pl-version }} >> tests/legacy/back-compatible-versions.txt
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        title: Enable testing with legacy checkpiont created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
+        delete-branch: true
+        labels: |
+          tests
+          pl

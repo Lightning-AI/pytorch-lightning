@@ -121,3 +121,4 @@ jobs:
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
       push_to_s3: true
+      create_pr: true
