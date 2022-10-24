@@ -23,7 +23,7 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.slurm_environment import SLURMEnvironment
+from lightning_lite.plugins.environments.slurm import SLURMEnvironment
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -368,7 +368,7 @@ class CheckpointConnector:
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None:
-            if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            if self.trainer.state.fn == TrainerFn.FITTING:
                 fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
                 self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])

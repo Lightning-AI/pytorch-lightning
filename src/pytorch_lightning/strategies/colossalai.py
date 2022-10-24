@@ -131,7 +131,7 @@ class ColossalAIStrategy(DDPStrategy):
         chunk_search_range: int = 64 * 1024**2,
         chunk_search_n_grids: int = 1024,
         min_chunk_size: Optional[int] = None,
-        initial_scale: float = 2**32,
+        initial_scale: float = 2**16,
         min_scale: float = 1,
         growth_factor: float = 2,
         backoff_factor: float = 0.5,
@@ -463,8 +463,14 @@ class ColossalAIStrategy(DDPStrategy):
         with _patch_cuda_is_available():
             from colossalai.communication.collective import broadcast
             from colossalai.context import ParallelMode
+            from colossalai.core import global_context as gpc
 
-        return broadcast(obj, src=src, parallel_mode=ParallelMode.GLOBAL)
+        if isinstance(obj, Tensor):
+            return broadcast(obj, src=src, parallel_mode=ParallelMode.GLOBAL)
+        else:
+            obj_list = [obj]
+            torch.distributed.broadcast_object_list(obj_list, src, group=gpc.get_group(ParallelMode.GLOBAL))
+            return obj_list[0]
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""

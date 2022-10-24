@@ -7,9 +7,9 @@ from multiprocessing import Queue
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
-from lightning_app.api.request_types import APIRequest, CommandRequest
+from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
@@ -88,7 +88,7 @@ class HttpMethod:
 
                     t0 = time.time()
                     while request_id not in responses_store:
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(0.01)
                         if (time.time() - t0) > self.timeout:
                             raise Exception("The response was never received.")
 
@@ -96,7 +96,12 @@ class HttpMethod:
 
                     return responses_store.pop(request_id)
 
-                return await asyncio.create_task(fn(*args, **kwargs))
+                response: RequestResponse = await asyncio.create_task(fn(*args, **kwargs))
+
+                if response.status_code != 200:
+                    raise HTTPException(response.status_code, detail=response.content)
+
+                return response.content
 
             # 4: Register the user provided route to the Rest API.
             route(self.route, **self.kwargs)(_handle_request)

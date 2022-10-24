@@ -50,14 +50,12 @@ def test_deepspeed_precision_backward():
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_engine_is_steppable():
+@mock.patch("deepspeed.DeepSpeedEngine", autospec=True)
+def test_deepspeed_engine_is_steppable(engine):
     """Test that the ``DeepSpeedEngine`` conforms to the Steppable API.
 
     If this fails, then optimization will be broken for DeepSpeed.
     """
-    from deepspeed import DeepSpeedEngine
-
-    engine = DeepSpeedEngine(Mock(), Mock())
     assert isinstance(engine, Steppable)
 
 

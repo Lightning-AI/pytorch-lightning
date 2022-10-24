@@ -7,7 +7,8 @@ import pytest
 
 import lightning_app
 from lightning_app.storage.copier import Copier, copy_files
-from lightning_app.storage.path import ExistsRequest, GetRequest, Path
+from lightning_app.storage.path import Path
+from lightning_app.storage.requests import ExistsRequest, GetRequest
 from lightning_app.testing.helpers import MockQueue
 
 

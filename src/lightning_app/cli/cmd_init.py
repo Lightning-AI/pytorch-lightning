@@ -126,7 +126,7 @@ def component(component_name: str) -> None:
     ⚡ Use the component inside an app: ⚡
 
     from {name_for_files} import TemplateComponent
-    import lightning.app as la
+    import lightning_app as la
 
     class LitApp(la.LightningFlow):
         def __init__(self) -> None:
