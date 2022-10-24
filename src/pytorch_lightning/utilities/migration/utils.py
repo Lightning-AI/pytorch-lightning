@@ -16,11 +16,11 @@ import sys
 from distutils.version import LooseVersion
 from pathlib import Path
 from types import ModuleType, TracebackType
-from typing import Any, Dict, Optional, Type, Tuple, List
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.migration.migrations import migration_index
 from lightning_lite.utilities.types import _PATH
+from pytorch_lightning.utilities.migration.migrations import migration_index
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
