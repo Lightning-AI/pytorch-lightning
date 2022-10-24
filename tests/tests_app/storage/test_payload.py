@@ -9,7 +9,8 @@ import pytest
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners.multiprocess import MultiProcessRuntime
-from lightning_app.storage.payload import GetRequest, Payload
+from lightning_app.storage.payload import Payload
+from lightning_app.storage.requests import GetRequest
 
 
 def test_payload_copy():
