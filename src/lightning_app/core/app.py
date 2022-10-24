@@ -524,7 +524,7 @@ class LightningApp:
         # TODO: Checkpoint versioning and compatibility checks
         return checkpoint_dict
 
-    def _get_checkpoint_if_available_locally(self, checkpoint: str) -> t.Optional[dict]:
+    def _get_checkpoint_if_available_locally(self, checkpoint: str) -> Optional[dict]:
         checkpoint_dict = None
         if os.path.exists(checkpoint):
             checkpoint_dict = self._load_checkpoint_from_json_file(checkpoint)
@@ -533,7 +533,7 @@ class LightningApp:
 
         return checkpoint_dict
 
-    def _get_checkpoint_if_available_on_drive(self, checkpoint: str) -> t.Optional[dict]:
+    def _get_checkpoint_if_available_on_drive(self, checkpoint: str) -> Optional[dict]:
         drive = Drive("lit://checkpoints", component_name="root")
 
         with _context(ComponentContext.WORK):
@@ -644,7 +644,7 @@ class LightningApp:
             pickle.dump(self.state_dict(), f)
         return checkpoint_path
 
-    def _save_checkpoint(self, checkpoint_name: str = "") -> t.Optional[str]:
+    def _save_checkpoint(self, checkpoint_name: str = "") -> Optional[str]:
         """Save the current state of the app in a checkpoint.
 
         If the app is running locally, the checkpoint will be saved in the local directory.
