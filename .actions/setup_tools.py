@@ -179,7 +179,7 @@ def parse_version_from_file(pkg_root: str) -> str:
 
 
 def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[str]:
-    """REplace imports of standlone package to lightning.
+    """Replace imports of standalone package to lightning.
 
     >>> lns = ["lightning_app",
     ...        "delete_cloud_lightning_apps",
