@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["LAI", "lite"]  # the "LAI" is for installing monolithic package
+        pkg-name: ["lite"]  # TODO: package parametrization
         python-version: ["3.7", "3.10"]
         requires: ["oldest", "latest"]
         release: ["stable"]
