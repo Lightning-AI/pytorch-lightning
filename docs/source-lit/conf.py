@@ -409,5 +409,9 @@ from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
 )
+from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
+from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
+from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True

@@ -1,9 +1,3 @@
-.. testsetup:: *
-
-    from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
-    from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
-
-
 Comet.ml
 ========
 To use `Comet.ml <https://www.comet.ml/site/>`_ first install the comet package:
