@@ -200,16 +200,13 @@ To enable variable interpolation, first install omegaconf:
 
     pip install omegaconf
 
-Once this is installed,
+Then set omegaconf when instantiating the ``LightningCLI`` class:
 
-.. code: python
-    cli = LightningCLI(
-        seed_everything_default=True,
-        parser_kwargs={"parser_mode": "omegaconf"},
-    )
+.. code:: python
+    cli = LightningCLI(MyModel, parser_kwargs={"parser_mode": "omegaconf"})
 
-Specify the `parser_kwargs as above` then Lightning CLI will automatically handle variables in yaml files:
+After this, the CLI will automatically perform interpolation in yaml files:
 
-.. code bash:
+.. code:: bash
 
     python main.py --model.encoder_layers=12
