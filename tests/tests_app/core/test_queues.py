@@ -1,15 +1,17 @@
+import multiprocessing
 import pickle
 import queue
 import time
 from unittest import mock
 
 import pytest
+import redis
 import requests_mock
 
-import lightning_app.core.queues
 from lightning_app import LightningFlow
+from lightning_app.core import queues
 from lightning_app.core.constants import HTTP_QUEUE_URL
-from lightning_app.core.queues import QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning_app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
 from lightning_app.utilities.imports import _is_redis_available
 from lightning_app.utilities.redis import check_if_redis_running
 
@@ -24,14 +26,14 @@ def test_queue_api(queue_type, monkeypatch):
 
     blpop_out = (b"entry-id", pickle.dumps("test_entry"))
 
-    monkeypatch.setattr(lightning_app.core.queues.redis.Redis, "blpop", lambda *args, **kwargs: blpop_out)
-    monkeypatch.setattr(lightning_app.core.queues.redis.Redis, "rpush", lambda *args, **kwargs: None)
-    monkeypatch.setattr(lightning_app.core.queues.redis.Redis, "set", lambda *args, **kwargs: None)
-    monkeypatch.setattr(lightning_app.core.queues.redis.Redis, "get", lambda *args, **kwargs: None)
+    monkeypatch.setattr(redis.Redis, "blpop", lambda *args, **kwargs: blpop_out)
+    monkeypatch.setattr(redis.Redis, "rpush", lambda *args, **kwargs: None)
+    monkeypatch.setattr(redis.Redis, "set", lambda *args, **kwargs: None)
+    monkeypatch.setattr(redis.Redis, "get", lambda *args, **kwargs: None)
 
     test_queue = queue_type.get_readiness_queue()
     assert test_queue.name == READINESS_QUEUE_CONSTANT
-    assert isinstance(test_queue, lightning_app.core.queues.BaseQueue)
+    assert isinstance(test_queue, BaseQueue)
     test_queue.put("test_entry")
     assert test_queue.get() == "test_entry"
 
@@ -72,9 +74,9 @@ def test_redis_health_check_failure():
 
 @pytest.mark.skipif(not _is_redis_available(), reason="redis isn't installed.")
 def test_redis_credential(monkeypatch):
-    monkeypatch.setattr(lightning_app.core.queues, "REDIS_HOST", "test-host")
-    monkeypatch.setattr(lightning_app.core.queues, "REDIS_PORT", "test-port")
-    monkeypatch.setattr(lightning_app.core.queues, "REDIS_PASSWORD", "test-password")
+    monkeypatch.setattr(queues, "REDIS_HOST", "test-host")
+    monkeypatch.setattr(queues, "REDIS_PORT", "test-port")
+    monkeypatch.setattr(queues, "REDIS_PASSWORD", "test-password")
     redis_queue = QueuingSystem.REDIS.get_readiness_queue()
     assert redis_queue.redis.connection_pool.connection_kwargs["host"] == "test-host"
     assert redis_queue.redis.connection_pool.connection_kwargs["port"] == "test-port"
@@ -102,10 +104,7 @@ def test_redis_queue_read_timeout(redis_mock):
 
 @pytest.mark.parametrize(
     "queue_type, queue_process_mock",
-    [
-        (QueuingSystem.SINGLEPROCESS, lightning_app.core.queues.queue),
-        (QueuingSystem.MULTIPROCESS, lightning_app.core.queues.multiprocessing),
-    ],
+    [(QueuingSystem.SINGLEPROCESS, queue), (QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):
 
@@ -173,7 +172,7 @@ class TestHTTPQueue:
             test_queue.length()
 
     def test_http_queue_put(self, monkeypatch):
-        monkeypatch.setattr(lightning_app.core.queues, "HTTP_QUEUE_TOKEN", "test-token")
+        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
         test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
         test_obj = LightningFlow()
 
@@ -199,7 +198,7 @@ class TestHTTPQueue:
         test_queue.put(test_obj)
 
     def test_http_queue_get(self, monkeypatch):
-        monkeypatch.setattr(lightning_app.core.queues, "HTTP_QUEUE_TOKEN", "test-token")
+        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
         test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
 
         adapter = requests_mock.Adapter()
