@@ -1,9 +1,9 @@
 ###################################
-Level 3: Debug A Lightning Workflow
+Level 4: Debug A Lightning Workflow
 ###################################
 **Audience:** Users who want to debug Lightning workflows.
 
-**Prereqs:** You must have finished the `Basic levels <https://lightning.ai/lightning-docs/levels/basic/>`_.
+**Prereqs:** You must have finished the `Basic levels <../basic/>`_.
 
 ----
 

@@ -3,7 +3,7 @@ Level 3: Run on your AWS account efficiently
 ############################################
 **Audience:** Users who want to use the AWS cloud efficiently.
 
-**Prereqs:** You must have finished the `Basic levels <https://lightning.ai/lightning-docs/levels/basic/>`_.
+**Prereqs:** You must have finished the `Basic levels <../basic/>`_.
 
 ----
 
