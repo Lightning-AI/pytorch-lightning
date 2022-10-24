@@ -48,7 +48,7 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
     """The checkpoint and early stopping keys were renamed.
 
     Version: 0.10.0
-    Commit:
+    Commit: a5d1176
     """
     keys_mapping = {
         "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
