@@ -32,8 +32,9 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -85,7 +86,13 @@ class CheckpointConnector:
     def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         with pl_legacy_patch():
             loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
-        loaded_checkpoint = migrate_checkpoint(loaded_checkpoint)
+        if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
+            raise ValueError(
+                "The checkpoint you're attempting to load follows an"
+                " outdated schema. You can upgrade to the current schema by running"
+                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
+                " where `model.ckpt` is your checkpoint file."
+            )
         return loaded_checkpoint
 
     def _set_ckpt_path(
@@ -341,6 +348,23 @@ class CheckpointConnector:
             return
 
         fit_loop = self.trainer.fit_loop
+        pl_module = self.trainer.lightning_module
+        assert pl_module is not None
+
+        # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        batch_loop = fit_loop.epoch_loop.batch_loop
+        if pl_module.automatic_optimization:
+            batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint[
+                "global_step"
+            ]
+        else:
+            batch_loop.manual_loop.optim_step_progress.total.completed = self._loaded_checkpoint["global_step"]
+
+        # set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
+
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None:
