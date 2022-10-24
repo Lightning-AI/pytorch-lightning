@@ -64,7 +64,6 @@ jobs:
           pip list
 
       - name: DocTests App
-        # todo: run doctest laos on mono-package
         if: ${{ matrix.pkg-name != 'LAI' }}
         working-directory: src
         run: python -m pytest lightning_app --ignore-glob="**/cli/*-template/**"

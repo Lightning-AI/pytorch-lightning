@@ -83,7 +83,6 @@ jobs:
         pip list
 
     - name: DocTests Lite
-      # todo: run docstest laos on mono-package
       if: ${{ matrix.pkg-name != 'LAI' }}
       working-directory: src
       run: python -m pytest lightning_lite

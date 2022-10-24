@@ -115,9 +115,8 @@ jobs:
         pip list
 
     - name: DocTests PL
-      # todo: run docstest laos on mono-package
       if: ${{ matrix.pkg-name != 'LAI' }}
-      working-directory: ./src
+      working-directory: src
       run: python -m pytest pytorch_lightning
 
     - name: Get pip cache dir
