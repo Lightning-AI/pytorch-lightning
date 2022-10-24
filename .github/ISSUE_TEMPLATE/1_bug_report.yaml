@@ -35,6 +35,7 @@ body:
       label: How to reproduce the bug
       description: >
         Provide steps and example code here.
+        You can also paste a link to a Google Colab, see our [bug report template](https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb).
       placeholder: |
         ```python
         # Sample code to reproduce the problem
