@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import os
 import sys
 from distutils.version import LooseVersion
-from pathlib import Path
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
@@ -92,7 +92,7 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: _PATH) -> _
 
     # include the full upgrade command, including the path to the loaded file in the error message,
     # so user can copy-paste and run if they want
-    path_hint = Path(checkpoint_path).relative_to(Path.cwd())
+    path_hint = os.path.relpath(checkpoint_path, os.getcwd())
     _log.info(
         f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
         " To apply the upgrade to your files permanently, run"
