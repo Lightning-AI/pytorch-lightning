@@ -6,12 +6,14 @@ import pytest
 
 from lightning_app import LightningApp
 from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import BuildConfig, LightningWork, LightningWorkException
+from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
 from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.exceptions import LightningWorkException
+from lightning_app.utilities.packaging.build_config import BuildConfig
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 

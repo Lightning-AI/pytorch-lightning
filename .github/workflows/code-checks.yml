@@ -13,6 +13,7 @@ concurrency:
 jobs:
   mypy:
     runs-on: ubuntu-20.04
+    # TODO: package parametrization
     steps:
     - uses: actions/checkout@v3
 

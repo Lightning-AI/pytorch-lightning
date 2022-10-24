@@ -38,7 +38,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["LAI", "pytorch"]  # the "LAI" is for installing monolithic package
+        pkg-name: ["pytorch"]   # TODO: add "LAI" # "LAI" installs the monolithic package
         python-version: ["3.8", "3.9", "3.10"]
         pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
         exclude:
@@ -56,14 +56,14 @@ jobs:
           - {pytorch-version: "1.12", python-version: "3.9"}
         include:
           # PT is set for sanity check
-          - {os: "macos-11", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          #- {os: "macos-11", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "macos-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "ubuntu-20.04", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          #- {os: "ubuntu-20.04", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          #- {os: "windows-2022", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           # close FUTURE
-          - {os: "ubuntu-20.04", pkg-name: "LAI", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
+          #- {os: "ubuntu-20.04", pkg-name: "LAI", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
 
     timeout-minutes: 50
@@ -116,9 +116,8 @@ jobs:
         pip list
 
     - name: DocTests PL
-      # todo: run docstest laos on mono-package
       if: ${{ matrix.pkg-name != 'LAI' }}
-      working-directory: ./src
+      working-directory: src
       run: python -m pytest pytorch_lightning
 
     - name: Get pip cache dir
