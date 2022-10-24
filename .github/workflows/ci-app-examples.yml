@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
-        pkg-name: ["app"]  # TODO: package parametrization
+        pkg-name: ["app"]  # TODO: add "LAI" with mirror package # the "LAI" is for installing monolithic package
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
