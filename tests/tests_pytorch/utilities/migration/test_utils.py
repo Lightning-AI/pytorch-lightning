@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import sys
-from copy import deepcopy
 
 import pytest
 
