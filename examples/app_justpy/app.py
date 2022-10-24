@@ -19,7 +19,7 @@ class Flow(LightningFlow):
 def render_fn(get_state: Callable) -> Callable:
     import justpy as jp
 
-    def website():
+    def webpage():
         wp = jp.QuasarPage(dark=True)
         d = jp.Div(classes="q-pa-md q-gutter-sm", a=wp)
         container = jp.QBtn(color="primary", text="Counter: 0")
@@ -36,7 +36,7 @@ def render_fn(get_state: Callable) -> Callable:
 
         return wp
 
-    return website
+    return webpage
 
 
 app = LightningApp(Flow())

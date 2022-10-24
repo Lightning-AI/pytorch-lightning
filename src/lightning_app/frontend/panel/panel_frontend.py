@@ -13,7 +13,7 @@ from lightning_app.frontend.utils import _get_frontend_environment
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import requires
-from lightning_app.utilities.log import get_frontend_logfile
+from lightning_app.utilities.log import get_logfile
 
 _logger = Logger(__name__)
 
@@ -50,7 +50,7 @@ class PanelFrontend(Frontend):
     .. code-block:: python
 
         import lightning as L
-        from lightning.app.frontend.panel import PanelFrontend
+        from lightning_app.frontend.panel import PanelFrontend
 
 
         class LitPanel(L.LightningFlow):
@@ -95,7 +95,7 @@ class PanelFrontend(Frontend):
         self._log_files: dict[str, TextIO] = {}
         _logger.debug("PanelFrontend Frontend with %s is initialized.", entry_point)
 
-    def start_server(self, host: str, port: int) -> None:
+    def start_server(self, host: str, port: int, root_path: str = "") -> None:
         _logger.debug("PanelFrontend starting server on %s:%s", host, port)
 
         # 1: Prepare environment variables and arguments.
@@ -128,8 +128,8 @@ class PanelFrontend(Frontend):
         # Don't log to file when developing locally. Makes it harder to debug.
         self._close_log_files()
 
-        std_err_out = get_frontend_logfile("error.log")
-        std_out_out = get_frontend_logfile("output.log")
+        std_err_out = get_logfile("error.log")
+        std_out_out = get_logfile("output.log")
         stderr = std_err_out.open("wb")
         stdout = std_out_out.open("wb")
         self._log_files = {"stdout": stderr, "stderr": stdout}

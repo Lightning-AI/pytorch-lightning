@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import lightning as L
-from lightning.app import frontend
+from lightning_app import frontend
 
 
 class YourComponent(L.LightningFlow):

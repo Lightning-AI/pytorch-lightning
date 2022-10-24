@@ -11,7 +11,7 @@ def get_state() -> AppState:
     return _reduce_to_flow_scope(app_state, flow=os.environ["LIGHTNING_FLOW_NAME"])
 
 
-def website() -> Any:
+def webpage() -> Any:
     import justpy as jp
 
     wp = jp.WebPage()
@@ -31,7 +31,7 @@ def main() -> None:
     import justpy as jp
 
     """Run the render_fn with the current flow_state."""
-    # Fetch the information of which flow attaches to this streamlit instance
+    # Fetch the information of which flow attaches to this justpy instance
     flow_name = os.environ["LIGHTNING_FLOW_NAME"]
 
     # Call the provided render function.
@@ -45,7 +45,7 @@ def main() -> None:
 
     jp.app.add_jproute(f"/{flow_name}", entry_fn)
 
-    jp.justpy(website, host=host, port=port)
+    jp.justpy(webpage, host=host, port=port)
 
 
 if __name__ == "__main__":

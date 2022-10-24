@@ -31,7 +31,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
-from tests_pytorch.helpers.utils import reset_seed
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
@@ -150,8 +149,6 @@ def test_dm_pickle_after_init():
 
 
 def test_train_loop_only(tmpdir):
-    reset_seed()
-
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -171,8 +168,6 @@ def test_train_loop_only(tmpdir):
 
 
 def test_train_val_loop_only(tmpdir):
-    reset_seed()
-
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -202,7 +197,6 @@ def test_dm_checkpoint_save_and_load(tmpdir):
         def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
             self.my_state_dict = state_dict
 
-    reset_seed()
     dm = CustomBoringDataModule()
     model = CustomBoringModel()
 
@@ -229,8 +223,6 @@ def test_dm_checkpoint_save_and_load(tmpdir):
 
 
 def test_full_loop(tmpdir):
-    reset_seed()
-
     dm = ClassifDataModule()
     model = ClassificationModel()
 

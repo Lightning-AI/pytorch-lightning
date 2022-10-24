@@ -9,7 +9,7 @@ Add a web UI with JustPy
 JustPy
 ******
 
-The framework `JustPy <https://github.com/justpy-org/justpy>`_  is an object oriented high-level Python Web Framework that requires no frontend programming.
+The `JustPy <https://github.com/justpy-org/justpy>`_  framework is an object oriented high-level Python Web Framework that requires no JavaScript programming, while at the same time providing the full flexibility of a frontend framework.
 
 Additionally, it provides a higher level API called `Quasar <https://justpy.io/quasar_tutorial/introduction/>`_ with stylized components.
 
@@ -58,8 +58,9 @@ Secondly, you would need to implement a ``render_fn`` that takes as input a ``ge
     def render_fn(get_state: Callable) -> Callable:
         import justpy as jp
 
-        def website():
+        def webpage():
             wp = jp.QuasarPage(dark=True)
+            # the `a=wp` argument adds the div to the web page
             d = jp.Div(classes="q-pa-md q-gutter-sm", a=wp)
             container = jp.QBtn(color="primary", text="Counter: 0")
 
@@ -75,11 +76,17 @@ Secondly, you would need to implement a ``render_fn`` that takes as input a ``ge
 
             return wp
 
-        return website
+        return webpage
 
 
-Finally, you can simply run your app.
+Finally, you can wrap your flow in a LightningAp.
 
 .. code-block::
 
     app = LightningApp(Flow())
+
+Now, you can run the Lightning App with:
+
+.. code-block::
+
+    lightning run app app.py

@@ -7,22 +7,22 @@ from typing import Callable, Optional
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.utilities.log import get_frontend_logfile
+from lightning_app.utilities.log import get_logfile
 
 
 class JustPyFrontend(Frontend):
     """A frontend for wrapping JustPy code in your LightingFlow.
 
-    Return this in your `LightningFlow.configure_layout()` method if you wish to build the UI with ``justpyt``.
-    To use this frontend, you must first install the `justpyt` package (if running locally):
+    Return this in your `LightningFlow.configure_layout()` method if you wish to build the UI with ``justpy``.
+    To use this frontend, you must first install the `justpy` package (if running locally):
 
     .. code-block:: bash
 
         pip install justpy
 
     Arguments:
-        render_fn: A function that contains your justpyt code. This function must accept exactly one argument, the
-            `AppState` object which you can use to access variables in your flow (see example below).
+        render_fn: A function that contains your justpy code. This function must accept exactly one argument, the
+            ``AppState`` object which you can use to access variables in your flow (see example below).
 
     Example:
 
@@ -56,14 +56,14 @@ class JustPyFrontend(Frontend):
                     state.counter += 1
                     self.text = f"Click Me ! Old Counter: {old_counter} New Counter: {state.counter}"
 
-                def website():
+                def webpage():
                     wp = jp.WebPage()
                     d = jp.Div(text="Hello ! Click Me!")
                     d.on("click", my_click)
                     wp.add(d)
                     return wp
 
-                return website
+                return webpage
 
 
             app = LightningApp(Flow())
@@ -74,7 +74,7 @@ class JustPyFrontend(Frontend):
 
         if inspect.ismethod(render_fn):
             raise TypeError(
-                "The `StreamlitFrontend` doesn't support `render_fn` being a method. Please, use a pure function."
+                "The `JustPyFrontend` doesn't support `render_fn` being a method. Please, use a pure function."
             )
 
         self.render_fn = render_fn
@@ -87,7 +87,7 @@ class JustPyFrontend(Frontend):
         env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(self.render_fn).__file__  # type: ignore
         env["LIGHTNING_HOST"] = host
         env["LIGHTNING_PORT"] = str(port)
-        std_out_out = get_frontend_logfile("output.log")
+        std_out_out = get_logfile("output.log")
         path = os.path.join(os.path.dirname(lightning_app.frontend.just_py.__file__), "just_py_base.py")
         with open(std_out_out, "wb") as stdout:
             self._process = Popen(f"{sys.executable} {path}", env=env, stdout=stdout, stderr=sys.stderr, shell=True)
