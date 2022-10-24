@@ -343,7 +343,7 @@ if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
-    MOCK_PACKAGES += package_list_from_file(_path_require("loggers.txt"))
+    MOCK_PACKAGES += ["comet-ml"]  # loggers instantiated in our docs
     MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
