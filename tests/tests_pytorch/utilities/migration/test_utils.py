@@ -92,7 +92,7 @@ def _run_simple_migration(monkeypatch, old_checkpoint):
         "0.0.2": [dummy_upgrade("two"), dummy_upgrade("three")],
         "1.2.3": [dummy_upgrade("four")],
     }
-    monkeypatch.setattr(pl.utilities.migration.utils, "migration_index", lambda: index)
+    monkeypatch.setattr(pl.utilities.migration.utils, "_migration_index", lambda: index)
     new_checkpoint, _ = migrate_checkpoint(old_checkpoint)
     return new_checkpoint, call_order
 

@@ -20,7 +20,7 @@ How to add a new migration?
 
 1. Create a new function with a descriptive name and docstring that explains the details of this migration. Include
    version information as well as the specific commit or PR where the breaking change happened.
-2. Add the function to the `migration_index()` below. The key in the index is the version of Lightning in which the
+2. Add the function to the `_migration_index()` below. The key in the index is the version of Lightning in which the
    change happened. Any checkpoint with a version greater or equal to that version will apply the given function.
    Multiple migrations per version get executed in the provided list order.
 3. You can test the migration on a checkpoint (backup your files first) by running:
@@ -37,7 +37,7 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 _CHECKPOINT = Dict[str, Any]
 
 
-def migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
+def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
     """Migration functions returned here will get executed in the order they are listed."""
     return {
         "0.10.0": [_migrate_model_checkpoint_early_stopping],

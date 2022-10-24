@@ -23,7 +23,7 @@ from lightning_utilities.core.rank_zero import rank_zero_warn
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PATH
 from lightning_lite.utilities.warnings import PossibleUserWarning
-from pytorch_lightning.utilities.migration.migrations import migration_index
+from pytorch_lightning.utilities.migration.migrations import _migration_index
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
@@ -45,7 +45,7 @@ def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, 
         )
         return checkpoint, {}
 
-    index = migration_index()
+    index = _migration_index()
     applied_migrations = {}
     for migration_version, migration_functions in index.items():
         if not _should_upgrade(checkpoint, migration_version):
