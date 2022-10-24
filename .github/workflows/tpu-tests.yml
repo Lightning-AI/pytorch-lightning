@@ -72,12 +72,15 @@ jobs:
        cat dockers/tpu-tests/tpu_test_cases.jsonnet
       shell: bash
 
+    - uses: google-github-actions/auth@v0
+      with:
+        credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
+
     # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
     - uses: google-github-actions/get-gke-credentials@v0
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
-        credentials: ${{ secrets.GKE_SA_KEY_BASE64 }}
 
     - name: Deploy cluster
       run: |
