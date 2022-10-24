@@ -156,7 +156,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._outputs = []
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
+    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
         self._reload_dataloader_state_dict(data_fetcher)
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
@@ -171,7 +171,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
-    def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
+    def advance(self, data_fetcher: AbstractDataFetcher) -> None:
         """Runs a single training batch.
 
         Raises:

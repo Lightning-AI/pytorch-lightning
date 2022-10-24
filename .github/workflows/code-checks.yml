@@ -34,7 +34,7 @@ jobs:
       env:  # TODO: drop this when we will be using regular releases for testing
         PACKAGE_NAME: pytorch
       run: |
-        pip install mypy==0.971
+        pip install mypy==0.982
         pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
