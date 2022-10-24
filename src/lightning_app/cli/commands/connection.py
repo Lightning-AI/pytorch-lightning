@@ -262,7 +262,9 @@ def _install_missing_requirements(
                 if yes:
                     std_out_out = get_logfile("output.log")
                     with open(std_out_out, "wb") as stdout:
-                        Popen(f"pip install {req}", shell=True, stdout=stdout, stderr=sys.stderr).wait()
+                        Popen(
+                            f"{sys.executable} -m pip install {req}", shell=True, stdout=stdout, stderr=sys.stderr
+                        ).wait()
                     print()
 
 
