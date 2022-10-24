@@ -115,10 +115,9 @@ In engineering, we call this **orchestration**:
         <div class="col-md-8">
 
 .. code:: python
-    :emphasize-lines: 9, 16
+    :emphasize-lines: 8, 15
 
     # app.py
-    # MULTIPLE WORKERS
     import lightning as L
 
     class LitWorker(L.LightningWork):
@@ -173,10 +172,9 @@ The two pieces of independent Python code ran on *separate* 🤯🤯 machines:
         <div class="col-md-8">
 
 .. code:: python
-    :emphasize-lines: 14, 17
+    :emphasize-lines: 13, 16
 
     # app.py
-    # MULTIPLE WORKERS
     import lightning as L
 
     class LitWorker(L.LightningWork):
@@ -227,10 +225,9 @@ Notice that the LightningFlow sent the variables: (**message_a** -> machine A), 
         <div class="col-md-8">
 
 .. code:: python
-    :emphasize-lines: 16, 17, 18, 19
+    :emphasize-lines: 15, 16, 17, 18
 
     # app.py
-    # MULTIPLE WORKERS
     import lightning as L
 
     class LitWorker(L.LightningWork):
@@ -261,9 +258,82 @@ Notice that the LightningFlow sent the variables: (**message_a** -> machine A), 
 
 ----
 
-.. collapse:: Multi-cloud
+-----------------------------
+Multi-cloud and multi-cluster
+-----------------------------
+The full workflow (which we call a Lightning App), can easily be moved across clouds and clusters.
 
-    ABC 
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+        <div class="col-md-4">
+        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_cloud.gif" width="100%">
+
+.. raw:: html
+
+        </div>
+        <div class="col-md-8">
+
+.. code:: python
+    :emphasize-lines: 12, 13, 14, 15
+
+    # app.py
+    import lightning as L
+
+    class LitWorker(L.LightningWork):
+        def run(self, message):
+            print(message)
+
+    class LitWorkflow(L.LightningFlow):
+        def __init__(self, cloud) -> None:
+            super().__init__()
+
+            # run on cluster-A  OR  cluster-B
+            cloud = 'cluster-A'
+            comp_A = L.CloudCompute('cpu', clouds=[cloud])
+            comp_B = L.CloudCompute('cpu', clouds=[cloud])
+            self.work_A = LitWorker(cloud_compute=comp_A)
+            self.work_B = LitWorker(cloud_compute=comp_B)
+
+        def run(self):
+            self.work_A.run("running code A on a CPU machine")
+            self.work_B.run("running code B on a GPU machine")
+
+    app = L.LightningApp(LitWorkflow())
+
+
+.. raw:: html
+
+        </div>
+        </div>
+    </div>
+⚡⚡ Now your workflows are multi-cloud!
+
+.. collapse:: Create a cluster on your AWS account
+
+   |
+   To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.
+
+   Next, set up a Lightning cluster (here we name it **cluster-A**):
+
+   .. code:: bash
+
+      # TODO: need to remove  --external-id dummy --region us-west-2
+      lightning create cluster cluster-A --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc
+
+   Run your code on the **cluster-A** cluster by passing it into CloudCompute:
+
+   .. code:: python 
+
+      compute = L.CloudCompute('gpu', clusters=['cluster-A'])
+      app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+   .. warning:: 
+      
+      This feature is available only under early-access. Request access by emailing upgrade@lightning.ai.
+
+----
 
 .. collapse:: Kubernetes
 
