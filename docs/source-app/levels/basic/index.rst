@@ -10,6 +10,7 @@
    deploy_ai_model_api
    run_jupyter_notebook_on_the_cloud
    create_a_model_demo
+   build_a_dag
 
 ############
 Basic skills

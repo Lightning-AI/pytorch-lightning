@@ -30,46 +30,53 @@ Learn to run efficiently on the cloud
 
 .. Add callout items below this line
 
+.. displayitem::
+   :header: Level 3: Run on your AWS account efficiently
+   :description: Learn to run workflows on your own AWS account efficiently to save money and improve performance.
+   :button_link: build_a_machine_learning_workflow.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
 
 .. displayitem::
-   :header: Level 3: Debug a workflow
+   :header: Level 4: Debug a workflow
    :description: Learn to debug workflows.
    :button_link: build_a_machine_learning_workflow.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: intermediate
 
 .. displayitem::
-   :header: Level 4: Run on your own AWS account
-   :description: Learn to run workflows on your own AWS account.
-   :button_link: build_a_machine_learning_workflow.html
+   :header: Level 5: Communicate between LightningWorks
+   :description: Share variables and files between LightningWorks.
+   :button_link: communicate_between_lightning_components.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: intermediate
 
 .. displayitem::
-   :header: Level 5: Optimize cloud costs
-   :description: Learn to optimize your cloud costs
-   :button_link: build_a_machine_learning_workflow.html
+   :header: Level 6: Run LightningWorks in parallel
+   :description: Learn when to run LightningWorks in parallel (asynchroneous). Here we also learn about reactive workflows.
+   :button_link: level_15.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: intermediate
 
 .. displayitem::
-   :header: Level 6: Work with massive datasets
-   :description: Learn to work with massive datasets and cloud storage.
-   :button_link: build_a_machine_learning_workflow.html
+   :header: Level 7: Start dynamic works
+   :description: Learn to start works dynamically
+   :button_link: level_15.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: intermediate
 
 .. displayitem::
-   :header: Level 7: Use custom containers
-   :description: Learn to use a custom cloud container.
-   :button_link: build_a_machine_learning_workflow.html
+   :header: Level 8: Share files between components
+   :description: Learn how Drives share files between components
+   :button_link: level_14.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: intermediate
 
 .. raw:: html
 
