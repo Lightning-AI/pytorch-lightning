@@ -97,14 +97,13 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
 
     For normal users who install via PyPi or Conda, then this function does not do anything.
     """
-
-    if not get_dist_path_if_editable_install("lightning-app"):
+    if not get_dist_path_if_editable_install("lightning"):
         return
 
     # Packaging the Lightning codebase happens only inside the `lightning` repo.
     git_dir_name = get_dir_name() if check_github_repository() else None
 
-    is_lightning = git_dir_name and git_dir_name == "lightning_app"
+    is_lightning = git_dir_name and git_dir_name == "lightning"
 
     if (PACKAGE_LIGHTNING is None and not is_lightning) or PACKAGE_LIGHTNING == "0":
         return
