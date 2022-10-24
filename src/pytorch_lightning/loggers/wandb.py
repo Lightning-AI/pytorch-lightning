@@ -362,7 +362,7 @@ class WandbLogger(Logger):
         state["_experiment"] = None
         return state
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> Union[Run, RunDisabled]:
         r"""

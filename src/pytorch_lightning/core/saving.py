@@ -181,6 +181,7 @@ def _load_from_checkpoint(
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
         return _load_state(cls, checkpoint, strict=strict, **kwargs)
+    raise NotImplementedError(f"Unsupported {cls}")
 
 
 def _load_state(

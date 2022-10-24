@@ -15,7 +15,7 @@
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, MutableMapping, Tuple, Union
 
 import numpy as np
 import torch
@@ -69,7 +69,7 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return {key: _sanitize_callable(val) for key, val in params.items()}
 
 
-def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any]:
+def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> Dict[str, Any]:
     """Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
     Args:
@@ -87,23 +87,16 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
         >>> _flatten_dict({5: {'a': 123}})
         {'5/a': 123}
     """
-
-    def _dict_generator(
-        input_dict: Any, prefixes: List[Optional[str]] = None
-    ) -> Generator[Any, Optional[List[str]], List[Any]]:
-        prefixes = prefixes[:] if prefixes else []
-        if isinstance(input_dict, MutableMapping):
-            for key, value in input_dict.items():
-                key = str(key)
-                if isinstance(value, (MutableMapping, Namespace)):
-                    value = vars(value) if isinstance(value, Namespace) else value
-                    yield from _dict_generator(value, prefixes + [key])
-                else:
-                    yield prefixes + [key, value if value is not None else str(None)]
+    result: Dict[str, Any] = {}
+    for k, v in params.items():
+        new_key = parent_key + delimiter + str(k) if parent_key else str(k)
+        if isinstance(v, Namespace):
+            v = vars(v)
+        if isinstance(v, MutableMapping):
+            result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
         else:
-            yield prefixes + [input_dict if input_dict is None else str(input_dict)]
-
-    return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
+            result[new_key] = v
+    return result
 
 
 def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:

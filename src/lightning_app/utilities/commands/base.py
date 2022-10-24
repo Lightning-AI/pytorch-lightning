@@ -203,7 +203,7 @@ def _prepare_commands(app) -> List:
     return commands
 
 
-def _process_api_request(app, request: APIRequest) -> None:
+def _process_api_request(app, request: APIRequest):
     flow = app.get_component_by_name(request.name)
     method = getattr(flow, request.method_name)
     try:
@@ -214,10 +214,10 @@ def _process_api_request(app, request: APIRequest) -> None:
     except Exception:
         logger.error(traceback.print_exc())
         response = RequestResponse(status_code=500)
-    app.api_response_queue.put({"response": response, "id": request.id})
+    return {"response": response, "id": request.id}
 
 
-def _process_command_requests(app, request: CommandRequest) -> None:
+def _process_command_requests(app, request: CommandRequest):
     for command in app.commands:
         for command_name, method in command.items():
             command_name = command_name.replace(" ", "_")
@@ -232,15 +232,22 @@ def _process_command_requests(app, request: CommandRequest) -> None:
                 except Exception:
                     logger.error(traceback.print_exc())
                     response = RequestResponse(status_code=500)
-                app.api_response_queue.put({"response": response, "id": request.id})
+                return {"response": response, "id": request.id}
 
 
-def _process_requests(app, request: Union[APIRequest, CommandRequest]) -> None:
+def _process_requests(app, requests: List[Union[APIRequest, CommandRequest]]) -> None:
     """Convert user commands to API endpoint."""
-    if isinstance(request, APIRequest):
-        _process_api_request(app, request)
-    else:
-        _process_command_requests(app, request)
+    responses = []
+    for request in requests:
+        if isinstance(request, APIRequest):
+            response = _process_api_request(app, request)
+        else:
+            response = _process_command_requests(app, request)
+
+        if response:
+            responses.append(response)
+
+    app.api_response_queue.put(responses)
 
 
 def _collect_open_api_extras(command) -> Dict:
