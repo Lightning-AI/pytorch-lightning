@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import sys
-import pytorch_lightning as pl
 from distutils.version import LooseVersion
 from types import ModuleType, TracebackType
-from typing import Optional, Type, Dict, Any
+from typing import Any, Dict, Optional, Type
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.migration.migrations import migration_index
 
 _CHECKPOINT = Dict[str, Any]
