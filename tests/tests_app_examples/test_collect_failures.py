@@ -2,8 +2,8 @@ import os
 from time import sleep
 
 import pytest
-from lightning_app import _PROJECT_ROOT
 
+from lightning_app import _PROJECT_ROOT
 from lightning_app.testing.testing import run_app_in_cloud
 
 
