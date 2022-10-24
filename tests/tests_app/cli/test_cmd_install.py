@@ -276,7 +276,9 @@ def test_install_app_shows_error(tmpdir):
     app_folder_dir.mkdir()
 
     with pytest.raises(SystemExit, match=f"Folder {str(app_folder_dir)} exists, please delete it and try again."):
-        cmd_install._install_app(source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False)
+        cmd_install._install_app(
+            source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False
+        )
 
 
 # def test_env_creation(tmpdir):
