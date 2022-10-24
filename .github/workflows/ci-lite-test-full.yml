@@ -34,8 +34,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["lightning", "lite"]  # the "lightning" is for installing monolithic package
-        python-version: ["3.7", "3.10"]
+        pkg-name: ["lite", "lightning"]  # "lightning" installs the monolithic package
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
         requires: ["oldest", "latest"]
         release: ["stable"]
         exclude:
