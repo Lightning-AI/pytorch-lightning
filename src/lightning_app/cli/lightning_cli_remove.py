@@ -1,5 +1,7 @@
 import click
 
+from lightning_app.cli.cmd_ssh_keys import SSHKeyManager
+
 
 @click.group("remove")
 def cli_remove() -> None:
@@ -8,5 +10,8 @@ def cli_remove() -> None:
 
 
 @cli_remove.command("ssh-key")
-def remove_ssh_key() -> None:
-    pass
+@click.argument("key_id")
+def remove_ssh_key(key_id: str) -> None:
+    """Remove a Lightning AI ssh-key from your account."""
+    ssh_key_manager = SSHKeyManager()
+    ssh_key_manager.remove_key(key_id=key_id)

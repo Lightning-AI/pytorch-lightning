@@ -4,6 +4,7 @@ import click
 
 from lightning_app.cli.cmd_apps import _AppManager
 from lightning_app.cli.cmd_clusters import AWSClusterManager
+from lightning_app.cli.cmd_ssh_keys import SSHKeyManager
 
 
 @click.group(name="list")
@@ -37,4 +38,5 @@ def list_apps(cluster_id: str, **kwargs: Any) -> None:
 @get_list.command("ssh-keys")
 def list_ssh_keys() -> None:
     """List your Lightning AI ssh-keys."""
-    pass
+    ssh_key_manager = SSHKeyManager()
+    ssh_key_manager.list()
