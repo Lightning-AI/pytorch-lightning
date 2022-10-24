@@ -158,8 +158,7 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 
 class HTTPClient:
     """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
-    automatically.
-    """
+    automatically."""
 
     def __init__(
         self, base_url: str, auth_token: Optional[str] = None, log_callback: Optional[Callable] = None
