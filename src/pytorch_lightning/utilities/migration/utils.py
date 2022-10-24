@@ -33,9 +33,6 @@ def migrate_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
             checkpoint = migration_function(checkpoint)
 
     _set_version(checkpoint, pl.__version__)
-
-    # TODO: If any migrations apply, log a message. Suggest to run upgrade_checkpoint script to convert
-    #   checkpoints permanently
     return checkpoint
 
 
