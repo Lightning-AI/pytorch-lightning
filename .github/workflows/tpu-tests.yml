@@ -1,3 +1,5 @@
+name: Test PyTorch on TPU
+
 on:
   push:
     branches: [master, "release/*"]
@@ -29,6 +31,7 @@ env:
   GKE_ZONE: us-central1-a
 
 jobs:
+  # TODO: package parametrization
   test-on-tpus:
     runs-on: ubuntu-22.04
     if: github.event.pull_request.draft == false
