@@ -16,6 +16,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, OrderedDict, Tuple, Union
 
 import torch
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.optim import Optimizer
 
@@ -32,7 +33,6 @@ from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
 
 
 @dataclass
@@ -188,14 +188,12 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.optim_progress.reset_on_restart()
         self._outputs = {}
 
-    def on_run_start(  # type: ignore[override]
-        self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict
-    ) -> None:
+    def on_run_start(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:
         self._indices, self._optimizers = zip(*optimizers)
         if self.done:
             self.optim_progress.optimizer_position = 0
 
-    def advance(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:  # type: ignore[override]
+    def advance(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:
         kwargs = self._build_kwargs(kwargs, self.optimizer_idx, self._hiddens)
 
         result = self._run_optimization(kwargs, self._optimizers[self.optim_progress.optimizer_position])

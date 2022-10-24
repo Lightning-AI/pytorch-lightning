@@ -41,6 +41,14 @@ class LightningWorkException(Exception):
     """Exception used to inform users of misuse with LightningWork."""
 
 
+class LightningPlatformException(Exception):  # pragma: no cover
+    """Exception used to inform users of issues related to platform the LightningApp is running on.
+
+    It gets raised by the Lightning Launcher on the platform side when the app is running in the cloud, and is useful
+    when framework or user code needs to catch exceptions specific to the platform, e.g., when resources exceed quotas.
+    """
+
+
 class LightningAppStateException(Exception):
     """Exception to inform users of app state errors."""
 
@@ -50,3 +58,7 @@ class LightningSigtermStateException(Exception):
 
     def __init__(self, exit_code):
         self.exit_code = exit_code
+
+
+class LogLinesLimitExceeded(Exception):
+    """Exception to inform the user that we've reached the maximum number of log lines."""

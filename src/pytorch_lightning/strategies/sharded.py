@@ -12,28 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Optional, Tuple, Union
+from typing import Dict, Generator, List, Tuple
 
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
+from lightning_lite.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
     from fairscale.optim import OSS
-
-    from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 else:
     OSS = ShardedDataParallel = object
 
@@ -44,12 +40,21 @@ class DDPShardedStrategy(DDPStrategy):
     strategy_name = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
 
+    def connect(self, model: "pl.LightningModule") -> None:
+        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
+            raise MisconfigurationException(
+                "`DDPShardedStrategy` requires `fairscale` to be installed."
+                " Install it by running `pip install fairscale`."
+            )
+        return super().connect(model)
+
     def setup(self, trainer: "pl.Trainer") -> None:
         # share ddp pids to all processes
-        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
+        self._rank_0_will_call_children_scripts: bool = self.broadcast(self._rank_0_will_call_children_scripts)
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
         # move the model to the correct device
@@ -59,6 +64,7 @@ class DDPShardedStrategy(DDPStrategy):
         trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             if self._layer_sync:
+                assert self.model is not None
                 self.model = self._layer_sync.apply(self.model)
 
         self.setup_precision_plugin()
@@ -68,9 +74,11 @@ class DDPShardedStrategy(DDPStrategy):
 
     def configure_ddp(self) -> None:
         self._set_ddp_kwargs()
-        self.setup_optimizers(self.model.trainer)
+        assert self.lightning_module is not None
+        self.setup_optimizers(self.lightning_module.trainer)
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model, self.optimizers = self._setup_model_and_optimizers(
-            model=LightningShardedDataParallel(self.model),
+            model=_LightningModuleWrapperBase(self.model),
             optimizers=self.optimizers,
         )
         optimizers_to_device(self.optimizers, self.root_device)
@@ -92,50 +100,11 @@ class DDPShardedStrategy(DDPStrategy):
         return model, optimizers
 
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
+        assert self.lightning_module is not None
+        if self.model is not None and self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
-
-        return self._reinit_optimizers_with_oss(optimizers)
-
-    def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if isinstance(optimizer, LightningOptimizer):
-                optimizer = optimizer._optimizer
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    is_fp16 = self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
-                    # For multi-node training, compressing the model shards in fp16 before broadcasting
-                    # improves performance. When using PyTorch AMP, it will not degrade
-                    # the model performance.
-                    zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
-
-    def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        if isinstance(optimizer, LightningOptimizer):
-            optimizer = optimizer._optimizer
-        optimizer.consolidate_state_dict()
-        return self._optim_state_dict(optimizer)
-
-    @rank_zero_only
-    def _optim_state_dict(self, optimizer):
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`consolidate_state_dict`.
-        """
-        return optimizer.state_dict()
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
-            raise MisconfigurationException(
-                "`DDPShardedStrategy` requires `fairscale` to be installed."
-                " Install it by running `pip install fairscale`."
-            )
-        return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
+        optimizers = [o._optimizer if isinstance(o, LightningOptimizer) else o for o in optimizers]
+        return _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         pass
@@ -153,7 +122,7 @@ class DDPShardedStrategy(DDPStrategy):
         else:
             yield None
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         pass
 
     @classmethod

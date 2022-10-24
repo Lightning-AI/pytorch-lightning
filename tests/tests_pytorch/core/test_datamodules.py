@@ -31,7 +31,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
-from tests_pytorch.helpers.utils import reset_seed
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
@@ -117,7 +116,7 @@ def test_hooks_no_recursion_error():
 def test_helper_boringdatamodule():
     dm = BoringDataModule()
     dm.prepare_data()
-    dm.setup()
+    dm.setup("fit")
 
 
 def test_helper_boringdatamodule_with_verbose_setup():
@@ -140,7 +139,7 @@ def test_dm_init_from_argparse_args(tmpdir):
     args = parser.parse_args(["--data_dir", str(tmpdir)])
     dm = BoringDataModule.from_argparse_args(args)
     dm.prepare_data()
-    dm.setup()
+    dm.setup("fit")
     assert dm.data_dir == args.data_dir == str(tmpdir)
 
 
@@ -150,8 +149,6 @@ def test_dm_pickle_after_init():
 
 
 def test_train_loop_only(tmpdir):
-    reset_seed()
-
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -171,8 +168,6 @@ def test_train_loop_only(tmpdir):
 
 
 def test_train_val_loop_only(tmpdir):
-    reset_seed()
-
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -202,14 +197,6 @@ def test_dm_checkpoint_save_and_load(tmpdir):
         def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
             self.my_state_dict = state_dict
 
-        def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            checkpoint[self.__class__.__qualname__].update({"on_save": "update"})
-
-        def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            self.checkpoint_state = checkpoint.get(self.__class__.__qualname__).copy()
-            checkpoint[self.__class__.__qualname__].pop("on_save")
-
-    reset_seed()
     dm = CustomBoringDataModule()
     model = CustomBoringModel()
 
@@ -223,27 +210,19 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     )
 
     # fit model
-    with pytest.deprecated_call(
-        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
-        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
-    ):
-        trainer.fit(model, datamodule=dm)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.fit(model, datamodule=dm)
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__qualname__ in checkpoint
-    assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict", "on_save": "update"}
+    assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict"}
 
     for trainer_fn in TrainerFn:
         trainer.state.fn = trainer_fn
         trainer._restore_modules_and_callbacks(checkpoint_path)
-        assert dm.checkpoint_state == {"my": "state_dict", "on_save": "update"}
         assert dm.my_state_dict == {"my": "state_dict"}
 
 
 def test_full_loop(tmpdir):
-    reset_seed()
-
     dm = ClassifDataModule()
     model = ClassificationModel()
 
@@ -263,75 +242,6 @@ def test_full_loop(tmpdir):
     result = trainer.test(model, dm)
     assert dm.trainer is not None
     assert result[0]["test_acc"] > 0.6
-
-
-@pytest.mark.parametrize(
-    "accelerator,device",
-    [
-        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
-    ],
-)
-@mock.patch(
-    "pytorch_lightning.strategies.Strategy.lightning_module",
-    new_callable=PropertyMock,
-)
-def test_dm_apply_batch_transfer_handler(get_module_mock, accelerator, device):
-    expected_device = torch.device(device)
-
-    class CustomBatch:
-        def __init__(self, data):
-            self.samples = data[0]
-            self.targets = data[1]
-
-    class CurrentTestDM(LightningDataModule):
-        rank = 0
-        transfer_batch_to_device_hook_rank = None
-        on_before_batch_transfer_hook_rank = None
-        on_after_batch_transfer_hook_rank = None
-
-        def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx == 0
-            self.on_before_batch_transfer_hook_rank = self.rank
-            self.rank += 1
-            batch.samples += 1
-            return batch
-
-        def on_after_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx == 0
-            assert batch.samples.device == batch.targets.device == expected_device
-            self.on_after_batch_transfer_hook_rank = self.rank
-            self.rank += 1
-            batch.targets *= 2
-            return batch
-
-        def transfer_batch_to_device(self, batch, device, dataloader_idx):
-            assert dataloader_idx == 0
-            self.transfer_batch_to_device_hook_rank = self.rank
-            self.rank += 1
-            batch.samples = batch.samples.to(device)
-            batch.targets = batch.targets.to(device)
-            return batch
-
-    dm = CurrentTestDM()
-    model = BoringModel()
-
-    batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
-
-    trainer = Trainer(accelerator=accelerator, devices=1)
-    model.trainer = trainer
-    # running .fit() would require us to implement custom data loaders, we mock the model reference instead
-    get_module_mock.return_value = model
-
-    trainer._data_connector.attach_datamodule(model, datamodule=dm)
-    batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
-
-    assert dm.on_before_batch_transfer_hook_rank == 0
-    assert dm.transfer_batch_to_device_hook_rank == 1
-    assert dm.on_after_batch_transfer_hook_rank == 2
-    assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
-    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
-    assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
 def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
@@ -435,6 +345,54 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         )
 
 
+def test_dm_init_from_datasets_with_init_params():
+    """Test that extra kwargs can be passed down to the init via the ``LightningDataModule.from_datasets`` method.
+
+    The two special arguments batch_size and num_workers get passed down depending on whether the __init__ accepts them.
+    """
+    # No additional parameters
+    LightningDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+
+    class KnownExtraParametersDataModule(LightningDataModule):
+        def __init__(self, batch_size=1, num_workers=0):
+            super().__init__()
+            self.batch_size = batch_size
+            self.num_workers = num_workers
+
+    # batch_size and num_workers get special treatment - they are part of the `from_datasets` signature
+    dm = KnownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+    assert dm.batch_size == 4
+    assert dm.num_workers == 2
+
+    class UnknownExtraParametersDataModule(LightningDataModule):
+        def __init__(self, other, batch_size=1):
+            super().__init__()
+            self.other = other
+            self.batch_size = batch_size
+
+    # additional parameter `other` gets forwarded, alongside the special `batch_size` parameter
+    dm = UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2, other=5)
+    assert dm.batch_size == 4
+    assert dm.other == 5
+
+    # positional arguments raise an error as they would when instantiating the datamodule normally
+    with pytest.raises(TypeError, match="missing 1 required positional argument: 'other'"):
+        UnknownExtraParametersDataModule.from_datasets(DummyDS(), batch_size=4, num_workers=2)
+
+    class KwargsParametersDataModule(LightningDataModule):
+        def __init__(self, num_workers, **kwargs):
+            super().__init__()
+            self.num_workers = num_workers
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    # everything gets forwarded, because there is `**kwargs` present
+    dm = KwargsParametersDataModule.from_datasets(DummyDS(), batch_size=10, num_workers=100, another=None)
+    assert dm.batch_size == 10
+    assert dm.num_workers == 100
+    assert dm.another is None
+
+
 # all args
 class DataModuleWithHparams_0(LightningDataModule):
     def __init__(self, arg0, arg1, kwarg0=None):
@@ -531,7 +489,6 @@ def test_datamodule_hooks_are_profiled():
         "[LightningDataModule]CustomBoringDataModule.prepare_data",
         "[LightningDataModule]CustomBoringDataModule.setup",
         "[LightningDataModule]CustomBoringDataModule.state_dict",
-        "[LightningDataModule]CustomBoringDataModule.on_save_checkpoint",
         "[LightningDataModule]CustomBoringDataModule.teardown",
     ]
     for key in keys:
@@ -548,7 +505,6 @@ def test_datamodule_hooks_are_profiled():
     keys = [
         "[LightningDataModule]CustomBoringDataModule.prepare_data",
         "[LightningDataModule]CustomBoringDataModule.setup",
-        "[LightningDataModule]CustomBoringDataModule.on_load_checkpoint",
         "[LightningDataModule]CustomBoringDataModule.load_state_dict",
         "[LightningDataModule]CustomBoringDataModule.teardown",
     ]

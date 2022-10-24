@@ -26,6 +26,14 @@ Web UIs for non Javascript Developers
    :tag: basic
 
 .. displayitem::
+   :header: Panel
+   :description: Learn how to add a web UI built in Python with Panel.
+   :col_css: col-md-4
+   :button_link: panel/index.html
+   :height: 150
+   :tag: basic
+
+.. displayitem::
    :header: Jupyter Notebook
    :description: Learn how to enable a web UI that is a Jupyter Notebook.
    :col_css: col-md-4

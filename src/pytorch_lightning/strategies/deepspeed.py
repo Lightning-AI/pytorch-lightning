@@ -19,41 +19,39 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, cast, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import ClusterEnvironment
+from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    get_default_process_group_backend_for_device,
-    log,
-)
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
-from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _LRScheduler, _PATH, LRSchedulerConfig, ReduceLROnPlateau, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
+log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -70,23 +68,25 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
+    """
+    .. deprecated:: v1.7.1
+        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
+    """
+
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self,
+        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        precision: Union[str, int] = 32,
+        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
-        super().__init__(pl_module)
+        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.7.1 and will be removed in v1.9.0")
+        self._validate_init_arguments(pl_module, forward_module)
+        super().__init__(forward_module=(pl_module or forward_module))
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
+        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
         return super().forward(*inputs, **kwargs)
-
-    def _batch_to(self, batch: Tensor) -> Tensor:
-        if torch.is_floating_point(batch):
-            if self.precision == PrecisionType.HALF:
-                return batch.half()
-            elif self.precision == PrecisionType.BFLOAT:
-                return batch.bfloat16()
-        return batch
 
 
 class DeepSpeedStrategy(DDPStrategy):
@@ -95,7 +95,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -348,12 +348,9 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         reset_seed()
-
-        # determine which process we are and world size
         self.set_world_ranks()
-
+        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
-
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
@@ -382,13 +379,6 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         self._process_group_backend = self._get_process_group_backend()
         deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
-
-    def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None
@@ -478,7 +468,7 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision_plugin.precision)
+        model = _LightningModuleWrapperBase(forward_module=self.model)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -569,17 +559,8 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
     def _initialize_deepspeed_inference(self, model: Module) -> None:
-        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
         assert isinstance(self.config, dict)
-        optimizer, scheduler = None, None
-        if "optimizer" not in self.config:
-            rank_zero_info(
-                "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                " Using `configure_optimizers` to define optimizer and scheduler."
-            )
-            optimizer, lr_scheduler, _ = self._init_optimizers()
-            if lr_scheduler is not None:
-                scheduler = lr_scheduler.scheduler
+
         # todo: this is required for DeepSpeed throughput timers
         inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
@@ -597,20 +578,12 @@ class DeepSpeedStrategy(DDPStrategy):
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
+            optimizer=None,
+            lr_scheduler=None,
             model_parameters=[],
             dist_init_required=False,
         )
         self.model = model
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
-        module = getattr(self.model, "module", self.model)
-        module = module.module if isinstance(module, LightningDeepSpeedModule) else module
-        assert isinstance(module, pl.LightningModule) or module is None
-        return module
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
@@ -623,7 +596,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             trainer: the Trainer, these optimizers should be connected to
         """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer.state.fn != TrainerFn.FITTING:
             return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
@@ -689,7 +662,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+        if self.precision_plugin.precision == PrecisionType.HALF:
             if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -824,7 +797,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
-            checkpoint_path = cast(_PATH, self.broadcast(checkpoint_path))
+            checkpoint_path = self.broadcast(checkpoint_path)
             return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information
@@ -943,6 +916,10 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
+        return super().batch_to_device(batch, device, dataloader_idx)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         assert self.model is not None

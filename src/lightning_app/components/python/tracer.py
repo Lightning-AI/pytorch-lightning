@@ -1,18 +1,19 @@
-import logging
 import os
 import signal
 import sys
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, Union
+
+from typing_extensions import TypedDict
 
 from lightning_app import LightningWork
 from lightning_app.storage.drive import Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import _collect_child_process_pids
+from lightning_app.utilities.app_helpers import _collect_child_process_pids, Logger
 from lightning_app.utilities.packaging.tarfile import clean_tarfile, extract_tarfile
 from lightning_app.utilities.tracer import Tracer
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class Code(TypedDict):

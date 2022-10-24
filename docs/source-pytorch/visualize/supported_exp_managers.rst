@@ -46,7 +46,7 @@ Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.train
     mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
     trainer = Trainer(logger=mlf_logger)
 
-Access the comet logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+Access the mlflow logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
 

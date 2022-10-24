@@ -1,6 +1,5 @@
 import base64
 import json
-import logging
 import os
 import pathlib
 from dataclasses import dataclass
@@ -16,9 +15,10 @@ from starlette.background import BackgroundTask
 from starlette.responses import RedirectResponse
 
 from lightning_app.core.constants import get_lightning_cloud_url, LIGHTNING_CREDENTIAL_PATH
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.network import find_free_network_port
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class Keys(Enum):
@@ -165,7 +165,7 @@ class AuthServer:
                 auth.save(token=token, username=user_id, user_id=user_id, api_key=key)
                 logger.info("Authentication Successful")
             else:
-                logger.warning(
+                logger.warn(
                     "Authentication Failed. This is most likely because you're using an older version of the CLI. \n"  # noqa E501
                     "Please try to update the CLI or open an issue with this information \n"  # E501
                     f"expected token in {request.query_params.items()}"

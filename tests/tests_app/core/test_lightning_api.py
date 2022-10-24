@@ -1,16 +1,32 @@
+import asyncio
 import logging
 import multiprocessing as mp
 import os
+import sys
 from copy import deepcopy
+from multiprocessing import Process
+from time import sleep, time
 from unittest import mock
 
+import aiohttp
 import pytest
+import requests
 from deepdiff import DeepDiff, Delta
+from fastapi import HTTPException
 from httpx import AsyncClient
+from pydantic import BaseModel
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
+from lightning_app.api.http_methods import Post
 from lightning_app.core import api
-from lightning_app.core.api import fastapi_service, global_app_state_store, start_server, UIRefresher
+from lightning_app.core.api import (
+    fastapi_service,
+    global_app_state_store,
+    register_global_routes,
+    start_server,
+    UIRefresher,
+)
+from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import MockQueue
@@ -19,6 +35,8 @@ from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
 from lightning_app.utilities.redis import check_if_redis_running
 from lightning_app.utilities.state import AppState, headers_for
+
+register_global_routes()
 
 
 class WorkA(LightningWork):
@@ -56,7 +74,7 @@ class _A(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_state_api(runtime_cls):
     """This test validates the AppState can properly broadcast changes from work within its own process."""
-    app = LightningApp(_A())
+    app = LightningApp(_A(), debug=True)
     runtime_cls(app, start_server=True).dispatch()
     assert app.root.work_a.var_a == -1
     _set_work_context()
@@ -161,12 +179,11 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
     app = AppStageTestingApp(FlowA(), debug=True)
     publish_state_queue = MockQueue("publish_state_queue")
-    commands_metadata_queue = MockQueue("commands_metadata_queue")
-    commands_responses_queue = MockQueue("commands_metadata_queue")
+    api_response_queue = MockQueue("api_response_queue")
 
     publish_state_queue.put(app.state_with_changes)
 
-    thread = UIRefresher(publish_state_queue, commands_metadata_queue, commands_responses_queue)
+    thread = UIRefresher(publish_state_queue, api_response_queue)
     thread.run_once()
 
     assert global_app_state_store.get_app_state("1234") == app.state_with_changes
@@ -192,18 +209,14 @@ async def test_start_server(x_lightning_type):
     publish_state_queue = InfiniteQueue("publish_state_queue")
     change_state_queue = MockQueue("change_state_queue")
     has_started_queue = MockQueue("has_started_queue")
-    commands_requests_queue = MockQueue("commands_requests_queue")
-    commands_responses_queue = MockQueue("commands_responses_queue")
-    commands_metadata_queue = MockQueue("commands_metadata_queue")
+    api_response_queue = MockQueue("api_response_queue")
     state = app.state_with_changes
     publish_state_queue.put(state)
     spec = extract_metadata_from_app(app)
     ui_refresher = start_server(
         publish_state_queue,
         change_state_queue,
-        commands_requests_queue,
-        commands_responses_queue,
-        commands_metadata_queue,
+        api_response_queue,
         has_started_queue=has_started_queue,
         uvicorn_run=False,
         spec=spec,
@@ -315,7 +328,8 @@ async def test_health_endpoint_success():
     check_if_redis_running(), reason="this is testing the failure condition " "for which the redis should not run"
 )
 @pytest.mark.anyio
-async def test_health_endpoint_failure():
+async def test_health_endpoint_failure(monkeypatch):
+    monkeypatch.setenv("LIGHTNING_APP_STATE_URL", "http://someurl")  # adding this to make is_running_in_cloud pass
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
         # will respond 503 if redis is not running
         response = await client.get("/healthz")
@@ -328,7 +342,6 @@ async def test_health_endpoint_failure():
         ("/", 200),
         ("/asdf", 200),
         ("/view/component_a", 200),
-        ("/admin", 200),
     ),
 )
 @pytest.mark.anyio
@@ -343,17 +356,14 @@ def test_start_server_started():
     api_publish_state_queue = mp.Queue()
     api_delta_queue = mp.Queue()
     has_started_queue = mp.Queue()
-    commands_requests_queue = mp.Queue()
-    commands_responses_queue = mp.Queue()
-    commands_metadata_queue = mp.Queue()
+    api_response_queue = mp.Queue()
     kwargs = dict(
         api_publish_state_queue=api_publish_state_queue,
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
-        commands_requests_queue=commands_requests_queue,
-        commands_responses_queue=commands_responses_queue,
-        commands_metadata_queue=commands_metadata_queue,
+        api_response_queue=api_response_queue,
         port=1111,
+        root_path="",
     )
 
     server_proc = mp.Process(target=start_server, kwargs=kwargs)
@@ -372,18 +382,15 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     api_publish_state_queue = MockQueue()
     api_delta_queue = MockQueue()
     has_started_queue = MockQueue()
-    commands_requests_queue = MockQueue()
-    commands_responses_queue = MockQueue()
-    commands_metadata_queue = MockQueue()
+    api_response_queue = MockQueue()
     kwargs = dict(
         host=host,
         port=1111,
         api_publish_state_queue=api_publish_state_queue,
         api_delta_queue=api_delta_queue,
         has_started_queue=has_started_queue,
-        commands_requests_queue=commands_requests_queue,
-        commands_responses_queue=commands_responses_queue,
-        commands_metadata_queue=commands_metadata_queue,
+        api_response_queue=api_response_queue,
+        root_path="test",
     )
 
     monkeypatch.setattr(api, "logger", logging.getLogger())
@@ -394,4 +401,97 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
     assert "Your app has started. View it in your browser: http://0.0.0.1:1111/view" in caplog.text
 
     ui_refresher.assert_called_once()
-    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY)
+    uvicorn_run.assert_called_once_with(host="0.0.0.1", port=1111, log_level="error", app=mock.ANY, root_path="test")
+
+
+class InputRequestModel(BaseModel):
+    index: int
+    name: str
+
+
+class OutputRequestModel(BaseModel):
+    name: str
+    counter: int
+
+
+class FlowAPI(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.counter = 0
+
+    def run(self):
+        if self.counter == 501:
+            self._exit()
+
+    def request(self, config: InputRequestModel) -> OutputRequestModel:
+        self.counter += 1
+        if config.index % 5 == 0:
+            raise HTTPException(status_code=400, detail="HERE")
+        return OutputRequestModel(name=config.name, counter=self.counter)
+
+    def configure_api(self):
+        return [Post("/api/v1/request", self.request)]
+
+
+def target():
+    app = LightningApp(FlowAPI())
+    MultiProcessRuntime(app).dispatch()
+
+
+async def async_request(url: str, data: InputRequestModel):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=data.dict()) as result:
+            return await result.json()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Issue with Windows")
+def test_configure_api():
+    # Setup
+    process = Process(target=target)
+    process.start()
+    time_left = 15
+    while time_left > 0:
+        try:
+            requests.get(f"http://localhost:{APP_SERVER_PORT}/healthz")
+            break
+        except requests.exceptions.ConnectionError:
+            sleep(0.1)
+            time_left -= 0.1
+
+    # Test Upload File
+    files = {"uploaded_file": open(__file__, "rb")}
+
+    response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
+    assert response.json() == "Successfully uploaded 'test' to the Drive"
+
+    url = f"http://localhost:{APP_SERVER_PORT}/api/v1/request"
+
+    N = 500
+    coros = []
+    for index in range(N):
+        coros.append(async_request(url, InputRequestModel(index=index, name="hello")))
+
+    t0 = time()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    results = loop.run_until_complete(asyncio.gather(*coros))
+    response_time = time() - t0
+    print(f"RPS: {N/response_time}")
+    assert response_time < 10
+    assert len(results) == N
+    assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
+
+    # Stop the Application
+    try:
+        response = requests.post(url, json=InputRequestModel(index=0, name="hello").dict())
+    except Exception:
+        pass
+
+    # Teardown
+    time_left = 5
+    while time_left > 0:
+        if process.exitcode == 0:
+            break
+        sleep(0.1)
+        time_left -= 0.1
+    assert process.exitcode == 0

@@ -12,25 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Dict, Generator, List, Tuple
 
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
+from lightning_lite.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
     from fairscale.optim import OSS
 
-    from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 else:
     OSS = ShardedDataParallel = object
 
@@ -40,11 +40,21 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     strategy_name = "ddp_sharded_spawn"
 
+    def connect(self, model: "pl.LightningModule") -> None:
+        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
+            raise MisconfigurationException(
+                "`DDPSpawnShardedStrategy` requires `fairscale` to be installed."
+                " Install it by running `pip install fairscale`."
+            )
+        return super().connect(model)
+
     def configure_ddp(self) -> None:
         # set up optimizers after the wrapped module has been moved to the device
+        assert self.lightning_module is not None
         self.setup_optimizers(self.lightning_module.trainer)
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model, self.optimizers = self._setup_model_and_optimizers(
-            model=LightningShardedDataParallel(self.model), optimizers=self.optimizers
+            model=_LightningModuleWrapperBase(self.model), optimizers=self.optimizers
         )
         optimizers_to_device(self.optimizers, self.root_device)
 
@@ -59,25 +69,12 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
-    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
-
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
+        assert self.lightning_module
+        if self.model is not None and self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
-
-        return self._reinit_optimizers_with_oss(optimizers)
-
-    def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
-        if isinstance(optimizer, OSS):
-            optimizer.consolidate_state_dict()
-        return self._optim_state_dict(optimizer)
+        optimizers = [o._optimizer if isinstance(o, LightningOptimizer) else o for o in optimizers]
+        return _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
 
     @contextmanager
     def block_backward_sync(self) -> Generator:
@@ -92,27 +89,10 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         else:
             yield None
 
-    @rank_zero_only
-    def _optim_state_dict(self, optimizer):
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`consolidate_state_dict`.
-        """
-        return optimizer.state_dict()
-
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
-            raise MisconfigurationException(
-                "`DDPSpawnShardedStrategy` requires `fairscale` to be installed."
-                " Install it by running `pip install fairscale`."
-            )
-        return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
-
     def pre_backward(self, closure_loss: Tensor) -> None:
         pass
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         pass
 
     @classmethod

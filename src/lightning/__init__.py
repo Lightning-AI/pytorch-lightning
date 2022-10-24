@@ -15,7 +15,7 @@ logging.addLevelName(_DETAIL, "DETAIL")
 logging.detail = _detail
 logging.Logger.detail = _detail
 
-_root_logger = logging.getLogger()
+# explicitly don't set root logger's propagation and leave this to subpackages to manage
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
@@ -24,15 +24,11 @@ _console.setLevel(logging.INFO)
 
 formatter = logging.Formatter("%(levelname)s: %(message)s")
 _console.setFormatter(formatter)
-
-# if root logger has handlers, propagate messages up and let root logger process them
-if not _root_logger.hasHandlers():
-    _logger.addHandler(_console)
-    _logger.propagate = False
-
+_logger.addHandler(_console)
 
 from lightning.__about__ import *  # noqa: E402, F401, F403
 from lightning.__version__ import version as __version__  # noqa: E402, F401
+from lightning.app import storage  # noqa: E402
 from lightning.app.core.app import LightningApp  # noqa: E402
 from lightning.app.core.flow import LightningFlow  # noqa: E402
 from lightning.app.core.work import LightningWork  # noqa: E402
@@ -54,4 +50,5 @@ __all__ = [
     "LightningModule",
     "Callback",
     "seed_everything",
+    "storage",
 ]

@@ -34,9 +34,9 @@ Here is the full list of supported machine names:
      - GPUs
      - Memory
    * - default
-     - 2
+     - 1
      - 0
-     - 3 GB
+     - 4 GB
    * - cpu-small
      - 2
      - 0
@@ -59,21 +59,6 @@ Here is the full list of supported machine names:
      - 244 GB
 
 The up-to-date prices for these instances can be found `here <https://lightning.ai/pages/pricing>`_.
-
-----
-
-*******************************
-Run on spot/preemptible machine
-*******************************
-
-Most cloud provider offers ``preemptible`` (synonym of ``spot``) machines that are usually discounted by up to 90 %. Those machines are cheaper but the cloud provider can retrieve them at any time and might take longer to be ready.
-
-.. code-block:: python
-
-    import lightning as L
-
-    # Run on a single CPU
-    MyCustomWork(cloud_compute=L.CloudCompute("gpu", preemptible=True))
 
 ----
 

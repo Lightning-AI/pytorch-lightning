@@ -2,13 +2,12 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterator, List, Tuple
 
 import torch
-from deprecate import void
+from lightning_utilities.core.rank_zero import WarningCache
 
+from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 
@@ -48,7 +47,7 @@ class PredictionEpochLoop(Loop):
         self.predictions = []
         self.batch_progress.reset_on_run()
 
-    def on_run_start(  # type: ignore[override]
+    def on_run_start(
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
@@ -63,13 +62,12 @@ class PredictionEpochLoop(Loop):
             dl_max_batches: the maximum number of batches the current loader can produce
             num_dataloaders: the total number of dataloaders
         """
-        void(dataloader_iter, dataloader_idx)
         self._dl_max_batches = dl_max_batches
         self._num_dataloaders = num_dataloaders
         # this call requires that `self.return_predictions` is set
         self._seen_batch_indices = self._get_batch_indices(dataloader_idx) if self.should_store_predictions else []
 
-    def advance(  # type: ignore[override]
+    def advance(
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
@@ -94,6 +92,7 @@ class PredictionEpochLoop(Loop):
         if batch is None:
             raise StopIteration
 
+        batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
         batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
 
         self.batch_progress.increment_ready()
@@ -162,8 +161,9 @@ class PredictionEpochLoop(Loop):
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
         :class:`~pytorch_lightning.overrides.distributed.IndexBatchSamplerWrapper`."""
         # the batch_sampler is not be defined in case of CombinedDataLoaders
+        assert self.trainer.predict_dataloaders
         batch_sampler = getattr(
-            self.trainer.predict_dataloaders[dataloader_idx],  # type: ignore[has-type]
+            self.trainer.predict_dataloaders[dataloader_idx],
             "batch_sampler",
             None,
         )

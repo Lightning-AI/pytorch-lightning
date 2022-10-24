@@ -15,6 +15,7 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
+from unittest import mock
 from unittest.mock import call, MagicMock, patch
 
 import pytest
@@ -33,13 +34,21 @@ def fetchable_paths(value):
     return MagicMock()
 
 
+def create_run_mock(mode="async", **kwargs):
+    if mode == "offline":
+        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=False))
+    else:
+        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True))
+
+
 def create_neptune_mock():
-    """Mock with provides nice `logger.name` and `logger.version` values.
+    """Mock with provides nice `logger.name` and `logger.version` values. Additionally, it allows `mode` as an
+    argument to test different Neptune modes.
 
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
     """
-    return MagicMock(init=MagicMock(return_value=MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths))))
+    return MagicMock(init=MagicMock(side_effect=create_run_mock))
 
 
 class Run:
@@ -65,6 +74,9 @@ class Run:
     def __getstate__(self):
         raise pickle.PicklingError("Runs are unpickleable")
 
+    def exists(self, value):
+        return True
+
 
 @pytest.fixture
 def tmpdir_unittest_fixture(request, tmpdir):
@@ -78,11 +90,16 @@ def tmpdir_unittest_fixture(request, tmpdir):
 
 @patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock)
 class TestNeptuneLogger(unittest.TestCase):
+    def run(self, *args, **kwargs):
+        with mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True):
+            super().run(*args, **kwargs)
+
     def test_neptune_online(self, neptune):
         logger = NeptuneLogger(api_key="test", project="project")
         created_run_mock = logger.run
 
         self.assertEqual(logger._run_instance, created_run_mock)
+        created_run_mock.exists.assert_called_once_with("sys/id")
         self.assertEqual(logger.name, "Run test name")
         self.assertEqual(logger.version, "TEST-1")
         self.assertEqual(neptune.init.call_count, 1)
@@ -90,6 +107,15 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(created_run_mock.__setitem__.call_count, 1)
         created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)
         created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
+
+    def test_neptune_offline(self, neptune):
+        logger = NeptuneLogger(mode="offline")
+        created_run_mock = logger.run
+        logger.experiment["foo"] = "bar"
+
+        created_run_mock.exists.assert_called_once_with("sys/id")
+        self.assertEqual(logger._run_short_id, "OFFLINE")
+        self.assertEqual(logger._run_name, "offline-name")
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_custom_run(self, neptune):
@@ -318,79 +344,6 @@ class TestNeptuneLogger(unittest.TestCase):
 
         # expect
         self.assertEqual(logger.save_dir, os.path.join(os.getcwd(), ".neptune"))
-
-
-class TestNeptuneLoggerDeprecatedUsages(unittest.TestCase):
-    @staticmethod
-    def _assert_legacy_usage(callback, *args, **kwargs):
-        with pytest.raises(ValueError):
-            callback(*args, **kwargs)
-
-    def test_legacy_kwargs(self):
-        legacy_neptune_kwargs = [
-            # NeptuneLegacyLogger kwargs
-            "project_name",
-            "offline_mode",
-            "experiment_name",
-            "experiment_id",
-            "params",
-            "properties",
-            "upload_source_files",
-            "abort_callback",
-            "logger",
-            "upload_stdout",
-            "upload_stderr",
-            "send_hardware_metrics",
-            "run_monitoring_thread",
-            "handle_uncaught_exceptions",
-            "git_info",
-            "hostname",
-            "notebook_id",
-            "notebook_path",
-            # NeptuneLogger from neptune-pytorch-lightning package kwargs
-            "base_namespace",
-            "close_after_fit",
-        ]
-        for legacy_kwarg in legacy_neptune_kwargs:
-            self._assert_legacy_usage(NeptuneLogger, **{legacy_kwarg: None})
-
-    @patch("pytorch_lightning.loggers.neptune.warnings")
-    @patch("pytorch_lightning.loggers.neptune.NeptuneFile")
-    @patch("pytorch_lightning.loggers.neptune.neptune")
-    def test_legacy_functions(self, neptune, neptune_file_mock, warnings_mock):
-        logger = NeptuneLogger(api_key="test", project="project")
-
-        # test deprecated functions which will be shut down in pytorch-lightning 1.7.0
-        attr_mock = logger.run.__getitem__
-        attr_mock.reset_mock()
-        fake_image = {}
-
-        logger.log_metric("metric", 42)
-        logger.log_text("text", "some string")
-        logger.log_image("image_obj", fake_image)
-        logger.log_image("image_str", "img/path")
-        logger.log_artifact("artifact", "some/path")
-
-        assert attr_mock.call_count == 5
-        assert warnings_mock.warn.call_count == 5
-        attr_mock.assert_has_calls(
-            [
-                call("training/metric"),
-                call().log(42, step=None),
-                call("training/text"),
-                call().log("some string", step=None),
-                call("training/image_obj"),
-                call().log(fake_image, step=None),
-                call("training/image_str"),
-                call().log(neptune_file_mock(), step=None),
-                call("training/artifacts/artifact"),
-                call().log("some/path"),
-            ]
-        )
-
-        # test Exception raising functions  functions
-        self._assert_legacy_usage(logger.set_property)
-        self._assert_legacy_usage(logger.append_tags)
 
 
 class TestNeptuneLoggerUtils(unittest.TestCase):

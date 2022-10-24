@@ -21,8 +21,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from tests_pytorch.helpers.datasets import RandomIterableDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -173,7 +172,7 @@ def test_rich_progress_bar_configure_columns():
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 5)]))
+@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 3)]))
 def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
     # Calling `reset` means continuing on the same progress bar.
     model = BoringModel()
@@ -186,8 +185,12 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
             default_root_dir=tmpdir,
             num_sanity_val_steps=0,
             limit_train_batches=1,
-            max_epochs=6,
+            limit_val_batches=0,
+            max_epochs=4,
             callbacks=progress_bar,
+            logger=False,
+            enable_checkpointing=False,
+            enable_model_summary=False,
         )
         trainer.fit(model)
     assert mock_progress_reset.call_count == reset_call_count
@@ -401,3 +404,15 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
 
     trainer.test(model, verbose=False)
     assert pbar.calls["test"] == []
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_padding():
+    progress_bar = RichProgressBar()
+    trainer = Mock()
+    trainer.max_epochs = 1
+    progress_bar._trainer = trainer
+
+    train_description = progress_bar._get_train_description(current_epoch=0)
+    assert "Epoch 0/0" in train_description
+    assert len(progress_bar.validation_description) == len(train_description)

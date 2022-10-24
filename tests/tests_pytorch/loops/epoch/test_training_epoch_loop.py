@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -20,7 +20,6 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops import TrainingEpochLoop
 from pytorch_lightning.trainer.trainer import Trainer
-from tests_pytorch.deprecated_api import no_deprecated_call
 
 _out00 = {"loss": 0.0}
 _out01 = {"loss": 0.1}
@@ -33,43 +32,33 @@ _out13 = {"loss": 1.3}
 
 
 class TestPrepareOutputs:
-    def prepare_outputs(self, fn, tbptt_splits, new_format, batch_outputs, num_optimizers, automatic_optimization):
+    def prepare_outputs(self, fn, tbptt_splits, batch_outputs, num_optimizers, automatic_optimization):
         lightning_module = LightningModule()
-        lightning_module.on_train_batch_end = lambda *_: None  # override to trigger the deprecation message
         lightning_module.automatic_optimization = automatic_optimization
         lightning_module.truncated_bptt_steps = tbptt_splits
-        match = "will change in version v1.8.*new_format=True"
-        will_warn = tbptt_splits and num_optimizers > 1 and not new_format
-        ctx_manager = pytest.deprecated_call if will_warn else no_deprecated_call
-        with ctx_manager(match=match):
-            with mock.patch(
-                "pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=new_format
-            ):
-                return fn(
-                    batch_outputs,
-                    lightning_module=lightning_module,
-                    num_optimizers=num_optimizers,  # does not matter for manual optimization
-                )
+        return fn(
+            batch_outputs,
+            lightning_module=lightning_module,
+            num_optimizers=num_optimizers,  # does not matter for manual optimization
+        )
 
     def prepare_outputs_training_epoch_end(
-        self, tbptt_splits, new_format, batch_outputs, num_optimizers, automatic_optimization=True
+        self, tbptt_splits, batch_outputs, num_optimizers, automatic_optimization=True
     ):
         return self.prepare_outputs(
             TrainingEpochLoop._prepare_outputs_training_epoch_end,
             tbptt_splits,
-            new_format,
             batch_outputs,
             num_optimizers,
             automatic_optimization=automatic_optimization,
         )
 
     def prepare_outputs_training_batch_end(
-        self, tbptt_splits, new_format, batch_outputs, num_optimizers, automatic_optimization=True
+        self, tbptt_splits, batch_outputs, num_optimizers, automatic_optimization=True
     ):
         return self.prepare_outputs(
             TrainingEpochLoop._prepare_outputs_training_batch_end,
             tbptt_splits,
-            new_format,
             batch_outputs,
             num_optimizers,
             automatic_optimization=automatic_optimization,
@@ -97,53 +86,19 @@ class TestPrepareOutputs:
             ),
             # 1 batch, tbptt with 2 splits (uneven)
             (1, 2, [[{0: _out00}, {0: _out01}], [{0: _out03}]], [[_out00, _out01], [_out03]]),
-        ],
-    )
-    @pytest.mark.parametrize("new_format", (False, True))
-    def test_prepare_outputs_training_epoch_end_automatic(
-        self, num_optimizers, tbptt_splits, batch_outputs, expected, new_format
-    ):
-        """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
-        currently expects in the case of automatic optimization."""
-        assert (
-            self.prepare_outputs_training_epoch_end(tbptt_splits, new_format, batch_outputs, num_optimizers) == expected
-        )
-
-    @pytest.mark.parametrize(
-        "num_optimizers,tbptt_splits,batch_outputs,expected",
-        [
-            # 3 batches, tbptt with 2 splits, 2 optimizers alternating
-            (
-                2,
-                2,
-                [[{0: _out00}, {0: _out01}], [{1: _out10}, {1: _out11}], [{0: _out02}, {0: _out03}]],
-                [[[_out00, _out01], [], [_out02, _out03]], [[], [_out10, _out11], []]],
-            )
-        ],
-    )
-    def test_prepare_outputs_training_epoch_end_automatic_old_format(
-        self, num_optimizers, tbptt_splits, batch_outputs, expected
-    ):
-        assert self.prepare_outputs_training_epoch_end(tbptt_splits, False, batch_outputs, num_optimizers) == expected
-
-    @pytest.mark.parametrize(
-        "num_optimizers,tbptt_splits,batch_outputs,expected",
-        [
             # 3 batches, tbptt with 2 splits, 2 optimizers alternating
             (
                 2,
                 2,
                 [[{0: _out00}, {0: _out01}], [{1: _out10}, {1: _out11}], [{0: _out02}, {0: _out03}]],
                 [[[_out00], [_out01]], [[_out10], [_out11]], [[_out02], [_out03]]],
-            )
+            ),
         ],
     )
-    def test_prepare_outputs_training_epoch_end_automatic_new_format(
-        self, num_optimizers, tbptt_splits, batch_outputs, expected
-    ):
+    def test_prepare_outputs_training_epoch_end_automatic(self, num_optimizers, tbptt_splits, batch_outputs, expected):
         """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
         currently expects in the case of automatic optimization."""
-        assert self.prepare_outputs_training_epoch_end(tbptt_splits, True, batch_outputs, num_optimizers) == expected
+        assert self.prepare_outputs_training_epoch_end(tbptt_splits, batch_outputs, num_optimizers) == expected
 
     @pytest.mark.parametrize(
         "batch_outputs,expected",
@@ -160,14 +115,10 @@ class TestPrepareOutputs:
             ([[_out00, _out01], [_out02, _out03], [], [_out10]], [[_out00, _out01], [_out02, _out03], [_out10]]),
         ],
     )
-    @pytest.mark.parametrize("new_format", (False, True))
-    def test_prepare_outputs_training_epoch_end_manual(self, batch_outputs, expected, new_format):
+    def test_prepare_outputs_training_epoch_end_manual(self, batch_outputs, expected):
         """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
         currently expects in the case of manual optimization."""
-        assert (
-            self.prepare_outputs_training_epoch_end(0, new_format, batch_outputs, -1, automatic_optimization=False)
-            == expected
-        )
+        assert self.prepare_outputs_training_epoch_end(0, batch_outputs, -1, automatic_optimization=False) == expected
 
     @pytest.mark.parametrize(
         "num_optimizers,tbptt_splits,batch_end_outputs,expected",
@@ -180,47 +131,17 @@ class TestPrepareOutputs:
             (2, 0, [{0: _out00, 1: _out01}], [_out00, _out01]),
             # tbptt with 2 splits
             (1, 2, [{0: _out00}, {0: _out01}], [_out00, _out01]),
+            # 2 optimizers, tbptt with 2 splits
+            (2, 2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out01], [_out10, _out11]]),
         ],
     )
-    @pytest.mark.parametrize("new_format", (False, True))
     def test_prepare_outputs_training_batch_end_automatic(
-        self, num_optimizers, tbptt_splits, batch_end_outputs, expected, new_format
-    ):
-        """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
-        currently expects in the case of automatic optimization."""
-
-        assert (
-            self.prepare_outputs_training_batch_end(tbptt_splits, new_format, batch_end_outputs, num_optimizers)
-            == expected
-        )
-
-    @pytest.mark.parametrize(
-        "num_optimizers,tbptt_splits,batch_end_outputs,expected",
-        # 2 optimizers, tbptt with 2 splits
-        [(2, 2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out10], [_out01, _out11]])],
-    )
-    def test_prepare_outputs_training_batch_end_automatic_old_format(
         self, num_optimizers, tbptt_splits, batch_end_outputs, expected
     ):
         """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
         currently expects in the case of automatic optimization."""
-        assert (
-            self.prepare_outputs_training_batch_end(tbptt_splits, False, batch_end_outputs, num_optimizers) == expected
-        )
 
-    @pytest.mark.parametrize(
-        "num_optimizers,tbptt_splits,batch_end_outputs,expected",
-        # 2 optimizers, tbptt with 2 splits
-        [(2, 2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out01], [_out10, _out11]])],
-    )
-    def test_prepare_outputs_training_batch_end_automatic_new_format(
-        self, num_optimizers, tbptt_splits, batch_end_outputs, expected
-    ):
-        """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
-        currently expects in the case of automatic optimization."""
-        assert (
-            self.prepare_outputs_training_batch_end(tbptt_splits, True, batch_end_outputs, num_optimizers) == expected
-        )
+        assert self.prepare_outputs_training_batch_end(tbptt_splits, batch_end_outputs, num_optimizers) == expected
 
     @pytest.mark.parametrize(
         "batch_end_outputs,expected",
@@ -237,8 +158,7 @@ class TestPrepareOutputs:
         """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
         currently expects in the case of manual optimization."""
         assert (
-            self.prepare_outputs_training_batch_end(0, False, batch_end_outputs, -1, automatic_optimization=False)
-            == expected
+            self.prepare_outputs_training_batch_end(0, batch_end_outputs, -1, automatic_optimization=False) == expected
         )
 
 
@@ -265,3 +185,36 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     ) as advance_mocked:
         trainer.fit(model, ckpt_path=ckpt_path)
         assert advance_mocked.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg",
+    [
+        (None, None, 1, 4, True, True, False),
+        (None, None, 1, 10, True, True, False),
+        (4, None, 1, 4, False, False, True),
+        (4, 2, 1, 4, False, False, True),
+        (4, None, 1, 10, False, True, False),
+        (4, 3, 1, 3, False, False, True),
+        (4, 10, 1, 10, False, True, False),
+        (None, 4, 1, 4, True, True, False),
+    ],
+)
+def test_should_stop_early_stopping_conditions_not_met(
+    caplog, min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg
+):
+    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not
+    met."""
+    trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
+    trainer.num_training_batches = 10
+    trainer.should_stop = True
+    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = global_step
+    trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
+    trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
+
+    message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.loops"):
+        assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
+
+    assert (message in caplog.text) is raise_info_msg
+    assert trainer.fit_loop._should_stop_early is early_stop

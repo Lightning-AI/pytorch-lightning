@@ -1,0 +1,1 @@
+../../source-pytorch/advanced/model_parallel.rst

@@ -34,11 +34,25 @@ class Drive:
                 When not provided, it is automatically inferred by Lightning.
             root_folder: This is the folder from where the Drive perceives the data (e.g this acts as a mount dir).
         """
+        if id.startswith("s3://"):
+            raise ValueError(
+                "Using S3 buckets in a Drive is no longer supported. Please pass an S3 `Mount` to "
+                "a Work's CloudCompute config in order to mount an s3 bucket as a filesystem in a work.\n"
+                f"`CloudCompute(mount=Mount({id}), ...)`"
+            )
+
         self.id = None
+        self.protocol = None
         for protocol in self.__PROTOCOLS__:
             if id.startswith(protocol):
                 self.protocol = protocol
                 self.id = id.replace(protocol, "")
+                break
+        else:  # N.B. for-else loop
+            raise ValueError(
+                f"Unknown protocol for the drive 'id' argument '{id}`. The 'id' string "
+                f"must start with one of the following prefixes {self.__PROTOCOLS__}"
+            )
 
         if not self.id:
             raise Exception(f"The Drive id needs to start with one of the following protocols: {self.__PROTOCOLS__}")
@@ -46,8 +60,8 @@ class Drive:
         if "/" in self.id:
             raise Exception(f"The id should be unique to identify your drive. Found `{self.id}`.")
 
-        self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else os.getcwd()
-        if not os.path.isdir(self.root_folder):
+        self.root_folder = pathlib.Path(root_folder).resolve() if root_folder else pathlib.Path(os.getcwd())
+        if self.protocol != "s3://" and not os.path.isdir(self.root_folder):
             raise Exception(f"The provided root_folder isn't a directory: {root_folder}")
         self.component_name = component_name
         self.allow_duplicates = allow_duplicates
@@ -231,6 +245,9 @@ class Drive:
     def _collect_component_names(self) -> List[str]:
         sep = "/"
         if self.fs.exists(self.drive_root):
+            # Invalidate cache before running ls in case new directories have been added
+            # TODO: Re-evaluate this - may lead to performance issues
+            self.fs.invalidate_cache()
             return [str(p.split(sep)[-1]) for p in self.fs.ls(self.drive_root)]
         return []
 

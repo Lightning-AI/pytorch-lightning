@@ -30,11 +30,13 @@ callbacks
     BackboneFinetuning
     BaseFinetuning
     BasePredictionWriter
+    BatchSizeFinder
     Callback
     DeviceStatsMonitor
     EarlyStopping
     GradientAccumulationScheduler
     LambdaCallback
+    LearningRateFinder
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
@@ -46,6 +48,20 @@ callbacks
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
+
+cli
+-----
+
+.. currentmodule:: pytorch_lightning.cli
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    LightningCLI
+    LightningArgumentParser
+    SaveConfigCallback
 
 core
 ----
@@ -62,7 +78,6 @@ core
     ~hooks.ModelHooks
     LightningDataModule
     LightningModule
-    ~mixins.DeviceDtypeModuleMixin
     ~mixins.HyperparametersMixin
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
@@ -170,12 +185,13 @@ precision
     :template: classtemplate.rst
 
     ApexMixedPrecisionPlugin
+    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
@@ -270,7 +286,8 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    HivemindStrategy
+    ColossalAIStrategy
+    DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy
@@ -278,6 +295,7 @@ strategies
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
+    HivemindStrategy
     HorovodStrategy
     HPUParallelStrategy
     IPUStrategy

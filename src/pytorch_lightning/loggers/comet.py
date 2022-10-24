@@ -19,19 +19,19 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
-_COMET_AVAILABLE = _module_available("comet_ml")
+_COMET_AVAILABLE = module_available("comet_ml")
 
 if _COMET_AVAILABLE:
     import comet_ml
@@ -219,15 +219,13 @@ class CometLogger(Logger):
         experiment_key: Optional[str] = None,
         offline: bool = False,
         prefix: str = "",
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs: Any,
     ):
         if comet_ml is None:
             raise ModuleNotFoundError(
                 "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
             )
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
         self._experiment = None
         self._save_dir: Optional[str]
         self.rest_api_key: Optional[str]
@@ -267,7 +265,7 @@ class CometLogger(Logger):
             self.rest_api_key = None
             self.comet_api = None
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
         r"""
@@ -303,6 +301,7 @@ class CometLogger(Logger):
                 self._experiment = CometOfflineExperiment(
                     offline_directory=self.save_dir, project_name=self._project_name, **self._kwargs
                 )
+            self._experiment.log_other("Created from", "pytorch-lightning")
         finally:
             if self._future_experiment_key is not None:
                 os.environ.pop("COMET_EXPERIMENT_KEY")
@@ -346,6 +345,10 @@ class CometLogger(Logger):
         This happens automatically in the :meth:`~CometLogger.experiment` property, when
         ``self._experiment`` is set to ``None``, i.e. ``self.reset_experiment()``.
         """
+        if self._experiment is None:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
         self.experiment.end()
         self.reset_experiment()
 

@@ -11,7 +11,7 @@ from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.utilities.component import _set_flow_context
 
 
-class SyncWorkA(LightningWork):
+class SyncWorkLITDriveA(LightningWork):
     def __init__(self, tmpdir):
         super().__init__()
         self.tmpdir = tmpdir
@@ -25,19 +25,19 @@ class SyncWorkA(LightningWork):
         os.remove(f"{self.tmpdir}/a.txt")
 
 
-class SyncWorkB(LightningWork):
+class SyncWorkLITDriveB(LightningWork):
     def run(self, drive: Drive):
         assert not os.path.exists("a.txt")
         drive.get("a.txt")
         assert os.path.exists("a.txt")
 
 
-class SyncFlow(LightningFlow):
+class SyncFlowLITDrives(LightningFlow):
     def __init__(self, tmpdir):
         super().__init__()
         self.log_dir = Drive("lit://log_dir")
-        self.work_a = SyncWorkA(str(tmpdir))
-        self.work_b = SyncWorkB()
+        self.work_a = SyncWorkLITDriveA(str(tmpdir))
+        self.work_b = SyncWorkLITDriveB()
 
     def run(self):
         self.work_a.run(self.log_dir)
@@ -45,15 +45,15 @@ class SyncFlow(LightningFlow):
         self._exit()
 
 
-def test_synchronization_drive(tmpdir):
+def test_synchronization_lit_drive(tmpdir):
     if os.path.exists("a.txt"):
         os.remove("a.txt")
-    app = LightningApp(SyncFlow(tmpdir))
+    app = LightningApp(SyncFlowLITDrives(tmpdir))
     MultiProcessRuntime(app, start_server=False).dispatch()
     os.remove("a.txt")
 
 
-class Work(LightningWork):
+class LITDriveWork(LightningWork):
     def __init__(self):
         super().__init__(parallel=True)
         self.drive = None
@@ -75,7 +75,7 @@ class Work(LightningWork):
         self.counter += 1
 
 
-class Work2(LightningWork):
+class LITDriveWork2(LightningWork):
     def __init__(self):
         super().__init__(parallel=True)
 
@@ -86,11 +86,11 @@ class Work2(LightningWork):
         assert drive.list(".", component_name=self.name) == []
 
 
-class Flow(LightningFlow):
+class LITDriveFlow(LightningFlow):
     def __init__(self):
         super().__init__()
-        self.work = Work()
-        self.work2 = Work2()
+        self.work = LITDriveWork()
+        self.work2 = LITDriveWork2()
 
     def run(self):
         self.work.run("0")
@@ -102,15 +102,15 @@ class Flow(LightningFlow):
             self._exit()
 
 
-def test_drive_transferring_files():
-    app = LightningApp(Flow())
+def test_lit_drive_transferring_files():
+    app = LightningApp(LITDriveFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
     os.remove("a.txt")
 
 
-def test_drive():
-    with pytest.raises(Exception, match="The Drive id needs to start with one of the following protocols"):
-        Drive("this_drive_id")
+def test_lit_drive():
+    with pytest.raises(Exception, match="Unknown protocol for the drive 'id' argument"):
+        Drive("invalid_drive_id")
 
     with pytest.raises(
         Exception, match="The id should be unique to identify your drive. Found `this_drive_id/something_else`."
@@ -213,9 +213,9 @@ def test_drive():
     os.remove("a.txt")
 
 
-def test_maybe_create_drive():
-
-    drive = Drive("lit://drive_3", allow_duplicates=False)
+@pytest.mark.parametrize("drive_id", ["lit://drive"])
+def test_maybe_create_drive(drive_id):
+    drive = Drive(drive_id, allow_duplicates=False)
     drive.component_name = "root.work1"
     new_drive = _maybe_create_drive(drive.component_name, drive.to_dict())
     assert new_drive.protocol == drive.protocol
@@ -223,10 +223,20 @@ def test_maybe_create_drive():
     assert new_drive.component_name == drive.component_name
 
 
-def test_drive_deepcopy():
-
-    drive = Drive("lit://drive", allow_duplicates=True)
+@pytest.mark.parametrize("drive_id", ["lit://drive"])
+def test_drive_deepcopy(drive_id):
+    drive = Drive(drive_id, allow_duplicates=True)
     drive.component_name = "root.work1"
     new_drive = deepcopy(drive)
     assert new_drive.id == drive.id
     assert new_drive.component_name == drive.component_name
+
+
+def test_s3_drive_raises_error_telling_users_to_use_mounts():
+    with pytest.raises(ValueError, match="Using S3 buckets in a Drive is no longer supported."):
+        Drive("s3://foo/")
+
+
+def test_drive_root_folder_breaks():
+    with pytest.raises(Exception, match="The provided root_folder isn't a directory: a"):
+        Drive("lit://drive", root_folder="a")

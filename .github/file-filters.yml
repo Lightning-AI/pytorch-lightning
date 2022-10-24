@@ -1,9 +1,0 @@
-# This file contains filters to be used in the CI to detect file changes and run the required CI jobs.
-
-app_examples:
-  - "src/lightning_app/**"
-  - "tests/tests_app_examples/**"
-  - "requirements/app/**"
-  - "examples/app_*"
-  - "setup.py"
-  - "src/pytorch_lightning/__version__.py"

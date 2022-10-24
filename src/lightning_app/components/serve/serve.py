@@ -1,6 +1,5 @@
 import abc
 import inspect
-import logging
 import os
 import pydoc
 import subprocess
@@ -15,8 +14,9 @@ from starlette.responses import RedirectResponse
 
 from lightning_app import LightningWork
 from lightning_app.components.serve.types import _DESERIALIZER, _SERIALIZER
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 fastapi_service = FastAPI()

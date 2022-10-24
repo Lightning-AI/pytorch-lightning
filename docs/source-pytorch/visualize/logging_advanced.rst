@@ -355,7 +355,7 @@ In LightningModule
    * - Method
      - on_step
      - on_epoch
-   * - on_after_backward, on_before_backward, on_before_optimizer_step, on_before_zero_grad, training_step, training_step_end
+   * - on_after_backward, on_before_backward, on_before_optimizer_step, optimizer_step, configure_gradient_clipping, on_before_zero_grad, training_step, training_step_end
      - True
      - False
    * - training_epoch_end, test_epoch_end, test_step, test_step_end, validation_epoch_end, validation_step, validation_step_end

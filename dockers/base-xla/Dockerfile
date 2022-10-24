@@ -19,7 +19,7 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 # CALL: docker image build -t pytorch-lightning:XLA-image -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.8
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
-ARG XLA_VERSION=1.11
+ARG XLA_VERSION=1.12
 
 SHELL ["/bin/bash", "-c"]
 # for skipping configurations
@@ -91,9 +91,13 @@ COPY ./ ./pytorch-lightning/
 RUN \
     python --version && \
     cd pytorch-lightning && \
-    pip install -q fire && \
+    pip install -q -r .actions/requirements.txt && \
+    # Pin mkl version to avoid OSError on torch import
+    # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
+    # https://github.com/pytorch/xla/issues/1666
+    pip install mkl==2021.4.0 && \
     # drop packages installed with XLA
-    python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
+    python .actions/assistant.py requirements_prune_pkgs "--packages=[torch,torchvision]" && \
     # drop unnecessary packages
     python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
     # install PL dependencies

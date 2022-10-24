@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import os
 import pathlib
 import shutil
@@ -11,9 +10,9 @@ from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
 
-import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
 from lightning_app.utilities.imports import _is_s3fs_available
 
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
 
 num_workers = 8
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 class Path(PathlibPath):
@@ -251,7 +250,7 @@ class Path(PathlibPath):
                 f" from Work {response.source} to {response.destination}. See the full stacktrace above."
             ) from response.exception
 
-    def _attach_work(self, work: "lightning_app.LightningWork") -> None:
+    def _attach_work(self, work: "LightningWork") -> None:
         """Attach a LightningWork to this Path.
 
         The first work to be attached becomes the `origin`, i.e., the Work that is meant to expose the file to other
@@ -323,7 +322,7 @@ class Path(PathlibPath):
         return self.to_dict()
 
     @staticmethod
-    def _handle_exists_request(work: "lightning_app.LightningWork", request: ExistsRequest) -> ExistsResponse:
+    def _handle_exists_request(work: "LightningWork", request: ExistsRequest) -> ExistsResponse:
         return ExistsResponse(
             source=request.source,
             name=request.name,
@@ -334,7 +333,7 @@ class Path(PathlibPath):
         )
 
     @staticmethod
-    def _handle_get_request(work: "lightning_app.LightningWork", request: GetRequest) -> GetResponse:
+    def _handle_get_request(work: "LightningWork", request: GetRequest) -> GetResponse:
         from lightning_app.storage.copier import copy_files
 
         source_path = pathlib.Path(request.path)
@@ -385,6 +384,12 @@ def shared_storage_path() -> pathlib.Path:
     ``SHARED_MOUNT_DIRECTORY`` environment variable. In the cloud, the shared path will point to a S3 bucket. All Works
     have access to this shared dropbox.
     """
+    storage_path = os.getenv("LIGHTNING_STORAGE_PATH", "")
+    if storage_path != "":
+        return pathlib.Path(storage_path)
+
+    # TODO[dmitsf]: this logic is still needed for compatibility reasons.
+    # We should remove it after some time.
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
 

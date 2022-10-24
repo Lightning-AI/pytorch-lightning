@@ -19,6 +19,8 @@ Now you can install using `pip <https://pypi.org/project/pytorch-lightning/>`_ u
 
     pip install pytorch-lightning
 
+Or read the `Apple Silicon Macs installation article <installation_mac.rst>`_.
+
 --------------
 
 ******************
@@ -56,4 +58,4 @@ Install future patch releases from the source. Note that the patch release conta
 
 .. code-block:: bash
 
-    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/pytorch.zip -U
+    pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/stable.zip -U

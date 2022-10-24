@@ -3,16 +3,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.utilities.imports import _module_available, requires
-
-
-def test_module_available():
-    """Test if the 3rd party libs are available."""
-    assert _module_available("deepdiff")
-    assert _module_available("deepdiff.deephash")
-    assert not _module_available("torch.nn.asdf")
-    assert not _module_available("asdf")
-    assert not _module_available("asdf.bla.asdf")
+from lightning_app.utilities.imports import requires
 
 
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "0"})

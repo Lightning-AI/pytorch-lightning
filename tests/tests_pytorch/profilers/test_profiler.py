@@ -465,22 +465,18 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
         """Determines if a directory contains a PyTorch trace."""
         return any("trace.json" in filename for filename in os.listdir(trace_dir))
 
-    # Sanity check
-    assert not look_for_trace(tmpdir)
-
     model = BoringModel()
     loggers = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1)
     assert len(trainer.loggers) == 2
     trainer.fit(model)
-    assert look_for_trace(tmpdir)
+    assert look_for_trace(tmpdir / "lightning_logs" / "version_0")
 
 
 @RunIf(min_cuda_gpus=1, standalone=True)
-def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+def test_pytorch_profiler_nested_emit_nvtx():
     """This test check emit_nvtx is correctly supported."""
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
-
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,

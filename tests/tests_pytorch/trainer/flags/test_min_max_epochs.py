@@ -1,8 +1,8 @@
 import pytest
 
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.utils import no_warning_call
 
 

@@ -1,0 +1,1 @@
+../../../source-app/workflows/build_lightning_app/from_scratch.rst

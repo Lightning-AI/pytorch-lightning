@@ -7,12 +7,12 @@ import pytest
 from click.testing import CliRunner
 
 from lightning_app.cli import cmd_install, lightning_cli
-from lightning_app.cli.cmd_install import _install_app
 from lightning_app.testing.helpers import RunIf
 
 
 @mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
+    """Valid organization name."""
     runner = CliRunner()
 
     # assert a bad app name should fail
@@ -212,6 +212,38 @@ def test_version_arg_app(tmpdir):
     assert result.exit_code == 0
 
 
+@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@mock.patch("lightning_app.cli.cmd_install._show_install_app_prompt")
+def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
+
+    app_name = "lightning/invideo"
+    runner = CliRunner()
+    with mock.patch("lightning_app.cli.cmd_install.requests.get") as get_api_mock:
+        get_api_mock.return_value.json.return_value = {
+            "apps": [
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.2",
+                    "name": "lightning/invideo",
+                },
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.4",
+                    "name": "lightning/invideo",
+                },
+                {
+                    "canDownloadSourceCode": True,
+                    "version": "0.0.5",
+                    "name": "another_app",
+                },
+            ]
+        }
+        runner.invoke(lightning_cli.install_app, [app_name, "--yes"])  # no version specified so latest is installed
+        assert mock_show_install_app_prompt.called
+        assert mock_show_install_app_prompt.call_args[0][0]["version"] == "0.0.4"
+
+
 def test_proper_url_parsing():
 
     name = "lightning/invideo"
@@ -245,7 +277,9 @@ def test_install_app_shows_error(tmpdir):
     app_folder_dir.mkdir()
 
     with pytest.raises(SystemExit, match=f"Folder {str(app_folder_dir)} exists, please delete it and try again."):
-        _install_app(source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False)
+        cmd_install._install_app(
+            source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False
+        )
 
 
 # def test_env_creation(tmpdir):
@@ -329,7 +363,7 @@ def test_install_app_process(subprocess_mock, source_url, git_url, git_sha, tmpd
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
-    _install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
+    cmd_install._install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
     assert subprocess_mock.check_output.call_args_list[0].args == (["git", "clone", git_url],)
     if git_sha:
         assert subprocess_mock.check_output.call_args_list[1].args == (["git", "checkout", git_sha],)

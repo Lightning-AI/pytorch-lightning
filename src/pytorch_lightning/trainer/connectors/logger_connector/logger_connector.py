@@ -13,16 +13,15 @@
 # limitations under the License.
 from typing import Any, Iterable, Optional, Union
 
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.plugins.environments import SLURMEnvironment
+from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
-from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class LoggerConnector:
@@ -35,7 +34,6 @@ class LoggerConnector:
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
-        self._override_agg_and_log_metrics: bool = False
 
     def on_trainer_init(
         self,
@@ -46,15 +44,6 @@ class LoggerConnector:
         self.configure_logger(logger)
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
-        for logger in self.trainer.loggers:
-            if is_overridden("agg_and_log_metrics", logger, Logger):
-                self._override_agg_and_log_metrics = True
-                rank_zero_deprecation(
-                    "`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-                    " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
-                    " loggers should not implement `Logger.agg_and_log_metrics`."
-                )
-                break
 
     @property
     def should_update_logs(self) -> bool:
@@ -103,10 +92,7 @@ class LoggerConnector:
 
         # log actual metrics
         for logger in self.trainer.loggers:
-            if self._override_agg_and_log_metrics:
-                logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
-            else:
-                logger.log_metrics(metrics=scalar_metrics, step=step)
+            logger.log_metrics(metrics=scalar_metrics, step=step)
             logger.save()
 
     """
@@ -163,8 +149,7 @@ class LoggerConnector:
         self.log_metrics(self.metrics["log"])
 
         # reset result collection for next epoch
-        assert self.trainer._results is not None
-        self.trainer._results.reset(metrics=True)
+        self.reset_results()
 
     """
     Utilities and properties
