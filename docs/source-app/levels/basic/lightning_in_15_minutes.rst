@@ -3,7 +3,7 @@ Lightning in 15 minutes
 #######################
 **Prereqs:** You know *basic* Python (PyTorch or PyTorch Lightning knowledge *NOT* required).
 
-**Goal:** In this guide you'll learn the basic concept to develop with Lightning.
+**Goal:** In this guide you'll learn the key concepts to develop with Lightning.
 
 .. join_slack::
    :align: left
@@ -13,7 +13,7 @@ Lightning in 15 minutes
 ******************
 What is Lightning?
 ******************
-Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** that connects `community-built components <#use-the-community-ecosystem>`_ to develop workflows that
+Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to develop workflows that
 `run on your own AWS account <#key-features>`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <#key-features>`_.
 
 .. collapse:: I don't have time to learn a new framework
@@ -26,9 +26,9 @@ Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ frame
 
 |
 
-⚡ Lightning fast: ⚡ This guide will teach you key principles that allows you to build systems like the following ones - Lightning fast:
+⚡ Build Lightning fast: ⚡ This guide will teach you key principles that allows you to build systems like the following ones:
 
-.. collapse:: For Enterprises
+.. collapse:: Examples for Enterprises
 
    .. raw:: html
 
@@ -67,7 +67,7 @@ Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ frame
          </div>
       </div>
 
-.. collapse:: For Startups
+.. collapse:: Examples for Startups
 
    .. raw:: html
 
@@ -106,7 +106,7 @@ Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ frame
          </div>
       </div>
 
-.. collapse:: For Research
+.. collapse:: Examples for Research
 
    .. raw:: html
 
@@ -145,7 +145,7 @@ Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ frame
          </div>
       </div>
 
-.. collapse:: For Hobbyists/Students
+.. collapse:: Examples for Hobbyists/Students
 
    .. raw:: html
 
@@ -233,6 +233,7 @@ Deploy this example:
 Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the LightningWork class and run on the cloud or your own hardware:
 
 .. code:: python
+   :emphasize-lines: 4, 5 
 
    # app.py
    import lightning as L
@@ -248,14 +249,12 @@ Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the Light
                      - subprocess.Popen('echo run any shell script, python scripts or non python files')"""
          print(message)
 
-   # uses 1 cloud GPU (or your own hardware)
-   compute = L.CloudCompute('gpu')
-   app = L.LightningApp(LitWorker(cloud_compute=compute))
+   app = L.LightningApp(LitWorker())
 
 
-**Lightning runs the same on the cloud and locally.**
+**Lightning runs the same on the cloud and locally on your choice of hardware.**
 
-Run on a GPU in your own AWS account or Lightning Cloud (fully-managed AWS):
+Run on cloud machine in your own AWS account or Lightning Cloud (fully-managed AWS):
 
 .. code:: python
 
@@ -269,30 +268,43 @@ Run on your own hardware:
 
 ----
 
+*******************************************
+Run cloud agnostic and accelerator agnostic
+*******************************************
+Lightning decouples your code from the hardware and cloud. To change the hardware, use **CloudCompute**:
+
+.. code:: python
+   :emphasize-lines: 16
+
+   # app.py
+   import lightning as L
+
+   class LitWorker(L.LightningWork):
+      def run(self):
+         message = """ANY python code can run here such as:
+                     - train a model
+                     - launch a deployment server
+                     - label data
+                     - run a react app, dash app, streamlit app, etc...
+                     - start a jupyter notebook
+                     - subprocess.Popen('echo run any shell script, python scripts or non python files')"""
+         print(message)
+
+   # run on 1 cloud GPU
+   compute = L.CloudCompute("gpu")
+   app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+# TODO: show the other hardware you can use.
+
+# TODO: use your own AWS account
+
+----
+
 ************
 Key features
 ************
 You now know enough to build pretty powerful cloud workflows. Here are some features available
 to super-charge your work.
-
-**Cloud and hardware agnostic:**
-
-.. collapse:: Use different cloud accelerators
-
-   |
-
-   .. code:: python
-
-      compute = L.CloudCompute('default')          # 1 CPU
-      compute = L.CloudCompute('cpu-medium')       # 8 CPUs
-      compute = L.CloudCompute('gpu')              # 1 T4 GPU
-      compute = L.CloudCompute('gpu-fast-multi')   # 4 V100 GPU
-      compute = L.CloudCompute('p4d.24xlarge')     # AWS instance name (8 A100 GPU)
-      app = L.LightningApp(LitWorker(cloud_compute=compute))
-
-   More machine types are available when you `run on your AWS account <??>`_.
-
-   |
 
 .. collapse:: Use a custom container
    

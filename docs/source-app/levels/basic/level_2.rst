@@ -68,8 +68,8 @@ In this example, let's run two pieces of Python code in a workflow:
             self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
 
         def run(self):
-            self.work_A.run("python code A running on a CPU machine")
-            self.work_B.run("python code B running on a GPU machine")
+            self.work_A.run("running code A on a CPU machine")
+            self.work_B.run("running code B on a GPU machine")
 
     app = L.LightningApp(LitWorkflow())
 
@@ -90,133 +90,176 @@ Now you can develop distributed cloud workflows on your laptop 🤯🤯🤯🤯!
 
 ----
 
-***********************
-Now you're an expert in
-***********************
+**************************
+Now you know ...
+**************************
 
-.. collapse:: Orchestration
+-------------
+Orchestration
+-------------
 
-    |
+In these lines, you defined a LightningFlow which coordinates how the LightningWorks interact together.
+In engineering, we call this **orchestration**:
 
-    In these lines, you defined a LightningFlow which coordinates how the LightningWorks interact together.
-    In engineering, we call this **orchestration**:
+.. raw:: html
 
-    .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif
-        :alt: Animation showing how to convert your PyTorch code to LightningLite.
-        :width: 800
-        :align: center
+    <div class="display-card-container">
+        <div class="row">
+        <div class="col-md-4">
 
-    .. code:: python
-        :emphasize-lines: 9, 16
+        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif" width="100%">
 
-        # app.py
-        # MULTIPLE WORKERS
-        import lightning as L
+.. raw:: html
 
-        class LitWorker(L.LightningWork):
-            def run(self, message):
-                print(message)
+        </div>
+        <div class="col-md-8">
 
-        class LitWorkflow(L.LightningFlow):
-            def __init__(self) -> None:
-                super().__init__()
-                self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-                self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+.. code:: python
+    :emphasize-lines: 9, 16
 
-            # the run method of LightningFlow is an orchestrator
-            def run(self):
-                self.work_A.run("python code A running on a CPU machine")
-                self.work_B.run("python code B running on a GPU machine")
+    # app.py
+    # MULTIPLE WORKERS
+    import lightning as L
 
-        app = L.LightningApp(LitWorkflow())
+    class LitWorker(L.LightningWork):
+        def run(self, message):
+            print(message)
 
-    ⚡⚡ Now you're an expert at orchestration!
+    class LitWorkflow(L.LightningFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
 
-    .. hint::
+        # the run method of LightningFlow is an orchestrator
+        def run(self):
+            self.work_A.run("running code A on a CPU machine")
+            self.work_B.run("running code B on a GPU machine")
 
-        If you've used other orchestration frameworks before, this should already be familiar! In `level 4 <level_4.html>`_, you'll
-        see how to generalize beyond "orchestrators" with reactive workflows that allow you to build complex
-        systems without much effort!
+    app = L.LightningApp(LitWorkflow())
 
-.. collapse:: Distributed computing
+.. raw:: html
 
-    |
+        </div>
+        </div>
+    </div>
 
-    The two pieces of independent Python code ran on *separate* 🤯🤯 machines:
+⚡⚡ Now you're an expert at orchestration!
 
-    .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif
-        :alt: Animation showing how to convert your PyTorch code to LightningLite.
-        :width: 800
-        :align: center
+.. hint::
 
-    .. code:: python
-        :emphasize-lines: 14, 17
+    If you've used other orchestration frameworks before, this should already be familiar! In `level 4 <level_4.html>`_, you'll
+    see how to generalize beyond "orchestrators" with reactive workflows that allow you to build complex
+    systems without much effort!
 
-        # app.py
-        # MULTIPLE WORKERS
-        import lightning as L
+----
 
-        class LitWorker(L.LightningWork):
-            def run(self, message):
-                print(message)
-
-        class LitWorkflow(L.LightningFlow):
-            def __init__(self) -> None:
-                super().__init__()
-
-                # runs on machine 1
-                self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-
-                # runs on machine 2
-                self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
-
-            def run(self):
-                self.work_A.run("python code A running on a CPU machine")
-                self.work_B.run("python code B running on a GPU machine")
-
-        app = L.LightningApp(LitWorkflow())
-    
-    ⚡⚡ Now you're a distributed computing wiz!
+---------------------------
+Distributed cloud computing
+---------------------------
+The two pieces of independent Python code ran on *separate* 🤯🤯 machines:
 
 
-.. collapse:: Multi-machine communication
+.. raw:: html
 
-    |
+    <div class="display-card-container">
+        <div class="row">
+        <div class="col-md-4">
+        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif" width="100%">
 
-    Notice that the LightningFlow sent the variables: (**message_a** -> machine A),  (**message_b** -> machine B):
-    
-    .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif
-        :alt: Animation showing how to convert your PyTorch code to LightningLite.
-        :width: 800
-        :align: center
-    
-    .. code:: python
-        :emphasize-lines: 16, 17, 18, 19
+.. raw:: html
 
-        # app.py
-        # MULTIPLE WORKERS
-        import lightning as L
+        </div>
+        <div class="col-md-8">
 
-        class LitWorker(L.LightningWork):
-            def run(self, message):
-                print(message)
+.. code:: python
+    :emphasize-lines: 14, 17
 
-        class LitWorkflow(L.LightningFlow):
-            def __init__(self) -> None:
-                super().__init__()
-                self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-                self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+    # app.py
+    # MULTIPLE WORKERS
+    import lightning as L
 
-            def run(self):
-                message_a = "python code A running on a CPU machine"
-                message_b = "python code B running on a CPU machine"
-                self.work_A.run(message_a)
-                self.work_B.run(message_b)
+    class LitWorker(L.LightningWork):
+        def run(self, message):
+            print(message)
 
-        app = L.LightningApp(LitWorkflow())
-    
-    ⚡⚡ Now you're also an expert in networking and cross-machine communication!
+    class LitWorkflow(L.LightningFlow):
+        def __init__(self) -> None:
+            super().__init__()
 
+            # runs on machine 1
+            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+
+            # runs on machine 2
+            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+
+        def run(self):
+            self.work_A.run("running code A on a CPU machine")
+            self.work_B.run("running code B on a GPU machine")
+
+    app = L.LightningApp(LitWorkflow())
+
+.. raw:: html
+
+        </div>
+        </div>
+    </div>
+
+⚡⚡ Now you're a distributed computing wiz!
+
+----
+
+---------------------------
+Multi-machine communication
+---------------------------
+Notice that the LightningFlow sent the variables: (**message_a** -> machine A),  (**message_b** -> machine B):
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+        <div class="col-md-4">
+        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" width="100%">
+
+.. raw:: html
+
+        </div>
+        <div class="col-md-8">
+
+.. code:: python
+    :emphasize-lines: 16, 17, 18, 19
+
+    # app.py
+    # MULTIPLE WORKERS
+    import lightning as L
+
+    class LitWorker(L.LightningWork):
+        def run(self, message):
+            print(message)
+
+    class LitWorkflow(L.LightningFlow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
+            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
+
+        def run(self):
+            message_a = "running code A on a CPU machine"
+            message_b = "running code B on a GPU machine"
+            self.work_A.run(message_a)
+            self.work_B.run(message_b)
+
+    app = L.LightningApp(LitWorkflow())
+
+
+.. raw:: html
+
+        </div>
+        </div>
+    </div>
+⚡⚡ Now you're also an expert in networking and cross-machine communication!
+
+----
 
 .. collapse:: Multi-cloud
 
@@ -265,12 +308,12 @@ Lightning code is simply **organized python**. If you know python, you already k
         def run(self):
             if self._start_time is None:
                 self._start_time = datetime.now()
-            self.work_A.run("python code A running on a CPU machine")
+            self.work_A.run("running code A on a CPU machine")
 
             # start B, 5 seconds after A has finished
             elapsed_seconds = (datetime.now() - self._start_time).seconds
             if elapsed_seconds > 5:
-                self.work_B.run("python code B running on a GPU machine")
+                self.work_B.run("running code B on a GPU machine")
 
     app = L.LightningApp(LitWorkflow())
 
@@ -299,19 +342,19 @@ that uses `crontab syntax <https://crontab.guru/>`_:
             self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
 
         def run(self):
-            self.work_A.run("python code A running on a CPU machine")
+            self.work_A.run("running code A on a CPU machine")
 
             # B runs once, and then again every hour
             if self.schedule("hourly"):
-                self.work_B.run("python code B running on a GPU machine")
+                self.work_B.run("running code B on a GPU machine")
 
     app = L.LightningApp(LitWorkflow())
 
 ----
 
-***********************************
-Next step: Communicate between works
-***********************************
+*************************
+Next step: A real example
+*************************
 
 .. raw:: html
 
@@ -323,7 +366,31 @@ Next step: Communicate between works
 .. displayitem::
    :header: Level 3: Communicate between works
    :description: Move variables and files across works.
-   :col_css: col-md-12
+   :col_css: col-md-3
+   :button_link: level_3.html
+   :height: 150
+   :tag: beginner
+
+.. displayitem::
+   :header: Level 3: Communicate between works
+   :description: Move variables and files across works.
+   :col_css: col-md-3
+   :button_link: level_3.html
+   :height: 150
+   :tag: beginner
+
+.. displayitem::
+   :header: Level 3: Communicate between works
+   :description: Move variables and files across works.
+   :col_css: col-md-3
+   :button_link: level_3.html
+   :height: 150
+   :tag: beginner
+
+.. displayitem::
+   :header: Level 3: Communicate between works
+   :description: Move variables and files across works.
+   :col_css: col-md-3
    :button_link: level_3.html
    :height: 150
    :tag: beginner
