@@ -57,24 +57,10 @@ def test_migrate_checkpoint(monkeypatch):
     assert new_checkpoint == old_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
 
     # A checkpoint newer than any migration point in the index
-    old_checkpoint = {"pytorch-lightning_version": "2.0", "content": 123}
+    old_checkpoint = {"pytorch-lightning_version": pl.__version__, "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == []
     assert new_checkpoint == old_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
-
-
-def test_migrate_checkpoint_too_new():
-    """Test checkpoint migration is a no-op with a warning when attempting to migrate a checkpoint from newer
-    version of Lightning than installed."""
-    super_new_checkpoint = {"pytorch-lightning_version": "99.0.0", "content": 123}
-    with pytest.warns(
-        PossibleUserWarning, match=f"v99.0.0, which is newer than your current Lightning version: v{pl.__version__}"
-    ):
-        new_checkpoint, migrations = migrate_checkpoint(super_new_checkpoint.copy())
-
-    # no version modification
-    assert not migrations
-    assert new_checkpoint == super_new_checkpoint
 
 
 def _run_simple_migration(monkeypatch, old_checkpoint):
@@ -95,6 +81,20 @@ def _run_simple_migration(monkeypatch, old_checkpoint):
     monkeypatch.setattr(pl.utilities.migration.utils, "_migration_index", lambda: index)
     new_checkpoint, _ = migrate_checkpoint(old_checkpoint)
     return new_checkpoint, call_order
+
+
+def test_migrate_checkpoint_too_new():
+    """Test checkpoint migration is a no-op with a warning when attempting to migrate a checkpoint from newer
+    version of Lightning than installed."""
+    super_new_checkpoint = {"pytorch-lightning_version": "99.0.0", "content": 123}
+    with pytest.warns(
+        PossibleUserWarning, match=f"v99.0.0, which is newer than your current Lightning version: v{pl.__version__}"
+    ):
+        new_checkpoint, migrations = migrate_checkpoint(super_new_checkpoint.copy())
+
+    # no version modification
+    assert not migrations
+    assert new_checkpoint == super_new_checkpoint
 
 
 def test_migrate_checkpoint_for_pl(caplog):
