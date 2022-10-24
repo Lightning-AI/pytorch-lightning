@@ -1,7 +1,6 @@
 import contextlib
 import datetime
 import os
-import sys
 from functools import partial
 from unittest import mock
 
@@ -265,7 +264,7 @@ def _test_two_groups(strategy, left_collective, right_collective):
     if strategy.global_rank in (0, 1):
         tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
-    right_collective.barrier()  # avoids deadlock for global rank 1
+    right_collective.monitored_barrier()  # avoids deadlock for global rank 1
     if strategy.global_rank in (1, 2):
         tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
@@ -273,6 +272,4 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 @skip_distributed_unavailable
 def test_two_groups():
-    if sys.platform == "win32" and (sys.version_info.major, sys.version_info.minor) == (3, 10):
-        pytest.skip("Unresolved hang")
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
