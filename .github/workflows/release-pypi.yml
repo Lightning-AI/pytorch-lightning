@@ -117,7 +117,6 @@ jobs:
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
   create-legacy-ckpt:
-    # Todo: skip if pytorch was not released
     needs: publish-packages
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
