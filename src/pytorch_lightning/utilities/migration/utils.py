@@ -78,7 +78,7 @@ class pl_legacy_patch:
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
 
 
-def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:
+def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: _PATH) -> _CHECKPOINT:
     """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user.
 
     This function is used by the Lightning Trainer when resuming from a checkpoint.
@@ -90,20 +90,14 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_P
         # the checkpoint was already a new one, no migrations were needed
         return checkpoint
 
-    # include the full command including the checkpoint path to the checkpoint in the error message,
-    # so user can copy-paste if they want
-    path_hint = Path(checkpoint_path if checkpoint_path is not None else "model.ckpt")
-    path_hint = path_hint.relative_to(Path.cwd())
-
-    msg = (
+    # include the full upgrade command, including the path to the loaded file in the error message,
+    # so user can copy-paste and run if they want
+    path_hint = Path(checkpoint_path).relative_to(Path.cwd())
+    _log.info(
         f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
         " To apply the upgrade to your files permanently, run"
         f" `python -m pytorch_lightning.utilities.upgrade_checkpoint --file {str(path_hint)}`"
     )
-    if checkpoint_path:
-        msg += f" where `{path_hint}` is your checkpoint file."
-
-    _log.info(msg)
     return checkpoint
 
 
