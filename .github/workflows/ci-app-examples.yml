@@ -28,6 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
+        pkg-name: ["LAI", "app"]  # the "LAI" is for installing monolithic package
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
@@ -80,8 +81,14 @@ jobs:
         run: npm install -g yarn
 
       - name: Install Lightning as top-level
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: pip install -e .
         shell: bash
+
+      - name: Adjust tests
+        if: ${{ matrix.pkg-name == 'LAI' }}
+        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
       - name: Tests
         working-directory: ./tests
