@@ -4,7 +4,7 @@
    :maxdepth: 1
    :hidden:
 
-   communicate_between_lightning_components
+   run_on_aws_efficiently
    level_9
    level_10
    level_11
@@ -33,7 +33,7 @@ Learn to run efficiently on the cloud
 .. displayitem::
    :header: Level 3: Run on your AWS account efficiently
    :description: Learn to run workflows on your own AWS account efficiently to save money and improve performance.
-   :button_link: build_a_machine_learning_workflow.html
+   :button_link: run_on_aws_efficiently.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

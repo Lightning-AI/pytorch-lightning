@@ -7,4 +7,3 @@ Level 3: Communicate between Lightning Components
 
 ----
 
-# TODO
