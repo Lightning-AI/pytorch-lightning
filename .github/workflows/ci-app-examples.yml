@@ -20,6 +20,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   app-examples:
     if: github.event.pull_request.draft == false
@@ -70,7 +74,6 @@ jobs:
           pip --version
           pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
-        shell: bash
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -84,7 +87,6 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: pip install -e .
-        shell: bash
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'LAI' }}
