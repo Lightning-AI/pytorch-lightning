@@ -80,6 +80,9 @@ def _create_code(script_path: str):
     with open_python_file(script_path) as f:
         filebody = f.read()
 
+    logger.info(f"Loading app from {script_path}")
+    logger.info("code: %s", filebody)
+
     return compile(
         filebody,
         # Pass in the file path so it can show up in exceptions.
