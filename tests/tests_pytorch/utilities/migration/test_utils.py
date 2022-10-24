@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from copy import deepcopy
 
 import pytest
@@ -44,6 +45,7 @@ def test_patch_legacy_gpus_arg_default():
 
 def test_migrate_checkpoint(monkeypatch):
     """Test that the correct migration function gets executed given the current version of the checkpoint."""
+
     # A checkpoint that is older than any migration point in the index
     old_checkpoint = {"pytorch-lightning_version": "0.0.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
@@ -96,3 +98,19 @@ def _run_simple_migration(monkeypatch, old_checkpoint):
     monkeypatch.setattr(pl.utilities.migration.utils, "migration_index", lambda: index)
     new_checkpoint, _ = migrate_checkpoint(old_checkpoint)
     return new_checkpoint, call_order
+
+
+def test_migrate_checkpoint_for_pl(caplog):
+    """Test that the automatic migration in Lightning informs the user about how to make the upgrade permanent."""
+
+    # simulate a very recent checkpoint, no migrations needed
+    loaded_checkpoint = {"pytorch-lightning_version": pl.__version__, "content": 123}
+    new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
+    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+
+    # simulate an old checkpoint that needed an upgrade
+    loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "content": 123}
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.utilities.migration.utils"):
+        new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
+    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, 'callbacks': {}, "content": 123}
+    assert f"Lightning automatically upgraded your loaded checkpoint from v0.0.1 to v{pl.__version__}" in caplog.text
