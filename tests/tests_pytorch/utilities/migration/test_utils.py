@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import sys
 from copy import deepcopy
 
 import pytest
@@ -19,8 +20,6 @@ import pytest
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
-import sys
-
 from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 
 
@@ -70,8 +69,7 @@ def test_migrate_checkpoint_too_new():
     version of Lightning than installed."""
     super_new_checkpoint = {"pytorch-lightning_version": "99.0.0", "content": 123}
     with pytest.warns(
-        PossibleUserWarning,
-        match=f"v99.0.0, which is newer than your current Lightning version: v{pl.__version__}"
+        PossibleUserWarning, match=f"v99.0.0, which is newer than your current Lightning version: v{pl.__version__}"
     ):
         new_checkpoint, migrations = migrate_checkpoint(super_new_checkpoint.copy())
 
@@ -112,5 +110,5 @@ def test_migrate_checkpoint_for_pl(caplog):
     loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "content": 123}
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.utilities.migration.utils"):
         new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
-    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, 'callbacks': {}, "content": 123}
+    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "callbacks": {}, "content": 123}
     assert f"Lightning automatically upgraded your loaded checkpoint from v0.0.1 to v{pl.__version__}" in caplog.text
