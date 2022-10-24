@@ -203,6 +203,7 @@ To enable variable interpolation, first install omegaconf:
 Then set omegaconf when instantiating the ``LightningCLI`` class:
 
 .. code:: python
+
     cli = LightningCLI(MyModel, parser_kwargs={"parser_mode": "omegaconf"})
 
 After this, the CLI will automatically perform interpolation in yaml files:
