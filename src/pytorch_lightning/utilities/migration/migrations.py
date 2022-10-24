@@ -14,84 +14,36 @@
 """Contains migration functions to upgrade legacy checkpoints to the format of the current Lightning version.
 
 When Lightning loads a checkpoint, these migrations will be applied on the loaded checkpoint dictionary sequentially,
-see :func:`migrate_checkpoint`.
+see :func:`~pytorch_lightning.utilities.migration.utils.migrate_checkpoint`.
+
+How to add a new migration?
+
+1. Create a new function with a descriptive name and docstring that explains the details of this migration. Include
+   version informatin as well as the specific commit or PR where the breaking change happened.
+2. Add the function to the `migration_index()` below. The key in the index is the version of Lightning in which the
+   change happened. Any checkpoint with a version greater or equal to that version will apply the given function.
+   Multiple migrations per version get executed in the provided list order.
+3. You can test the migration on a checkpoint (backup your files first) by running:
+
+   cp model.ckpt model.ckpt.backup
+   python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt
+
 """
 
-import sys
-from distutils.version import LooseVersion
-from types import ModuleType, TracebackType
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Callable, List
 
-import pytorch_lightning as pl
-import pytorch_lightning.utilities.argparse
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 _CHECKPOINT = Dict[str, Any]
 
 
-class pl_legacy_patch:
-    """Registers legacy artifacts (classes, methods, etc.) that were removed but still need to be included for
-    unpickling old checkpoints. The following patches apply.
-
-        1. ``pytorch_lightning.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
-           version 1.2.8. See: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
-        2. ``pytorch_lightning.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
-           but still needs to be available for import for legacy checkpoints.
-
-    Example:
-
-        with pl_legacy_patch():
-            torch.load("path/to/legacy/checkpoint.ckpt")
-    """
-
-    def __enter__(self) -> "pl_legacy_patch":
-        # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
-        legacy_argparse_module = ModuleType("pytorch_lightning.utilities.argparse_utils")
-        sys.modules["pytorch_lightning.utilities.argparse_utils"] = legacy_argparse_module
-
-        # `_gpus_arg_default` used to be imported from these locations
-        legacy_argparse_module._gpus_arg_default = lambda x: x
-        pytorch_lightning.utilities.argparse._gpus_arg_default = lambda x: x
-        return self
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        exc_traceback: Optional[TracebackType],
-    ) -> None:
-        if hasattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default"):
-            delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")
-        del sys.modules["pytorch_lightning.utilities.argparse_utils"]
-
-
-def get_version(checkpoint: _CHECKPOINT) -> str:
-    """Get the version of a Lightning checkpoint."""
-    return checkpoint["pytorch-lightning_version"]
-
-
-def set_version(checkpoint: _CHECKPOINT, version: str) -> None:
-    """Set the version of a Lightning checkpoint."""
-    checkpoint["pytorch-lightning_version"] = version
-
-
-def should_upgrade(checkpoint: _CHECKPOINT, target: str) -> bool:
-    """Returns whether a checkpoint qualifies for an upgrade when the version is lower than the given target."""
-    return LooseVersion(get_version(checkpoint)) < LooseVersion(target)
-
-
-def migrate_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Applies all migrations below in order."""
-    if should_upgrade(checkpoint, "0.10.0"):
-        _migrate_model_checkpoint_early_stopping(checkpoint)
-    if should_upgrade(checkpoint, "1.6.0"):
-        _migrate_loop_global_step_to_progress_tracking(checkpoint)
-        _migrate_loop_current_epoch_to_progress_tracking(checkpoint)
-
-    set_version(checkpoint, pl.__version__)
-
-    # TODO: If any migrations apply, log a message. Suggest to run upgrade_checkpoint script to convert
-    #   checkpoints permanently
-    return checkpoint
+def migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
+    """Migration functions returned here will get executed in the order they are listed."""
+    return {
+        "0.10.0": [_migrate_model_checkpoint_early_stopping],
+        "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking]
+    }
 
 
 def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
@@ -100,9 +52,6 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
     Version: 0.10.0
     Commit:
     """
-    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-    from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-
     keys_mapping = {
         "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
         "checkpoint_callback_best_model_path": (ModelCheckpoint, "best_model_path"),
@@ -123,7 +72,7 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
 
 
 def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Set the `global_step` value for checkpoints before v1.6 without the progress tracking state. It will be
+    """Sets the `global_step` value for checkpoints before v1.6 without the progress tracking state. It will be
     overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
@@ -142,7 +91,7 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
 
 
 def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state. It will be
+    """Sets the `current_epoch` value for checkpoints before v1.6 without the progress tracking state. It will be
     overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
@@ -152,6 +101,7 @@ def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) ->
     checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
     checkpoint["loops"].setdefault("fit_loop", _FIT_LOOP_INITIAL_STATE_1_6_0)
     checkpoint["loops"]["fit_loop"]["epoch_progress"]["current"]["completed"] = epoch
+    return checkpoint
 
 
 _FIT_LOOP_INITIAL_STATE_1_6_0 = {
