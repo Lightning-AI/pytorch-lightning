@@ -1,11 +1,11 @@
 import multiprocessing
 import pickle
+import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from queue import Empty, Queue
 from typing import Any, Optional
 
 from lightning_app.core.constants import (
@@ -174,7 +174,7 @@ class SingleProcessQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
         self.name = name
         self.default_timeout = default_timeout
-        self.queue = Queue()
+        self.queue = queue.Queue()
 
     def put(self, item):
         self.queue.put(item)
@@ -278,7 +278,7 @@ class RedisQueue(BaseQueue):
             )
 
         if out is None:
-            raise Empty
+            raise queue.Empty
         return pickle.loads(out[1])
 
     def clear(self) -> None:
@@ -333,7 +333,7 @@ class HTTPQueue(BaseQueue):
             while True:
                 try:
                     return self._get()
-                except Empty:
+                except queue.Empty:
                     time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
         # make one request and return the result
@@ -346,13 +346,13 @@ class HTTPQueue(BaseQueue):
         while (time.time() - start_time) < timeout:
             try:
                 return self._get()
-            except Empty:
+            except queue.Empty:
                 time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
     def _get(self):
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
         if resp.status_code == 204:
-            raise Empty
+            raise queue.Empty
         return pickle.loads(resp.content)
 
     def put(self, item: Any) -> None:
