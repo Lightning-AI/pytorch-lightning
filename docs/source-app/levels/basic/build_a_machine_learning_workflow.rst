@@ -430,7 +430,7 @@ Next step: A real example
 *************************
 You now know enough to build pretty powerful cloud workflows!
 
-Choose an example to walk through step-by-step.
+Choose an example to walk through step-by-step. 
 
 Once you feel comfortable with these examples, move to the intermediate guide, where we'll learn about reactive
 workflows which will allow you build full-stack AI applications.
@@ -443,36 +443,44 @@ workflows which will allow you build full-stack AI applications.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Example: 
-   :description: Move variables and files across works.
-   :col_css: col-md-3
-   :button_link: level_3.html
+   :header: Example: Train PyTorch on the cloud
+   :description: Train a PyTorch model in single or multi-node on the cloud
+   :button_link: train_pytorch_on_the_cloud.html
+   :col_css: col-md-6
    :height: 150
-   :tag: beginner
+   :tag: basic
 
 .. displayitem::
-   :header: Level 3: Communicate between works
-   :description: Move variables and files across works.
-   :col_css: col-md-3
-   :button_link: level_3.html
+   :header: Example: Deploy a model API
+   :description: Deploy a model behind a load-balanced API.
+   :button_link: deploy_ai_model_api.html
+   :col_css: col-md-6
    :height: 150
-   :tag: beginner
+   :tag: basic
 
 .. displayitem::
-   :header: Level 3: Communicate between works
-   :description: Move variables and files across works.
-   :col_css: col-md-3
-   :button_link: level_3.html
+   :header: Example: Develop a Jupyter Notebook component
+   :description: Develop a LightningWork that runs a notebook on the cloud.
+   :button_link: run_jupyter_notebook_on_the_cloud.html
+   :col_css: col-md-6
    :height: 150
-   :tag: beginner
+   :tag: basic
 
 .. displayitem::
-   :header: Level 3: Communicate between works
-   :description: Move variables and files across works.
-   :col_css: col-md-3
-   :button_link: level_3.html
+   :header: Example: Create a model demo
+   :description: Demo POCs and MVPs which can be shared with a public web user interface.
+   :button_link: create_a_model_demo.html
+   :col_css: col-md-6
    :height: 150
-   :tag: beginner
+   :tag: basic
+
+.. displayitem::
+   :header: Example: Directed Acyclical Graph (DAG)
+   :description: Learn how to build a DAG with Lightning workflows.
+   :button_link: create_a_model_demo.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: basic
 
 .. raw:: html
 
