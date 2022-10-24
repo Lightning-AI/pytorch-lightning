@@ -6,8 +6,8 @@
 
    run_on_aws_efficiently
    debug_a_lightning_workflow
-   level_10
-   level_11
+   run_lightning_work_in_parallel
+   communicate_between_lightning_components
    level_12
    level_13
    level_14
@@ -47,17 +47,17 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 5: Communicate between LightningWorks
-   :description: Share variables and files between LightningWorks.
-   :button_link: communicate_between_lightning_components.html
+   :header: Level 5: Run LightningWorks in parallel
+   :description: Learn when to run LightningWorks in parallel (asynchroneous).
+   :button_link: run_lightning_work_in_parallel.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 6: Run LightningWorks in parallel
-   :description: Learn when to run LightningWorks in parallel (asynchroneous). Here we also learn about reactive workflows.
-   :button_link: level_15.html
+   :header: Level 6: Communicate between LightningWorks
+   :description: Share variables and files between LightningWorks.
+   :button_link: communicate_between_lightning_components.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

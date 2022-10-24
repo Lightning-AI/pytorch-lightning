@@ -21,7 +21,7 @@ In this page, we'll be using the following toy snippet:
         def run(self):
             print("run ANY python code here")
 
-    compute = L.CloudCompute('cpu', idle_timeout=10)
+    compute = L.CloudCompute('cpu')
     app = L.LightningApp(LitWorker(cloud_compute=compute))
 
 ----
