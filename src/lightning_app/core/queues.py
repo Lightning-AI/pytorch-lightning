@@ -1,6 +1,6 @@
 import multiprocessing
 import pickle
-import queue
+import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -93,8 +93,9 @@ class QueuingSystem(Enum):
         queue_name = f"{queue_id}_{API_STATE_PUBLISH_QUEUE_CONSTANT}" if queue_id else API_STATE_PUBLISH_QUEUE_CONSTANT
         return self.get_queue(queue_name)
 
+    # TODO: This is hack, so we can remove this queue entirely when fully optimized.
     def get_api_delta_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{API_DELTA_QUEUE_CONSTANT}" if queue_id else API_DELTA_QUEUE_CONSTANT
+        queue_name = f"{queue_id}_{DELTA_QUEUE_CONSTANT}" if queue_id else DELTA_QUEUE_CONSTANT
         return self.get_queue(queue_name)
 
     def get_orchestrator_request_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":

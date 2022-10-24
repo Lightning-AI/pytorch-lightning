@@ -125,7 +125,7 @@ jobs:
         run: |
           pip install -q -r .actions/requirements.txt
           for pkg in 'app' 'pytorch' ; do
-            python .actions/assistant.py download_package "$pkg" --folder pypi
+            python .actions/assistant.py download_package --package "$pkg" --folder pypi
           done
           ls -lh pypi/
 
@@ -141,7 +141,7 @@ jobs:
       - name: Miror source
         run: |
           pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py mirror_pkg2source pypi src
+          python .actions/assistant.py mirror_pkg2source --pypi_folder pypi --src_folder src
           ls -R src/
 
       - uses: ./.github/actions/pkg-check

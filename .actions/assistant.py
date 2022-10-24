@@ -83,10 +83,10 @@ class AssistantCLI:
         now_date = now.strftime("%Y%m%d")
 
         print(f"prepare init '{path_info}' - replace version by {now_date}")
-        with open(path_info) as fp:
+        with open(path_info, encoding="utf-8") as fp:
             init = fp.read()
         init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
-        with open(path_info, "w") as fp:
+        with open(path_info, "w", encoding="utf-8") as fp:
             fp.write(init)
 
     @staticmethod
@@ -118,8 +118,8 @@ class AssistantCLI:
 
     @staticmethod
     def _replace_min(fname: str) -> None:
-        req = open(fname).read().replace(">=", "==")
-        open(fname, "w").write(req)
+        req = open(fname, encoding="utf-8").read().replace(">=", "==")
+        open(fname, "w", encoding="utf-8").write(req)
 
     @staticmethod
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
@@ -212,7 +212,7 @@ class AssistantCLI:
 
                 for source_import, target_import in zip(source_imports, target_imports):
                     for i, ln in enumerate(py):
-                        py[i] = re.sub(rf"(?!_){source_import}(?!_)", target_import, ln)
+                        py[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
 
                 if target_dir:
                     fp_new = fp.replace(source_dir, target_dir)
@@ -230,4 +230,4 @@ class AssistantCLI:
 
 
 if __name__ == "__main__":
-    jsonargparse.CLI(AssistantCLI)
+    jsonargparse.CLI(AssistantCLI, as_positional=False)

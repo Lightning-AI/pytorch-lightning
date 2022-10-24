@@ -4,13 +4,6 @@ from lightning_app import CloudCompute
 from lightning_app.storage import Mount
 
 
-def test_cloud_compute_unsupported_features():
-    with pytest.raises(ValueError, match="Clusters are't supported yet"):
-        CloudCompute("gpu", clusters="as")
-    with pytest.raises(ValueError, match="Setting a wait timeout isn't supported yet"):
-        CloudCompute("gpu", wait_timeout=1)
-
-
 def test_cloud_compute_names():
     assert CloudCompute().name == "default"
     assert CloudCompute("cpu-small").name == "cpu-small"
@@ -23,8 +16,8 @@ def test_cloud_compute_shared_memory():
 
 
 def test_cloud_compute_with_mounts():
-    mount_1 = Mount(source="s3://foo/", root_dir="./foo")
-    mount_2 = Mount(source="s3://foo/bar/", root_dir="./bar")
+    mount_1 = Mount(source="s3://foo/", mount_path="/foo")
+    mount_2 = Mount(source="s3://foo/bar/", mount_path="/bar")
 
     cloud_compute = CloudCompute("gpu", mounts=mount_1)
     assert cloud_compute.mounts == mount_1
@@ -35,16 +28,16 @@ def test_cloud_compute_with_mounts():
     cc_dict = cloud_compute.to_dict()
     assert "mounts" in cc_dict
     assert cc_dict["mounts"] == [
-        {"root_dir": "./foo", "source": "s3://foo/"},
-        {"root_dir": "./bar", "source": "s3://foo/bar/"},
+        {"mount_path": "/foo", "source": "s3://foo/"},
+        {"mount_path": "/bar", "source": "s3://foo/bar/"},
     ]
 
     assert CloudCompute.from_dict(cc_dict) == cloud_compute
 
 
 def test_cloud_compute_with_non_unique_mount_root_dirs():
-    mount_1 = Mount(source="s3://foo/", root_dir="./foo")
-    mount_2 = Mount(source="s3://foo/bar/", root_dir="./foo")
+    mount_1 = Mount(source="s3://foo/", mount_path="/foo")
+    mount_2 = Mount(source="s3://foo/bar/", mount_path="/foo")
 
-    with pytest.raises(ValueError, match="Every Mount attached to a work must have a unique 'root_dir' argument."):
+    with pytest.raises(ValueError, match="Every Mount attached to a work must have a unique"):
         CloudCompute("gpu", mounts=[mount_1, mount_2])
