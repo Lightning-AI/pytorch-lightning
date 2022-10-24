@@ -16,7 +16,7 @@ import pytest
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.migration import migrate_checkpoint
-from pytorch_lightning.utilities.migration.utils import _set_version, _get_version
+from pytorch_lightning.utilities.migration.utils import _get_version, _set_version
 
 
 @pytest.mark.parametrize(

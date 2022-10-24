@@ -19,40 +19,22 @@ from pytorch_lightning.utilities.migration import migrate_checkpoint
 def test_migrate_checkpoint(monkeypatch):
     """Test that the correct migration function gets executed given the current version of the checkpoint."""
     # A checkpoint that is older than any migration point in the index
-    old_checkpoint = {
-        "pytorch-lightning_version": "0.0.0",
-        "content": 123
-    }
+    old_checkpoint = {"pytorch-lightning_version": "0.0.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == ["one", "two", "three", "four"]
-    assert new_checkpoint == {
-        "pytorch-lightning_version": pl.__version__,
-        "content": 123
-    }
+    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
 
     # A checkpoint that is newer, but not the newest
-    old_checkpoint = {
-        "pytorch-lightning_version": "1.0.3",
-        "content": 123
-    }
+    old_checkpoint = {"pytorch-lightning_version": "1.0.3", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == ["four"]
-    assert new_checkpoint == {
-        "pytorch-lightning_version": pl.__version__,
-        "content": 123
-    }
+    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
 
     # A checkpoint newer than any migration point in the index
-    old_checkpoint = {
-        "pytorch-lightning_version": "2.0",
-        "content": 123
-    }
+    old_checkpoint = {"pytorch-lightning_version": "2.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == []
-    assert new_checkpoint == {
-        "pytorch-lightning_version": pl.__version__,
-        "content": 123
-    }
+    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
 
 
 def _run_simple_migration(monkeypatch, old_checkpoint):
