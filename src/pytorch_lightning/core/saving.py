@@ -157,7 +157,7 @@ def _load_from_checkpoint(
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     # convert legacy checkpoints to the new format
-    checkpoint = migrate_checkpoint(checkpoint)
+    checkpoint, _ = migrate_checkpoint(checkpoint)
 
     if hparams_file is not None:
         extension = str(hparams_file).split(".")[-1]

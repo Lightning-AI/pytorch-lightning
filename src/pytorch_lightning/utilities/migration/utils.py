@@ -11,29 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 import sys
 from distutils.version import LooseVersion
 from types import ModuleType, TracebackType
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, Tuple, List
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.migration.migrations import migration_index
 
+_log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
 
 
-def migrate_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, List[str]]]:
     """Applies Lightning version migrations to a checkpoint dictionary."""
     index = migration_index()
+    applied_migrations = {}
     for migration_version, migration_functions in index.items():
         if not _should_upgrade(checkpoint, migration_version):
             continue
         for migration_function in migration_functions:
             checkpoint = migration_function(checkpoint)
 
+        applied_migrations[migration_version] = [fn.__name__ for fn in migration_functions]
+
     _set_version(checkpoint, pl.__version__)
-    return checkpoint
+    return checkpoint, applied_migrations
 
 
 class pl_legacy_patch:
@@ -70,6 +74,21 @@ class pl_legacy_patch:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
+
+
+def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user."""
+    old_version = _get_version(checkpoint)
+    checkpoint, migrations = migrate_checkpoint(checkpoint)
+    new_version = _get_version(checkpoint)
+    if migrations:
+        _log.info(
+            f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
+            " To apply the upgrade to your files permanently, run"
+            " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
+            " where `model.ckpt` is your checkpoint file."
+        )
+    return checkpoint
 
 
 def _get_version(checkpoint: _CHECKPOINT) -> str:

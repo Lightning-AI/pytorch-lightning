@@ -43,6 +43,6 @@ from pytorch_lightning.utilities.migration.utils import _get_version, _set_versi
 def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
     _set_version(old_checkpoint, "0.9.0")
     _set_version(new_checkpoint, pl.__version__)
-    updated_checkpoint = migrate_checkpoint(old_checkpoint)
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
     assert updated_checkpoint == new_checkpoint
     assert _get_version(updated_checkpoint) == pl.__version__
