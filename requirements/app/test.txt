@@ -8,7 +8,7 @@ pre-commit>=1.0
 mypy==0.971
 
 pytest-timeout <=2.1.0
-playwright==1.22.0
+playwright==1.27.1
 # pytest-flake8
 httpx
 trio<0.22.0
