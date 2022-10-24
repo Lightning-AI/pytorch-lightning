@@ -78,6 +78,14 @@ Learn to run efficiently on the cloud
    :height: 150
    :tag: intermediate
 
+.. displayitem::
+   :header: Level 9: Develop reactive workflows
+   :description: Learn to develop reactive workflows. Lightning shines with reactive workflows.
+   :button_link: level_14.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
 .. raw:: html
 
         </div>
