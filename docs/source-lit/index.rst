@@ -75,6 +75,7 @@ Welcome to ⚡ Lightning Apps
    Run a server within a Lightning App <workflows/add_server/index>
    Run an App on the cloud <workflows/run_app_on_cloud/index>
    Run Apps on your cloud account (BYOC) <workflows/byoc/index>
+   Access your Apps in the cloud via SSH <workflows/ssh/index>
    Run work in parallel <workflows/run_work_in_parallel>
    Save files <glossary/storage/drive.rst>
    Share an app  <workflows/share_app>

@@ -107,6 +107,13 @@ Common Workflows
    :button_link: share_files_between_components.html
    :height: 180
 
+.. displayitem::
+   :header: Access your App via SSH on the cloud
+   :description: Learn how to get SSH access to your App
+   :col_css: col-md-4
+   :button_link: ssh/index.html
+   :height: 180
+
 
 .. raw:: html
 
