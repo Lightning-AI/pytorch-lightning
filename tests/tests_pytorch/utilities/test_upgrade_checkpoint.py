@@ -18,7 +18,7 @@ import pytest
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.migration import migrate_checkpoint
-from pytorch_lightning.utilities.migration.utils import _set_version, _get_version
+from pytorch_lightning.utilities.migration.utils import _get_version, _set_version
 
 
 @pytest.mark.parametrize(
@@ -38,7 +38,12 @@ from pytorch_lightning.utilities.migration.utils import _set_version, _get_versi
         ),
         (
             {"epoch": 1, "global_step": 23, "early_stop_callback_wait": 2, "early_stop_callback_patience": 4},
-            {"epoch": 1, "global_step": 23, "callbacks": {EarlyStopping: {"wait_count": 2, "patience": 4}}, "loops": ANY},
+            {
+                "epoch": 1,
+                "global_step": 23,
+                "callbacks": {EarlyStopping: {"wait_count": 2, "patience": 4}},
+                "loops": ANY,
+            },
         ),
     ],
 )
