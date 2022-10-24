@@ -6,6 +6,7 @@ from subprocess import Popen
 from typing import List, Optional, Tuple
 
 import click
+import psutil
 from lightning_utilities.core.imports import package_available
 
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
@@ -14,6 +15,11 @@ from lightning_app.utilities.enum import OpenAPITags
 from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.network import LightningClient
 
+_HOME = os.path.expanduser("~")
+_PPID = str(psutil.Process(os.getpid()).ppid())
+_LIGHTNING_CONNECTION = os.path.join(_HOME, ".lightning", "lightning_connection")
+_LIGHTNING_CONNECTION_FOLDER = os.path.join(_LIGHTNING_CONNECTION, _PPID)
+
 
 @click.argument("app_name_or_id", required=True)
 @click.option("-y", "--yes", required=False, is_flag=True, help="Whether to download the commands automatically.")
@@ -21,13 +27,12 @@ def connect(app_name_or_id: str, yes: bool = False):
     """Connect to a Lightning App."""
     from lightning_app.utilities.commands.base import _download_command
 
-    home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
+    _clean_lightning_connection()
 
-    if not os.path.exists(lightning_folder):
-        os.makedirs(lightning_folder)
+    if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
+        os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
 
-    connected_file = os.path.join(lightning_folder, "connect.txt")
+    connected_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "connect.txt")
 
     if os.path.exists(connected_file):
         with open(connected_file) as f:
@@ -52,7 +57,7 @@ def connect(app_name_or_id: str, yes: bool = False):
         if retriever.api_commands is None:
             raise Exception(f"The commands weren't found. Is your app {app_name_or_id} running ?")
 
-        commands_folder = os.path.join(lightning_folder, "commands")
+        commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
         if not os.path.exists(commands_folder):
             os.makedirs(commands_folder)
 
@@ -108,7 +113,7 @@ def connect(app_name_or_id: str, yes: bool = False):
             click.echo(" ")
 
         if yes:
-            commands_folder = os.path.join(lightning_folder, "commands")
+            commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
             if not os.path.exists(commands_folder):
                 os.makedirs(commands_folder)
 
@@ -145,15 +150,15 @@ def connect(app_name_or_id: str, yes: bool = False):
 
 def disconnect(logout: bool = False):
     """Disconnect from an App."""
-    home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-    connected_file = os.path.join(lightning_folder, "connect.txt")
+    _clean_lightning_connection()
+
+    connected_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "connect.txt")
     if os.path.exists(connected_file):
         with open(connected_file) as f:
             result = f.readlines()[0].replace("\n", "")
 
         os.remove(connected_file)
-        commands_folder = os.path.join(lightning_folder, "commands")
+        commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
         if os.path.exists(commands_folder):
             shutil.rmtree(commands_folder)
 
@@ -170,9 +175,7 @@ def disconnect(logout: bool = False):
 
 
 def _retrieve_connection_to_an_app() -> Tuple[Optional[str], Optional[str]]:
-    home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-    connected_file = os.path.join(lightning_folder, "connect.txt")
+    connected_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "connect.txt")
 
     if os.path.exists(connected_file):
         with open(connected_file) as f:
@@ -184,9 +187,7 @@ def _retrieve_connection_to_an_app() -> Tuple[Optional[str], Optional[str]]:
 
 
 def _get_commands_folder() -> str:
-    home = os.path.expanduser("~")
-    lightning_folder = os.path.join(home, ".lightning", "lightning_connection")
-    return os.path.join(lightning_folder, "commands")
+    return os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
 
 
 def _write_commands_metadata(api_commands):
@@ -241,7 +242,7 @@ def _install_missing_requirements(
     if requirements:
         missing_requirements = []
         for req in requirements:
-            if not package_available(req):
+            if not (package_available(req) or package_available(req.replace("-", "_"))):
                 missing_requirements.append(req)
 
         if missing_requirements:
@@ -265,3 +266,16 @@ def _install_missing_requirements(
                             f"{sys.executable} -m pip install {req}", shell=True, stdout=stdout, stderr=sys.stderr
                         ).wait()
                     print()
+
+
+def _clean_lightning_connection():
+    if not os.path.exists(_LIGHTNING_CONNECTION):
+        return
+
+    for ppid in os.listdir(_LIGHTNING_CONNECTION):
+        try:
+            psutil.Process(int(ppid))
+        except psutil.NoSuchProcess:
+            connection = os.path.join(_LIGHTNING_CONNECTION, str(ppid))
+            if os.path.exists(connection):
+                shutil.rmtree(connection)

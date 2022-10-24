@@ -20,11 +20,13 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PACKAGE_NAME: lite
   FREEZE_REQUIREMENTS: 1
 
-jobs:
+defaults:
+  run:
+    shell: bash
 
+jobs:
   lite-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
@@ -32,17 +34,20 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        python-version: ["3.7", "3.10"]  # minimum, maximum
+        pkg-name: ["lite"]  # TODO: add "LAI" # "LAI" installs the monolithic package
+        python-version: ["3.7", "3.10"]
         requires: ["oldest", "latest"]
         release: ["stable"]
         exclude:
           # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
+          - {python-version: "3.9", requires: "oldest"}
           - {python-version: "3.10", requires: "oldest"}
         include:
-          - {os: ubuntu-22.04, python-version: "3.10", release: "pre"}
+          #- {os: ubuntu-22.04, pkg-name: "LAI", python-version: "3.10", release: "pre"}
+          - {os: ubuntu-22.04, pkg-name: "lite", python-version: "3.10", release: "pre"}
 
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
     - uses: actions/checkout@v3
@@ -63,9 +68,24 @@ jobs:
         python .actions/assistant.py requirements_prune_pkgs  "--packages=[horovod]"
 
     - name: Set min. dependencies
-      if: matrix.requires == 'oldest'
+      if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
+
+    - name: switch PyTorch URL
+      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+
+    - name: Install package
+      env:
+        PACKAGE_NAME: ${{ matrix.pkg-name }}
+      run: |
+        pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+        pip list
+
+    - name: DocTests Lite
+      if: ${{ matrix.pkg-name != 'LAI' }}
+      working-directory: src
+      run: python -m pytest lightning_lite
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -77,20 +97,18 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Install dependencies
       run: |
-        url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e .[test] --upgrade --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
-      shell: bash
 
-    - name: DocTests Lite
-      working-directory: src
-      run: python -m pytest lightning_lite
+    - name: Adjust tests
+      if: ${{ matrix.pkg-name == 'LAI' }}
+      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
@@ -99,10 +117,13 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
+    - name: switch coverage scope
+      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_lite'))" >> $GITHUB_ENV
+
     - name: Testing Lite
       working-directory: tests/tests_lite
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source lightning_lite -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()
@@ -125,6 +146,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_lite/coverage.xml
-        flags: cpu,pytest,python${{ matrix.python-version }}
+        flags: ${COVERAGE_SCOPE},cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false

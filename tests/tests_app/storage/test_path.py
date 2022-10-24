@@ -12,7 +12,6 @@ import pytest
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage.path import (
-    _is_s3fs_available,
     artifacts_path,
     filesystem,
     is_lit_path,
@@ -24,6 +23,7 @@ from lightning_app.storage.requests import ExistsResponse, GetResponse
 from lightning_app.testing.helpers import EmptyWork, MockQueue, RunIf
 from lightning_app.utilities.app_helpers import LightningJSONEncoder
 from lightning_app.utilities.component import _context
+from lightning_app.utilities.imports import _is_s3fs_available
 
 
 def test_path_instantiation():
