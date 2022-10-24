@@ -121,7 +121,7 @@ def load_requirements(
         lines = [ln.strip() for ln in file.readlines()]
     reqs = [_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze) for ln in lines]
     # filter empty lines and containing @ which means redirect to some git/http
-    reqs = [str(req) for req in reqs if req and "@" not in req]
+    reqs = [str(req) for req in reqs if req and not any(c in req for c in ["@", "http:", "https:"])]
     return reqs
 
 
