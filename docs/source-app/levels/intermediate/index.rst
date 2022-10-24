@@ -5,7 +5,7 @@
    :hidden:
 
    run_on_aws_efficiently
-   level_9
+   debug_a_lightning_workflow
    level_10
    level_11
    level_12
@@ -39,9 +39,9 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 4: Debug a workflow
+   :header: Level 4: Debug a Lightning workflow
    :description: Learn to debug workflows.
-   :button_link: build_a_machine_learning_workflow.html
+   :button_link: debug_a_lightning_workflow.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
