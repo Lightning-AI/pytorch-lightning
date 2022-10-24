@@ -92,6 +92,12 @@ jobs:
         if: ${{ matrix.pkg-name == 'LAI' }}
         run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
 
+      - name: Adjust examples
+        if: ${{ matrix.pkg-name != 'LAI' }}
+        run: |
+          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning.app" --target_import="lightning_app"
+          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning" --target_import="lightning_app"
+
       - name: switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'lightning_app'))" >> $GITHUB_ENV
 
