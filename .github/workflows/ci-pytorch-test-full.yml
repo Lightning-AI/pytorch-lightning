@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["LAI", "pytorch"]  # the "LAI" is for installing monolithic package
+        pkg-name: ["pytorch"]  # TODO: add "LAI" # the "LAI" is for installing monolithic package
         python-version: ["3.8", "3.9", "3.10"]
         pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
         exclude:
