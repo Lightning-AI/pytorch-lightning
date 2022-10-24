@@ -1,0 +1,58 @@
+{
+  "vars": {
+    "_paths": {},
+    "_layout": [],
+    "text": "Hello app that contains structure!"
+  },
+  "calls": {},
+  "flows": {},
+  "works": {},
+  "structures": {
+    "components_dict": {
+      "works": {
+        "dynamic_work_1": {
+          "vars": {
+            "text": "Hello dynamic work in structure!",
+            "_paths": {},
+            "_cloud_compute": {
+              "type": "__cloud_compute__",
+              "name": "default",
+              "disk_size": 0,
+              "clusters": null,
+              "preemptible": false,
+              "wait_timeout": null,
+              "idle_timeout": null,
+              "shm_size": 0,
+              "mounts": null,
+              "_internal_id": "default"
+            },
+            "_restarting": false,
+            "_url": "",
+            "_host": "127.0.0.1",
+            "_future_url": "",
+            "_port": null,
+            "_internal_ip": ""
+          },
+          "calls": {
+            "latest_call_hash": "fe3fa0f",
+            "fe3fa0f": {
+              "statuses": [
+                {
+                  "stage": "succeeded",
+                  "timestamp": 1666365213
+                }
+              ],
+              "ret": null
+            }
+          },
+          "changes": {}
+        }
+      },
+      "flows": {}
+    }
+  },
+  "changes": {},
+  "app_state": {
+    "stage": "running"
+  }
+}

@@ -137,4 +137,7 @@ class Dict(t.Dict[str, T]):
         for work_key, work_state in state["works"].items():
             self[work_key].set_state(work_state)
         for child_key, child_state in state["flows"].items():
-            self[child_key].set_state(child_state)
+            child_flow_state = state["flows"][child_key]
+            self[child_key].load_state_dict(
+                child_flow_state, {**child_flow_state["flows"], **child_flow_state["works"]}, strict=True
+            )

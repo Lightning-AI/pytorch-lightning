@@ -759,6 +759,10 @@ class LightningFlow:
             elif strict:
                 raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")
 
+        # set state of the structures
+        for structure, state in flow_state["structures"].items():
+            getattr(self, structure).set_state(state)
+
     def should_save_checkpoint(self):
         """Whether the flow should save a checkpoint. Override this method to customize the checkpointing behavior.
         This method wil be called as part of the ``run`` method by default.

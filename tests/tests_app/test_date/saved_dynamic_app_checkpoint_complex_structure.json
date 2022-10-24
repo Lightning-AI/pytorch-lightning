@@ -1,0 +1,70 @@
+{
+  "vars": {
+    "_paths": {},
+    "_layout": [],
+    "text": "Hello app that contains complex structure!"
+  },
+  "calls": {},
+  "flows": {},
+  "works": {},
+  "structures": {
+    "components_dict": {
+      "works": {},
+      "flows": {
+        "dynamic_flow_with_work": {
+          "vars": {
+            "_paths": {},
+            "_layout": {},
+            "text": "Hello dynamic Flow with dynamic work in a structure!"
+          },
+          "calls": {},
+          "flows": {},
+          "works": {
+            "work_in_flow": {
+              "vars": {
+                "_paths": {},
+                "_url": "",
+                "_port": null,
+                "text": "Hello dynamic work in a dynamic structure!",
+                "_internal_ip": "",
+                "_host": "127.0.0.1",
+                "_future_url": "",
+                "_restarting": false,
+                "_cloud_compute": {
+                  "type": "__cloud_compute__",
+                  "name": "default",
+                  "disk_size": 0,
+                  "clusters": null,
+                  "preemptible": false,
+                  "wait_timeout": null,
+                  "idle_timeout": null,
+                  "shm_size": 0,
+                  "mounts": null,
+                  "_internal_id": "default"
+                }
+              },
+              "calls": {
+                "latest_call_hash": "fe3fa0f",
+                "fe3fa0f": {
+                  "statuses": [
+                    {
+                      "stage": "pending",
+                      "timestamp": 1666611000.755585
+                    }
+                  ]
+                }
+              },
+              "changes": {}
+            }
+          },
+          "structures": {},
+          "changes": {}
+        }
+      }
+    }
+  },
+  "changes": {},
+  "app_state": {
+    "stage": "running"
+  }
+}

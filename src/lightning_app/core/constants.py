@@ -55,15 +55,17 @@ ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 
 # EXPERIMENTAL: ENV VARIABLES TO ENABLE MULTIPLE WORKS IN THE SAME MACHINE
 DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "50"))
-ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(
-    int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0"))
-)  # Note: This is disabled for the time being.
-ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
-    int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", "0"))
-)  # This isn't used in the cloud yet.
-
 
 DEBUG: bool = lightning_cloud.env.DEBUG
 DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))
 
+
+######### EXPERIMENTAL FEATURES ENABLED BY ENV VARS #########
+
+ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
+    int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", "0"))
+)  # This isn't used in the cloud yet.
+ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(
+    int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0"))
+)  # Note: This is disabled for the time being.
 ENABLE_APP_CHECKPOINT = bool(int(os.getenv("ENABLE_APP_CHECKPOINT", "0")))

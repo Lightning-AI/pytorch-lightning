@@ -1,11 +1,28 @@
 {
   "vars": {
-    "text": "Hello World!",
     "_paths": {},
-    "_layout": []
+    "text": "Hello World!",
+    "_layout": [
+      {
+        "name": "flow_component",
+        "content": "root.flow_component"
+      }
+    ]
   },
   "calls": {},
-  "flows": {},
+  "flows": {
+    "flow_component": {
+      "vars": {
+        "_paths": {},
+        "_layout": []
+      },
+      "calls": {},
+      "flows": {},
+      "works": {},
+      "structures": {},
+      "changes": {}
+    }
+  },
   "works": {},
   "structures": {},
   "changes": {},

@@ -419,7 +419,7 @@ class Logger:
 
 def _state_dict(flow: "LightningFlow"):
     state = {}
-    flows = [flow] + flow.get_all_children()
+    flows = [flow] + list(flow.flows.values())
     for f in flows:
         state[f.name] = f.state_dict()
     for w in flow.works():

@@ -399,9 +399,6 @@ class LightningApp:
         self._update_layout()
         self.maybe_apply_changes()
 
-        if self.checkpointing and self._should_snapshot():
-            self._dump_checkpoint()
-
         if self.stage == AppStage.BLOCKING:
             return done
 
