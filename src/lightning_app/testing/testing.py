@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import os
 import shutil
@@ -475,7 +476,6 @@ def delete_cloud_lightning_apps():
 
     PR_NUMBER and TEST_APP_NAME are environment variables.
     """
-    import datetime
 
     client = LightningClient()
 
