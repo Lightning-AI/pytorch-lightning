@@ -5,12 +5,11 @@
    :hidden:
 
    lightning_in_15_minutes
-   level_2
-   level_3
-   level_4
-   level_5
-   level_6
-   level_7
+   build_a_machine_learning_workflow
+   train_pytorch_on_the_cloud
+   deploy_ai_model_api
+   run_jupyter_notebook_on_the_cloud
+   create_a_model_demo
 
 ############
 Basic skills
@@ -40,7 +39,7 @@ Learn to run python code on the cloud and build workflows (Lightning Apps). Ever
 .. displayitem::
    :header: Level 2: Build a workflow
    :description: Learn to run multiple python functions.
-   :button_link: level_2.html
+   :button_link: build_a_machine_learning_workflow.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
@@ -69,7 +68,7 @@ Once you've finished levels 1 and 2, try to build the following examples:
 .. displayitem::
    :header: Example: Train PyTorch on the cloud
    :description: Train a PyTorch model in single or multi-node on the cloud
-   :button_link: level_3.html
+   :button_link: train_pytorch_on_the_cloud.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
@@ -77,7 +76,7 @@ Once you've finished levels 1 and 2, try to build the following examples:
 .. displayitem::
    :header: Example: Deploy a model API
    :description: Deploy a model behind a load-balanced API.
-   :button_link: level_4.html
+   :button_link: deploy_ai_model_api.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
@@ -85,7 +84,7 @@ Once you've finished levels 1 and 2, try to build the following examples:
 .. displayitem::
    :header: Example: Develop a Jupyter Notebook component
    :description: Develop a LightningWork that runs a notebook on the cloud.
-   :button_link: level_5.html
+   :button_link: run_jupyter_notebook_on_the_cloud.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
@@ -93,7 +92,7 @@ Once you've finished levels 1 and 2, try to build the following examples:
 .. displayitem::
    :header: Example: Create a model demo
    :description: Demo POCs and MVPs which can be shared with a public web user interface.
-   :button_link: level_6.html
+   :button_link: create_a_model_demo.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
