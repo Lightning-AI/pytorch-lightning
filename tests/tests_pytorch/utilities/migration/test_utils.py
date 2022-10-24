@@ -11,9 +11,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
+
+import pytest
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.migration import migrate_checkpoint
+from lightning_lite.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
+import sys
+
+from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
+
+
+def test_patch_legacy_argparse_utils():
+    with pl_legacy_patch():
+        from pytorch_lightning.utilities import argparse_utils
+
+        assert callable(argparse_utils._gpus_arg_default)
+        assert "pytorch_lightning.utilities.argparse_utils" in sys.modules
+
+    assert "pytorch_lightning.utilities.argparse_utils" not in sys.modules
+
+
+def test_patch_legacy_gpus_arg_default():
+    with pl_legacy_patch():
+        from pytorch_lightning.utilities.argparse import _gpus_arg_default
+
+        assert callable(_gpus_arg_default)
+    assert not hasattr(pl.utilities.argparse, "_gpus_arg_default")
+    assert not hasattr(pl.utilities.argparse, "_gpus_arg_default")
 
 
 def test_migrate_checkpoint(monkeypatch):
@@ -22,19 +48,34 @@ def test_migrate_checkpoint(monkeypatch):
     old_checkpoint = {"pytorch-lightning_version": "0.0.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == ["one", "two", "three", "four"]
-    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+    assert new_checkpoint == old_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
 
     # A checkpoint that is newer, but not the newest
     old_checkpoint = {"pytorch-lightning_version": "1.0.3", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == ["four"]
-    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+    assert new_checkpoint == old_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
 
     # A checkpoint newer than any migration point in the index
     old_checkpoint = {"pytorch-lightning_version": "2.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == []
-    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+    assert new_checkpoint == old_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+
+
+def test_migrate_checkpoint_too_new():
+    """Test checkpoint migration is a no-op with a warning when attempting to migrate a checkpoint from newer
+    version of Lightning than installed."""
+    super_new_checkpoint = {"pytorch-lightning_version": "99.0.0", "content": 123}
+    with pytest.warns(
+        PossibleUserWarning,
+        match=f"v99.0.0, which is newer than your current Lightning version: v{pl.__version__}"
+    ):
+        new_checkpoint, migrations = migrate_checkpoint(super_new_checkpoint.copy())
+
+    # no version modification
+    assert not migrations
+    assert new_checkpoint == super_new_checkpoint
 
 
 def _run_simple_migration(monkeypatch, old_checkpoint):

@@ -18,8 +18,11 @@ from distutils.version import LooseVersion
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
+from lightning_utilities.core.rank_zero import rank_zero_warn
+
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.utilities.migration.migrations import migration_index
 
 _log = logging.getLogger(__name__)
@@ -27,7 +30,21 @@ _CHECKPOINT = Dict[str, Any]
 
 
 def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, List[str]]]:
-    """Applies Lightning version migrations to a checkpoint dictionary."""
+    """Applies Lightning version migrations to a checkpoint dictionary.
+
+    Note:
+        The migration happens in-place. We specifically avoid copying the dict to avoid memory spikes for large
+        checkpoints and objects that do not support being deep-copied.
+    """
+    ckpt_version = _get_version(checkpoint)
+    if LooseVersion(ckpt_version) > LooseVersion(pl.__version__):
+        rank_zero_warn(
+            f"The loaded checkpoint was produced with Lightning v{ckpt_version}, which is newer than your current"
+            f" Lightning version: v{pl.__version__}",
+            category=PossibleUserWarning,
+        )
+        return checkpoint, {}
+
     index = migration_index()
     applied_migrations = {}
     for migration_version, migration_functions in index.items():
