@@ -27,10 +27,10 @@ def find_free_network_port() -> int:
     return port
 
 
-_CONNECTION_RETRY_TOTAL = 5
+_CONNECTION_RETRY_TOTAL = 2880
 _CONNECTION_RETRY_BACKOFF_FACTOR = 0.5
-_DEFAULT_BACKOFF_MAX = 5 * 60
-_DEFAULT_REQUEST_TIMEOUT = 5
+_DEFAULT_BACKOFF_MAX = 5 * 60  # seconds
+_DEFAULT_REQUEST_TIMEOUT = 30  # seconds
 
 
 def _configure_session() -> Session:
@@ -128,7 +128,7 @@ class LightningClient(GridRestClient, metaclass=_MethodsRetryWrapperMeta):
         super().__init__(api_client=create_swagger_client())
 
 
-class TimeoutHTTPAdapter(HTTPAdapter):
+class CustomRetryAdapter(HTTPAdapter):
     def __init__(self, *args, **kwargs):
         self.timeout = kwargs.pop("timeout", _DEFAULT_REQUEST_TIMEOUT)
         super().__init__(*args, **kwargs)
@@ -159,11 +159,6 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 class HTTPClient:
     """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
     automatically.
-
-    TODO - exception handling on
-        1. Persistent errors after retry (we'll retry for 120 sec)
-        2. Other HTTP errors which are not handled by retry (we probably shouldn't handle it)
-        3. Connection Refused Error (we should retry for ever in this case as well)
     """
 
     def __init__(
@@ -172,6 +167,8 @@ class HTTPClient:
         self.base_url = base_url
         retry_strategy = Retry(
             # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
+            # but the the maximum wait time is 120 secs. By setting a large value (2880), we'll make sure clients
+            # are going to be alive for a very long time (~ 4 days) but retries every 120 seconds
             total=_CONNECTION_RETRY_TOTAL,
             backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
             status_forcelist=[
@@ -183,7 +180,7 @@ class HTTPClient:
                 504,  # Gateway Timeout
             ],
         )
-        adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
+        adapter = CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
 
         self.session.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}
