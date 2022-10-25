@@ -167,7 +167,7 @@ jobs:
 
     - name: switch coverage scope
       run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
-      
+
     - name: Setup upterm session
       uses: lhotari/action-upterm@v1
       if: matrix.pkg-name == 'lightning'
