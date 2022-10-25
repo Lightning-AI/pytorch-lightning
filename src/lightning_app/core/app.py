@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
-from lightning_app import _console
+from lightning_app import _console, CloudCompute
 from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
 from lightning_app.core.constants import (
     DEBUG_ENABLED,
@@ -50,7 +50,7 @@ class LightningApp:
     def __init__(
         self,
         root: Union["LightningFlow", "LightningWork"],
-        flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
+        flow_cloud_compute: Optional["CloudCompute"] = None,
         debug: bool = False,
         info: frontend.AppInfo = None,
         root_path: str = "",
@@ -102,7 +102,7 @@ class LightningApp:
 
         _validate_root_flow(root)
         self._root = root
-        self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()
+        self.flow_cloud_compute = flow_cloud_compute or CloudCompute()
 
         # queues definition.
         self.delta_queue: Optional[BaseQueue] = None
