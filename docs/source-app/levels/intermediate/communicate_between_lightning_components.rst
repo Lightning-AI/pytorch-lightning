@@ -7,10 +7,10 @@ Level 7: Communicate between Lightning Components
 
 ----
 
-*****************************
-Communicate from Work to Flow
-*****************************
-In this guide, we'll use the following toy app to illustrate the ideas:
+***********
+The toy app
+***********
+In this guide, we'll use the following example:
 
 .. code:: python
 
@@ -36,12 +36,21 @@ In this guide, we'll use the following toy app to illustrate the ideas:
             count = self.counter.count
             print(count)
 
+    app = L.LightningApp(LitWorkflow())
 
-**************************
-Why you need communication
-**************************
-When two works are running 
+----
 
+*****************************
+Communicate from Flow to Work
+*****************************
+ABC
+
+----
+
+**********************************
+Communicate between LightningWorks
+**********************************
+Works cannot communicate directly between each other. Instead, a shared parent Flow must manage the communication.
 
 .. code:: python
 
@@ -57,16 +66,12 @@ When two works are running
             for i in range(int(1000000)):
                 self.count += 1
 
-    class PrintingWork(L.LightningWork):
-        def run(self, message):
-            print(message)
-
     class LitWorkflow(L.LightningFlow):
         def __init__(self) -> None:
             super().__init__()
             self.counter = CountingWork(cloud_compute=L.CloudCompute('cpu'))
-            self.printer = PrintingWork(cloud_compute=L.CloudCompute('gpu'))
 
         def run(self):
             self.counter.run()
-            self.work_B.run("running code B on a GPU machine")
+            count = self.counter.count
+            print(count)
