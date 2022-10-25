@@ -10,3 +10,4 @@ arrow>=1.2.0, <1.2.4
 lightning-utilities==0.3.*
 beautifulsoup4<=4.8.2
 psutil<=5.9.2
+inquirer>=2.10.0
