@@ -139,11 +139,10 @@ class TorchCollective(Collective):
         return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
-        non_group_member = self.group == dist.GroupMember.NON_GROUP_MEMBER
         super().teardown()  # will destroy its own group
         # try to destroy the default group. this should only be done by a group member to avoid race conditions,
         # and only if the class is managing it
-        if not non_group_member and TorchCollective.manages_default_group:
+        if TorchCollective.manages_default_group:
             default_group = dist.GroupMember.WORLD
             if default_group is not None:  # not destroyed already
                 group_map = dist.distributed_c10d._pg_map
