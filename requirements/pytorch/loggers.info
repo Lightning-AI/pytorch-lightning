@@ -1,8 +1,5 @@
-# NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
-#  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
-
-# all supported loggers
-neptune-client>=0.10.0, <0.16.10
-comet-ml>=3.1.12, <3.31.16
-mlflow>=1.0.0, <1.29.0
-wandb>=0.10.22, <0.13.4
+# all supported loggers. this list is here as a reference, but they are not installed in CI
+neptune-client
+comet-ml
+mlflow>
+wandb>
