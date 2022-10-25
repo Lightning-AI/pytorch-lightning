@@ -213,7 +213,7 @@ def test_dist_backend_accelerator_mapping(cuda_count_0):
     assert trainer.strategy.local_rank == 0
 
 
-def test_ipython_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
+def test_interactive_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
@@ -229,21 +229,21 @@ def test_ipython_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypat
         Trainer(strategy="dp")
 
 
-def test_ipython_compatible_dp_strategy_gpu(cuda_count_2, monkeypatch):
+def test_interactive_compatible_dp_strategy_gpu(cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="dp", accelerator="gpu")
     assert trainer.strategy.launcher is None
 
 
 @RunIf(skip_windows=True)
-def test_ipython_compatible_strategy_tpu(tpu_available, monkeypatch):
+def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
 
 
 @RunIf(skip_windows=True)
-def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
+def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="ddp_fork", accelerator="cpu")
     assert trainer.strategy.launcher.is_interactive_compatible
