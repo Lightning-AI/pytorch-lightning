@@ -22,7 +22,7 @@ APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
 APP_SERVER_PORT = 7501
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 
-CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
+CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
 WARNING_QUEUE_SIZE = 1000
 # different flag because queue debug can be very noisy, and almost always not useful unless debugging the queue itself.
 QUEUE_DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_QUEUE_DEBUG_ENABLED", "0")))
