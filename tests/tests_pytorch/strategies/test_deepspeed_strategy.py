@@ -468,10 +468,16 @@ def test_deepspeed_multigpu(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
+
+    with mock.patch.object(
+        model, "configure_optimizers", wraps=model.configure_optimizers
+    ) as mock_configure_optimizers:
+        trainer.test(model)
+    assert mock_configure_optimizers.call_count == 0
+
     with mock.patch("deepspeed.init_distributed", wraps=deepspeed.init_distributed) as mock_deepspeed_distributed:
         trainer.fit(model)
     mock_deepspeed_distributed.assert_called_once()
-    trainer.test(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
@@ -655,8 +661,8 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    trainer.fit(model)
     trainer.test(model)
+    trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
@@ -676,8 +682,8 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    trainer.fit(model)
     trainer.test(model)
+    trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
