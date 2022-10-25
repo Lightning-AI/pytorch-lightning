@@ -68,7 +68,7 @@ def main() -> None:
 
                 click.echo(" ")
 
-                if len(sys.argv) > 1 and "help" in sys.argv[1] or len(sys.argv) == 1:
+                if (len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]) or len(sys.argv) == 1:
                     _list_app_commands()
                 else:
                     _run_app_command(app_name, app_id)
