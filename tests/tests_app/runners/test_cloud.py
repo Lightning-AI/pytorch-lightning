@@ -837,7 +837,7 @@ def test_project_has_sufficient_credits():
         assert cloud_runtime._project_has_sufficient_credits(project) is result
 
 
-@mock.patch("lightning_app.runners.cloud.constants", MagicMock(ENABLE_APP_CHECKPOINT=True))
+@mock.patch("lightning_app.core.constants", MagicMock(ENABLE_APP_CHECKPOINT=True))
 @mock.patch("lightning_app.runners.cloud.AppConfig")
 @mock.patch("lightning_app.runners.cloud._get_project", MagicMock())
 @mock.patch("lightning_app.runners.cloud.LocalSourceCodeDir", MagicMock())

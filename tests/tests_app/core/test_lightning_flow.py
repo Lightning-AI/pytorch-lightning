@@ -19,8 +19,6 @@ from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
     _LightningAppRef,
-    _load_state_dict,
-    _state_dict,
 )
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.exceptions import ExitAppException

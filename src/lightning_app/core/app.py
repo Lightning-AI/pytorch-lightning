@@ -388,6 +388,10 @@ class LightningApp:
         self._update_layout()
         self.maybe_apply_changes()
 
+        # TODO: This should be removed
+        if self.checkpointing and self._should_snapshot():
+            self._dump_checkpoint()
+
         if self.stage == AppStage.BLOCKING:
             return done
 
@@ -413,10 +417,6 @@ class LightningApp:
             self.stage = AppStage.STOPPING
 
         self._last_run_time = time() - t0
-
-        # TODO: This should be removed
-        if self.checkpointing and self._should_snapshot():
-            self._dump_checkpoint()
 
         if self.root.should_save_checkpoint():
             self._save_checkpoint()
