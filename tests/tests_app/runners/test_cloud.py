@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import (
     Body8,
-    IdGetBody,
     Gridv1ImageSpec,
+    IdGetBody,
     V1BuildSpec,
     V1DependencyFileInfo,
     V1Drive,
@@ -26,9 +26,10 @@ from lightning_cloud.openapi import (
     V1PackageManager,
     V1ProjectClusterBinding,
     V1PythonDependencyInfo,
+    V1QueueServerType,
     V1SourceType,
     V1UserRequestedComputeConfig,
-    V1Work, V1QueueServerType,
+    V1Work,
 )
 
 from lightning_app import LightningApp, LightningWork
