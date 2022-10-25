@@ -16,10 +16,7 @@ from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
-from lightning_app.utilities.app_helpers import (
-    _delta_to_app_state_delta,
-    _LightningAppRef,
-)
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.exceptions import ExitAppException
 
