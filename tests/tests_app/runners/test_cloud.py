@@ -341,7 +341,8 @@ class TestAppCreationClient:
             name=mock.ANY,
             queue_server_type=V1QueueServerType.UNSPECIFIED,
         )
-        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+        client = cloud_runtime.backend.client
+        client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
             project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=body
         )
 
@@ -356,7 +357,8 @@ class TestAppCreationClient:
             name=mock.ANY,
             queue_server_type=V1QueueServerType.HTTP,
         )
-        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+        client = cloud_runtime.backend.client
+        client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
             project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=body
         )
 
