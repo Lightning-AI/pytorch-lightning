@@ -110,7 +110,8 @@ To connect to an app flow use:
 
 .. code:: bash
 
-   $ lightning ssh --app-id <your-app-id>
+   $ lightning list apps
+   $ lightning ssh --app-id <your-app-id> # taken from previous app listing
 
 To connect to a LightningWork component use:
 
