@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 
+### Fixed
+
+- Made checkpointing on train epoch end condition dynamic ([#15300](https://github.com/Lightning-AI/lightning/pull/15300))
+
+
 
 
 ## [1.8.0] - 2022-MM-DD
