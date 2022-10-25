@@ -85,7 +85,7 @@ class APIRefresher(Thread):
 
     def run_once(self):
         # This queue collects the state and the server responses.
-        for item in self.api_queue.get_all(timeout=0):
+        for item in self.api_queue.get_all(timeout=0.05):
             with lock:
                 if isinstance(item, dict):
                     global_app_state_store.set_app_state(TEST_SESSION_UUID, item)

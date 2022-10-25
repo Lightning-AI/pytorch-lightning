@@ -1,3 +1,4 @@
+import base64
 import multiprocessing
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
@@ -312,7 +313,7 @@ class RedisQueue(BaseQueue):
 
     def get_all(self, timeout: float):
         time.sleep(timeout)
-        return self.redis.lpop(self.name, BATCH_POP_SIZE)
+        return [pickle.loads(item) for item in self.redis.lpop(self.name, BATCH_POP_SIZE)]
 
     def clear(self) -> None:
         """Clear all elements in the queue."""
@@ -412,10 +413,10 @@ class HTTPQueue(BaseQueue):
 
     def get_all(self, timeout: float):
         time.sleep(timeout)
-        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "lrange"})
+        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popAll"})
         if resp.status_code == 204:
-            raise queue.Empty
-        return pickle.loads(resp.content)
+            return []
+        return [pickle.loads(base64.b64decode(item)) for item in resp.json()]
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name):
