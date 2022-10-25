@@ -293,9 +293,8 @@ class CloudRuntime(Runtime):
             queue_server_type = V1QueueServerType.UNSPECIFIED
             if CLOUD_QUEUE_TYPE == "http":
                 queue_server_type = V1QueueServerType.HTTP
-            else if CLOUD_QUEUE_TYPE == "redis":
+            elif CLOUD_QUEUE_TYPE == "redis":
                 queue_server_type = V1QueueServerType.REDIS
-
 
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]

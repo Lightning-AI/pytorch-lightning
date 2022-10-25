@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import (
     Body8,
+    IdGetBody,
     Gridv1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
@@ -27,7 +28,7 @@ from lightning_cloud.openapi import (
     V1PythonDependencyInfo,
     V1SourceType,
     V1UserRequestedComputeConfig,
-    V1Work,
+    V1Work, V1QueueServerType,
 )
 
 from lightning_app import LightningApp, LightningWork
@@ -303,6 +304,60 @@ class TestAppCreationClient:
             mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
                 project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
+
+    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
+    def test_call_with_queue_server_type_specified(self, lightningapps, monkeypatch, tmpdir):
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+        )
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
+        app = mock.MagicMock()
+        app.flows = []
+        app.frontend = {}
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
+
+        # without requirements file
+        # setting is_file to False so requirements.txt existence check will return False
+        monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
+        monkeypatch.setattr(cloud, "Path", Path)
+        cloud_runtime.dispatch()
+
+        # calling with no env variable set
+        body = IdGetBody(
+            cluster_id=None,
+            desired_state=V1LightningappInstanceState.STOPPED,
+            env=[],
+            name=mock.ANY,
+            queue_server_type=V1QueueServerType.UNSPECIFIED,
+        )
+        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+            project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=body
+        )
+
+        # calling with env variable set to http
+        monkeypatch.setattr(cloud, "CLOUD_QUEUE_TYPE", "http")
+        cloud_runtime.backend.client.reset_mock()
+        cloud_runtime.dispatch()
+        body = IdGetBody(
+            cluster_id=None,
+            desired_state=V1LightningappInstanceState.STOPPED,
+            env=[],
+            name=mock.ANY,
+            queue_server_type=V1QueueServerType.HTTP,
+        )
+        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+            project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=body
+        )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
