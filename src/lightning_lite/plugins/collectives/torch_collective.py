@@ -140,8 +140,7 @@ class TorchCollective(Collective):
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
         super().teardown()  # will destroy its own group
-        # try to destroy the default group. this should only be done by a group member to avoid race conditions,
-        # and only if the class is managing it
+        # try to destroy the default group only if the class is managing it
         if TorchCollective.manages_default_group:
             default_group = dist.GroupMember.WORLD
             if default_group is not None:  # not destroyed already
