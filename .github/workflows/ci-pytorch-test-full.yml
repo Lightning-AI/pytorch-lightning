@@ -36,34 +36,52 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["pytorch"]   # TODO: add "LAI" # "LAI" installs the monolithic package
-        python-version: ["3.8", "3.9", "3.10"]
-        pytorch-version: ["1.9", "1.10", "1.11", "1.12"]
-        exclude:
-          - {os: "windows-2022", python-version: "3.8"}
-          - {os: "windows-2022", python-version: "3.10"}
-          - {os: "macOS-11", python-version: "3.9"}
-          - {pytorch-version: "1.9", python-version: "3.9"}
-          - {pytorch-version: "1.9", python-version: "3.10"}
-          - {pytorch-version: "1.10", python-version: "3.10"}
-          - {pytorch-version: "1.11", python-version: "3.7"}
-          - {pytorch-version: "1.11", python-version: "3.8"}
-          - {pytorch-version: "1.11", python-version: "3.9"}
-          - {pytorch-version: "1.12", python-version: "3.7"}
-          - {pytorch-version: "1.12", python-version: "3.8"}
-          - {pytorch-version: "1.12", python-version: "3.9"}
         include:
-          # PT is set for sanity check
-          #- {os: "macos-11", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "macos-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          #- {os: "ubuntu-20.04", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          # standalone tests
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.10"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.9"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.10"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.9"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.9"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.9"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.9"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.9"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.10"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.9"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.10"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.9"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.9"}
+          # "oldest" versions tests, only on minimum Python
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          #- {os: "windows-2022", pkg-name: "LAI", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          # close FUTURE
-          #- {os: "ubuntu-20.04", pkg-name: "LAI", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
+          # release-candidate tests, mixed Python versions
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
 
     timeout-minutes: 50
 
