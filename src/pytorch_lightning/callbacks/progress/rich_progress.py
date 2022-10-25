@@ -26,7 +26,7 @@ _RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
-    from rich.console import RenderableType, Console
+    from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar
     from rich.style import Style
