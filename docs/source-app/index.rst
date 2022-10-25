@@ -220,6 +220,7 @@ Keep Learning
    Add a web link  <workflows/add_web_link>
    Add encrypted secrets <glossary/secrets>
    Arrange app tabs <workflows/arrange_tabs/index>
+   Debug cloud apps via SSH <workflows/ssh/index>
    Develop a Command Line Interface (CLI) <workflows/build_command_line_interface/index>
    Develop a Lightning App <workflows/build_lightning_app/index>
    Develop a Lightning Component <workflows/build_lightning_component/index>
@@ -231,7 +232,6 @@ Keep Learning
    Run a server within a Lightning App <workflows/add_server/index>
    Run an App on the cloud <workflows/run_app_on_cloud/index>
    Run Apps on your cloud account (BYOC) <workflows/byoc/index>
-   Access your Apps in the cloud via SSH <workflows/ssh/index>
    Run work in parallel <workflows/run_work_in_parallel>
    Save files <glossary/storage/drive.rst>
    Share an app  <workflows/share_app>

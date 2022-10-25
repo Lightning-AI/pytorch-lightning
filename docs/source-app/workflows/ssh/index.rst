@@ -1,6 +1,6 @@
 
 #################################
-Access your Apps via SSH
+Debug cloud apps via SSH
 #################################
 
 **Audience:** Users who want to debug their Flow and Work in a the runtime environment.
