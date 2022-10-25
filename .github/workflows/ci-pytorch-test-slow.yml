@@ -15,7 +15,7 @@ on:
       - "setup.cfg"  # includes pytest config
       - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "tests/tests_lite/**"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -29,6 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
+        # TODO: package parametrization
         # same config as '.azure-pipelines/gpu-tests-pytorch.yml'
         python-version: ["3.7"]
         pytorch-version: ["1.11"]
@@ -87,12 +88,11 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: success()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_pytorch/coverage.xml
-        flags: cpu,pytest,torch${{ matrix.pytorch-version }}
+        flags: cpu,pytest-slow,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

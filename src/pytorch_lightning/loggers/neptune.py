@@ -151,6 +151,7 @@ class NeptuneLogger(Logger):
     You can also pass ``neptune_run_kwargs`` to specify the run in the greater detail, like ``tags`` or ``description``:
 
     .. testcode::
+        :skipif: not _NEPTUNE_AVAILABLE
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
@@ -320,7 +321,7 @@ class NeptuneLogger(Logger):
         self.__dict__ = state
         self._run_instance = neptune.init(**self._neptune_init_args)
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
@@ -350,7 +351,7 @@ class NeptuneLogger(Logger):
         """
         return self.run
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def run(self) -> Run:
         if not self._run_instance:

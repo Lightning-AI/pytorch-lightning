@@ -6,11 +6,14 @@ import pytest
 
 from lightning_app import LightningApp
 from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import BuildConfig, LightningWork, LightningWorkException
+from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
+from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.exceptions import LightningWorkException
+from lightning_app.utilities.packaging.build_config import BuildConfig
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
@@ -327,3 +330,20 @@ def test_work_local_build_config_provided():
 
     w = Work()
     w.run()
+
+
+class WorkCounter(LightningWork):
+    def run(self):
+        pass
+
+
+class LightningTestAppWithWork(LightningTestApp):
+    def on_before_run_once(self):
+        if self.root.work.has_succeeded:
+            return True
+        return super().on_before_run_once()
+
+
+def test_lightning_app_with_work():
+    app = LightningTestAppWithWork(WorkCounter())
+    MultiProcessRuntime(app, start_server=False).dispatch()

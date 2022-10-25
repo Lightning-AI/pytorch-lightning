@@ -41,16 +41,16 @@ logger = Logger(__name__)
 
 def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = False) -> str:
     if runtime_type == RuntimeType.CLOUD:
-        lightning_app: Externalv1LightningappInstance = args[0]
+        lit_app: Externalv1LightningappInstance = args[0]
         action = "?action=add_credits" if need_credits else ""
-        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}{action}"
+        return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
     else:
         return "http://127.0.0.1:7501/view"
 
 
 def main() -> None:
     # 1: Handle connection to a Lightning App.
-    if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect"):
+    if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
         _main()
     else:
         # 2: Collect the connection a Lightning App.
@@ -62,14 +62,19 @@ def main() -> None:
                 _main()
             else:
                 if is_local_app:
-                    click.echo("You are connected to the local Lightning App.")
+                    message = "You are connected to the local Lightning App."
                 else:
-                    click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+                    message = f"You are connected to the cloud Lightning App: {app_name}."
 
-                if "help" in sys.argv[1]:
+                click.echo(" ")
+
+                if (len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]) or len(sys.argv) == 1:
                     _list_app_commands()
                 else:
                     _run_app_command(app_name, app_id)
+
+                click.echo()
+                click.echo(message + " Return to the primary CLI with `lightning disconnect`.")
         else:
             _main()
 

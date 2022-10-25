@@ -3,8 +3,8 @@ import sys
 
 from tests_app import _PROJECT_ROOT
 
-from lightning_app import BuildConfig
 from lightning_app.testing import application_testing, LightningTestApp
+from lightning_app.utilities.packaging.build_config import BuildConfig
 
 EXTRAS_ARGS = ["--blocking", "False", "--multiprocess", "--open-ui", "False"]
 
@@ -27,7 +27,7 @@ def test_build_config_requirements_provided():
     assert spec.requirements == [
         "dask",
         "pandas",
-        "pytorch_lightning==1.5.9",
+        "pytorch_" + "lightning==1.5.9",  # ugly hack due to replacing `pytorch_lightning string`
         "git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0",
     ]
     assert spec == BuildConfig.from_dict(spec.to_dict())
@@ -47,13 +47,15 @@ def test_build_config_invalid_requirements():
 def test_build_config_dockerfile_provided():
     spec = BuildConfig(dockerfile="./projects/Dockerfile.cpu")
     assert not spec.requirements
-    assert "pytorchlightning/pytorch_lightning" in spec.dockerfile[0]
+    # ugly hack due to replacing `pytorch_lightning string
+    assert "pytorchlightning/pytorch_" + "lightning" in spec.dockerfile[0]
 
 
 class DockerfileLightningTestApp(LightningTestApp):
     def on_after_run_once(self):
         print(self.root.work.local_build_config.dockerfile)
-        assert "pytorchlightning/pytorch_lightning" in self.root.work.local_build_config.dockerfile[0]
+        # ugly hack due to replacing `pytorch_lightning string
+        assert "pytorchlightning/pytorch_" + "lightning" in self.root.work.local_build_config.dockerfile[0]
         return super().on_after_run_once()
 
 
@@ -68,7 +70,7 @@ class RequirementsLightningTestApp(LightningTestApp):
         assert self.root.work.local_build_config.requirements == [
             "git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0",
             "pandas",
-            "pytorch_lightning==1.5.9",
+            "pytorch_" + "lightning==1.5.9",  # ugly hack due to replacing `pytorch_lightning string
         ]
         return super().on_after_run_once()
 
