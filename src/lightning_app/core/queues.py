@@ -46,6 +46,8 @@ ORCHESTRATOR_COPY_RESPONSE_CONSTANT = "ORCHESTRATOR_COPY_RESPONSE"
 WORK_QUEUE_CONSTANT = "WORK_QUEUE"
 API_RESPONSE_QUEUE_CONSTANT = "API_RESPONSE_QUEUE"
 
+BATCH_POP_SIZE = 100
+
 
 class QueuingSystem(Enum):
     SINGLEPROCESS = "singleprocess"
@@ -308,6 +310,10 @@ class RedisQueue(BaseQueue):
             raise queue.Empty
         return pickle.loads(out[1])
 
+    def get_all(self, timeout: float):
+        time.sleep(timeout)
+        return self.redis.lpop(self.name, BATCH_POP_SIZE)
+
     def clear(self) -> None:
         """Clear all elements in the queue."""
         self.redis.delete(self.name)
@@ -330,10 +336,6 @@ class RedisQueue(BaseQueue):
             return self.redis.ping()
         except redis.exceptions.ConnectionError:
             return False
-
-    def get_all(self, timeout: float):
-        time.sleep(timeout)
-        return self.redis.lrange(self.name, 0, -1)
 
 
 class HTTPQueue(BaseQueue):
