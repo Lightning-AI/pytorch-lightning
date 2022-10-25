@@ -101,7 +101,7 @@ Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-l
 .. testcode::
     :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-    from pytorch_lightning.plugins.apex_amp import ApexMixedPrecisionPlugin
+    from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
 
 
     apex_plugin = ApexMixedPrecisionPlugin(amp_level="O3")

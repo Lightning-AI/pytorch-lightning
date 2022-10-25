@@ -1173,7 +1173,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     .. testcode::
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-        from pytorch_lightning.plugins.apex_amp import ApexMixedPrecisionPlugin
+        from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
 
 
         apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
