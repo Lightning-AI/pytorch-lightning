@@ -1,15 +1,15 @@
-###################################
-Level 4: Debug A Lightning Workflow
-###################################
+##############################
+Level 4: Debug A Lightning app
+##############################
 **Audience:** Users who want to debug Lightning workflows.
 
 **Prereqs:** You must have finished the `Basic levels <../basic/>`_.
 
 ----
 
-****************
-The Toy workflow
-****************
+***********
+The toy app
+***********
 In this page, we'll be using the following toy snippet:
 
 .. code:: python

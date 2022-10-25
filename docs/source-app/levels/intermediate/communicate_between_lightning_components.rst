@@ -10,7 +10,7 @@ Level 7: Communicate between Lightning Components
 ***********
 The toy app
 ***********
-In this guide, we'll use the following example:
+In this page, we'll be using the following toy snippet:
 
 .. code:: python
 

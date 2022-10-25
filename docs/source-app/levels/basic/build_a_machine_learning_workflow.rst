@@ -1,7 +1,7 @@
 #########################
 Level 2: Build a workflow
 #########################
-**Audience:** Users who need to build workflows.
+**Audience:** Users who need to build a workflow (aka: A Lightning App).
 
 **Prereqs:** You `read Lightning in 15 minutes <lightning_in_15_minutes.html>`_ and ran python code inside a LightningWork.
 
@@ -25,13 +25,9 @@ In this guide, we'll build a workflow in <5 minutes and explain how it works.
 
 ----
 
-**************
-A toy workflow
-**************
-
-[VIDEO showing this]
-
-[BUTTON TO DEPLOY THIS EXAMPLE]
+***********
+The toy app
+***********
 
 In the previous example, we defined this LightningWork that can run ⚡ *any* ⚡ piece of Python code:
 
@@ -48,6 +44,7 @@ In the previous example, we defined this LightningWork that can run ⚡ *any* �
     # uses 1 cloud GPU (or your own hardware)
     compute = L.CloudCompute('gpu')
     app = L.LightningApp(LitWorker(cloud_compute=compute))
+
 
 In this example, let's run two pieces of Python code in a workflow:
 

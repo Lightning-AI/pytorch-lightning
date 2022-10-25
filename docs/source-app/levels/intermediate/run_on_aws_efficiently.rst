@@ -7,9 +7,9 @@ Level 3: Run on your AWS account efficiently
 
 ----
 
-****************
-The Toy workflow
-****************
+***********
+The toy app
+***********
 In this page, we'll be using the following toy snippet:
 
 .. code:: python

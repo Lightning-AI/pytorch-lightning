@@ -219,6 +219,13 @@ Step 1: Install Lightning
 ***************************
 Step 2: Run any python code
 ***************************
+Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the LightningWork class and run on the cloud or your own hardware:
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+        <div class="col-md-5">
 
 Deploy this example:
 
@@ -226,7 +233,10 @@ Deploy this example:
 
 [video showing this]
 
-Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the LightningWork class and run on the cloud or your own hardware:
+.. raw:: html
+
+        </div>
+        <div class="col-md-7">
 
 .. code:: python
    :emphasize-lines: 4, 5 
@@ -236,17 +246,23 @@ Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the Light
 
    class LitWorker(L.LightningWork):
       def run(self):
-         message = """ANY python code can run here such as:
-                     - train a model
-                     - launch a deployment server
-                     - label data
-                     - run a react app, dash app, streamlit app, etc...
-                     - start a jupyter notebook
-                     - subprocess.Popen('echo run any shell script, python scripts or non python files')"""
+         message = """
+         ANY python code can run here such as:
+            - train a model
+            - launch a deployment server
+            - label data
+            - run a react.js, dash, streamlit, etc...
+            - start a jupyter notebook
+            - subprocess.Popen('echo run any shell script')"""
          print(message)
 
    app = L.LightningApp(LitWorker())
 
+.. raw:: html
+
+        </div>
+        </div>
+    </div>
 
 **Lightning runs the same on the cloud and locally on your choice of hardware.**
 
@@ -269,6 +285,20 @@ Run cloud agnostic and accelerator agnostic
 *******************************************
 Lightning decouples your code from the accelerators and cloud. To change the accelerator use **CloudCompute**:
 
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+        <div class="col-md-5">
+
+[VIDEO SHOWING CODE]
+
+.. raw:: html
+
+        </div>
+        <div class="col-md-7">
+
+
 .. code:: python
    :emphasize-lines: 16
 
@@ -277,18 +307,25 @@ Lightning decouples your code from the accelerators and cloud. To change the acc
 
    class LitWorker(L.LightningWork):
       def run(self):
-         message = """ANY python code can run here such as:
-                     - train a model
-                     - launch a deployment server
-                     - label data
-                     - run a react app, dash app, streamlit app, etc...
-                     - start a jupyter notebook
-                     - subprocess.Popen('echo run any shell script, python scripts or non python files')"""
+         message = """
+         ANY python code can run here such as:
+            - train a model
+            - launch a deployment server
+            - label data
+            - run a react.js, dash, streamlit, etc...
+            - start a jupyter notebook
+            - subprocess.Popen('echo run any shell script')"""
          print(message)
 
    # run on 1 cloud GPU
    compute = L.CloudCompute("gpu")
    app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+.. raw:: html
+
+        </div>
+        </div>
+    </div>
 
 Run on a cloud GPU:
 
