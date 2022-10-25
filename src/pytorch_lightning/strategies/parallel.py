@@ -95,8 +95,8 @@ class ParallelStrategy(Strategy, ABC):
         ``False``, it behaves like ``any`` instead.
 
         Args:
-            decision (bool): A single input decision.
-            all (bool, optional): Whether to logically emulate ``all`` or ``any``. Defaults to True.
+            decision: A single input decision.
+            all: Whether to logically emulate ``all`` or ``any``. Defaults to True.
 
         Returns:
             bool: The reduced boolean decision.
