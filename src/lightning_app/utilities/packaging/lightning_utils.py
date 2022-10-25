@@ -99,7 +99,6 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
 
     For normal users who install via PyPi or Conda, then this function does not do anything.
     """
-    breakpoint()
     if not get_dist_path_if_editable_install(package_name):
         return
 
