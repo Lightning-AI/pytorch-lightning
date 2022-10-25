@@ -362,6 +362,7 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
         apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
         if len(apps) == 0:
             raise click.ClickException("no running apps available.")
+
         available_apps = [
             inquirer.List(
                 "app_name",
@@ -372,7 +373,6 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
         app_name = inquirer.prompt(available_apps)["app_name"]
         app_id = [app.id for app in apps if app.name == app_name][0]
 
-    component_id = f"lightningapp-{app_id}"
     components = app_manager.list_components(app_id=app_id)
     if component_name is None:
         available_components = [
@@ -384,12 +384,19 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
         ]
         component_name = inquirer.prompt(available_components)["component"]
 
-    if component_name != "flow":
+    component_id = None
+    if component_name == "flow":
+        component_id = f"lightningapp-{app_id}"
+    elif component_name is not None:
         work_id = [work.id for work in components if work.name == component_name][0]
         component_id = f"lightningwork-{work_id}"
+
+    if component_id is None:
+        raise click.ClickException(f"unable to find app component with name {component_name}")
+
     instance = app_manager.get_app(app_id=app_id)
-    cluster = app_manager.api_client.cluster_service_get_cluster(id=instance.spec.cluster_id)
-    ssh_endpoint = cluster.status.ssh_gateway_endpoint
+    app_cluster = app_manager.api_client.cluster_service_get_cluster(id=instance.spec.cluster_id)
+    ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
 
     os.execv("/usr/bin/ssh", ["-tt", f"{component_id}@{ssh_endpoint}"])
 
