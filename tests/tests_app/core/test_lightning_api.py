@@ -178,12 +178,11 @@ def test_update_publish_state_and_maybe_refresh_ui():
     """
 
     app = AppStageTestingApp(FlowA(), debug=True)
-    publish_state_queue = MockQueue("publish_state_queue")
     api_response_queue = MockQueue("api_response_queue")
 
-    publish_state_queue.put(app.state_with_changes)
+    api_response_queue.put(app.state_with_changes)
 
-    thread = APIRefresher(publish_state_queue, api_response_queue)
+    thread = APIRefresher(api_response_queue)
     thread.run_once()
 
     assert global_app_state_store.get_app_state("1234") == app.state_with_changes
