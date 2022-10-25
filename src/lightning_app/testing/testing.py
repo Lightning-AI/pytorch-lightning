@@ -261,28 +261,20 @@ def run_app_in_cloud(
         # TODO - add -no-cache to the command line.
         stdout_path = get_logfile("running_process")
         with open(stdout_path, "w") as stdout:
-            process = Popen(
-                (
-                    [
-                        sys.executable,
-                        "-m",
-                        "lightning",
-                        "run",
-                        "app",
-                        app_name,
-                        "--cloud",
-                        "--name",
-                        name,
-                        "--open-ui",
-                        "false",
-                    ]
-                    + extra_args
-                ),
-                cwd=tmpdir,
-                env=env_copy,
-                stdout=stdout,
-                stderr=sys.stderr,
-            )
+            cmd = [
+                sys.executable,
+                "-m",
+                "lightning",
+                "run",
+                "app",
+                app_name,
+                "--cloud",
+                "--name",
+                name,
+                "--open-ui",
+                "false",
+            ]
+            process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
             process.wait()
 
         if is_editable_mode:
