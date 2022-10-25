@@ -7,7 +7,6 @@ import pytest
 from click.testing import CliRunner
 
 from lightning_app.cli import cmd_install, lightning_cli
-from lightning_app.cli.cmd_install import _install_app
 from lightning_app.testing.helpers import RunIf
 
 
@@ -278,7 +277,9 @@ def test_install_app_shows_error(tmpdir):
     app_folder_dir.mkdir()
 
     with pytest.raises(SystemExit, match=f"Folder {str(app_folder_dir)} exists, please delete it and try again."):
-        _install_app(source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False)
+        cmd_install._install_app(
+            source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False
+        )
 
 
 # def test_env_creation(tmpdir):
@@ -362,7 +363,7 @@ def test_install_app_process(subprocess_mock, source_url, git_url, git_sha, tmpd
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
-    _install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
+    cmd_install._install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
     assert subprocess_mock.check_output.call_args_list[0].args == (["git", "clone", git_url],)
     if git_sha:
         assert subprocess_mock.check_output.call_args_list[1].args == (["git", "checkout", git_sha],)

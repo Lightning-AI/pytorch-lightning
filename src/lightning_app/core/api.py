@@ -368,7 +368,10 @@ def start_server(
 
     if uvicorn_run:
         host = host.split("//")[-1] if "//" in host else host
-        logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
+        if host == "0.0.0.0":
+            logger.info("Your app has started.")
+        else:
+            logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
         if has_started_queue:
             LightningUvicornServer.has_started_queue = has_started_queue
             # uvicorn is doing some uglyness by replacing uvicorn.main by click command.

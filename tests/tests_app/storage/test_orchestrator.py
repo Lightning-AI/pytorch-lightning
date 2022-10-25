@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 from lightning_app.storage.orchestrator import StorageOrchestrator
-from lightning_app.storage.path import GetRequest, GetResponse
+from lightning_app.storage.requests import GetRequest, GetResponse
 from lightning_app.testing.helpers import MockQueue
 from lightning_app.utilities.enum import WorkStageStatus
 

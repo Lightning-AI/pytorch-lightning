@@ -1,6 +1,6 @@
 import multiprocessing
 import pickle
-import queue
+import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
