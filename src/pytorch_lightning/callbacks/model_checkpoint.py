@@ -387,12 +387,18 @@ class ModelCheckpoint(Checkpoint):
         if self._save_on_train_epoch_end is not None:
             return self._save_on_train_epoch_end
 
-        if sum(trainer.num_val_batches) == 0:
-            return trainer.check_val_every_n_epoch == 1
+        # if `check_val_every_n_epoch != 1`, we can't say when the validation dataloader will be loaded
+        # so let's not enforce saving at every training epoch end
+        if trainer.check_val_every_n_epoch != 1:
+            return False
 
-        # if the user runs validation multiple times per training epoch or multiple training epochs without
-        # validation, then we run after validation instead of on train epoch end
-        return trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
+        # no validation means save on train epoch end
+        if sum(trainer.num_val_batches) == 0:
+            return True
+
+        # if the user runs validation multiple times per training epoch, then we run after validation
+        # instead of on train epoch end
+        return trainer.val_check_interval == 1.0
 
     def __validate_init_configuration(self) -> None:
         if self.save_top_k < -1:
