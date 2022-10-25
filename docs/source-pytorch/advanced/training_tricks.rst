@@ -270,7 +270,6 @@ initial learning rate.
 .. warning::
 
     For the moment, this feature only works with models having a single optimizer.
-    LR Finder support for DDP and any of its variations is not implemented yet. It is coming soon.
 
 
 Using Lightning's built-in LR finder
