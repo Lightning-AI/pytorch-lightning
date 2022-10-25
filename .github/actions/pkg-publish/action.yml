@@ -34,6 +34,7 @@ runs:
       user: __token__
       password: ${{ inputs.pypi-token }}
       packages_dir: pypi/
+      verbose: true
 
   - name: filter packages
     run: rm pypi/*
