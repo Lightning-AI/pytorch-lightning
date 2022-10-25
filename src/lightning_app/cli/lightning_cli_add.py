@@ -27,12 +27,12 @@ def add_ssh_key(key_name: str, comment: str, public_key: Union[str, "os.PathLike
     """Add a new Lightning AI ssh-key to your account."""
     ssh_key_manager = SSHKeyManager()
 
-    new_public_key = Path(public_key).read_text() if os.path.isfile(public_key) else public_key
+    new_public_key = Path(str(public_key)).read_text() if os.path.isfile(str(public_key)) else public_key
     try:
-        ssh_key_manager.add_key(name=key_name, comment=comment, public_key=new_public_key)
+        ssh_key_manager.add_key(name=key_name, comment=comment, public_key=str(new_public_key))
     except ApiException as e:
         # if we got an exception it might be the user passed the private key file
-        if os.path.isfile(public_key) and os.path.isfile(f"{public_key}.pub"):
+        if os.path.isfile(str(public_key)) and os.path.isfile(f"{public_key}.pub"):
             ssh_key_manager.add_key(name=key_name, comment=comment, public_key=Path(f"{public_key}.pub").read_text())
         else:
             raise e
