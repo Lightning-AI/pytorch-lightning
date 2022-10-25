@@ -15,8 +15,6 @@
 import numpy as np
 import torch
 
-from lightning_lite.utilities.distributed import AllGatherGrad
-from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.core.test_results import spawn_launch
@@ -30,8 +28,8 @@ def all_gather_ddp_spawn_fn(strategy):
     tensor1 = torch.ones(8, requires_grad=True)
     tensor2 = torch.ones((8, 16, 32), requires_grad=True)
 
-    tensor1_gathered = AllGatherGrad.apply(tensor1)
-    tensor2_gathered = AllGatherGrad.apply(tensor2)
+    tensor1_gathered = strategy.all_gather(tensor1, sync_grads=True)
+    tensor2_gathered = strategy.all_gather(tensor2, sync_grads=True)
 
     tensor1_gathered = tensor1_gathered * rank
     tensor2_gathered = tensor2_gathered * rank
@@ -82,15 +80,11 @@ def test_all_gather_collection(tmpdir):
             assert gathered_loss["losses"].numel() == 2 * len(losses)
             self.training_epoch_end_called = True
 
-    seed_everything(42)
-
     model = TestModel()
-
-    limit_train_batches = 8
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
+        limit_train_batches=8,
+        limit_val_batches=0,
         max_epochs=1,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
@@ -99,8 +93,8 @@ def test_all_gather_collection(tmpdir):
         strategy="ddp",
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
     )
-
     trainer.fit(model)
     assert model.training_epoch_end_called
 
@@ -116,20 +110,21 @@ def test_all_gather_sync_grads(tmpdir):
             tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
             gathered_tensor = self.all_gather(tensor, sync_grads=True)
             assert gathered_tensor.shape == torch.Size([2, 2, 2])
-
             loss = gathered_tensor.sum()
-
             return loss
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
         accelerator="gpu",
         devices=2,
         strategy="ddp",
         enable_progress_bar=False,
         enable_model_summary=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
     assert model.training_step_called

@@ -102,9 +102,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_tpu_cores` in favor of `lightning_lite.accelerators.tpu.parse_tpu_cores`
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_hpus` in favor of `pytorch_lightning.accelerators.hpu.parse_hpus`
 - Deprecated duplicate `SaveConfigCallback` parameters in `LightningCLI.__init__`: `save_config_kwargs`, `save_config_overwrite` and `save_config_multifile`. New `save_config_kwargs` parameter should be used instead ([#14998](https://github.com/Lightning-AI/lightning/pull/14998))
-
-
-- Deprecated `TrainerFn.TUNING`, `RunningStage.TUNING` and `trainer.tuning` property ([#15100](https://github.com/Lightning-AI/lightning/pull/15100)
+- Deprecated `TrainerFn.TUNING`, `RunningStage.TUNING` and `trainer.tuning` property ([#15100](https://github.com/Lightning-AI/lightning/pull/15100))
+- Deprecated custom `pl.utilities.distributed.AllGatherGrad` implementation in favor of PyTorch's ([#11531](https://github.com/Lightnign-AI/lightning/pull/11531))
 
 
 ### Removed
