@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -280,14 +281,13 @@ def run_app_in_cloud(
         if is_editable_mode:
             # Added to ensure the current code is properly uploaded.
             # Otherwise, it could result in un-tested PRs.
-            has_found = False
-            with open(stdout_path) as f:
-                for line in f.readlines():
+            pkg_found = False
+            with open(stdout_path) as fo:
+                for line in fo.readlines():
                     if "Packaged Lightning with your application" in line:
-                        has_found = True
-                    print(line)
-
-            assert has_found
+                        pkg_found = True
+                    logging.debug(line)
+            assert pkg_found
         os.remove(stdout_path)
 
     # 5. Print your application name
