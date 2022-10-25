@@ -112,12 +112,12 @@ class _LiteModule(_DeviceDtypeModuleMixin):
         ...
 
     @overload
-    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> T_destination:
+    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]:
         ...
 
     def state_dict(
         self, destination: Optional[T_destination] = None, prefix: str = "", keep_vars: bool = False
-    ) -> Optional[T_destination]:
+    ) -> Optional[Dict[str, Any]]:
         return self._original_module.state_dict(
             destination=destination,  # type: ignore[type-var]
             prefix=prefix,

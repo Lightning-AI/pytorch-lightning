@@ -23,7 +23,6 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Generator, List, Optional, Set, Union
-from weakref import ReferenceType
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -152,6 +151,7 @@ class NeptuneLogger(Logger):
     You can also pass ``neptune_run_kwargs`` to specify the run in the greater detail, like ``tags`` or ``description``:
 
     .. testcode::
+        :skipif: not _NEPTUNE_AVAILABLE
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
@@ -321,7 +321,7 @@ class NeptuneLogger(Logger):
         self.__dict__ = state
         self._run_instance = neptune.init(**self._neptune_init_args)
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
@@ -351,7 +351,7 @@ class NeptuneLogger(Logger):
         """
         return self.run
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def run(self) -> Run:
         if not self._run_instance:
@@ -452,7 +452,7 @@ class NeptuneLogger(Logger):
         )
 
     @rank_zero_only
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -500,7 +500,7 @@ class NeptuneLogger(Logger):
             )
 
     @staticmethod
-    def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[Checkpoint]") -> str:
+    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
             expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"

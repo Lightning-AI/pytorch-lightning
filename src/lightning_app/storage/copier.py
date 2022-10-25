@@ -3,11 +3,10 @@ import pathlib
 import threading
 from threading import Thread
 from time import time
-from typing import Optional, Union
+from typing import Optional, TYPE_CHECKING, Union
 
 from fsspec.implementations.local import LocalFileSystem
 
-import lightning_app
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.path import filesystem
 from lightning_app.storage.requests import ExistsRequest, GetRequest
@@ -18,6 +17,8 @@ _PathRequest = Union[GetRequest, ExistsRequest]
 _logger = Logger(__name__)
 
 num_workers = 8
+if TYPE_CHECKING:
+    import lightning_app
 
 
 class Copier(Thread):
@@ -81,7 +82,7 @@ class Copier(Thread):
         self.copy_response_queue.put(response)
 
 
-def _find_matching_path(work, request: GetRequest) -> Optional[lightning_app.storage.Path]:
+def _find_matching_path(work, request: GetRequest) -> Optional["lightning_app.storage.Path"]:
     for name in work._paths:
         candidate: lightning_app.storage.Path = getattr(work, name)
         if candidate.hash == request.hash:

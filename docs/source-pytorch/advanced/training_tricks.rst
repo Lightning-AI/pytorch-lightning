@@ -191,29 +191,52 @@ The algorithm in short works by:
 Customizing Batch Size Finder
 =============================
 
-You can also customize the :class:`~pytorch_lightning.callbacks.batch_size_finder.BatchSizeFinder` callback to run at different epochs. This feature is useful while fine-tuning models since
-you can't always use the same batch size after unfreezing the backbone.
+1. You can also customize the :class:`~pytorch_lightning.callbacks.batch_size_finder.BatchSizeFinder` callback to run
+   at different epochs. This feature is useful while fine-tuning models since you can't always use the same batch size after
+   unfreezing the backbone.
 
 .. code-block:: python
 
-        from pytorch_lightning.callbacks import BatchSizeFinder
+    from pytorch_lightning.callbacks import BatchSizeFinder
 
 
-        class FineTuneBatchSizeFinder(BatchSizeFinder):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.milestones = milestones
+    class FineTuneBatchSizeFinder(BatchSizeFinder):
+        def __init__(self, milestones, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.milestones = milestones
 
-            def on_fit_start(self, *args, **kwargs):
-                return
+        def on_fit_start(self, *args, **kwargs):
+            return
 
-            def on_train_epoch_start(self, trainer, pl_module):
-                if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
-                    self.scale_batch_size(trainer, pl_module)
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                self.scale_batch_size(trainer, pl_module)
 
 
-        trainer = Trainer(callbacks=[FineTuneBatchSizeFinder(milestones=(5, 10))])
-        trainer.fit(...)
+    trainer = Trainer(callbacks=[FineTuneBatchSizeFinder(milestones=(5, 10))])
+    trainer.fit(...)
+
+
+2. Run batch size finder for ``validate``/``test``/``predict``.
+
+.. code-block:: python
+
+    from pytorch_lightning.callbacks import BatchSizeFinder
+
+
+    class EvalBatchSizeFinder(BatchSizeFinder):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def on_fit_start(self, *args, **kwargs):
+            return
+
+        def on_test_start(self, trainer, pl_module):
+            self.scale_batch_size(trainer, pl_module)
+
+
+    trainer = Trainer(callbacks=[EvalBatchSizeFinder()])
+    trainer.test(...)
 
 
 ----------
@@ -336,24 +359,24 @@ You can also customize the :class:`~pytorch_lightning.callbacks.lr_finder.Learni
 
 .. code-block:: python
 
-        from pytorch_lightning.callbacks import LearningRateFinder
+    from pytorch_lightning.callbacks import LearningRateFinder
 
 
-        class FineTuneLearningRateFinder(LearningRateFinder):
-            def __init__(self, milestones=(5, 10), *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.milestones = milestones
+    class FineTuneLearningRateFinder(LearningRateFinder):
+        def __init__(self, milestones, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.milestones = milestones
 
-            def on_fit_start(self, *args, **kwargs):
-                return
+        def on_fit_start(self, *args, **kwargs):
+            return
 
-            def on_train_epoch_start(self, trainer, pl_module):
-                if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
-                    self.lr_find(trainer, pl_module)
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                self.lr_find(trainer, pl_module)
 
 
-        trainer = Trainer(callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))])
-        trainer.fit(...)
+    trainer = Trainer(callbacks=[FineTuneLearningRateFinder(milestones=(5, 10))])
+    trainer.fit(...)
 
 
 .. figure:: ../_static/images/trainer/lr_finder.png

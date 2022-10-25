@@ -27,9 +27,9 @@ def test_invalid_precision_with_deepspeed_precision():
 
 
 def test_deepspeed_precision_apex_not_installed(monkeypatch):
-    import lightning_lite.plugins.precision.deepspeed as deepspeed_apex
+    import lightning_lite.plugins.precision.deepspeed as deepspeed
 
-    monkeypatch.setattr(deepspeed_apex, "_APEX_AVAILABLE", False)
+    monkeypatch.setattr(deepspeed, "_APEX_AVAILABLE", False)
     with pytest.raises(ImportError, match="You have asked for Apex AMP but `apex` is not installed."):
         DeepSpeedPrecision(precision=16, amp_type="apex")
 
@@ -50,14 +50,12 @@ def test_deepspeed_precision_backward():
 
 
 @RunIf(deepspeed=True)
-def test_deepspeed_engine_is_steppable():
+@mock.patch("deepspeed.DeepSpeedEngine", autospec=True)
+def test_deepspeed_engine_is_steppable(engine):
     """Test that the ``DeepSpeedEngine`` conforms to the Steppable API.
 
     If this fails, then optimization will be broken for DeepSpeed.
     """
-    from deepspeed import DeepSpeedEngine
-
-    engine = DeepSpeedEngine(Mock(), Mock())
     assert isinstance(engine, Steppable)
 
 
