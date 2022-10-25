@@ -60,5 +60,5 @@ Choose Cloud Compute
 
 You can configure the hardware your app is running on by setting a :class:`~lightning.utilities.packaging.cloud_compute.CloudCompute` object onto the ``cloud_compute`` property of your work's.
 
-Learn more with the :ref:`cloud_compute` guide
+Learn more with the :ref:`cloud_compute` guide.
 

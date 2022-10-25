@@ -243,7 +243,7 @@ Keep Learning
    Run an App on the cloud <workflows/run_app_on_cloud/index>
    Run Apps on your cloud account (BYOC) <workflows/byoc/index>
    Save and share files <glossary/storage/storage.rst>
-
+   Cloud billing <cloud/billing.rst>
 ..
    [Docs under construction] Add a Lightning component  <workflows/add_components/index>
    [Docs under construction] Debug a distributed cloud app locally <workflows/debug_locally>
