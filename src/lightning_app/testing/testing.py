@@ -261,7 +261,7 @@ def run_app_in_cloud(
             env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
-        stdout_path = get_logfile("running_process")
+        stdout_path = get_logfile(f"run_app_in_cloud_{name}")
         with open(stdout_path, "w") as stdout:
             cmd = [
                 sys.executable,
@@ -280,6 +280,7 @@ def run_app_in_cloud(
             process.wait()
 
         if is_editable_mode:
+            breakpoint()
             # Added to ensure the current code is properly uploaded.
             # Otherwise, it could result in un-tested PRs.
             pkg_found = False
