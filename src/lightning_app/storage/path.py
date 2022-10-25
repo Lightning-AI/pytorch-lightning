@@ -391,10 +391,11 @@ def shared_storage_path() -> pathlib.Path:
     # TODO[dmitsf]: this logic is still needed for compatibility reasons.
     # We should remove it after some time.
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
 
     if bucket_name != "" and app_id != "":
-        return pathlib.Path(f"{bucket_name}/lightningapps/{app_id}")
+        return pathlib.Path(f"{bucket_name}/projects/{project_id}/lightningapps/{app_id}")
 
     return _shared_local_mount_path()
 
