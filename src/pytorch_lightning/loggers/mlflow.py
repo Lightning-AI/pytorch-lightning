@@ -22,7 +22,7 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, Mapping, Optional, Union, Literal
+from typing import Any, Dict, Literal, Mapping, Optional, Union
 
 import torch
 import yaml
