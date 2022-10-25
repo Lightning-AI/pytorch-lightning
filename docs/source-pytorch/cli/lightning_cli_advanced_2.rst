@@ -111,7 +111,7 @@ The Lightning CLI can convert every possible CLI flag into an environment variab
 
 .. code:: python
 
-    cfg = LightningCLI(DemoModel, run=False, env_parse=True)
+    cli = LightningCLI(DemoModel, env_parse=True)
 
 now use the ``--help`` CLI flag with any subcommand:
 
@@ -129,10 +129,10 @@ which will show you ALL possible environment variables that can be set:
     optional arguments:
     ...
     ARG:   --model.out_dim OUT_DIM
-    ENV:   PL_MODEL__OUT_DIM
+    ENV:   PL_FIT__MODEL__OUT_DIM
                             (type: int, default: 10)
     ARG:   --model.learning_rate LEARNING_RATE
-    ENV:   PL_MODEL__LEARNING_RATE
+    ENV:   PL_FIT__MODEL__LEARNING_RATE
                             (type: float, default: 0.02)
 
 now you can customize the behavior via environment variables:
@@ -140,8 +140,8 @@ now you can customize the behavior via environment variables:
 .. code:: bash
 
     # set the options via env vars
-    $ export PL_MODEL__LEARNING_RATE=0.01
-    $ export PL_MODEL__OUT_DIM=5
+    $ export PL_FIT__MODEL__LEARNING_RATE=0.01
+    $ export PL_FIT__MODEL__OUT_DIM=5
 
     $ python main.py fit
 

@@ -14,8 +14,7 @@ used for config files is yaml.
 
 .. tip::
 
-    If you are unfamiliar with yaml, have a look at the short introduction at `realpython.com#yaml-syntax
-    <https://realpython.com/python-yaml/#yaml-syntax>`__.
+    If you are unfamiliar with yaml, it is recommended that you first read :ref:`what-is-a-yaml-config-file`.
 
 
 ----

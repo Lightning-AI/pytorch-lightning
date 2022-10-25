@@ -12,11 +12,14 @@ like ``git``.
 
 ----
 
+.. _what-is-a-yaml-config-file:
+
 ***************************
 What is a yaml config file?
 ***************************
 A yaml is a standard for configuration files used to describe parameters for sections of a program. It is a common tool
-in engineering, and it has recently started to gain popularity in machine learning.
+in engineering, and it has recently started to gain popularity in machine learning. An example of a yaml file is the
+following:
 
 .. code:: yaml
 
@@ -29,6 +32,9 @@ in engineering, and it has recently started to gain popularity in machine learni
     class_3:
         option_1: 'x'
         option_2: 'y'
+
+If you are unfamiliar with yaml, the short introduction at `realpython.com#yaml-syntax
+<https://realpython.com/python-yaml/#yaml-syntax>`__ might be a good starting point.
 
 ----
 
