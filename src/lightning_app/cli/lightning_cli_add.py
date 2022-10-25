@@ -1,4 +1,6 @@
+from os import PathLike
 from pathlib import Path
+from typing import Union
 
 import click
 
@@ -28,10 +30,12 @@ def cli_add() -> None:
     default=None,
     help="public key",
 )
-def add_ssh_key(key_name: str, comment: str, public_key_path: str = None, public_key: str = None) -> None:
+def add_ssh_key(
+    key_name: str, comment: str, public_key_path: Union[str, PathLike[str]] = "", public_key: str = None
+) -> None:
     """Add a new Lightning AI ssh-key to your account."""
     # https://github.com/pallets/click/issues/257 sadly click can't model "1 of N options must be provided"
-    if public_key is None and public_key_path is None:
+    if public_key is None and public_key_path == "":
         raise click.ClickException("One of --public-key or --public-key-path must be provided")
 
     ssh_key_manager = SSHKeyManager()
