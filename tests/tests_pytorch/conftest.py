@@ -30,6 +30,16 @@ from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUA
 from tests_pytorch import _PATH_DATASETS
 
 
+@pytest.fixture
+def sys_modules_cleanup():
+    yield
+    import sys
+
+    for key in list(sys.modules.keys()):
+        if key.startswith("pytorch_lightning") or key.startswith("lightning"):
+            sys.modules.pop(key)
+
+
 @pytest.fixture(scope="session")
 def datadir():
     return Path(_PATH_DATASETS)
@@ -198,7 +208,7 @@ def caplog(caplog):
     propagation_dict = {
         name: logging.getLogger(name).propagate
         for name in logging.root.manager.loggerDict
-        if name.startswith("pytorch_lightning")
+        if name.startswith("lightning.pytorch")
     }
     for name in propagation_dict.keys():
         logging.getLogger(name).propagate = True
