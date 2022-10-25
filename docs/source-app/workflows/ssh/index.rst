@@ -3,7 +3,7 @@
 Debug cloud apps via SSH
 #################################
 
-**Audience:** Users who want to debug their Flow and Work in a the runtime environment.
+**Audience:** Users that want to debug their cloud apps on their own machine
 
 ----
 
