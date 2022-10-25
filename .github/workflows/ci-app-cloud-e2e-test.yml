@@ -13,6 +13,10 @@ on:
     # At the end of every day
     - cron: "0 0 * * *"
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   app-cloud-e2e:
     name: Cloud e2e Test
@@ -44,12 +48,6 @@ jobs:
         id: running
         run: echo "::set-output name=ID::$(date +%s)"
 
-      - name: Install dependencies
-        shell: bash
-        run: |
-          pip --version
-          python -m pip install -r requirements/app/devel.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-
       - name: Cache Playwright dependencies
         id: playwright-cache
         uses: actions/cache@v3
@@ -59,37 +57,34 @@ jobs:
           restore-keys: ${{ runner.os }}-playwright-${{ matrix.app_name }}-
 
       - name: Install Playwright system dependencies
-        shell: bash
         run: |
           python -m pip install playwright
           python -m playwright install --with-deps
 
       - name: Install lightning
-        run: |
-          pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        shell: bash
+        run: pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+
+      - name: Install dependencies
+        env:  # TODO: drop this when we will be using regular releases for testing
+          PACKAGE_NAME: pytorch
+        run: python -m pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
       #- name: Lightning Install quick-start
       #  if: ${{ (matrix.app_name == 'quick_start') }}
-      #  shell: bash
       #  run: |
       #    python -m lightning install app lightning/quick-start -y
 
       - name: Clone Template React UI Repo
         if: ${{ (matrix.app_name == 'template_react_ui') }}
-        run: |
-          git clone https://github.com/Lightning-AI/lightning-template-react examples/app_template_react_ui
-        shell: bash
+        run: git clone https://github.com/Lightning-AI/lightning-template-react examples/app_template_react_ui
 
       - name: Clone Template Jupyter Lab Repo
         if: ${{ (matrix.app_name == 'template_jupyterlab') }}
         run: |
           git clone https://github.com/Lightning-AI/LAI-lightning-template-jupyterlab-App examples/app_template_jupyterlab
           cp examples/app_template_jupyterlab/tests/test_template_jupyterlab.py tests/tests_app_examples/test_template_jupyterlab.py
-        shell: bash
 
       - name: List pip dependency
-        shell: bash
         run: pip list
 
       - name: Run the tests
@@ -106,7 +101,6 @@ jobs:
           TEST_APP_NAME: ${{ matrix.app_name }}
           HAR_LOCATION: ./artifacts/hars
           SLOW_MO: 50
-        shell: bash
         run: |
           mkdir -p ${VIDEO_LOCATION}
           HEADLESS=1 PACKAGE_LIGHTNING=1 python -m pytest tests/tests_app_examples/test_${{ matrix.app_name }}.py::test_${{ matrix.app_name }}_example_cloud --timeout=900 --capture=no -v --color=yes
@@ -134,6 +128,5 @@ jobs:
           GRID_USER_KEY: ${{ secrets.LIGHTNING_API_KEY }}
           GRID_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
           _GRID_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
-        shell: bash
         run: |
           time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"
