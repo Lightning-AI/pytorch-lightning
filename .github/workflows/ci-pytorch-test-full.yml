@@ -37,7 +37,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # standalone tests
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.10"}
