@@ -7,6 +7,7 @@
    run_on_aws_efficiently
    debug_a_lightning_workflow
    run_lightning_work_in_parallel
+   embed_web_ui_into_lightningwork
    communicate_between_lightning_components
    level_12
    level_13
@@ -55,9 +56,9 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 6: Embed web UIs into work
-   :description: Learn how to embed a react, vue or any web UI into a lightning workflow.
-   :button_link: run_lightning_work_in_parallel.html
+   :header: Level 6: Embed graphical UIs into work
+   :description: Learn how to embed graphical UIs like react, vue, streamlit and notebook UIs into a lightning workflow.
+   :button_link: embed_web_ui_into_lightningwork.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

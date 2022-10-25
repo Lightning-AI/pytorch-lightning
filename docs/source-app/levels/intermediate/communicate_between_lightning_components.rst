@@ -1,5 +1,5 @@
 #################################################
-Level 6: Communicate between Lightning Components
+Level 7: Communicate between Lightning Components
 #################################################
 **Audience:** Users who want to share variables and files across LightningWorks
 
