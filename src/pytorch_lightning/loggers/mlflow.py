@@ -113,7 +113,7 @@ class MLFlowLogger(Logger):
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
-        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.Checkpoint`
+        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
             as MLFlow artifacts.
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
