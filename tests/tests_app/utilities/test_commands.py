@@ -8,10 +8,9 @@ import pytest
 import requests
 from pydantic import BaseModel
 
-from lightning import LightningFlow
-from lightning_app import LightningApp
+from lightning_app import LightningApp, LightningFlow
+from lightning_app.cli.commands.app_commands import _run_app_command
 from lightning_app.cli.commands.connection import connect, disconnect
-from lightning_app.cli.lightning_cli import _run_app_command
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.testing.helpers import RunIf
