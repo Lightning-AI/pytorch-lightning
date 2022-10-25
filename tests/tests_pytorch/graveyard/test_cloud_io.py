@@ -7,11 +7,13 @@ import pytest
 import torch
 
 import pytorch_lightning  # noqa: F401
-from tests_pytorch.checkpointing.test_legacy_checkpointing import (
-    CHECKPOINT_EXTENSION,
-    LEGACY_BACK_COMPATIBLE_PL_VERSIONS,
-    LEGACY_CHECKPOINTS_PATH,
-)
+from tests_pytorch import _PATH_LEGACY, _PROJECT_ROOT
+
+LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
+CHECKPOINT_EXTENSION = ".ckpt"
+# load list of all back compatible versions
+with open(os.path.join(_PROJECT_ROOT, "legacy", "back-compatible-versions.txt")) as fp:
+    LEGACY_BACK_COMPATIBLE_PL_VERSIONS = [ln.strip() for ln in fp.readlines()]
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
