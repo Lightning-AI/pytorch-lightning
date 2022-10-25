@@ -111,7 +111,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
     download_frontend(_PROJECT_ROOT)
     _prepare_wheel(_PROJECT_ROOT)
 
-    logger.info(f"Packaged Lightning with your application. Version: {version}")
+    print(f"Packaged Lightning with your application. Version: {version}")
 
     tar_name = _copy_tar(_PROJECT_ROOT, root)
 
@@ -124,7 +124,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
         if launcher_project_path:
             from lightning_launcher.__version__ import __version__ as launcher_version
 
-            logger.info(f"Packaged Lightning Launcher with your application. Version: {launcher_version}")
+            print(f"Packaged Lightning Launcher with your application. Version: {launcher_version}")
             _prepare_wheel(launcher_project_path)
             tar_name = _copy_tar(launcher_project_path, root)
             tar_files.append(os.path.join(root, tar_name))
@@ -134,7 +134,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
         if lightning_cloud_project_path:
             from lightning_cloud.__version__ import __version__ as cloud_version
 
-            logger.info(f"Packaged Lightning Cloud with your application. Version: {cloud_version}")
+            print(f"Packaged Lightning Cloud with your application. Version: {cloud_version}")
             _prepare_wheel(lightning_cloud_project_path)
             tar_name = _copy_tar(lightning_cloud_project_path, root)
             tar_files.append(os.path.join(root, tar_name))

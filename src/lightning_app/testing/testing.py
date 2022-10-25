@@ -27,6 +27,7 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
+from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import _configure_session, LightningClient
 from lightning_app.utilities.proxies import ProxyWorkRun
@@ -253,29 +254,41 @@ def run_app_in_cloud(
             env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
-        process = Popen(
-            (
-                [
-                    sys.executable,
-                    "-m",
-                    "lightning",
-                    "run",
-                    "app",
-                    app_name,
-                    "--cloud",
-                    "--name",
-                    name,
-                    "--open-ui",
-                    "false",
-                ]
-                + extra_args
-            ),
-            cwd=tmpdir,
-            env=env_copy,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-        )
-        process.wait()
+        stdout_path = get_logfile("running_process")
+        with open(stdout_path, "w") as stdout:
+            process = Popen(
+                (
+                    [
+                        sys.executable,
+                        "-m",
+                        "lightning",
+                        "run",
+                        "app",
+                        app_name,
+                        "--cloud",
+                        "--name",
+                        name,
+                        "--open-ui",
+                        "false",
+                    ]
+                    + extra_args
+                ),
+                cwd=tmpdir,
+                env=env_copy,
+                stdout=stdout,
+                stderr=sys.stderr,
+            )
+            process.wait()
+
+        has_found = False
+        with open(stdout_path) as f:
+            for line in f.readlines():
+                if "Packaged Lightning" in line:
+                    has_found = True
+                print(line)
+
+        assert has_found
+        os.remove(stdout_path)
 
     # 5. Print your application name
     print(f"The Lightning App Name is: [bold magenta]{name}[/bold magenta]")
