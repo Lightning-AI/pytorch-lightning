@@ -136,7 +136,9 @@ def application_testing(
 
     from click.testing import CliRunner
 
-    with mock.patch("LightningApp", lightning_app_cls):
+    with mock.patch("lightning.LightningApp", lightning_app_cls), mock.patch(
+        "lightning_app.LightningApp", lightning_app_cls
+    ):
         original = sys.argv
         sys.argv = command_line
         runner = CliRunner()
