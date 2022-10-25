@@ -47,12 +47,13 @@ jobs:
       - uses: ./.github/actions/pkg-install
 
       - name: Run CLI
-        if: ${{ matrix.pkg == '' }}
+        if: ${{ matrix.pkg == '' || matrix.pkg == 'app' }}
         run: python -m lightning --version
 
-      - name: DocTests package
+      - name: DocTest package
         working-directory: src
         run: |
           pip install pytest -q
           scope=$(python -c "lut = {'app': 'lightning', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg-name}}', 'lightning'))")
-          python -m pytest $scope
+          echo ${scope}
+          python -m pytest ./${scope}
