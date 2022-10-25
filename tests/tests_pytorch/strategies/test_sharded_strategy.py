@@ -356,6 +356,7 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, s
         assert torch.equal(trained_param.to("cpu"), loaded_param)
 
 
+@RunIf(min_cuda_gpus=2, fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
     model = ModelWithAdamOptimizer()
     trainer = Trainer(
