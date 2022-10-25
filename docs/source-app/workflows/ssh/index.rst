@@ -79,7 +79,7 @@ You are now ready to access your Lightning Flow and Work containers.
 ----
 
 **********************************************************
-Accessing your Lightning Flow and Work containers via SSH
+SSH to your cloud app
 **********************************************************
 
 Ensure you have a running Lightning application in the cloud:
