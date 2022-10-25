@@ -126,6 +126,9 @@ class MockQueue(BaseQueue):
             raise Empty()
         return self._queue.pop(0)
 
+    def get_all(self, timeout: float):
+        return self._queue
+
     def __contains__(self, item):
         return item in self._queue
 
