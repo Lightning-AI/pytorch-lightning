@@ -797,8 +797,6 @@ class AcceleratorConnector:
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
 
-        from pytorch_lightning.utilities import _IS_INTERACTIVE
-
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
