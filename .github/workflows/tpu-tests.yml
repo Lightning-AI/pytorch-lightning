@@ -3,12 +3,6 @@ name: Test PyTorch on TPU
 on:
   push:
     branches: [master, "release/*"]
-    paths:
-      - ".github/workflows/tpu-tests.yml"
-      - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
-      - "tests/tests_pytorch/**"
-      - "setup.cfg"  # includes pytest config
   pull_request_target:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
