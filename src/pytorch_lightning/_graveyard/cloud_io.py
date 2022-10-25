@@ -20,4 +20,4 @@ class RedirectingUnpickler(pickle.Unpickler):
         return super().find_class(module, name)
 
 
-pickle.Unpickler = RedirectingUnpickler
+pickle.Unpickler = RedirectingUnpickler  # type: ignore
