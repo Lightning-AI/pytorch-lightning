@@ -49,3 +49,10 @@ jobs:
       - name: Run CLI
         if: ${{ matrix.pkg == '' }}
         run: python -m lightning --version
+
+      - name: DocTests package
+        working-directory: src
+        run: |
+          pip install pytest -q
+          scope=$(python -c "lut = {'app': 'lightning', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg-name}}', 'lightning')")
+          python -m pytest $scope

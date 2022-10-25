@@ -72,23 +72,6 @@ jobs:
       run: |
         python .actions/assistant.py replace_oldest_ver
 
-    - name: switch PyTorch URL
-      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
-
-    - name: Install package
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-      run: |
-        pip install -e . pytest --upgrade --find-links ${TORCH_URL}
-        pip list
-
-    - name: DocTests Lite
-      working-directory: src
-      run: |
-        pip install pytest -q
-        scope=$(python -c "print('lightning/lite' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_lite')")
-        python -m pytest $scope
-
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Get pip cache dir
@@ -103,9 +86,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Install dependencies
+    - name: switch PyTorch URL
+      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+
+    - name: Install package & dependencies
+      env:
+        PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        pip install -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e . -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Adjust tests
