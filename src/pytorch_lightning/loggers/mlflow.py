@@ -121,6 +121,7 @@ class MLFlowLogger(Logger):
               :paramref:`~pytorch_lightning.callbacks.Checkpoint.save_top_k` ``== -1``
               which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
+
         prefix: A string to put at the beginning of metric keys.
         artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
             default.
