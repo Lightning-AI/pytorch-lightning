@@ -39,7 +39,7 @@ jobs:
         requires: ["oldest", "latest"]
         release: ["stable"]
         exclude:
-          # There's no distribution of Torch==1.9 for Python>=3.9
+          # note: there's no distribution of Torch==1.9 for Python>=3.9
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
           - {python-version: "3.9", requires: "oldest"}
           - {python-version: "3.10", requires: "oldest"}
