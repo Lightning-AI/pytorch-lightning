@@ -56,6 +56,7 @@ def _prepare_wheel(path):
             ["rm", "-r", "dist"], stdout=logfile, stderr=logfile, bufsize=0, close_fds=True, cwd=path
         ) as proc:
             proc.wait()
+
         with subprocess.Popen(
             ["python", "setup.py", "sdist"],
             stdout=logfile,
@@ -85,6 +86,7 @@ def get_dist_path_if_editable_install(project_name) -> str:
     for path_item in sys.path:
         if not os.path.isdir(path_item):
             continue
+
         egg_info = os.path.join(path_item, project_name + ".egg-info")
         if os.path.isdir(egg_info):
             return path_item
@@ -97,8 +99,12 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
 
     For normal users who install via PyPi or Conda, then this function does not do anything.
     """
+    breakpoint()
     if not get_dist_path_if_editable_install(package_name):
         return
+
+    if package_name == "lightning_app":
+        os.environ["PACKAGE_NAME"] = "app"
 
     # Packaging the Lightning codebase happens only inside the `lightning` repo.
     git_dir_name = get_dir_name() if check_github_repository() else None
