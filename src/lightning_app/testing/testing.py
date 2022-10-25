@@ -280,7 +280,6 @@ def run_app_in_cloud(
             process.wait()
 
         if is_editable_mode:
-            breakpoint()
             # Added to ensure the current code is properly uploaded.
             # Otherwise, it could result in un-tested PRs.
             pkg_found = False

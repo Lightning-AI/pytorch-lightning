@@ -3,3 +3,21 @@ exclude requirements.txt
 exclude __pycache__
 include .actions/setup_tools.py
 include *.cff  # citation info
+recursive-exclude src *.md
+recursive-exclude requirements *.txt
+recursive-include src/lightning_app *.md
+recursive-include requirements/app *.txt
+recursive-include src/lightning_app/cli/*-template *
+recursive-include src/lightning_app/ui *
+recursive-exclude src *.md
+recursive-exclude requirements *.txt
+recursive-include src/lightning_app *.md
+recursive-include requirements/app *.txt
+recursive-include src/lightning_app/cli/*-template *
+recursive-include src/lightning_app/ui *
+recursive-exclude src *.md
+recursive-exclude requirements *.txt
+recursive-include src/lightning_app *.md
+recursive-include requirements/app *.txt
+recursive-include src/lightning_app/cli/*-template *
+recursive-include src/lightning_app/ui *
