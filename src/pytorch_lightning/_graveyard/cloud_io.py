@@ -1,10 +1,11 @@
 import pickle
 import warnings
 from copy import deepcopy
+from typing import Any
 
 
 class RedirectingUnpickler(pickle.Unpickler):
-    def find_class(self, module, name):
+    def find_class(self, module: str, name: str) -> Any:
         if module.startswith("pytorch_" + "lightning"):
             # for the standalone package this won't do anything,
             # for the unified mirror package it will redirect the imports

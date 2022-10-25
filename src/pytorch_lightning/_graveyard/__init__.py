@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytorch_lightning._graveyard.callbacks
+import pytorch_lightning._graveyard.cloud_io
 import pytorch_lightning._graveyard.core
 import pytorch_lightning._graveyard.loggers
 import pytorch_lightning._graveyard.trainer
