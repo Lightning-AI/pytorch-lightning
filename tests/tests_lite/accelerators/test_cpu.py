@@ -15,7 +15,7 @@
 import pytest
 import torch
 
-from lightning_lite.accelerators.cpu import CPUAccelerator, parse_cpu_cores
+from lightning_lite.accelerators.cpu import CPUAccelerator, _parse_cpu_cores
 
 
 def test_auto_device_count():
@@ -47,4 +47,4 @@ def test_get_parallel_devices(devices, expected):
 def test_invalid_devices_with_cpu_accelerator(devices):
     """Test invalid device flag raises MisconfigurationException."""
     with pytest.raises(TypeError, match="should be an int > 0"):
-        parse_cpu_cores(devices)
+        _parse_cpu_cores(devices)

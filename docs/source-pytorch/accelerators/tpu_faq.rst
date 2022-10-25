@@ -16,7 +16,7 @@ XLA configuration is missing?
     RuntimeError: tensorflow/compiler/xla/xla_client/computation_client.cc:273 : Missing XLA configuration
     Traceback (most recent call last):
     ...
-    File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in parse_tpu_cores
+    File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in _parse_tpu_cores
         raise MisconfigurationException('No TPU devices were found.')
     pytorch_lightning.utilities.exceptions.MisconfigurationException: No TPU devices were found.
 

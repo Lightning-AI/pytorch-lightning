@@ -32,10 +32,10 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import _distributed_available, _get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.distributed import _init_dist_connection, _sync_ddp_if_available
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -176,7 +176,7 @@ class DDPStrategy(ParallelStrategy):
 
             # set up optimizers after the wrapped module has been moved to the device
             self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
+            _optimizers_to_device(self.optimizers, self.root_device)
 
         if _TORCH_GREATER_EQUAL_1_10 and trainer_fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
@@ -197,10 +197,10 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
+        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
@@ -297,7 +297,7 @@ class DDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not distributed_available():
+        if not _distributed_available():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
@@ -339,7 +339,7 @@ class DDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
