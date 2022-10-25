@@ -48,13 +48,21 @@ def test_migrate_checkpoint(monkeypatch):
     old_checkpoint = {"pytorch-lightning_version": "0.0.0", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == ["one", "two", "three", "four"]
-    assert new_checkpoint == old_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+    assert (
+        new_checkpoint
+        == old_checkpoint
+        == {"legacy_pytorch-lightning_version": "0.0.0", "pytorch-lightning_version": pl.__version__, "content": 123}
+    )
 
     # A checkpoint that is newer, but not the newest
     old_checkpoint = {"pytorch-lightning_version": "1.0.3", "content": 123}
     new_checkpoint, call_order = _run_simple_migration(monkeypatch, old_checkpoint)
     assert call_order == ["four"]
-    assert new_checkpoint == old_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+    assert (
+        new_checkpoint
+        == old_checkpoint
+        == {"legacy_pytorch-lightning_version": "1.0.3", "pytorch-lightning_version": pl.__version__, "content": 123}
+    )
 
     # A checkpoint newer than any migration point in the index
     old_checkpoint = {"pytorch-lightning_version": pl.__version__, "content": 123}
@@ -109,5 +117,10 @@ def test_migrate_checkpoint_for_pl(caplog):
     loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "content": 123}
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.utilities.migration.utils"):
         new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
-    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "callbacks": {}, "content": 123}
+    assert new_checkpoint == {
+        "legacy_pytorch-lightning_version": "0.0.1",
+        "pytorch-lightning_version": pl.__version__,
+        "callbacks": {},
+        "content": 123,
+    }
     assert f"Lightning automatically upgraded your loaded checkpoint from v0.0.1 to v{pl.__version__}" in caplog.text

@@ -16,7 +16,7 @@ import pytest
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.migration import migrate_checkpoint
-from pytorch_lightning.utilities.migration.utils import _get_version, _set_version
+from pytorch_lightning.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
 
 
 @pytest.mark.parametrize(
@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.migration.utils import _get_version, _set_versi
 )
 def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
     _set_version(old_checkpoint, "0.9.0")
+    _set_legacy_version(new_checkpoint, "0.9.0")
     _set_version(new_checkpoint, pl.__version__)
     updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
     assert updated_checkpoint == old_checkpoint == new_checkpoint

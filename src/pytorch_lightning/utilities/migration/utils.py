@@ -55,6 +55,8 @@ def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, 
 
         applied_migrations[migration_version] = [fn.__name__ for fn in migration_functions]
 
+    if ckpt_version != pl.__version__:
+        _set_legacy_version(checkpoint, _get_version(checkpoint))
     _set_version(checkpoint, pl.__version__)
     return checkpoint, applied_migrations
 
@@ -126,6 +128,11 @@ def _get_version(checkpoint: _CHECKPOINT) -> str:
 def _set_version(checkpoint: _CHECKPOINT, version: str) -> None:
     """Set the version of a Lightning checkpoint."""
     checkpoint["pytorch-lightning_version"] = version
+
+
+def _set_legacy_version(checkpoint: _CHECKPOINT, version: str) -> None:
+    """Set the legacy version of a Lightning checkpoint."""
+    checkpoint["legacy_pytorch-lightning_version"] = version
 
 
 def _should_upgrade(checkpoint: _CHECKPOINT, target: str) -> bool:
