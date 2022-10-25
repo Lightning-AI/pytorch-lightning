@@ -3,10 +3,10 @@ import os
 import pickle
 import queue
 import threading
-import typing as t
 import warnings
 from copy import deepcopy
 from time import time
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -22,6 +22,7 @@ from lightning_app.core.constants import (
     STATE_ACCUMULATE_WAIT,
 )
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
+from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import storage_root_dir
@@ -37,8 +38,11 @@ from lightning_app.utilities.scheduler import SchedulerThread
 from lightning_app.utilities.tree import breadth_first
 from lightning_app.utilities.warnings import LightningFlowWarning
 
-if t.TYPE_CHECKING:
+if TYPE_CHECKING:
+    from lightning_app.core.flow import LightningFlow
     from lightning_app.runners.backends.backend import Backend, WorkManager
+    from lightning_app.runners.runtime import Runtime
+
 
 logger = Logger(__name__)
 
@@ -46,7 +50,8 @@ logger = Logger(__name__)
 class LightningApp:
     def __init__(
         self,
-        root: "lightning_app.LightningFlow",
+        root: Union["LightningFlow", "LightningWork"],
+        flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         debug: bool = False,
         info: frontend.AppInfo = None,
         root_path: str = "",
@@ -57,13 +62,14 @@ class LightningApp:
         created by other users.
 
         The Lightning App alternatively run an event loop triggered by delta changes sent from
-        either :class:`~lightning.app.core.work.LightningWork` or from the Lightning UI.
+        either :class:`~lightning_app.core.work.LightningWork` or from the Lightning UI.
         Once deltas are received, the Lightning App runs
-        the :class:`~lightning.app.core.flow.LightningFlow` provided.
+        the :class:`~lightning_app.core.flow.LightningFlow` provided.
 
         Arguments:
-            root: The root LightningFlow component, that defines all the app's nested components, running infinitely.
-                It must define a `run()` method that the app can call.
+            root: The root ``LightningFlow`` or ``LightningWork`` component, that defines all the app's nested
+                 components, running infinitely. It must define a `run()` method that the app can call.
+            flow_cloud_compute: The default Cloud Compute used for flow, Rest API and frontend's.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
@@ -76,8 +82,8 @@ class LightningApp:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow, LightningApp
-            >>> from lightning.app.runners import MultiProcessRuntime
+            >>> from lightning_app import LightningFlow, LightningApp
+            >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
             ...         print("Hello World!")
@@ -89,34 +95,41 @@ class LightningApp:
         """
 
         self.root_path = root_path  # when running behind a proxy
+
+        from lightning_app.core.flow import _RootFlow
+
+        if isinstance(root, LightningWork):
+            root = _RootFlow(root)
+
         _validate_root_flow(root)
         self._root = root
+        self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()
 
         # queues definition.
-        self.delta_queue: t.Optional[BaseQueue] = None
-        self.readiness_queue: t.Optional[BaseQueue] = None
-        self.api_response_queue: t.Optional[BaseQueue] = None
-        self.api_publish_state_queue: t.Optional[BaseQueue] = None
-        self.api_delta_queue: t.Optional[BaseQueue] = None
-        self.error_queue: t.Optional[BaseQueue] = None
-        self.request_queues: t.Optional[t.Dict[str, BaseQueue]] = None
-        self.response_queues: t.Optional[t.Dict[str, BaseQueue]] = None
-        self.copy_request_queues: t.Optional[t.Dict[str, BaseQueue]] = None
-        self.copy_response_queues: t.Optional[t.Dict[str, BaseQueue]] = None
-        self.caller_queues: t.Optional[t.Dict[str, BaseQueue]] = None
-        self.work_queues: t.Optional[t.Dict[str, BaseQueue]] = None
-        self.commands: t.Optional[t.List] = None
+        self.delta_queue: Optional[BaseQueue] = None
+        self.readiness_queue: Optional[BaseQueue] = None
+        self.api_response_queue: Optional[BaseQueue] = None
+        self.api_publish_state_queue: Optional[BaseQueue] = None
+        self.api_delta_queue: Optional[BaseQueue] = None
+        self.error_queue: Optional[BaseQueue] = None
+        self.request_queues: Optional[Dict[str, BaseQueue]] = None
+        self.response_queues: Optional[Dict[str, BaseQueue]] = None
+        self.copy_request_queues: Optional[Dict[str, BaseQueue]] = None
+        self.copy_response_queues: Optional[Dict[str, BaseQueue]] = None
+        self.caller_queues: Optional[Dict[str, BaseQueue]] = None
+        self.work_queues: Optional[Dict[str, BaseQueue]] = None
+        self.commands: Optional[List] = None
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
-        self.backend: t.Optional[Backend] = None
+        self.backend: Optional["Backend"] = None
         _LightningAppRef.connect(self)
-        self.processes: t.Dict[str, WorkManager] = {}
-        self.frontends: t.Dict[str, Frontend] = {}
+        self.processes: Dict[str, "WorkManager"] = {}
+        self.frontends: Dict[str, Frontend] = {}
         self.stage = AppStage.RUNNING
         self._has_updated: bool = True
-        self._schedules: t.Dict[str, t.Dict] = {}
-        self.threads: t.List[threading.Thread] = []
+        self._schedules: Dict[str, Dict] = {}
+        self.threads: List[threading.Thread] = []
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
@@ -151,7 +164,8 @@ class LightningApp:
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
-        from lightning_app.structures import Dict, List
+        from lightning_app.structures import Dict as LightningDict
+        from lightning_app.structures import List as LightningList
         from lightning_app.utilities.types import ComponentTuple
 
         if component_name == "root":
@@ -161,8 +175,8 @@ class LightningApp:
 
         current = self.root
         for child_name in component_name.split(".")[1:]:
-            if isinstance(current, (Dict, List)):
-                child = current[child_name] if isinstance(current, Dict) else current[int(child_name)]
+            if isinstance(current, (LightningDict, LightningList)):
+                child = current[child_name] if isinstance(current, LightningDict) else current[int(child_name)]
             else:
                 child = getattr(current, child_name, None)
             if not isinstance(child, ComponentTuple):
@@ -255,7 +269,7 @@ class LightningApp:
         return new_state
 
     @staticmethod
-    def get_state_changed_from_queue(q: BaseQueue, timeout: t.Optional[int] = None):
+    def get_state_changed_from_queue(q: BaseQueue, timeout: Optional[int] = None):
         try:
             delta = q.get(timeout=timeout or q.default_timeout)
             return delta
@@ -268,64 +282,55 @@ class LightningApp:
             self.stage = AppStage.FAILED
 
     @property
-    def flows(self) -> t.List["lightning_app.LightningFlow"]:
+    def flows(self) -> List["LightningFlow"]:
         """Returns all the flows defined within this application."""
         return [self.root] + self.root.get_all_children()
 
     @property
-    def works(self) -> t.List["lightning_app.LightningWork"]:
+    def works(self) -> List[LightningWork]:
         """Returns all the works defined within this application."""
         return self.root.works(recurse=True)
 
     @property
-    def named_works(self) -> t.List[t.Tuple[str, "lightning_app.LightningWork"]]:
+    def named_works(self) -> List[Tuple[str, LightningWork]]:
         """Returns all the works defined within this application with their names."""
         return self.root.named_works(recurse=True)
 
-    def _collect_deltas_from_ui_and_work_queues(self) -> t.List[t.Union[Delta, APIRequest, CommandRequest]]:
+    def _collect_deltas_from_ui_and_work_queues(self) -> List[Union[Delta, APIRequest, CommandRequest]]:
         # The aggregation would try to get as many deltas as possible
         # from both the `api_delta_queue` and `delta_queue`
         # during the `state_accumulate_wait` time.
         # The while loop can exit sooner if both queues are empty.
 
-        should_get_delta_from_api = True
-        should_get_component_output = True
         deltas = []
+        api_or_command_request_deltas = []
         t0 = time()
 
         while (time() - t0) < self.state_accumulate_wait:
 
-            if self.api_delta_queue and should_get_delta_from_api:
-                delta_from_api: t.Union[DeltaRequest, APIRequest, CommandRequest] = self.get_state_changed_from_queue(
-                    self.api_delta_queue
-                )  # TODO: rename
-                if delta_from_api:
-                    if isinstance(delta_from_api, DeltaRequest):
-                        delta_from_api = delta_from_api.delta
-                    deltas.append(delta_from_api)
-                else:
-                    should_get_delta_from_api = False
-
-            if self.delta_queue and should_get_component_output:
-                component_output: t.Optional[ComponentDelta] = self.get_state_changed_from_queue(self.delta_queue)
-                if component_output:
-                    logger.debug(f"Received from {component_output.id} : {component_output.delta.to_dict()}")
-
+            # TODO: Fetch all available deltas at once to reduce queue calls.
+            delta: Optional[
+                Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
+            ] = self.get_state_changed_from_queue(self.delta_queue)
+            if delta:
+                if isinstance(delta, DeltaRequest):
+                    deltas.append(delta.delta)
+                elif isinstance(delta, ComponentDelta):
+                    logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")
                     work = None
                     try:
-                        work = self.get_component_by_name(component_output.id)
+                        work = self.get_component_by_name(delta.id)
                     except (KeyError, AttributeError) as e:
-                        logger.error(f"The component {component_output.id} couldn't be accessed. Exception: {e}")
+                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
 
                     if work:
-                        new_work_delta = _delta_to_app_state_delta(self.root, work, deepcopy(component_output.delta))
-                        deltas.append(new_work_delta)
+                        delta = _delta_to_app_state_delta(self.root, work, deepcopy(delta.delta))
+                        deltas.append(delta)
                 else:
-                    should_get_component_output = False
+                    api_or_command_request_deltas.append(delta)
 
-            # if both queues were found empties, should break the while loop.
-            if not should_get_delta_from_api and not should_get_component_output:
-                break
+        if api_or_command_request_deltas:
+            _process_requests(self, api_or_command_request_deltas)
 
         for delta in deltas:
             # When aggregating deltas from the UI and the Works, and over the accumulation time window,
@@ -360,19 +365,11 @@ class LightningApp:
 
         logger.debug(f"Received {[d.to_dict() for d in deltas]}")
 
-        # 1: Process the API / Command Requests first as they might affect the state.
-        state_deltas = []
-        for delta in deltas:
-            if isinstance(delta, (APIRequest, CommandRequest)):
-                _process_requests(self, delta)
-            else:
-                state_deltas.append(delta)
-
         # 2: Collect the state
         state = self.state
 
         # 3: Apply the state delta
-        for delta in state_deltas:
+        for delta in deltas:
             try:
                 state += delta
             except Exception as e:
@@ -478,6 +475,8 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
+        import lightning_app
+
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 
@@ -515,16 +514,16 @@ class LightningApp:
                 return True
         return False
 
-    def state_dict(self) -> t.Dict:
+    def state_dict(self) -> Dict:
         return self.state
 
-    def load_state_dict(self, state: t.Dict) -> None:
+    def load_state_dict(self, state: Dict) -> None:
         self.set_state(state)
 
     def load_state_dict_from_checkpoint_dir(
         self,
         checkpoints_dir: str,
-        version: t.Optional[int] = None,
+        version: Optional[int] = None,
     ) -> None:
         if not os.path.exists(checkpoints_dir):
             raise FileNotFoundError(f"The provided directory `{checkpoints_dir}` doesn't exist.")
@@ -545,7 +544,7 @@ class LightningApp:
         state = pickle.load(open(checkpoint_path, "rb"))
         self.load_state_dict(state)
 
-    def _dump_checkpoint(self) -> t.Optional[str]:
+    def _dump_checkpoint(self) -> Optional[str]:
         checkpoints_dir = self.checkpoint_dir
         # TODO: Add supports to remotely saving checkpoints.
         if checkpoints_dir.startswith("s3:"):
@@ -569,7 +568,7 @@ class LightningApp:
             pickle.dump(self.state_dict(), f)
         return checkpoint_path
 
-    def connect(self, runtime: "lightning_app.runners.runtime.Runtime") -> None:
+    def connect(self, runtime: "Runtime") -> None:
         """Override to customize your application to the runtime."""
         pass
 
@@ -577,7 +576,7 @@ class LightningApp:
         if self._has_updated:
             self._update_layout()
 
-    def _register_schedule(self, schedule_hash: str, schedule_metadata: t.Dict) -> None:
+    def _register_schedule(self, schedule_hash: str, schedule_metadata: Dict) -> None:
         # create a thread only if a user uses the flow's schedule method.
         if not self._schedules:
             scheduler_thread = SchedulerThread(self)

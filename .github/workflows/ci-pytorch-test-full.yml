@@ -15,14 +15,21 @@ on:
       - ".github/workflows/ci-pytorch-test-full.yml"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "tests/tests_lite/**"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
-jobs:
+env:
+  PACKAGE_NAME: pytorch
+  FREEZE_REQUIREMENTS: 1
 
+defaults:
+  run:
+    shell: bash
+
+jobs:
   pl-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
@@ -30,27 +37,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "ubuntu-20.04", python-version: "3.7", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.9"}  # ex-conda
-          - {os: "ubuntu-20.04", python-version: "3.8", pytorch-version: "1.10"}  # ex-conda
-          - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.11"}  # ex-conda
-          - {os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "1.12"}  # ex-conda
-          - {os: "ubuntu-20.04", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "macos-11", python-version: "3.7", pytorch-version: "1.12"}
-          - {os: "macos-11", python-version: "3.8", pytorch-version: "1.10"}
-          - {os: "macos-11", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "macos-11", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {os: "windows-2022", python-version: "3.7", pytorch-version: "1.12"}
-          - {os: "windows-2022", python-version: "3.8", pytorch-version: "1.10"}
-          - {os: "windows-2022", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "windows-2022", python-version: "3.10", pytorch-version: "1.12"}
-          # TODO: re-enable RC testing
-          # - {os: ubuntu-20.04, python-version: "3.10", release: "pre"}
+          # assign python and pytorch version combinations to operating systems (arbitrarily)
+          # note: there's no distribution of Torch==1.9 for Python>=3.9 or torch==1.10 for Python>=3.10
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
+          - {os: "windows.2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.10"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.9"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
+          # only run PyTorch latest with Python latest
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          # "oldest" versions tests, only on minimum Python
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          # release-candidate tests, mixed Python versions
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
 
-    timeout-minutes: 40
+    timeout-minutes: 50
 
     steps:
     - uses: actions/checkout@v3
@@ -73,12 +81,36 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .actions/assistant.py requirements_prune_pkgs horovod
+        python .actions/assistant.py requirements_prune_pkgs "--packages=[horovod]"
 
     - name: Set min. dependencies
-      if: matrix.requires == 'oldest'
+      if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
+    - name: Pull legacy checkpoints
+      run: bash .actions/pull_legacy_checkpoints.sh
+
+    - name: Adjust PyTorch versions in requirements files
+      if: ${{ matrix.requires != 'oldest' }}
+      run: |
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
+        cat requirements/pytorch/base.txt
+
+    - name: switch PyTorch URL
+      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+
+    - name: Install package
+      env:
+        PACKAGE_NAME: ${{ matrix.pkg-name }}
+      run: |
+        pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+        pip list
+
+    - name: DocTests PL
+      if: ${{ matrix.pkg-name != 'LAI' }}
+      working-directory: src
+      run: python -m pytest pytorch_lightning
 
     - name: Get pip cache dir
       id: pip-cache
@@ -88,31 +120,14 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
-
-    - name: Pull legacy checkpoints
-      run: bash .actions/pull_legacy_checkpoints.sh
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Install dependencies
-      env:
-        PACKAGE_NAME: pytorch
-        FREEZE_REQUIREMENTS: 1
       run: |
-        # adjust PyTorch versions in requirements files
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
-        # install PL and optional dependencies for testing
-        pre_option=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        url=https://download.pytorch.org/whl/$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -e . -r requirements/pytorch/test.txt -r ./requirements/pytorch/extra.txt $pre_option -f ${url}
+        pip install -r requirements/pytorch/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
-      shell: bash
-
-    - name: DocTests PL
-      working-directory: ./src
-      run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
@@ -130,7 +145,6 @@ jobs:
         horovodrun --check-build
         python -c "import horovod.torch"
         pip list
-      shell: bash
 
     - name: Cache datasets
       uses: actions/cache@v3
@@ -140,8 +154,12 @@ jobs:
 
     - name: Sanity check
       run: |
-        python -c "import torch; assert torch.__version__.startswith('${{ matrix.pytorch-version }}')"
+        python -c "from torch import __version__ as ver; assert ver.startswith('${{ matrix.pytorch-version }}'), ver"
         python requirements/pytorch/check-avail-extras.py
+
+    - name: Adjust tests
+      if: ${{ matrix.pkg-name == 'LAI' }}
+      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
@@ -150,10 +168,13 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
+    - name: switch coverage scope
+      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'pytorch_lightning'))" >> $GITHUB_ENV
+
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()
@@ -175,12 +196,11 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: always()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: tests/tests_pytorch/coverage.xml
-        flags: cpu,pytest,python${{ matrix.python-version }}
+        flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
