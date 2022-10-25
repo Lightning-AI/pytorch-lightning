@@ -150,9 +150,9 @@ def _basic_subprocess_cmd() -> Sequence[str]:
 
 
 def _hydra_subprocess_cmd(local_rank: int) -> Sequence[str]:
+    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import to_absolute_path
-    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
 
     # when user is using hydra find the absolute path
     if __main__.__spec__ is None:  # pragma: no-cover
