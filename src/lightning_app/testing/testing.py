@@ -227,7 +227,6 @@ def run_app_in_cloud(
 
     is_editable_mode = get_dist_path_if_editable_install("lightning")
     if not is_editable_mode and PR_NUMBER is not None:
-        print(is_editable_mode, PR_NUMBER)
         raise Exception("Lightning requires to be installed in editable mode in the CI.")
 
     TEST_APP_NAME = os.getenv("TEST_APP_NAME", basename)
