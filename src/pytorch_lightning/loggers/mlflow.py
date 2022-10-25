@@ -139,7 +139,7 @@ class MLFlowLogger(Logger):
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = "./mlruns",
-        log_model: Optional[bool] = False,
+        log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
         artifact_location: Optional[str] = None,
         run_id: Optional[str] = None,
