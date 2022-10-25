@@ -222,8 +222,8 @@ def lr_find(
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
-    trainer.save_checkpoint(ckpt_path)
     ckpt_path = trainer.strategy.broadcast(ckpt_path)
+    trainer.save_checkpoint(ckpt_path)
 
     # Arguments we adjust during the lr finder, save for restoring
     params = __lr_finder_dump_params(trainer)
