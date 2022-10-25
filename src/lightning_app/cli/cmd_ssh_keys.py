@@ -1,5 +1,7 @@
 import json
-from typing import List
+import random
+import string
+from typing import List, Optional
 
 from lightning_cloud.openapi import V1CreateSSHPublicKeyRequest, V1SSHPublicKey
 from rich.console import Console
@@ -42,10 +44,11 @@ class SSHKeyManager:
         console = Console()
         console.print(ssh_keys.as_table())
 
-    def add_key(self, name: str, public_key: str, comment: str) -> None:
+    def add_key(self, name: Optional[str], public_key: str, comment: str) -> None:
+        key_name = name if name is not None else "-".join(random.choice(string.ascii_lowercase) for _ in range(5))
         self.api_client.s_sh_public_key_service_create_ssh_public_key(
             V1CreateSSHPublicKeyRequest(
-                name=name,
+                name=key_name,
                 public_key=public_key,
                 comment=comment,
             )
