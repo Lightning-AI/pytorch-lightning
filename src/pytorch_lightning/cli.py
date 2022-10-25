@@ -296,6 +296,7 @@ class LightningCLI:
                 :ref:`the CLI docs <lightning-cli>`.
             seed_everything_default: Value for the :func:`~lightning_lite.utilities.seed.seed_everything`
                 seed argument. Set to True to automatically choose a valid seed.
+                Setting it to a number with seed to the given seed value
                 Setting it to False will not call seed_everything.
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
