@@ -30,9 +30,9 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.migration import pl_legacy_patch
-from pytorch_lightning.utilities.parsing import parse_class_init_keys
+from pytorch_lightning.utilities.parsing import AttributeDict, parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -177,6 +177,7 @@ def _load_from_checkpoint(
         return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
         return _load_state(cls, checkpoint, strict=strict, **kwargs)
+    raise NotImplementedError(f"Unsupported {cls}")
 
 
 def _load_state(
@@ -222,10 +223,13 @@ def _load_state(
 
     obj = cls(**_cls_kwargs)
 
-    # give model a chance to load something
-    obj.on_load_checkpoint(checkpoint)
+    if isinstance(obj, pl.LightningModule):
+        # give model a chance to load something
+        obj.on_load_checkpoint(checkpoint)
 
     if isinstance(obj, pl.LightningDataModule):
+        if obj.__class__.__qualname__ in checkpoint:
+            obj.load_state_dict(checkpoint[obj.__class__.__qualname__])
         return obj
 
     # load the state_dict on the model automatically

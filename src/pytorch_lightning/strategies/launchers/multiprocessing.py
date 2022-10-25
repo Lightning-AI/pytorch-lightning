@@ -27,7 +27,8 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.strategies.launchers.multiprocessing import _check_bad_cuda_fork
+from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
@@ -59,7 +60,7 @@ class _MultiProcessingLauncher(_Launcher):
     """
 
     def __init__(
-        self, strategy: "pl.strategies.Strategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+        self, strategy: "pl.strategies.DDPSpawnStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
     ) -> None:
         self._strategy = strategy
         self._start_method = start_method
@@ -67,10 +68,6 @@ class _MultiProcessingLauncher(_Launcher):
             raise ValueError(
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
-            )
-        if start_method in ("fork", "forkserver") and _is_forking_disabled():
-            raise ValueError(
-                "Forking is disabled in this environment by `PL_DISABLE_FORKING=1`. Choose a different start method."
             )
 
     @property
@@ -94,10 +91,15 @@ class _MultiProcessingLauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
         self._check_torchdistx_support()
+        if self._start_method in ("fork", "forkserver"):
+            _check_bad_cuda_fork()
+
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
+        assert self._strategy.cluster_environment is not None
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
+
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
 
@@ -132,13 +134,13 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
-        self._strategy._worker_setup(process_idx)
+        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, worker_output: "_WorkerOutput", trainer: "pl.Trainer") -> None:
@@ -287,8 +289,3 @@ class _GlobalStateSnapshot:
             torch.use_deterministic_algorithms(self.use_deterministic_algorithms)
         torch.backends.cudnn.benchmark = self.cudnn_benchmark
         _set_rng_states(self.rng_states)
-
-
-def _is_forking_disabled() -> bool:
-    """Returns whether forking is disabled through the environment variable ``PL_DISABLE_FORK``."""
-    return bool(int(os.environ.get("PL_DISABLE_FORK", "0")))

@@ -30,11 +30,13 @@ callbacks
     BackboneFinetuning
     BaseFinetuning
     BasePredictionWriter
+    BatchSizeFinder
     Callback
     DeviceStatsMonitor
     EarlyStopping
     GradientAccumulationScheduler
     LambdaCallback
+    LearningRateFinder
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
@@ -183,13 +185,13 @@ precision
     :template: classtemplate.rst
 
     ApexMixedPrecisionPlugin
+    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
@@ -284,7 +286,7 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    HivemindStrategy
+    ColossalAIStrategy
     DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
@@ -293,6 +295,7 @@ strategies
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
+    HivemindStrategy
     HorovodStrategy
     HPUParallelStrategy
     IPUStrategy

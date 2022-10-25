@@ -22,7 +22,7 @@ from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_lite.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
@@ -225,7 +225,7 @@ class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
 
-    def update(self, value: _IN_METRIC, batch_size: int) -> None:  # type: ignore[override]
+    def update(self, value: _IN_METRIC, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
             if not torch.is_floating_point(value):

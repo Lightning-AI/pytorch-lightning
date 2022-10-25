@@ -276,7 +276,11 @@ class DataFetcher(AbstractDataFetcher):
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         start_output = self.on_fetch_start()
-        batch = next(iterator)
+        try:
+            batch = next(iterator)
+        except StopIteration as e:
+            self._stop_profiler()
+            raise e
         self.fetched += 1
         if not self.prefetch_batches and self._has_len:
             # when we don't prefetch but the dataloader is sized, we use the length for `done`

@@ -3,10 +3,9 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Thread
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
-import lightning_app
-from lightning_app import LightningApp
+from lightning_app import LightningApp, LightningFlow
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
 from lightning_app.utilities.app_helpers import Logger
@@ -15,6 +14,9 @@ from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
 logger = Logger(__name__)
+
+if TYPE_CHECKING:
+    import lightning_app
 
 
 def dispatch(
@@ -27,7 +29,8 @@ def dispatch(
     blocking: bool = True,
     on_before_run: Optional[Callable] = None,
     name: str = "",
-    env_vars: Dict[str, str] = {},
+    env_vars: Dict[str, str] = None,
+    secrets: Dict[str, str] = None,
     cluster_id: str = None,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
@@ -43,6 +46,7 @@ def dispatch(
         on_before_run: Callable to be executed before run.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
+        secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
     """
     from lightning_app.runners.runtime_type import RuntimeType
@@ -54,11 +58,20 @@ def dispatch(
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
     app = load_app_from_file(str(entrypoint_file))
 
+    env_vars = {} if env_vars is None else env_vars
+    secrets = {} if secrets is None else secrets
+
     if blocking:
         app.stage = AppStage.BLOCKING
 
     runtime = runtime_cls(
-        app=app, entrypoint_file=entrypoint_file, start_server=start_server, host=host, port=port, env_vars=env_vars
+        app=app,
+        entrypoint_file=entrypoint_file,
+        start_server=start_server,
+        host=host,
+        port=port,
+        env_vars=env_vars,
+        secrets=secrets,
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
@@ -78,12 +91,13 @@ class Runtime:
     done: bool = False
     backend: Optional[Union[str, Backend]] = "multiprocessing"
     env_vars: Dict[str, str] = field(default_factory=dict)
+    secrets: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         if isinstance(self.backend, str):
             self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
 
-        lightning_app.LightningFlow._attach_backend(self.app.root, self.backend)
+        LightningFlow._attach_backend(self.app.root, self.backend)
 
     def terminate(self) -> None:
         """This method is used to terminate all the objects (threads, processes, etc..) created by the app."""

@@ -1,9 +1,11 @@
+import urllib
 from typing import Callable, Optional
 from urllib.parse import urlparse
 
 from lightning_cloud.openapi import ApiClient, AuthServiceApi, V1LoginRequest
 from websocket import WebSocketApp
 
+from lightning_app.core import constants
 from lightning_app.utilities.login import Auth
 
 
@@ -101,18 +103,27 @@ class _LightningLogsSocketAPI(_LogsSocketAPI):
 
 class _ClusterLogsSocketAPI(_LogsSocketAPI):
     @staticmethod
-    def _cluster_logs_socket_url(host: str, cluster_id: str, start: int, end: int, limit: int, token: str) -> str:
-        return (
-            f"wss://{host}/v1/core/clusters/{cluster_id}/logs?"
-            f"start={start}&end={end}&token={token}&limit={limit}"
-            f"&follow=true"
-        )
+    def _cluster_logs_socket_url(
+        host: str, cluster_id: str, start: float, end: Optional[float], limit: int, token: str
+    ) -> str:
+        params = {
+            "start": start,
+            "limit": limit,
+            "token": token,
+        }
+
+        if end:
+            params["end"] = end
+        else:
+            params["follow"] = "true"
+
+        return f"wss://{host}/v1/core/clusters/{cluster_id}/logs?{urllib.parse.urlencode(params)}"
 
     def create_cluster_logs_socket(
         self,
         cluster_id: str,
-        start: int,  # unix timestamp
-        end: int,  # unix timestamp
+        start: float,  # unix timestamp
+        end: Optional[float],  # unix timestamp
         limit: int,
         on_message_callback: Callable[[WebSocketApp, str], None],
         on_error_callback: Optional[Callable[[Exception, str], None]] = None,
@@ -169,5 +180,8 @@ class _ClusterLogsSocketAPI(_LogsSocketAPI):
             limit=limit,
             end=end,
         )
+
+        if constants.DEBUG:
+            print(f"Connecting to websocket {socket_url}")
 
         return WebSocketApp(socket_url, on_message=on_message_callback, on_error=on_error_callback)

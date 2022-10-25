@@ -30,12 +30,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    get_default_process_group_backend_for_device,
-    log,
-)
+from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
@@ -50,9 +45,10 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
+log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
@@ -89,16 +85,8 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
+        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
         return super().forward(*inputs, **kwargs)
-
-    def _batch_to(self, batch: Tensor) -> Tensor:
-        if torch.is_floating_point(batch):
-            if self.precision == PrecisionType.HALF:
-                return batch.half()
-            elif self.precision == PrecisionType.BFLOAT:
-                return batch.bfloat16()
-        return batch
 
 
 class DeepSpeedStrategy(DDPStrategy):
@@ -107,7 +95,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -360,12 +348,9 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         reset_seed()
-
-        # determine which process we are and world size
         self.set_world_ranks()
-
+        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
-
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
@@ -394,13 +379,6 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         self._process_group_backend = self._get_process_group_backend()
         deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
-
-    def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None
@@ -581,17 +559,8 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
     def _initialize_deepspeed_inference(self, model: Module) -> None:
-        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
         assert isinstance(self.config, dict)
-        optimizer, scheduler = None, None
-        if "optimizer" not in self.config:
-            rank_zero_info(
-                "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                " Using `configure_optimizers` to define optimizer and scheduler."
-            )
-            optimizer, lr_scheduler, _ = self._init_optimizers()
-            if lr_scheduler is not None:
-                scheduler = lr_scheduler.scheduler
+
         # todo: this is required for DeepSpeed throughput timers
         inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
@@ -609,8 +578,8 @@ class DeepSpeedStrategy(DDPStrategy):
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
+            optimizer=None,
+            lr_scheduler=None,
             model_parameters=[],
             dist_init_required=False,
         )
@@ -627,7 +596,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             trainer: the Trainer, these optimizers should be connected to
         """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer.state.fn != TrainerFn.FITTING:
             return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled

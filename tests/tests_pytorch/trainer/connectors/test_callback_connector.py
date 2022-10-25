@@ -28,6 +28,7 @@ from pytorch_lightning.callbacks import (
     ProgressBarBase,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
@@ -83,6 +84,25 @@ def test_checkpoint_callbacks_are_last(tmpdir):
         model_summary,
         checkpoint1,
         checkpoint2,
+    ]
+
+    # with tuner-specific callbacks that substitute ones in Trainer
+    model = LightningModule()
+    batch_size_finder = BatchSizeFinder()
+    model.configure_callbacks = lambda: [checkpoint2, early_stopping, batch_size_finder, model_summary, checkpoint1]
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor])
+    trainer.strategy._lightning_module = model
+    cb_connector = CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks()
+    assert trainer.callbacks == [
+        batch_size_finder,
+        progress_bar,
+        lr_monitor,
+        trainer.accumulation_scheduler,
+        early_stopping,
+        model_summary,
+        checkpoint2,
+        checkpoint1,
     ]
 
 

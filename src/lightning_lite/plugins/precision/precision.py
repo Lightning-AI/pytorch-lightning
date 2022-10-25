@@ -14,11 +14,13 @@
 import contextlib
 from typing import Any, Dict, Generator, Optional, Union
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning_lite.utilities.types import _PARAMETERS
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
+from lightning_lite.utilities.types import _PARAMETERS, Optimizable
 
 
 class Precision:
@@ -29,12 +31,26 @@ class Precision:
 
     precision: Union[str, int] = 32
 
+    def convert_module(self, module: Module) -> Module:
+        """Convert the module parameters to the precision type this plugin handles.
+
+        This is optional and depends on the precision limitations during optimization.
+        """
+        return module
+
     @contextlib.contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
 
-    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+    def convert_input(self, data: Tensor) -> Tensor:
+        """Convert model inputs (forward) to the floating point precision type of this plugin.
+
+        This is a no-op for tensors that are not of floating-point type or already have the desired type.
+        """
+        return _convert_fp_tensor(data, torch.float32)
+
+    def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.
 
         Args:
@@ -51,7 +67,7 @@ class Precision:
         """
         tensor.backward(*args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> None:
+    def post_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs after precision plugin executes backward.
 
         Args:
@@ -61,14 +77,13 @@ class Precision:
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional[Module] = None,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
         return optimizer.step(**kwargs)
 
-    def get_main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+    def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
 
         Returns the plain model params here. Maybe different in other precision plugins.

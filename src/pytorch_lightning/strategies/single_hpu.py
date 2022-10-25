@@ -18,7 +18,7 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
@@ -40,7 +40,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
     def __init__(
         self,
         device: _DEVICE = "hpu",
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):

@@ -18,7 +18,6 @@ import torch
 
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.device_parser import parse_hpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
@@ -102,5 +101,26 @@ class HPUAccelerator(Accelerator):
         accelerator_registry.register(
             "hpu",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__class__.__name__,
         )
+
+
+def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+    """
+    Parses the hpus given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
+
+    Args:
+        devices: An integer that indicates the number of Gaudi devices to be used
+
+    Returns:
+        Either an integer or ``None`` if no devices were requested
+
+    Raises:
+        MisconfigurationException:
+            If devices aren't of type `int` or `str`
+    """
+    if devices is not None and not isinstance(devices, (int, str)):
+        raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
+
+    return int(devices) if isinstance(devices, str) else devices

@@ -16,7 +16,6 @@ from typing import Dict, List, Union
 import torch
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.utilities import device_parser
 
 
 class CPUAccelerator(Accelerator):
@@ -37,13 +36,13 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = device_parser.parse_cpu_cores(devices)
+        devices = parse_cpu_cores(devices)
         return devices
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        devices = device_parser.parse_cpu_cores(devices)
+        devices = parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod
@@ -63,3 +62,26 @@ class CPUAccelerator(Accelerator):
             cls,
             description=cls.__class__.__name__,
         )
+
+
+def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
+    """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
+    :class:`~pytorch_lightning.trainer.Trainer`.
+
+    Args:
+        cpu_cores: An int > 0.
+
+    Returns:
+        An int representing the number of processes
+
+    Raises:
+        MisconfigurationException:
+            If cpu_cores is not an int > 0
+    """
+    if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
+        cpu_cores = int(cpu_cores)
+
+    if not isinstance(cpu_cores, int) or cpu_cores <= 0:
+        raise TypeError("`devices` selected with `CPUAccelerator` should be an int > 0.")
+
+    return cpu_cores

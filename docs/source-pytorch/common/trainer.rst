@@ -164,7 +164,7 @@ or after it has already been trained.
 
 .. code-block:: python
 
-    trainer.validate(dataloaders=val_dataloaders)
+    trainer.validate(model=model, dataloaders=val_dataloaders)
 
 ------------
 
@@ -1173,7 +1173,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     .. testcode::
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-        from pytorch_lightning.plugins.apex_amp import ApexMixedPrecisionPlugin
+        from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
 
 
         apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
@@ -1525,6 +1525,39 @@ Whether to enable or disable the model summarization. Defaults to True.
 
     trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
+
+inference_mode
+^^^^^^^^^^^^^^
+
+Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` mode during evaluation
+(``validate``/``test``/``predict``)
+
+.. testcode::
+
+    # default used by the Trainer
+    trainer = Trainer(inference_mode=True)
+
+    # Use `torch.no_grad` instead
+    trainer = Trainer(inference_mode=False)
+
+
+With :func:`torch.inference_mode` disabled, you can enable the grad of your model layers if required.
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def validation_step(self, batch, batch_idx):
+            preds = self.layer1(batch)
+            with torch.enable_grad():
+                grad_preds = preds.requires_grad_()
+                preds2 = self.layer2(grad_preds)
+
+
+    model = LitModel()
+    trainer = Trainer(inference_mode=False)
+    trainer.validate(model)
+
+
 -----
 
 Trainer class API
@@ -1596,6 +1629,16 @@ The number of epochs run.
 
     if trainer.current_epoch >= 10:
         ...
+
+
+datamodule
+**********
+
+The current datamodule, which is used by the trainer.
+
+.. code-block:: python
+
+    used_datamodule = trainer.datamodule
 
 is_last_batch
 *************
@@ -1694,6 +1737,17 @@ The metrics sent to the progress bar.
     assert progress_bar_metrics["a_val"] == 2
 
 
+predict_dataloaders
+*******************
+
+The current predict dataloaders of the trainer.
+Note that property returns a list of predict dataloaders.
+
+.. code-block:: python
+
+    used_predict_dataloaders = trainer.predict_dataloaders
+
+
 estimated_stepping_batches
 **************************
 
@@ -1773,3 +1827,37 @@ both conditions are met. If any of these arguments is not set, it won't be consi
     trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100)
     model = LitModel()
     trainer.fit(model)
+
+
+train_dataloader
+****************
+
+The current train dataloader of the trainer.
+
+.. code-block:: python
+
+    used_train_dataloader = trainer.train_dataloader
+
+
+test_dataloaders
+****************
+
+The current test dataloaders of the trainer.
+Note that property returns a list of test dataloaders.
+
+
+.. code-block:: python
+
+    used_test_dataloaders = trainer.test_dataloaders
+
+val_dataloaders
+***************
+
+
+The current val dataloaders of the trainer.
+Note that property returns a list of val dataloaders.
+
+
+.. code-block:: python
+
+    used_val_dataloaders = trainer.val_dataloaders

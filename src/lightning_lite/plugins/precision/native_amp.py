@@ -17,11 +17,14 @@ from typing import Any, Dict, Generator, Optional, Union
 import torch
 from torch import Tensor
 from torch.nn import Module
-from torch.optim import LBFGS, Optimizer
+from torch.optim import LBFGS
+from typing_extensions import Literal
 
-from lightning_lite.plugins.precision.mixed import MixedPrecision
-from lightning_lite.utilities.enums import AMPType
+from lightning_lite.accelerators.cuda import _patch_cuda_is_available
+from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from lightning_lite.utilities.types import Optimizable
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch import autocast as new_autocast
@@ -29,7 +32,7 @@ else:
     from torch.cuda.amp import autocast as old_autocast
 
 
-class NativeMixedPrecision(MixedPrecision):
+class NativeMixedPrecision(Precision):
     """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
@@ -38,16 +41,16 @@ class NativeMixedPrecision(MixedPrecision):
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
     """
 
-    backend = AMPType.NATIVE
-
     def __init__(
-        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal[16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
         if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
             raise ImportError("To use bfloat16 with native amp you must install torch greater or equal to 1.10.")
         if scaler is None and precision == 16:
-            scaler = torch.cuda.amp.GradScaler()
+            with _patch_cuda_is_available():
+                # if possible, we defer CUDA initialization to support strategies that will attempt forks
+                scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
             raise ValueError(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.precision = precision
@@ -59,6 +62,11 @@ class NativeMixedPrecision(MixedPrecision):
         with self._autocast_context_manager():
             yield
 
+    def convert_input(self, data: Tensor) -> Tensor:
+        precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16}
+        dst_type = precision_to_type[self.precision]
+        return _convert_fp_tensor(data, dst_type)
+
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
@@ -66,13 +74,12 @@ class NativeMixedPrecision(MixedPrecision):
 
     def optimizer_step(
         self,
-        optimizer: Optimizer,
-        model: Optional[Module] = None,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(optimizer, model=model, **kwargs)
+            return super().optimizer_step(optimizer, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise TypeError("Native AMP and the LBFGS optimizer are not compatible.")
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found

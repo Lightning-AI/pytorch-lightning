@@ -158,6 +158,7 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
     "pytorch_project": lightning_app.__homepage__,
+    "analytics_id": "G-D3Q2ESCTZR",
     "canonical_url": lightning_app.__homepage__,
     "collapse_navigation": False,
     "display_version": True,

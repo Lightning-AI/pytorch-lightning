@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from lightning_lite.plugins.environments import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
+from lightning_lite.plugins.io.torch_io import TorchCheckpointIO
+from lightning_lite.plugins.io.xla import XLACheckpointIO
 from lightning_lite.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning_lite.plugins.precision.double import DoublePrecision
-from lightning_lite.plugins.precision.mixed import MixedPrecision
 from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
 from lightning_lite.plugins.precision.precision import Precision
 from lightning_lite.plugins.precision.tpu import TPUPrecision
@@ -29,11 +27,10 @@ __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
+    "Precision",
     "DeepSpeedPrecision",
     "DoublePrecision",
-    "MixedPrecision",
     "NativeMixedPrecision",
-    "Precision",
     "TPUPrecision",
     "TPUBf16Precision",
 ]

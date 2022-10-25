@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterator, List, Tuple
 import torch
 from lightning_utilities.core.rank_zero import WarningCache
 
-from lightning_lite.utilities.apply_func import move_data_to_device
+from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
@@ -47,7 +47,7 @@ class PredictionEpochLoop(Loop):
         self.predictions = []
         self.batch_progress.reset_on_run()
 
-    def on_run_start(  # type: ignore[override]
+    def on_run_start(
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
@@ -67,7 +67,7 @@ class PredictionEpochLoop(Loop):
         # this call requires that `self.return_predictions` is set
         self._seen_batch_indices = self._get_batch_indices(dataloader_idx) if self.should_store_predictions else []
 
-    def advance(  # type: ignore[override]
+    def advance(
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,

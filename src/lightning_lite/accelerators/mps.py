@@ -18,7 +18,6 @@ from typing import Dict, List, Optional, Union
 import torch
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.utilities import device_parser
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
@@ -40,7 +39,9 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        parsed_devices = device_parser.parse_gpu_ids(devices, include_mps=True)
+        from lightning_lite.utilities.device_parser import parse_gpu_ids
+
+        parsed_devices = parse_gpu_ids(devices, include_mps=True)
         return parsed_devices
 
     @staticmethod
@@ -48,7 +49,6 @@ class MPSAccelerator(Accelerator):
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
         assert parsed_devices is not None
-
         return [torch.device("mps", i) for i in range(len(parsed_devices))]
 
     @staticmethod
@@ -72,3 +72,11 @@ class MPSAccelerator(Accelerator):
             cls,
             description=cls.__class__.__name__,
         )
+
+
+def _get_all_available_mps_gpus() -> List[int]:
+    """
+    Returns:
+        A list of all available MPS GPUs
+    """
+    return [0] if MPSAccelerator.is_available() else []

@@ -20,7 +20,8 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from lightning_lite.utilities import device_parser
+from lightning_lite.accelerators.cuda import num_cuda_devices
+from lightning_lite.utilities.device_parser import parse_gpu_ids
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -51,7 +52,7 @@ class CUDAAccelerator(Accelerator):
     def set_nvidia_flags(local_rank: int) -> None:
         # set the correct cuda visible devices (using pci order)
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        all_gpu_ids = ",".join(str(x) for x in range(device_parser.num_cuda_devices()))
+        all_gpu_ids = ",".join(str(x) for x in range(num_cuda_devices()))
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
@@ -77,7 +78,7 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        return device_parser.parse_gpu_ids(devices, include_cuda=True)
+        return parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
@@ -87,11 +88,11 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return device_parser.num_cuda_devices()
+        return num_cuda_devices()
 
     @staticmethod
     def is_available() -> bool:
-        return device_parser.num_cuda_devices() > 0
+        return num_cuda_devices() > 0
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
@@ -155,6 +156,6 @@ def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cov
 def _get_gpu_id(device_id: int) -> str:
     """Get the unmasked real GPU IDs."""
     # All devices if `CUDA_VISIBLE_DEVICES` unset
-    default = ",".join(str(i) for i in range(device_parser.num_cuda_devices()))
+    default = ",".join(str(i) for i in range(num_cuda_devices()))
     cuda_visible_devices = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
     return cuda_visible_devices[device_id].strip()

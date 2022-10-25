@@ -12,10 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass, field
-from typing import Optional
+from enum import Enum, EnumMeta
+from typing import Any, List, Optional
+
+from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
+
+
+class _DeprecationManagingEnumMeta(EnumMeta):
+    """Enum that calls `deprecate()` whenever a member is accessed.
+
+    Adapted from: https://stackoverflow.com/a/62309159/208880
+    """
+
+    def __getattribute__(cls, name: str) -> Any:
+        obj = super().__getattribute__(name)
+        # ignore __dunder__ names -- prevents potential recursion errors
+        if not (name.startswith("__") and name.endswith("__")) and isinstance(obj, Enum):
+            obj.deprecate()
+        return obj
+
+    def __getitem__(cls, name: str) -> Any:
+        member: _DeprecationManagingEnumMeta = super().__getitem__(name)
+        member.deprecate()
+        return member
+
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+        obj = super().__call__(*args, **kwargs)
+        if isinstance(obj, Enum):
+            obj.deprecate()
+        return obj
 
 
 class TrainerStatus(LightningEnum):
@@ -31,7 +59,7 @@ class TrainerStatus(LightningEnum):
         return self in (self.FINISHED, self.INTERRUPTED)
 
 
-class TrainerFn(LightningEnum):
+class TrainerFn(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
     """
     Enum for the user-facing functions of the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     such as :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and
@@ -44,16 +72,19 @@ class TrainerFn(LightningEnum):
     PREDICTING = "predict"
     TUNING = "tune"
 
-    @property
-    def _setup_fn(self) -> "TrainerFn":
-        """``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
+    def deprecate(self) -> None:
+        if self == self.TUNING:
+            rank_zero_deprecation(
+                f"`TrainerFn.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+            )
 
-        This is used for the ``setup()`` and ``teardown()`` hooks
-        """
-        return TrainerFn.FITTING if self == TrainerFn.TUNING else self
+    @classmethod
+    def _without_tune(cls) -> List["TrainerFn"]:
+        fns = [fn for fn in cls if fn != "tune"]
+        return fns
 
 
-class RunningStage(LightningEnum):
+class RunningStage(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
     """Enum for the current running stage.
 
     This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
@@ -79,11 +110,22 @@ class RunningStage(LightningEnum):
 
     @property
     def dataloader_prefix(self) -> Optional[str]:
-        if self in (self.SANITY_CHECKING, self.TUNING):
+        if self == self.SANITY_CHECKING:
             return None
         if self == self.VALIDATING:
             return "val"
         return self.value
+
+    def deprecate(self) -> None:
+        if self == self.TUNING:
+            rank_zero_deprecation(
+                f"`RunningStage.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+            )
+
+    @classmethod
+    def _without_tune(cls) -> List["RunningStage"]:
+        fns = [fn for fn in cls if fn != "tune"]
+        return fns
 
 
 @dataclass

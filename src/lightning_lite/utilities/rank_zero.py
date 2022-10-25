@@ -34,7 +34,7 @@ rank_zero_module.log = logging.getLogger(__name__)
 
 
 def _get_rank(
-    strategy: Optional["lightning_lite.strategies.Strategy"] = None,  # type: ignore[name-defined]
+    strategy: Optional["lightning_lite.strategies.Strategy"] = None,
 ) -> Optional[int]:
     if strategy is not None:
         return strategy.global_rank

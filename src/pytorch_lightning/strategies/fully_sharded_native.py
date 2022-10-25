@@ -19,16 +19,13 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    get_default_process_group_backend_for_device,
-)
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import ProcessGroup, ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
@@ -40,7 +37,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.types import ProcessGroup, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
@@ -108,7 +105,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -188,11 +185,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
+        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:

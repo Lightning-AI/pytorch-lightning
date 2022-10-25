@@ -13,4 +13,4 @@
 # limitations under the License.
 
 # For backward-compatibility
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO  # noqa: F401
+from lightning_lite.plugins import CheckpointIO  # noqa: F401

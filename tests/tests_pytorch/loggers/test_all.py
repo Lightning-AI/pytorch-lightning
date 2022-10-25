@@ -20,7 +20,6 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
@@ -43,6 +42,7 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.mlflow.mlflow"),
     mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"),
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
+    mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
     mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock),
 )
@@ -215,7 +215,6 @@ def test_logger_reset_correctly(tmpdir, extra_params):
             super().__init__()
             self.save_hyperparameters()
 
-    tutils.reset_seed()
     model = CustomModel()
     trainer = Trainer(default_root_dir=tmpdir, **extra_params)
     logger1 = trainer.logger
@@ -290,7 +289,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
 
     # Neptune
-    with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
+    with mock.patch("pytorch_lightning.loggers.neptune.neptune"), mock.patch(
+        "pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True
+    ):
         logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
         assert logger.experiment.__getitem__.call_count == 2
         logger.log_metrics({"test": 1.0}, step=0)

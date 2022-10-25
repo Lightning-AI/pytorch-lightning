@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from lightning_lite.accelerators.mps import MPSAccelerator as _MPSAccelerator
-from lightning_lite.utilities import device_parser
+from lightning_lite.utilities.device_parser import parse_gpu_ids
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -45,7 +45,7 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        parsed_devices = device_parser.parse_gpu_ids(devices, include_mps=True)
+        parsed_devices = parse_gpu_ids(devices, include_mps=True)
         return parsed_devices
 
     @staticmethod

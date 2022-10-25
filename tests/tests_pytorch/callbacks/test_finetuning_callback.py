@@ -22,7 +22,11 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_11,
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_1_13,
+)
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -370,6 +374,8 @@ def test_callbacks_restore(tmpdir):
         expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
+    if _TORCH_GREATER_EQUAL_1_13:
+        expected["differentiable"] = False
 
     assert callback._internal_optimizer_metadata[0][0] == expected
 
@@ -386,6 +392,8 @@ def test_callbacks_restore(tmpdir):
         expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
+    if _TORCH_GREATER_EQUAL_1_13:
+        expected["differentiable"] = False
 
     assert callback._internal_optimizer_metadata[0][1] == expected
 
