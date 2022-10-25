@@ -181,6 +181,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed batch normalization statistics calculation in `StochasticWeightAveraging` callback ([#14866](https://github.com/Lightning-AI/lightning/pull/14866))
 - Avoided initializing optimizers during deepspeed inference ([#14944](https://github.com/Lightning-AI/lightning/pull/14944))
 - Fixed `LightningCLI` parse_env and description in subcommands ([#15138](https://github.com/Lightning-AI/lightning/pull/15138))
+- Fixed an exception that would occur when creating a `multiprocessing.Pool` after importing Lightning ([#15292](https://github.com/Lightning-AI/lightning/pull/15292))
 
 
 ## [1.7.7] - 2022-09-22
