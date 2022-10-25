@@ -16,8 +16,8 @@
 from typing import Any
 
 from lightning_lite.utilities.cloud_io import _atomic_save as new_atomic_save
-from lightning_lite.utilities.cloud_io import get_filesystem as new_get_filesystem
 from lightning_lite.utilities.cloud_io import _load as new_load
+from lightning_lite.utilities.cloud_io import get_filesystem as new_get_filesystem
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 

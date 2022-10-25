@@ -32,9 +32,13 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.utilities.distributed import _distributed_available, _get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import (
+    _distributed_available,
+    _get_default_process_group_backend_for_device,
+    _init_dist_connection,
+    _sync_ddp_if_available,
+)
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import _init_dist_connection, _sync_ddp_if_available
 from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ReduceOp

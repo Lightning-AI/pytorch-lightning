@@ -29,9 +29,14 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
-from lightning_lite.utilities.distributed import _distributed_available, _get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import (
+    _distributed_available,
+    _get_default_process_group_backend_for_device,
+    _init_dist_connection,
+    _sync_ddp_if_available,
+)
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import _init_dist_connection, ReduceOp, _sync_ddp_if_available
+from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 
