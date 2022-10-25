@@ -1,0 +1,2 @@
+# TODO: as the package is assumed to be independent we shall be using already released versions
+pytorch-lightning @ https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip
