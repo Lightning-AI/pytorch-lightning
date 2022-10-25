@@ -43,11 +43,9 @@
                   "type": "__cloud_compute__",
                   "name": "default",
                   "disk_size": 0,
-                  "clusters": null,
-                  "preemptible": false,
-                  "wait_timeout": null,
                   "idle_timeout": null,
                   "shm_size": 0,
+                  "mounts": null,
                   "_internal_id": "default"
                 },
                 "_future_url": "",

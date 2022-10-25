@@ -427,6 +427,7 @@ def _state_dict(flow: "LightningFlow"):
     return state
 
 
+# TODO: This helper doesn't seem to be used anywhere
 def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: bool = True) -> None:
     """This function is used to reload the state assuming dynamic components creation.
 
