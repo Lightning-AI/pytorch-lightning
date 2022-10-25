@@ -30,6 +30,7 @@ from lightning_lite.plugins.environments import (
 )
 from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum
 from lightning_lite.utilities.device_parser import determine_root_gpu_device
+from lightning_lite.utilities.imports import _IS_INTERACTIVE
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -83,7 +84,6 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
