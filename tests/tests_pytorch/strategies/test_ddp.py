@@ -22,38 +22,36 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy
-from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_gpu_model_ddp_fit_only(tmpdir):
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
-    trainer.fit(model, datamodule=dm)
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=4
+    )
+    trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_gpu_model_ddp_test_only(tmpdir):
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
-    trainer.test(model, datamodule=dm)
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=4
+    )
+    trainer.test(model)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_gpu_model_ddp_fit_test(tmpdir):
     seed_everything(4321)
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
-    trainer.fit(model, datamodule=dm)
-    result = trainer.test(model, datamodule=dm)
-
-    for out in result:
-        assert out["test_acc"] > 0.7
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=4
+    )
+    trainer.fit(model)
+    trainer.test(model)
 
 
 @RunIf(skip_windows=True)
