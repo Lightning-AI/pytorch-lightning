@@ -108,7 +108,7 @@ Common Workflows
    :height: 180
 
 .. displayitem::
-   :header: Access your App via SSH on the cloud
+   :header: Debug cloud apps via SSH
    :description: Learn how to get SSH access to your App
    :col_css: col-md-4
    :button_link: ssh/index.html
