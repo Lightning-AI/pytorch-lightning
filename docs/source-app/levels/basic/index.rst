@@ -38,8 +38,8 @@ Learn to run python code on the cloud and build workflows (Lightning Apps). Ever
    :tag: basic
 
 .. displayitem::
-   :header: Level 2: Build a workflow
-   :description: Learn to run multiple python functions.
+   :header: Level 2: Build a workflow (aka: Lightning App)
+   :description: Learn to run multiple python functions in a workflow (aka: a Lightning App).
    :button_link: build_a_machine_learning_workflow.html
    :col_css: col-md-6
    :height: 150

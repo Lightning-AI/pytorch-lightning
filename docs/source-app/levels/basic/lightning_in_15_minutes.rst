@@ -175,7 +175,7 @@ Lightning is the `open-source framework <https://github.com/Lightning-AI/lightni
 *************
 Why Lightning
 *************
-Lightning provides a thin API that simply **organizes Python code** to unlock modularity so you can build full stack AI applications ⚡ Lightning fast ⚡.
+Lightning provides a thin API that minimally **organizes Python code** to unlock modularity so you can build full stack AI applications ⚡ Lightning fast ⚡.
 
 A 1-hour investment to learn the minimal Lightning API will save you 100s of hours of learning about kubernetes, fault-tolerance,
 distributed programming, etc...
@@ -250,24 +250,24 @@ Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the Light
 
 **Lightning runs the same on the cloud and locally on your choice of hardware.**
 
-Run on cloud machine in your own AWS account or Lightning Cloud (fully-managed AWS):
+Run on cloud machine in your own AWS account or fully-managed `Lightning cloud <https://lightning.ai/>`_:
 
 .. code:: python
 
-   lightning run app.py --cloud
+   lightning run app app.py --cloud
 
 Run on your own hardware:
 
 .. code:: python 
    
-   lightning run app.py
+   lightning run app app.py
 
 ----
 
 *******************************************
 Run cloud agnostic and accelerator agnostic
 *******************************************
-Lightning decouples your code from the hardware and cloud. To change the hardware, use **CloudCompute**:
+Lightning decouples your code from the accelerators and cloud. To change the accelerator use **CloudCompute**:
 
 .. code:: python
    :emphasize-lines: 16
@@ -290,17 +290,47 @@ Lightning decouples your code from the hardware and cloud. To change the hardwar
    compute = L.CloudCompute("gpu")
    app = L.LightningApp(LitWorker(cloud_compute=compute))
 
-# TODO: show the other hardware you can use.
+Run on a cloud GPU:
 
-# TODO: use your own AWS account
+.. code:: python
+
+   lightning run app app.py --cloud
+
+Run on your own hardware:
+
+.. code:: python
+
+   lightning run app app.py
+
+.. collapse:: Other supported accelerators
+
+   |
+
+   .. code:: python
+
+      compute = L.CloudCompute('default')          # 1 CPU
+      compute = L.CloudCompute('cpu-medium')       # 8 CPUs
+      compute = L.CloudCompute('gpu')              # 1 T4 GPU
+      compute = L.CloudCompute('gpu-fast-multi')   # 4 V100 GPU
+      compute = L.CloudCompute('p4d.24xlarge')     # AWS instance name (8 A100 GPU)
+      app = L.LightningApp(LitWorker(cloud_compute=compute))
+
+   More machine types are available when you `run on your AWS account <??>`_.
+
+.. collapse:: Run on your AWS account
+
+   |
+   .. include:: run_on_aws_account.rst
 
 ----
 
 ************
 Key features
 ************
-You now know enough to build pretty powerful cloud workflows. Here are some features available
-to super-charge your work.
+You now know enough to build simple AI applications. Here are a few key features available
+to super-charge your work:
+
+**Optimized hardware management:**
 
 .. collapse:: Use a custom container
    
@@ -308,25 +338,11 @@ to super-charge your work.
 
    Run your cloud Lightning code with a custom container image by using **cloud_build_config**:
 
-   # TODO: only google?
-
    .. code:: python 
       
-      # USE A CUSTOM CONTAINER
-
+      # use docker, gcp or any image provider
       cloud_config = L.BuildConfig(image="gcr.io/google-samples/hello-app:1.0")
       app = L.LightningApp(LitWorker(cloud_build_config=cloud_config))
-
-   |
-
-.. collapse:: Run on your AWS account
-
-   |
-   .. include:: run_on_aws_account.rst
-
-|
-
-**Optimized hardware management:**
 
 .. collapse:: Auto-stop idle machines
 
@@ -359,7 +375,7 @@ to super-charge your work.
 
    |
    
-.. collapse:: Use preemptible machines (~70% discount)
+.. collapse:: Use spot machines (~70% discount)
 
    |
 
@@ -367,12 +383,10 @@ to super-charge your work.
    non critical or long-running workloads.
 
    .. code:: python
-      
-      # PRE-EMPTIBLE MACHINES
 
-      # ask for a preemptible machine
+      # ask for a spot machine
       # wait 60 seconds before auto-switching to a full-priced machine
-      compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
+      compute = L.CloudCompute('gpu', spot=True, wait_timeout=60)
       app = L.LightningApp(LitWorker(cloud_compute=compute)
 
    |
@@ -391,8 +405,6 @@ to super-charge your work.
 
    .. code:: python
 
-      # MODIFY DISK SIZE 
-
       # use 100 GB of space on that machine (max size: 64 TB)
       compute = L.CloudCompute('gpu', disk_size=100)
       app = L.LightningApp(LitWorker(cloud_compute=compute)
@@ -408,17 +420,7 @@ to super-charge your work.
    To mount an existing s3 bucket, use **Mount**:
 
    .. code:: python
-
-      # TODO: create a public demo folder
-      # public bucket
-      mount = Mount(source="s3://lightning-example-public/", mount_path="/foo")
-      compute = L.CloudCompute(mounts=mount)
-
-      app = L.LightningApp(LitWorker(cloud_compute=compute))
-
-   Read and list the files inside your LightningWork:
-
-   .. code:: python
+      :emphasize-lines: 9, 10
 
       # app.py
       import lightning as L
@@ -426,8 +428,28 @@ to super-charge your work.
       class LitWorker(L.LightningWork):
          def run(self):
             os.listdir('/foo')
-            file = os.file('/foo/a.jpg')
+            file = os.file('/foo/cat.jpg')
 
+      mount = L.Mount(source="s3://lightning-example-public/", mount_path="/foo")
+      compute = L.CloudCompute(mounts=mount)
+      app = L.LightningApp(LitWorker())
+
+   Now use any library (like Python's os) to manage files:
+
+   .. code:: python
+      :emphasize-lines: 2, 7, 8
+
+      # app.py
+      import os
+      import lightning as L
+
+      class LitWorker(L.LightningWork):
+         def run(self):
+            os.listdir('/foo')
+            file = os.file('/foo/cat.jpg')
+
+      mount = L.Mount(source="s3://lightning-example-public/", mount_path="/foo")
+      compute = L.CloudCompute(mounts=mount)
       app = L.LightningApp(LitWorker())
 
    .. note::
@@ -538,9 +560,8 @@ for examples
 ***************************
 Next step: Build a workflow
 ***************************
-In this simple example we ran one piece of Python code. To create a complex workflow easily,
-we'll need to learn how to use multiple works together.
-
+In this simple example we ran one piece of Python code. In the next guide,
+we'll learn to run multiple pieces of code together in a workflow. We call such a workflow, a *Lightning App*.
 
 .. raw:: html
 

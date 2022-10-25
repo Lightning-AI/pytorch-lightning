@@ -15,7 +15,7 @@ Level 2: Build a workflow
 *******************
 What is a workflow?
 *******************
-A workflow coordinates 2 or more python scripts together. We call a workflow built with Lightning a *Lightning App*.
+A workflow coordinates 2 or more python scripts together. We call a workflow built with Lightning a **Lightning App**.
 
 In this guide, we'll build a workflow in <5 minutes and explain how it works.
 
@@ -26,7 +26,7 @@ In this guide, we'll build a workflow in <5 minutes and explain how it works.
 ----
 
 **************
-A Toy Workflow
+A toy workflow
 **************
 
 [VIDEO showing this]
@@ -143,7 +143,7 @@ In engineering, we call this **orchestration**:
         </div>
     </div>
 
-⚡⚡ Now you're an expert at orchestration!
+⚡⚡ Now you know how to orchestrate!
 
 .. hint::
 
@@ -275,33 +275,17 @@ The full workflow (which we call a Lightning App), can easily be moved across cl
         </div>
         <div class="col-md-8">
 
-.. code:: python
-    :emphasize-lines: 12, 13, 14, 15
+Run on Cluster A
 
-    # app.py
-    import lightning as L
+.. code:: bash
 
-    class LitWorker(L.LightningWork):
-        def run(self, message):
-            print(message)
+    lightning run app app.py --cloud cluster-A
 
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self, cloud) -> None:
-            super().__init__()
+Run on Cluster B
 
-            # run on cluster-A  OR  cluster-B
-            cloud = 'cluster-A'
-            comp_A = L.CloudCompute('cpu', clouds=[cloud])
-            comp_B = L.CloudCompute('gpu', clouds=[cloud])
-            self.work_A = LitWorker(cloud_compute=comp_A)
-            self.work_B = LitWorker(cloud_compute=comp_B)
+.. code:: bash
 
-        def run(self):
-            self.work_A.run("running code A on a CPU machine")
-            self.work_B.run("running code B on a GPU machine")
-
-    app = L.LightningApp(LitWorkflow())
-
+    lightning run app app.py --cloud cluster-B
 
 .. raw:: html
 

@@ -47,7 +47,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 5: Run LightningWorks in parallel
+   :header: Level 5: Run a LightningWork in parallel
    :description: Learn when to run LightningWorks in parallel (asynchroneous).
    :button_link: run_lightning_work_in_parallel.html
    :col_css: col-md-6

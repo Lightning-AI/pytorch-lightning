@@ -66,16 +66,14 @@ Auto-timeout submitted work
 
 ----
 
-****************************************
-Use preemptible machines (~70% discount)
-****************************************
-**preemptible**: Pre-emptible machines are ~70% cheaper because they can be turned off at any second without notice:
+*********************************
+Use spot machines (~70% discount)
+*********************************
+**spot**: Spot machines are ~70% cheaper because they can be turned off at any second without notice:
 
 .. code:: python
     
-    # PRE-EMPTIBLE MACHINES
-
-    # ask for a preemptible machine
+    # ask for a spot machine
     # wait 60 seconds before auto-switching to a full-priced machine
-    compute = L.CloudCompute('gpu', preemptible=True, wait_timeout=60)
+    compute = L.CloudCompute('gpu', spot=True, wait_timeout=60)
     app = L.LightningApp(LitWorker(cloud_compute=compute)
