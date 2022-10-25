@@ -59,13 +59,6 @@ class Tuner:
 
         self.trainer.strategy.connect(model)
 
-        is_tuning = self.trainer.auto_scale_batch_size or self.trainer.auto_lr_find
-        if self.trainer._accelerator_connector.is_distributed and is_tuning:
-            raise MisconfigurationException(
-                "`trainer.tune()` is currently not supported with"
-                f" `Trainer(strategy={self.trainer.strategy.strategy_name!r})`."
-            )
-
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, str):
