@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Union
 
 import click
+from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.cli.cmd_ssh_keys import SSHKeyManager
 
@@ -27,4 +28,11 @@ def add_ssh_key(key_name: str, comment: str, public_key: Union[str, "os.PathLike
     ssh_key_manager = SSHKeyManager()
 
     new_public_key = Path(public_key).read_text() if os.path.isfile(public_key) else public_key
-    ssh_key_manager.add_key(name=key_name, comment=comment, public_key=new_public_key)
+    try:
+        ssh_key_manager.add_key(name=key_name, comment=comment, public_key=new_public_key)
+    except ApiException as e:
+        # if we got an exception it might be the user passed the private key file
+        if os.path.isfile(public_key) and os.path.isfile(f"{public_key}.pub"):
+            ssh_key_manager.add_key(name=key_name, comment=comment, public_key=Path(f"{public_key}.pub").read_text())
+        else:
+            raise e
