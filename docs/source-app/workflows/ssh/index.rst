@@ -10,10 +10,18 @@ Debug cloud apps via SSH
 **********************************************************
 Add SSH key to lightning
 **********************************************************
-Open a terminal and run the following command:
+
+Before you can SSH to cloud machines, you will need to generate a new private SSH key, add it to the SSH agent, and add the public SSH key to your account on Lightning.
+
+
+Step 1: Create an SSH key
+===================
+
+Open a terminal and run the following command (replace email with the address you used in your lightning.ai account):
 
 .. code:: bash
 
+   # make the ssh key (if you don't have one)
    $ ssh-keygen -t ed25519 -C "your_email@example.com"
 
 This creates a new SSH key, using the provided email as a label.
@@ -25,10 +33,16 @@ At the prompt, type a secure passphrase.
    > Enter passphrase (empty for no passphrase): [Type a passphrase]
    > Enter same passphrase again: [Type passphrase again]
 
+
+Step 2: add the key to the ssh-agent
+===========================
+
 Next, start your ssh-agent in the background:
 
 .. code:: bash
 
+   # add the key to the ssh-agent (to avoid having to explicitly state key on each connection)
+   # to start the agent, run the following
    $ eval "$(ssh-agent -s)"
    > Agent pid 12345
 
@@ -45,12 +59,10 @@ Lastly, verify your ssh-key is properly loaded:
    $ ssh-add -L
    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAn8mYRnRG1banQcfXPCUC6R8FvQS+YgfIsl70/dD3Te your_email@example.com
 
-----
+Step 3: Add your key to Lightning
+=========================
 
-**********************************************************
-Managing SSH keys with lightning CLI
-**********************************************************
-Open a terminal and run the following command:
+You can add SSH keys using Lightning.ai UI, or via this CLI command:
 
 .. code:: bash
 
