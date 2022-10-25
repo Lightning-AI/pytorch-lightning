@@ -36,6 +36,7 @@ from lightning_cloud.openapi import (
     V1QueueServerType,
     V1SourceType,
     V1UserRequestedComputeConfig,
+    V1UserRequestedFlowComputeConfig,
     V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
@@ -206,6 +207,11 @@ class CloudRuntime(Runtime):
             flow_servers=frontend_specs,
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
+            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+                name=self.app.flow_cloud_compute.name,
+                shm_size=self.app.flow_cloud_compute.shm_size,
+                preemptible=False,
+            ),
         )
 
         # if requirements file at the root of the repository is present,
@@ -242,6 +248,7 @@ class CloudRuntime(Runtime):
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
+                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
 
             if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
@@ -289,7 +296,13 @@ class CloudRuntime(Runtime):
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id, app_id=lit_app.id
             )
-            queue_server_type = V1QueueServerType.REDIS if CLOUD_QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
+
+            queue_server_type = V1QueueServerType.UNSPECIFIED
+            if CLOUD_QUEUE_TYPE == "http":
+                queue_server_type = V1QueueServerType.HTTP
+            elif CLOUD_QUEUE_TYPE == "redis":
+                queue_server_type = V1QueueServerType.REDIS
+
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
