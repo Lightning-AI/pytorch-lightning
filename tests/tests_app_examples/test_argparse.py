@@ -16,7 +16,6 @@ def test_app_argparse_example():
         "--without-server",
     ]
     result = application_testing(command_line=command_line)
-    print(result.stdout)
     assert result.exit_code == 0, result.__dict__
     assert sys.argv == original_argv
 
