@@ -12,6 +12,7 @@ from pympler import asizeof
 from tests_app import _PROJECT_ROOT
 
 from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
+from lightning_app.api.request_types import DeltaRequest
 from lightning_app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
@@ -423,7 +424,7 @@ class EmptyFlow(LightningFlow):
     "sleep_time, expect",
     [
         (1, 0),
-        (0, 100),
+        (0, 20),
     ],
 )
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
@@ -439,16 +440,16 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
 
     app = LightningApp(EmptyFlow())
 
-    app.api_delta_queue = SlowQueue("api_delta_queue", default_timeout)
+    app.delta_queue = SlowQueue("api_delta_queue", default_timeout)
     if queue_type_cls is RedisQueue:
-        app.api_delta_queue.clear()
+        app.delta_queue.clear()
 
     def make_delta(i):
-        return Delta({"values_changed": {"root['vars']['counter']": {"new_value": i}}})
+        return DeltaRequest(Delta({"values_changed": {"root['vars']['counter']": {"new_value": i}}}))
 
     # flowed the queue with mocked delta
     for i in range(expect + 10):
-        app.api_delta_queue.put(make_delta(i))
+        app.delta_queue.put(make_delta(i))
 
     # Wait for a bit because multiprocessing.Queue doesn't run in the same thread and takes some time for writes
     sleep(0.001)
@@ -476,6 +477,7 @@ def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
 
     app = LightningApp(SimpleFlow())
+    app.delta_queue = SingleProcessQueue("a", 0)
     assert app._has_updated
     app.maybe_apply_changes()
     app.root.run()

@@ -26,7 +26,7 @@ class QuickStartApp(LightningApp):
 
 # TODO: Investigate why it doesn't work
 @pytest.mark.skipif(True, reason="test is skipped because CI was blocking all the PRs.")
-@RunIf(pytorch_lightning=True, skip_windows=True, skip_linux=True)
+@RunIf(pl=True, skip_windows=True, skip_linux=True)
 def test_quick_start_example(caplog, monkeypatch):
     """This test ensures the Quick Start example properly train and serve PyTorch Lightning."""
 

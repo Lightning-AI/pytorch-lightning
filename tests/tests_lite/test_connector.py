@@ -136,6 +136,7 @@ def test_custom_cluster_environment_in_slurm_environment(_):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -203,6 +204,7 @@ def test_custom_accelerator(*_):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -221,7 +223,7 @@ def test_dist_backend_accelerator_mapping(*_):
 @RunIf(mps=False)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_ipython_incompatible_backend_error(_, monkeypatch):
-    monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning_lite.connector, "_IS_INTERACTIVE", True)
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         _Connector(strategy="ddp", accelerator="gpu", devices=2)
 
@@ -238,21 +240,21 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
-    monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning_lite.utilities.imports, "_IS_INTERACTIVE", True)
     connector = _Connector(strategy="dp", accelerator="gpu")
     assert connector.strategy.launcher is None
 
 
 @RunIf(skip_windows=True)
 def test_ipython_compatible_strategy_tpu(tpu_available, monkeypatch):
-    monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning_lite.utilities.imports, "_IS_INTERACTIVE", True)
     connector = _Connector(accelerator="tpu")
     assert connector.strategy.launcher.is_interactive_compatible
 
 
 @RunIf(skip_windows=True)
 def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
-    monkeypatch.setattr(lightning_lite.utilities, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning_lite.utilities.imports, "_IS_INTERACTIVE", True)
     connector = _Connector(strategy="ddp_fork", accelerator="cpu")
     assert connector.strategy.launcher.is_interactive_compatible
 
@@ -496,6 +498,7 @@ def test_strategy_choice_ddp_slurm(_, strategy, job_name, expected_env):
         {
             "CUDA_VISIBLE_DEVICES": "0,1",
             "SLURM_NTASKS": "2",
+            "SLURM_NTASKS_PER_NODE": "1",
             "SLURM_JOB_NAME": job_name,
             "SLURM_NODEID": "0",
             "SLURM_PROCID": "1",
@@ -596,6 +599,7 @@ def test_strategy_choice_ddp_cpu_kubeflow():
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",

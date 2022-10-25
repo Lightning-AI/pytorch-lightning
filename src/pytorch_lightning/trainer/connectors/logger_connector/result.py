@@ -225,7 +225,7 @@ class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
 
-    def update(self, value: _IN_METRIC, batch_size: int) -> None:  # type: ignore[override]
+    def update(self, value: _IN_METRIC, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
             if not torch.is_floating_point(value):

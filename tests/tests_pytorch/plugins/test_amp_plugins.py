@@ -40,6 +40,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
     {
         "CUDA_VISIBLE_DEVICES": "0,1",
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",

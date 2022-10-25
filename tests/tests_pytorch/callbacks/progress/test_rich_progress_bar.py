@@ -172,7 +172,7 @@ def test_rich_progress_bar_configure_columns():
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 5)]))
+@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 3)]))
 def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
     # Calling `reset` means continuing on the same progress bar.
     model = BoringModel()
@@ -185,8 +185,12 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
             default_root_dir=tmpdir,
             num_sanity_val_steps=0,
             limit_train_batches=1,
-            max_epochs=6,
+            limit_val_batches=0,
+            max_epochs=4,
             callbacks=progress_bar,
+            logger=False,
+            enable_checkpointing=False,
+            enable_model_summary=False,
         )
         trainer.fit(model)
     assert mock_progress_reset.call_count == reset_call_count

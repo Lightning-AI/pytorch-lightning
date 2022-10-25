@@ -14,7 +14,7 @@ from typing import List, Optional, Sequence
 from urllib import request
 from urllib.request import Request, urlopen
 
-import fire
+import jsonargparse
 import pkg_resources
 from packaging.version import parse as version_parse
 
@@ -22,12 +22,16 @@ REQUIREMENT_FILES = {
     "pytorch": (
         "requirements/pytorch/base.txt",
         "requirements/pytorch/extra.txt",
-        "requirements/pytorch/loggers.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
-    )
+    ),
+    "app": (
+        "requirements/app/base.txt",
+        "requirements/app/ui.txt",
+        "requirements/app/cloud.txt",
+    ),
 }
-REQUIREMENT_FILES_ALL = tuple(chain(*REQUIREMENT_FILES.values()))
+REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
 
 
@@ -55,6 +59,16 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
+def _retrieve_files(directory: str, *ext: str) -> List[str]:
+    all_files = []
+    for root, _, files in os.walk(directory):
+        for fname in files:
+            if not ext or any(os.path.split(fname)[1].lower().endswith(e) for e in ext):
+                all_files.append(os.path.join(root, fname))
+
+    return all_files
+
+
 class AssistantCLI:
     _PATH_ROOT = str(Path(__file__).parent.parent)
     _PATH_SRC = os.path.join(_PATH_ROOT, "src")
@@ -68,10 +82,10 @@ class AssistantCLI:
         now_date = now.strftime("%Y%m%d")
 
         print(f"prepare init '{path_info}' - replace version by {now_date}")
-        with open(path_info) as fp:
+        with open(path_info, encoding="utf-8") as fp:
             init = fp.read()
         init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
-        with open(path_info, "w") as fp:
+        with open(path_info, "w", encoding="utf-8") as fp:
             fp.write(init)
 
     @staticmethod
@@ -88,14 +102,23 @@ class AssistantCLI:
         path = Path(req_file)
         assert path.exists()
         text = path.read_text()
-        final = [str(req) for req in pkg_resources.parse_requirements(text) if req.name not in packages]
+        lines = text.splitlines()
+        final = []
+        for line in lines:
+            ln_ = line.strip()
+            if not ln_ or ln_.startswith("#"):
+                final.append(line)
+                continue
+            req = list(pkg_resources.parse_requirements(ln_))[0]
+            if req.name not in packages:
+                final.append(line)
         pprint(final)
         path.write_text("\n".join(final))
 
     @staticmethod
     def _replace_min(fname: str) -> None:
-        req = open(fname).read().replace(">=", "==")
-        open(fname, "w").write(req)
+        req = open(fname, encoding="utf-8").read().replace(">=", "==")
+        open(fname, "w", encoding="utf-8").write(req)
 
     @staticmethod
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
@@ -163,6 +186,47 @@ class AssistantCLI:
                 shutil.rmtree(py_dir2, ignore_errors=True)
                 shutil.copytree(py_dir, py_dir2)
 
+    @staticmethod
+    def copy_replace_imports(
+        source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
+    ) -> None:
+        """Recursively replace imports in given folder."""
+
+        source_imports = source_import.strip().split(",")
+        target_imports = target_import.strip().split(",")
+        assert len(source_imports) == len(target_imports), (
+            "source and target imports must have the same length, "
+            f"source: {len(source_import)}, target: {len(target_import)}"
+        )
+
+        if target_dir is None:
+            target_dir = source_dir
+
+        ls = _retrieve_files(source_dir)
+
+        for fp in ls:
+            if fp.endswith(".py"):
+                with open(fp, encoding="utf-8") as fo:
+                    py = fo.readlines()
+
+                for source_import, target_import in zip(source_imports, target_imports):
+                    for i, ln in enumerate(py):
+                        py[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
+
+                if target_dir:
+                    fp_new = fp.replace(source_dir, target_dir)
+                    os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+                else:
+                    fp_new = fp
+
+                with open(fp_new, "w", encoding="utf-8") as fo:
+                    fo.writelines(py)
+            elif not fp.endswith(".pyc"):
+                fp_new = fp.replace(source_dir, target_dir)
+                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+                if os.path.abspath(fp) != os.path.abspath(fp_new):
+                    shutil.copy2(fp, fp_new)
+
 
 if __name__ == "__main__":
-    fire.Fire(AssistantCLI)
+    jsonargparse.CLI(AssistantCLI, as_positional=False)
