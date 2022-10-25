@@ -29,7 +29,7 @@ PASSED_OBJECT = mock.Mock()
 
 
 @contextlib.contextmanager
-def check_destroy_group():
+def check_destroy_group(autosetup_collectives):
     with mock.patch(
         "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
@@ -39,8 +39,10 @@ def check_destroy_group():
     ) as mock_destroy:
         yield
 
+    # if autosetup_collectives, setup_environment calls `init_process_group` which is then not managed by collective
+    extra = 0 if autosetup_collectives else 1
     assert (
-        mock_new.call_count == mock_destroy.call_count
+        mock_new.call_count + extra == mock_destroy.call_count
     ), f"new_group={mock_new.call_count}, destroy_group={mock_destroy.call_count}"
     if TorchCollective.is_available():
         assert not torch.distributed.distributed_c10d._pg_map
@@ -185,7 +187,7 @@ def test_repeated_create_and_destroy():
         collective.create_group().teardown()
 
 
-def collective_launch(fn, parallel_devices, num_groups=1):
+def collective_launch(fn, parallel_devices, autosetup_collectives=True, num_groups=1):
     device_to_accelerator = {"cuda": CUDAAccelerator, "cpu": CPUAccelerator}
     accelerator_cls = device_to_accelerator[parallel_devices[0].type]
     strategy = DDPSpawnStrategy(
@@ -193,19 +195,30 @@ def collective_launch(fn, parallel_devices, num_groups=1):
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collectives = [TorchCollective() for _ in range(num_groups)]
-    wrapped = partial(wrap_launch_function, fn, strategy, collectives)
+    wrapped = partial(wrap_launch_function, fn, strategy, collectives, autosetup_collectives)
     return launcher.launch(wrapped, strategy, *collectives)
 
 
-def wrap_launch_function(fn, strategy, collectives, *args, **kwargs):
-    strategy.setup_environment()
-    with check_destroy_group():  # manually use the fixture for the assertions
+def wrap_launch_function(fn, strategy, collectives, autosetup_collectives, *args, **kwargs):
+    with check_destroy_group(autosetup_collectives):  # manually use the fixture for the assertions
+        if autosetup_collectives:
+            strategy.setup_environment()
+        else:
+            strategy._set_world_ranks()
+            collectives[0].setup(  # only one needs to setup
+                world_size=strategy.num_processes,
+                main_address="localhost",
+                backend=strategy._get_process_group_backend(),
+                rank=strategy.global_rank,
+            )
+
         fn(*args, **kwargs)
         # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
         for c in collectives:
             c.teardown()
 
-        torch.distributed.destroy_process_group()
+        if autosetup_collectives:
+            torch.distributed.destroy_process_group()
 
 
 def _test_distributed_collectives_fn(strategy, collective):
@@ -233,8 +246,9 @@ def _test_distributed_collectives_fn(strategy, collective):
 
 @skip_distributed_unavailable
 @pytest.mark.parametrize("n", (1, 2))
-def test_collectives_distributed(n):
-    collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
+@pytest.mark.parametrize("autosetup_collectives", (True, False))
+def test_collectives_distributed(n, autosetup_collectives):
+    collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n, autosetup_collectives)
 
 
 def _test_distributed_collectives_cuda_fn(strategy, collective):
@@ -267,5 +281,6 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
-def test_two_groups():
-    collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
+@pytest.mark.parametrize("autosetup_collectives", (True, False))
+def test_two_groups(autosetup_collectives):
+    collective_launch(_test_two_groups, [torch.device("cpu")] * 3, autosetup_collectives, num_groups=2)
