@@ -212,6 +212,12 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             del self.kwargs["auto_wrap_policy"]
 
         log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+
+        rank_zero_info(
+            "When using PyTorch FSDP auto-wrap, make sure to initalize your model using trainer else"
+            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
+        )
+
         return FullyShardedDataParallel(
             module=model,
             process_group=self.process_group,
