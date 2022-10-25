@@ -285,7 +285,7 @@ def run_app_in_cloud(
                 for line in fo.readlines():
                     if "Packaged Lightning with your application" in line:
                         pkg_found = True
-                    print(line)
+                    print(line)  # TODO: use logging
             assert pkg_found
         os.remove(stdout_path)
 
