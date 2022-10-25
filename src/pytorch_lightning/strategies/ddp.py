@@ -30,12 +30,14 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
@@ -57,11 +59,6 @@ else:
     OSS = object
 if _TORCH_GREATER_EQUAL_1_10 and torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
-
-if torch.distributed.is_available():
-    from torch.distributed.constants import default_pg_timeout
-else:
-    default_pg_timeout = timedelta(seconds=1800)
 
 log = logging.getLogger(__name__)
 

@@ -17,20 +17,19 @@ from unittest.mock import patch
 import pytest
 from tests_lite.helpers.runif import RunIf
 
-import lightning_lite.utilities.xla_device as xla_utils
-from lightning_lite.utilities.imports import _XLA_AVAILABLE
+from lightning_lite.accelerators.tpu import _multi_process, _XLA_AVAILABLE, TPUAccelerator
 
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
-    """Check tpu_device_exists returns False when torch_xla is not available."""
-    assert not xla_utils.XLADeviceUtils.tpu_device_exists()
+    """Check `is_available` returns True when TPU is available."""
+    assert not TPUAccelerator.is_available()
 
 
 @RunIf(tpu=True)
 def test_tpu_device_presence():
-    """Check tpu_device_exists returns True when TPU is available."""
-    assert xla_utils.XLADeviceUtils.tpu_device_exists()
+    """Check `is_available` returns True when TPU is available."""
+    assert TPUAccelerator.is_available()
 
 
 def sleep_fn(sleep_time: float) -> bool:
@@ -38,16 +37,18 @@ def sleep_fn(sleep_time: float) -> bool:
     return True
 
 
-@patch("lightning_lite.utilities.xla_device.TPU_CHECK_TIMEOUT", 3)
+@patch("lightning_lite.accelerators.tpu.TPU_CHECK_TIMEOUT", 3)
 @pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
 def test_result_returns_within_timeout_seconds():
     """Check that pl_multi_process returns within 3 seconds."""
-    fn = xla_utils.pl_multi_process(sleep_fn)
+    fn = _multi_process(sleep_fn)
 
     start = time.time()
-    result = fn(xla_utils.TPU_CHECK_TIMEOUT * 0.5)
+    from lightning_lite.accelerators.tpu import TPU_CHECK_TIMEOUT
+
+    result = fn(TPU_CHECK_TIMEOUT * 0.5)
     end = time.time()
     elapsed_time = int(end - start)
 
-    assert elapsed_time <= xla_utils.TPU_CHECK_TIMEOUT
+    assert elapsed_time <= TPU_CHECK_TIMEOUT
     assert result

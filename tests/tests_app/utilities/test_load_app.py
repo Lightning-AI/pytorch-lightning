@@ -49,7 +49,7 @@ def test_extract_metadata_from_component():
             "docstring": "WorkA.",
             "local_build_config": {"__build_config__": ANY},
             "cloud_build_config": {"__build_config__": ANY},
-            "cloud_compute": {"__cloud_compute__": ANY},
+            "cloud_compute": ANY,
         },
         {
             "affiliation": ["root", "flow_a_2"],
@@ -64,7 +64,7 @@ def test_extract_metadata_from_component():
             "docstring": "WorkA.",
             "local_build_config": {"__build_config__": ANY},
             "cloud_build_config": {"__build_config__": ANY},
-            "cloud_compute": {"__cloud_compute__": ANY},
+            "cloud_compute": ANY,
         },
         {
             "affiliation": ["root", "flow_b"],
@@ -79,6 +79,6 @@ def test_extract_metadata_from_component():
             "docstring": "WorkB.",
             "local_build_config": {"__build_config__": ANY},
             "cloud_build_config": {"__build_config__": ANY},
-            "cloud_compute": {"__cloud_compute__": ANY},
+            "cloud_compute": ANY,
         },
     ]

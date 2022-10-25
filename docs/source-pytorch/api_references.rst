@@ -36,6 +36,7 @@ callbacks
     EarlyStopping
     GradientAccumulationScheduler
     LambdaCallback
+    LearningRateFinder
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
@@ -184,6 +185,7 @@ precision
     :template: classtemplate.rst
 
     ApexMixedPrecisionPlugin
+    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
@@ -284,7 +286,7 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    HivemindStrategy
+    ColossalAIStrategy
     DDPFullyShardedNativeStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
@@ -293,6 +295,7 @@ strategies
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
+    HivemindStrategy
     HorovodStrategy
     HPUParallelStrategy
     IPUStrategy

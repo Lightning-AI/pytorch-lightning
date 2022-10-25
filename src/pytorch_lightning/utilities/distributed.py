@@ -26,7 +26,6 @@ from lightning_lite.utilities.distributed import (
 from lightning_lite.utilities.distributed import init_dist_connection as new_init_dist_connection
 from lightning_lite.utilities.distributed import sync_ddp as new_sync_ddp
 from lightning_lite.utilities.distributed import sync_ddp_if_available as new_sync_ddp_if_available
-from lightning_lite.utilities.distributed import tpu_distributed as new_tpu_distributed
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_info
 
 
@@ -213,6 +212,8 @@ def sync_ddp_if_available(*args: Any, **kwargs: Any) -> Any:
 def tpu_distributed() -> bool:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.distributed.tpu_distributed` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. Please use `lightning_lite.utilities.distributed.tpu_distributed` instead."
+        " be removed in v1.10.0. Please use `lightning_lite.accelerators.tpu.tpu_distributed` instead."
     )
-    return new_tpu_distributed()
+    from lightning_lite.accelerators.tpu import tpu_distributed
+
+    return tpu_distributed()
