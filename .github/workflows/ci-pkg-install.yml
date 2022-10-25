@@ -53,8 +53,6 @@ jobs:
 
       - name: DocTest package
         run: |
-          scope=$(python -c "lut = {'app': 'lightning', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg}}', 'lightning'))")
-          echo ${scope}
-          pip install pytest -q
           pip list
+          scope=$(python -c "lut = {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg}}', 'lightning'))")
           python -m pytest src/${scope} --ignore-glob="**/cli/*-template/**"
