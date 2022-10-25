@@ -67,7 +67,7 @@ There are certain standalone tests, which you can run using:
 ```bash
 PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/tests_pytorch/trainer/
 # or
-./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
+./tests/tests_pytorch/run_standalone_tests.sh tests/tests_pytorch/trainer/
 ```
 
 ## Running Coverage
