@@ -747,6 +747,7 @@ class TestAppCreationClient:
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
                     )
                 ),
+                user_requested_flow_compute_config=mock.ANY,
                 works=[
                     V1Work(
                         name="test-work",
