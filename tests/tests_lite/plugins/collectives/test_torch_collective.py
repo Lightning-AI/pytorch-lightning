@@ -40,7 +40,7 @@ def check_destroy_group():
         yield
     # 0 to account for tests that mock distributed
     # -1 to account for destroying the default process group
-    expected = 0 if mock_new.call_count == 0 else mock_destroy.call_count - 1
+    expected = 0 if mock_new.call_count == 0 else mock_destroy.call_count
     assert mock_new.call_count == expected, f"new_group={mock_new.call_count}, destroy_group={mock_destroy.call_count}"
     if TorchCollective.is_available():
         assert not torch.distributed.distributed_c10d._pg_map
@@ -198,18 +198,14 @@ def collective_launch(fn, parallel_devices, num_groups=1):
 
 
 def wrap_launch_function(fn, strategy, collectives, *args, **kwargs):
-    strategy._set_world_ranks()
-    collectives[0].setup(  # only one needs to setup
-        world_size=strategy.num_processes,
-        main_address="localhost",
-        backend=strategy._get_process_group_backend(),
-        rank=strategy.global_rank,
-    )
+    strategy.setup_environment()
     with check_destroy_group():  # manually use the fixture for the assertions
         fn(*args, **kwargs)
         # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
         for c in collectives:
             c.teardown()
+
+        torch.distributed.destroy_process_group()
 
 
 def _test_distributed_collectives_fn(strategy, collective):
