@@ -1360,3 +1360,9 @@ def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
         trainer.fit(model)
     assert mc.last_model_path  # a "last" ckpt was saved
     assert save_mock.call_count == trainer.max_epochs
+
+
+def test_train_epoch_end_ckpt_with_no_validation():
+    trainer = Trainer(val_check_interval=0.5)
+    trainer.num_val_batches = [0]
+    assert trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
