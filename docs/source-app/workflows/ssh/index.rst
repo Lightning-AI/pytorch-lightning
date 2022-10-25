@@ -88,8 +88,27 @@ Ensure you have a running Lightning application in the cloud:
 
    $ lightning run app app.py --cloud --name my-app
 
-Now, use the CLI to access any of the available components:
+You can SSH any app you are running on the cloud.
+
+To view all apps you can simple use this following:
 
 .. code:: bash
 
    $ lightning ssh
+
+
+.. code:: bash
+
+   $ lightning ssh
+
+To connect to an app flow use:
+
+.. code:: bash
+
+   $ lightning ssh --app-id <your-app-id>
+
+To connect to a LightningWork component use:
+
+.. code:: bash
+
+   $ lightning ssh --app-id <your-app-id> --component-name flow
