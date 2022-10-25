@@ -1,4 +1,4 @@
-To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.
+To run on your own AWS account, first `create an AWS ARN <../../glossary/aws_arn.rst>`_.
 
 Next, set up a Lightning cluster (here we name it pikachu):
 

@@ -3,30 +3,16 @@ Lightning in 15 minutes
 #######################
 **Prereqs:** You know *basic* Python (PyTorch or PyTorch Lightning knowledge *NOT* required).
 
-**Goal:** In this guide you'll learn the key concepts to develop with Lightning.
+**Goal:** In this guide you'll learn to develop `full stack AI apps <https://lightning.ai/>`_ with Lightning.
 
 .. join_slack::
    :align: left
-
 ----
 
 ******************
 What is Lightning?
 ******************
-Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ framework that provides **minimal organization to Python code** to develop workflows that
-`run on your own AWS account <#key-features>`_, the `Lightning Cloud (fully-managed AWS) <https://lightning.ai/>`_ or `your own hardware <#key-features>`_.
-
-.. collapse:: I don't have time to learn a new framework
-
-   |
-
-   Lightning's key design principle is to be a minimal API because we hate learning new libraries too. A 1 hour investment
-   into learning Lightning means you won't have to spend 100s of hours learning other tools like kubernetes, fault-tolerance, distributed programming,
-   YAML, etc...
-
-|
-
-⚡ Build Lightning fast: ⚡ This guide will teach you key principles that allows you to build systems like the following ones:
+Lightning is the `open-source framework <https://github.com/Lightning-AI/lightning>`_ that lets you run Python code `on the cloud <https://lightning.ai/>`_ to build **full stack AI apps** like these:
 
 .. collapse:: Examples for Enterprises
 
@@ -184,6 +170,16 @@ Lightning is an `open-source <https://github.com/Lightning-AI/lightning>`_ frame
          </div>
       </div>
 
+----
+
+*************
+Why Lightning
+*************
+Lightning provides a thin API that simply **organizes Python code** to unlock modularity so you can build full stack AI applications ⚡ Lightning fast ⚡.
+
+A 1-hour investment to learn the minimal Lightning API will save you 100s of hours of learning about kubernetes, fault-tolerance,
+distributed programming, etc...
+
 |
 
 ----
@@ -195,9 +191,11 @@ Step 1: Install Lightning
 
     python -m pip install -U lightning
 
-.. collapse:: Mac M1/M2/M3 users
+.. collapse:: Mac M1/M2/M3 and Windows users
 
    |
+
+   **Mac**
 
    To install on Mac, set these 2 environment variables   
    
@@ -209,9 +207,7 @@ Step 1: Install Lightning
 
       python -m pip install -U lightning
 
-.. collapse:: Windows users
-
-   |
+   **Windows users**
 
    To install on Windows:
 
@@ -366,7 +362,9 @@ to super-charge your work.
 .. collapse:: Use preemptible machines (~70% discount)
 
    |
-   **preemptible**: Pre-emptible machines are ~70% cheaper because they can be turned off at any second without notice:
+
+   **spot**: Spot machines are ~70% cheaper because they are not guaranteed every time and can be turned off at any second without notice. Use spot for
+   non critical or long-running workloads.
 
    .. code:: python
       
@@ -529,17 +527,11 @@ are writing a python script, you are actually building a system.
 Use the community ecosystem
 ***************************
 
-**Start from a component template**:
+**Start from a template**:
 
 The Lightning structure allows you to use self-contained components from the Lightning community
 so you don't have to build every piece of functionality yourself. Check out our component gallery
 for examples
-
-|
-
-**Start from full workflow templates**:
-
-ABC 
 
 ----   
 

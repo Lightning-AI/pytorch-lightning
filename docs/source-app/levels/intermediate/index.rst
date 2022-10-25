@@ -55,7 +55,15 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 6: Communicate between LightningWorks
+   :header: Level 6: Embed web UIs into work
+   :description: Learn how to embed a react, vue or any web UI into a lightning workflow.
+   :button_link: run_lightning_work_in_parallel.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Level 7: Communicate between LightningWorks
    :description: Share variables and files between LightningWorks.
    :button_link: communicate_between_lightning_components.html
    :col_css: col-md-6
@@ -63,7 +71,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 7: Start dynamic works
+   :header: Level 8: Start dynamic works
    :description: Learn to start works dynamically
    :button_link: level_15.html
    :col_css: col-md-6
@@ -71,7 +79,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 8: Share files between components
+   :header: Level 9: Share files between components
    :description: Learn how Drives share files between components
    :button_link: level_14.html
    :col_css: col-md-6
@@ -79,7 +87,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 9: Develop reactive workflows
+   :header: Level 10: Develop reactive workflows
    :description: Learn to develop reactive workflows. Lightning shines with reactive workflows.
    :button_link: level_14.html
    :col_css: col-md-6
