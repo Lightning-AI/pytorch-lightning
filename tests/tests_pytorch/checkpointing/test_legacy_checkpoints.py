@@ -32,7 +32,7 @@ with open(os.path.join(_PATH_LEGACY, "back-compatible-versions.txt")) as fp:
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
-def test_load_legacy_checkpoints(tmpdir, pl_version: str):
+def test_load_legacy_checkpoints(tmpdir, sys_modules_cleanup, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch("sys.path", [PATH_LEGACY] + sys.path):
         from simple_classif_training import ClassifDataModule, ClassificationModel
@@ -62,11 +62,11 @@ class LimitNbEpochs(Callback):
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
-def test_legacy_ckpt_threading(tmpdir, pl_version: str):
+def test_legacy_ckpt_threading(tmpdir, sys_modules_cleanup, pl_version: str):
     def load_model():
         import torch
 
-        from pytorch_lightning.utilities.migration import pl_legacy_patch
+        from lightning.pytorch.utilities.migration import pl_legacy_patch
 
         with pl_legacy_patch():
             _ = torch.load(PATH_LEGACY)
@@ -84,7 +84,7 @@ def test_legacy_ckpt_threading(tmpdir, pl_version: str):
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
-def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
+def test_resume_legacy_checkpoints(tmpdir, sys_modules_cleanup, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch("sys.path", [PATH_LEGACY] + sys.path):
         from simple_classif_training import ClassifDataModule, ClassificationModel
