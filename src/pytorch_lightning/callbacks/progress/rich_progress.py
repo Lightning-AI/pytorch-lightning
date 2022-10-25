@@ -565,8 +565,8 @@ class RichProgressBar(ProgressBarBase):
         ]
 
     def __getstate__(self) -> Dict:
-        # can't pickle the tqdm objects
         state = self.__dict__.copy()
+        # both the console and progress object can hold thread lock objects that are not pickleable
         state["progress"] = None
         state["_console"] = None
         return state
