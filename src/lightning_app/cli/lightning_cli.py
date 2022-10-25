@@ -7,6 +7,7 @@ import arrow
 import click
 import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
+from lightning_cloud.openapi.rest import ApiException
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
@@ -373,32 +374,38 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
         app_name = inquirer.prompt(available_apps)["app_name"]
         app_id = [app.id for app in apps if app.name == app_name][0]
 
+    try:
+        instance = app_manager.get_app(app_id=app_id)
+    except ApiException:
+        raise click.ClickException("failed fetching app instance")
+
     components = app_manager.list_components(app_id=app_id)
     if component_name is None:
         available_components = [
             inquirer.List(
-                "component",
+                "component_name",
                 message="Which component to SSH into?",
                 choices=[work.name for work in components] + ["flow"],
             )
         ]
-        component_name = inquirer.prompt(available_components)["component"]
+        component_name = inquirer.prompt(available_components)["component_name"]
 
     component_id = None
     if component_name == "flow":
         component_id = f"lightningapp-{app_id}"
     elif component_name is not None:
-        work_id = [work.id for work in components if work.name == component_name][0]
-        component_id = f"lightningwork-{work_id}"
+        work_id = next(iter([work.id for work in components if work.name == component_name]), None)
+        if work_id is not None:
+            component_id = f"lightningwork-{work_id}"
 
     if component_id is None:
         raise click.ClickException(f"unable to find app component with name {component_name}")
 
-    instance = app_manager.get_app(app_id=app_id)
-    app_cluster = app_manager.api_client.cluster_service_get_cluster(id=instance.spec.cluster_id)
+    app_cluster = app_manager.get_cluster(cluster_id=instance.spec.cluster_id)
     ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
 
     os.execv("/usr/bin/ssh", ["-tt", f"{component_id}@{ssh_endpoint}"])
+    pass
 
 
 @_main.group()

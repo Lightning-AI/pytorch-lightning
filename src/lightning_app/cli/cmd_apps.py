@@ -5,6 +5,7 @@ from typing import List
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     Externalv1Lightningwork,
+    V1GetClusterResponse,
     V1LightningappInstanceState,
     V1LightningappInstanceStatus,
 )
@@ -23,7 +24,10 @@ class _AppManager:
     def __init__(self) -> None:
         self.api_client = LightningClient()
 
-    def get_app(self, app_id: str):
+    def get_cluster(self, cluster_id: str) -> V1GetClusterResponse:
+        return self.api_client.cluster_service_get_cluster(id=cluster_id)
+
+    def get_app(self, app_id: str) -> Externalv1LightningappInstance:
         project = _get_project(self.api_client)
         return self.api_client.lightningapp_instance_service_get_lightningapp_instance(
             project_id=project.project_id, id=app_id
