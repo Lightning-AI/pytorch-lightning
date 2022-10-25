@@ -3,12 +3,13 @@
 Debug cloud apps via SSH
 #################################
 
-**Audience:** Users that want to debug their cloud apps on their own machine
+**Audience:** Users that want to debug their cloud apps on their own machine.
 
-You can
-- Inspect files
-- Inspect the runtime environment
-- Monitor resources
+SSH allows you to access all your Lightning components in real time.
+This can be useful if you execute your app in a different environment than you develop it.
+This is often the case with applications that rely on GPUs.
+
+You can inspect the entire file system and monitor the runtime environment.
 
 ----
 
