@@ -425,18 +425,6 @@ def test_error_if_dataloaders_passed_with_fit_method():
         trainer.tune(model, dataloaders=dl, method="fit")
 
 
-def test_batch_size_finder_with_distributed_strategies():
-    """Test that an error is raised when batch size finder is used with multi-device strategy."""
-    trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
-    model = BoringModel()
-    bs_finder = BatchSizeFinder()
-
-    with pytest.raises(
-        MisconfigurationException, match="Batch size finder is not supported with distributed strategies."
-    ):
-        bs_finder.setup(trainer, model)
-
-
 def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
     """Test that an error is raised with batch size finder is called with multiple eval dataloaders."""
 
@@ -474,3 +462,22 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
     assert new_batch_size == model.batch_size
     assert new_batch_size == expected_batch_size
     assert trainer.train_dataloader.loaders.batch_size == expected_batch_size
+
+
+def test_batch_size_finder_with_ddp(tmpdir):
+    before_batch_size = 2
+    model = BatchSizeModel(batch_size=before_batch_size)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp",
+    )
+
+    after_batch_size = trainer.tuner.scale_batch_size(model, max_trials=5)
+    after_batch_size = trainer.strategy.broadcast(after_batch_size)
+
+    assert before_batch_size != after_batch_size
+    assert model.batch_size == after_batch_size

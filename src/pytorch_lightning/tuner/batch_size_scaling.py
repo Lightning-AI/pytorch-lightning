@@ -40,6 +40,7 @@ def scale_batch_size(
 
     # Save initial model, that is loaded after batch size is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
+    ckpt_path = trainer.strategy.broadcast(ckpt_path)
     trainer.save_checkpoint(ckpt_path)
 
     # Arguments we adjust during the batch size finder, save for restoring
