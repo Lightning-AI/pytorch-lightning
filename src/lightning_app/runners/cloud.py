@@ -289,7 +289,7 @@ class CloudRuntime(Runtime):
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id, app_id=lit_app.id
             )
-            queue_server_type = V1QueueServerType.REDIS if CLOUD_QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
+            queue_server_type = V1QueueServerType.HTTP if CLOUD_QUEUE_TYPE == "http" else V1QueueServerType.UNSPECIFIED
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
