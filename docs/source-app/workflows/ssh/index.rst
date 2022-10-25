@@ -8,7 +8,7 @@ Debug cloud apps via SSH
 ----
 
 **********************************************************
-Generating a new SSH key and configure ssh-agent
+Add SSH key to lightning
 **********************************************************
 Open a terminal and run the following command:
 
