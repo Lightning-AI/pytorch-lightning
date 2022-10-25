@@ -534,10 +534,11 @@ class LightningApp:
         return checkpoint_dict
 
     def _get_checkpoint_if_available_on_drive(self, checkpoint: str) -> Optional[dict]:
-        drive = Drive("lit://checkpoints", component_name="root")
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
+        drive = Drive("lit://checkpoints", component_name="root", root_folder=self.checkpoint_dir)
 
         with _context(ComponentContext.WORK):
-            found_checkpoints = drive.list(self.checkpoint_dir)
+            found_checkpoints = drive.list()
             logger.debug("Found checkpoints: %s", found_checkpoints)
 
         checkpoint_drive_path = ""
@@ -664,9 +665,9 @@ class LightningApp:
             state = apply_to_collection(self.state, (Path, Drive), lambda x: x.to_dict())
             json.dump(state, f)
 
-        drive = Drive("lit://checkpoints", component_name="root", allow_duplicates=True)
+        drive = Drive("lit://checkpoints", component_name="root", allow_duplicates=True, root_folder=self.checkpoint_dir)
         with _context(ComponentContext.WORK):
-            drive.put(checkpoint_path)
+            drive.put(f"{checkpoint_name}.json")
         return checkpoint_path
 
     def connect(self, runtime: "Runtime") -> None:

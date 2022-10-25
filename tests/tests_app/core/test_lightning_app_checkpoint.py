@@ -207,8 +207,9 @@ def test_load_dynamic_app_from_local_checkpoint_structure():
 def test_load_dynamic_app_from_local_checkpoint_complex_structure():
     app = LightningApp(SavedDynamicAppStructureComplexExample())
 
-    # This is the checkpoint file that was saved from the SavedDynamicAppStructureExample app and contains the state of
-    # the dynamic components in the structure and the state contains updated value of the text attribute.
+    # This is the checkpoint file that was saved from the SavedDynamicAppStructureComplexExample app and contains the
+    # state of the dynamic components in the structure and the structure contains a dynamic work with a state contains
+    # updated value of the text attribute.
 
     app.load_app_state_from_checkpoint(
         os.path.join(_PROJECT_ROOT, "tests/tests_app/test_date/saved_dynamic_app_checkpoint_complex_structure.json")
