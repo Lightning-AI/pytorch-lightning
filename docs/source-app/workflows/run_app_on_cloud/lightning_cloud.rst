@@ -15,12 +15,8 @@ To run any app on the public lightning cloud use the ``--cloud`` argument:
 
     lightning run app app.py --cloud
 
-
 .. note::
-    By default, running your apps on the public Lightning cloud is free of charge using default CPUs, and any app uploaded to the Lightning cloud will be shared with the community (source code and app view will be public). If you would like to make your apps private please `contact us <mailto:support@lightning.ai?subject=I%20want%20private%20apps!>`_.
-
-If your app contains ``LightningWork`` components that require more compute resources, such as larger CPUs or **GPUs**, you'll need to add credits to your Lightning AI account.
-
+    Running on Lightning Cloud requires signing up to lightning.ai and Lightning Credits to use resources such as compute and storage. By default every user has 3 free credits every month, if your app requires more credits you will need to add more credits to your account.  Read :ref:`credits` to learn more.
 
 ----
 
@@ -65,3 +61,4 @@ Choose Cloud Compute
 You can configure the hardware your app is running on by setting a :class:`~lightning.utilities.packaging.cloud_compute.CloudCompute` object onto the ``cloud_compute`` property of your work's.
 
 Learn more with the :ref:`cloud_compute` guide
+
