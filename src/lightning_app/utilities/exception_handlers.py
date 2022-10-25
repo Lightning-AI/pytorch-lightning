@@ -1,11 +1,12 @@
 from json import JSONDecodeError, loads
+from typing import Any
 
-from click import ClickException, Group
+from click import ClickException, Group, Context
 from lightning_cloud.openapi.rest import ApiException
 
 
 class ApiExceptionHandler(Group):
-    """Attempts to convert ApiExceptions to ClickExceptions, for each click.Command in the group.
+    """Attempts to convert ApiExceptions to ClickExceptions.
 
     This process clarifies the error for the user by:
     1. Showing the error message from the lightning.ai servers,
@@ -16,7 +17,7 @@ class ApiExceptionHandler(Group):
     a 4xx error, the original ApiException will be re-raised.
     """
 
-    def invoke(self, ctx):
+    def invoke(self, ctx: Context) -> Any:
         try:
             return super().invoke(ctx)
         except ApiException as api:
