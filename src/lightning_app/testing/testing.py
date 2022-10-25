@@ -496,7 +496,7 @@ def delete_cloud_lightning_apps():
             continue
         _delete_lightning_app(client, project_id=project.project_id, app_id=lit_app.id, app_name=lit_app.name)
 
-    print(f"deleting apps that were created more than 1 hour ago.")
+    print("deleting apps that were created more than 1 hour ago.")
 
     for lit_app in list_apps.lightningapps:
 
