@@ -30,6 +30,7 @@ from lightning_app.utilities.imports import _is_playwright_available, requires
 from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import _configure_session, LightningClient
+from lightning_app.utilities.packaging.lightning_utils import get_dist_path_if_editable_install
 from lightning_app.utilities.proxies import ProxyWorkRun
 
 if _is_playwright_available():
@@ -223,6 +224,10 @@ def run_app_in_cloud(
     basename = app_folder.split("/")[-1]
     PR_NUMBER = os.getenv("PR_NUMBER", None)
 
+    is_editable_mode = get_dist_path_if_editable_install("lightning")
+    if not is_editable_mode and PR_NUMBER is not None:
+        raise Exception("Lightning requires to be installed in editable mode in the CI.")
+
     TEST_APP_NAME = os.getenv("TEST_APP_NAME", basename)
     os.environ["TEST_APP_NAME"] = TEST_APP_NAME
 
@@ -280,14 +285,17 @@ def run_app_in_cloud(
             )
             process.wait()
 
-        has_found = False
-        with open(stdout_path) as f:
-            for line in f.readlines():
-                if "Packaged Lightning" in line:
-                    has_found = True
-                print(line)
+        if is_editable_mode:
+            # Added to ensure the current code is properly uploaded.
+            # Otherwise, it could result in un-tested PRs.
+            has_found = False
+            with open(stdout_path) as f:
+                for line in f.readlines():
+                    if "Packaged Lightning with your application" in line:
+                        has_found = True
+                    print(line)
 
-        assert has_found
+            assert has_found
         os.remove(stdout_path)
 
     # 5. Print your application name
