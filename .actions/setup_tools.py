@@ -119,11 +119,10 @@ def load_requirements(
     """
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
-    reqs = []
-    for ln in lines:
-        reqs.append(_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze))
-    # filter empty lines
-    return [str(req) for req in reqs if req]
+    reqs = [_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze) for ln in lines]
+    # filter empty lines and containing @ which means redirect to some git/http
+    reqs = [str(req) for req in reqs if req and not any(c in req for c in ["@", "http:", "https:"])]
+    return reqs
 
 
 def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
