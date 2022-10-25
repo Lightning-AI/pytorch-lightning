@@ -20,7 +20,7 @@ Before you can SSH to cloud machines, you will need to generate a new private SS
 
 
 Step 1: Create an SSH key
-===================
+==========================
 
 Open a terminal and run the following command (replace email with the address you used in your lightning.ai account):
 
@@ -40,7 +40,7 @@ At the prompt, type a secure passphrase.
 
 
 Step 2: add the key to the ssh-agent
-===========================
+====================================
 
 Next, start your ssh-agent in the background:
 
@@ -65,7 +65,7 @@ Lastly, verify your ssh-key is properly loaded:
    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAn8mYRnRG1banQcfXPCUC6R8FvQS+YgfIsl70/dD3Te your_email@example.com
 
 Step 3: Add your key to Lightning
-=========================
+=================================
 
 You can add SSH keys using Lightning.ai UI, or via this CLI command:
 
