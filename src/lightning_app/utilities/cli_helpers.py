@@ -111,7 +111,8 @@ class _LightningAppOpenAPIRetriever:
                 with open(cache_openapi) as f:
                     self.openapi = json.load(f)
                 self.api_commands = _extract_command_from_openapi(self.openapi)
-        else:
+
+        if not self.api_commands:
             self._collect_open_api_json()
             if self.openapi:
                 self.api_commands = _extract_command_from_openapi(self.openapi)
