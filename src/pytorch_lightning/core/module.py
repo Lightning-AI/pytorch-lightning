@@ -615,7 +615,7 @@ class LightningModule(
         Return:
             Any of.
 
-            - :class:`~torch.Tensor` - The loss tensor.
+            - :class:`~torch.Tensor` - The loss tensor
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
             - ``None`` - Training will skip to the next batch. This is only for automatic optimization.
                 This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
