@@ -34,8 +34,8 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import LightningApp, LightningWork
-from lightning_app.runners import backends, cloud
+from lightning_app import LightningApp, LightningWork, _PROJECT_ROOT
+from lightning_app.runners import backends, cloud, CloudRuntime
 from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
@@ -1010,13 +1010,6 @@ def test_project_has_sufficient_credits():
     MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
 )
 def test_load_app_from_file_module_error():
-    import builtins
-
-    with mock.patch.object(builtins, "input", lambda _: "y"):
-        empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
-        isinstance(empty_app, LightningApp)
-        isinstance(empty_app.root, EmptyFlow)
-
-    with mock.patch.object(builtins, "input", lambda _: "n"), pytest.raises(SystemExit):
-        return_empty = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
-        assert return_empty is None
+    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
+    assert isinstance(empty_app, LightningApp)
+    assert isinstance(empty_app.root, EmptyFlow)
