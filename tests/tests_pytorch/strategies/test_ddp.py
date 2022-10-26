@@ -18,7 +18,7 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy
@@ -34,7 +34,6 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skip()
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_multi_gpu_model_ddp_test_only(tmpdir):
     model = BoringModel()
@@ -49,7 +48,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=4)
     trainer.fit(model)
-    # trainer.test(model)
+    trainer.test(model)
 
 
 @RunIf(skip_windows=True)
@@ -90,7 +89,6 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, cuda_count_1, tmp
         trainer.fit(model)
 
 
-@pytest.mark.skip()
 @RunIf(min_cuda_gpus=2, min_torch="1.8.1", standalone=True)
 @pytest.mark.parametrize("precision", (16, 32))
 def test_ddp_wrapper(tmpdir, precision):
