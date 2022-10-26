@@ -7,7 +7,7 @@ import uvicorn
 from fastapi import FastAPI
 from uvicorn import run
 
-from lightning import BuildConfig, LightningWork
+from lightning_app import BuildConfig, LightningWork
 from lightning_app.components.database.utilities import _create_database, _Delete, _Insert, _SelectAll, _Update
 from lightning_app.storage import Drive
 from lightning_app.utilities.imports import _is_sqlmodel_available
@@ -55,7 +55,7 @@ class Database(LightningWork):
             from sqlmodel import SQLModel, Field
             from uuid import uuid4
 
-            from lightning import LightningFlow, LightningApp
+            from lightning_app import LightningFlow, LightningApp
             from lightning_app.components.database import Database, DatabaseClient
 
             class CounterModel(SQLModel, table=True):

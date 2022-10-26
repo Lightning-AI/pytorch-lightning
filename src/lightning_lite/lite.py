@@ -186,7 +186,7 @@ class LightningLite(ABC):
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return model, *optimizers
+            return tuple((model, *optimizers))
         return model
 
     def setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
@@ -232,7 +232,7 @@ class LightningLite(ABC):
             *optimizers: One or more optmizers to set up.
 
         Returns:
-            The wrapped model.
+            The wrapped optimizer(s).
         """
         self._validate_setup_optimizers(optimizers)
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]

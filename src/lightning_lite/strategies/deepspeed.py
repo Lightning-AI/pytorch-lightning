@@ -302,9 +302,9 @@ class DeepSpeedStrategy(DDPStrategy):
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
-        """Setup a model and multiple optimizers together.
+        """Set up a model and multiple optimizers together.
 
-        Currently only a single optimizer is supported.
+        Currently, only a single optimizer is supported.
 
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
@@ -321,10 +321,18 @@ class DeepSpeedStrategy(DDPStrategy):
         return self._deepspeed_engine, [optimizer]
 
     def setup_module(self, module: Module) -> "deepspeed.DeepSpeedEngine":
+        """Set up a module for inference (no optimizers).
+
+        For training, see :meth:`setup_module_and_optimizers`.
+        """
         self._deepspeed_engine, _ = self._initialize_engine(module)
         return self._deepspeed_engine
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer together.
+        """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextlib.contextmanager

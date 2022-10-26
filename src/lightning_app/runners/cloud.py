@@ -137,7 +137,6 @@ class CloudRuntime(Runtime):
                     name=work.cloud_compute.name,
                     count=1,
                     disk_size=work.cloud_compute.disk_size,
-                    preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
                 )
 
@@ -432,5 +431,5 @@ def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDri
             ),
             status=V1DriveStatus(),
         ),
-        mount_location=str(mount.root_dir),
+        mount_location=str(mount.mount_path),
     )
