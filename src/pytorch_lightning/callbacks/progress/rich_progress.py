@@ -357,6 +357,8 @@ class RichProgressBar(ProgressBarBase):
         if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
 
+        assert self.progress is not None
+
         if trainer.sanity_checking:
             if self.val_sanity_progress_bar_id is not None:
                 self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
