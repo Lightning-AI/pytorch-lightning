@@ -1,7 +1,7 @@
 
-#################################
+########################
 Debug cloud apps via SSH
-#################################
+########################
 
 **Audience:** Users that want to debug their cloud apps on their own machine.
 
