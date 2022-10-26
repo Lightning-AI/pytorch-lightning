@@ -90,7 +90,7 @@ class FileServer(L.LightningWork):
             "size": full_size,
             "drive_path": uploaded_file,
         }
-        with open(self.get_filepath(meta_file), "wt") as f:
+        with open(self.get_filepath(meta_file), "w") as f:
             json.dump(meta, f)
 
         # 5: Put the file to the drive.
