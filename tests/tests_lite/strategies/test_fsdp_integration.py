@@ -129,7 +129,7 @@ class SetupOptimizerLite(LightningLite):
         wrapped_module = self.setup_model(module)
         good_optimizer = Adam(wrapped_module.parameters())
 
-        with pytest.raises(ValueError, match="sdf"):
+        with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
             self.setup_optimizers(bad_optimizer)
 
         assert self.setup_optimizers(good_optimizer) == good_optimizer
