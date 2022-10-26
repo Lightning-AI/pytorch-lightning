@@ -172,7 +172,7 @@ def _all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    if not distributed_available():
+    if not _distributed_available():
         return tensor
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
     with nullcontext() if sync_grads else torch.no_grad():
