@@ -40,13 +40,13 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
-from lightning_app.core.constants import ENABLE_APP_CHECKPOINT
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
     CLOUD_QUEUE_TYPE,
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
+    ENABLE_APP_CHECKPOINT,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
 )
