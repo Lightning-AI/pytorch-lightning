@@ -107,7 +107,7 @@ Welcome to ⚡ Lightning Apps
 
 .. toctree::
    :maxdepth: 1
-   :caption: Glossaryedenedeneden
+   :caption: Glossary
 
    App Components Tree <glossary/app_tree>
    Build Configuration <glossary/build_config/build_config>
