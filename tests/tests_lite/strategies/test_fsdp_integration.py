@@ -122,7 +122,6 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 
 
 class SetupOptimizerLite(LightningLite):
-
     def run(self):
         module = nn.Linear(2, 2)
         bad_optimizer = Adam(module.parameters())
