@@ -129,7 +129,7 @@ class StochasticWeightAveraging(Callback):
         self._scheduler_state: Optional[Dict] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
-        self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
+        self.momenta: Dict[nn.modules.batchnorm._BatchNorm, Optional[float]] = {}
         self._max_epochs: int
 
     @property
@@ -160,6 +160,7 @@ class StochasticWeightAveraging(Callback):
         if len(trainer.lr_scheduler_configs) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
+        assert trainer.max_epochs is not None
         if isinstance(self._swa_epoch_start, float):
             self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
@@ -189,6 +190,7 @@ class StochasticWeightAveraging(Callback):
             for lr, group in zip(self._swa_lrs, optimizer.param_groups):
                 group["initial_lr"] = lr
 
+            assert trainer.max_epochs is not None
             self._swa_scheduler = cast(
                 _LRScheduler,
                 SWALR(
@@ -296,15 +298,14 @@ class StochasticWeightAveraging(Callback):
                 dtype=module.running_var.dtype,
             )
             self.momenta[module] = module.momentum
-            module.momentum = float()
+            module.momentum = None  # type: ignore[assignment]
             assert module.num_batches_tracked is not None
             module.num_batches_tracked *= 0
 
     def reset_momenta(self) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
-        assert self.momenta is not None
         for bn_module in self.momenta:
-            bn_module.momentum = self.momenta[bn_module]
+            bn_module.momentum = self.momenta[bn_module]  # type: ignore[assignment]
 
     @staticmethod
     def update_parameters(

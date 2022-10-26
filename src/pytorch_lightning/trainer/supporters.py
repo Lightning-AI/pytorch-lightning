@@ -22,13 +22,12 @@ from torch.utils.data import Dataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
-from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.distributed import _distributed_available
 from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     MergedIteratorState,
     patch_dataloader_iterator,
 )
-from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -408,7 +407,7 @@ class CombinedLoader:
                 dataloader = dataloader_to_iter_on.loader
 
             # dataset states are collected across all ranks
-            rank = torch.distributed.get_rank() if distributed_available() else 0
+            rank = torch.distributed.get_rank() if _distributed_available() else 0
             state_dict = state_dict[rank]
 
             _reload_dataloader_state_dict(dataloader, state_dict)
@@ -457,6 +456,8 @@ class CombinedLoader:
         Returns:
             the wrapped loaders
         """
+        from pytorch_lightning.utilities.data import get_len
+
         all_lengths = apply_to_collection(self.loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
 
         length = _nested_calc_num_data(all_lengths, max)
@@ -473,6 +474,8 @@ class CombinedLoader:
     def _apply_cycle_iterator_length(self) -> None:
         """When the model is `max_size_cycle`, compute the length across all ``CycleIterator`` and re-assign it to
         all dataloaders."""
+        from pytorch_lightning.utilities.data import get_len
+
         if self.mode != "max_size_cycle":
             return
 
@@ -509,6 +512,8 @@ class CombinedLoader:
         Returns:
             length: the minimum length of loaders
         """
+        from pytorch_lightning.utilities.data import get_len
+
         all_lengths = apply_to_collection(loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
 
         if isinstance(all_lengths, (int, float)):

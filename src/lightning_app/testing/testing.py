@@ -27,8 +27,10 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
+from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import _configure_session, LightningClient
+from lightning_app.utilities.packaging.lightning_utils import get_dist_path_if_editable_install
 from lightning_app.utilities.proxies import ProxyWorkRun
 
 if _is_playwright_available():
@@ -222,6 +224,10 @@ def run_app_in_cloud(
     basename = app_folder.split("/")[-1]
     PR_NUMBER = os.getenv("PR_NUMBER", None)
 
+    is_editable_mode = get_dist_path_if_editable_install("lightning")
+    if not is_editable_mode and PR_NUMBER is not None:
+        raise Exception("Lightning requires to be installed in editable mode in the CI.")
+
     TEST_APP_NAME = os.getenv("TEST_APP_NAME", basename)
     os.environ["TEST_APP_NAME"] = TEST_APP_NAME
 
@@ -253,29 +259,35 @@ def run_app_in_cloud(
             env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
-        process = Popen(
-            (
-                [
-                    sys.executable,
-                    "-m",
-                    "lightning",
-                    "run",
-                    "app",
-                    app_name,
-                    "--cloud",
-                    "--name",
-                    name,
-                    "--open-ui",
-                    "false",
-                ]
-                + extra_args
-            ),
-            cwd=tmpdir,
-            env=env_copy,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-        )
-        process.wait()
+        stdout_path = get_logfile(f"run_app_in_cloud_{name}")
+        with open(stdout_path, "w") as stdout:
+            cmd = [
+                sys.executable,
+                "-m",
+                "lightning",
+                "run",
+                "app",
+                app_name,
+                "--cloud",
+                "--name",
+                name,
+                "--open-ui",
+                "false",
+            ]
+            process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
+            process.wait()
+
+        if is_editable_mode:
+            # Added to ensure the current code is properly uploaded.
+            # Otherwise, it could result in un-tested PRs.
+            pkg_found = False
+            with open(stdout_path) as fo:
+                for line in fo.readlines():
+                    if "Packaged Lightning with your application" in line:
+                        pkg_found = True
+                    print(line)  # TODO: use logging
+            assert pkg_found
+        os.remove(stdout_path)
 
     # 5. Print your application name
     print(f"The Lightning App Name is: [bold magenta]{name}[/bold magenta]")
@@ -358,7 +370,7 @@ def run_app_in_cloud(
         client = LightningClient()
         project = _get_project(client)
 
-        lightning_apps = [
+        lit_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id
@@ -366,11 +378,11 @@ def run_app_in_cloud(
             if app.name == name
         ]
 
-        if not lightning_apps:
+        if not lit_apps:
             return True
 
-        assert len(lightning_apps) == 1
-        app_id = lightning_apps[0].id
+        assert len(lit_apps) == 1
+        app_id = lit_apps[0].id
 
         if debug:
             process = Process(target=print_logs, kwargs={"app_id": app_id})
@@ -385,6 +397,22 @@ def run_app_in_cloud(
                 break
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
+
+        lit_apps = [
+            app
+            for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            ).lightningapps
+            if app.name == name
+        ]
+
+        app_url = lit_apps[0].status.url
+
+        while True:
+            sleep(1)
+            resp = requests.get(app_url + "/openapi.json")
+            if resp.status_code == 200:
+                break
 
         print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
@@ -460,19 +488,19 @@ def delete_cloud_lightning_apps():
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
-    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
+    list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-    print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
+    print([lit_app.name for lit_app in list_apps.lightningapps])
 
-    for lightningapp in list_lightningapps.lightningapps:
-        if pr_number and app_name and not lightningapp.name.startswith(f"test-{pr_number}-{app_name}-"):
+    for lit_app in list_apps.lightningapps:
+        if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
             continue
-        print(f"Deleting {lightningapp.name}")
+        print(f"Deleting {lit_app.name}")
         try:
             res = client.lightningapp_instance_service_delete_lightningapp_instance(
                 project_id=project.project_id,
-                id=lightningapp.id,
+                id=lit_app.id,
             )
             assert res == {}
         except ApiException as e:
-            print(f"Failed to delete {lightningapp.name}. Exception {e}")
+            print(f"Failed to delete {lit_app.name}. Exception {e}")

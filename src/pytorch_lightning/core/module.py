@@ -36,7 +36,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import distributed_available, sync_ddp
+from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -88,6 +88,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
+            "use_amp",  # from graveyard
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -449,8 +450,8 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or sync_ddp,
+            sync_dist=sync_dist and _distributed_available(),
+            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -598,7 +599,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -1180,10 +1181,6 @@ class LightningModule(
                 early_stop = EarlyStopping(monitor="val_acc", mode="max")
                 checkpoint = ModelCheckpoint(monitor="val_loss")
                 return [early_stop, checkpoint]
-
-        Note:
-            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
-            will never be invoked on the new callbacks returned here.
         """
         return []
 

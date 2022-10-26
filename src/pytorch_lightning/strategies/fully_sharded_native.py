@@ -20,11 +20,15 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import (
+    _get_default_process_group_backend_for_device,
+    _init_dist_connection,
+    _sync_ddp_if_available,
+)
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import ProcessGroup, ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
@@ -36,7 +40,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
-from pytorch_lightning.utilities.types import ProcessGroup, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _distributed_available = torch.distributed.is_available()
 _fsdp_available = _TORCH_GREATER_EQUAL_1_12 and _distributed_available
@@ -180,11 +184,11 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        init_dist_connection(self.cluster_environment, self._process_group_backend)
+        _init_dist_connection(self.cluster_environment, self._process_group_backend)
         super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
+        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
@@ -247,7 +251,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.barrier()
 
         self.setup_optimizers(trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
 
         self.setup_precision_plugin()
 
@@ -301,7 +305,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:

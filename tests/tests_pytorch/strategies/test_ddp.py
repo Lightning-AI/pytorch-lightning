@@ -57,8 +57,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning_lite.utilities.device_parser._get_all_available_mps_gpus", return_value=list(range(2)))
-def test_torch_distributed_backend_invalid(_, cuda_count_2, tmpdir):
+def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     model = BoringModel()
     trainer = Trainer(

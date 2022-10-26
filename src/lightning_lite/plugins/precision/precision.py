@@ -14,11 +14,13 @@
 import contextlib
 from typing import Any, Dict, Generator, Optional, Union
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning_lite.utilities.types import _PARAMETERS, Steppable
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
+from lightning_lite.utilities.types import _PARAMETERS, Optimizable
 
 
 class Precision:
@@ -40,6 +42,13 @@ class Precision:
     def forward_context(self) -> Generator[None, None, None]:
         """A contextmanager for managing model forward/training_step/evaluation_step/predict_step."""
         yield
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        """Convert model inputs (forward) to the floating point precision type of this plugin.
+
+        This is a no-op for tensors that are not of floating-point type or already have the desired type.
+        """
+        return _convert_fp_tensor(data, torch.float32)
 
     def pre_backward(self, tensor: Tensor, module: Optional[Module]) -> Any:
         """Runs before precision plugin executes backward.
@@ -68,7 +77,7 @@ class Precision:
 
     def optimizer_step(
         self,
-        optimizer: Steppable,
+        optimizer: Optimizable,
         **kwargs: Any,
     ) -> Any:
         """Hook to run the optimizer step."""
