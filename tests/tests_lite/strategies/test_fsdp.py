@@ -45,3 +45,17 @@ def test_fsdp_custom_mixed_precision(*_):
     #
     # wrapped_module = strategy.setup_module(nn.Linear(3, 3))
     # assert wrapped_module.mixed_precision == config
+
+
+def test_fsdp_setup_optimizer_validation():
+    """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
+    module = nn.Linear(2, 2)
+    strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
+
+    bad_optimizer = Adam([{'params': [module.weight]}, {'params': [module.bias], 'lr': 1e-3}])
+    with pytest.raises(ValueError, match="does not support multiple param groups"):
+        strategy.setup_optimizer(bad_optimizer)
+
+    bad_optimizer = Adam(module.parameters())
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
+        strategy.setup_optimizer(bad_optimizer)
